@@ -1,0 +1,48 @@
+# Tuning configuration for the 2D ABF-FR study (xi(x, y) = x).
+# Moderate (NOT huge) settings. Do NOT run automatically; launch explicitly with
+#   python scripts/run_abf_fr_grid.py --config configs/two_dim_xi_x_tuning.yaml --stage tuning
+# This grid is intentionally large (many configs x seeds x 100k steps) and is a
+# long, CPU-bound production run -- see the README cost note before launching.
+experiment_name: two_dim_xi_x
+output_root: results/two_dim_xi_x
+
+domain:
+  x_min: -3.0
+  x_max: 3.0
+  y_min: -2.5
+  y_max: 3.5
+  nx_ref: 801
+  ny_ref: 801
+  nx_profile: 401
+
+simulation:
+  beta: 4.0
+  dt: 0.002
+  n_particles: 1000
+  n_steps: 100000
+  eval_every: 1000
+  seeds: [0, 1, 2, 3, 4]
+  x_init_mode: mixed
+  y_init_mode: mixed
+
+abf:
+  h: 0.05
+  min_count: 1.0
+  ema_alpha: 0.05
+
+fr:
+  enabled: true
+  target_types: ["estimated", "uniform", "oracle"]
+  gamma_values: [0.01, 0.02, 0.05, 0.1]
+  eta_values: [0.075, 0.10, 0.15]
+  burnin_fractions: [0.0, 0.2, 0.4]
+  ramp_fraction: 0.1
+  fr_every_values: [5]
+  score_clip: 5.0
+  max_event_fraction: 0.10
+
+methods:
+  - abf_only
+  - abf_fr_estimated
+  - abf_fr_uniform
+  - abf_fr_oracle
