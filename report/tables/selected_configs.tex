@@ -1,0 +1,16 @@
+\begin{table}[t]
+\centering
+\small
+\caption{Hyperparameters of the selected configurations (integrated-$L^2(F)$ rule). $n_{\rm FR}$ is the Fisher--Rao stride \texttt{fr\_every}.}
+\label{tab:selected_configs}
+\begin{tabular}{llrrrrr}
+\toprule
+Method & target & $\gamma$ & $\eta$ & burn-in & $n_{\rm FR}$ & seeds \\
+\midrule
+ABF only & none & 0 & 0.075 & 0 & 1 & 5 \\
+FR estimated & estimated & 0.1 & 0.075 & 0 & 5 & 5 \\
+FR uniform & uniform & 0.05 & 0.15 & 0.2 & 5 & 5 \\
+FR oracle* & oracle & 0.1 & 0.075 & 0 & 5 & 5 \\
+\bottomrule
+\end{tabular}
+\end{table}

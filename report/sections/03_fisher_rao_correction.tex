@@ -1,0 +1,151 @@
+\section{The Fisher--Rao marginal correction}
+\label{sec:fr}
+
+The Fisher--Rao (FR) correction is a birth--death / particle-reallocation step
+that acts on the \emph{reaction-coordinate marginal} of the ensemble. It is
+interleaved with the ABF dynamics~\eqref{eq:abf_sde} and is designed to drive the
+empirical marginal $\phat_t(x)$ toward a target marginal $q_t(x)$, without
+adding any drift to the $(x,y)$ dynamics.
+
+\subsection{Empirical and target marginals}
+At step $n$, after the Langevin proposal of all $N$ replicas, the empirical
+reaction-coordinate marginal is estimated by a (reflected, edge-corrected)
+kernel density / binned-smoothed estimate of bandwidth $\eta$,
+\begin{equation}
+  \phat_{n}(x) \;=\; \frac{1}{N}\sum_{i=1}^{N} K_\eta\!\bigl(x-X_n^i\bigr),
+  \label{eq:phat}
+\end{equation}
+renormalised on the $x$-grid. The target $q_n(x)$ is one of three choices
+(\cref{sec:targets}); all are nonnegative and normalised, $\int q_n=1$.
+
+\subsection{Fisher--Rao score}
+For each particle the FR \emph{score} is the pointwise log-ratio of the
+empirical to the target marginal, with its ensemble mean removed:
+\begin{equation}
+  S_i \;=\;
+  \log\frac{\phat_n(X^i_n)+\varepsilon}{q_n(X^i_n)+\varepsilon}
+  \;-\;
+  \underbrace{\int \phat_n(z)\,\log\frac{\phat_n(z)}{q_n(z)}\dd z}
+  _{=\,\mathrm{KL}(\phat_n\,\Vert\,q_n)} ,
+  \label{eq:score}
+\end{equation}
+where $\varepsilon>0$ is a small regulariser and the integral baseline equals
+the Kullback--Leibler divergence $\mathrm{KL}(\phat_n\Vert q_n)$ (a grid
+quadrature; it coincides with the Monte-Carlo baseline
+$\tfrac1N\sum_k\log[\phat_n(X^k)/q_n(X^k)]$ up to discretisation). Subtracting
+the baseline makes the score mean-zero, so the birth--death step below conserves
+the expected particle number. The score is clipped to $[-S_{\max},S_{\max}]$
+for stability. Its interpretation is direct:
+\begin{itemize}
+  \item $S_i>0$: $X^i$ lies where $\phat_n>q_n$, an \emph{over-represented}
+        region (too many particles);
+  \item $S_i<0$: $X^i$ lies where $\phat_n<q_n$, an \emph{under-represented}
+        region (too few particles).
+\end{itemize}
+
+\subsection{Birth--death resampling}
+The FR step realises the Fisher--Rao gradient flow of
+$\mathrm{KL}(\phat\Vert q)$ as a fixed-$N$ birth--death process. Over a sub-step
+of length $\Delta t$ and at effective rate $\gamma_n^{\mathrm{eff}}$
+(\cref{sec:schedule}), each \emph{over-represented} particle ($S_i>0$) is killed
+with probability
+\begin{equation}
+  \mathbb P(\text{$i$ dies}) \;=\; 1-\exp\!\bigl(-\gamma_n^{\mathrm{eff}}\,S_i\,\Delta t\bigr),
+  \label{eq:death}
+\end{equation}
+and every killed slot is overwritten by a \emph{clone} of an
+\emph{under-represented} particle, sampled from the pool $\{i:S_i<0\}$ with
+weights $\propto|S_i|$. Cloning copies the \emph{whole} configuration
+$(X^i,Y^i)$ --- the score depends only on $x$, but the $y$-coordinate must travel
+with its $x$-coordinate, or \cref{prop:cond_invariance} would be violated. The
+step is made deliberately gentle by three safeguards: (i) a burn-in and soft
+ramp on the rate; (ii) score clipping; and (iii) a hard cap
+$f_{\max}$ on the fraction of particles replaced per event
+(\texttt{max\_event\_fraction}), enforced by randomly sub-sampling deaths when
+the cap is exceeded. Net effect: gently replace particles in crowded regions of
+$x$ by copies from starved regions, leaving $N$ fixed.
+
+\subsection{Rate schedule}
+\label{sec:schedule}
+The FR rate is zero during an initial burn-in of $n_{\mathrm{burnin}}=
+\lfloor b\,n_{\mathrm{steps}}\rfloor$ steps (burn-in fraction $b$), then ramps
+softly to its maximum $\gamma$,
+\begin{equation}
+  \gamma_n^{\mathrm{eff}} \;=\;
+  \gamma\,\Bigl(1-e^{-(n-n_{\mathrm{burnin}})/n_{\mathrm{ramp}}}\Bigr),
+  \qquad n>n_{\mathrm{burnin}},
+  \label{eq:ramp}
+\end{equation}
+and the birth--death step is applied every $\texttt{fr\_every}$ steps. The
+burn-in lets ABF build a usable mean-force estimate (hence a usable target)
+before any particles are moved; the ramp avoids a sudden shock to the ensemble.
+
+\subsection{Target marginals: estimated, uniform, oracle}
+\label{sec:targets}
+The three targets differ only in which density $q_n$ the score~\eqref{eq:score}
+is taken against. Recall $\Bt=\Fhat_n$ is the current ABF bias.
+
+\paragraph{Estimated target (the practical method).}
+A target free energy $\Fhat_n^{\mathrm{target}}$ is maintained independently of
+the bias by an exponential moving average of the ABF estimate,
+$\Fhat_{n+1}^{\mathrm{target}}=(1-r)\,\Fhat_n^{\mathrm{target}}+r\,\Fhat_{n+1}$,
+and the target marginal is the \emph{biased} marginal that this target free
+energy would induce under the current bias,
+\begin{equation}
+  q_n^{\mathrm{est}}(x) \;\propto\;
+  \exp\!\Bigl[-\beta\bigl(\Fhat_n^{\mathrm{target}}(x)-\Bt(x)\bigr)\Bigr].
+  \label{eq:q_est}
+\end{equation}
+This uses only quantities available at run time and is the method whose
+practical value we assess.
+
+\paragraph{Uniform target (a naive ablation).}
+\begin{equation}
+  q_n^{\mathrm{unif}}(x) \;=\; \mathrm{Unif}(x)\quad\text{on the $x$-grid.}
+  \label{eq:q_unif}
+\end{equation}
+This tests whether simply \emph{flattening} the reaction-coordinate marginal is
+enough. It is a target ablation, not the intended method; it ignores the fact
+that, under a bias $\Bt\neq F$, the canonical biased marginal is not uniform.
+
+\paragraph{Oracle target (a diagnostic control only).}
+\begin{equation}
+  q_n^{\mathrm{oracle}}(x) \;\propto\;
+  \exp\!\Bigl[-\beta\bigl(\Fref(x)-\Bt(x)\bigr)\Bigr].
+  \label{eq:q_oracle}
+\end{equation}
+\begin{remark}[The oracle target is not an algorithm]
+\label{rem:oracle}
+Equation~\eqref{eq:q_oracle} replaces the estimated target free energy by the
+\emph{reference} free energy $\Fref$ --- which is exactly the unknown quantity
+the whole procedure is trying to compute. The oracle target therefore
+\emph{cannot} be evaluated in any real free-energy calculation. We include it
+solely as a \emph{diagnostic / positive / ideal-information control}: it
+measures how much the FR mechanism \emph{could} help if the target marginal
+direction were specified perfectly. Throughout this report the oracle is read
+only in that way; we never claim that ``oracle FR is the best method'' or that
+``one should use the oracle target''. The practical comparison is always
+\[
+  \text{ABF only}\qquad\text{versus}\qquad\text{ABF}+\text{estimated-target FR},
+\]
+and the estimated-versus-oracle gap is interpreted as the headroom available
+from improving the online target estimate.
+\end{remark}
+
+\subsection{The coupled ABF--FR step}
+One outer iteration, given the state $\{(X^i_n,Y^i_n)\}$ and accumulators, is:
+\begin{enumerate}
+  \item update the ABF accumulators from the current particles and recompute
+        $\Fphat_n,\Fhat_n=\Bt$ (\cref{sec:abf_estimator});
+  \item propose the biased Langevin move~\eqref{eq:abf_sde} for all replicas;
+  \item if FR is active at this step (past burn-in, on the \texttt{fr\_every}
+        schedule): form $\phat_n$~\eqref{eq:phat} and the target $q_n$ ---
+        one of~\eqref{eq:q_est},~\eqref{eq:q_unif},~\eqref{eq:q_oracle} ---
+        compute the scores~\eqref{eq:score}, and apply the birth--death
+        step~\eqref{eq:death};
+  \item record diagnostics at the evaluation cadence.
+\end{enumerate}
+The ABF estimator sees the post-resampling ensemble at the next step, which is
+the route by which improved $x$-coverage feeds back into a better mean-force
+estimate. The remainder of the report quantifies whether, and how, this feedback
+is beneficial.

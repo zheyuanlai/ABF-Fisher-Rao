@@ -1,0 +1,73 @@
+\section{Introduction}
+\label{sec:intro}
+
+\subsection{Free-energy computation along a reaction coordinate}
+A central task in computational statistical mechanics is to compute the free
+energy associated with a low-dimensional \emph{reaction coordinate} of a
+high-dimensional system in thermal equilibrium~\citep{LelievreRoussetStoltz2010}.
+Let $q=(x,y)\in\R^2$ denote a configuration\footnote{We write a configuration
+as $q=(x,y)$. The symbol $q_t(x)$, always carrying a time subscript and a scalar
+argument, denotes instead the Fisher--Rao \emph{target marginal} of
+\cref{sec:fr}; the two are never used in the same role.} drawn from the
+canonical (Boltzmann--Gibbs) density
+\begin{equation}
+  \pi(x,y) \;\propto\; e^{-\beta V(x,y)},
+  \label{eq:canonical}
+\end{equation}
+where $V$ is the potential energy and $\beta=1/(k_{\mathrm B}T)$ is the inverse
+temperature. Fixing the reaction coordinate to the first coordinate,
+$\xib(x,y)=x$, the free energy $F(x)$ and the (local) mean force $F'(x)$ along
+$\xib$ are the objects of interest. The difficulty is metastability: when $V$
+has well-separated basins along $x$, unbiased Langevin dynamics crosses the
+barrier rarely, so a direct estimate of $F$ converges intolerably slowly.
+
+\subsection{Adaptive Biasing Force}
+The Adaptive Biasing Force (ABF) method~\citep{DarvePohorille2001,Henin2004,
+Comer2015} removes this metastability adaptively. It maintains a running
+estimate $\Fphat_t(x)$ of the mean force and applies the antiderivative
+$\Bt(x)=\int^x\Fphat_t$ as a bias that depends only on $x$. As
+$\Bt\to F$, the effective dynamics along $x$ becomes diffusive and the
+reaction coordinate is explored freely, while --- crucially --- the bias does
+not change the conditional law of the orthogonal degrees of freedom given $x$.
+ABF is mathematically well understood, with long-time convergence
+guarantees~\citep{LelievreRoussetStoltz2008}, and is a natural baseline against
+which to measure any proposed enhancement.
+
+\subsection{Why add a Fisher--Rao correction?}
+ABF accelerates exploration through the \emph{force}, but it does not directly
+control \emph{where the particles are}. Early in a simulation the estimated bias
+is poor, so the empirical reaction-coordinate marginal $\phat_t(x)$ can remain
+concentrated in the initial basin, starving other values of $x$ of the samples
+ABF needs to estimate $F'(x)$ there. A Fisher--Rao (FR) birth--death
+correction~\citep{LuLuNolen2019} addresses exactly this: interpreting the
+evolution of $\phat_t$ as a gradient flow of relative entropy in the
+Fisher--Rao geometry~\citep{Amari2016}, one reallocates probability mass by
+\emph{killing} particles in over-represented regions and \emph{cloning}
+particles in under-represented regions, driving $\phat_t$ toward a chosen target
+marginal $q_t(x)$ without integrating any additional dynamics. Coupling such a
+correction to ABF is appealing because the two act on complementary objects
+(force versus density), but it is not obvious that it helps: a birth--death step
+resamples \emph{whole} configurations $(x,y)$, and if it distorts the
+conditional law $Y\mid X=x$ it will corrupt precisely the quantity ABF
+estimates.
+
+\subsection{Central question and contributions}
+This report asks three questions on a controlled example where the exact answer
+$\Fref$ is available by quadrature:
+\begin{enumerate}
+  \item \textbf{Does FR help ABF?} (Q1)
+  \item \textbf{How should FR be added so that it helps?} (Q2--Q3)
+  \item \textbf{What are the limitations, failure modes, and future
+        directions?} (Q4)
+\end{enumerate}
+Our contributions are: (i) a precise statement of the coupled ABF--FR algorithm
+in consistent notation (\cref{sec:abf,sec:fr}); (ii) a large production study
+(\NRuns{} runs) that quantifies, with matched seeds, the effect of FR and of its
+target marginal (\cref{sec:design,sec:results}); and (iii) a mechanistic
+analysis (\cref{sec:mechanism}) separating the contribution of the FR
+\emph{mechanism} from that of the FR \emph{target}. A recurring methodological
+point is the careful interpretation of an \emph{oracle} target that uses
+$\Fref$: it is a diagnostic control that bounds the achievable benefit, never a
+deployable method. We find that the practical, estimated-target FR is a
+\emph{modest convergence accelerator} here, and we delineate the conditions
+under which it helps and those under which it could hurt.

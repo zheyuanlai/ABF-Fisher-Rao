@@ -1,0 +1,124 @@
+\section{Background: ABF for a reaction-coordinate free energy}
+\label{sec:abf}
+
+\subsection{Free energy and the unbiased marginal}
+With reaction coordinate $\xib(x,y)=x$, the unbiased reaction-coordinate
+marginal of the canonical density~\eqref{eq:canonical} is
+\begin{equation}
+  \pref(x) \;=\;
+  \frac{\displaystyle\int e^{-\beta V(x,y)}\dd y}
+       {\displaystyle\iint e^{-\beta V(x,y)}\dd x\dd y},
+  \label{eq:pref}
+\end{equation}
+and the free energy along $\xib$ is, up to an additive constant,
+\begin{equation}
+  \Fref(x) \;=\; -\frac{1}{\beta}\,\log \pref(x) + C.
+  \label{eq:Fref}
+\end{equation}
+Because $F$ is defined only up to the constant $C$, every free-energy profile in
+this report --- both estimates and the reference --- is \emph{centred} (its mean
+over the interior evaluation window is subtracted) before any $\Ltwo$ error is
+formed; otherwise a meaningless constant offset would dominate the comparison.
+The reference quantities are computed by a one-dimensional $y$-quadrature on a
+fine grid with a log-sum-exp shift for numerical stability, which is exact up to
+discretisation and provides the ground truth $\Fref,\Fpref,\pref$.
+
+\subsection{The mean force is the object ABF estimates}
+Differentiating~\eqref{eq:Fref} and using $\partial_x \pref$ gives the
+\emph{mean force}
+\begin{equation}
+  \Fpref(x) \;=\;
+  \frac{\displaystyle\int \partial_x V(x,y)\,e^{-\beta V(x,y)}\dd y}
+       {\displaystyle\int e^{-\beta V(x,y)}\dd y}
+  \;=\; \E_{\pi}\!\left[\,\partial_x V(X,Y)\,\middle|\, X=x\,\right].
+  \label{eq:meanforce}
+\end{equation}
+Equation~\eqref{eq:meanforce} is the cornerstone of ABF: the gradient of the
+free energy equals the \emph{conditional expectation of the instantaneous force}
+$\partial_x V$ given the reaction coordinate. It is a local, sample-based
+quantity --- no integral of $V$ is required --- so it can be estimated on the
+fly from the particles currently at $X\approx x$, and the free energy is then
+recovered by quadrature, $\Fhat(x)=\int^x \Fphat$.
+
+\subsection{Biased dynamics}
+ABF simulates $N$ overdamped Langevin replicas that share one running mean-force
+estimate $\Fphat_t(x)\approx\Fpref(x)$ with bias potential
+$\Bt(x)=\int^x\Fphat_t$. Each replica $(X_t,Y_t)$ evolves as
+\begin{equation}
+  \begin{aligned}
+    \dd X_t &= \bigl[-\partial_x V(X_t,Y_t) + \Fphat_t(X_t)\bigr]\dd t
+              + \sqrt{2/\beta}\,\dd W_t^x, \\
+    \dd Y_t &= -\,\partial_y V(X_t,Y_t)\,\dd t
+              + \sqrt{2/\beta}\,\dd W_t^y,
+  \end{aligned}
+  \label{eq:abf_sde}
+\end{equation}
+with independent Brownian motions $W^x,W^y$. The added force $+\Fphat_t(X_t)$
+acts \emph{only} in the $x$-direction; the $y$-dynamics is unbiased. When
+$\Fphat_t\to\Fpref$ the net drift along $x$ becomes $-\partial_x(V-F)$, whose
+$x$-marginal equilibrium is flat, so the reaction coordinate diffuses freely
+across the barrier.
+
+\subsection{Why the bias does not spoil the mean-force estimate}
+A bias that depends only on $x$ leaves the conditional law of $Y$ given $X=x$
+invariant. This is what makes ABF self-consistent.
+
+\begin{proposition}[Conditional invariance under an $x$-only bias]
+\label{prop:cond_invariance}
+Let $\nu$ be the canonical measure $\nu\propto e^{-\beta V(x,y)}$ and let
+$\nu_B\propto e^{-\beta\,[V(x,y)-B(x)]}$ be the measure biased by any function
+$B$ of $x$ alone. Then for every $x$ the conditionals coincide,
+$\nu_B(y\mid X=x)=\nu(y\mid X=x)$, and consequently
+\begin{equation}
+  \E_{\nu_B}\!\left[\partial_x V(X,Y)\mid X=x\right]
+  \;=\;
+  \E_{\nu}\!\left[\partial_x V(X,Y)\mid X=x\right]
+  \;=\; \Fpref(x).
+  \label{eq:cond_equal}
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+At fixed $X=x$ the bias factor $e^{\beta B(x)}$ is a constant in $y$ and cancels
+between numerator and normaliser of the conditional density:
+\[
+  \nu_B(y\mid X=x)
+  = \frac{e^{-\beta[V(x,y)-B(x)]}}{\int e^{-\beta[V(x,y')-B(x)]}\dd y'}
+  = \frac{e^{-\beta V(x,y)}}{\int e^{-\beta V(x,y')}\dd y'}
+  = \nu(y\mid X=x).
+\]
+Taking the conditional expectation of $\partial_x V$ under this common
+conditional gives~\eqref{eq:cond_equal}, the last equality
+being~\eqref{eq:meanforce}.
+\end{proof}
+
+\Cref{prop:cond_invariance} is the reason ABF works: even though the biased
+ensemble~\eqref{eq:abf_sde} has a different $x$-marginal than the canonical
+one, the conditional samples $Y\mid X=x$ remain canonical, so the empirical
+conditional average of $\partial_x V$ is an unbiased target for
+$\Fpref(x)$. Any modification of ABF must respect this property; in particular,
+a birth--death correction that resamples whole configurations $(x,y)$ is
+only admissible if it too leaves $Y\mid X=x$ (approximately) intact ---
+a hypothesis we test directly in \cref{sec:results,sec:mechanism}.
+
+\subsection{The ABF mean-force estimator}
+\label{sec:abf_estimator}
+In the kernel form used by the reference implementation, $\Fphat$ is a
+Nadaraya--Watson running average of the instantaneous force,
+\begin{equation}
+  \Fphat_n(x) \;=\;
+  \frac{\sum_{k\le n}\sum_i K_h(x-X_k^i)\,\partial_x V(X_k^i,Y_k^i)}
+       {\sum_{k\le n}\sum_i K_h(x-X_k^i)},
+  \label{eq:nw}
+\end{equation}
+with a Gaussian kernel $K_h$ of bandwidth $h$, accumulated over all replicas
+$i$ and past steps $k$; the free-energy estimate is its pinned trapezoidal
+antiderivative, $\Fhat_n(x)=\int_0^x\Fphat_n$, and we use $\Bt\equiv\Fhat$ as
+the bias. The GPU backend used for the production study replaces the
+$O(n_{\mathrm{grid}}\,N)$ kernel sums by an $O(N+n_{\mathrm{grid}})$
+\emph{binned-smoothed} estimator: particles are scattered onto the $x$-grid and
+the count and force histograms are Gaussian-smoothed, so that
+$\Fphat(x)=\mathrm{smooth(force)}/\mathrm{smooth(count)}$ is a Riemann-sum
+approximation of~\eqref{eq:nw} that converges to it as the grid spacing
+vanishes. The two estimators are validated to agree to well under $1\%$ on
+static tests (\cref{sec:design}).

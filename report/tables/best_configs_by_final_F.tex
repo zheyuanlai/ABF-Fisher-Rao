@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\small
+\caption{Supplement: configurations selected by smallest median \emph{final} $L^2(F)$ (final-budget accuracy).}
+\label{tab:main_final}
+\begin{tabular}{lrrrrr}
+\toprule
+Method & $\int_0^T\!\|\hat F_t-F_{\rm ref}\|\,dt$ & $\|\hat F_T-F_{\rm ref}\|$ & $\|\hat F'_T-F'_{\rm ref}\|$ & $P(\text{beats ABF})$ & FR event frac. \\
+\midrule
+ABF only & 15.91 & 0.0137 & 0.0718 & -- & $0$ \\
+FR estimated & 15.25 & 0.0120 & 0.0673 & 0.80 & $1.1\times10^{-6}$ \\
+FR uniform & 14.97 & 0.0118 & 0.0680 & 0.60 & $7.3\times10^{-6}$ \\
+FR oracle* & 13.27 & 0.0113 & 0.0602 & 1.00 & $1.7\times10^{-5}$ \\
+\bottomrule
+\end{tabular}
+\par\smallskip\footnotesize $^{*}$\,Oracle is a diagnostic control (uses $F_{\rm ref}$), not a deployable method. Configurations here are selected by smallest median \emph{final} $L^2(F)$; cf.\ Table~\ref{tab:main_integrated}, which need not pick the same hyperparameters.
+\end{table}
