@@ -1,0 +1,18 @@
+\begin{table}[t]
+\centering
+\small
+\caption{Entropy-dominant stress test ($\beta=4$, $m=2$, $B_0=8$, $20$ seeds, $T=40$): at fixed total barrier, the deployable estimated/uniform gains are small and non-monotone in $\phi$, while the oracle gain rises sharply --- the entropic-specific headroom is real but target-limited.}
+\label{tab:edb}
+\begin{tabular}{rrrrrrrr}
+\toprule
+$\phi$ & $H$ & $\omega_{\rm in}$ & ABF $\|F\!-\!F_{\rm ref}\|$ & est.\ (\%) & est.\ wins & uni.\ (\%) & oracle (\%) \\
+\midrule
+0 & 2.00 & 1.0 & 0.0464 & +13.0 & 20/20 & +13.0 & -6.5 \\
+0.25 & 1.50 & 2.7 & 0.0360 & +4.7 & 15/20 & +6.0 & -5.7 \\
+0.5 & 1.00 & 7.4 & 0.0286 & -9.7 & 4/20 & -14.3 & +9.2 \\
+0.75 & 0.50 & 20.1 & 0.0248 & -8.1 & 7/20 & -0.5 & +43.7 \\
+0.9 & 0.20 & 36.6 & 0.0312 & +12.7 & 15/20 & +12.9 & +42.4 \\
+\bottomrule
+\end{tabular}
+\par\smallskip\footnotesize Total barrier $B_0=\beta H+m\log(\omega_{\rm in}/\omega_{\rm out})$ ($=\EDBbarrier$) is held fixed while $\phi$ slides it from energetic to entropic ($H=(1-\phi)B_0/\beta$, $\omega_{\rm in}=\omega_{\rm out}e^{\phi B_0/m}$). Gains are matched-seed medians in final $\|F-F_{\rm ref}\|$ vs ABF; the oracle target uses the analytic $F_{\rm ref}$ and is a diagnostic control, \emph{not} deployable.
+\end{table}

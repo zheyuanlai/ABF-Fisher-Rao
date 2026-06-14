@@ -1,0 +1,69 @@
+{
+  "mode": "production",
+  "device": "cuda:0",
+  "cuda_visible_devices": "7",
+  "hostname": "atlas",
+  "torch": "2.12.0+cu130",
+  "gpu_name": "NVIDIA H200 NVL",
+  "config_path": "/home/zheyuanlai/ABF-Fisher-Rao/experiments/entropy_dominant_bottleneck/configs/entropy_dominant_default.yaml",
+  "n_seeds": 20,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+  ],
+  "phis": [
+    0.0,
+    0.25,
+    0.5,
+    0.75,
+    0.9
+  ],
+  "methods": [
+    "abf",
+    "fr_estimated",
+    "fr_uniform",
+    "fr_oracle"
+  ],
+  "rate_sweep_phis": [
+    0.75,
+    0.9
+  ],
+  "rate_sweep_gammas": [
+    1.0,
+    5.0,
+    15.0,
+    30.0,
+    50.0
+  ],
+  "n_steps": 80000,
+  "n_walkers": 512,
+  "dt": 0.0005,
+  "beta": 4.0,
+  "m": 2,
+  "B0": 8.0,
+  "total_runtime_seconds": 222.122483253479,
+  "timestamp": "2026-06-14T01:55:27",
+  "completed": true,
+  "main_runs": 400,
+  "rate_runs": 400,
+  "main_seconds": 75.11816453933716,
+  "rate_seconds": 146.99715495109558
+}

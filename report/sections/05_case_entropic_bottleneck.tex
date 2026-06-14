@@ -167,6 +167,69 @@ errors dominated by finite bin counts rather than a systematic FR bias.
   \label{fig:eb_conditional}
 \end{figure}
 
+\subsection{An entropy-dominant stress test at fixed total barrier}
+\label{sec:eb_entropy_dominant}
+The caveat of the previous subsections leaves one question open: the gain here
+tracks \emph{temperature}, but because the energetic barrier dominates we never
+isolated whether an \emph{entropic} barrier of the same height behaves any
+differently. We close that gap with a controlled stress test that promotes the
+transverse coordinate to $m$ dimensions,
+\begin{equation}
+  V(x,\mathbf y) = H\,(x^2-1)^2 + \tfrac12\,\omega(x)^2\,\Norm{\mathbf y}^2,
+  \quad \mathbf y\in\R^m,\qquad
+  \Fref(x) = H\,(x^2-1)^2 + \tfrac{m}{\beta}\log\omega(x) + C,
+  \label{eq:edb_potential}
+\end{equation}
+so the marginal free energy carries an entropic term
+$\tfrac{m}{\beta}\log\omega(x)$ that we can enlarge at will (the conditional law
+generalises to $\mathbf Y\mid X=x\sim\mathcal N(0,I_m/(\beta\omega(x)^2))$).
+Writing the total thermal barrier as
+$B_0=\beta H + m\log(\omega_{\mathrm{in}}/\omega_{\mathrm{out}})$ and the
+\emph{entropic share}
+$\phi=m\log(\omega_{\mathrm{in}}/\omega_{\mathrm{out}})/B_0$, we set
+$H=(1-\phi)B_0/\beta$ and
+$\omega_{\mathrm{in}}=\omega_{\mathrm{out}}\,e^{\phi B_0/m}$, which holds the total
+barrier \emph{fixed} while sliding it from purely energetic ($\phi=0$) to strongly
+entropic ($\phi=0.9$). We sweep $\phi\in\{0,0.25,0.5,0.75,0.9\}$ at
+$\beta=\EDBbeta$, $m=\EDBm$, $B_0=\EDBbarrier$ ($\EDBnSeeds$ matched seeds, time
+horizon $T=\EDBT$); \cref{tab:edb} lists the design and results.
+
+\input{tables/edb_entropy_dominant.tex}
+
+The outcome is sharper than a simple yes/no, and is the most useful thing this
+case returns (\cref{fig:edb}). The \emph{deployable} estimated-target gain does
+\emph{not} grow with the entropic share: it is U-shaped in $\phi$ (slope
+$\EDBestSlope\%$ per unit $\phi$, correlation $r=\EDBestCorr$) and is mildly
+\emph{harmful} in the middle of the sweep ($\EDBestMin\%$ at $\phi=\EDBestPhiMin$),
+where the smooth entropic free-energy bump is hardest to estimate online from the
+high-variance instantaneous force $\omega(x)\omega'(x)\Norm{\mathbf y}^2$. The
+uniform target behaves almost identically, reaffirming that the practical
+mechanism is balanced resampling rather than free-energy-shape steering. The
+\emph{oracle} target tells the opposite story: handed the analytic $\Fref$, its
+gain rises steeply with the entropic share (slope $\EDBoracleSlope\%$ per unit
+$\phi$, $r=\EDBoracleCorr$), from harmful at $\phi=0$ to $+\EDBoraclePeak\%$ at
+$\phi=\EDBoraclePhiPeak$. There is therefore a genuinely \emph{entropic-specific}
+opportunity for birth--death --- but it is \emph{target-limited}: realising it
+needs a free-energy-shaped target accurate enough to steer against, which the
+online ABF-bias estimate is not in this regime. What the deployable method does
+deliver across the whole sweep is faster convergence: its integrated-error gain is
+positive at every $\phi$ (median $+\EDBestIntGain\%$), and all FR variants preserve
+the $m$-dimensional conditional law as in the scalar case.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.92\textwidth]{fig_edb_05_entropy_dominant.png}
+  \caption{Entropy-dominant stress test at fixed total barrier $B_0$. (a) The
+    barrier decomposition: as $\phi$ grows the energetic part $\beta H$ is traded
+    for the entropic part $m\log(\omega_{\mathrm{in}}/\omega_{\mathrm{out}})$ with
+    the total held constant. (b) Matched-seed gain over ABF: the deployable
+    estimated (and uniform) targets are small and non-monotone in $\phi$, whereas
+    the oracle gain rises sharply with the entropic share --- the achievable
+    benefit is entropic-specific, but the practical online estimate does not
+    capture it.}
+  \label{fig:edb}
+\end{figure}
+
 \subsection{Case finding}
 The entropic bottleneck is a controlled bridge between the easy metastability case
 and the hard WCA dimer. Estimated-target FR robustly and substantially reduces the
@@ -179,4 +242,11 @@ the uniform target nearly matches the estimated one and the oracle target is
 regime is wide (no failure boundary up to $\gamma=50$), and the analytic
 conditional diagnostic shows that the gain is obtained without a systematic
 collapse of $Y\mid X=x$, even though FR is not uniformly better than ABF on every
-conditional-variance bin.
+conditional-variance bin. Finally, the dedicated entropy-dominant stress test
+(\cref{sec:eb_entropy_dominant}) settles the bottleneck-versus-temperature
+question that the $\omega_{\mathrm{in}}$ sweep could not: holding the \emph{total}
+barrier fixed and growing only the entropic share, the deployable gain still does
+not increase (it is U-shaped in $\phi$), whereas the oracle gain rises sharply to
+$+\EDBoraclePeak\%$ at $\phi=\EDBoraclePhiPeak$. The entropic-specific benefit is
+therefore real but \emph{target-limited} --- present for an exactly-shaped target,
+yet beyond the reach of the practical online estimator.

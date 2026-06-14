@@ -29,6 +29,7 @@ TAB_DIR = os.path.join(REPORT_DIR, "tables")
 PROD = os.path.join(REPO_ROOT, "results", "two_dim_xi_x", "production_gpu")
 EB_DIR = os.path.join(REPO_ROOT, "results", "entropic_bottleneck", "summaries")
 WCA_DIR = os.path.join(REPO_ROOT, "results", "wca_production", "summaries")
+EDB_ROOT = os.path.join(REPO_ROOT, "results", "entropy_dominant_bottleneck")
 
 FINAL = "final_l2_F"
 INTEGRATED = "integrated_l2_F"
@@ -137,6 +138,47 @@ def check_wca(nums, macros):
     aggr = float(wr[(wr["stage"] == "main")
                     & (wr["name"] == "fr_est_aggressive")].iloc[0]["median_gain_pct_F"])
     check(aggr < 0 < gain, f"WCA aggressive reverses (aggr={aggr:.1f}, tuned={gain:.1f})")
+
+
+def check_edb(nums, macros):
+    """Recompute entropy-dominant headline numbers from summary_by_phi_method."""
+    print("\n[entropy-dominant bottleneck]")
+    edbn = nums.get("entropy_dominant")
+    if edbn is None:
+        print("  [skip] no entropy_dominant block (sweep not built)")
+        return
+    ptr = os.path.join(EDB_ROOT, "latest_sweep.txt")
+    d = open(ptr).read().strip() if os.path.exists(ptr) else None
+    if not (d and os.path.exists(os.path.join(d, "summary_by_phi_method.csv"))):
+        cands = sorted(__import__("glob").glob(os.path.join(EDB_ROOT, "sweep_*")))
+        d = cands[-1] if cands else None
+    if d is None:
+        check(False, "EDB summary_by_phi_method.csv exists")
+        return
+    s = pd.read_csv(os.path.join(d, "summary_by_phi_method.csv"))
+
+    def gains(method):
+        g = s[s["method"] == method].sort_values("phi")
+        return g["phi"].to_numpy(float), g["med_gain_pct_vs_abf"].to_numpy(float)
+
+    px, est = gains("fr_estimated")
+    _, orc = gains("fr_oracle")
+    est_slope = float(np.polyfit(px, est, 1)[0])
+    orc_slope = float(np.polyfit(px, orc, 1)[0])
+    orc_peak = float(np.max(orc))
+    check(approx(edbn["est_slope"], est_slope, rtol=1e-3),
+          f"json EDB estimated slope matches CSV ({est_slope:.1f})")
+    check(approx(edbn["orc_slope"], orc_slope, rtol=1e-3),
+          f"json EDB oracle slope matches CSV ({orc_slope:.1f})")
+    check(approx(edbn["orc_peak"], orc_peak, rtol=1e-3),
+          f"json EDB oracle peak matches CSV ({orc_peak:.1f})")
+    check(macros.get("EDBoraclePeak") == f"{orc_peak:.1f}",
+          "macro EDBoraclePeak rounds to CSV")
+    check(macros.get("EDBoracleSlope") == f"{orc_slope:.0f}",
+          "macro EDBoracleSlope rounds to CSV")
+    # the headline contrast: deployable flat/down, oracle strongly up
+    check(est_slope < 5 and orc_slope > 20,
+          f"EDB contrast holds (est slope {est_slope:.1f} < oracle slope {orc_slope:.1f})")
 
 
 def main():
@@ -252,6 +294,7 @@ def main():
     # ---- EB + WCA case numbers -------------------------------------------- #
     check_eb(nums, macros)
     check_wca(nums, macros)
+    check_edb(nums, macros)
 
     return _finish()
 

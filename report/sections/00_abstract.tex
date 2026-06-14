@@ -19,7 +19,12 @@ estimated-target FR is a modest accelerator and the oracle diagnostic shows that
 target direction can matter. In the cold entropic bottleneck, ABF is starved and
 estimated-target FR gives a large gain ($+\EBgainStrong\%$, $\EBcoldWin/20$ seeds),
 but the uniform target nearly matches it and the oracle target is worse than ABF;
-here density correction and free-energy accuracy are not the same objective. In
+here density correction and free-energy accuracy are not the same objective. A
+dedicated entropy-dominant stress test (transverse dimension $m$, total barrier
+held fixed) refines this further: as the barrier is made more entropic the
+\emph{achievable} (oracle) gain grows specifically with the entropic share, yet the
+\emph{deployable} estimated target does not capture it --- an entropic-specific
+benefit that is real but target-limited. In
 the WCA dimer, tuned FR again improves the free energy reliably
 ($+\WCAtunedGainPct\%$, $\WCAtunedWin/10$ seeds), while the best accuracy occurs
 near the edge of an accuracy--diversity tradeoff. Across the cases, FR is best

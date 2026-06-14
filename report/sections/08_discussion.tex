@@ -37,10 +37,16 @@ We remain deliberately conservative about scope.
         no systematic collapse, but FR is not uniformly better than ABF in every
         bin. The WCA conditional fidelity is argued structurally
         (\cref{rem:manybody}) rather than measured per configuration.
-  \item \textbf{The entropic barrier is sub-dominant in Case II.} As stated in
-        \cref{sec:case_eb}, the bottleneck modulates the transverse width but the
-        energetic double well dominates the difficulty; the $\omega_{\mathrm{in}}$
-        sweep is honestly flat, and we do not claim a bottleneck-strength scaling.
+  \item \textbf{Entropic-specific gains are real but target-limited.} In the base
+        Case~II parameterisation the energetic double well dominates the difficulty
+        and the $\omega_{\mathrm{in}}$ sweep is honestly flat. The dedicated
+        entropy-dominant stress test (\cref{sec:eb_entropy_dominant}), which holds
+        the \emph{total} barrier fixed and grows the entropic share, sharpens this:
+        the \emph{deployable} gain still does not scale with the entropic fraction
+        (slope $\EDBestSlope\%$ per unit $\phi$), whereas the \emph{oracle} gain
+        does (slope $\EDBoracleSlope\%$, up to $+\EDBoraclePeak\%$). The
+        entropic-specific benefit exists but is gated by the quality of the online
+        free-energy target; the practical estimator does not realise it here.
 \end{enumerate}
 
 \subsection{Failure modes}
@@ -65,7 +71,10 @@ reading does not generalise.
         nontrivial.
   \item \textbf{Configuration-resolved conditional diagnostics} for the many-body
         case, to measure conditional fidelity rather than infer it from structure.
-  \item \textbf{Sharper entropic stressors.} A model in which the entropic barrier
-        dominates the energetic one would test whether bottleneck width, not just
-        temperature, can drive the gain.
+  \item \textbf{A better online target for entropic bottlenecks.} The
+        entropy-dominant stress test (\cref{sec:eb_entropy_dominant}) shows the
+        achievable (oracle) gain is entropic-specific but the ABF-bias estimate is
+        too noisy to realise it. A lower-variance online free-energy estimator
+        inside the FR target (e.g.\ a slower-EMA or eABF/CZAR-style estimate) is the
+        natural way to convert that diagnosed headroom into a deployable gain.
 \end{itemize}

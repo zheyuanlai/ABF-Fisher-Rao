@@ -1,0 +1,85 @@
+# Entropy-dominant bottleneck ABF + Fisher-Rao stress test.
+#
+# Generalizes the scalar entropic-bottleneck case to an m-dimensional transverse
+# variable y in R^m so the *entropic* contribution to the marginal free energy
+# can exceed the *energetic* one while the TOTAL barrier B0 is held fixed:
+#
+#     V(x, y) = H (x^2-1)^2 + 1/2 omega(x)^2 ||y||^2,   y in R^m
+#     omega(x) = omega_out + (omega_in - omega_out) exp(-x^2 / 2 s^2)
+#     F_ref(x) = H (x^2-1)^2 + (m/beta) log omega(x) + C
+#
+# Barrier decomposition (thermal units): B0 = beta*H + m*log(omega_in/omega_out).
+# Entropic share phi = m*log(omega_in/omega_out)/B0.  H and omega_in are DERIVED:
+#     H        = (1-phi) B0 / beta
+#     omega_in = omega_out exp(phi B0 / m)
+# so sweeping phi at fixed B0 trades energetic for entropic barrier.
+
+experiment_name: entropy_dominant_bottleneck
+output_root: results/entropy_dominant_bottleneck
+device: cuda:0
+dtype: float64
+
+# ---- physics (fixed across the phi sweep) ----
+beta: 4.0
+m: 2
+B0: 8.0
+omega_out: 1.0
+s: 0.25
+
+# ---- grid / evaluation window ----
+x_min: -2.0
+x_max: 2.0
+eval_x_min: -1.5
+eval_x_max: 1.5
+n_grid: 256
+
+# ---- overdamped Langevin dynamics ----
+n_walkers: 512
+dt: 5.0e-4
+n_steps: 80000          # physical time T = n_steps * dt = 40
+record_every: 200
+x_init_std: 0.1         # X0 ~ N(-1, x_init_std^2), reflected into [x_min, x_max]
+seeds: 20               # integer N -> seeds 0..N-1, or an explicit list
+
+# ---- the entropic-share sweep ----
+phis: [0.0, 0.25, 0.50, 0.75, 0.90]
+
+methods:
+  - abf
+  - fr_estimated
+  - fr_uniform
+  - fr_oracle
+
+# ---- ABF mean-force estimator ----
+abf:
+  h: 0.07               # mean-force smoothing bandwidth
+  min_count: 1.0
+
+# ---- Fisher-Rao birth-death ----
+fr:
+  gamma: 15.0
+  fr_every: 10
+  eta: 0.10             # marginal-density bandwidth
+  score_clip: 3.0
+  max_event_fraction: 0.08
+  target_ema_rate: 0.005
+  burnin_fraction: 0.0
+  ramp_steps: 2000
+  ess_window_steps: 4000
+
+# ---- FR-rate sensitivity sweep for the entropy-dominant cases ----
+rate_sweep_phis: [0.75, 0.90]
+rate_sweep_gammas: [1.0, 5.0, 15.0, 30.0, 50.0]
+
+# ---- pilot / smoke overrides (reduce seeds + steps for quick checks) ----
+pilot:
+  seeds: 4
+  n_steps: 20000
+smoke:
+  seeds: 2
+  n_steps: 1500
+  n_walkers: 128
+  record_every: 100
+
+# ---- batching: (config,seed) rows per simulate_batch call (R = this*n_methods) ----
+max_rows_per_call: 64

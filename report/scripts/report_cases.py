@@ -11,6 +11,8 @@ per-run CSVs), the EB/WCA numbers are read from the already-aggregated
 """
 from __future__ import annotations
 
+import glob
+import json
 import os
 import numpy as np
 import pandas as pd
@@ -23,6 +25,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(os.path.dirname(HERE))
 EB_DIR = os.path.join(REPO_ROOT, "results", "entropic_bottleneck", "summaries")
 WCA_DIR = os.path.join(REPO_ROOT, "results", "wca_production", "summaries")
+EDB_ROOT = os.path.join(REPO_ROOT, "results", "entropy_dominant_bottleneck")
 
 CASE_COLOR = {"abf": "#222222", "fr_estimated": "#1f77b4",
               "fr_uniform": "#ff7f0e", "fr_oracle": "#2ca02c"}
@@ -591,6 +594,155 @@ def case_macros(ebn, wcan):
     }
 
 
+# --------------------------------------------------------------------------- #
+# Entropy-dominant bottleneck (Case II addendum): m-dimensional fixed-B0 sweep
+# --------------------------------------------------------------------------- #
+def _edb_sweep_dir():
+    """Latest entropy-dominant sweep dir, via the pointer file then a glob."""
+    ptr = os.path.join(EDB_ROOT, "latest_sweep.txt")
+    if os.path.exists(ptr):
+        d = open(ptr).read().strip()
+        if os.path.isdir(d):
+            return d
+    cands = sorted(glob.glob(os.path.join(EDB_ROOT, "sweep_*")))
+    return cands[-1] if cands else None
+
+
+def load_edb():
+    """Return {dir, summary df, meta dict} for the latest sweep, or None."""
+    d = _edb_sweep_dir()
+    if d is None or not os.path.exists(os.path.join(d, "summary_by_phi_method.csv")):
+        return None
+    summ = pd.read_csv(os.path.join(d, "summary_by_phi_method.csv"))
+    meta = {}
+    mp = os.path.join(d, "run_metadata.json")
+    if os.path.exists(mp):
+        meta = json.load(open(mp))
+    return {"dir": d, "summary": summ, "meta": meta}
+
+
+def edb_numbers(edb):
+    """Headline entropy-dominant numbers from summary_by_phi_method medians."""
+    s, meta = edb["summary"], edb["meta"]
+
+    def gains(method):
+        g = s[s["method"] == method].sort_values("phi")
+        return g["phi"].to_numpy(float), g["med_gain_pct_vs_abf"].to_numpy(float)
+
+    px, est = gains("fr_estimated")
+    _, uni = gains("fr_uniform")
+    _, orc = gains("fr_oracle")
+
+    def trend(x, y):
+        return float(np.polyfit(x, y, 1)[0]), float(np.corrcoef(x, y)[0, 1])
+
+    est_slope, est_corr = trend(px, est)
+    orc_slope, orc_corr = trend(px, orc)
+    abf_int = s[s["method"] == "abf"].set_index("phi")["med_int_l2_f"]
+    est_int = s[s["method"] == "fr_estimated"].set_index("phi")["med_int_l2_f"]
+    int_gain = (100 * (abf_int - est_int) / abf_int).to_numpy(float)
+    return dict(
+        phis=[float(p) for p in px],
+        est_gain=[float(v) for v in est], uni_gain=[float(v) for v in uni],
+        orc_gain=[float(v) for v in orc],
+        est_slope=est_slope, est_corr=est_corr,
+        orc_slope=orc_slope, orc_corr=orc_corr,
+        orc_peak=float(np.max(orc)), orc_phi_peak=float(px[int(np.argmax(orc))]),
+        est_min=float(np.min(est)), est_phi_min=float(px[int(np.argmin(est))]),
+        est_int_gain_med=float(np.nanmedian(int_gain)),
+        beta=float(meta.get("beta", 4.0)), m=int(meta.get("m", 2)),
+        B0=float(meta.get("B0", 8.0)), n_seeds=int(meta.get("n_seeds", 20)),
+        n_steps=int(meta.get("n_steps", 80000)), dt=float(meta.get("dt", 5e-4)),
+    )
+
+
+def fig_edb_05_entropy_dominant(edb, edbn, fig_dir):
+    s = edb["summary"]
+    phis = sorted(s["phi"].unique())
+    beta = edbn["beta"]
+    abf = s[s["method"] == "abf"].sort_values("phi")
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4.7))
+    # (a) barrier decomposition (total held fixed)
+    x = np.arange(len(phis))
+    en = beta * abf["df_energetic"].to_numpy(float)
+    ent = beta * abf["df_entropic"].to_numpy(float)
+    axes[0].bar(x, en, color="#d62728", alpha=0.85, label=r"energetic $\beta H$")
+    axes[0].bar(x, ent, bottom=en, color="#1f77b4", alpha=0.85,
+                label=r"entropic $m\log(\omega_{\rm in}/\omega_{\rm out})$")
+    axes[0].plot(x, en + ent, "k--", lw=1.4, label=r"total $B_0$")
+    axes[0].set_xticks(x); axes[0].set_xticklabels([f"{p:g}" for p in phis])
+    axes[0].set_xlabel(r"entropic share $\phi$")
+    axes[0].set_ylabel(r"thermal barrier ($k_BT$ units)")
+    axes[0].set_title("(a) Barrier decomposition (total fixed)")
+    axes[0].legend(fontsize=8); axes[0].grid(False)
+    # (b) gain vs phi for the three targets
+    for method, c, lbl in [("fr_estimated", "#1f77b4", "FR estimated (deployable)"),
+                           ("fr_uniform", "#ff7f0e", "FR uniform"),
+                           ("fr_oracle", "#2ca02c", "FR oracle (diagnostic)")]:
+        g = s[s["method"] == method].sort_values("phi")
+        axes[1].plot(g["phi"], g["med_gain_pct_vs_abf"], "o-", color=c, label=lbl)
+    axes[1].axhline(0, color="k", ls="--", lw=0.8)
+    axes[1].set_xlabel(r"entropic share $\phi$")
+    axes[1].set_ylabel(r"matched-seed gain over ABF, $\%$ of final $\|F-F_{\rm ref}\|$")
+    axes[1].set_title(r"(b) Oracle gain rises with $\phi$; deployable target does not")
+    axes[1].legend(fontsize=8)
+    fig.suptitle("Entropy-dominant stress test: the achievable (oracle) gain is "
+                 "entropic-specific, the deployable gain is not", y=1.02)
+    _save(fig, fig_dir, "fig_edb_05_entropy_dominant.png")
+
+
+def write_edb_table(edb, edbn, tab_dir):
+    s = edb["summary"]
+    beta = edbn["beta"]
+    rows = []
+    for phi in sorted(s["phi"].unique()):
+        a = _row(s, phi=phi, method="abf")
+        fe = _row(s, phi=phi, method="fr_estimated")
+        fu = _row(s, phi=phi, method="fr_uniform")
+        fo = _row(s, phi=phi, method="fr_oracle")
+        win = f"{int(round(fe['winrate_vs_abf']*fe['n_seeds']))}/{int(fe['n_seeds'])}"
+        rows.append([f"{phi:g}", f"{a['H']:.2f}", f"{a['omega_in']:.1f}",
+                     f"{a['med_final_l2_f']:.4f}",
+                     f"{fe['med_gain_pct_vs_abf']:+.1f}", win,
+                     f"{fu['med_gain_pct_vs_abf']:+.1f}",
+                     f"{fo['med_gain_pct_vs_abf']:+.1f}"])
+    note = (r"Total barrier $B_0=\beta H+m\log(\omega_{\rm in}/\omega_{\rm out})$ "
+            r"($=\EDBbarrier$) is held fixed while $\phi$ slides it from energetic to "
+            r"entropic ($H=(1-\phi)B_0/\beta$, "
+            r"$\omega_{\rm in}=\omega_{\rm out}e^{\phi B_0/m}$). Gains are "
+            r"matched-seed medians in final $\|F-F_{\rm ref}\|$ vs ABF; the oracle "
+            r"target uses the analytic $F_{\rm ref}$ and is a diagnostic control, "
+            r"\emph{not} deployable.")
+    with open(os.path.join(tab_dir, "edb_entropy_dominant.tex"), "w") as fh:
+        fh.write(_simple_table(
+            rows,
+            [r"$\phi$", r"$H$", r"$\omega_{\rm in}$",
+             r"ABF $\|F\!-\!F_{\rm ref}\|$", r"est.\ (\%)", r"est.\ wins",
+             r"uni.\ (\%)", r"oracle (\%)"],
+            r"Entropy-dominant stress test ($\beta=4$, $m=2$, $B_0=8$, $20$ seeds, "
+            r"$T=40$): at fixed total barrier, the deployable estimated/uniform gains "
+            r"are small and non-monotone in $\phi$, while the oracle gain rises "
+            r"sharply --- the entropic-specific headroom is real but target-limited.",
+            "tab:edb", "rrrrrrrr", note=note))
+
+
+def edb_macros(edbn):
+    def p(v): return f"{v:.1f}"
+    def p0(v): return f"{v:.0f}"
+    return {
+        "EDBbeta": f"{edbn['beta']:g}", "EDBm": str(edbn["m"]),
+        "EDBbarrier": f"{edbn['B0']:g}", "EDBnSeeds": str(edbn["n_seeds"]),
+        "EDBT": f"{edbn['n_steps']*edbn['dt']:g}",
+        "EDBestSlope": p(edbn["est_slope"]), "EDBestCorr": f"{edbn['est_corr']:.2f}",
+        "EDBoracleSlope": p0(edbn["orc_slope"]),
+        "EDBoracleCorr": f"{edbn['orc_corr']:.2f}",
+        "EDBoraclePeak": p(edbn["orc_peak"]),
+        "EDBoraclePhiPeak": f"{edbn['orc_phi_peak']:g}",
+        "EDBestMin": p(edbn["est_min"]), "EDBestPhiMin": f"{edbn['est_phi_min']:g}",
+        "EDBestIntGain": p(edbn["est_int_gain_med"]),
+    }
+
+
 def build_cases(fig_dir, tab_dir, meta_int_pct):
     """Render all EB/WCA figures + tables; return (macros dict, json block)."""
     _set_style()
@@ -613,7 +765,19 @@ def build_cases(fig_dir, tab_dir, meta_int_pct):
     write_eb_tables(eb_cs, tab_dir)
     write_wca_tables(wca_cs, wca_wr, tab_dir)
     write_synthesis_table(ebn, wcan, meta_int_pct, tab_dir)
-    return case_macros(ebn, wcan), {"entropic_bottleneck": ebn, "wca": wcan}
+
+    macros = case_macros(ebn, wcan)
+    json_block = {"entropic_bottleneck": ebn, "wca": wcan}
+    edb = load_edb()
+    if edb is not None:
+        edbn = edb_numbers(edb)
+        fig_edb_05_entropy_dominant(edb, edbn, fig_dir)
+        write_edb_table(edb, edbn, tab_dir)
+        macros.update(edb_macros(edbn))
+        json_block["entropy_dominant"] = edbn
+    else:
+        _warn("entropy-dominant sweep not found; skipping EDB assets.")
+    return macros, json_block
 
 
 

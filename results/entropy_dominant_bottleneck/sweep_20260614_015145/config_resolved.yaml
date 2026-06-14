@@ -1,0 +1,62 @@
+experiment_name: entropy_dominant_bottleneck
+output_root: results/entropy_dominant_bottleneck
+device: cuda:0
+dtype: float64
+beta: 4.0
+m: 2
+B0: 8.0
+omega_out: 1.0
+s: 0.25
+x_min: -2.0
+x_max: 2.0
+eval_x_min: -1.5
+eval_x_max: 1.5
+n_grid: 256
+n_walkers: 512
+dt: 0.0005
+n_steps: 80000
+record_every: 200
+x_init_std: 0.1
+seeds: 20
+phis:
+- 0.0
+- 0.25
+- 0.5
+- 0.75
+- 0.9
+methods:
+- abf
+- fr_estimated
+- fr_uniform
+- fr_oracle
+abf:
+  h: 0.07
+  min_count: 1.0
+fr:
+  gamma: 15.0
+  fr_every: 10
+  eta: 0.1
+  score_clip: 3.0
+  max_event_fraction: 0.08
+  target_ema_rate: 0.005
+  burnin_fraction: 0.0
+  ramp_steps: 2000
+  ess_window_steps: 4000
+rate_sweep_phis:
+- 0.75
+- 0.9
+rate_sweep_gammas:
+- 1.0
+- 5.0
+- 15.0
+- 30.0
+- 50.0
+pilot:
+  seeds: 4
+  n_steps: 20000
+smoke:
+  seeds: 2
+  n_steps: 1500
+  n_walkers: 128
+  record_every: 100
+max_rows_per_call: 128

@@ -53,6 +53,18 @@ in the two starved cases. A fixed oracle target can even fight the transient ABF
 bias in the cold bottleneck, so it loses to a neutral uniform target. The oracle is
 therefore a diagnostic of regime, not a performance upper bound.
 
+The oracle has a second, more constructive use: it diagnoses \emph{where} an exact
+free-energy shape would pay off, even when no practical estimate captures it. The
+entropy-dominant stress test (\cref{sec:eb_entropy_dominant}) makes this vivid. At
+fixed total barrier, increasing the entropic share flips the cold-bottleneck
+oracle from harmful to strongly beneficial (up to $+\EDBoraclePeak\%$), rising
+monotonically with the entropic fraction (slope $\EDBoracleSlope\%$ per unit
+$\phi$), while the deployable estimated target captures essentially none of it
+(slope $\EDBestSlope\%$). The achievable benefit is thus genuinely
+entropic-specific, but gated by the quality of the online free-energy target ---
+the clearest single pointer this study gives for where a better estimated target
+would matter.
+
 \subsection{The shared failure mode is diversity collapse}
 Both the safe regimes and the observed failure are explained by ancestor
 diversity. Aggressive birth--death erodes the effective number of lineages; the
