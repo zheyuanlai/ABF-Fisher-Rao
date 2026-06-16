@@ -230,6 +230,139 @@ the $m$-dimensional conditional law as in the scalar case.
   \label{fig:edb}
 \end{figure}
 
+
+\subsection{Why the deployable gap is an obstruction, not a tuning failure}
+\label{sec:eb_obstruction}
+The stress test leaves a natural hope: if the online ABF-bias estimate is merely
+\emph{too noisy} to steer against, a better online free-energy estimator inside the
+target should convert the oracle's entropic headroom into a deployable gain. We
+tested this hope directly and report a negative result that we believe is the more
+useful finding, because it is structural. The mean force along the reaction
+coordinate is
+\begin{equation}
+  \langle f_x\mid x\rangle = 4Hx(x^2-1) + \omega(x)\omega'(x)\,\langle\Norm{\mathbf y}^2\mid x\rangle,
+  \qquad \langle\Norm{\mathbf y}^2\mid x\rangle = m/(\beta\,\omega(x)^2),
+  \label{eq:eb_meanforce}
+\end{equation}
+and the ABF bias $B(x)=\int^x\langle f_x\mid x'\rangle\,\mathrm{d} x'$ is the
+sufficient nonparametric estimator of $F$ from the binned per-visit force samples
+when no external model of the transverse equilibrium is supplied. This is the key
+reason the entropy-dominant results are not better: the deployable target is not
+missing a hyperparameter, it is missing information. We constructed several
+deployable variants that never read $\Fref$ and asked whether any beats $B$ as
+either a readout or an FR target.
+
+\emph{(i) Moment fusion.} Estimate the entropic part from the transverse
+log-moment,
+$F_{\mathrm{ent}}(x)=-\tfrac{m}{2\beta}\log\langle\Norm{\mathbf y}^2\mid x\rangle$,
+and the energetic part from the $x$-channel. Because the entropic mean force obeys
+$\mathrm{d} F_{\mathrm{ent}}/\mathrm{d} x=(m/\beta)\,\omega'/\omega=\omega\omega'\langle\Norm{\mathbf y}^2\mid x\rangle$,
+the reconstruction telescopes to $B$ \emph{identically}
+($\max_x|F_{\mathrm{moment}}-B|=\OBSmomentIdentity$ on the grid; median
+moment/ABF readout ratio $\OBSmomentRatioLo$ over $20$ seeds). The $y$-channel
+moment is redundant with the $x$-force once integrated.
+
+This redundancy also explains why the resulting FR target is weak. The deployable
+birth--death target has the form
+\begin{equation}
+  q_{\widehat F}(x) \propto
+  \exp\{-\beta(\widehat F(x)-B(x))\}.
+  \label{eq:edb_deployable_target}
+\end{equation}
+If $\widehat F=B+\varepsilon$, then
+$q_{\widehat F}(x)\propto \exp\{-\beta\varepsilon(x)\}$ after normalisation. Thus
+the true free-energy shape cancels out of the practical target: when
+$\varepsilon\simeq0$ the target is essentially uniform, and when $\varepsilon$ is
+nonzero the birth--death score steers against estimator noise rather than against
+the oracle shape. This is the mathematical reason \texttt{fr\_moment} and
+\texttt{fr\_uniform} cluster together.
+
+\emph{(ii) Regression intercept.} Forcing a non-$B$ signal by regressing $f_x$ on
+$\Norm{\mathbf y}^2$ per bin (so the slope absorbs $\omega\omega'$) is
+\emph{worse} than $B$ at every controlled per-bin sample count (ABF/regression
+RMSE ratio $\OBSregLo$--$\OBSregHi$, i.e.\ the regression readout has the larger
+error), because estimating the slope re-injects variance; it also divides by
+$\mathrm{Var}(\Norm{\mathbf y}^2)\to0$ in the tight channel and destabilises the
+feedback loop.
+
+The variance penalty is not accidental. With
+$u=\Norm{\mathbf Y}^2\mid X=x$,
+\begin{equation}
+  \mathbb E[u\mid x]=\frac{m}{\beta\omega(x)^2},\qquad
+  \mathrm{Var}(u\mid x)=\frac{2m}{\beta^2\omega(x)^4}.
+  \label{eq:edb_u_moments}
+\end{equation}
+The instantaneous entropic force contribution $\omega(x)\omega'(x)u$ therefore
+has conditional variance
+\begin{equation}
+  \mathrm{Var}\!\left(\omega\omega' u\mid x\right)
+  =
+  \frac{2m}{\beta^2}\left(\frac{\omega'(x)}{\omega(x)}\right)^2,
+  \label{eq:edb_entropic_force_variance}
+\end{equation}
+and its standard error is reduced only by the number of visits in the bin. Those
+visits are precisely scarce in the barrier region. Estimators that try to
+separate the energetic and entropic pieces must estimate additional local slopes
+or moments from the same scarce samples, so they trade the ABF sample mean for a
+higher-variance object.
+
+\emph{(iii) Smoothing and confidence gating.} Wide-smoothing the energetic
+residual $B-F_{\mathrm{ent}}$ can break the identity $F_{\mathrm{moment}}\equiv B$,
+but only by introducing a deterministic bias in the target. Because
+\cref{eq:edb_deployable_target} is exponential in this error, a biased
+$\widehat F$ creates a biased cloning/deletion field rather than a harmless
+post-processing error. Per-bin confidence gating has the opposite pathology: it
+shrinks the very score that a successful target would need near the bottleneck.
+In the confirmation sweep the gated target is worse than the ungated moment
+target, which indicates that the removed component was not reliable shape
+information but noisy steering.
+
+\emph{(iv) Two-dimensional control variate.} Stratifying samples by the
+transverse coordinate $\Norm{\mathbf y}^2$ and recombining per-stratum mean forces
+--- the textbook ``resolve the orthogonal coordinate'' device --- is
+$\OBStwodAnalytic\times$ more accurate than plain ABF \emph{when the stratum
+weights are the analytic} $\chi^2$ \emph{law}, but reduces to plain ABF
+\emph{identically} once the weights are estimated from the same data:
+\begin{equation}
+  \sum_k \frac{n_k}{n}\,\bar f_k
+  = \sum_k \frac{n_k}{n}\frac{1}{n_k}\sum_{i\in k} f_i
+  = \frac1n\sum_i f_i.
+\end{equation}
+The measured difference is $\OBStwodEmpirical$ (machine precision). The entire
+gain is the injected conditional law, not the stratification.
+
+The same variance logic applies to density- or CZAR-style free-energy targets. If
+a bin of width $h$ has $n_x$ effective visits, a density estimate has relative
+noise of order $n_x^{-1/2}$, so the log-density free energy has
+$\mathrm{Var}(\widehat F(x))=O((\beta^2 n_x)^{-1})$. A steering target, however,
+uses the \emph{spatial shape} of this estimate. Differencing a noisy log-density
+to obtain a score or mean-force-like signal adds powers of $h^{-1}$, while an
+extended-system restraint contributes its own force variance. Thus the estimator
+can be asymptotically sensible but still be a bad online control signal at the
+finite counts available in the bottleneck.
+
+All variants collapse to one statement: any deployable rearrangement of the run's
+own observables either returns $B$ exactly or departs from it only by added bias
+or estimation variance, so the steering signal $F_{\mathrm{target}}-B$ is noise
+rather than shape. The oracle's advantage --- and the control variate's
+analytic-weight advantage --- is \emph{information that is not in the trajectory}
+(the true $\Fref$, equivalently the exact transverse equilibrium). There is also
+a chicken-and-egg barrier specific to steering: learning that the bottleneck is a
+high-$F$ region requires \emph{sampling} it, the same starvation that limits $B$;
+$\langle\Norm{\mathbf y}^2\mid x\rangle$ carries no earlier information than the
+integrated force. A $20$-seed confirmation bears this out in dynamics: the moment
+target (\texttt{fr\_moment}) and a per-bin confidence-gated variant
+(\texttt{fr\_moment\_gated}) both sit in the ABF/uniform band
+($\OBSmomentGainLoPhi\%$ and $\OBSgateGainLoPhi\%$ at $\phi=0.75$;
+$\OBSmomentGainHiPhi\%$ and $\OBSgateGainHiPhi\%$ at $\phi=0.9$), far from the
+oracle's $+\EDBoraclePeak\%$, and gating \emph{removes} rather than improves the
+signal --- confirming it was noise. The practical consequence is that the
+entropic-specific headroom is reachable only by \emph{adding information}
+(enhanced sampling of a genuinely slow orthogonal coordinate --- not the case
+here, where $\mathbf y$ equilibrates fast --- multiple-replica or tempered data, or
+a parametric prior on $\omega(x)$ fit from the well interiors), not by a cleverer
+estimator on the same trajectory.
+
 \subsection{Case finding}
 The entropic bottleneck is a controlled bridge between the easy metastability case
 and the hard WCA dimer. Estimated-target FR robustly and substantially reduces the
@@ -248,5 +381,10 @@ question that the $\omega_{\mathrm{in}}$ sweep could not: holding the \emph{tota
 barrier fixed and growing only the entropic share, the deployable gain still does
 not increase (it is U-shaped in $\phi$), whereas the oracle gain rises sharply to
 $+\EDBoraclePeak\%$ at $\phi=\EDBoraclePhiPeak$. The entropic-specific benefit is
-therefore real but \emph{target-limited} --- present for an exactly-shaped target,
-yet beyond the reach of the practical online estimator.
+therefore real but \emph{target-limited}, and \cref{sec:eb_obstruction} shows the
+limit is an \emph{obstruction rather than a tuning failure}: every deployable
+estimator built from the trajectory's own observables (moment fusion,
+regression/control variates, smoothing, and confidence gating) reduces to the ABF
+bias or to the ABF bias plus noise, so the oracle is a provable
+\emph{information} upper bound that no online estimator on the same data can
+reach.

@@ -19,12 +19,17 @@ We remain deliberately conservative about scope.
         2D cases, a scalar bond length in WCA). Multi-dimensional or strongly
         curved collective variables, where the geometric mean-force term and the
         conditional sampling are far harder, are untested.
-  \item \textbf{The oracle target is not a method or an upper bound.} In every
+  \item \textbf{The oracle target is not a deployable method.} In every
         case the oracle uses the reference free energy, the unknown being
         computed, and is reported only as a diagnostic control (\cref{rem:oracle}).
         Its behaviour is read comparatively: best in the easy metastability
         regime, tied with practical targets in WCA, and worse than ABF in the cold
-        entropic bottleneck.
+        base entropic bottleneck. In the dedicated entropy-dominant stress test it
+        has a narrower interpretation: because \cref{sec:eb_obstruction} shows that
+        trajectory-only target estimators collapse to the ABF bias or to the bias
+        plus noise, the oracle curve is an information benchmark for what could be
+        achieved only by adding external structure, not by tuning the same online
+        estimator.
   \item \textbf{Production estimators are validated surrogates.} The 2D GPU
         backend uses a binned-smoothed mean-force/marginal estimator and a
         vectorised fixed-$N$ birth--death variant; the WCA backend uses a
@@ -71,10 +76,16 @@ reading does not generalise.
         nontrivial.
   \item \textbf{Configuration-resolved conditional diagnostics} for the many-body
         case, to measure conditional fidelity rather than infer it from structure.
-  \item \textbf{A better online target for entropic bottlenecks.} The
+  \item \textbf{Adding information for entropic bottlenecks.} The
         entropy-dominant stress test (\cref{sec:eb_entropy_dominant}) shows the
-        achievable (oracle) gain is entropic-specific but the ABF-bias estimate is
-        too noisy to realise it. A lower-variance online free-energy estimator
-        inside the FR target (e.g.\ a slower-EMA or eABF/CZAR-style estimate) is the
-        natural way to convert that diagnosed headroom into a deployable gain.
+        achievable (oracle) gain is entropic-specific, but
+        \cref{sec:eb_obstruction} shows a lower-variance online estimator on the
+        same trajectory \emph{cannot} realise it: moment fusion, a transverse
+        control variate, and confidence gating all reduce to the ABF bias or to
+        the bias plus noise, so the oracle is an information upper bound rather
+        than a tuning target. The open route is therefore to change the available
+        information --- enhanced sampling of a genuinely slow orthogonal
+        coordinate, multiple-replica or tempered data, or a parametric prior on
+        the channel stiffness $\omega(x)$ fit from the well interiors --- not a
+        cleverer estimator on the same data.
 \end{itemize}

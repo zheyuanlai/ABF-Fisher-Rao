@@ -72,3 +72,15 @@
 \newcommand{\EDBestMin}{-9.7}
 \newcommand{\EDBestPhiMin}{0.5}
 \newcommand{\EDBestIntGain}{20.5}
+
+% --- deployable-target obstruction (moment / CV / gating / 2D-CV) ---
+\newcommand{\OBSmomentIdentity}{6\times10^{-4}}     % max|F_moment - B| on grid
+\newcommand{\OBSmomentRatioLo}{0.994}               % median moment/abf readout ratio
+\newcommand{\OBStwodAnalytic}{2.6}                  % 2D-CV gain w/ known weights
+\newcommand{\OBStwodEmpirical}{3\times10^{-16}}     % 2D-CV vs ABF, empirical weights
+\newcommand{\OBSregLo}{0.64}                         % regression-intercept RMSE ratio (worse)
+\newcommand{\OBSregHi}{0.73}
+\newcommand{\OBSmomentGainLoPhi}{-5.6}               % fr_moment gain, phi=0.75
+\newcommand{\OBSmomentGainHiPhi}{15.2}               % fr_moment gain, phi=0.90
+\newcommand{\OBSgateGainLoPhi}{-19.8}                % fr_moment_gated gain, phi=0.75
+\newcommand{\OBSgateGainHiPhi}{8.4}                  % fr_moment_gated gain, phi=0.90

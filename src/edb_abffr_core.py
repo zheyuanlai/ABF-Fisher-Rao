@@ -124,6 +124,9 @@ class PhysConfig:
     target_ema_rate: float = 0.005
     score_clip: float = 3.0
     max_event_fraction: float = 0.08
+    # moment-target confidence gate: per-bin smoothed-count half-saturation.
+    # conf = cnt/(cnt+gate_n0) -> steering fades in bins with < ~gate_n0 samples.
+    gate_n0: float = 50.0
     # windowed ancestor-ESS reset period (recent-diversity diagnostic)
     ess_window_steps: int = 4000
     # initial-condition spread of X0 around the left well (-1)
@@ -160,7 +163,7 @@ class MethodSpec:
     """Per-method flags (one M-column)."""
     name: str
     use_fr: bool
-    target_mode: str  # 'none' (abf), 'estimated', 'uniform', 'oracle'
+    target_mode: str  # 'none','estimated','uniform','oracle','moment','moment_gated'
 
 
 # canonical method registry
@@ -168,8 +171,17 @@ ABF = MethodSpec("abf", use_fr=False, target_mode="none")
 FR_ESTIMATED = MethodSpec("fr_estimated", use_fr=True, target_mode="estimated")
 FR_UNIFORM = MethodSpec("fr_uniform", use_fr=True, target_mode="uniform")
 FR_ORACLE = MethodSpec("fr_oracle", use_fr=True, target_mode="oracle")
+# Deployable moment-based target: full-F estimate from observed (x, fx, ||y||^2)
+# via per-bin regression of fx on u=||y||^2 (energetic mean force = intercept)
+# plus log-moment entropic FE = -(m/2beta) log <u|x>.  Never reads F_ref.
+FR_MOMENT = MethodSpec("fr_moment", use_fr=True, target_mode="moment")
+# Same target, but FR steering is gated by per-bin estimate confidence.
+FR_MOMENT_GATED = MethodSpec("fr_moment_gated", use_fr=True, target_mode="moment_gated")
 
-METHOD_REGISTRY = {m.name: m for m in (ABF, FR_ESTIMATED, FR_UNIFORM, FR_ORACLE)}
+METHOD_REGISTRY = {m.name: m for m in (ABF, FR_ESTIMATED, FR_UNIFORM, FR_ORACLE,
+                                       FR_MOMENT, FR_MOMENT_GATED)}
+
+_TARGET_MODES = ("none", "estimated", "uniform", "moment", "moment_gated")
 
 
 def assert_no_oracle_leakage(methods: Sequence[MethodSpec]) -> None:
@@ -178,7 +190,7 @@ def assert_no_oracle_leakage(methods: Sequence[MethodSpec]) -> None:
         if m.target_mode == "oracle":
             assert m.name == "fr_oracle", f"oracle target on non-oracle method {m.name}"
         else:
-            assert m.target_mode in ("none", "estimated", "uniform"), (
+            assert m.target_mode in _TARGET_MODES, (
                 f"method {m.name} has unexpected target_mode {m.target_mode}"
             )
 
@@ -296,6 +308,55 @@ def fr_target_from(F_target, B, beta, dx):
     q = torch.exp(e)
     mass = torch.clamp(trapz(q, dx), min=EPS).unsqueeze(1)
     return torch.clamp(q / mass, min=EPS)
+
+
+def moment_free_energy(Su, Sf, Sfu, Suu, C, k, r, dx, beta, mdim, idx0,
+                       min_count):
+    """Moment-based full-F estimate from grid accumulators of (x, fx, u=||y||^2).
+
+    Sums are over particle-visits binned on the grid (Sfu, Suu reserved for
+    diagnostics):
+      C  = sum 1   (counts),   Su = sum u,   Sf = sum fx,   u = ||y||^2.
+
+    Combines the two channels of the run:
+      * entropic FE from the y-channel log-moment identity
+            F_ent(x) = -(m/2beta) log <u|x>,            <u|x> = m/(beta w^2);
+      * energetic mean force from the x-channel with the entropic part removed,
+            a(x) = <fx|x> - dF_ent/dx,
+        since <fx|x> = dU + w w' <u|x> and dF_ent/dx = (m/beta) w'/w = w w'<u|x>.
+    Then F = cumtrapz(a) + F_ent.
+
+    NOTE (documented finding): because dF_ent/dx integrates back to exactly
+    F_ent, this estimate equals the ABF bias B = cumtrapz<fx|x> identically --
+    the y-channel moment is *redundant* with the x-channel force once integrated.
+    No deployable rearrangement escapes this: forcing a non-B signal (per-bin
+    regression of fx on u, or wide-smoothing the energetic residual) only injects
+    noise and degrades both the readout and any FR target built from F - B.  The
+    oracle's advantage is external information (true F_ref), which cannot be
+    reconstructed from single-trajectory observables.  We therefore keep the
+    interpretable F == B form and report the negative result rather than ship a
+    noisier estimator.  Returns F (R,G) centered at idx0, plus <u|x>, the
+    entropic mean force, and the smoothed count.  Uses only beta and mdim.
+    """
+    cnt = smooth(C, k, r, dx) + min_count + EPS
+    mu_u = smooth(Su, k, r, dx) / cnt                  # <u|x>
+    mu_f = smooth(Sf, k, r, dx) / cnt                  # <fx|x> (ABF mean force)
+    mu_u_pos = torch.clamp(mu_u, min=EPS)
+    F_ent = -(mdim / (2.0 * beta)) * torch.log(mu_u_pos)
+    fp_ent = grad_central(F_ent, dx)                   # entropic mean force d/dx
+    a = mu_f - fp_ent                                  # energetic mean force
+    F = cumtrapz(a, dx) + F_ent                         # == cumtrapz<fx> (= B)
+    F = F - F[:, idx0:idx0 + 1]
+    return F, mu_u, fp_ent, cnt
+
+
+def grad_central(y, dx):
+    """Central-difference d/dx along the grid axis (one-sided at edges)."""
+    g = torch.zeros_like(y)
+    g[:, 1:-1] = (y[:, 2:] - y[:, :-2]) / (2.0 * dx)
+    g[:, 0] = (y[:, 1] - y[:, 0]) / dx
+    g[:, -1] = (y[:, -1] - y[:, -2]) / dx
+    return g
 
 
 def l2_error(a, b, eval_mask):
@@ -443,7 +504,7 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     for c in cfgs:
         for a in ("m", "N", "dt", "n_steps", "save_every", "fr_every", "fr_burnin",
                   "ramp_steps", "h", "eta", "min_count", "ess_window_steps",
-                  "x_init_std"):
+                  "x_init_std", "gate_n0"):
             assert getattr(c, a) == getattr(c0, a), f"non-uniform {a} across configs"
     mdim = int(c0.m)
     N, dt, n_steps = c0.N, c0.dt, c0.n_steps
@@ -454,6 +515,7 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     x_grid, dx, eval_mask, idx0 = build_grid(device, dtype)
     k_h, r_h = gaussian_kernel(c0.h, dx, device, dtype)
     k_eta, r_eta = gaussian_kernel(c0.eta, dx, device, dtype)
+    gate_n0 = float(c0.gate_n0)
 
     def cfg_b(attr):
         return _per_config_tensor(cfgs, attr, device, dtype)
@@ -477,6 +539,11 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     target_mode = [m.target_mode for m in methods]
     is_uniform = torch.tensor([m == "uniform" for m in target_mode], device=device).repeat(B)
     is_oracle = torch.tensor([m == "oracle" for m in target_mode], device=device).repeat(B)
+    is_moment = torch.tensor([m in ("moment", "moment_gated") for m in target_mode],
+                             device=device).repeat(B)
+    is_gated = torch.tensor([m == "moment_gated" for m in target_mode],
+                            device=device).repeat(B)
+    any_moment = any(m in ("moment", "moment_gated") for m in target_mode)
 
     F_ref_b, Fp_ref_b = reference_profiles(
         x_grid, eval_mask, beta_b.unsqueeze(1), H_b.unsqueeze(1),
@@ -494,6 +561,11 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     C = torch.zeros((R, N_GRID), device=device, dtype=dtype)
     Sf = torch.zeros((R, N_GRID), device=device, dtype=dtype)
     F_target = torch.zeros((R, N_GRID), device=device, dtype=dtype)
+    # moment-target accumulators (sums of u=||y||^2, fx*u, u*u binned on grid)
+    Su = torch.zeros((R, N_GRID), device=device, dtype=dtype)
+    Sfu = torch.zeros((R, N_GRID), device=device, dtype=dtype)
+    Suu = torch.zeros((R, N_GRID), device=device, dtype=dtype)
+    F_moment = torch.zeros((R, N_GRID), device=device, dtype=dtype)
 
     gen_n = torch.Generator(device=device); gen_n.manual_seed(noise_seed_base + spec.batch_seed)
     gen_f = torch.Generator(device=device); gen_f.manual_seed(fr_seed_base + spec.batch_seed)
@@ -531,6 +603,11 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
         idx = torch.clamp(torch.round((X - XMIN) / dx).long(), 0, N_GRID - 1)
         C.scatter_add_(1, idx, torch.ones_like(X))
         Sf.scatter_add_(1, idx, fx)
+        if any_moment:
+            # accumulate moment-target sufficient statistics (u = ||y||^2 = sqnorm)
+            Su.scatter_add_(1, idx, sqnorm)
+            Sfu.scatter_add_(1, idx, fx * sqnorm)
+            Suu.scatter_add_(1, idx, sqnorm * sqnorm)
         Fp = smooth(Sf, k_h, r_h, dx) / (smooth(C, k_h, r_h, dx) + c0.min_count + EPS)
         Bbias = cumtrapz(Fp, dx)
         Bbias = Bbias - Bbias[:, idx0:idx0 + 1]
@@ -565,12 +642,28 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
             if any(m == "oracle" for m in target_mode):
                 q_orc = fr_target_from(F_ref, Bbias, beta, dx)
                 q = torch.where(is_oracle.unsqueeze(1), q_orc, q)
+            conf = None
+            if any_moment:
+                F_moment, _mu_u, _var_u, cnt_m = moment_free_energy(
+                    Su, Sf, Sfu, Suu, C, k_h, r_h, dx, beta, mdim,
+                    idx0, c0.min_count)
+                q_mom = fr_target_from(F_moment, Bbias, beta, dx)
+                q = torch.where(is_moment.unsqueeze(1), q_mom, q)
+                # confidence gate: per-bin reliability of the moment estimate,
+                # rising with effective sample count.  conf in (0,1], -> 1 when
+                # well-sampled, -> 0 in starved bins (steer only where trusted).
+                conf = cnt_m / (cnt_m + gate_n0)
             logp = torch.log(torch.clamp(p, min=EPS))
             logq = torch.log(torch.clamp(q, min=EPS))
             kl = trapz(p * (logp - logq), dx).unsqueeze(1)
             S = (torch.log(torch.clamp(interp1d(Xp, p, dx), min=EPS))
                  - torch.log(torch.clamp(interp1d(Xp, q, dx), min=EPS)) - kl)
             S = torch.clamp(S, -clip_r, clip_r)
+            if conf is not None:
+                # gated rows: scale steering by per-particle confidence; ungated
+                # rows pass through unchanged.
+                conf_p = interp1d(Xp, conf, dx)                # (R,N) in (0,1]
+                S = torch.where(is_gated.unsqueeze(1), S * conf_p, S)
             # FR score-std diagnostic (per FR row, over walkers)
             sum_score_std += torch.where(fr_mask, S.std(dim=1), torch.zeros(R, device=device, dtype=dtype))
             sel, die, clone = fr_resample_indices(S, fr_mask, g, dt_fr, cap_r, gen_f)
@@ -677,6 +770,21 @@ def _finalize(L):
     q_final = fr_target_from(F_target, Bbias, beta, dx)
     cond = conditional_variance_diagnostics(X, Y, beta, oout, oin, sw, mdim)
 
+    # deployable moment-based full-F estimate (computed for every row when the
+    # moment accumulators were filled, i.e. when the batch contained a moment
+    # method).  Centered on the eval window to match F_ref's gauge.
+    has_moment_acc = bool(L.get("any_moment", False))
+    if has_moment_acc:
+        idx0 = L["idx0"]
+        F_mom_grid, _muu, _vuu, _cntm = moment_free_energy(
+            L["Su"], L["Sf"], L["Sfu"], L["Suu"], L["C"],
+            L["k_h"], L["r_h"], dx, beta, mdim, idx0, cfgs[0].min_count)
+        F_mom_grid = F_mom_grid - F_mom_grid[:, eval_mask].mean(dim=1, keepdim=True)
+        l2_moment = l2_error(F_mom_grid, F_ref, eval_mask)
+    else:
+        F_mom_grid = None
+        l2_moment = None
+
     ts_l2f = L["ts_l2f"]; ts_l2fp = L["ts_l2fp"]; ts_ess = L["ts_ess"]
     ts_cross = L["ts_cross"]; ts_occ = L["ts_occ"]; ts_denom0 = L["ts_denom0"]
     t_axis = np.array([st * dt for st in save_steps])
@@ -727,6 +835,9 @@ def _finalize(L):
                 "Fp_hat": npy(Fp[r]),
                 "F_ref": npy(F_ref[r]),
                 "Fp_ref": npy(Fp_ref[r]),
+                "F_moment": npy(F_mom_grid[r]) if F_mom_grid is not None else None,
+                "final_l2_f_moment": (float(l2_moment[r])
+                                      if l2_moment is not None else None),
                 "p_hat": npy(p_hat[r]),
                 "q_target": npy(q_final[r]) if use_fr else None,
                 "n_die": n_die,
