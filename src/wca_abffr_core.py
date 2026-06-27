@@ -612,6 +612,18 @@ def ancestor_ess(ancestors, n_replicas):
     return float(ess.item()), n_unique
 
 
+def ancestor_max_fraction(ancestors, n_replicas):
+    """Largest fraction of the current population descended from a single ancestor.
+
+    Read-only genealogy diagnostic (no RNG consumed): a high value flags
+    genealogical collapse even when ESS or unique-ancestor count look healthy.
+    """
+    if ancestors is None:
+        return float("nan")
+    counts = torch.bincount(ancestors, minlength=n_replicas).to(torch.float64)
+    return float((counts.max() / counts.sum().clamp_min(1.0)).item())
+
+
 def region_l2_errors(profile, reference, grid, sim):
     """L2 of (profile-reference) over compact/transition/stretched regions.
 
@@ -655,12 +667,22 @@ def assert_no_oracle_leakage(method, oracle_free_energy):
 # ---------------------------------------------------------------------------
 @torch.inference_mode()
 def run_sampler_gpu(method, params, sim, engine, initial_q=None,
-                    oracle_free_energy=None, collect_diagnostics=True, verbose=True):
+                    oracle_free_energy=None, collect_diagnostics=True, verbose=True,
+                    track_crossings=False):
     """Run one sampler on the GPU.
 
     method in {abf, fr_estimated, fr_uniform, fr_oracle}. The FR target is built
     per-variant; only fr_oracle reads oracle_free_energy (the TI reference). The
     EMA estimated target is maintained ONLY for fr_estimated and never sees TI.
+
+    ``track_crossings`` (default False, so existing callers are byte-identical and
+    pay no overhead) enables a read-only per-replica barrier-crossing counter at
+    the transition midpoint z_b=(transition_lo+transition_hi)/2. It counts
+    compact->stretched and stretched->compact crossings and per-replica round
+    trips; on a birth-death clone only the side label is inherited from the clone
+    source, so a teleporting clone is not miscounted as a physical crossing. The
+    per-slot crossing tallies are not duplicated. No RNG is consumed, so dynamics
+    are unchanged.
     """
     if method not in ALL_METHODS:
         raise ValueError(f"method must be one of {ALL_METHODS}, got {method!r}")
@@ -687,16 +709,44 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
     birth_hist = np.zeros(sim.n_grid, dtype=np.float64)
     death_hist = np.zeros(sim.n_grid, dtype=np.float64)
 
+    # Optional read-only barrier-crossing tracker (no effect on dynamics/RNG).
+    # Counters are kept on-GPU and summed once at the end to avoid a per-step
+    # host sync (the .item() that would otherwise serialise every step).
+    z_barrier = 0.5 * (sim.transition_lo + sim.transition_hi)
+    side = None                 # bool: True == stretched side (z > z_barrier)
+    n_c2s_total = (torch.zeros((), device=engine.device, dtype=torch.long)
+                   if track_crossings else 0)   # compact -> stretched (population sum)
+    n_s2c_total = (torch.zeros((), device=engine.device, dtype=torch.long)
+                   if track_crossings else 0)   # stretched -> compact (population sum)
+    rep_c2s = (torch.zeros(sim.n_replicas, device=engine.device, dtype=torch.long)
+               if track_crossings else None)
+    rep_s2c = (torch.zeros(sim.n_replicas, device=engine.device, dtype=torch.long)
+               if track_crossings else None)
+
     diag = {k: [] for k in ["steps", "times", "mean_force", "pmf",
                              "p_hat", "q_target", "pq_l2", "kl_pq", "eff_counts",
                              "frac_compact", "frac_transition", "frac_stretched",
-                             "ancestor_ess", "n_unique_ancestor", "repl_cumulative"]}
+                             "ancestor_ess", "n_unique_ancestor", "max_ancestor_frac",
+                             "repl_cumulative"]}
 
     t0 = time.perf_counter()
     for step in range(sim.n_steps + 1):
         forces_raw = engine.force(q, compute_energy=False)
         forces_physical = clip_forces(forces_raw, params.force_clip)
         z = reaction_coordinate(q, params)
+
+        if track_crossings:
+            cur_side = z > z_barrier
+            if side is None:
+                side = cur_side
+            else:
+                up = (~side) & cur_side       # compact -> stretched
+                down = side & (~cur_side)     # stretched -> compact
+                n_c2s_total += up.sum()       # GPU accumulate (no host sync)
+                n_s2c_total += down.sum()
+                rep_c2s += up.long()
+                rep_s2c += down.long()
+                side = cur_side
 
         mean_force_input = forces_physical if sim.use_clipped_force_for_mean_force else forces_raw
         f_local = local_mean_force(q, mean_force_input, params)
@@ -753,9 +803,11 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                     ess, nuq = ancestor_ess(ancestors, sim.n_replicas)
                     diag["ancestor_ess"].append(ess)
                     diag["n_unique_ancestor"].append(nuq)
+                    diag["max_ancestor_frac"].append(ancestor_max_fraction(ancestors, sim.n_replicas))
                 else:
                     diag["ancestor_ess"].append(float("nan"))
                     diag["n_unique_ancestor"].append(sim.n_replicas)
+                    diag["max_ancestor_frac"].append(float("nan"))
 
         if step == sim.n_steps:
             break
@@ -774,6 +826,14 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                     q, ancestors, stats = fixed_population_birth_death_torch(
                         q, score, sim, ancestors=ancestors, fr_interval=sim.fr_every)
                     total_replacement_events += stats["replacement"]
+                    if track_crossings and side is not None and stats["replacement"] > 0:
+                        # a clone inherits only the source's SIDE, so the teleport is
+                        # not miscounted as a barrier crossing on the next step. The
+                        # per-slot crossing tallies are NOT copied, so they stay an
+                        # un-duplicated population tally (sum == global counters) and
+                        # round_trips <= min(compact->stretched, stretched->compact).
+                        di, bs = stats["death_idx"], stats["birth_src"]
+                        side[di] = side.index_select(0, bs)
                     if collect_diagnostics and stats["replacement"] > 0:
                         # record births/deaths at their PRE-replacement z (z_new).
                         zb = z_new.index_select(0, stats["birth_src"])
@@ -791,9 +851,22 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
     diag["birth_hist"] = birth_hist
     diag["death_hist"] = death_hist
     diag["hist_edges"] = np.linspace(sim.z_min, sim.z_max, sim.n_grid + 1)
+    if track_crossings:
+        c2s = int(n_c2s_total.item())
+        s2c = int(n_s2c_total.item())
+        diag["n_compact_to_stretched"] = c2s
+        diag["n_stretched_to_compact"] = s2c
+        diag["n_barrier_crossings"] = c2s + s2c
+        # a completed round trip needs both an up and a down leg in the same replica
+        diag["n_round_trips"] = int(torch.minimum(rep_c2s, rep_s2c).sum().item())
+    else:
+        diag["n_compact_to_stretched"] = -1
+        diag["n_stretched_to_compact"] = -1
+        diag["n_barrier_crossings"] = -1
+        diag["n_round_trips"] = -1
     for key in ["steps", "times", "mean_force", "pmf", "p_hat", "q_target", "eff_counts",
                 "pq_l2", "kl_pq", "frac_compact", "frac_transition", "frac_stretched",
-                "ancestor_ess", "n_unique_ancestor", "repl_cumulative"]:
+                "ancestor_ess", "n_unique_ancestor", "max_ancestor_frac", "repl_cumulative"]:
         diag[key] = np.asarray(diag[key])
     if verbose:
         extra = f", replacements {total_replacement_events}" if is_fr else ""

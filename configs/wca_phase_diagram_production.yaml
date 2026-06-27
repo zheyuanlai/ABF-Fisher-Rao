@@ -1,0 +1,97 @@
+# WCA phase-diagram PRODUCTION config.
+#
+# Selected after the pilot: a beta x h difficulty plane at the anchor system
+# (M=100), extended to h=6, plus two physical-particle-count points at the
+# representative beta=2,h=4 cell.  This keeps the production workload tractable
+# on at most two shared H200 GPUs while testing both physical difficulty and M.
+#
+# Methods: abf (baseline), fr_estimated (deployable mFR--ABF), fr_uniform
+# (target-shape ablation), fr_oracle (DIAGNOSTIC -- uses the TI reference as the
+# FR target and is NOT deployable).
+
+experiment_name: wca_phase_diagram_production
+output_root: results/wca_phase_diagram/production
+cache_dir: cache/phase
+
+base:
+  dt: 0.002
+  save_every: 2500
+  z_min: -0.2
+  z_max: 1.2
+  n_grid: 160
+  abf_bandwidth: 0.025
+  kde_bandwidth: 0.070
+  abf_smooth_sigma: 0.5
+  mean_force_sample_clip: 500.0
+  use_clipped_force_for_mean_force: true
+  abf_bias_scale: 1.0
+  abf_edge_extrapolate: true
+  boundary_wall_strength: 80.0
+  abf_force_clip: 40.0
+  abf_warmup_steps: 10000
+  estimator_burn_in_steps: 10000
+  fr_start_steps: 20000
+  fr_every: 5
+  score_clip: 2.0
+  transition_lo: 0.25
+  transition_hi: 0.75
+  eval_z_lo: -0.1
+  eval_z_hi: 1.1
+  ti:
+    n_z: 51
+    n_replicas: 128
+    n_thermalization: 5000
+    n_steps: 50000
+    sample_every: 20
+    z_chunk_size: 8
+    smooth_sigma: 1.0
+
+system_defaults:
+  n_dim: 10       # M = 100 physical particles (anchor)
+  a: 1.5
+  sigma: 1.0
+  epsilon: 1.0
+  w: 2.0
+  beta: 1.0
+  h: 2.0
+
+methods:
+  abf:
+    type: abf
+  fr_estimated:
+    type: fr_estimated
+    fr_rate: 0.10
+    target_ema_rate: 0.005
+    max_event_fraction: 0.02
+    fr_every: 5
+    fr_start_steps: 20000
+    score_clip: 2.0
+  fr_uniform:
+    type: fr_uniform
+    fr_rate: 0.10
+    target_ema_rate: 0.005
+    max_event_fraction: 0.02
+    fr_every: 5
+    fr_start_steps: 20000
+    score_clip: 2.0
+  fr_oracle:
+    type: fr_oracle
+    fr_rate: 0.10
+    target_ema_rate: 0.005
+    max_event_fraction: 0.02
+    fr_every: 5
+    fr_start_steps: 20000
+    score_clip: 2.0
+
+stages:
+  production:
+    n_steps: 120000
+    n_replicas: 1024
+    seeds: [0, 1, 2, 3]
+    methods: [abf, fr_estimated, fr_uniform, fr_oracle]
+    grid:
+      beta: [1, 2, 4]
+      h: [1, 2, 4, 6]
+    extra_points:
+      - {beta: 2, h: 4, n_dim: 7}
+      - {beta: 2, h: 4, n_dim: 14}

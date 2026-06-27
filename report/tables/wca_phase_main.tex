@@ -1,0 +1,29 @@
+\begin{table}[t]
+\centering
+\small
+\caption{WCA phase diagram over $(\beta,h)$ at $M=100$ physical particles
+($N=1024$ replicas, $120{,}000$ steps).
+$R=L^2(F)_{\rm ABF}/L^2(F)_{\rm mFR\,est}$; gain is the matched-seed median
+percentage reduction in final $L^2(F)$. The oracle column is a diagnostic that
+uses the TI reference and is \emph{not} deployable.}
+\label{tab:wca_phase_main}
+\begin{tabular}{rrr rrrr rr rr}
+\toprule
+$\beta$ & $h$ & $\beta h$ & ABF & mFR est & mFR uni & mFR ora$^{*}$ & $R$ & gain (\%) & wins & ESS \\
+\midrule
+1 & 1 & 1 & 0.1006 & 0.0503 & 0.0518 & 0.0521 & 2.00 & $+49.9$ & 4/4 & 171 \\
+1 & 2 & 2 & 0.0918 & 0.0474 & 0.0409 & 0.0480 & 1.94 & $+48.0$ & 4/4 & 166 \\
+1 & 4 & 4 & 0.0954 & 0.0465 & 0.0463 & 0.0530 & 2.05 & $+51.3$ & 4/4 & 191 \\
+1 & 6 & 6 & 0.0960 & 0.0510 & 0.0523 & 0.0601 & 1.88 & $+46.8$ & 4/4 & 238 \\
+2 & 1 & 2 & 0.0130 & 0.0132 & 0.0161 & 0.0109 & 0.98 & $-6.5$ & 1/4 & 224 \\
+2 & 2 & 4 & 0.0127 & 0.0161 & 0.0160 & 0.0076 & 0.79 & $-29.0$ & 0/4 & 218 \\
+2 & 4 & 8 & 0.0150 & 0.0243 & 0.0236 & 0.0103 & 0.62 & $-61.5$ & 0/4 & 209 \\
+2 & 6 & 12 & 0.0246 & 0.0196 & 0.0195 & 0.0167 & 1.26 & $+20.4$ & 4/4 & 275 \\
+4 & 1 & 4 & 0.0045 & 0.0253 & 0.0226 & 0.0079 & 0.18 & $-488.8$ & 0/4 & 212 \\
+4 & 2 & 8 & 0.0082 & 0.0282 & 0.0279 & 0.0107 & 0.29 & $-229.8$ & 0/4 & 212 \\
+4 & 4 & 16 & 0.0156 & 0.0397 & 0.0388 & 0.0171 & 0.39 & $-156.0$ & 0/4 & 165 \\
+4 & 6 & 24 & 0.0249 & 0.0414 & 0.0414 & 0.0231 & 0.60 & $-69.1$ & 0/4 & 153 \\
+\bottomrule
+\end{tabular}
+\par\smallskip\footnotesize $^{*}$\,Diagnostic oracle target (uses $F_{\rm ref}$); not deployable.
+\end{table}

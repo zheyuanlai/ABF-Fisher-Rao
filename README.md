@@ -29,6 +29,7 @@ free-energy-shape steering. The full write-up is in
 | Metastability (2D) | `scripts/run_abf_fr_grid*.py` (see below) | `results/two_dim_xi_x/` | `report/sections/04_case_metastability.tex` |
 | Entropic bottleneck (2D) | `scripts/run_entropic_bottleneck_study.py`, `src/eb_abffr_core.py` | `results/entropic_bottleneck/` | `report/sections/05_case_entropic_bottleneck.tex` |
 | WCA dimer (many-body) | `scripts/run_wca_production.py`, `src/wca_abffr_core.py`, `configs/wca_production.yaml` | `results/wca_production/` | `report/sections/06_case_wca.tex` |
+| WCA dimer **phase diagram** | `scripts/run_wca_phase_diagram.py`, `src/wca_phase_jobs.py`, `configs/wca_phase_diagram_*.yaml` | `results/wca_phase_diagram/` | `report/sections/06_case_wca.tex` (phase-diagram subsection) |
 
 The notebooks are kept as reference; the studies below are driven from the
 command line. The remainder of this document details **Case I** (the 2D
@@ -370,3 +371,107 @@ numpy-CPU vs torch-CPU metrics (same order of magnitude); torch-CPU vs torch-CUD
 `results/two_dim_xi_x/validation/validation_report.json` and `validation_summary.csv`.
 Exact trajectory equality across backends is **not** required (RNG and GPU math
 differ); metrics and profiles are compared within tolerances.
+
+---
+
+## WCA dimer phase diagram: when does marginal Fisher--Rao help?
+
+The single-setting WCA study (above) is extended into a **phase diagram** that
+sweeps the *physical* difficulty of the system and asks where ABF is
+sample-starved and whether marginal Fisher--Rao (mFR) birth--death helps there.
+This is a **separate, additive** study: it does not touch `results/wca_production/`
+or `WCA_dimer.ipynb`, and it reuses the validated sampler in
+`src/wca_abffr_core.py` through an opt-in, read-only `track_crossings` flag
+and a `max_ancestor_frac` diagnostic; the existing WCA production entry points
+keep their default code path (`track_crossings=False`).
+
+**Swept physical parameters** (distinct from the `N=1024` ABF/FR *replicas*):
+
+| Symbol | Meaning | Grid |
+| --- | --- | --- |
+| `beta` | inverse temperature (entropic vs energetic scale) | {1, 2, 4} |
+| `h` | dimer double-well barrier height | {1, 2, 4, 6} |
+| `w` | dimer well width | 2 (fixed) |
+| `M = n_dim^2` | **physical** particle count in the WCA bath | {49, 100, 196} |
+| `a` | lattice spacing / crowding | 1.5 (fixed) |
+
+The product `beta*h` is the natural difficulty axis (free-energy barrier in units
+of `kT`). The anchor cell `beta=1, h=2, w=2, M=100, a=1.5` reproduces the physics
+of the single-setting WCA production study.
+
+**Methods compared** (matched initial conditions and seeds): `abf` (baseline),
+`fr_estimated` (the deployable online-EMA-target method), `fr_uniform` (ablation),
+`fr_oracle` (diagnostic — uses the TI reference as the FR target and is *not*
+deployable). A no-leakage assertion guarantees only `fr_oracle` ever sees the
+reference.
+
+### How to run
+
+Everything is config-driven and resumable (one `.npz` per run; valid results are
+skipped on restart). **Never use more than two GPUs** (the H200 benchmark showed
+packing multiple processes onto one GPU gives no speedup — kernels serialise — so
+the launcher runs one process per GPU and shards across at most two).
+
+```bash
+conda activate abffr   # torch + cuda
+
+# 0) dry-run workload summary (no compute): #cells, #runs, #refs, GPU-hours
+python scripts/run_wca_phase_diagram.py \
+  --config configs/wca_phase_diagram_pilot.yaml --stage pilot --dry-run --num-gpus 2
+
+# 1) smoke (correctness; ~5 min on one GPU): 4 cells x 4 methods x 2 seeds
+bash scripts/run_wca_phase_diagram_h200.sh configs/wca_phase_diagram_smoke.yaml smoke 4
+
+# 2) pilot (3x3 beta-h plane at M=100; ~3 h on two GPUs)
+bash scripts/run_wca_phase_diagram_h200.sh configs/wca_phase_diagram_pilot.yaml pilot 4,7
+
+# 3) production (beta x {1,2,4} times h x {1,2,4,6}, plus two M-axis points)
+bash scripts/run_wca_phase_diagram_h200.sh configs/wca_phase_diagram_production.yaml production 4,7 \
+  --batch-size-configs 1
+```
+
+The launcher precomputes the TI references first (sharded by *distinct physics*
+across the GPUs so the cache is never raced), then fans the runs out. References
+are cached in `cache/phase/` keyed by the full physics tag, so overlapping cells
+(e.g. the pilot and production `beta x h` plane) reuse them.
+
+### Regenerate tables / figures
+
+```bash
+# aggregate raw runs -> 8 summary CSVs under <output_root>/summaries/
+python scripts/analyze_wca_phase_diagram.py \
+  --config configs/wca_phase_diagram_production.yaml --stages production
+
+# manuscript figures -> <output_root>/figures_<stage>/ (and copy to report/figures)
+python scripts/plot_wca_phase_diagram.py \
+  --config configs/wca_phase_diagram_production.yaml --stage production \
+  --report-figdir report/figures
+
+# report table + in-text-number macros (separate from the existing numbers.tex)
+python scripts/make_phase_report_assets.py \
+  --summaries results/wca_phase_diagram/production/summaries
+```
+
+### Outputs
+
+* `results/wca_phase_diagram/{smoke,pilot,production}/raw/*.npz` — one self-contained
+  run each (metrics, time series, profiles, genealogy, FR events; failures are
+  recorded as JSON under `raw/_failures/`).
+* `.../summaries/phase_*.csv` — `phase_final_summary`, `phase_runs_long`,
+  `phase_config_summary`, `phase_profiles`, `phase_fr_events`, `phase_genealogy`,
+  `phase_main_table`, `phase_improvement_ratios`.
+* `.../figures_<stage>/fig_wca_phase_*.png` — heatmaps (ABF / mFR `L2(F)`,
+  improvement ratio `R`, integrated `R`, FR event fraction), barrier-crossing
+  comparison, ancestor-ESS / max-ancestor-fraction time series, error-vs-time and
+  free-energy-profile comparisons for easy / anchor / hard regimes.
+
+### Compile the report
+
+```bash
+cd report && tectonic -X compile main.tex        # or: make pdf
+```
+
+The phase-diagram subsection of `report/sections/06_case_wca.tex` inputs the
+auto-generated `report/tables/wca_phase_main.tex` and
+`report/tables/wca_phase_numbers.tex`; it does not modify the existing
+`numbers.tex` pipeline or `check_report_numbers.py`.

@@ -172,16 +172,126 @@ helps most.
   \label{fig:wca_difficulty}
 \end{figure}
 
+
+\subsection{WCA phase diagram: when does marginal Fisher--Rao help?}
+\label{sec:wca_phase_diagram}
+\input{tables/wca_phase_numbers.tex}
+
+A single WCA setting is not enough to tell whether the gain above is a generic
+property of the dimer or a response to sample starvation. We therefore added an
+additive, command-line phase-diagram study that sweeps physical parameters while
+keeping the existing production result intact. In the production phase diagram reported here we vary
+the inverse temperature $\beta\in\{1,2,4\}$ and dimer barrier height
+$h\in\{1,2,4,6\}$ at fixed width $w=2$, lattice spacing $a=1.5$, and
+$M=n_{\mathrm{dim}}^2=100$ physical particles; we also add a targeted
+physical-size slice $M\in\{49,100,196\}$ at $(\beta,h)=(2,4)$. This $M$ is the number of physical particles
+in one WCA system; it is distinct from the $N=1024$ ABF/FR
+replicas used to estimate the mean force. Each cell uses $\WCAPDNSeeds$ matched
+seeds and $\WCAPDNSteps$ steps. The deployable comparison is ABF versus
+mFR--ABF with the online estimated target; the uniform target is an ablation, and
+the oracle target is included as a diagnostic positive control in the table but is
+not a usable method because it reads the TI reference.
+
+\input{tables/wca_phase_main.tex}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.98\textwidth]{fig_wca_phase_01_heatmaps.png}
+  \caption{Production WCA phase diagram at $M=100$: ABF final $\Ltwo(F)$ (left),
+    mFR--ABF with the estimated target (middle), and the matched-seed improvement
+    ratio $R=\Ltwo(F)_{\rm ABF}/\Ltwo(F)_{\rm mFR}$ (right). Values $R>1$ mean
+    mFR improves over ABF. The gain localises in the high-error $\beta=1$ row,
+    including the anchor cell; when ABF is already accurate, mFR is neutral to
+    harmful.}
+  \label{fig:wca_phase_heatmaps}
+\end{figure}
+
+The result is sharper than a monotone ``larger $\beta h$ is harder'' story.
+The measured ABF error, not the nominal product $\beta h$, is the useful
+starvation diagnostic. In the $\beta=1$ row ABF remains at
+$\Ltwo(F)\approx0.09$--$0.10$, and mFR improves all matched seeds with
+$+47$--$51\%$ median gain; the anchor cell $\beta=1,h=2$ improves from
+$\WCAPDAnchorAbfErr$ to $\WCAPDAnchorFrErr$ ($R=\WCAPDAnchorR$). At
+$\beta=2$ and $\beta=4$, ABF is often much more accurate (below
+$\Ltwo(F)=0.005$ in the easiest accurate cell), and the same birth--death
+configuration over-corrects: only $\WCAPDNWinCells/\WCAPDNPlaneCells$ cells have
+positive gain, and the worst cell \WCAPDMinGainCell{} loses strongly. Thus the
+phase diagram supports the conditional claim rather than an unconditional one:
+mFR helps when the ABF free-energy estimator is sample-starved, but it can hurt
+when ABF has already solved the marginal problem.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.95\textwidth]{fig_wca_phase_03_transitions.png}
+  \caption{Barrier-crossing counts for ABF and mFR--ABF (estimated target) in the
+    same production cells. mFR slightly increases crossing counts in most cells, but
+    the accuracy gain does not follow crossing count alone: unnecessary
+    resampling can raise crossings while worsening $\Ltwo(F)$ when ABF is already
+    accurate.}
+  \label{fig:wca_phase_transitions}
+\end{figure}
+
+The mechanism diagnostics separate exploration from target-shape and genealogy
+effects. The uniform target is close to the estimated target in this production run (mean absolute difference in matched gain
+$\WCAPDMeanAbsUniMinusEst$ percentage points). The oracle target is different:
+it improves most cells, which shows that birth--death can help beyond the
+$\beta=1$ row if the target is accurate, but that target is diagnostic only. FR also increases
+barrier crossings only modestly; the important pattern is that it reallocates
+whole configurations in the cells where the ABF estimator is noisy. Genealogy does
+not show catastrophic collapse in the production run: the minimum final ancestor ESS for
+mFR--ABF is $\WCAPDMinFinalEss$ out of $1024$, the mean final ESS is
+$\WCAPDMeanFinalEss$, and the largest single ancestor fraction observed is only
+$\WCAPDMaxAncFrac$. The harmful cells therefore look like an unnecessary
+resampling/variance tradeoff, not the severe genealogical collapse seen in the
+aggressive-rate failure ladder.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.95\textwidth]{fig_wca_phase_05_genealogy.png}
+  \caption{Genealogical diagnostics for representative production regimes. The
+    deployable mFR run keeps many ancestors alive in the helpful $\beta=1$ row,
+    and the maximum ancestor fraction remains small; the production run does not exhibit
+    the collapse associated with over-aggressive birth--death.}
+  \label{fig:wca_phase_genealogy}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.95\textwidth]{fig_wca_phase_06_error_vs_time.png}
+  \caption{Error-versus-time curves for representative cells. mFR separates from
+    ABF after the FR onset in the sample-starved anchor regime, while in accurate
+    high-$\beta$ regimes the same resampling is not beneficial.}
+  \label{fig:wca_phase_time}
+\end{figure}
+
+This production phase diagram therefore refines the WCA conclusion. There is an
+``easy/accurate'' region where ABF already works well and mFR should be reduced or
+disabled, a sample-starved region (the $\beta=1$ row, including the original WCA
+anchor) where gentle mFR gives a large free-energy gain, and intermediate cells
+where the answer depends on the online target. The targeted mass slice at
+$(\beta,h)=(2,4)$ is non-monotone: mFR helps at $M=49$ ($+24.4\%$), but hurts at
+$M=100$ and $M=196$, while the oracle target helps the two larger systems. Thus
+physical size alone is not the difficulty variable; the relevant diagnostic is
+whether the practical online target is correcting a genuinely starved ABF
+estimator without adding unnecessary birth--death noise. This is distinct from the
+separate over-aggressive failure mode identified by the rate ladder, where
+diversity collapse dominates.
+
 \subsection{Case finding}
-On the condensed-phase WCA dimer, ABF+FR with an online estimated target reliably
-and substantially improves free-energy accuracy: $+\WCAtunedGainPct\%$ in median
-final $\Ltwo(F)$ at the tuned operating point, winning $\WCAtunedWin/10$ seeds,
-with the gain concentrated in the free energy (not the mean force). The mechanism
-is balanced-resampling variance reduction after warm-up; the precise target shape
-matters little ($\text{uniform}\approx\text{estimated}\approx\text{oracle}$, and
-the estimated target already reaches the oracle's accuracy). The method has a clear
-safe regime, \texttt{fr\_rate}$\approx0.1$--$0.2$, and a real failure boundary:
-too-aggressive birth--death reverses the benefit as diversity collapses. The relative advantage \emph{grows with simulation budget}, is insensitive to
-replica count, and removes the largest absolute error in the densest, hardest
-solvent --- exactly the starved regime the support-reallocation mechanism
-predicts.
+At the original condensed-phase WCA anchor, ABF+FR with an online estimated target
+reliably and substantially improves free-energy accuracy: $+\WCAtunedGainPct\%$ in
+median final $\Ltwo(F)$ at the tuned operating point, winning
+$\WCAtunedWin/10$ seeds, with the gain concentrated in the free energy (not the
+mean force). The mechanism is balanced-resampling variance reduction after
+warm-up; at the anchor, target shape matters little
+($\text{uniform}\approx\text{estimated}\approx\text{oracle}$, and the estimated
+target already reaches the oracle's accuracy). The method has a clear safe regime,
+\texttt{fr\_rate}$\approx0.1$--$0.2$, and a real failure boundary: too-aggressive
+birth--death reverses the benefit as diversity collapses. The new phase diagram
+qualifies the claim: mFR is most useful where the ABF estimator is visibly
+sample-starved (the $\beta=1$ WCA row in the production phase diagram), but when ABF already has a low
+free-energy error the same birth--death correction can be unnecessary or harmful.
+Thus the practical recommendation is conditional, not automatic: use gentle,
+diversity-preserving mFR in starved WCA regimes, and monitor ABF error,
+transition support, FR event fractions, and genealogy before increasing the
+birth--death strength.

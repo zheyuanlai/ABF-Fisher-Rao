@@ -1,0 +1,92 @@
+# WCA phase-diagram SMOKE config: tiny grid, tiny runs, cheap TI.
+# Purpose: validate the full pipeline (run -> analyze -> plot -> report stub),
+# stable CSV schema, and no NaNs. NOT scientifically meaningful.
+# Separate cache dir so cheap smoke TI references never pollute production refs.
+
+experiment_name: wca_phase_diagram_smoke
+output_root: results/wca_phase_diagram/smoke
+cache_dir: cache/phase_smoke
+
+# SimConfig base block (physics lives in system_defaults / grid, NOT here).
+base:
+  dt: 0.002
+  save_every: 200
+  z_min: -0.2
+  z_max: 1.2
+  n_grid: 160
+  abf_bandwidth: 0.025
+  kde_bandwidth: 0.070
+  abf_smooth_sigma: 0.5
+  mean_force_sample_clip: 500.0
+  use_clipped_force_for_mean_force: true
+  abf_bias_scale: 1.0
+  abf_edge_extrapolate: true
+  boundary_wall_strength: 80.0
+  abf_force_clip: 40.0
+  abf_warmup_steps: 300
+  estimator_burn_in_steps: 300
+  fr_start_steps: 500
+  fr_every: 5
+  score_clip: 2.0
+  transition_lo: 0.25
+  transition_hi: 0.75
+  eval_z_lo: -0.1
+  eval_z_hi: 1.1
+  # Cheap TI reference (smoke only).
+  ti:
+    n_z: 21
+    n_replicas: 48
+    n_thermalization: 500
+    n_steps: 2000
+    sample_every: 20
+    z_chunk_size: 8
+    smooth_sigma: 1.0
+
+# Physics defaults; any axis not in a stage `grid` takes these values.
+system_defaults:
+  n_dim: 7        # M = 49 physical particles (cheap)
+  a: 1.5
+  sigma: 1.0
+  epsilon: 1.0
+  w: 2.0
+  beta: 1.0
+  h: 2.0
+
+methods:
+  abf:
+    type: abf
+  fr_estimated:
+    type: fr_estimated
+    fr_rate: 0.10
+    target_ema_rate: 0.005
+    max_event_fraction: 0.02
+    fr_every: 5
+    fr_start_steps: 500
+    score_clip: 2.0
+  fr_uniform:
+    type: fr_uniform
+    fr_rate: 0.10
+    target_ema_rate: 0.005
+    max_event_fraction: 0.02
+    fr_every: 5
+    fr_start_steps: 500
+    score_clip: 2.0
+  fr_oracle:
+    type: fr_oracle
+    fr_rate: 0.10
+    target_ema_rate: 0.005
+    max_event_fraction: 0.02
+    fr_every: 5
+    fr_start_steps: 500
+    score_clip: 2.0
+
+stages:
+  smoke:
+    n_steps: 2000
+    n_replicas: 96
+    seeds: [0, 1]
+    methods: [abf, fr_estimated, fr_uniform, fr_oracle]
+    grid:
+      beta: [1, 4]
+      h: [1, 4]
+    # exercises 2x2 = 4 cells x 4 methods x 2 seeds = 32 runs, ~5 min total
