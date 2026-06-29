@@ -1,0 +1,107 @@
+# Fast mechanical smoke for the follow-up pipeline (sample + adaptive + frozen).
+# Tiny runs, cheap TI (n_dim=7), separate cache so it never pollutes production
+# references. NOT scientifically meaningful -- validates schema, manifest, resume,
+# the adaptive event log, and the frozen-bias reconstruction path end to end.
+
+experiment_name: wca_followup_smoke
+output_root: results/wca_followup/smoke
+cache_dir: cache/phase_smoke
+mode: sample
+
+base:
+  dt: 0.002
+  save_every: 200
+  z_min: -0.2
+  z_max: 1.2
+  n_grid: 160
+  abf_bandwidth: 0.025
+  kde_bandwidth: 0.070
+  abf_smooth_sigma: 0.5
+  mean_force_sample_clip: 500.0
+  use_clipped_force_for_mean_force: true
+  abf_bias_scale: 1.0
+  abf_edge_extrapolate: true
+  boundary_wall_strength: 80.0
+  abf_force_clip: 40.0
+  abf_warmup_steps: 300
+  estimator_burn_in_steps: 300
+  fr_start_steps: 500
+  fr_every: 5
+  score_clip: 2.0
+  transition_lo: 0.25
+  transition_hi: 0.75
+  eval_z_lo: -0.1
+  eval_z_hi: 1.1
+  ti:
+    n_z: 21
+    n_replicas: 48
+    n_thermalization: 500
+    n_steps: 2000
+    sample_every: 20
+    z_chunk_size: 8
+    smooth_sigma: 1.0
+
+system_defaults:
+  n_dim: 7        # M=49 (cheap; smoke refs cached for b1h1/b4h1)
+  a: 1.5
+  sigma: 1.0
+  epsilon: 1.0
+  w: 2.0
+  beta: 1.0
+  h: 2.0
+
+adaptive_defaults:
+  adaptive_base_fr_rate: 0.20
+  adaptive_support_mode: marginal_uniform
+  adaptive_support_lo: 0.02       # low thresholds so the gate fires in the tiny run
+  adaptive_support_hi: 0.08
+  adaptive_support_ema_rate: 0.05
+  adaptive_gate_warmup_steps: 0   # no warmup in the tiny smoke
+  adaptive_ess_full_threshold: 0.25
+  adaptive_ess_stop_threshold: 0.10
+  adaptive_event_backoff_threshold: 0.80
+  adaptive_event_backoff_factor: 0.50
+  adaptive_min_rate: 0.0
+  adaptive_max_rate: 0.20
+
+methods:
+  abf:
+    type: abf
+  fr_estimated:
+    type: fr_estimated
+    fr_rate: 0.10
+    target_ema_rate: 0.005
+    max_event_fraction: 0.02
+    fr_every: 5
+    fr_start_steps: 500
+    score_clip: 2.0
+  fr_estimated_adaptive:
+    type: fr_estimated_adaptive
+    fr_rate: 0.10
+    target_ema_rate: 0.005
+    max_event_fraction: 0.02
+    fr_every: 5
+    fr_start_steps: 500
+    score_clip: 2.0
+
+stages:
+  smoke:
+    mode: sample
+    n_steps: 2000
+    n_replicas: 96
+    seeds: [0, 1]
+    methods: [abf, fr_estimated, fr_estimated_adaptive]
+    cells:
+      - {beta: 1, h: 1}
+      - {beta: 4, h: 1}
+
+  smoke_frozen:
+    mode: frozen
+    source_study: results/wca_followup/smoke
+    source_methods: [abf, fr_estimated, fr_estimated_adaptive]
+    n_steps: 2000
+    n_replicas: 96
+    seeds: [50, 51]
+    cells:
+      - {beta: 1, h: 1}
+      - {beta: 4, h: 1}

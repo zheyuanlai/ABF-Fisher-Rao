@@ -1,0 +1,96 @@
+# WCA equal-compute ABF baselines (Part E).
+#
+# Question: does mFR beat ABF because of the birth-death correction, or can ABF
+# catch up under the same raw force-evaluation budget = N_replicas * n_steps (per
+# fixed physical M)? We compare ABF and the deployable mFR at three (N, n_steps)
+# pairs of EQUAL budget 1024*120000, plus a 2x-budget ABF point in a separate
+# stage. Additive: own output_root; reuses cached production TI references.
+#
+# Cells: starved (b1,h2), easy/harmful (b4,h1), intermediate (b2,h6).
+
+experiment_name: wca_equal_compute
+output_root: results/wca_equal_compute
+cache_dir: cache/phase
+mode: sample
+
+base:
+  dt: 0.002
+  save_every: 2500
+  z_min: -0.2
+  z_max: 1.2
+  n_grid: 160
+  abf_bandwidth: 0.025
+  kde_bandwidth: 0.070
+  abf_smooth_sigma: 0.5
+  mean_force_sample_clip: 500.0
+  use_clipped_force_for_mean_force: true
+  abf_bias_scale: 1.0
+  abf_edge_extrapolate: true
+  boundary_wall_strength: 80.0
+  abf_force_clip: 40.0
+  abf_warmup_steps: 10000
+  estimator_burn_in_steps: 10000
+  fr_start_steps: 20000
+  fr_every: 5
+  score_clip: 2.0
+  transition_lo: 0.25
+  transition_hi: 0.75
+  eval_z_lo: -0.1
+  eval_z_hi: 1.1
+  ti:
+    n_z: 51
+    n_replicas: 128
+    n_thermalization: 5000
+    n_steps: 50000
+    sample_every: 20
+    z_chunk_size: 8
+    smooth_sigma: 1.0
+
+system_defaults:
+  n_dim: 10
+  a: 1.5
+  sigma: 1.0
+  epsilon: 1.0
+  w: 2.0
+  beta: 1.0
+  h: 2.0
+
+methods:
+  abf:
+    type: abf
+  fr_estimated:
+    type: fr_estimated
+    fr_rate: 0.10
+    target_ema_rate: 0.005
+    max_event_fraction: 0.02
+    fr_every: 5
+    fr_start_steps: 20000
+    score_clip: 2.0
+
+stages:
+  # equal force-evaluation budget B = N*T = 1024*120000 = 1.2288e8 (three shapes)
+  equal_compute:
+    mode: sample
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7]
+    methods: [abf, fr_estimated]
+    budgets:
+      - {n_replicas: 1024, n_steps: 120000}   # base
+      - {n_replicas: 2048, n_steps: 60000}    # more replicas, fewer steps
+      - {n_replicas: 512,  n_steps: 240000}   # fewer replicas, more steps
+    cells:
+      - {beta: 1, h: 2}
+      - {beta: 4, h: 1}
+      - {beta: 2, h: 6}
+
+  # larger-budget ABF (2x), not equal budget: does simply doubling ABF compute
+  # close the gap? ABF only.
+  equal_compute_plus:
+    mode: sample
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7]
+    methods: [abf]
+    budgets:
+      - {n_replicas: 2048, n_steps: 120000}   # 2x budget
+    cells:
+      - {beta: 1, h: 2}
+      - {beta: 4, h: 1}
+      - {beta: 2, h: 6}

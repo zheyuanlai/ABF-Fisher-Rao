@@ -33,8 +33,10 @@ import torch.nn.functional as F
 
 EPS = 1.0e-12
 
-FR_METHODS = ("fr_estimated", "fr_uniform", "fr_oracle")
+FR_METHODS = ("fr_estimated", "fr_uniform", "fr_oracle", "fr_estimated_adaptive")
 ALL_METHODS = ("abf",) + FR_METHODS
+# Methods that maintain the online EMA estimated target (never see the TI reference).
+ESTIMATED_TARGET_METHODS = ("fr_estimated", "fr_estimated_adaptive")
 
 
 def choose_device():
@@ -120,6 +122,43 @@ class SimConfig:
     # Interior evaluation window (exclude wall-affected edges) as a fraction.
     eval_z_lo: float = 0.0
     eval_z_hi: float = 1.0
+
+    # ---- Adaptive diversity-aware FR (method "fr_estimated_adaptive") ----
+    # Defaults below leave the *non-adaptive* methods byte-identical; they are read
+    # only when method == "fr_estimated_adaptive".  At each FR event the effective
+    # rate is base_fr_rate * support_gate * diversity_gate * event_gate, clipped to
+    # [adaptive_min_rate, adaptive_max_rate].  All gates use ONLINE quantities only
+    # (no TI / oracle leakage).
+    adaptive_fr_enabled: bool = False           # informational; method name selects it
+    adaptive_base_fr_rate: float = 0.20
+    # Support gate mode + EMA-smoothed ramp [support_lo, support_hi].
+    # "marginal_uniform" (recommended default): ramp on L2(p_hat, uniform), the
+    #   ABF-driven non-flatness of the z-marginal. This is EXOGENOUS to the FR
+    #   firing (unlike p_hat-vs-target, which FR actively shrinks, creating a
+    #   feedback loop) and separates the starved beta=1 cells (>= ~0.115) from the
+    #   already-accurate cells (<= ~0.10) in the production data.
+    # "marginal_mismatch": L2(p_hat, q_target) -- kept for ablation; noisier and
+    #   reduced by FR itself, so a less stable gate.
+    # "marginal_tv": TV(p_hat, uniform).  "neff_transition": kernel-denominator
+    #   deficit (weak; ABF balances support across z).
+    adaptive_support_mode: str = "marginal_uniform"
+    adaptive_support_lo: float = 0.115          # signal <= lo  => support_gate 0
+    adaptive_support_hi: float = 0.14           # signal >= hi  => support_gate 1
+    adaptive_support_ema_rate: float = 0.02     # EMA smoothing of the online signal
+    # Hold the rate at zero for this many steps AFTER fr_start so the cumulative
+    # marginal settles before the gate acts (kills the early-transient false firing
+    # in already-accurate cells; the marginal keeps accumulating during the hold).
+    adaptive_gate_warmup_steps: int = 20000
+    adaptive_neff_target_strategy: str = "relative_median"  # | "absolute"
+    adaptive_neff_target_frac: float = 0.5      # relative-median multiplier
+    adaptive_neff_target_abs: float = 0.0       # absolute Neff threshold (if "absolute")
+    adaptive_tv_scale: float = 0.30             # TV scale for "marginal_tv" mode
+    adaptive_ess_full_threshold: float = 0.25   # ESS_frac >= => diversity_gate 1
+    adaptive_ess_stop_threshold: float = 0.10   # ESS_frac <= => diversity_gate 0
+    adaptive_event_backoff_threshold: float = 0.80  # frac of max_event_fraction
+    adaptive_event_backoff_factor: float = 0.50
+    adaptive_min_rate: float = 0.0
+    adaptive_max_rate: float = 0.20
 
     def config_hash(self) -> str:
         return hashlib.md5(json.dumps(asdict(self), sort_keys=True).encode()).hexdigest()[:12]
@@ -492,7 +531,8 @@ def fr_score_torch(z_samples, grid, sim, q_grid, eps=EPS):
     return score, p_grid, q_grid, kl_pq
 
 
-def fixed_population_birth_death_torch(q, score, sim, ancestors=None, fr_interval=None):
+def fixed_population_birth_death_torch(q, score, sim, ancestors=None, fr_interval=None,
+                                       fr_rate_override=None):
     """Fixed-population birth-death with a max_event_fraction safeguard.
 
     Over-represented replicas (positive score) die; each is replaced by a clone of
@@ -509,13 +549,15 @@ def fixed_population_birth_death_torch(q, score, sim, ancestors=None, fr_interva
     score = recentered_clipped_score_torch(score, sim.score_clip)
     interval = sim.fr_every if fr_interval is None else fr_interval
     dt_eff = sim.dt * max(int(interval), 1)
+    fr_rate = float(sim.fr_rate if fr_rate_override is None else fr_rate_override)
 
     empty = torch.empty(0, dtype=torch.long, device=q.device)
     # max_event_fraction <= 0 (or so small that floor(frac*R) == 0) disables all
     # events, matching the convention "fraction -> 0 ⇒ zero replacements".
     max_events = int(sim.max_event_fraction * R)
     no_event = {"replacement": 0, "death_idx": empty, "birth_src": empty}
-    if max_events < 1:
+    if max_events < 1 or fr_rate <= 0.0:
+        # max_event_fraction -> 0 OR an adaptive rate gated to zero disables events.
         return q.clone(), (None if ancestors is None else ancestors.clone()), no_event
 
     death_weights = torch.clamp(score, min=0.0)
@@ -527,7 +569,7 @@ def fixed_population_birth_death_torch(q, score, sim, ancestors=None, fr_interva
 
     death_prob = torch.where(
         death_weights > 0.0,
-        1.0 - torch.exp(-sim.fr_rate * death_weights * dt_eff),
+        1.0 - torch.exp(-fr_rate * death_weights * dt_eff),
         torch.zeros_like(death_weights),
     )
     death_indices = torch.nonzero(
@@ -551,6 +593,136 @@ def fixed_population_birth_death_torch(q, score, sim, ancestors=None, fr_interva
         ancestors_new[death_indices] = ancestors.index_select(0, clone_sources)
     return q_new, ancestors_new, {
         "replacement": int(n_events), "death_idx": death_indices, "birth_src": clone_sources}
+
+
+# ---------------------------------------------------------------------------
+# Adaptive diversity-aware FR schedule (deployable; ONLINE quantities only).
+# ---------------------------------------------------------------------------
+def _clip01(x):
+    return float(min(1.0, max(0.0, x)))
+
+
+def support_signal(sim, p_grid, q_grid, grid):
+    """The raw (un-smoothed) online support signal for the adaptive support gate.
+
+    Depends on ``sim.adaptive_support_mode``:
+      marginal_uniform  : L2(p_hat, uniform) on the eval window (ABF-driven,
+                          exogenous to FR; the recommended default).
+      marginal_mismatch : L2(p_hat, q_target) (reduced by FR -> noisier gate).
+      marginal_tv       : total variation TV(p_hat, uniform) on the eval window.
+      neff_transition   : handled in adaptive_fr_rate (uses the ABF denominator).
+    Returns a float, or NaN if not applicable for the mode.
+    """
+    g = to_numpy(grid)
+    emask = (g >= sim.eval_z_lo) & (g <= sim.eval_z_hi)
+    ge = g[emask]
+    if not emask.any() or p_grid is None:
+        return float("nan")
+    p = np.clip(to_numpy(p_grid).astype(float)[emask], 0.0, None)
+    zc = np.trapezoid(p, ge)
+    if not (np.isfinite(zc) and zc > 0):
+        return float("nan")
+    p = p / zc
+    mode = sim.adaptive_support_mode
+    if mode == "marginal_mismatch" and q_grid is not None:
+        q = np.clip(to_numpy(q_grid).astype(float)[emask], 0.0, None)
+        zq = np.trapezoid(q, ge)
+        if not (np.isfinite(zq) and zq > 0):
+            return float("nan")
+        q = q / zq
+        return float(np.sqrt(np.trapezoid((p - q) ** 2, ge) / (ge[-1] - ge[0])))
+    uni = np.ones_like(p)
+    uni = uni / np.trapezoid(uni, ge)
+    if mode == "marginal_tv":
+        return 0.5 * float(np.trapezoid(np.abs(p - uni), ge))
+    # marginal_uniform (default)
+    return float(np.sqrt(np.trapezoid((p - uni) ** 2, ge) / (ge[-1] - ge[0])))
+
+
+def adaptive_fr_rate(sim, eff_counts, grid, ess_frac, last_event_fraction,
+                     support_ema=None, p_grid=None):
+    """Effective FR rate for the adaptive method at one FR event.
+
+    rate_eff = base_fr_rate * support_gate * diversity_gate * event_gate, clipped
+    to [adaptive_min_rate, adaptive_max_rate].  Uses ONLY online quantities (no TI):
+
+      support_gate   : for the marginal_* modes, a ramp on the EMA-smoothed support
+        signal (see :func:`support_signal`), clip((support_ema - lo)/(hi - lo),0,1);
+        for neff_transition, the kernel-denominator deficit vs a relative-median (or
+        absolute) target.
+      diversity_gate : tapered in ancestor ESS fraction; 1 above ess_full, 0 below
+        ess_stop, linear between -- self-limits when genealogy collapses.
+      event_gate     : backoff if the previous realised event fraction is near the
+        max_event_fraction cap.
+
+    Returns (rate_eff, gates).
+    """
+    g = to_numpy(grid)
+    tmask = (g >= sim.transition_lo) & (g <= sim.transition_hi)
+    emask = (g >= sim.eval_z_lo) & (g <= sim.eval_z_hi)
+    ec = to_numpy(eff_counts).astype(float)
+    neff_tr = float(np.nanmean(ec[tmask])) if tmask.any() else float("nan")
+    neff_med = float(np.nanmedian(ec[emask])) if emask.any() else float("nan")
+
+    mode = sim.adaptive_support_mode
+    if mode in ("marginal_uniform", "marginal_mismatch", "marginal_tv"):
+        lo, hi = sim.adaptive_support_lo, sim.adaptive_support_hi
+        if support_ema is not None and np.isfinite(support_ema):
+            support_gate = _clip01((support_ema - lo) / max(hi - lo, EPS))
+        else:
+            support_gate = 0.0
+        support_deficit = support_gate
+    else:  # neff_transition
+        if sim.adaptive_neff_target_strategy == "absolute":
+            neff_target = float(sim.adaptive_neff_target_abs)
+        else:
+            neff_target = float(sim.adaptive_neff_target_frac) * neff_med
+        if np.isfinite(neff_target) and neff_target > 0 and np.isfinite(neff_tr):
+            support_deficit = _clip01((neff_target - neff_tr) / max(neff_target, EPS))
+        else:
+            support_deficit = 0.0
+        support_gate = support_deficit
+
+    # diversity gate (taper in ESS fraction)
+    full, stop = sim.adaptive_ess_full_threshold, sim.adaptive_ess_stop_threshold
+    if not np.isfinite(ess_frac):
+        diversity_gate = 1.0
+    elif ess_frac >= full:
+        diversity_gate = 1.0
+    elif ess_frac <= stop:
+        diversity_gate = 0.0
+    else:
+        diversity_gate = _clip01((ess_frac - stop) / max(full - stop, EPS))
+
+    # event backoff gate
+    cap = sim.max_event_fraction
+    if (np.isfinite(last_event_fraction)
+            and last_event_fraction > sim.adaptive_event_backoff_threshold * cap):
+        event_gate = float(sim.adaptive_event_backoff_factor)
+    else:
+        event_gate = 1.0
+
+    rate = sim.adaptive_base_fr_rate * support_gate * diversity_gate * event_gate
+    rate_eff = float(min(sim.adaptive_max_rate, max(sim.adaptive_min_rate, rate)))
+    gates = dict(rate_eff=rate_eff, support_gate=float(support_gate),
+                 diversity_gate=float(diversity_gate), event_gate=float(event_gate),
+                 neff_transition=neff_tr, neff_median=neff_med,
+                 support_ema=(float(support_ema) if support_ema is not None
+                              and np.isfinite(support_ema) else float("nan")),
+                 support_deficit=float(support_deficit), ess_frac=float(ess_frac),
+                 last_event_fraction=float(last_event_fraction))
+    return rate_eff, gates
+
+
+def score_statistics(score, score_clip):
+    """Mean-zero score summary for logging: std, abs-max, and clip fraction."""
+    s = to_numpy(score).astype(float)
+    if s.size == 0:
+        return dict(score_std=float("nan"), score_absmax=float("nan"),
+                    score_clip_fraction=float("nan"))
+    clip_frac = float(np.mean(np.abs(s) >= (float(score_clip) - 1e-6)))
+    return dict(score_std=float(np.std(s)), score_absmax=float(np.max(np.abs(s))),
+                score_clip_fraction=clip_frac)
 
 
 # ---------------------------------------------------------------------------
@@ -709,6 +881,25 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
     birth_hist = np.zeros(sim.n_grid, dtype=np.float64)
     death_hist = np.zeros(sim.n_grid, dtype=np.float64)
 
+    # Adaptive-FR state + per-event log (only populated for fr_estimated_adaptive).
+    is_adaptive = method == "fr_estimated_adaptive"
+    last_event_fraction = 0.0
+    support_ema = None           # EMA of the adaptive support signal over FR events
+    # Cumulative z-marginal (low-variance) for the adaptive marginal_uniform gate:
+    # broadly Gaussian-smoothed (kde bandwidth) so cold-system sharp peaks are washed
+    # out and only the broad transition-region under-sampling (starvation) survives.
+    marg_hist = (torch.zeros(sim.n_grid, device=engine.device, dtype=engine.dtype)
+                 if is_adaptive else None)
+    _dz = (sim.z_max - sim.z_min) / max(sim.n_grid - 1, 1)
+    _kde_sigma_pts = sim.kde_bandwidth / max(_dz, EPS)
+    adaptive_log = {k: [] for k in ["step", "fr_rate_eff", "support_gate",
+                                    "diversity_gate", "event_gate", "neff_transition",
+                                    "support_ema", "ess_frac", "event_fraction",
+                                    "score_std", "score_absmax", "score_clip_fraction"]}
+    # Aggregate score statistics over all FR events (any FR method).
+    _score_std_sum = _score_absmax_max = _score_clipfrac_sum = 0.0
+    _n_score_events = 0
+
     # Optional read-only barrier-crossing tracker (no effect on dynamics/RNG).
     # Counters are kept on-GPU and summed once at the end to avoid a per-step
     # host sync (the .item() that would otherwise serialise every step).
@@ -748,6 +939,11 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                 rep_s2c += down.long()
                 side = cur_side
 
+        if is_adaptive and step >= sim.estimator_burn_in_steps:
+            # accumulate the cumulative z-marginal (count histogram) for the gate
+            idx = ((z - sim.z_min) / max(_dz, EPS)).long().clamp_(0, sim.n_grid - 1)
+            marg_hist.scatter_add_(0, idx, torch.ones_like(z))
+
         mean_force_input = forces_physical if sim.use_clipped_force_for_mean_force else forces_raw
         f_local = local_mean_force(q, mean_force_input, params)
         f_local = torch.clamp(f_local, -sim.mean_force_sample_clip, sim.mean_force_sample_clip)
@@ -759,8 +955,9 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
         abf_at_z = abf_scale * torch.clamp(bias_estimator.evaluate(z), -sim.abf_force_clip, sim.abf_force_clip)
         A_hat = bias_estimator.pmf_profile()                 # unscaled A_hat_n(z)
         current_bias_profile = abf_scale * A_hat             # B_n(z)
-        # Online EMA target maintained ONLY for fr_estimated, starting at fr_start.
-        if method == "fr_estimated" and (step + 1) >= sim.fr_start_steps:
+        # Online EMA target maintained for the estimated-target methods (incl.
+        # the adaptive variant), starting at fr_start. Never sees the TI reference.
+        if method in ESTIMATED_TARGET_METHODS and (step + 1) >= sim.fr_start_steps:
             if F_target_ema is None:
                 F_target_ema = A_hat.clone()
             else:
@@ -823,9 +1020,58 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                                           oracle_t, params.beta)
                 if q_grid is not None:
                     score, p_fr, q_fr, kl_pq = fr_score_torch(z_new, grid, sim, q_grid)
+                    # aggregate score stats (cheap; used by Part B safety diagnostics)
+                    sstat = score_statistics(score, sim.score_clip)
+                    _score_std_sum += sstat["score_std"]
+                    _score_absmax_max = max(_score_absmax_max, sstat["score_absmax"])
+                    _score_clipfrac_sum += sstat["score_clip_fraction"]
+                    _n_score_events += 1
+                    # adaptive: compute the effective rate from ONLINE gates
+                    rate_override = None
+                    if is_adaptive:
+                        ess_now, _ = ancestor_ess(ancestors, sim.n_replicas)
+                        ess_frac = ess_now / sim.n_replicas if np.isfinite(ess_now) else float("nan")
+                        # online support signal (mode-dependent) + EMA. For
+                        # marginal_uniform use the LOW-VARIANCE cumulative marginal
+                        # (broadly smoothed), not the noisy single-snapshot p_fr.
+                        if sim.adaptive_support_mode == "marginal_uniform":
+                            p_cum = normalize_density_on_grid_torch(
+                                smooth_profile_torch(marg_hist, _kde_sigma_pts), grid)
+                            sig = support_signal(sim, p_cum, None, grid)
+                        else:
+                            sig = support_signal(sim, p_fr, q_fr, grid)
+                        if np.isfinite(sig):
+                            if support_ema is None:
+                                support_ema = sig
+                            else:
+                                r = sim.adaptive_support_ema_rate
+                                support_ema = (1.0 - r) * support_ema + r * sig
+                        rate_override, gates = adaptive_fr_rate(
+                            sim, bias_estimator.effective_counts(), grid, ess_frac,
+                            last_event_fraction, support_ema=support_ema, p_grid=p_fr)
+                        # gate warmup: hold rate at zero until the cumulative marginal
+                        # has settled (avoids early-transient false firing).
+                        if (next_step - sim.fr_start_steps) < sim.adaptive_gate_warmup_steps:
+                            rate_override = 0.0
+                            gates["rate_eff"] = 0.0
                     q, ancestors, stats = fixed_population_birth_death_torch(
-                        q, score, sim, ancestors=ancestors, fr_interval=sim.fr_every)
+                        q, score, sim, ancestors=ancestors, fr_interval=sim.fr_every,
+                        fr_rate_override=rate_override)
                     total_replacement_events += stats["replacement"]
+                    last_event_fraction = stats["replacement"] / float(sim.n_replicas)
+                    if is_adaptive:
+                        adaptive_log["step"].append(int(next_step))
+                        adaptive_log["fr_rate_eff"].append(gates["rate_eff"])
+                        adaptive_log["support_gate"].append(gates["support_gate"])
+                        adaptive_log["diversity_gate"].append(gates["diversity_gate"])
+                        adaptive_log["event_gate"].append(gates["event_gate"])
+                        adaptive_log["neff_transition"].append(gates["neff_transition"])
+                        adaptive_log["support_ema"].append(gates["support_ema"])
+                        adaptive_log["ess_frac"].append(gates["ess_frac"])
+                        adaptive_log["event_fraction"].append(last_event_fraction)
+                        adaptive_log["score_std"].append(sstat["score_std"])
+                        adaptive_log["score_absmax"].append(sstat["score_absmax"])
+                        adaptive_log["score_clip_fraction"].append(sstat["score_clip_fraction"])
                     if track_crossings and side is not None and stats["replacement"] > 0:
                         # a clone inherits only the source's SIDE, so the teleport is
                         # not miscounted as a barrier crossing on the next step. The
@@ -851,6 +1097,17 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
     diag["birth_hist"] = birth_hist
     diag["death_hist"] = death_hist
     diag["hist_edges"] = np.linspace(sim.z_min, sim.z_max, sim.n_grid + 1)
+    # aggregate score statistics over FR events (NaN for abf / no events)
+    if _n_score_events > 0:
+        diag["fr_score_std"] = _score_std_sum / _n_score_events
+        diag["fr_score_absmax"] = _score_absmax_max
+        diag["fr_score_clip_fraction"] = _score_clipfrac_sum / _n_score_events
+    else:
+        diag["fr_score_std"] = float("nan")
+        diag["fr_score_absmax"] = float("nan")
+        diag["fr_score_clip_fraction"] = float("nan")
+    # adaptive per-event log (empty arrays for non-adaptive methods)
+    diag["adaptive_log"] = {k: np.asarray(v, dtype=float) for k, v in adaptive_log.items()}
     if track_crossings:
         c2s = int(n_c2s_total.item())
         s2c = int(n_s2c_total.item())
@@ -880,13 +1137,85 @@ def _build_fr_target(method, grid, F_target_ema, current_bias_profile, oracle_t,
         return None
     if method == "fr_uniform":
         return fr_target_uniform_torch(grid)
-    if method == "fr_estimated":
+    if method in ESTIMATED_TARGET_METHODS:
         if F_target_ema is None:
             return None
         return fr_target_estimated_torch(grid, F_target_ema, current_bias_profile, beta)
     if method == "fr_oracle":
         return fr_target_oracle_torch(grid, oracle_t, current_bias_profile, beta)
     raise ValueError(method)
+
+
+# ---------------------------------------------------------------------------
+# Frozen-bias validation (Part F): run under a FIXED learned bias, no ABF/FR.
+# ---------------------------------------------------------------------------
+@torch.inference_mode()
+def run_frozen_bias_gpu(params, sim, engine, learned_mean_force, learned_pmf,
+                        initial_q=None, burn_in_steps=None, verbose=True):
+    """Sample under a FIXED bias B(z) and reconstruct F from the biased marginal.
+
+    The learned bias is held constant (no ABF update, no Fisher--Rao birth--death):
+    at every step the biasing force ``+learned_mean_force(z)`` (edge-extrapolated
+    interpolation on the z-grid, clipped like the online run) is added, exactly the
+    converged ABF transport but frozen. Particles explore the residual landscape
+    ``F(z) - B(z)`` where ``B(z) = learned_pmf(z)`` is the integral of the learned
+    mean force. The biased reaction-coordinate marginal ``p_B(z)`` is accumulated by
+    KDE after a burn-in, and the free energy is reconstructed as
+
+        F_recon(z) = B(z) - beta^{-1} log p_B(z) + C,
+
+    with C fixed later by centring on the evaluation window. No TI reference is read
+    here, so the frozen test is deployable for any learned bias (abf / fr_* alike).
+
+    Parameters
+    ----------
+    learned_mean_force, learned_pmf : 1-D arrays on the z-grid (length sim.n_grid),
+        the stage-1 ``final_mean_force`` and ``final_pmf``.
+    """
+    grid = torch.linspace(sim.z_min, sim.z_max, sim.n_grid, device=engine.device, dtype=engine.dtype)
+    mf_grid = torch.as_tensor(np.asarray(learned_mean_force, dtype=np.float64),
+                              device=engine.device, dtype=engine.dtype)
+    B_grid = torch.as_tensor(np.asarray(learned_pmf, dtype=np.float64),
+                             device=engine.device, dtype=engine.dtype)
+    burn_in = int(sim.estimator_burn_in_steps if burn_in_steps is None else burn_in_steps)
+
+    torch.manual_seed(sim.seed)
+    q = (lattice_initial_conditions(params, sim.n_replicas, engine.device, engine.dtype, seed=sim.seed)
+         if initial_q is None else initial_q.clone())
+    noise_scale = math.sqrt(2.0 * sim.dt / params.beta)
+
+    p_accum = torch.zeros_like(grid)
+    n_marg = 0
+    t0 = time.perf_counter()
+    for step in range(sim.n_steps + 1):
+        forces_raw = engine.force(q, compute_energy=False)
+        forces_physical = clip_forces(forces_raw, params.force_clip)
+        z = reaction_coordinate(q, params)
+        # frozen bias force at the current z (edge-extrapolated, force-clipped)
+        bias_at_z = torch.clamp(interp_uniform_grid_edge(mf_grid, grid, z),
+                                -sim.abf_force_clip, sim.abf_force_clip)
+        transport = clip_forces(add_abf_force(q, forces_physical, bias_at_z, params), params.force_clip)
+        transport = clip_forces(add_reaction_coordinate_wall_force(q, transport, z, sim, params), params.force_clip)
+        if step >= burn_in and (step % max(int(sim.fr_every), 1) == 0):
+            p_accum += kde_1d_torch(grid, z, sim.kde_bandwidth, sim.z_min, sim.z_max)
+            n_marg += 1
+        if step == sim.n_steps:
+            break
+        q = wrap_positions(q + sim.dt * transport + noise_scale * torch.randn_like(q), params.box_length)
+
+    p_B = normalize_density_on_grid_torch(p_accum / max(n_marg, 1), grid)
+    beta = params.beta
+    log_pB = torch.log(torch.clamp(p_B, min=EPS))
+    F_recon = B_grid - (1.0 / beta) * log_pB
+    F_recon = normalize_profile_zero_at_midpoint_torch(F_recon, grid)
+    out = dict(
+        grid=to_numpy(grid), p_B=to_numpy(p_B), F_recon=to_numpy(F_recon),
+        learned_pmf=to_numpy(B_grid), learned_mean_force=to_numpy(mf_grid),
+        n_marginal_snapshots=n_marg, runtime_seconds=time.perf_counter() - t0,
+    )
+    if verbose:
+        print(f"frozen-bias : {out['runtime_seconds']:.1f}s ({n_marg} marginal snapshots)")
+    return out
 
 
 # ---------------------------------------------------------------------------

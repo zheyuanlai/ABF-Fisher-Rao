@@ -277,6 +277,241 @@ estimator without adding unnecessary birth--death noise. This is distinct from t
 separate over-aggressive failure mode identified by the rate ladder, where
 diversity collapse dominates.
 
+\subsection{Starvation diagnostics: measured ABF error, not $\beta h$}
+\label{sec:wca_starvation}
+To make the conditional claim quantitative and reviewer-checkable we computed a
+per-run starvation diagnostic for every cell of the production phase diagram
+(\texttt{scripts/analyze\_wca\_starvation.py}; a pure re-analysis of the existing
+runs, no new dynamics). For each cell we record the measured ABF baseline error,
+the kernel-weighted ABF support in the transition window, the per-bin mean-force
+error, the reaction-coordinate marginal distances, the birth--death event
+fractions, and the ancestor genealogy, and we pair them seed-by-seed with the
+matched mFR gain.
+
+The headline diagnostic plot (\cref{fig:wca_starv_scatter}) puts the measured ABF
+final $\Ltwo(F)$ on the $x$-axis and the matched-seed median mFR gain on the
+$y$-axis. The relationship is monotone and strong: across all \WCAFStarvNCells{}
+production cells the rank correlation between ABF error and mFR gain is
+$\rho=\WCAFStarvRhoErr$, whereas the correlation with the nominal difficulty
+product $\beta h$ is only $\rho=\WCAFStarvRhoBetaH$ and of the wrong sign for a
+``harder-is-better'' reading. Thresholding the measured error at
+$\Ltwo(F)\!\ge\!\WCAFStarvThreshold$ (starved) and $\le\!\WCAFStarvEasyThreshold$
+(easy) cleanly separates the regimes: the \WCAFStarvNStarved{} starved cells (the
+entire $\beta=1$ row) gain a median $+\WCAFStarvStarvedMedGain\%$
+($+\WCAFStarvStarvedMinGain$ to $+\WCAFStarvStarvedMaxGain\%$), while the
+\WCAFStarvNEasy{} easy cells lose a median $\WCAFStarvEasyMedGain\%$, with the
+worst, \WCAFStarvWorstCell, at $\WCAFStarvWorstGain\%$. This is the empirical
+backing for using the \emph{measured} estimator error, which a practitioner can
+monitor online through convergence diagnostics, rather than the physical product
+$\beta h$, as the decision variable.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.72\textwidth]{fig_wca_phase_starv_01_abferr_vs_gain.png}
+  \caption{Starvation diagnostic. ABF final $\Ltwo(F)$ (measured baseline error,
+    log scale) versus the matched-seed median gain of the deployable mFR over ABF,
+    annotated by $(\beta,h)$ and coloured by regime. The gain is large and positive
+    exactly where ABF is inaccurate (the starved $\beta=1$ cluster) and turns
+    negative as ABF becomes accurate; the relationship with measured error
+    ($\rho=\WCAFStarvRhoErr$) is far cleaner than with $\beta h$
+    ($\rho=\WCAFStarvRhoBetaH$).}
+  \label{fig:wca_starv_scatter}
+\end{figure}
+
+The supporting scatters (\cref{fig:wca_starv_support}) refine the mechanism. The
+final kernel-weighted ABF support in the transition window is \emph{not} a strong
+discriminator (it is within a few percent of the median-bin support in every
+regime, because ABF eventually flattens the $z$-marginal), and the
+barrier-crossing ratio between mFR and ABF does not predict the accuracy gain:
+unnecessary resampling can raise crossings while worsening $\Ltwo(F)$. The
+ancestor ESS, by contrast, stays high for the deployable mFR in the helpful cells.
+Together these confirm that the gain is an estimator-variance effect localised to
+sample-starved cells, not a stationary-coverage reshaping, and that the safe
+operating regime is bounded by ancestor diversity.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.98\textwidth]{fig_wca_phase_starv_02_neff.png}
+  \caption{Transition support (kernel-weighted ABF denominator, normalised by the
+    median-bin support) versus mFR gain. End-of-run support is balanced across
+    regimes, so it is a weak online starvation signal on its own; the measured
+    free-energy error remains the cleanest predictor.}
+  \label{fig:wca_starv_support}
+\end{figure}
+
+\subsection{Adaptive diversity-aware Fisher--Rao}
+\label{sec:wca_adaptive}
+The phase diagram motivates a deployable schedule that turns the birth--death on
+where ABF is starved and self-limits where it is not, without ever reading the
+reference. We add a method \texttt{fr\_estimated\_adaptive} (additive to, not a
+replacement for, the fixed-rate \texttt{fr\_estimated}) whose effective rate at
+each FR event is a product of three online gates,
+\[
+  \gamma_{\mathrm{eff}} = \gamma_{0}\,
+  g_{\mathrm{support}}\,g_{\mathrm{diversity}}\,g_{\mathrm{event}},
+  \qquad
+  \gamma_{\mathrm{eff}}\in[\gamma_{\min},\gamma_{\max}].
+\]
+The support gate $g_{\mathrm{support}}$ ramps on the $\Ltwo$ distance between a
+low-variance cumulative estimate of the particle marginal $\phat$ and the
+\emph{uniform} marginal, i.e. the ABF-driven non-flatness of the
+reaction-coordinate marginal (broadly smoothed, accumulated from a burn-in, and
+held inactive for a short warm-up so the estimate settles before the gate acts).
+We measure the distance to uniform rather than to the FR target $q$ deliberately:
+the latter is shrunk by the very birth--death it gates (a feedback loop), whereas
+the marginal non-flatness is largely set by ABF. The diversity gate
+$g_{\mathrm{diversity}}$ tapers linearly in the ancestor ESS fraction (full above
+$0.25$, off below $0.10$), so the schedule halts before genealogical collapse ---
+precisely the failure mode of the over-aggressive rate ladder
+(\cref{fig:wca_failure}). The event gate $g_{\mathrm{event}}$ backs the rate off
+when the realised event fraction approaches the \texttt{max\_event\_fraction} cap.
+Every gate and its inputs are logged at each FR event
+(\texttt{adaptive\_fr\_event\_log.csv}).
+
+A limitation, which we state plainly because it sharpens the paper's thesis, is
+that \emph{no marginal-shape online signal cleanly separates the harmful cells from
+the helpful ones}. The cold (high-$\beta$) accurate cells have genuinely sharp,
+bimodal $z$-marginals whose non-flatness is as large as that of the warm, starved
+cells, so a marginal-based gate cannot tell ``cold and accurate'' from ``warm and
+starved''. This is the deployable-side counterpart of the starvation result of
+\cref{sec:wca_starvation}: the only quantity that cleanly predicts the sign of the
+gain is the measured ABF error ($\rho=\WCAFStarvRhoErr$), which is exactly what is
+unavailable online. The adaptive schedule is therefore a conservative first
+version: it reliably preserves the large starved-regime gains and reduces the
+harm in accurate cells relative to the fixed rate, but it does not eliminate that
+harm. We do not claim otherwise.
+
+\Cref{tab:wca_adaptive_compare} compares the fixed and adaptive schedules on the
+representative cells (matched seeds, $10$ seeds where complete). In the starved
+anchor $\beta=1,h=2$ the adaptive schedule keeps essentially the full fixed gain
+($+\WCAFAdaptStarvedFixedGain\%$ fixed versus $+\WCAFAdaptStarvedAdaptGain\%$
+adaptive), winning all seeds; the same holds for $\beta=1,h=4$. In the
+intermediate $\beta=2,h=6$ cell the gain is also preserved ($\approx+27\%$). The
+diagnostic easy cell $\beta=2,h=4$ is the clearest success: the fixed rate is
+net-harmful there ($-50\%$, $0/10$ wins) while the adaptive schedule is essentially
+neutral (within a few percent of ABF, $4/10$ wins), i.e. it removes almost all of
+the harm. The hardest cases are the extreme easy cells $\beta=4,h=1$ and
+$\beta=4,h=2$: the gate cuts the effective rate roughly five-fold (median
+$\approx0.02$ versus the fixed $0.10$) and keeps the ancestor ESS high
+($\sim\!320$--$340/1024$), which roughly halves the harm
+($\WCAFAdaptEasyFixedGain\%\!\to\!\WCAFAdaptEasyAdaptGain\%$ at $\beta=4,h=1$), but
+does not remove it: when the ABF baseline error is already $\approx0.005$ there is
+essentially nothing to correct and any birth--death only adds variance. Two readings follow. First, the diversity
+and support gates do their job --- the schedule never collapses genealogy and
+strongly throttles itself in accurate cells. Second, the irreducible residual harm
+in the most accurate cell confirms the conditional recommendation of
+\cref{sec:wca_starvation}: deploy mFR (fixed or adaptive) only when an independent
+starvation diagnostic, not an online marginal statistic, indicates the ABF
+estimator is genuinely under-sampled.
+
+\input{tables/wca_adaptive_compare.tex}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.98\textwidth]{fig_wca_phase_09_fixed_vs_adaptive.png}
+  \caption{Fixed versus adaptive mFR on the representative cells (median and IQR
+    over seeds). Left: per-cell final $\Ltwo(F)$ for ABF, fixed mFR and adaptive
+    mFR. Right: matched-seed median gain over ABF; the adaptive schedule tracks the
+    fixed gain in the starved cells and reduces (but does not fully remove) the
+    harm in the accurate cells, where no online marginal signal separates the
+    cold-sharp marginal from a starved one.}
+  \label{fig:wca_adaptive}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.98\textwidth]{fig_wca_phase_10_adaptive_schedule.png}
+  \caption{Adaptive FR schedule trajectories for a starved and an easy cell. The
+    effective rate stays near its base value while the (exogenous, marginal-flatness)
+    support gate is high in the starved cell, and is throttled by the support gate
+    and warm-up in the already-accurate cell, with the diversity gate providing the
+    genealogy safeguard.}
+  \label{fig:wca_adaptive_schedule}
+\end{figure}
+
+\subsection{Equal-compute comparison}
+\label{sec:wca_equal_compute}
+A natural objection is that mFR wins only because birth--death is extra compute.
+We control for this by comparing ABF and the deployable mFR at a fixed
+force-evaluation budget $B=N\cdot n_{\mathrm{steps}}$ (per physical $M$), running
+ABF at three shapes of equal budget --- $(N,n_{\mathrm{steps}})=(1024,120\text{k})$,
+$(2048,60\text{k})$ and $(512,240\text{k})$ --- plus a doubled-budget ABF point,
+on a starved, an easy and an intermediate cell
+(\texttt{scripts/run\_wca\_followup.py}, config
+\texttt{configs/wca\_equal\_compute.yaml}). \Cref{tab:wca_equal_compute} and
+\cref{fig:wca_equal_compute} report final and time-integrated $\Ltwo(F)$ against
+budget. The question this answers is whether, in the starved regime, simply
+spending ABF's budget differently (more replicas or more steps) closes the gap to
+mFR at the base budget.
+
+It does not. In the starved cell $\beta=1,h=2$ the deployable mFR at the base
+budget ($\Ltwo(F)=\WCAFECStarvedFR$) is far below ABF at \emph{every} equal-budget
+shape ($\WCAFECStarvedABFLong$ at $512\!\times\!240$k, $\WCAFECStarvedABFBase$ at
+$1024\!\times\!120$k, $\WCAFECStarvedABFWide$ at $2048\!\times\!60$k); indeed the
+\emph{worst} mFR shape still beats the \emph{best} ABF shape. ABF's error has
+plateaued: even \emph{doubling} ABF's budget ($2048\!\times\!120$k) leaves it near
+$0.09$, more than twice the base-budget mFR error, because the starved-regime
+deficit is a systematic estimator-variance effect that more raw sampling does not
+remove. (For ABF, longer trajectories help more than more replicas at fixed
+budget, but neither closes the gap.) The intermediate cell behaves the same way
+(mFR below ABF at all shapes); only in the already-accurate easy cell does ABF win
+at equal budget, where birth--death merely adds variance. The starved-regime
+advantage is therefore attributable to the birth--death correction, not to raw
+compute.
+
+\input{tables/wca_equal_compute.tex}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.98\textwidth]{fig_wca_phase_12_equal_compute.png}
+  \caption{Equal-compute comparison. Final (left) and time-integrated (right)
+    $\Ltwo(F)$ versus force-evaluation budget $N\cdot n_{\mathrm{steps}}$ for ABF
+    (varying the $N$/$n_{\mathrm{steps}}$ split at fixed budget) and the deployable
+    mFR, on representative cells.}
+  \label{fig:wca_equal_compute}
+\end{figure}
+
+\subsection{Frozen-bias validation}
+\label{sec:wca_frozen}
+Finally we separate the quality of the \emph{learned bias} from any online
+adaptive transient. In a two-stage protocol, stage~1 learns a bias
+$B(z)=\Fhat(z)$ online (for ABF, fixed mFR, and adaptive mFR); stage~2 freezes
+that bias --- no ABF updates, no birth--death --- and runs fresh dynamics with
+independent seeds, collecting the biased marginal $p_B(z)$ and reconstructing
+\begin{equation}
+  F_{\mathrm{recon}}(z) = B(z) - \beta^{-1}\log p_B(z) + C,
+  \label{eq:frozen_recon}
+\end{equation}
+with $C$ fixed by centring on the evaluation window. No reference enters the
+dynamics; the TI profile is used only for the post-hoc $\Ltwo$ of
+$F_{\mathrm{recon}}$. \Cref{tab:wca_frozen_bias} reports, per learned bias, the
+online $\Ltwo(F)$, the frozen reconstructed $\Ltwo(F)$, and the learned-bias
+$\Ltwo(F)$; \cref{fig:wca_frozen} overlays the reconstructed profiles on the TI
+reference. The validation gives two results. First, the saved biases are faithful
+and the online ranking is real, not a transient artifact: the recomputed
+learned-bias $\Ltwo(F)$ matches the online value method-by-method, and the
+mFR-learned bias is genuinely about twice as accurate as the ABF-learned bias
+($\approx0.044$ versus $0.088$ at $\beta=1,h=2$). Second, the single-window
+reconstruction itself is mixing-limited at this budget: the reconstructed
+$\Ltwo(F)$ ($\approx\WCAFFrozenStarvedFRRecon$ at $\beta=1,h=2$) is dominated by
+the residual difficulty of equilibrating the $z$-marginal under an imperfect frozen
+bias rather than by the bias quality, so it does not finely separate the methods
+(the error grows from the transition outward into the basins, not from any
+low-density blow-up). The deployable conclusion --- that the mFR-learned bias is
+genuinely better --- rests on the first result; the reconstruction is reported as
+an honest, and limited, independent check.
+
+\input{tables/wca_frozen_bias.tex}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.98\textwidth]{fig_wca_phase_13_frozen_bias.png}
+  \caption{Frozen-bias reconstruction~\eqref{eq:frozen_recon} from the learned ABF,
+    fixed-mFR and adaptive-mFR biases (median and IQR over independent frozen
+    seeds) against the TI reference, for a starved and an easy cell.}
+  \label{fig:wca_frozen}
+\end{figure}
+
 \subsection{Case finding}
 At the original condensed-phase WCA anchor, ABF+FR with an online estimated target
 reliably and substantially improves free-energy accuracy: $+\WCAtunedGainPct\%$ in

@@ -9,7 +9,14 @@ support. In the many-body WCA case the same mechanism has a sharper operational
 limit: too much birth--death destroys ancestor diversity faster than the dense
 solvent can decorrelate cloned configurations. The different conclusions across
 examples are therefore not a defect of the study; they are the main information
-returned by the three-case design.
+returned by the three-case design. The WCA phase diagram and its follow-up
+analyses (\cref{sec:wca_phase_diagram,sec:wca_starvation}) make the decision rule
+operational: the \emph{measured} ABF free-energy error predicts the mFR gain
+($\rho=\WCAFStarvRhoErr$) far better than the nominal product $\beta h$
+($\rho=\WCAFStarvRhoBetaH$), and the equal-compute control (\cref{sec:wca_equal_compute})
+and frozen-bias reconstruction (\cref{sec:wca_frozen}) attribute the starved-regime
+gain to the birth--death correction and to a genuinely more accurate learned bias,
+not to extra raw compute or an online transient.
 
 \subsection{Limitations}
 We remain deliberately conservative about scope.
@@ -68,9 +75,13 @@ reading does not generalise.
 
 \subsection{Future directions}
 \begin{itemize}
-  \item \textbf{Adaptive, diversity-aware FR strength.} Tie \texttt{fr\_rate}/
-        $\gamma$ to measured ancestor ESS or orthogonal-relaxation diagnostics, so
-        the rate self-limits before diversity collapse.
+  \item \textbf{Adaptive, diversity-aware FR strength.} We implement and test a
+        first version of this (\cref{sec:wca_adaptive}, method
+        \texttt{fr\_estimated\_adaptive}): the effective rate is a product of an
+        online marginal-mismatch support gate, an ancestor-ESS diversity gate that
+        halts before collapse, and an event-fraction backoff. Extending the gates
+        to orthogonal-relaxation diagnostics and to multi-dimensional reaction
+        coordinates remains open.
   \item \textbf{Higher-dimensional and curved reaction coordinates}, where
         conditional sampling is genuinely hard and the geometric term is
         nontrivial.

@@ -1,0 +1,158 @@
+# WCA representative-cell seed expansion (Part C) + adaptive diversity-aware FR
+# (Part D). Additive: writes to its OWN output_root and reuses the cached
+# production TI references (cache/phase) keyed by physics, so nothing in
+# results/wca_phase_diagram/production is touched.
+#
+# Cells (M=100, w=2, a=1.5 unless noted) cover the regime axis identified by the
+# starvation analysis (measured ABF error, not beta*h):
+#   starved/success : (b1,h2) (b1,h4)
+#   intermediate    : (b2,h6)
+#   diagnostic      : (b2,h4)  -- target-mismatch / oracle-headroom cell
+#   easy/harmful    : (b4,h1) (b4,h2)
+#
+# Methods: abf, fr_estimated (deployable fixed-rate mFR), fr_uniform (ablation),
+# fr_oracle (DIAGNOSTIC; reads TI reference), fr_estimated_adaptive (Part D,
+# deployable). 10 matched seeds, 120k steps, N=1024 (same budget as production).
+
+experiment_name: wca_representative
+output_root: results/wca_representative
+cache_dir: cache/phase
+mode: sample
+
+base:
+  dt: 0.002
+  save_every: 2500
+  z_min: -0.2
+  z_max: 1.2
+  n_grid: 160
+  abf_bandwidth: 0.025
+  kde_bandwidth: 0.070
+  abf_smooth_sigma: 0.5
+  mean_force_sample_clip: 500.0
+  use_clipped_force_for_mean_force: true
+  abf_bias_scale: 1.0
+  abf_edge_extrapolate: true
+  boundary_wall_strength: 80.0
+  abf_force_clip: 40.0
+  abf_warmup_steps: 10000
+  estimator_burn_in_steps: 10000
+  fr_start_steps: 20000
+  fr_every: 5
+  score_clip: 2.0
+  transition_lo: 0.25
+  transition_hi: 0.75
+  eval_z_lo: -0.1
+  eval_z_hi: 1.1
+  ti:
+    n_z: 51
+    n_replicas: 128
+    n_thermalization: 5000
+    n_steps: 50000
+    sample_every: 20
+    z_chunk_size: 8
+    smooth_sigma: 1.0
+
+system_defaults:
+  n_dim: 10       # M = 100
+  a: 1.5
+  sigma: 1.0
+  epsilon: 1.0
+  w: 2.0
+  beta: 1.0
+  h: 2.0
+
+# Adaptive defaults (deployable; ONLINE quantities only). Support gate uses the
+# ABF-driven marginal non-flatness L2(p_hat, uniform) -- EXOGENOUS to the FR firing
+# (unlike p_hat-vs-target, which FR shrinks, creating a feedback loop). In the
+# production data this is ~0.12-0.14 in the starved beta=1 cells and ~0.086-0.10 in
+# the already-accurate cells, so the gate ramps over [0.10, 0.13]: full strength in
+# the starved row, zero in the clearly-accurate cells. The diversity gate
+# self-limits below ESS_frac 0.25 and stops below 0.10; the event gate backs off
+# near the max_event_fraction cap.
+adaptive_defaults:
+  adaptive_base_fr_rate: 0.20
+  adaptive_support_mode: marginal_uniform
+  adaptive_support_lo: 0.115
+  adaptive_support_hi: 0.14
+  adaptive_support_ema_rate: 0.02
+  adaptive_gate_warmup_steps: 20000   # let the cumulative marginal settle before gating
+  adaptive_ess_full_threshold: 0.25
+  adaptive_ess_stop_threshold: 0.10
+  adaptive_event_backoff_threshold: 0.80
+  adaptive_event_backoff_factor: 0.50
+  adaptive_min_rate: 0.0
+  adaptive_max_rate: 0.20
+
+methods:
+  abf:
+    type: abf
+  fr_estimated:
+    type: fr_estimated
+    fr_rate: 0.10
+    target_ema_rate: 0.005
+    max_event_fraction: 0.02
+    fr_every: 5
+    fr_start_steps: 20000
+    score_clip: 2.0
+  fr_uniform:
+    type: fr_uniform
+    fr_rate: 0.10
+    target_ema_rate: 0.005
+    max_event_fraction: 0.02
+    fr_every: 5
+    fr_start_steps: 20000
+    score_clip: 2.0
+  fr_oracle:
+    type: fr_oracle
+    fr_rate: 0.10
+    target_ema_rate: 0.005
+    max_event_fraction: 0.02
+    fr_every: 5
+    fr_start_steps: 20000
+    score_clip: 2.0
+  fr_estimated_adaptive:
+    type: fr_estimated_adaptive
+    # adaptive supplies the rate via gates; fr_rate is the non-adaptive fallback
+    fr_rate: 0.10
+    target_ema_rate: 0.005
+    max_event_fraction: 0.02
+    fr_every: 5
+    fr_start_steps: 20000
+    score_clip: 2.0
+
+stages:
+  # quick correctness/behaviour check (2 cells x 3 methods x 2 seeds, 120k steps)
+  validate:
+    mode: sample
+    n_steps: 120000
+    n_replicas: 1024
+    seeds: [0, 1]
+    methods: [abf, fr_estimated, fr_estimated_adaptive]
+    cells:
+      - {beta: 1, h: 2}
+      - {beta: 4, h: 1}
+
+  representative:
+    mode: sample
+    n_steps: 120000
+    n_replicas: 1024
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    methods: [abf, fr_estimated, fr_uniform, fr_oracle, fr_estimated_adaptive]
+    cells:
+      - {beta: 1, h: 2}     # starved / success
+      - {beta: 1, h: 4}     # starved / success
+      - {beta: 2, h: 6}     # intermediate
+      - {beta: 2, h: 4}     # diagnostic (oracle headroom)
+      - {beta: 4, h: 1}     # easy / harmful
+      - {beta: 4, h: 2}     # easy / harmful
+
+  # OPTIONAL crowding-success cell (a=1.35). Not cached: computes a new TI
+  # reference (~5 min) on first run. Run explicitly if desired.
+  representative_crowding:
+    mode: sample
+    n_steps: 120000
+    n_replicas: 1024
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    methods: [abf, fr_estimated, fr_estimated_adaptive]
+    cells:
+      - {beta: 1, h: 2, a: 1.35}

@@ -475,3 +475,34 @@ The phase-diagram subsection of `report/sections/06_case_wca.tex` inputs the
 auto-generated `report/tables/wca_phase_main.tex` and
 `report/tables/wca_phase_numbers.tex`; it does not modify the existing
 `numbers.tex` pipeline or `check_report_numbers.py`.
+
+## WCA follow-up: reviewer-proofing the phase diagram
+
+An additive layer that turns the phase diagram into a reviewer-proof experiment
+section *without adding new physical systems*. It never touches
+`results/wca_phase_diagram/production/` or `wca_phase_jobs.PhaseRunSpec`; the new
+runs live under their own `output_root`s and reuse the cached TI references
+(`cache/phase`). See [`HANDOFF.md`](HANDOFF.md) for the full command list.
+
+| Part | What | Code | Output |
+| --- | --- | --- | --- |
+| B starvation diagnostics | per-run support / genealogy / marginal diagnostics + the *ABF-error vs mFR-gain* scatter (pure re-analysis, no GPU) | `scripts/analyze_wca_starvation.py` | `results/wca_phase_diagram/production/starvation/` |
+| C representative cells | 6 regime cells × 5 methods × 10 matched seeds | `configs/wca_representative.yaml`, `scripts/run_wca_followup.py`, `src/wca_followup_jobs.py` | `results/wca_representative/` |
+| D adaptive FR | deployable `fr_estimated_adaptive` (support × diversity × event gates; online only) | `src/wca_abffr_core.py` (`adaptive_fr_rate`), same config | `adaptive_fr_event_log.csv` |
+| E equal-compute | ABF vs mFR at fixed budget `N·n_steps` | `configs/wca_equal_compute.yaml` | `results/wca_equal_compute/` |
+| F frozen-bias | freeze learned `B(z)`, reconstruct `F=B-β⁻¹log p_B+C` | `configs/wca_frozen_bias.yaml`, `core.run_frozen_bias_gpu` | `results/wca_frozen_bias/` |
+| G report | new subsections + macros + tables/figures | `scripts/analyze_wca_followup.py`, `scripts/plot_wca_followup.py`, `scripts/make_followup_report_assets.py` | `report/` |
+
+Key Part-B finding: across the 14 production cells the matched-seed mFR gain tracks
+the **measured ABF baseline error** (Spearman `ρ≈+0.80`), not the nominal `β·h`
+(`ρ≈−0.57`) — i.e. mFR helps where the ABF free-energy estimator is sample-starved.
+
+```bash
+conda activate abffr
+# Part B (no GPU):
+python scripts/analyze_wca_starvation.py --config configs/wca_phase_diagram_production.yaml --stages production
+# Parts C/D/E/F (resumable; 1–2 GPUs, never more):
+bash scripts/run_wca_followup_h200.sh configs/wca_representative.yaml representative 0,4
+bash scripts/run_wca_followup_h200.sh configs/wca_equal_compute.yaml   equal_compute  0,4
+bash scripts/run_wca_followup_h200.sh configs/wca_frozen_bias.yaml     frozen_bias    0,4
+```

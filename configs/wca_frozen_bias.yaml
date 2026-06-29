@@ -1,0 +1,77 @@
+# WCA frozen-bias validation (Part F).
+#
+# Two-stage validation. Stage 1 (the representative study) learns a bias B(z) =
+# F_hat(z) online for abf / fr_estimated / fr_estimated_adaptive. Stage 2 (here)
+# FREEZES that learned bias (seed-averaged final mean force + PMF) and runs fresh
+# Langevin dynamics with independent seeds, NO ABF updates and NO Fisher-Rao. The
+# biased reaction-coordinate marginal p_B(z) is collected and the free energy is
+# reconstructed as F_recon(z) = B(z) - beta^{-1} log p_B(z) + C. This separates
+# learned-bias QUALITY from online adaptive transient artifacts. No TI is read by
+# the dynamics; TI is used only for the post-hoc L2 of F_recon.
+#
+# Requires the representative study to have been run first (source_study).
+
+experiment_name: wca_frozen_bias
+output_root: results/wca_frozen_bias
+cache_dir: cache/phase
+mode: frozen
+source_study: results/wca_representative
+
+base:
+  dt: 0.002
+  save_every: 2500
+  z_min: -0.2
+  z_max: 1.2
+  n_grid: 160
+  abf_bandwidth: 0.025
+  kde_bandwidth: 0.070
+  abf_smooth_sigma: 0.5
+  mean_force_sample_clip: 500.0
+  use_clipped_force_for_mean_force: true
+  abf_bias_scale: 1.0
+  abf_edge_extrapolate: true
+  boundary_wall_strength: 80.0
+  abf_force_clip: 40.0
+  abf_warmup_steps: 10000
+  estimator_burn_in_steps: 10000     # frozen-bias marginal burn-in
+  fr_start_steps: 20000
+  fr_every: 5
+  score_clip: 2.0
+  transition_lo: 0.25
+  transition_hi: 0.75
+  eval_z_lo: -0.1
+  eval_z_hi: 1.1
+  ti:
+    n_z: 51
+    n_replicas: 128
+    n_thermalization: 5000
+    n_steps: 50000
+    sample_every: 20
+    z_chunk_size: 8
+    smooth_sigma: 1.0
+
+system_defaults:
+  n_dim: 10
+  a: 1.5
+  sigma: 1.0
+  epsilon: 1.0
+  w: 2.0
+  beta: 1.0
+  h: 2.0
+
+# methods block unused in frozen mode (kept for schema symmetry)
+methods:
+  abf:
+    type: abf
+
+stages:
+  frozen_bias:
+    mode: frozen
+    source_study: results/wca_representative
+    source_methods: [abf, fr_estimated, fr_estimated_adaptive]
+    n_steps: 120000
+    n_replicas: 512
+    seeds: [100, 101, 102, 103, 104, 105, 106, 107]   # independent of stage-1 seeds
+    cells:
+      - {beta: 1, h: 2}     # starved
+      - {beta: 4, h: 1}     # easy / harmful
