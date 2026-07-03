@@ -494,21 +494,25 @@ plateauing at the ABF error floor or still catching up.
 
 The parallel and serial runs have comparable force-evaluation budgets but are \emph{not}
 dynamically equivalent: $1024$ replicas explore from $1024$ independent starting points in
-parallel, whereas one walker must diffuse through the whole reaction coordinate serially. In
-the starved cell, at the budget reached ($B=\WCAserialStarvedBudget$; run
-\WCAserialExactComplete toward the $1/4$-budget cutoff of $30{,}720{,}000$), the serial
-one-walker ABF has
-$\Ltwo(F)=\WCAserialStarvedFinalLtwo$, against base-budget mFR at $\WCAserialStarvedBaseMFRLtwo$
-and base parallel ABF at $\WCAserialStarvedBaseABFLtwo$. We read this comparison off the budget
-axis and deliberately do not overclaim in either direction. If, out to the full $N\!\cdot\!T$
-budget, the serial walker remains above mFR, the starved-regime mFR gain is \emph{not} merely
-raw sampling budget --- giving ordinary ABF the same number of force evaluations, spent by a
-single walker, would not recover the birth--death correction's variance reduction; if instead
-the serial walker catches up, mFR is a parallel finite-time accelerator rather than an
-asymptotic advantage. Either reading leaves the central WCA thesis conditional: mFR helps when
-ABF is sample-starved and can be unnecessary or harmful when ABF is already accurate. The
-serial curve in \cref{fig:wca_serial_abf} shows whether the one-walker error is still
-descending or has plateaued as the budget grows.
+parallel, whereas one walker must diffuse through the whole reaction coordinate serially. The
+result actually favours the serial walker as an \emph{ABF} estimator: in the starved cell, at
+the $1/4$-budget cutoff ($B=\WCAserialStarvedBudget$, run \WCAserialExactComplete), serial
+one-walker ABF reaches $\Ltwo(F)=\WCAserialStarvedFinalLtwo$ --- \emph{below} the parallel-ABF
+floor ($\WCAserialStarvedBaseABFLtwo$ at the full base budget, a $+\WCAserialStarvedGainVsBaseABF\%$
+improvement, $9/10$ seeds beating it), because a single long, well-mixed trajectory decorrelates
+better than many short replicas. Yet it remains a factor
+$\WCAserialStarvedMFRoverSerialRatio\times$ \emph{above} base-budget mFR
+($\WCAserialStarvedBaseMFRLtwo$), and the error-vs-budget curve (\cref{fig:wca_serial_abf}) shows
+only a mild residual descent with no sign of closing that gap. The intermediate cell corroborates
+(serial ABF $\approx$ parallel ABF, both above mFR), while in the easy cell --- where mFR is
+\emph{harmful} --- the serial walker converges toward the low ABF floor and beats mFR, exactly as
+the thesis predicts. So even granting ordinary ABF the most favourable single-long-trajectory
+form of the same force-evaluation budget, it does not recover the starved-regime birth--death
+variance reduction: the mFR advantage there is the correction, not raw compute. We do not
+overclaim the exact $N\!\cdot\!T$ endpoint (the cells are run to the $1/4$ cutoff, a resumable
+extension), but the $\sim\!1.8\times$ gap and its flat trend give no indication that a further
+$4\times$ budget would close it. Either way the central WCA thesis stays conditional: mFR helps
+when ABF is sample-starved and is unnecessary or harmful when ABF is already accurate.
 
 \input{tables/wca_serial_abf.tex}
 
