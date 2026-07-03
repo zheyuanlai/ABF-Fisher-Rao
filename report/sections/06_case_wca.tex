@@ -471,6 +471,56 @@ compute.
   \label{fig:wca_equal_compute}
 \end{figure}
 
+\subsection{Serial one-walker ABF at equal force-evaluation budget}
+\label{sec:wca_serial}
+The equal-compute comparison above holds the budget fixed but keeps the method
+\emph{parallel} ($N$ replicas sharing one ABF estimate). A sharper fairness objection,
+raised in review, is that an $N$-replica ABF/mFR run at time $T$ spends $N\times$ the force
+evaluations of ordinary single-walker ABF at time $T$: perhaps a lone ABF walker would catch
+up if simply run $N$ times longer. We test this directly with a \emph{serial one-walker}
+control: $N_{\mathrm{serial}}=1$ run for $n_{\mathrm{steps}}=N_{\mathrm{parallel}}\cdot
+n_{\mathrm{steps}}^{\mathrm{base}} = 1024\times120\text{k}=122{,}880{,}000$ steps, i.e. the
+\emph{exact} equal force-evaluation budget of the base parallel run, and compared on the
+budget axis $B=N\cdot n_{\mathrm{steps}}$ rather than on physical simulation time (the serial
+walker runs for far longer physical time). This is ordinary ABF with its own accumulators and
+no birth--death (\texttt{scripts/run\_wca\_serial\_abf.py}, config
+\texttt{configs/wca\_serial\_abf\_equal\_budget.yaml}); the exact budget is run for the
+starved anchor, and the intermediate and easy cells are run to a shorter budget-ladder cutoff.
+\Cref{tab:wca_serial_abf} and \cref{fig:wca_serial_abf} report $\Ltwo(F)$ against budget, with
+the serial walker drawn as a curve over its accumulated budget so one can see whether it is
+plateauing or still catching up.
+
+The parallel and serial runs have comparable force-evaluation budgets but are \emph{not}
+dynamically equivalent: $1024$ replicas explore from $1024$ independent starting points in
+parallel, whereas one walker must diffuse through the whole reaction coordinate serially. In
+the starved cell, at the budget reached so far ($B=\WCAserialStarvedBudget$; the exact-budget
+run is \WCAserialExactComplete), the serial one-walker ABF has
+$\Ltwo(F)=\WCAserialStarvedFinalLtwo$, against base-budget mFR at $\WCAserialStarvedBaseMFRLtwo$
+and base parallel ABF at $\WCAserialStarvedBaseABFLtwo$. We read this comparison off the budget
+axis and deliberately do not overclaim in either direction. If, at the full $N\!\cdot\!T$
+budget, the serial walker remains above mFR, the starved-regime mFR gain is \emph{not} merely
+raw sampling budget --- giving ordinary ABF the same number of force evaluations, spent by a
+single walker, would not recover the birth--death correction's variance reduction; if instead
+the serial walker catches up, mFR is a parallel finite-time accelerator rather than an
+asymptotic advantage. Either reading leaves the central WCA thesis conditional: mFR helps when
+ABF is sample-starved and can be unnecessary or harmful when ABF is already accurate. The
+serial curve in \cref{fig:wca_serial_abf} shows whether the one-walker error is still
+descending or has plateaued as the budget grows.
+
+\input{tables/wca_serial_abf.tex}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.98\textwidth]{fig_wca_serial_abf_equal_budget.png}
+  \caption{Serial one-walker ABF (green curve, median and IQR over seeds) versus parallel ABF
+    (three $N/n_{\mathrm{steps}}$ shapes) and the deployable mFR at equal force-evaluation
+    budget $B=N\cdot n_{\mathrm{steps}}$, for the starved, intermediate and easy cells. The
+    dotted line marks the base equal budget $1024\times120\text{k}$. Serial ABF is drawn along
+    its accumulated budget so its plateau (or catch-up) is visible; the parallel methods are
+    points at their budgets.}
+  \label{fig:wca_serial_abf}
+\end{figure}
+
 \subsection{Frozen-bias validation}
 \label{sec:wca_frozen}
 Finally we separate the quality of the \emph{learned bias} from any online
@@ -526,6 +576,12 @@ birth--death reverses the benefit as diversity collapses. The new phase diagram
 qualifies the claim: mFR is most useful where the ABF estimator is visibly
 sample-starved (the $\beta=1$ WCA row in the production phase diagram), but when ABF already has a low
 free-energy error the same birth--death correction can be unnecessary or harmful.
+Two budget-matched controls guard against the objection that mFR simply buys more
+sampling: at equal force-evaluation budget mFR still beats every parallel-ABF shape in the
+starved cell (\cref{sec:wca_equal_compute}), and a serial one-walker ABF control run at the
+exact $N\!\cdot\!T$ force-evaluation budget (\cref{sec:wca_serial}) tests whether a lone ABF
+walker catches up; on the evidence available the starved-regime advantage tracks the
+birth--death variance reduction rather than raw compute.
 Thus the practical recommendation is conditional, not automatic: use gentle,
 diversity-preserving mFR in starved WCA regimes, and monitor ABF error,
 transition support, FR event fractions, and genealogy before increasing the

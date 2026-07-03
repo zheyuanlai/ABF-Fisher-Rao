@@ -1,0 +1,96 @@
+# WCA closeout, Part H: serial ONE-WALKER ABF at equal force-evaluation budget.
+#
+# Advisor/reviewer fairness concern: an N-replica ABF/mFR run at time T spends N x the
+# force evaluations of ordinary ABF at time T. The fair control is a single-walker (N=1)
+# serial ABF run at the SAME total force-evaluation budget = N_replicas * n_steps. For the
+# base parallel run N_parallel=1024, nsteps_base=120000 the exact equal-budget serial control
+# is N_serial=1, nsteps_serial = 1024*120000 = 122,880,000 steps.
+#
+# This control is ABF ONLY -- no Fisher-Rao / birth-death / oracle / adaptive. Additive:
+# its own output_root; reuses the cached production TI references in cache/phase; never
+# touches any existing raw result. See src/wca_serial_abf.py and scripts/run_wca_serial_abf.py.
+#
+# Decisions (see HANDOFF_WCA_CLOSEOUT.md): exact 122.88M-step control for the STARVED
+# anchor (b1,h2) only; intermediate (b2,h6) and easy (b4,h1) run to the 1/4 ladder cutoff
+# (30,720,000 steps), resumable and extendable later.
+
+experiment_name: wca_serial_abf
+output_root: results/wca_serial_abf
+cache_dir: cache/phase
+mode: serial
+
+# ABF knobs identical to the equal-compute study so the serial control is the SAME ABF,
+# only with N=1 (nothing FR-related is read for the serial method).
+base:
+  dt: 0.002
+  save_every: 2500
+  z_min: -0.2
+  z_max: 1.2
+  n_grid: 160
+  abf_bandwidth: 0.025
+  kde_bandwidth: 0.070
+  abf_smooth_sigma: 0.5
+  mean_force_sample_clip: 500.0
+  use_clipped_force_for_mean_force: true
+  abf_bias_scale: 1.0
+  abf_edge_extrapolate: true
+  boundary_wall_strength: 80.0
+  abf_force_clip: 40.0
+  abf_warmup_steps: 10000
+  estimator_burn_in_steps: 10000
+  transition_lo: 0.25
+  transition_hi: 0.75
+  eval_z_lo: -0.1
+  eval_z_hi: 1.1
+  ti:
+    n_z: 51
+    n_replicas: 128
+    n_thermalization: 5000
+    n_steps: 50000
+    sample_every: 20
+    z_chunk_size: 8
+    smooth_sigma: 1.0
+
+system_defaults:
+  n_dim: 10
+  a: 1.5
+  sigma: 1.0
+  epsilon: 1.0
+  w: 2.0
+  beta: 1.0
+  h: 2.0
+
+# Serial-run knobs: budget-ladder snapshots + checkpoint cadence.
+serial:
+  base_budget: 122880000            # 1024 * 120000, the parallel equal budget
+  ladder_fracs: [0.0009765625, 0.00390625, 0.015625, 0.0625, 0.25, 1.0]  # 1/1024 .. 1
+  n_log_snapshots: 40               # extra log-spaced L2-vs-budget samples
+  checkpoint_every_steps: 1000000   # resumable chunk size
+
+stages:
+  # ---- production (per confirmed scope) ----
+  # starved anchor: EXACT equal budget (122.88M), 10 seeds (batched -> ~free extra seeds).
+  # intermediate + easy: 1/4-ladder cutoff (30.72M), 5 seeds.
+  production:
+    mode: serial
+    cells:
+      - {beta: 1, h: 2, n_steps: 122880000, seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
+      - {beta: 2, h: 6, n_steps: 30720000,  seeds: [0, 1, 2, 3, 4]}
+      - {beta: 4, h: 1, n_steps: 30720000,  seeds: [0, 1, 2, 3, 4]}
+
+  # ---- mechanical smoke: exercises chunk -> checkpoint -> resume -> final npz -> analyze ----
+  smoke:
+    mode: serial
+    n_steps: 20000
+    seeds: [0, 1]
+    cells:
+      - {beta: 1, h: 2}
+      - {beta: 4, h: 1}
+
+  # ---- benchmark: time raw ms/step to estimate the exact-run wall clock ----
+  benchmark:
+    mode: serial
+    n_steps: 1000000
+    seeds: [0, 1, 2, 3, 4]
+    cells:
+      - {beta: 1, h: 2}
