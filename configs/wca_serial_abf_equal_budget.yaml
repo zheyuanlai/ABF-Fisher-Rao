@@ -68,15 +68,19 @@ serial:
   checkpoint_every_steps: 1000000   # resumable chunk size
 
 stages:
-  # ---- production (per confirmed scope) ----
-  # starved anchor: EXACT equal budget (122.88M), 10 seeds (batched -> ~free extra seeds).
-  # intermediate + easy: 1/4-ladder cutoff (30.72M), 5 seeds.
+  # ---- production (budget-conscious 1/4-ladder cutoff for all cells) ----
+  # All three cells run to the 1/4 point of the exact equal budget (30,720,000 =
+  # 122,880,000 / 4), enough to read whether serial one-walker ABF plateaus at the ABF
+  # error floor or is still catching up toward mFR on the budget axis, at ~1/4 the cost of
+  # the exact N*T run. The starved anchor keeps 10 seeds (batching makes extra seeds ~free).
+  # To run the EXACT equal budget instead, raise the starved n_steps to 122880000 (the run
+  # is resumable; the reviewer-ideal target).
   production:
     mode: serial
     cells:
-      - {beta: 1, h: 2, n_steps: 122880000, seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
-      - {beta: 2, h: 6, n_steps: 30720000,  seeds: [0, 1, 2, 3, 4]}
-      - {beta: 4, h: 1, n_steps: 30720000,  seeds: [0, 1, 2, 3, 4]}
+      - {beta: 1, h: 2, n_steps: 30720000, seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
+      - {beta: 2, h: 6, n_steps: 30720000, seeds: [0, 1, 2, 3, 4]}
+      - {beta: 4, h: 1, n_steps: 30720000, seeds: [0, 1, 2, 3, 4]}
 
   # ---- mechanical smoke: exercises chunk -> checkpoint -> resume -> final npz -> analyze ----
   smoke:

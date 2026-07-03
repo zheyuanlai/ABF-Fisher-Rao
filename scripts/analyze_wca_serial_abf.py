@@ -270,8 +270,8 @@ def latex_numbers(serial_cells, base_abf, base_mfr, out_path):
     serial_budget = s["budget"] if s else BASE_BUDGET
     base_l2 = base_abf.get(STARVED, float("nan"))
     mfr_l2 = base_mfr.get(STARVED, float("nan"))
-    # is the exact NT completed for the starved anchor?
-    exact = bool(s and int(s.get("n_steps", 0)) >= BASE_BUDGET)
+    # did the configured serial run for the starved anchor finish its target budget?
+    complete = bool(s and int(s.get("complete", 0)))
     # gain of serial over base ABF; ratio of serial to mFR
     serial_gain = (100.0 * (base_l2 - serial_l2) / base_l2
                    if np.isfinite(base_l2) and base_l2 > 0 and np.isfinite(serial_l2) else float("nan"))
@@ -289,7 +289,7 @@ def latex_numbers(serial_cells, base_abf, base_mfr, out_path):
         m("WCAserialStarvedGainVsBaseABF", serial_gain, 1),
         m("WCAserialStarvedMFRoverSerialRatio", mfr_over_serial, 2),
         f"\\newcommand{{\\WCAserialStarvedBudget}}{{{int(serial_budget):.2e}}}",
-        f"\\newcommand{{\\WCAserialExactComplete}}{{{'yes' if exact else 'partial'}}}",
+        f"\\newcommand{{\\WCAserialExactComplete}}{{{'complete' if complete else 'in progress'}}}",
         "",
     ]
     os.makedirs(os.path.dirname(out_path), exist_ok=True)

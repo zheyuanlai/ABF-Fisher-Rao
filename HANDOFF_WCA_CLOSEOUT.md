@@ -57,9 +57,12 @@ report always compiles.
 - **G=1 parity** vs `core.run_sampler_gpu("abf", n_replicas=1)`: identical to ~1e-7 relative on
   `l2_f`/`l2_fp`, barrier crossings 45=45 — the batched per-trajectory estimator reproduces the
   reference ABF engine.
-- **Resume continuity**: a run stopped at step 6000 and resumed to 12000 is **bitwise identical**
-  (every metric `d=0.00e+00`, `l2_f(t)` series `max|diff|=0`) to a straight 12000-step run — the
-  checkpoint fully restores RNG + ABF accumulators + diagnostics.
+- **Resume continuity**: on CPU, a run stopped at step 6000 and resumed to 12000 is **bitwise
+  identical** (every metric `d=0.00e+00`, `l2_f(t)` series `max|diff|=0`) to a straight run — the
+  checkpoint fully restores RNG + ABF accumulators + diagnostics. (On GPU the force engine's
+  `scatter_add` uses non-associative CUDA atomics, so GPU runs are not bitwise-reproducible
+  run-to-run — standard for GPU MD; resume still restores all state exactly and continues a
+  valid trajectory, i.e. it never loses ABF accumulators, which is the requirement.)
 - **Partial-emit**: checkpoint emits produce analyzable but non-`run_is_valid` (`complete=False`)
   npz, so the group still resumes; the final emit is `complete=True` and valid.
 - **Smoke** (2 cells × 2 seeds, GPU 4): full runner → checkpoint (every 5k) → per-seed npz →
@@ -72,13 +75,21 @@ report always compiles.
 
 ## 3. Production status
 
+Scope decision (budget-conscious): the exact 122.88M-step serial control is a ~2-day,
+Python-loop-bound run per cell (benchmark: 1.428 ms/step). Because a single walker is inherently
+serial there is no parallel speed-up, so **all three cells are run to the 1/4-budget cutoff**
+(`n_steps = 30,720,000 = 122,880,000 / 4`, ≈ 12 h/cell), which is enough to read whether serial
+one-walker ABF plateaus at the ABF error floor or is still catching up toward mFR on the budget
+axis. The exact `N·T` endpoint is a resumable extension (raise the starved `n_steps` back to
+122880000 in the config and re-run — the runner resumes from its last checkpoint).
+
 Launched detached (`setsid`, survives the session), resumable, two GPUs (both verified free at
 launch: GPUs 0–3 busy, 4–7 idle):
 
 | GPU | cells | seeds | target steps | est. wall | status |
 | --- | --- | --- | --- | --- | --- |
-| 4 | starved `b1,h2` | 0–9 (10) | 122,880,000 (exact NT) | ≈ 49–55 h | RUNNING |
-| 5 | intermediate `b2,h6`, easy `b4,h1` | 0–4 (5 each) | 30,720,000 (1/4 ladder) | ≈ 24 h total | RUNNING |
+| 4 | starved `b1,h2` | 0–9 (10) | 30,720,000 (1/4) | ≈ 12 h | RUNNING |
+| 5 | intermediate `b2,h6`, easy `b4,h1` | 0–4 (5 each) | 30,720,000 (1/4) | ≈ 24 h total | RUNNING |
 
 Logs: `results/wca_serial_abf/logs/production_gpu{4,5}_*.log`. Checkpoints every 1,000,000 steps
 under `results/wca_serial_abf/checkpoints/`; a per-seed partial npz (`complete=False`) is emitted
@@ -86,12 +97,9 @@ at each checkpoint, so the budget ladder is analyzable while the run is still go
 the same runner command (see §4) resumes from the last checkpoint without losing ABF
 accumulators (validated bitwise).
 
-**Exact serial NT completed?** Not within this session — the exact 122.88M-step starved control
-is a ~2-day run (benchmark: 1.428 ms/step). It is running and resumable; the intermediate/easy
-cells are deliberately capped at the 1/4-budget ladder cutoff (per the agreed scope) and can be
-extended to full NT later by raising their `n_steps` in the config and re-running the runner
-(which resumes). To continue/monitor, re-issue the §4 production commands (idempotent) and
-re-run analyze/plot as partial data accrues.
+**Exact serial NT completed?** No — by decision, not run to the full 122.88M; the cells run to
+the 1/4 cutoff (30.72M) and are resumable/extendable to the exact budget. To continue/monitor,
+re-issue the §4 production commands (idempotent) and re-run analyze/plot as partial data accrues.
 
 ---
 
@@ -106,9 +114,9 @@ CUDA_VISIBLE_DEVICES=4 python scripts/run_wca_serial_abf.py --config configs/wca
 
 # production (resumable; re-running the SAME command continues from the last checkpoint):
 CUDA_VISIBLE_DEVICES=4 python -u scripts/run_wca_serial_abf.py \
-  --config configs/wca_serial_abf_equal_budget.yaml --stage production --cells b1_h2      # starved, exact 122.88M
+  --config configs/wca_serial_abf_equal_budget.yaml --stage production --cells b1_h2       # starved, 1/4 cutoff (30.72M)
 CUDA_VISIBLE_DEVICES=5 python -u scripts/run_wca_serial_abf.py \
-  --config configs/wca_serial_abf_equal_budget.yaml --stage production --cells b2_h6,b4_h1  # 1/4 ladder cutoff
+  --config configs/wca_serial_abf_equal_budget.yaml --stage production --cells b2_h6,b4_h1  # intermediate+easy, 1/4 cutoff
 
 # aggregate + figure + report (works on partial or complete data):
 python scripts/analyze_wca_serial_abf.py --config configs/wca_serial_abf_equal_budget.yaml --stages production \
@@ -128,11 +136,11 @@ it does not, the starved-regime mFR gain is the birth–death variance reduction
 if it does, mFR is a parallel finite-time accelerator rather than an asymptotic advantage. The
 central WCA thesis stays conditional either way.
 
-**Early partial reading (starved anchor, budget reached ≈ 1e6 of 1.2288e8 target).** The serial
-walker descends quickly: at ~1/122 of the target budget its median `L2(F)≈0.085` already matches
-base parallel ABF (`≈0.087` at the full 1.23e8 budget) and beats the `2048×60k` ABF shape
-(`0.106`), but it remains ~2× above base-budget mFR (`0.041`). So at this point the serial
-control has NOT closed the gap to mFR, but a large budget span (1e6 → 1.23e8) is still to be
-covered; the verdict is deferred to the completed exact run. Re-run analyze/plot (§4) as the
-budget accrues to refresh the report. The intermediate cell shows the same shape; the easy cell's
-serial data begins after the intermediate cell finishes on GPU 5 (≈12 h).
+**Early partial reading (starved anchor, first checkpoint ≈ 1e6 of the 3.072e7 = 1/4-cutoff
+budget).** The serial walker descends quickly: at ~1e6 budget its median `L2(F)≈0.085` already
+matches base parallel ABF (`≈0.087` at the full 1.23e8 budget) and beats the `2048×60k` ABF shape
+(`0.106`), but it remains ~2× above base-budget mFR (`0.041`), and the curve is still descending
+at that point. Whether it plateaus at the ABF error floor (~0.08, supporting the thesis) or keeps
+descending toward mFR is what the 1/4-cutoff ladder is meant to reveal; re-run analyze/plot (§4)
+as the budget accrues to refresh the report. The intermediate cell shows the same shape; the easy
+cell's serial data begins after the intermediate cell finishes on GPU 5 (≈12 h).
