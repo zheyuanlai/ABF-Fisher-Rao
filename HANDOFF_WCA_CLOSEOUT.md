@@ -122,9 +122,17 @@ cd report && tectonic -X compile main.tex
 
 ## 5. Scientific conclusion
 
-<!-- FILLED IN AS DATA ARRIVES -->
 The equal-budget serial one-walker ABF control tests whether ordinary ABF, run for the full
 `N·T` force-evaluation budget by a single walker, closes the gap to mFR in the starved cell. If
 it does not, the starved-regime mFR gain is the birth–death variance reduction, not raw compute;
 if it does, mFR is a parallel finite-time accelerator rather than an asymptotic advantage. The
 central WCA thesis stays conditional either way.
+
+**Early partial reading (starved anchor, budget reached ≈ 1e6 of 1.2288e8 target).** The serial
+walker descends quickly: at ~1/122 of the target budget its median `L2(F)≈0.085` already matches
+base parallel ABF (`≈0.087` at the full 1.23e8 budget) and beats the `2048×60k` ABF shape
+(`0.106`), but it remains ~2× above base-budget mFR (`0.041`). So at this point the serial
+control has NOT closed the gap to mFR, but a large budget span (1e6 → 1.23e8) is still to be
+covered; the verdict is deferred to the completed exact run. Re-run analyze/plot (§4) as the
+budget accrues to refresh the report. The intermediate cell shows the same shape; the easy cell's
+serial data begins after the intermediate cell finishes on GPU 5 (≈12 h).

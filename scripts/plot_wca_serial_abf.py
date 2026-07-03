@@ -110,7 +110,7 @@ def main(argv=None):
         cells = sorted(set(serial) | set(parallel))
     n = max(len(cells), 1)
 
-    fig, axes = plt.subplots(1, n, figsize=(6.0 * n, 5.0), squeeze=False)
+    fig, axes = plt.subplots(1, n, figsize=(6.0 * n, 5.0), squeeze=False, sharex=True)
     for ci, tag in enumerate(cells):
         ax = axes[0][ci]
         # serial curve
