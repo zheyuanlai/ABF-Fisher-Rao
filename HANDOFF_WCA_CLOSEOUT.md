@@ -86,10 +86,12 @@ axis. The exact `N·T` endpoint is a resumable extension (raise the starved `n_s
 Launched detached (`setsid`, survives the session), resumable, two GPUs (both verified free at
 launch: GPUs 0–3 busy, 4–7 idle):
 
-| GPU | cells | seeds | target steps | est. wall | status |
+| GPU | cells | seeds | target steps | wall | status |
 | --- | --- | --- | --- | --- | --- |
-| 4 | starved `b1,h2` | 0–9 (10) | 30,720,000 (1/4) | ≈ 12 h | RUNNING |
-| 5 | intermediate `b2,h6`, easy `b4,h1` | 0–4 (5 each) | 30,720,000 (1/4) | ≈ 24 h total | RUNNING |
+| 4 | starved `b1,h2` | 0–9 (10) | 30,720,000 (1/4) | 11.9 h | ✅ COMPLETE |
+| 5 | intermediate `b2,h6`, easy `b4,h1` | 0–4 (5 each) | 30,720,000 (1/4) | 12.4 h + 12.2 h | ✅ COMPLETE |
+
+All three cells reached the 1/4-budget cutoff; GPUs 4 and 5 are now free.
 
 Logs: `results/wca_serial_abf/logs/production_gpu{4,5}_*.log`. Checkpoints every 1,000,000 steps
 under `results/wca_serial_abf/checkpoints/`; a per-seed partial npz (`complete=False`) is emitted
@@ -136,11 +138,19 @@ it does not, the starved-regime mFR gain is the birth–death variance reduction
 if it does, mFR is a parallel finite-time accelerator rather than an asymptotic advantage. The
 central WCA thesis stays conditional either way.
 
-**Early partial reading (starved anchor, first checkpoint ≈ 1e6 of the 3.072e7 = 1/4-cutoff
-budget).** The serial walker descends quickly: at ~1e6 budget its median `L2(F)≈0.085` already
-matches base parallel ABF (`≈0.087` at the full 1.23e8 budget) and beats the `2048×60k` ABF shape
-(`0.106`), but it remains ~2× above base-budget mFR (`0.041`), and the curve is still descending
-at that point. Whether it plateaus at the ABF error floor (~0.08, supporting the thesis) or keeps
-descending toward mFR is what the 1/4-cutoff ladder is meant to reveal; re-run analyze/plot (§4)
-as the budget accrues to refresh the report. The intermediate cell shows the same shape; the easy
-cell's serial data begins after the intermediate cell finishes on GPU 5 (≈12 h).
+**Final reading (all three cells complete at the 1/4 cutoff, 30.72M).** In every cell the
+one-walker serial ABF curve has \emph{plateaued} at the ABF error floor well before the cutoff,
+so the comparison reads a plateau, not a transient:
+
+| cell | serial ABF (1/4) | parallel ABF (full budget) | mFR (full budget) | winner |
+| --- | --- | --- | --- | --- |
+| starved `b1,h2`   | 0.073 | 0.087 | 0.041 | **mFR** (serial ~1.8× above mFR, yet +16% below parallel ABF) |
+| intermediate `b2,h6` | 0.023 | 0.028 | 0.019 | **mFR** (serial ≈ parallel ABF, both above mFR) |
+| easy `b4,h1`      | 0.0041 | 0.0046 | 0.036 | **ABF** (serial ≈ parallel ABF, ~9× below the harmful mFR) |
+
+The single long trajectory is actually a \emph{better} ABF estimator than the short-replica
+ensemble (it beats parallel ABF in the starved cell), yet it still does not reach mFR where ABF
+is starved. So the starved-regime mFR advantage is the birth–death variance reduction, not raw
+force-evaluation budget; and where ABF is already accurate (easy cell) mFR is harmful and serial
+ABF wins — exactly the conditional thesis. The exact `N·T` endpoint was not needed to reach this
+conclusion (the curves plateaued at 1/4 budget) and remains a resumable extension.

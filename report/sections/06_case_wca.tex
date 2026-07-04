@@ -502,11 +502,13 @@ floor ($\WCAserialStarvedBaseABFLtwo$ at the full base budget, a $+\WCAserialSta
 improvement, $9/10$ seeds beating it), because a single long, well-mixed trajectory decorrelates
 better than many short replicas. Yet it remains a factor
 $\WCAserialStarvedMFRoverSerialRatio\times$ \emph{above} base-budget mFR
-($\WCAserialStarvedBaseMFRLtwo$), and the error-vs-budget curve (\cref{fig:wca_serial_abf}) shows
-only a mild residual descent with no sign of closing that gap. The intermediate cell corroborates
-(serial ABF $\approx$ parallel ABF, both above mFR), while in the easy cell --- where mFR is
-\emph{harmful} --- the serial walker converges toward the low ABF floor and beats mFR, exactly as
-the thesis predicts. So even granting ordinary ABF the most favourable single-long-trajectory
+($\WCAserialStarvedBaseMFRLtwo$), and the error-vs-budget curve (\cref{fig:wca_serial_abf}) has
+\emph{flattened} at that ABF floor over the last decade of budget, with no sign of closing the
+gap. The intermediate cell corroborates (serial ABF $\approx$ parallel ABF, both plateauing above
+mFR), while in the easy cell --- where mFR is \emph{harmful} --- the serial walker plateaus at the
+low ABF floor (matching parallel ABF) and sits nearly an order of magnitude \emph{below} mFR,
+exactly as the thesis predicts. In all three cells the one-walker curve has plateaued by the
+$1/4$ cutoff, so the plateau, not a still-descending transient, is what the comparison reads. So even granting ordinary ABF the most favourable single-long-trajectory
 form of the same force-evaluation budget, it does not recover the starved-regime birth--death
 variance reduction: the mFR advantage there is the correction, not raw compute. We do not
 overclaim the exact $N\!\cdot\!T$ endpoint (the cells are run to the $1/4$ cutoff, a resumable
