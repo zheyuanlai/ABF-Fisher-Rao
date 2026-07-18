@@ -1,0 +1,62 @@
+{
+  "script": "run_wca_followup.py",
+  "git_commit": "b20c0f76992a5fb6d45dadbd1137fdc9acae5de1",
+  "argv": [
+    "scripts/run_wca_followup.py",
+    "--config",
+    "configs/wca_equal_compute.yaml",
+    "--stage",
+    "equal_compute",
+    "--max-gpus",
+    "2",
+    "--shard",
+    "1",
+    "--num-shards",
+    "2"
+  ],
+  "config": "/home/zheyuanlai/ABF-Fisher-Rao/configs/wca_equal_compute.yaml",
+  "experiment_name": "wca_equal_compute",
+  "stage": "equal_compute",
+  "mode": "sample",
+  "code_version": "wca_followup_v1",
+  "timestamp": "2026-06-28T14:18:52",
+  "cuda_visible_devices": "2",
+  "device": "cuda",
+  "cells": [
+    "b1_h2_w2_n10_a1.5",
+    "b2_h6_w2_n10_a1.5",
+    "b4_h1_w2_n10_a1.5"
+  ],
+  "methods": [
+    "abf",
+    "fr_estimated"
+  ],
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "budgets": [
+    [
+      512,
+      240000
+    ],
+    [
+      1024,
+      120000
+    ],
+    [
+      2048,
+      60000
+    ]
+  ],
+  "n_runs": 144,
+  "source_raw_dir": "",
+  "shard": 1,
+  "num_shards": 2
+}

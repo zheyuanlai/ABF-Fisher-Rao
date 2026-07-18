@@ -1,0 +1,30 @@
+{
+  "script": "analyze_wca_starvation.py",
+  "git_commit": "b20c0f76992a5fb6d45dadbd1137fdc9acae5de1",
+  "argv": [
+    "scripts/analyze_wca_starvation.py",
+    "--config",
+    "configs/wca_phase_diagram_production.yaml",
+    "--stages",
+    "production"
+  ],
+  "config": "/home/zheyuanlai/ABF-Fisher-Rao/configs/wca_phase_diagram_production.yaml",
+  "raw_dir": "/home/zheyuanlai/ABF-Fisher-Rao/results/wca_phase_diagram/production/raw",
+  "stages": [
+    "production"
+  ],
+  "n_runs": 224,
+  "focus_method": "fr_estimated",
+  "transition_window": [
+    0.25,
+    0.75
+  ],
+  "eval_window": [
+    -0.1,
+    1.1
+  ],
+  "starved_threshold": 0.05,
+  "easy_threshold": 0.02,
+  "timestamp": "2026-06-27T18:08:21",
+  "code_version": "wca_starvation_v1"
+}

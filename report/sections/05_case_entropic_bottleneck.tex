@@ -363,6 +363,25 @@ here, where $\mathbf y$ equilibrates fast --- multiple-replica or tempered data,
 a parametric prior on $\omega(x)$ fit from the well interiors), not by a cleverer
 estimator on the same trajectory.
 
+\subsection{Comparison to OPES}
+\label{sec:eb_opes}
+As in the WCA case (\cref{sec:wca_opes}) we check the starved-regime claim against a
+modern adaptive-bias method: well-tempered OPES~\citep{invernizzi2020rethinking} on
+the identical bottleneck dynamics ($\beta{=}8$, $\omega_{\mathrm{in}}{=}25$),
+reconstructed by the same mean-force integration and evaluated on the same interior
+window, with the deposition barrier tuned on held-out seeds and fixed to
+$\OPESEBBarrier$~kT. OPES reaches a median $\Ltwo(F){=}\OPESEBLtwoF$ over five seeds,
+against ABF's $\OPESEBABFLtwoF$ and mFR's $\OPESEBMFRLtwoF$: it is
+\emph{worse than plain ABF} here ($\OPESEBVsABFpct$), and roughly
+$3.4\times$ less accurate than mFR ($\OPESEBVsMFRpct$). The reweighting effective
+sample fraction is low ($n_{\mathrm{eff}}{=}\OPESEBNeff$), consistent with a bias
+that flattens the $x$-marginal aggressively but leaves the \emph{conditional}
+$\mathbf y$-average --- the entropic part of the mean force --- as noisy as under
+ABF. This is the same lesson as \cref{sec:eb_obstruction}: the entropic obstruction is
+about \emph{which} average enters the force, and flattening the sampled coordinate
+does not address it, whereas mFR's ensemble reallocation does. OPES does not close
+the gap that mFR closes.
+
 \subsection{Case finding}
 The entropic bottleneck is a controlled bridge between the easy metastability case
 and the hard WCA dimer. Estimated-target FR robustly and substantially reduces the

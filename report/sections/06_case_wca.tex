@@ -404,7 +404,18 @@ in the most accurate cell confirms the conditional recommendation of
 starvation diagnostic, not an online marginal statistic, indicates the ABF
 estimator is genuinely under-sampled.
 
-\input{tables/wca_adaptive_compare.tex}
+\begin{table}[t]
+  \centering
+  \small
+  \caption{Fixed versus adaptive mFR on the representative cells (matched seeds,
+    $10$ seeds where complete). Columns: matched-seed median gain over ABF for the
+    fixed and adaptive FR schedules, and the adaptive schedule's median effective
+    sample-size fraction and birth--death event fraction. The adaptive schedule
+    preserves the starved-regime gains and reduces (without eliminating) the harm in
+    the accurate cells.}
+  \label{tab:wca_adaptive_compare}
+  \input{tables/wca_adaptive_compare.tex}
+\end{table}
 
 \begin{figure}[t]
   \centering
@@ -459,7 +470,19 @@ at equal budget, where birth--death merely adds variance. The starved-regime
 advantage is therefore attributable to the birth--death correction, not to raw
 compute.
 
-\input{tables/wca_equal_compute.tex}
+\begin{table}[t]
+  \centering
+  \small
+  \caption{Equal-compute comparison at fixed force-evaluation budget
+    $B=N\cdot n_{\mathrm{steps}}$. For a starved ($\beta{=}1,h{=}2$), an
+    intermediate ($\beta{=}2,h{=}6$) and an easy ($\beta{=}4,h{=}1$) cell, ABF is
+    run at three equal-budget shapes (plus a doubled-budget point) and compared with
+    deployable mFR at the base budget by final $\Ltwo(F)$ (median over seeds). In
+    the starved and intermediate cells the worst mFR shape still beats the best ABF
+    shape; only in the easy cell does ABF win.}
+  \label{tab:wca_equal_compute}
+  \input{tables/wca_equal_compute.tex}
+\end{table}
 
 \begin{figure}[t]
   \centering
@@ -560,7 +583,19 @@ low-density blow-up). The deployable conclusion --- that the mFR-learned bias is
 genuinely better --- rests on the first result; the reconstruction is reported as
 an honest, and limited, independent check.
 
-\input{tables/wca_frozen_bias.tex}
+\begin{table}[t]
+  \centering
+  \small
+  \caption{Frozen-bias reconstruction~\eqref{eq:frozen_recon}. For each learned bias
+    (ABF, mFR, adaptive mFR) on a starved ($\beta{=}1,h{=}2$) and an easy
+    ($\beta{=}4,h{=}1$) cell: the online $\Ltwo(F)$, the frozen reconstructed
+    $\Ltwo(F)$ from fresh unbiased dynamics, and the recomputed learned-bias
+    $\Ltwo(F)$ (median over seeds). The recomputed learned-bias error matches the
+    online value method-by-method, confirming the online ranking; the single-window
+    reconstruction is mixing-limited and does not finely separate the methods.}
+  \label{tab:wca_frozen_bias}
+  \input{tables/wca_frozen_bias.tex}
+\end{table}
 
 \begin{figure}[t]
   \centering
@@ -570,6 +605,44 @@ an honest, and limited, independent check.
     seeds) against the TI reference, for a starved and an easy cell.}
   \label{fig:wca_frozen}
 \end{figure}
+
+\subsection{Comparison to a modern enhanced-sampling baseline (OPES)}
+\label{sec:wca_opes}
+A natural objection is that the comparison so far pits marginal Fisher--Rao (mFR)
+only against plain ABF, and that a modern adaptive-bias method might already close
+the starved-regime gap on its own. We therefore add \emph{on-the-fly probability
+enhanced sampling} (OPES, the well-tempered \textsc{Metad} variant of
+\citet{invernizzi2020rethinking}) as a third baseline, run on the identical WCA
+dynamics, grid and seeds. To keep the comparison about the \emph{biasing strategy}
+rather than the estimator, OPES free energies are reconstructed by the \emph{same}
+mean-force integration used for ABF and mFR (its native reweighting estimate is
+strictly worse here and is reported only in the supplement); the deposition barrier
+is tuned on held-out seeds $\{20,21\}$ and fixed to $\OPESStarvedCellBestBarrier$~kT
+for all production seeds $0$--$9$.
+
+Across all six representative cells OPES samples aggressively --- up to
+$\sim\!6\times10^{5}$ barrier round trips and a reweighting $n_{\mathrm{eff}}$ of
+$0.74$ in the starved cell --- yet its \emph{free-energy accuracy} does not beat
+ABF in any cell, and does not beat mFR in five of six (\cref{tab:wca_opes}). In the
+starved anchor $\beta{=}1,h{=}2$ OPES reaches $\Ltwo(F){=}\OPESStarvedCellLtwoF$
+versus ABF's $\ABFStarvedCellLtwoF$ and mFR's $\MFRStarvedCellLtwoF$; mFR is roughly a
+factor of three more accurate than the OPES baseline at matched compute. Only in
+the easy cell $\beta{=}4,h{=}1$, where every method is already near the floor, does
+OPES edge mFR ($\OPESEasyCellVsMFRpct$). The flat-target ablation
+($\gamma{\to}\infty$, no well-tempering) is uniformly worse (e.g.\
+$\Ltwo(F){=}0.201$ vs $\OPESEasyCellLtwoFp$'s well-tempered counterpart in
+$\beta{=}4,h{=}2$), confirming that the shipped variant is the favourable one and
+that the gap is not a tuning artefact.
+
+\input{tables/opes_wca_table.tex}
+
+The reading is that OPES's strength --- rapid, well-tempered flattening of the bias
+--- buys sampling throughput, not estimator variance reduction along the mean force.
+Where ABF is starved, the residual error is dominated by how the local mean force is
+\emph{estimated} from a finite ensemble, and it is exactly there that mFR's
+birth--death reallocation helps and OPES does not. The mFR advantage documented in
+this section therefore holds against a modern enhanced-sampling method, not merely
+against textbook ABF.
 
 \subsection{Case finding}
 At the original condensed-phase WCA anchor, ABF+FR with an online estimated target

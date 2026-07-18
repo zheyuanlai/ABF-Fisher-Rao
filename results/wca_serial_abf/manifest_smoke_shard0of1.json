@@ -1,0 +1,40 @@
+{
+  "script": "run_wca_serial_abf.py",
+  "git_commit": "4c582994225d7914bebeb67c99409c35f0ccc7a6",
+  "argv": [
+    "scripts/run_wca_serial_abf.py",
+    "--config",
+    "configs/wca_serial_abf_equal_budget.yaml",
+    "--stage",
+    "smoke",
+    "--shard",
+    "0",
+    "--num-shards",
+    "1",
+    "--checkpoint-every",
+    "5000"
+  ],
+  "config": "/home/zheyuanlai/ABF-Fisher-Rao/configs/wca_serial_abf_equal_budget.yaml",
+  "experiment_name": "wca_serial_abf",
+  "stage": "smoke",
+  "mode": "serial",
+  "code_version": "wca_serial_abf_v1",
+  "timestamp": "2026-07-03T05:28:20",
+  "cuda_visible_devices": "4",
+  "device": "cuda",
+  "cells": [
+    "b1_h2_w2_n10_a1.5",
+    "b4_h1_w2_n10_a1.5"
+  ],
+  "seeds": [
+    0,
+    1
+  ],
+  "targets": [
+    20000
+  ],
+  "n_trajectories": 4,
+  "n_batched_jobs": 2,
+  "shard": 0,
+  "num_shards": 1
+}

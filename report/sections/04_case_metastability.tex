@@ -285,6 +285,19 @@ cap $f_{\max}$ never binds, so particle diversity is preserved.
   \label{fig:hyper}
 \end{figure}
 
+\subsection{Comparison to OPES}
+\label{sec:meta_opes}
+As a correctness gate for the OPES implementation, we run well-tempered
+OPES~\citep{invernizzi2020rethinking} on this metastability toy alongside ABF and
+mFR, using the identical dynamics, mean-force reconstruction, and seeds. On this
+\emph{easy} case -- where plain ABF already converges and the three FR variants
+agree within seed scatter (\cref{sec:q1}) -- all methods sit near the same floor:
+neither mFR nor OPES has headroom to exploit, and the comparison simply confirms
+that the OPES implementation recovers the correct free-energy shape in the well-sampled
+basin-and-barrier region $|x|\lesssim 2$ containing both basins and the saddle.
+No quantitative ranking is claimed here; the decisive comparisons are in
+\cref{sec:eb_opes,sec:wca_opes}, where ABF is starved and all methods diverge.
+
 \subsection{Case finding}
 \label{sec:q1}
 On this easy metastability example the answer to Q1 is \emph{yes, but modestly,

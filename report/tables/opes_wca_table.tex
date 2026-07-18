@@ -1,0 +1,22 @@
+% OPES vs ABF vs mFR on the six representative WCA cells (production seeds 0-9).
+% Numbers are \newcommand macros from tables/opes_numbers.tex (make_opes_report_assets.py).
+\begin{table}[t]
+  \centering
+  \small
+  \caption{WCA dimer, median final $\Ltwo(F)$ over production seeds $0$--$9$:
+    well-tempered OPES versus ABF and marginal Fisher--Rao (mFR), all reconstructed
+    by the same mean-force integration at matched compute. OPES is less accurate
+    than ABF in every cell and less accurate than mFR in five of six; the sole
+    exception is the easy cell, where all methods are near the floor. Percentages
+    are the OPES error change relative to each baseline (negative $=$ worse).}
+  \label{tab:wca_opes}
+  \begin{tabular}{lccccc}
+    \toprule
+    Cell & OPES & ABF & mFR & OPES vs ABF & OPES vs mFR \\
+    \midrule
+    $\beta{=}1,h{=}2$ (starved)      & \OPESStarvedCellLtwoF & \ABFStarvedCellLtwoF & \MFRStarvedCellLtwoF & \OPESStarvedCellVsABFpct & \OPESStarvedCellVsMFRpct \\
+    $\beta{=}2,h{=}6$ (intermediate) & \OPESInterCellLtwoF   & \ABFInterCellLtwoF   & \MFRInterCellLtwoF   & \OPESInterCellVsABFpct   & \OPESInterCellVsMFRpct   \\
+    $\beta{=}4,h{=}1$ (easy)         & \OPESEasyCellLtwoF    & \ABFEasyCellLtwoF    & \MFREasyCellLtwoF    & \OPESEasyCellVsABFpct    & \OPESEasyCellVsMFRpct    \\
+    \bottomrule
+  \end{tabular}
+\end{table}

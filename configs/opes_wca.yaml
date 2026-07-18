@@ -1,0 +1,115 @@
+# OPES_METAD baseline on the WCA dimer -- additive companion to
+# configs/wca_representative.yaml. Writes to its OWN output_root and reuses the
+# cached production TI references (cache/phase) keyed by physics, so nothing in
+# results/wca_phase_diagram or results/wca_representative is touched.
+#
+# OPES is a MODERN free-energy baseline alongside ABF and marginal-Fisher-Rao:
+# it reasons through the CV marginal (like mFR) but acts through a smooth adaptive
+# bias instead of birth-death. Same N and n_steps as the representative study =>
+# matched force-evaluation budget for a fair comparison.
+
+experiment_name: opes_wca
+output_root: results/opes_wca
+cache_dir: cache/phase
+mode: sample
+
+base:
+  dt: 0.002
+  save_every: 2500
+  z_min: -0.2
+  z_max: 1.2
+  n_grid: 160
+  abf_bandwidth: 0.025
+  kde_bandwidth: 0.070
+  abf_smooth_sigma: 0.5
+  mean_force_sample_clip: 500.0
+  use_clipped_force_for_mean_force: true
+  abf_bias_scale: 1.0
+  abf_edge_extrapolate: true
+  boundary_wall_strength: 80.0
+  abf_force_clip: 40.0
+  abf_warmup_steps: 10000
+  estimator_burn_in_steps: 10000
+  fr_start_steps: 20000
+  fr_every: 5
+  score_clip: 2.0
+  transition_lo: 0.25
+  transition_hi: 0.75
+  eval_z_lo: -0.1
+  eval_z_hi: 1.1
+  ti:
+    n_z: 51
+    n_replicas: 128
+    n_thermalization: 5000
+    n_steps: 50000
+    sample_every: 20
+    z_chunk_size: 8
+    smooth_sigma: 1.0
+
+system_defaults:
+  n_dim: 10
+  a: 1.5
+  sigma: 1.0
+  epsilon: 1.0
+  w: 2.0
+  beta: 1.0
+  h: 2.0
+
+# OPES hyperparameter defaults (overridable per method / per stage).
+opes_defaults:
+  barrier: 4.0            # BARRIER (ΔE) in kT; tuned per cell in the tuning stage
+  pace: 500               # deposit stride (steps)
+  sigma: 0.05             # kernel bandwidth in CV units
+  gamma: .inf             # well-tempered bias factor; .inf + gamma_from_barrier => WT
+  gamma_from_barrier: true
+  sigma_mode: fixed
+  warmup_steps: 10000
+
+methods:
+  opes:
+    type: opes
+  opes_flat:              # gamma=inf flat-target ablation (no well-tempering)
+    type: opes
+    gamma: .inf
+    gamma_from_barrier: false
+
+stages:
+  # ---- hyperparameter tuning (DISJOINT seeds 20/21; 3 representative cells) ----
+  # Sweeps BARRIER x PACE at fixed sigma; the winning (barrier,pace) per cell is
+  # frozen into production. Tuning seeds never overlap the production seeds 0-9.
+  tune:
+    n_steps: 120000
+    n_replicas: 1024
+    seeds: [20, 21]
+    methods: [opes]
+    barriers: [3.0, 4.0, 6.0, 8.0]
+    paces: [250, 500]
+    sigmas: [0.05]
+    cells:
+      - {beta: 1, h: 2}     # starved anchor
+      - {beta: 2, h: 6}     # intermediate
+      - {beta: 4, h: 1}     # easy
+
+  # quick correctness/behaviour check (2 cells x 2 seeds)
+  validate:
+    n_steps: 120000
+    n_replicas: 1024
+    seeds: [0, 1]
+    methods: [opes]
+    cells:
+      - {beta: 1, h: 2}
+      - {beta: 4, h: 1}
+
+  # held-out production: matched to wca_representative (same cells, seeds, budget)
+  representative:
+    n_steps: 120000
+    n_replicas: 1024
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    methods: [opes, opes_flat]
+    cells:
+      - {beta: 1, h: 2}
+      - {beta: 1, h: 4}
+      - {beta: 2, h: 6}
+      - {beta: 2, h: 4}
+      - {beta: 4, h: 1}
+      - {beta: 4, h: 2}

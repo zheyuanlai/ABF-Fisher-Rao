@@ -1,0 +1,43 @@
+{
+  "script": "run_wca_followup.py",
+  "git_commit": "b20c0f76992a5fb6d45dadbd1137fdc9acae5de1",
+  "argv": [
+    "scripts/run_wca_followup.py",
+    "--config",
+    "configs/wca_followup_smoke.yaml",
+    "--stage",
+    "smoke_frozen",
+    "--overwrite"
+  ],
+  "config": "/home/zheyuanlai/ABF-Fisher-Rao/configs/wca_followup_smoke.yaml",
+  "experiment_name": "wca_followup_smoke",
+  "stage": "smoke_frozen",
+  "mode": "frozen",
+  "code_version": "wca_followup_v1",
+  "timestamp": "2026-06-27T17:42:04",
+  "cuda_visible_devices": "0",
+  "device": "cuda",
+  "cells": [
+    "b1_h1_w2_n7_a1.5",
+    "b4_h1_w2_n7_a1.5"
+  ],
+  "methods": [
+    "frozen_abf",
+    "frozen_fr_estimated",
+    "frozen_fr_estimated_adaptive"
+  ],
+  "seeds": [
+    50,
+    51
+  ],
+  "budgets": [
+    [
+      96,
+      2000
+    ]
+  ],
+  "n_runs": 12,
+  "source_raw_dir": "results/wca_followup/smoke/raw",
+  "shard": 0,
+  "num_shards": 1
+}

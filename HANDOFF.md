@@ -1,6 +1,11 @@
-# WCA reviewer-proofing — HANDOFF
+# WCA reviewer-proofing + OPES baseline — HANDOFF
 
-This documents the additive WCA follow-up layer built on top of the existing
+Two additive layers: (1) the WCA reviewer-proofing follow-up (Parts B–G, below),
+and (2) the OPES_METAD baseline across all three systems (see the OPES section at
+the end). The Part H serial-ABF closeout formerly in `HANDOFF_WCA_CLOSEOUT.md` was
+folded into `report/sections/06_case_wca.tex` and that file deleted.
+
+This section documents the additive WCA follow-up layer built on top of the existing
 phase-diagram study. Nothing in `results/wca_phase_diagram/production/` (the 224
 completed runs) or the original notebooks was modified. All new code is
 command-line runnable, resumable/idempotent, and writes a manifest per output dir.
@@ -190,3 +195,91 @@ the repo's `.gitignore`; the manuscript figures/tables under `report/` are track
 - Score statistics are stored only for the new follow-up runs; the original 224
   phase runs predate that logging, so those columns are blank in the starvation
   summary (honest, not an error).
+
+---
+
+# OPES_METAD baseline (added 2026-07-18)
+
+Modern enhanced-sampling baseline alongside ABF and marginal-Fisher-Rao (mFR),
+across all three systems (WCA dimer + metastability toy + entropic bottleneck).
+Additive only: no committed `.ipynb` touched, no existing run_id orphaned, raw
+`*.npz` gitignored. Supersedes the deleted `HANDOFF_WCA_CLOSEOUT.md` (Part H
+serial-ABF; its science lives in `report/sections/06_case_wca.tex`).
+
+## O1. What was built
+- `src/opes_core.py` — engine-agnostic OPES_METAD state: weighted KDE p̃ₙ(z),
+  bias Aₙ(z)=(1−1/γ)β⁻¹log[p̃ₙ/Zₙ+ε], applied force −A'ₙ. Own no-reference-leakage
+  guard (never reads F_ref except post-hoc L2). γ_from_barrier ⇒ γ=β·barrier.
+- `src/opes_jobs.py` — `OPESRunSpec` (OWN spec_hash, resume-safe — does NOT touch
+  `FollowupRunSpec`), `execute_opes_run`, stage expansion. Emits the SAME npz/out
+  schema as the sample runs, so analysis/report tooling is reused.
+- `src/opes_wca.py`, `src/opes_meta.py`, `src/opes_eb.py` — per-system adapters
+  (WCA reuses the `add_abf_force` channel; toys are standalone runners).
+- `scripts/run_opes.py` — runner (`--dry-run/--shard/--num-shards/--stage/`
+  `--precompute-references`), mirrors `run_wca_followup.py`; writes a manifest.
+- `scripts/analyze_opes.py` — `opes_run_summary.csv`, `opes_cell_summary.csv`
+  (stage-separated), `opes_vs_baselines.csv` (production seeds 0-9 only), and
+  `opes_tuning.csv`, under `results/opes_wca/summaries/`.
+- `scripts/make_opes_report_assets.py` — `report/tables/opes_numbers.tex`
+  (prefix OPES/ABF/MFR, placeholder-safe so the report always compiles).
+- `scripts/validate_opes.py` — 5 correctness checks (F reconstruction, WT target,
+  bias=(1−1/γ)F, flat=uniform, leakage guard). All PASS.
+- `configs/opes_wca.yaml` — stages: `tune` (seeds 20/21, barrier×pace grid, 3
+  cells), `validate`, `representative` (6 cells × {opes, opes_flat} × seeds 0-9).
+
+## O2. Key methodological decisions (proven, not assumed)
+- **Primary estimator = mean-force reconstruction**, NOT OPES's native reweighting.
+  It is the *fair* choice (identical to how ABF/mFR build F, so OPES-vs-ABF differs
+  only in the biasing strategy) AND empirically better on every cell/hyperparameter
+  (intermediate cell 0.10 vs 0.34-0.84). Native reweight kept as secondary
+  `l2_f_reweight`.
+- **Tuning seeds (20/21) are DISJOINT from production seeds (0-9)** — no
+  train-on-test. `opes_vs_baselines.csv` and `opes_cell_summary.csv` filter by
+  `stage` so tuning is never pooled with production (this was a real bug caught and
+  fixed during analysis).
+- **barrier=4 / pace=500 / sigma=0.05** locked for production: barrier=4 is robustly
+  near-optimal across the whole difficulty range (βh∈[2,12]) in tuning, so a single
+  justified hyperparameter set rather than per-cell cherry-picking.
+
+## O3. Status — COMPLETE
+All 120 production runs done (6 cells × 2 methods × 10 seeds), 0 failed, 0 NaN.
+Ran on GPUs 4/5/7 (3-way shard). `validate_opes.py` passes all 5 checks.
+
+**Headline (well-tempered OPES vs ABF vs mFR, production seeds 0-9, median L2(F)):**
+
+| cell | OPES | ABF | mFR | OPES vs ABF | OPES vs mFR |
+| --- | --- | --- | --- | --- | --- |
+| b1_h2 (starved) | 0.133 | 0.088 | 0.043 | −52% | −210% |
+| b1_h4 | 0.194 | 0.093 | 0.048 | −110% | −302% |
+| b2_h4 | 0.066 | 0.015 | 0.021 | −326% | −208% |
+| b2_h6 (intermed.) | 0.110 | 0.026 | 0.018 | −315% | −499% |
+| b4_h1 (easy) | 0.022 | 0.005 | 0.024 | −311% | +10% |
+| b4_h2 | 0.048 | 0.009 | 0.030 | −438% | −58% |
+
+OPES samples excellently (up to ~630k round trips, neff 0.74) but is **worse than
+ABF on all 6 cells and worse than mFR on 5/6**. The mFR accuracy advantage holds
+against a modern enhanced-sampling method, not just plain ABF — the reviewer-proofing
+point. **opes_flat (γ=∞ flat-target) ablation:** well-tempered beats flat on every
+cell (b4_h2: 0.048 vs 0.201), confirming WT is the right variant; it still loses to
+ABF. No NaN (bias bounded by `sim.abf_force_clip`).
+
+Toy correctness gates (independent systems, confirm adapters correct): metastability
+interior L2F=0.061 (clean); entropic bottleneck L2F≈0.30 vs ABF 0.21 (same order;
+mFR 0.095) — EB is genuinely hard (β=8, stiff), not an adapter bug.
+
+## O4. Reproduce / continue
+```bash
+conda activate abffr
+python scripts/run_opes.py --config configs/opes_wca.yaml --stage representative --dry-run
+CUDA_VISIBLE_DEVICES=4 python scripts/run_opes.py --config configs/opes_wca.yaml \
+  --stage representative --shard 0 --num-shards 3      # repeat shards 1,2 on GPU 5,7
+python scripts/analyze_opes.py                          # 4 summary CSVs
+python scripts/make_opes_report_assets.py               # report/tables/opes_numbers.tex
+CUDA_VISIBLE_DEVICES=4 python scripts/validate_opes.py  # 5 correctness checks
+```
+
+## O5. Not committed
+Awaiting explicit request (git safety). Untracked: `src/opes_*.py`,
+`scripts/{run,analyze,validate}_opes.py`, `scripts/make_opes_report_assets.py`,
+`configs/opes_wca.yaml`, `results/opes_wca/summaries/`, `report/tables/opes_numbers.tex`.
+Raw `*.npz` gitignored (correct). Toy-gate diagnostics were scratch, not committed.
