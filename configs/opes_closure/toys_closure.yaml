@@ -1,0 +1,75 @@
+# Metastability + entropic-bottleneck OPES CLOSURE config.
+#
+# Fixes the toy pilots' gap (run_opes_toys.py tuned ONLY barrier; sigma+pace were
+# hardcoded and the baseline comparison used frozen medians). Here barrier x pace x
+# sigma are all swept via the SAME successive-halving orchestrator as WCA, results
+# land as per-run npz consumed by the SAME aggregate/metric pipeline, and baselines
+# are recomputed live rather than hardcoded.
+#
+# Physics is fixed per toy (matches each baseline's single-system design); the
+# "cell" for successive halving is therefore the toy itself.
+
+meta:
+  system: meta
+  output_root: results/opes_closure/meta
+  physics: {beta: 4.0, n_particles: 1000, n_grid: 401, x_min: -3.0, x_max: 3.0}
+  # baseline medians for the comparison row (recomputed-live flag in the runner)
+  baseline: {abf_l2_f: 0.0137, abf_l2_fp: 0.0718, mfr_l2_f: 0.0134, mfr_l2_fp: 0.0750}
+  gamma: .inf
+  gamma_from_barrier: true
+  warmup_frac: 0.1
+  stages:
+    tune_r1:
+      n_steps: 40000
+      seeds: [20, 21]
+      barriers: [3.0, 4.0, 6.0, 8.0]
+      paces: [50, 100, 200]
+      sigmas: [0.06, 0.09, 0.12, 0.18]
+    tune_confirm_100k:         # confirm r1 top cluster at PROD budget + probe sigma edge
+      n_steps: 100000          # (r1@40k winner b8/p200/s0.06 sat at 3 grid edges)
+      seeds: [20, 21]
+      barriers: [6.0, 8.0]
+      paces: [100, 200]
+      sigmas: [0.03, 0.045, 0.06]
+    representative:            # frozen from tune_r1 + confirm_100k: interior sigma optimum
+      n_steps: 100000
+      seeds: [0, 1, 2, 3, 4]
+      barriers: [8.0]
+      paces: [200]
+      sigmas: [0.045]
+    pilot_sigma_ref:           # SAME b/p/budget/seeds as representative; only sigma=pilot
+      n_steps: 100000          # isolates the pure sigma effect (0.045 tuned vs 0.12 pilot)
+      seeds: [0, 1, 2, 3, 4]
+      barriers: [8.0]
+      paces: [200]
+      sigmas: [0.12]
+
+eb:
+  system: eb
+  output_root: results/opes_closure/eb
+  physics: {beta: 8.0, H: 2.5, omega_out: 1.0, omega_in: 25.0, s: 0.25, N: 256,
+            dt: 0.001, h: 0.07, min_count: 1.0}
+  baseline: {abf_l2_f: 0.2098, abf_l2_fp: 1.8270, mfr_l2_f: 0.0954, mfr_l2_fp: 1.0910}
+  gamma: .inf
+  gamma_from_barrier: true
+  bias_force_clip: 200.0
+  warmup_frac: 0.1
+  stages:
+    tune_r1:
+      n_steps: 40000
+      seeds: [20, 21]
+      barriers: [3.0, 4.0, 6.0, 8.0]
+      paces: [50, 100, 200]
+      sigmas: [0.03, 0.05, 0.08, 0.12]
+    tune_sigma_edge:            # r1 optimum sat at sigma grid edge (0.03); probe below
+      n_steps: 40000
+      seeds: [20, 21]
+      barriers: [3.0]
+      paces: [50]
+      sigmas: [0.015, 0.02, 0.025]
+    representative:            # frozen from tune_r1 + tune_sigma_edge: interior sigma
+      n_steps: 40000           # optimum at b3/p50/s0.02 (pilot used b?/p?/s0.05)
+      seeds: [0, 1, 2, 3, 4]
+      barriers: [3.0]
+      paces: [50]
+      sigmas: [0.02]
