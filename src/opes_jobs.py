@@ -292,26 +292,35 @@ def expand_stage(cfg: dict, stage: str) -> list:
     barriers = st.get("barriers", [None])
     paces = st.get("paces", [None])
     sigmas = st.get("sigmas", [None])
+    # Explicit per-cell survivor tuples (from tune_closure emit) override the
+    # cross-product for that cell -> true successive halving (only survivors run at
+    # the higher budget). Absent cells fall back to the global grid product.
+    survivors = st.get("survivors", None)
     specs, seen = [], set()
     for phys in physics:
+        cell_tuples = None
+        if survivors is not None:
+            ckey = f"b{float(phys['beta']):g}_h{float(phys['h']):g}"
+            if ckey in survivors:
+                cell_tuples = [(float(b), int(p), float(s)) for b, p, s in survivors[ckey]]
+        grid = (cell_tuples if cell_tuples is not None
+                else [(b, p, s) for b in barriers for p in paces for s in sigmas])
         for mname in methods:
             k = _opes_knobs(cfg, mname)
-            for barrier in barriers:
-                for pace in paces:
-                    for sigma in sigmas:
-                        for seed in seeds:
-                            s = OPESRunSpec(
-                                study=study, stage=stage, name=mname, seed=int(seed),
-                                n_steps=n_steps, n_replicas=n_replicas, save_every=save_every,
-                                beta=float(phys["beta"]), h=float(phys["h"]), w=float(phys["w"]),
-                                n_dim=int(phys["n_dim"]), a=float(phys["a"]),
-                                sigma_wca=float(phys["sigma"]), epsilon=float(phys["epsilon"]),
-                                barrier=float(barrier) if barrier is not None else k["barrier"],
-                                pace=int(pace) if pace is not None else k["pace"],
-                                sigma=float(sigma) if sigma is not None else k["sigma"],
-                                gamma=k["gamma"], gamma_from_barrier=k["gamma_from_barrier"],
-                                sigma_mode=k["sigma_mode"], warmup_steps=k["warmup_steps"])
-                            if s.run_id() not in seen:
-                                seen.add(s.run_id())
-                                specs.append(s)
+            for (barrier, pace, sigma) in grid:
+                for seed in seeds:
+                    s = OPESRunSpec(
+                        study=study, stage=stage, name=mname, seed=int(seed),
+                        n_steps=n_steps, n_replicas=n_replicas, save_every=save_every,
+                        beta=float(phys["beta"]), h=float(phys["h"]), w=float(phys["w"]),
+                        n_dim=int(phys["n_dim"]), a=float(phys["a"]),
+                        sigma_wca=float(phys["sigma"]), epsilon=float(phys["epsilon"]),
+                        barrier=float(barrier) if barrier is not None else k["barrier"],
+                        pace=int(pace) if pace is not None else k["pace"],
+                        sigma=float(sigma) if sigma is not None else k["sigma"],
+                        gamma=k["gamma"], gamma_from_barrier=k["gamma_from_barrier"],
+                        sigma_mode=k["sigma_mode"], warmup_steps=k["warmup_steps"])
+                    if s.run_id() not in seen:
+                        seen.add(s.run_id())
+                        specs.append(s)
     return specs
