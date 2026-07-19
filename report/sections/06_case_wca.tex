@@ -615,10 +615,16 @@ enhanced sampling} (OPES, the well-tempered \textsc{Metad} variant of
 \citet{invernizzi2020rethinking}) as a third baseline, run on the identical WCA
 dynamics, grid and seeds. To keep the comparison about the \emph{biasing strategy}
 rather than the estimator, OPES free energies are reconstructed by the \emph{same}
-mean-force integration used for ABF and mFR (its native reweighting estimate is
-strictly worse here and is reported only in the supplement); the deposition barrier
+mean-force integration used for ABF and mFR; the native OPES reweighting estimate is
+reported alongside it in the supplement and is \emph{not} uniformly worse (it is
+comparable in the starved anchor and better in $\beta{=}1,h{=}4$), so we report both
+rather than selecting the more favourable one. The deposition barrier
 is tuned on held-out seeds $\{20,21\}$ and fixed to $\OPESStarvedCellBestBarrier$~kT
-for all production seeds $0$--$9$.
+for all production seeds $0$--$9$. \emph{Preliminary:} in this pilot the kernel
+bandwidth $\sigma$ and deposition pace were held fixed rather than tuned; a closure
+study sweeping $\sigma\times\text{pace}\times\text{barrier}$ on held-out seeds
+(\cref{sec:opes_closure_note}) tunes them per cell and supersedes the single-$\sigma$
+numbers below (the tuned $\sigma$ is well below this fixed value in every cell).
 
 Across all six representative cells OPES samples aggressively --- up to
 $\sim\!6\times10^{5}$ barrier round trips and a reweighting $n_{\mathrm{eff}}$ of
@@ -631,8 +637,11 @@ the easy cell $\beta{=}4,h{=}1$, where every method is already near the floor, d
 OPES edge mFR ($\OPESEasyCellVsMFRpct$). The flat-target ablation
 ($\gamma{\to}\infty$, no well-tempering) is uniformly worse (e.g.\
 $\Ltwo(F){=}0.201$ vs $\OPESEasyCellLtwoFp$'s well-tempered counterpart in
-$\beta{=}4,h{=}2$), confirming that the shipped variant is the favourable one and
-that the gap is not a tuning artefact.
+$\beta{=}4,h{=}2$), confirming that the shipped variant is the favourable one along
+the \emph{well-tempering} axis. We caution that this ablation does not by itself rule
+out a bandwidth-tuning artefact: $\sigma$ was fixed across all cells, and the closure
+study (\cref{sec:opes_closure_note}) tunes it directly before drawing a final
+conclusion about the size of the mFR advantage over OPES.
 
 \input{tables/opes_wca_table.tex}
 
@@ -643,6 +652,39 @@ Where ABF is starved, the residual error is dominated by how the local mean forc
 birth--death reallocation helps and OPES does not. The mFR advantage documented in
 this section therefore holds against a modern enhanced-sampling method, not merely
 against textbook ABF.
+
+\subsubsection*{Closure study}
+\label{sec:opes_closure_note}
+The pilot above fixed the OPES kernel bandwidth $\sigma$ and deposition pace and
+tuned only the barrier, so its single-$\sigma$ numbers in \cref{tab:wca_opes} are a
+\emph{preliminary} lower bound on OPES accuracy rather than the method's tuned best.
+A closure study resolves this: it sweeps $\sigma\times\text{pace}\times\text{barrier}$
+by successive halving on the disjoint tuning seeds $\{20,21\}$ across all three
+systems (WCA, metastability, entropic bottleneck), freezes the winning configuration
+\emph{per cell}, and reruns at production budget ($\OPESCloWCANSeeds$ seeds,
+$\OPESCloWCASteps$ steps for WCA). The headline is that $\sigma$---the axis the pilot
+never swept---is first-order everywhere, and the tuned optimum sits well below the
+pilot's fixed $\sigma$ in every system: WCA per-cell $\sigma\in\{\OPESCloStarvedSigma,
+\OPESCloInterSigma, \OPESCloEasySigma\}$, entropic bottleneck $\sigma\approx
+\OPESCloEBTunedSigma$, metastability $\sigma\approx\OPESCloMetaTunedSigma$ (all vs a
+pilot $\sigma$ of $0.05$--$0.12$).
+
+On the WCA anchor cells the closure also separates the well-tempering target
+estimator into three labelled variants---adaptive-$\gamma$, fixed-$\gamma$, and flat
+(no tempering)---rather than collapsing them. Well-tempering is first-order: the flat
+target is worst in every cell (e.g. intermediate $\Ltwo(F)=\OPESCloInterFlatLtwoF$ vs
+adaptive $\OPESCloInterAdaptLtwoF$). Adaptive- and fixed-$\gamma$ are a near-tie
+(starved $\OPESCloStarvedAdaptLtwoF{\pm}\OPESCloStarvedAdaptCI$ vs
+$\OPESCloStarvedFixedgLtwoF{\pm}\OPESCloStarvedFixedgCI$), so the adaptive schedule
+neither helps nor hurts at these operating points. On the toys the effect of tuning
+$\sigma$ alone is large and cleanly isolated: for metastability, holding
+barrier/pace/budget/seeds fixed and changing only $\sigma$ from the pilot
+$\OPESCloMetaPilotSigma$ to the tuned $\OPESCloMetaTunedSigma$ improves $\Ltwo(F)$
+from $\OPESCloMetaPilotLtwoF$ to $\OPESCloMetaTunedLtwoF$
+($\OPESCloMetaSigmaFactor\times$, $\OPESCloMetaSigmaPct\%$); the entropic bottleneck
+tuned point reaches $\Ltwo(F)=\OPESCloEBTunedLtwoF$. The qualitative pilot ordering
+(mFR ahead in the starved regime) is unchanged; the closure sharpens the OPES numbers
+and confirms the single-$\sigma$ pilot understated OPES accuracy.
 
 \subsection{Case finding}
 At the original condensed-phase WCA anchor, ABF+FR with an online estimated target
