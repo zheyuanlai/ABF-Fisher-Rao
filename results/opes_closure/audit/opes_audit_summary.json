@@ -1,0 +1,123 @@
+{
+  "code_version": "553e03ac3855",
+  "device": "cpu",
+  "n_tests": 14,
+  "n_pass": 14,
+  "n_fail": 0,
+  "all_pass": true,
+  "total_seconds": 51.47,
+  "tests": [
+    {
+      "name": "T1_exact_density_bias",
+      "tol": 0.0001,
+      "value": 2.480584555542009e-07,
+      "passed": true,
+      "detail": "L2(A_code, analytic WT bias)=2.48e-07, prefactor=0.8333",
+      "seconds": 0.01
+    },
+    {
+      "name": "T2_wt_target",
+      "tol": 0.02,
+      "value": 0.013740524649620056,
+      "passed": true,
+      "detail": "L2(p_b, P^(1/g))=1.37e-02 < L2(p_b,Boltz)=1.04e+00",
+      "seconds": 0.0
+    },
+    {
+      "name": "T3_flat_limit_epsfloor_cap",
+      "tol": 0.02,
+      "value": 0.00019749102648347616,
+      "passed": true,
+      "detail": "prefactor=1.0000; flat-target uniform once BARRIER not clipping: L2(p_b,uni) barrier6=0.069 (eps-capped) -> barrier12=0.000 (uniform). Residual is the intended PLUMED eps=exp(-beta*BARRIER) cap, NOT a bug.",
+      "seconds": 0.0
+    },
+    {
+      "name": "T4_force_derivative",
+      "tol": 1e-06,
+      "value": 0.0,
+      "passed": true,
+      "detail": "max|f_code - (-dA/dz)|=0.00e+00, rms=0.00e+00 (interior)",
+      "seconds": 0.0
+    },
+    {
+      "name": "T5_sign",
+      "tol": 0.0,
+      "value": 2.752721071243286,
+      "passed": true,
+      "detail": "outward force f(left)=-15.91<0, f(right)=+15.91>0; peak 4.99->2.23 (flatter=True)",
+      "seconds": 0.0
+    },
+    {
+      "name": "T6_density_normalization",
+      "tol": 0.001,
+      "value": 0.0,
+      "passed": true,
+      "detail": "integral rho dz = 1.000000 (want 1)",
+      "seconds": 0.03
+    },
+    {
+      "name": "T7_weight_scale_invariance",
+      "tol": 1e-05,
+      "value": 1.0944152251113337e-07,
+      "passed": true,
+      "detail": "L2(rho@scale1, rho@scale1000)=1.09e-07",
+      "seconds": 0.0
+    },
+    {
+      "name": "T8_boundary",
+      "tol": 0.001,
+      "value": 0.0,
+      "passed": true,
+      "detail": "c=0.02: mass=1.0000, max|f|=58.32; c=0.98: mass=1.0000, max|f|=58.32",
+      "seconds": 0.0
+    },
+    {
+      "name": "T9_compression_gridconsistency",
+      "tol": 0.05,
+      "value": 0.0007504293959675819,
+      "passed": true,
+      "detail": "L2(bias@ng161, bias@ng321)=7.50e-04 (grid=implicit kernel store)",
+      "seconds": 0.0
+    },
+    {
+      "name": "T10_no_leakage",
+      "tol": 0.0,
+      "value": 1.0,
+      "passed": true,
+      "detail": "guard fires on ref=True: True; silent on ref=False: True",
+      "seconds": 0.0
+    },
+    {
+      "name": "T11_native_estimator",
+      "tol": 0.6,
+      "value": 0.24716790480449996,
+      "passed": true,
+      "detail": "L2(native F_hat, F_true)=0.247 on 6 kT barrier",
+      "seconds": 12.31
+    },
+    {
+      "name": "T12_common_meanforce",
+      "tol": 0.6,
+      "value": 0.1887362851390468,
+      "passed": true,
+      "detail": "L2(common-MF F, F_true)=0.189 over 81 covered bins",
+      "seconds": 17.53
+    },
+    {
+      "name": "GATE2a_multiwalker_exact",
+      "tol": 1e-06,
+      "value": 1.479571096751897e-07,
+      "passed": true,
+      "detail": "L2(rho 1-batch vs 16-batch)=1.48e-07, |dwsum|=0.00e+00 (equal total samples, frozen weights => must be identical)",
+      "seconds": 0.03
+    },
+    {
+      "name": "GATE2b_multiwalker_dynamics",
+      "tol": 0.3,
+      "value": 0.16461468519987865,
+      "passed": true,
+      "detail": "max pairwise L2(native FES)=0.165 across ['N=16', 'N=64', 'N=256']; err_vs_true=['0.267', '0.216', '0.215']; deposited_samples=[240000, 192000, 192000]",
+      "seconds": 21.56
+    }
+  ]
+}

@@ -1,0 +1,168 @@
+{
+  "n_tests": 13,
+  "n_pass": 13,
+  "all_pass": true,
+  "groups": {
+    "synthetic": [
+      {
+        "name": "KL_self_zero",
+        "passed": true,
+        "detail": "KL(p||p)=0.00e+00",
+        "tol": 1e-06,
+        "value": 0.0
+      },
+      {
+        "name": "TV_self_zero",
+        "passed": true,
+        "detail": "TV(p,p)=0.00e+00",
+        "tol": 1e-06,
+        "value": 0.0
+      },
+      {
+        "name": "uniform_entropy_zero",
+        "passed": true,
+        "detail": "H[U(0,1)]=-1.00e-12 (analytic 0)",
+        "tol": 0.001,
+        "value": -1.000088900581841e-12
+      },
+      {
+        "name": "TV_disjoint_near_one",
+        "passed": true,
+        "detail": "TV(disjoint)=1.000 (want ~1)",
+        "tol": null,
+        "value": 1.0
+      },
+      {
+        "name": "KL_nonneg",
+        "passed": true,
+        "detail": "KL>=0: 2.493",
+        "tol": null,
+        "value": 2.4930885912799674
+      }
+    ],
+    "anytime": [
+      {
+        "name": "tau_abs_correct",
+        "passed": true,
+        "detail": "tau_abs=36.00 vs analytic 35.84",
+        "tol": 2.0,
+        "value": 36.0
+      },
+      {
+        "name": "normalized_anytime_positive",
+        "passed": true,
+        "detail": "time-avg err=0.279",
+        "tol": null,
+        "value": 0.2788244153152726
+      },
+      {
+        "name": "integrated_recomputed",
+        "passed": true,
+        "detail": "integrated=27.88",
+        "tol": null,
+        "value": 27.882441531527256
+      }
+    ],
+    "real_npz": [
+      {
+        "name": "real_npz_present",
+        "passed": true,
+        "detail": "scored 8 pilot npz",
+        "tol": null,
+        "value": null
+      },
+      {
+        "name": "schema_complete",
+        "passed": true,
+        "detail": "all 61 common-schema keys present in every row",
+        "tol": null,
+        "value": null
+      },
+      {
+        "name": "l2_common_finite",
+        "passed": true,
+        "detail": "l2_f_common finite on all sampled runs",
+        "tol": null,
+        "value": null
+      },
+      {
+        "name": "estimator_labeled",
+        "passed": true,
+        "detail": "primary_estimator in {meanforce,reweight}; native+common both emitted",
+        "tol": null,
+        "value": null
+      },
+      {
+        "name": "marginal_kl_finite_nonneg",
+        "passed": true,
+        "detail": "8/8 finite marginal_kl, all >=0; range=[0.192,2.172]",
+        "tol": null,
+        "value": null
+      }
+    ]
+  },
+  "n_real_rows": 8,
+  "schema": [
+    "run_id",
+    "study",
+    "stage",
+    "name",
+    "method",
+    "seed",
+    "beta",
+    "h",
+    "w",
+    "n_dim",
+    "a",
+    "beta_h",
+    "opes_barrier",
+    "opes_pace",
+    "opes_sigma",
+    "opes_gamma",
+    "opes_gamma_from_barrier",
+    "n_steps",
+    "n_replicas",
+    "had_nan",
+    "l2_f_common",
+    "l2_fp_common",
+    "l2_f_native",
+    "l2_fp_native",
+    "primary_estimator",
+    "l2_f_compact",
+    "l2_fp_compact",
+    "l2_f_transition",
+    "l2_fp_transition",
+    "l2_f_stretched",
+    "l2_fp_stretched",
+    "integrated_l2_f",
+    "normalized_anytime_l2_f",
+    "tau_abs",
+    "tau_rel",
+    "marginal_kl",
+    "marginal_tv",
+    "marginal_entropy",
+    "min_density",
+    "covered_fraction",
+    "marginal_l2_ref",
+    "marginal_l2_uniform",
+    "n_round_trips",
+    "n_barrier_crossings",
+    "n_compact_to_stretched",
+    "n_stretched_to_compact",
+    "first_passage_step",
+    "iat_frac_compact",
+    "mixing_ess",
+    "opes_neff_frac_final",
+    "opes_neff_frac_min",
+    "opes_n_kernels_final",
+    "opes_bias_range_final",
+    "opes_max_bias",
+    "opes_sigma_cur_final",
+    "runtime_seconds",
+    "wall_seconds",
+    "budget",
+    "force_evaluations",
+    "device",
+    "cuda_visible_devices"
+  ]
+}

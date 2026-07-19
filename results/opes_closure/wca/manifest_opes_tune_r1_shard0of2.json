@@ -1,0 +1,37 @@
+{
+  "script": "run_opes.py",
+  "git_commit": "e1f5b3c89409d00c3011f15a2ffe04285f148fbf",
+  "argv": [
+    "scripts/run_opes.py",
+    "--config",
+    "configs/opes_closure/wca_closure.yaml",
+    "--stage",
+    "tune_r1",
+    "--shard",
+    "0",
+    "--num-shards",
+    "2"
+  ],
+  "config": "/home/zheyuanlai/ABF-Fisher-Rao/configs/opes_closure/wca_closure.yaml",
+  "experiment_name": "opes_closure_wca",
+  "stage": "tune_r1",
+  "code_version": "opes_v1",
+  "timestamp": "2026-07-18T19:09:45",
+  "cuda_visible_devices": "0",
+  "device": "cuda",
+  "cells": [
+    "b1_h2_w2_n10_a1.5",
+    "b2_h6_w2_n10_a1.5",
+    "b4_h1_w2_n10_a1.5"
+  ],
+  "methods": [
+    "opes"
+  ],
+  "seeds": [
+    20,
+    21
+  ],
+  "n_runs": 288,
+  "shard": 0,
+  "num_shards": 2
+}

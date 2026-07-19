@@ -1,0 +1,59 @@
+{
+  "from_round": "tune_r3",
+  "to_stage": "production",
+  "n_steps": 120000,
+  "methods": [
+    "opes",
+    "opes_fixedg",
+    "opes_flat"
+  ],
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "tuned_cells": [
+    {
+      "beta": 1.0,
+      "h": 2.0
+    },
+    {
+      "beta": 2.0,
+      "h": 6.0
+    },
+    {
+      "beta": 4.0,
+      "h": 1.0
+    }
+  ],
+  "winners": {
+    "b1_h2": {
+      "opes_barrier": "4.0",
+      "opes_pace": "250",
+      "opes_sigma": "0.035",
+      "l2_f_common_mean": "0.11468672040787015",
+      "l2_f_common_ci95": "0.006156766202465552"
+    },
+    "b2_h6": {
+      "opes_barrier": "6.0",
+      "opes_pace": "250",
+      "opes_sigma": "0.02",
+      "l2_f_common_mean": "0.07040674391355639",
+      "l2_f_common_ci95": "0.006045621608819194"
+    },
+    "b4_h1": {
+      "opes_barrier": "3.0",
+      "opes_pace": "1000",
+      "opes_sigma": "0.05",
+      "l2_f_common_mean": "0.01105226045077734",
+      "l2_f_common_ci95": "0.004452311623081833"
+    }
+  }
+}
