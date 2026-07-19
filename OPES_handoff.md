@@ -190,7 +190,7 @@ variants at matched settings" design, but state it explicitly.
 - scripts/tune_closure.py: emit writes explicit per-cell survivor tuples; new `freeze`
   subcommand; corrected emit print.
 - configs/opes_closure/wca_closure.yaml: added tune_r2, tune_r3, production stages.
-- CLOSURE_HANDOFF.md: sections 5-8 (findings, scope decision, toy TODO, this result).
+- OPES_handoff.md: sections 5-8 (findings, scope decision, toy TODO, this result).
 - New metrics: ranking_tune_r{2,3}.json, emit_*.json, freeze_*.json,
   production_method_comparison.json, per_run/per_config rows for the new stages.
 
@@ -285,7 +285,7 @@ production_method_comparison.json (wca). All runs 0 fail / 0 nan.
 - configs/opes_closure/wca_closure.yaml: tune_r2/r3/production stages
 - configs/opes_closure/toys_closure.yaml: eb tune_sigma_edge + frozen representatives;
   meta tune_confirm_100k + frozen representative + pilot_sigma_ref
-- CLOSURE_HANDOFF.md: sections 5-12
+- OPES_handoff.md: sections 5-12
 - results/opes_closure/{wca,eb,meta}/ raw npz, logs, metrics for all stages above
 Suggested commit grouping: (1) infra (opes_jobs+tune_closure), (2) configs, (3) results,
 (4) handoff. Not staged — user runs git per repo norms.
