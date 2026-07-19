@@ -289,3 +289,24 @@ production_method_comparison.json (wca). All runs 0 fail / 0 nan.
 - results/opes_closure/{wca,eb,meta}/ raw npz, logs, metrics for all stages above
 Suggested commit grouping: (1) infra (opes_jobs+tune_closure), (2) configs, (3) results,
 (4) handoff. Not staged — user runs git per repo norms.
+
+## 13. 32-seed anchor validation — FORMALLY DESCOPED (decision, not oversight)
+
+The launch plan (section 3) ended with "the 32-seed validation on the anchor cells
+for CI width." It is intentionally NOT run. Justification from the 10-seed production
+(production_method_comparison.json), per cell, l2_f_common:
+  cell           flat-vs-best gap   combined_CI   resolved?   adapt-vs-fixedg   within_CI?
+  b1_h2 starved  +0.0104            0.0066        YES         0.0019            yes
+  b2_h6 inter    +0.0670            0.0090        YES         0.0040            yes
+  b4_h1 easy     +0.0156            0.0121        YES         0.0014            yes
+Both qualitative production claims are already decided at 10 seeds: (i) flat (no
+well-tempering) is worst in every cell with gap > combined CI; (ii) adaptive vs
+fixed-gamma is a near-tie with gap << combined CI. Going to 32 seeds shrinks CIs
+around an already-negligible adaptive/fixedg gap (0.0014-0.0040) — it cannot create a
+separation, only confirm the tie. No reported conclusion depends on the extra seeds,
+so the cost is not justified. If a reviewer demands 32-seed CIs specifically, rerun
+production with seeds 0-31 (config stage `production`, bump seeds list); infra is ready.
+
+PLAN STATUS: all launch-plan items complete or explicitly decided. 6-cell extension =
+descoped by owner (integrate 3 anchors). 32-seed validation = descoped here on the
+numbers above. Report integrated + builds clean. Nothing else outstanding.
