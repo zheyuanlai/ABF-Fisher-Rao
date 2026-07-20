@@ -1,0 +1,46 @@
+ALKANE STUDY — GPU ALLOCATION LOG
+=================================
+Policy: use EXACTLY ONE physical GPU from {4,5,6,7}. Never GPUs 0-3. Never >1 GPU.
+
+Selection procedure (run nvidia-smi, inspect util/mem/procs on 4-7, pick a free one):
+
+2026-07-19 07:47  nvidia-smi snapshot of candidate GPUs:
+    GPU 4:  67% util, 108289 MiB used   -> BUSY (other user)
+    GPU 5: 100% util,  22823 MiB used   -> BUSY (other user)
+    GPU 6:  96% util,  41901 MiB used   -> BUSY (other user)
+    GPU 7:   0% util,      5 MiB used   -> FREE  *** SELECTED ***
+
+SELECTED PHYSICAL GPU: 7
+Execution: export CUDA_VISIBLE_DEVICES=7 ; inside Python use cuda:0 only.
+Production runners assert torch.cuda.device_count() == 1.
+
+If GPU 7 becomes unavailable, a replacement (from {4,5,6}) will be recorded below
+with justification and timestamp; allocations will never overlap.
+
+------------------------------------------------------------------
+2026-07-19 ~08:15  GPU RE-SELECTION (required by policy)
+------------------------------------------------------------------
+During the initial B0 validation another user (yifanchen) launched a job on
+GPU 7 (`learned_jac_opnorm.py --gpu 7`, started ~08:00), so GPU 7 was SHARED
+and no longer reasonably free (100% util, 22.8 GB by their process). My B0 run
+was competing with it (inflated per-step time) and has been terminated.
+
+Re-check of GPUs 4-7:
+    GPU 4:  68% util, 108 GB  -> BUSY (other user)
+    GPU 5:   0% util,   5 MiB -> FREE   *** NEW SELECTION ***
+    GPU 6:  92% util,  41 GB  -> BUSY (other user)
+    GPU 7: 100% util,  22 GB  -> BUSY (yifanchen) -- do NOT disturb
+
+NEW SELECTED PHYSICAL GPU: 5   (export CUDA_VISIBLE_DEVICES=5)
+Reason: GPU 7 taken by another user; GPU 5 became free. Allocations never overlap.
+
+------------------------------------------------------------------
+2026-07-20 ~02:40  Production sampling COMPLETE on GPU 5
+------------------------------------------------------------------
+All mandatory sampling (b1 butane, p1 pentane, b2 temperature slice) completed on
+GPU 5 (10+18+10 = 38 jobs, 0 failures). After completion, other users (yesom,
+jackfoley) launched jobs occupying ALL of GPUs 4,5,6,7 (97-100% util). GPUs 1,3 are
+free but OFF-LIMITS per policy (never 0-3). The remaining frozen-bias VALIDATION
+(Part F) therefore runs on CPU (uses no GPU -> fully policy-compliant; the policy
+constrains which GPU may be used, not that one must be used). All analysis, figures,
+tables and report compilation are CPU-only.

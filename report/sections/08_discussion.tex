@@ -1,7 +1,7 @@
 \section{Discussion, limitations, and future directions}
 \label{sec:discussion}
 
-\subsection{What the three cases establish (Q4)}
+\subsection{What the five cases establish (Q4, Q5)}
 The study establishes a regime map rather than a universal ranking. FR is a mild
 accelerator, and sometimes a source of extra noise, when ABF is already
 well-sampled. It becomes valuable when ABF is starved of reaction-coordinate
@@ -17,6 +17,16 @@ operational: the \emph{measured} ABF free-energy error predicts the mFR gain
 and frozen-bias reconstruction (\cref{sec:wca_frozen}) attribute the starved-regime
 gain to the birth--death correction and to a genuinely more accurate learned bias,
 not to extra raw compute or an online transient.
+
+The molecular torsions (Q5) add a decisive qualification to this rule: the starvation
+that FR can cure must be on the \emph{biased} coordinate. In butane ABF is not starved
+along $\varphi_1$, so mFR is superfluous (\textbf{\AlkButaneVerdict} within the
+pre-registered margin). In pentane the biased $\varphi_1$ marginal is again easy, but
+the binding difficulty is the hidden conditional $p(\varphi_2\mid\varphi_1)$ --- and
+because FR only reallocates along $\varphi_1$, it cannot directly relieve that
+difficulty and risks a ``false improvement'' in which the marginal flattens while the
+conditional degrades. The configuration-resolved conditional diagnostics, which the
+2D and WCA cases could only infer from structure, make this measurable directly.
 
 \subsection{Limitations}
 We remain deliberately conservative about scope.
@@ -82,11 +92,15 @@ reading does not generalise.
         halts before collapse, and an event-fraction backoff. Extending the gates
         to orthogonal-relaxation diagnostics and to multi-dimensional reaction
         coordinates remains open.
-  \item \textbf{Higher-dimensional and curved reaction coordinates}, where
-        conditional sampling is genuinely hard and the geometric term is
-        nontrivial.
-  \item \textbf{Configuration-resolved conditional diagnostics} for the many-body
-        case, to measure conditional fidelity rather than infer it from structure.
+  \item \textbf{Higher-dimensional and curved reaction coordinates.} The alkane
+        dihedrals (\cref{sec:case_butane,sec:case_pentane}) take a first step ---
+        a periodic, nonlinear CV with a nontrivial geometric term --- and the
+        natural extension is a 2D torus CV $(\varphi_1,\varphi_2)$ with the
+        periodic Poisson reconstruction (attempted as an optional stretch).
+  \item \textbf{Configuration-resolved conditional diagnostics.} Pentane realises
+        this directly: $p(\varphi_2\mid\varphi_1)$ against the joint reference
+        measures conditional fidelity rather than inferring it from structure,
+        exactly separating genuine from false improvement.
   \item \textbf{Adding information for entropic bottlenecks.} The
         entropy-dominant stress test (\cref{sec:eb_entropy_dominant}) shows the
         achievable (oracle) gain is entropic-specific, but

@@ -1,0 +1,49 @@
+# Stage 1/2 tuning: mFR rate ladder + OPES grid on HELD-OUT tuning seeds
+# (rng_seed distinct from production => disjoint random streams).
+experiment_name: alkanes_tuning
+output_root: results/alkanes/tuning
+cache_dir: cache/alkanes
+
+base:
+  save_every: 4000
+  n_grid: 180
+  n_grid2: 48
+  abf_bandwidth: 0.05
+  kde_bandwidth: 0.10
+  abf_force_clip: 60.0
+  force_clip: 200.0
+  dt: 5.0e-4
+  abf_warmup_steps: 2000
+  estimator_burn_in_steps: 2000
+  ref_n_samples: 30000
+
+method_defaults:
+  target_ema_rate: 0.01
+  max_event_fraction: 0.03
+  fr_every: 5
+  fr_start_steps: 2500          # early onset: act during the exploration transient
+  score_clip: 2.0
+
+methods:
+  abf:      {type: abf}
+  # mFR rate ladder (too-gentle -> useful -> over-aggressive)
+  fr_r002:  {type: fr_estimated, fr_rate: 0.02}
+  fr_r005:  {type: fr_estimated, fr_rate: 0.05}
+  fr_r010:  {type: fr_estimated, fr_rate: 0.10}
+  fr_r020:  {type: fr_estimated, fr_rate: 0.20}
+  fr_r040:  {type: fr_estimated, fr_rate: 0.40}
+  # OPES grid (barrier x sigma; pace fixed). Do not fix sigma (past mistake).
+  opes_b4_s15:  {type: opes, opes_barrier: 4.0,  opes_sigma: 0.15, opes_pace: 400}
+  opes_b8_s15:  {type: opes, opes_barrier: 8.0,  opes_sigma: 0.15, opes_pace: 400}
+  opes_b8_s30:  {type: opes, opes_barrier: 8.0,  opes_sigma: 0.30, opes_pace: 400}
+  opes_b12_s30: {type: opes, opes_barrier: 12.0, opes_sigma: 0.30, opes_pace: 400}
+
+stages:
+  tuning:
+    seeds: [101, 102, 103]          # disjoint from production seeds
+    rng_seed: 77777777              # distinct stream from production
+    methods: [abf, fr_r002, fr_r005, fr_r010, fr_r020, fr_r040,
+              opes_b4_s15, opes_b8_s15, opes_b8_s30, opes_b12_s30]
+    cells:
+      - {molecule: butane,  beta: 1.0, decouple: false, init_mode: trans, n_steps: 25000, n_replicas: 384, save_every: 2000}
+      - {molecule: pentane, beta: 1.0, sigma: 2.3, init_mode: trans, n_steps: 35000, n_replicas: 384, save_every: 2500}

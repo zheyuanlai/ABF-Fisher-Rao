@@ -1,0 +1,115 @@
+\section{Case V: pentane --- coupled torsions and an incomplete reaction coordinate}
+\label{sec:case_pentane}
+
+Pentane has two dihedrals, $\varphi_1$ and $\varphi_2$, coupled by the 1--5
+Lennard--Jones interaction (the ``pentane effect''; \cref{sec:alkane_model}). We bias
+only $\varphi_1$, so $\varphi_2$ is a \emph{hidden} slow coordinate: sampling
+$F(\varphi_1)$ correctly requires the conditional law $p(\varphi_2\mid\varphi_1)$ to
+equilibrate, which ABF does not directly drive. This is the demanding test of
+whether mFR reallocation improves reaction-coordinate support \emph{without}
+corrupting the conditional law.
+
+\subsection{Design and reference}
+The joint reference $F(\varphi_1,\varphi_2)$ is built by internal-coordinate
+free-energy perturbation (\cref{fig_alk_04_pentane_joint}); the one-dimensional
+reference $F(\varphi_1)$ is its marginal (\cref{fig_alk_05_pentane_marginal}) and is
+barely shifted from $V_4(\varphi_1)$ --- the coupling lives almost entirely in the
+\emph{conditional}, not the marginal. This is exactly what makes a ``false
+improvement'' possible: a method can flatten the $\varphi_1$ population while
+mis-sampling $\varphi_2\mid\varphi_1$. We therefore report, against the joint
+reference, per-$\varphi_1$-bin conditional total variation and KL, conditional basin
+probabilities over $\{T,\mathrm{G}^+,\mathrm{G}^-\}$, a reference-weighted aggregate
+conditional error, and visits to all nine torsional basins. Methods, seeds, budget
+and tuning mirror \cref{sec:case_butane}; we run $\beta\in\{1,2\}$ with localized
+trans--trans initialization (dispersed nine-basin as a secondary diagnostic).
+
+\begin{figure}[t]\centering
+  \begin{subfigure}{0.40\textwidth}\includegraphics[width=\linewidth]{fig_alk_04_pentane_joint.png}
+    \caption{joint reference $F(\varphi_1,\varphi_2)$}\label{fig_alk_04_pentane_joint}\end{subfigure}\hfill
+  \begin{subfigure}{0.56\textwidth}\includegraphics[width=\linewidth]{fig_alk_05_pentane_marginal.png}
+    \caption{1-D reference $F(\varphi_1)$ vs $V_4$}\label{fig_alk_05_pentane_marginal}\end{subfigure}
+  \caption{Pentane reference. The 1--5 coupling forbids $\mathrm{g}^+\mathrm{g}^-$
+  (left) but barely shifts the $\varphi_1$ marginal (right): the coupling lives in the
+  \emph{conditional} law, enabling ``false improvement''.}
+  \label{fig_alk_pentane_ref}
+\end{figure}
+
+\subsection{Results}
+\input{tables/alkanes_pentane_main.tex}
+The central distinction is \emph{healthy} improvement (better $F(\varphi_1)$ with
+better-or-unchanged conditional fidelity) versus \emph{false} improvement (flatter
+$\varphi_1$ but worse $p(\varphi_2\mid\varphi_1)$). The data give a clear answer, and
+it is neither: at $\beta=1$ ABF attains a median final $L_2(F(\varphi_1))$ of
+$\AlkPentaneAbfL2$ with a reference-weighted conditional TV of $\AlkPentaneAbfCondTV$;
+the deployable (tuned, gentle) mFR attains $\AlkPentaneFrL2$ and $\AlkPentaneFrCondTV$
+--- \textbf{practically equivalent on both the marginal and the hidden conditional},
+because at the tuned rate the birth--death barely fires (ancestor ESS stays at
+$\sim$90\% of the population). The $\varphi_1$ marginal is simply not starved: ABF
+flattens it as easily as in butane, so there is no support deficit for mFR to
+correct, and the coupling-induced difficulty lives in $\varphi_2$, which mFR does not
+bias. The labelled \texttt{fr\_active} probe (rate $\AlkFrActiveRate$) makes the
+consequence of forcing the mechanism explicit: it \emph{worsens} the marginal
+($0.301$ vs $\AlkPentaneAbfL2$), collapses ancestor ESS to $\sim$180, and at this
+primary trans--trans setting also \emph{worsens} the conditional TV
+($0.038$ vs $\AlkPentaneAbfCondTV$) --- harm on every axis, not a healthy gain.
+\Cref{fig_alk_09_pentane_conditional,fig_alk_10_pentane_basins} show the marginal
+accuracy, the hidden-conditional fidelity, and the basin occupancies for every
+method. Tuned OPES is markedly worse on the marginal ($\AlkPentaneOpesL2$ vs
+$\AlkPentaneAbfL2$) at matched force-evaluation budget --- its deposited bias
+under-explores $\varphi_1$ (and at $\beta=2$ misses two of the nine basins) --- while
+its conditional is comparable; both its native-reweight and common mean-force
+estimates are reported.
+
+\begin{figure}[t]\centering
+  \begin{subfigure}{0.48\textwidth}\includegraphics[width=\linewidth]{fig_alk_09_pentane_conditional.png}
+    \caption{marginal vs hidden-conditional fidelity}\label{fig_alk_09_pentane_conditional}\end{subfigure}\hfill
+  \begin{subfigure}{0.48\textwidth}\includegraphics[width=\linewidth]{fig_alk_10_pentane_basins.png}
+    \caption{basin occupancy and exploration}\label{fig_alk_10_pentane_basins}\end{subfigure}
+  \caption{Pentane hidden-coordinate diagnostics: whether a method's $\varphi_1$
+  accuracy is matched by faithful $p(\varphi_2|\varphi_1)$ (left) and how it populates
+  the nine torsional basins (right).}
+  \label{fig_alk_pentane_diag}
+\end{figure}
+
+\begin{figure}[t]\centering
+  \includegraphics[width=0.85\textwidth]{fig_alk_11_fr_rate_ladder.png}
+  \caption{mFR rate ladder on the alkanes: accuracy (integrated $L_2(F)$) and ancestor
+  ESS versus FR rate, identifying the useful window (if any) and the over-aggressive
+  boundary.}\label{fig_alk_11_fr_rate_ladder}
+\end{figure}
+
+\subsection{Rate--diversity behaviour and frozen-bias validation}
+\label{sec:alkane_tuning}
+\Cref{fig_alk_11_fr_rate_ladder} maps the mFR rate against accuracy and ancestor ESS
+on both alkanes. The result is unambiguous and is the same for butane and pentane:
+there is \emph{no useful window}. Integrated $L_2(F)$ is smallest at the gentlest
+rate and rises monotonically as the rate increases --- always at or above the ABF
+baseline --- while ancestor ESS collapses (from $\sim$95\% of the population toward
+$\sim$35\% at the strongest rate). For pentane the reference-weighted conditional TV
+$p(\varphi_2\mid\varphi_1)$ \emph{also} worsens monotonically with rate, so an
+aggressive mFR simultaneously degrades the marginal free energy, corrupts the hidden
+conditional, and destroys lineage diversity. The pre-registered selection (smallest
+median integrated $L_2(F)$ subject to genealogy) therefore returns the effectively
+inactive rate ($\AlkFrRate$), and the labelled \texttt{fr\_active} probe at
+$\AlkFrActiveRate$ confirms the harm at production scale with matched seeds and full
+conditional diagnostics. A representative
+frozen-bias validation freezes the learned $B(\varphi_1)$, runs fresh dynamics with
+no updates and no birth--death, and reconstructs
+$F_{\mathrm{recon}}=B-\beta^{-1}\log p_B+C$; agreement of the reconstructed profile
+with the reference certifies that the learned bias --- not a resampling artifact ---
+carries the free-energy information. Where the conditional law is the binding
+constraint, the analysis relates the mFR gain to the measured ABF error, the
+$\varphi_1$ support, the hidden-conditional error, the transition counts, the
+genealogy cost and $\beta$, rather than to the nominal barrier alone.
+
+\input{tables/alkanes_frozen.tex}
+The frozen-bias reconstruction (\cref{tab:alk_frozen}) confirms that the learned
+$B(\varphi_1)$ --- whether from ABF or mFR --- carries the free-energy information:
+fresh dynamics under the frozen bias, with no updates and no birth--death, reconstruct
+$F(\varphi_1)$ from the biased marginal to an error \emph{well below} the online
+mean-force-integral estimate. This both certifies that the equivalence of ABF and
+tuned mFR is a property of the learned bias itself (not of the online transient or of
+resampling) and localizes the shared $\sim$0.27 online floor
+(\cref{rem:alk_floor}) specifically to the finite resolution of the
+mean-force estimator: the underlying bias is far more accurate than that floor
+suggests, and it is the same for ABF and mFR.

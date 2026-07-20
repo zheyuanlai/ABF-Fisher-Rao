@@ -1,11 +1,35 @@
 \section{Cross-case synthesis}
 \label{sec:synthesis}
 
-The three cases are most natural when read as three regimes of the same marginal
+The five cases are most natural when read as regimes of the same marginal
 reallocation idea, not as repetitions of one conclusion. FR always acts by moving
 ensemble mass along the reaction coordinate, but what that buys depends on the
 current bottleneck: target direction in the easy regime, variance/support in the
-starved regimes, and diversity control in the many-body regime.
+starved regimes, diversity control in the many-body regime, and --- in the molecular
+torsions --- whether the sample starvation lives on the \emph{biased} coordinate at
+all.
+
+\subsection{The molecular refinement: starvation must be on the biased coordinate}
+The alkanes (\cref{sec:case_butane,sec:case_pentane}) sharpen the WCA ``FR helps in
+proportion to ABF starvation'' finding into a precise statement:
+FR reallocates mass along the \emph{biased} coordinate $\varphi_1$, so it can only
+help when ABF is starved \emph{there}. In butane, ABF is not starved --- the single
+dihedral mixes freely under the bias --- so mFR turns itself off and adds nothing
+(within the pre-registered $\pm10\%$ margin). In pentane the visible $\varphi_1$
+marginal is likewise easy to flatten, but the true difficulty is the hidden
+conditional $p(\varphi_2\mid\varphi_1)$, a coordinate FR does not bias; whether
+cloning whole configurations (which carry their $\varphi_2$ state) helps or harms
+that conditional is the crux, and is reported from the matched-seed data rather than
+assumed. \Cref{fig_alk_12_cross_case} places butane and pentane on the same
+ABF-error-vs-mFR-gain map as the WCA cells, testing whether the molecular points
+obey the same starvation relationship.
+
+\begin{figure}[t]\centering
+  \includegraphics[width=0.7\textwidth]{fig_alk_12_cross_case.png}
+  \caption{Cross-case starvation map: matched-seed mFR gain versus measured ABF
+  baseline error, with the butane and pentane points overlaid on the WCA regime
+  cells.}\label{fig_alk_12_cross_case}
+\end{figure}
 
 \subsection{A regime spectrum}
 At the easy end is the metastability model (\cref{sec:case_meta}), where ABF

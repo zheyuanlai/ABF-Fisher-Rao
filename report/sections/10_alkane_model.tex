@@ -1,0 +1,101 @@
+\section{Molecular torsion benchmarks: united-atom alkanes}
+\label{sec:alkane_model}
+
+The first three cases use one- or two-dimensional model potentials. To test the
+Fisher--Rao correction on a genuinely molecular reaction coordinate we add two
+united-atom alkanes whose slow coordinate is a signed dihedral: \textbf{butane}
+(one dihedral) and \textbf{pentane} (two coupled dihedrals). Both have essentially
+exact, independently constructed references, so the same ``does mFR help ABF, and
+why'' question can be asked where the collective variable is a nonlinear function of
+a three-dimensional molecular configuration.
+
+\subsection{United-atom model}
+Each \ce{CH2}/\ce{CH3} group is a single site in $\R^3$; a dihedral is degenerate in
+2D, so the molecules are three dimensional. Butane is \ce{CH3-CH2-CH2-CH3} with
+sites $q_1,\dots,q_4$ and one signed dihedral $\varphi_1=\varphi(q_1,q_2,q_3,q_4)$;
+pentane is \ce{CH3-CH2-CH2-CH2-CH3} with sites $q_1,\dots,q_5$ and two dihedrals
+$\varphi_1=\varphi(q_1,q_2,q_3,q_4)$ and $\varphi_2=\varphi(q_2,q_3,q_4,q_5)$. The
+potential, in reduced units following~\citep{CancesLegollStoltz2007,LelievreRoussetStoltz2010},
+is
+\begin{equation}
+  V = \underbrace{\tfrac{k_0}{2}\!\sum_{\text{bonds}}\!(r-d_0)^2}_{V_{\text{bond}}}
+    + \underbrace{\tfrac{k_\theta}{2}\!\sum_{\text{angles}}\!(\theta-\theta_0)^2}_{V_{\text{angle}}}
+    + \underbrace{\sum_{\text{dih.}} V_4(\varphi)}_{V_{\text{tors}}}
+    + \underbrace{\sum_{\text{nb pairs}}\! 4\epsilon\!\left[(\sigma/r)^{12}\!-\!(\sigma/r)^{6}\right]}_{V_{\text{nb}}},
+  \label{eq:alkane_V}
+\end{equation}
+with $d_0=1$, $k_0=1000$, $\theta_0=1.187$ (the bend between successive bond
+vectors; the interior \ce{C-C-C} angle is $\pi-\theta_0=112^\circ$), $k_\theta=208$.
+The Ryckaert--Bellemans torsion~\citep{RyckaertBellemans1975}
+\begin{equation}
+  V_4(\varphi)=c_1(1-\cos\varphi)+2c_2(1-\cos^2\varphi)+c_3(1+3\cos\varphi-4\cos^3\varphi),
+  \label{eq:rb}
+\end{equation}
+with $c_1=1.18,\,c_2=-0.23,\,c_3=2.64$, has (in the polymer/trans-$=0$ convention we
+use) its global minimum at the \emph{trans} state $\varphi=0$ ($V_4=0$), local
+minima at the \emph{gauche} states $\varphi=\pm116.6^\circ$ ($V_4=1.38$), a
+trans--gauche barrier of $5.53\,k_BT$ at $\pm61.6^\circ$ and a cis barrier of
+$7.64\,k_BT$ at $\pm180^\circ$ (all at $\beta=1$). Thus $\varphi$ is genuinely
+metastable at $\beta=1$.
+
+\paragraph{Nonbonded convention (documented and tested).} We use the
+Ryckaert--Bellemans exclusion rule: every pair separated by $\le 3$ bonds (1--2,
+1--3, 1--4) is excluded, and Lennard--Jones acts only between sites $\ge 4$ bonds
+apart. Consequently \textbf{butane has no LJ pair}, so its dihedral free energy is
+\emph{exactly} $F(\varphi_1)=V_4(\varphi_1)+C$ (the bond/angle internal-coordinate
+Jacobian is $\varphi$-independent); butane is the clean easy control. \textbf{Pentane
+has a single 1--5 pair}; this ``pentane effect'' couples $\varphi_1$ and $\varphi_2$
+and makes $\varphi_2$ a hidden slow coordinate when only $\varphi_1$ is biased. We
+resolve the LJ range from the physical united-atom ratio
+$\sigma/d_0=\sigma_{\ce{CH2}}/d_{\ce{CC}}\approx 2.5$ and set $\sigma=2.3$,
+$\epsilon=1$, which disfavours the $\mathrm{g}^+\mathrm{g}^-/\mathrm{g}^-\mathrm{g}^+$
+basins by $\sim 8\,k_BT$ while barely shifting the $\varphi_1$ marginal (a $\sigma$
+sensitivity scan is reported in the supplement). The molecules are isolated (no
+solvent, no periodic box); overdamped Langevin dynamics at time step
+$\mathrm{d}t=5\times10^{-4}$ remove centre-of-mass drift each step, and rotational
+invariance is left free ($V$ and $\varphi$ are rotation invariant).
+
+\begin{figure}[t]\centering
+  \begin{subfigure}{0.48\textwidth}\includegraphics[width=\linewidth]{fig_alk_01_model.png}
+    \caption{united-atom sites and dihedrals}\end{subfigure}\hfill
+  \begin{subfigure}{0.48\textwidth}\includegraphics[width=\linewidth]{fig_alk_02_rb_torsion.png}
+    \caption{Ryckaert--Bellemans torsion $V_4$}\end{subfigure}
+  \caption{Molecular models and the torsional potential. Trans is $\varphi=0$
+  ($V_4=0$), gauche $\pm116.6^\circ$ ($1.38\,k_BT$), trans--gauche barrier
+  $5.53\,k_BT$, cis barrier $7.64\,k_BT$.}
+  \label{fig_alk_01_model}
+\end{figure}
+
+\subsection{Signed dihedral and the correct generalized mean force}
+\label{sec:alkane_force}
+The dihedral is computed by an \texttt{atan2} construction (not $\arccos$), wrapped
+to $[-\pi,\pi)$, and is validated for range, periodic continuity,
+translation/rotation invariance, the expected reflection sign flip, known
+trans/gauche conformers, and finite-difference gradient agreement. All histograms,
+KDEs, interpolations, differentiations and integrations on $\varphi$ are periodic
+(wrapped-Gaussian kernels; the one-dimensional mean force is integrated after
+enforcing $\int_{-\pi}^{\pi}F'(\varphi)\,\mathrm{d}\varphi=0$).
+
+Because $\varphi$ is a nonlinear collective variable, the local mean force is
+\emph{not} $\partial V/\partial\varphi$. Using any vector field $v$ with
+$v\cdot\nabla\varphi=1$~\citep{DenOtterBriels1998,CiccottiKapralVandenEijnden2005},
+the local mean force whose conditional average is $\mathrm{d}F/\mathrm{d}\varphi$ is
+\begin{equation}
+  f_{\mathrm{loc}}(q)=\nabla V\cdot v-\beta^{-1}\nabla\cdot v ,\qquad
+  v=\frac{\nabla\varphi}{\lvert\nabla\varphi\rvert^2},
+  \label{eq:genforce}
+\end{equation}
+with the geometric term
+$\nabla\cdot v=\Delta\varphi/\lvert\nabla\varphi\rvert^2
+-2(\nabla\varphi^{\!\top}H\varphi\,\nabla\varphi)/\lvert\nabla\varphi\rvert^4$
+($H\varphi$ the Hessian). This term does \emph{not} vanish for a dihedral (unlike
+the linear toy CV $\xi=x$); it is evaluated by exact automatic differentiation,
+validated against finite differences to $10^{-11}$ and against the analytic
+decoupled reduction. The ABF bias applies $+A'(\varphi)\nabla\varphi$, a
+conservative force that flattens the $\varphi$ marginal when $A=F$. The reference
+free energies are constructed independently of the tested estimators by exact
+internal-coordinate free-energy perturbation (bonds sampled from
+$r^2e^{-\beta k_0(r-d_0)^2/2}$, angles from $\sin\theta\,e^{-\beta k_\theta(\theta-\theta_0)^2/2}$,
+Jacobian-exact), with a convergence-ladder cross-check; only post-hoc metrics and the
+labelled oracle diagnostic ever read them. Decoupled ($\text{LJ off}$) butane and
+pentane recover $V_4(+V_4)+C$ to machine precision (the B0/P0 exact gates).

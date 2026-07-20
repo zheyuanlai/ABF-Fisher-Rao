@@ -506,3 +506,27 @@ bash scripts/run_wca_followup_h200.sh configs/wca_representative.yaml representa
 bash scripts/run_wca_followup_h200.sh configs/wca_equal_compute.yaml   equal_compute  0,4
 bash scripts/run_wca_followup_h200.sh configs/wca_frozen_bias.yaml     frozen_bias    0,4
 ```
+
+## Cases IV & V: united-atom alkane torsion benchmarks (butane & pentane)
+
+An additive extension to two **molecular** reaction coordinates — a signed dihedral —
+testing whether marginal Fisher–Rao helps ABF where the CV is a nonlinear function of
+a 3-D configuration. **Butane** (one dihedral) is an easy control with an *exact*
+analytic reference `F(φ1)=V4(φ1)+C`; **pentane** (two dihedrals coupled by the 1–5
+"pentane effect") makes the second dihedral a *hidden* slow coordinate when only the
+first is biased, so it tests whether mFR improves support without corrupting the
+conditional law `p(φ2|φ1)`. New code lives under `src/alkanes/`, `configs/alkanes/`,
+`scripts/run_alkanes*.py`, `tests/test_alkanes_*.py`, `results/alkanes/`; nothing in
+the WCA/OPES/toy pipelines is modified. See [`docs/ALKANES_PLAN.md`](docs/ALKANES_PLAN.md)
+and [`ALKANES_HANDOFF.md`](ALKANES_HANDOFF.md) for the full command list, model
+conventions (RB torsion, exclusion rule, correct generalized mean force with the
+geometric term), reference construction, tuning/production separation, and GPU policy.
+
+```bash
+conda activate abffr
+CUDA_VISIBLE_DEVICES="" python -m pytest tests/test_alkanes_*.py -q          # validation gates
+CUDA_VISIBLE_DEVICES=5 python scripts/run_alkanes_reference.py               # B0/P0 + references
+CUDA_VISIBLE_DEVICES=5 python scripts/run_alkanes.py --config configs/alkanes/production.yaml --stage b1 --require-single-gpu
+python scripts/analyze_alkanes.py --config configs/alkanes/production.yaml
+python scripts/plot_alkanes.py    --config configs/alkanes/production.yaml --stage production --report-figdir report/figures
+```

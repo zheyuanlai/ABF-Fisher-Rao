@@ -1,0 +1,50 @@
+# Stage-0 smoke: correctness/pipeline check (fast, tiny). Not scientific evidence.
+experiment_name: alkanes_smoke
+output_root: results/alkanes/smoke
+cache_dir: cache/alkanes
+
+# shared per-cell defaults
+base:
+  save_every: 1000
+  n_grid: 180
+  n_grid2: 48
+  abf_bandwidth: 0.05
+  kde_bandwidth: 0.10
+  abf_force_clip: 60.0
+  force_clip: 200.0
+  dt: 5.0e-4
+  ref_n_samples: 4000
+
+method_defaults:
+  target_ema_rate: 0.005
+  max_event_fraction: 0.02
+  fr_every: 5
+  score_clip: 2.0
+
+methods:
+  abf:          {type: abf}
+  fr_estimated: {type: fr_estimated, fr_rate: 0.10, fr_start_steps: 1000, target_ema_rate: 0.01}
+  fr_uniform:   {type: fr_uniform,   fr_rate: 0.10, fr_start_steps: 1000}
+  fr_oracle:    {type: fr_oracle,    fr_rate: 0.10, fr_start_steps: 1000}
+  opes:         {type: opes, opes_barrier: 8.0, opes_pace: 300, opes_sigma: 0.25}
+
+stages:
+  smoke:
+    seeds: [0, 1]
+    rng_seed: 20260719
+    methods: [abf, fr_estimated, fr_uniform, fr_oracle, opes]
+    cells:
+      - molecule: butane
+        beta: 1.0
+        decouple: true
+        n_steps: 1800
+        n_replicas: 96
+        abf_warmup_steps: 500
+        estimator_burn_in_steps: 600
+      - molecule: pentane
+        beta: 1.0
+        sigma: 2.3
+        n_steps: 1800
+        n_replicas: 96
+        abf_warmup_steps: 500
+        estimator_burn_in_steps: 600

@@ -1,0 +1,110 @@
+{
+  "device": "cuda",
+  "checks": [
+    {
+      "gate": "B0_decoupled_butane",
+      "beta": 0.5,
+      "max_abs_F_minus_V4": 0.0,
+      "pass": true
+    },
+    {
+      "gate": "P0_decoupled_pentane_joint",
+      "beta": 0.5,
+      "max_abs_F_minus_V4V4": 1.7763568394002505e-15,
+      "pass": true
+    },
+    {
+      "gate": "B0_decoupled_butane",
+      "beta": 1.0,
+      "max_abs_F_minus_V4": 0.0,
+      "pass": true
+    },
+    {
+      "gate": "P0_decoupled_pentane_joint",
+      "beta": 1.0,
+      "max_abs_F_minus_V4V4": 1.7763568394002505e-15,
+      "pass": true
+    },
+    {
+      "gate": "B0_decoupled_butane",
+      "beta": 2.0,
+      "max_abs_F_minus_V4": 0.0,
+      "pass": true
+    },
+    {
+      "gate": "P0_decoupled_pentane_joint",
+      "beta": 2.0,
+      "max_abs_F_minus_V4V4": 1.7763568394002505e-15,
+      "pass": true
+    },
+    {
+      "gate": "pentane_convergence",
+      "beta": 0.5,
+      "n_samples": 10000,
+      "delta_F1_from_prev": 0.00020105868439841188
+    },
+    {
+      "gate": "pentane_convergence",
+      "beta": 0.5,
+      "n_samples": 20000,
+      "delta_F1_from_prev": 0.0005119650042352098
+    },
+    {
+      "gate": "pentane_convergence",
+      "beta": 0.5,
+      "n_samples": 40000,
+      "delta_F1_from_prev": 0.00037255719461658633
+    },
+    {
+      "gate": "pentane_ref_SEM_max",
+      "beta": 0.5,
+      "max_nb_correction_sem": 1.7780261065115717
+    },
+    {
+      "gate": "pentane_convergence",
+      "beta": 1.0,
+      "n_samples": 10000,
+      "delta_F1_from_prev": 6.339844959108121e-05
+    },
+    {
+      "gate": "pentane_convergence",
+      "beta": 1.0,
+      "n_samples": 20000,
+      "delta_F1_from_prev": 0.00017514976087075
+    },
+    {
+      "gate": "pentane_convergence",
+      "beta": 1.0,
+      "n_samples": 40000,
+      "delta_F1_from_prev": 7.687633314835435e-05
+    },
+    {
+      "gate": "pentane_ref_SEM_max",
+      "beta": 1.0,
+      "max_nb_correction_sem": 0.9999999991649183
+    },
+    {
+      "gate": "pentane_convergence",
+      "beta": 2.0,
+      "n_samples": 10000,
+      "delta_F1_from_prev": 2.6496943981664597e-05
+    },
+    {
+      "gate": "pentane_convergence",
+      "beta": 2.0,
+      "n_samples": 20000,
+      "delta_F1_from_prev": 0.0001367343774278554
+    },
+    {
+      "gate": "pentane_convergence",
+      "beta": 2.0,
+      "n_samples": 40000,
+      "delta_F1_from_prev": 2.088366350001261e-05
+    },
+    {
+      "gate": "pentane_ref_SEM_max",
+      "beta": 2.0,
+      "max_nb_correction_sem": 0.49999999999999994
+    }
+  ]
+}

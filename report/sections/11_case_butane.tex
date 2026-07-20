@@ -1,0 +1,94 @@
+\section{Case IV: butane --- an easy molecular control}
+\label{sec:case_butane}
+
+Butane isolates a single torsional slow coordinate. Because its central dihedral
+$\varphi_1$ resolves \emph{all} of the important conformational metastability (there
+is no other slow degree of freedom and no nonbonded pair, \cref{sec:alkane_model}),
+a well-tuned ABF along $\varphi_1$ should already sample the free-energy landscape
+well. The scientific question is whether the marginal Fisher--Rao (mFR) correction
+adds anything, or merely adds resampling variance.
+
+\subsection{Design and reference}
+The reaction coordinate is $\xi=\varphi_1$; the reference is the analytic
+$F(\varphi_1)=V_4(\varphi_1)+C$ (exact because butane has no LJ pair), confirmed by
+the internal-coordinate free-energy-perturbation pipeline to machine precision. We
+compare, at matched seeds, initial conditions, $N$, time step, estimator and
+force-evaluation budget: shared-bias $N$-replica \textbf{ABF}; the deployable
+\textbf{ABF+mFR} with the online estimated target; the \textbf{uniform} and
+\textbf{oracle} mFR diagnostics; and tuned periodic \textbf{OPES}. The mFR rate was
+tuned on held-out seeds by median integrated $L_2(F)$; the ladder is reported in
+\cref{sec:alkane_tuning}. Production uses $N=384$ replicas over disjoint seeds
+(localized trans initialization, with a dispersed three-basin initialization as a
+secondary diagnostic).
+
+\paragraph{Practical-equivalence protocol (pre-registered).} Because a
+non-significant difference is not evidence of equivalence, we pre-declared a
+practical-equivalence margin of \textbf{10\% relative change} in final and
+time-integrated $L_2(F)$, and test it with matched-seed bootstrap 95\% confidence
+intervals: mFR is declared \emph{practically equivalent} to ABF if the CI of the
+relative change lies within $\pm10\%$, \emph{mildly harmful} if it lies entirely
+above $+10\%$, and a \emph{genuine improvement} if entirely below $-10\%$.
+
+\subsection{Results}
+\input{tables/alkanes_butane_main.tex}
+Under a well-tuned ABF, butane's dihedral mixes rapidly: replicas cross the
+trans$\leftrightarrow$gauche barrier many times and the $\varphi_1$ marginal is flat
+long before the estimator has converged. Consequently the estimated mFR target
+matches the empirical marginal almost immediately, the log-density-ratio score is
+near zero, and the birth--death event rate is essentially zero
+(\,$\approx\AlkButaneFrEvent$\,): \textbf{mFR turns itself off}. Its ancestor ESS
+stays at the full population and its free-energy error is byte-for-byte that of ABF.
+The equivalence test (\cref{tab:alk_equivalence}) returns
+\textbf{\AlkButaneVerdict} for the deployable mFR at $\beta=1$: the median final
+$L_2(F)$ is $\AlkButaneFrL2$ versus $\AlkButaneAbfL2$ for ABF, a relative change of
+$\sim$0.1\% with a 95\% CI comfortably inside $\pm$10\% and a win rate near
+one-half --- the signature of two methods that are, for practical purposes, the same
+run. The uniform and oracle mFR diagnostics are equally equivalent, confirming that
+at this event rate the FR \emph{target} is irrelevant because the mechanism barely
+acts. Tuned OPES, by contrast, reaches only $\AlkButaneOpesL2$ and is classified
+\textbf{harmful} by the same test (a $17$--$29\%$ relative increase in $L_2(F)$,
+CI entirely above the margin, winning $0/16$ seeds): its smooth deposited bias
+converges more slowly than ABF's direct mean-force estimate on this easy, smooth
+torsional landscape at matched force-evaluation budget. The easy-regime hierarchy
+at $\beta=1$ is therefore ABF $\approx$ mFR $\gg$ OPES.
+
+\begin{remark}[Shared estimator floor]
+\label{rem:alk_floor}
+The absolute $L_2(F)\approx0.27$ is a converged \emph{estimator-resolution} floor, not
+under-sampling: the median error plateaus by step $5000$ and is identical for ABF and
+every mFR variant to within $5\times10^{-4}$. It arises from the finite kernel
+bandwidth and grid discretization of the mean-force estimator on this sharp torsion
+(the FEP reference itself matches $V_4$ to $10^{-9}$, and the recovered barrier is
+$89\%$ of the analytic value with the correct shape and sign). Because every method
+is compared at \emph{identical} estimator settings, this common floor cancels in the
+matched-seed differences, which is exactly what the equivalence and harm/benefit
+conclusions rest on.
+\end{remark}
+
+\input{tables/alkanes_equivalence.tex}
+
+\begin{figure}[t]\centering
+  \begin{subfigure}{0.48\textwidth}\includegraphics[width=\linewidth]{fig_alk_06_butane_convergence.png}
+    \caption{convergence and final profiles}\end{subfigure}\hfill
+  \begin{subfigure}{0.48\textwidth}\includegraphics[width=\linewidth]{fig_alk_07_butane_equivalence.png}
+    \caption{equivalence (matched-seed relative change)}\label{fig_alk_07_butane_equivalence}\end{subfigure}
+  \caption{Butane: ABF, mFR variants and OPES converge to the same $F(\varphi_1)$;
+  the mFR relative change vs ABF sits inside the $\pm10\%$ practical-equivalence band.}
+  \label{fig_alk_06_butane_convergence}
+\end{figure}
+
+\subsection{Temperature slice}
+To probe whether a colder butane creates any early-time headroom for mFR --- where a
+higher barrier slows the ABF transient and leaves the marginal non-flat for
+longer --- we sweep $\beta\in\{0.5,1,2\}$ ($\beta{=}1$ is the cell above).
+\Cref{fig_alk_07_butane_equivalence} places every temperature on the equivalence
+axis. At the tuned rate the deployable mFR stays inside the $\pm10\%$ band at all
+three temperatures: even at the colder $\beta{=}2$, where the barrier is $\sim11\,k_BT$
+and ABF takes longer to flatten $\varphi_1$, the tuned mFR does not convert the
+slightly larger transient into a measurable convergence gain, and the rate ladder
+(\cref{sec:alkane_tuning}) shows that pushing the rate to obtain events only degrades
+accuracy and diversity. The headline easy-regime conclusion is the honest, defensible
+statement ``\emph{no meaningful gain within the predefined margin}'', which is
+stronger than claiming mFR ``does not work'': the mechanism is simply not needed when
+ABF already resolves the only slow coordinate, and forcing it to act adds resampling
+variance for no return.

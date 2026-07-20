@@ -1,0 +1,11 @@
+\begin{table}[t]\centering\small
+\caption{Frozen-bias validation (Part F): freeze the learned bias $B(\varphi_1)$, run fresh dynamics with no updates and no birth--death, and reconstruct $F_{\mathrm{recon}}=B-\beta^{-1}\log p_B+C$ from the biased marginal. The reconstruction error is far below the online mean-force-integral error --- so the learned bias is much more accurate than the online estimator floor suggests --- and is the same for ABF and mFR, confirming the free energy resides in the learned bias, not in the online transient or in resampling.}\label{tab:alk_frozen}
+\begin{tabular}{llrr}\toprule
+Cell & Method & online $L_2(F)$ & frozen recon.\ $L_2(F)$ \\\midrule
+butane $\beta{=}1$ & ABF & 0.273 & 0.049 \\
+butane $\beta{=}1$ & mFR (est.) & 0.274 & 0.050 \\
+pentane $\beta{=}1$ & ABF & 0.285 & 0.104 \\
+pentane $\beta{=}1$ & mFR (est.) & 0.290 & 0.104 \\
+pentane $\beta{=}2$ & ABF & 0.198 & 0.050 \\
+pentane $\beta{=}2$ & mFR (est.) & 0.198 & 0.051 \\
+\bottomrule\end{tabular}\end{table}

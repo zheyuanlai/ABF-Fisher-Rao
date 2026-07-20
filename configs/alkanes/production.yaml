@@ -1,0 +1,72 @@
+# Stage 3 frozen production. Hyperparameters (fr_rate, OPES barrier/sigma/pace) are
+# FROZEN from the tuning stage BEFORE these production seeds are seen. Production
+# rng_seed distinct from tuning => disjoint random streams. Seeds are matched across
+# methods within a cell (same rng_seed + seed order).
+experiment_name: alkanes_production
+output_root: results/alkanes/production
+cache_dir: cache/alkanes
+
+base:
+  save_every: 5000
+  n_grid: 180
+  n_grid2: 48
+  abf_bandwidth: 0.05
+  kde_bandwidth: 0.10
+  abf_force_clip: 60.0
+  force_clip: 200.0
+  dt: 5.0e-4
+  abf_warmup_steps: 2000            # early: match the tuning-stage timing
+  estimator_burn_in_steps: 2500
+  ref_n_samples: 40000
+
+method_defaults:
+  target_ema_rate: 0.01
+  max_event_fraction: 0.03
+  fr_every: 5
+  fr_start_steps: 2500              # early onset: act during the exploration transient
+  score_clip: 2.0
+
+# TUNED knobs FROZEN from Stage-2 tuning (pre-registered rule: min median integrated
+# L2(F) on tuning seeds 101-103, subject to genealogy). Selection: mFR rate=0.02 (the
+# gentlest; higher rates monotonically worsen both L2 and the pentane conditional and
+# collapse ancestor ESS -> mFR has no useful window on either alkane). OPES best =
+# barrier=4, sigma=0.15, pace=400. See scripts/select_alkane_tuning.py output.
+methods:
+  abf:          {type: abf}
+  fr_estimated: {type: fr_estimated, fr_rate: 0.02}     # tuned deployable (effectively off)
+  fr_uniform:   {type: fr_uniform,   fr_rate: 0.02}
+  fr_oracle:    {type: fr_oracle,    fr_rate: 0.02}
+  opes:         {type: opes, opes_barrier: 4.0, opes_sigma: 0.15, opes_pace: 400}
+  # labelled mechanism probe (NOT the deployable method): an aggressive rate that
+  # actually fires, to measure directly at production scale whether active birth-death
+  # corrupts the hidden pentane conditional p(phi2|phi1).
+  fr_active:    {type: fr_estimated, fr_rate: 0.20}
+
+stages:
+  # ---- B1: butane easy-regime control (beta=1) ----
+  b1:
+    seeds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+    rng_seed: 20260719
+    methods: [abf, fr_estimated, fr_uniform, fr_oracle, opes]
+    cells:
+      - {molecule: butane, beta: 1.0, decouple: false, init_mode: trans,     n_steps: 40000, n_replicas: 384}
+      - {molecule: butane, beta: 1.0, decouple: false, init_mode: dispersed, n_steps: 40000, n_replicas: 384}
+  # ---- B2: butane temperature slice beta in {0.5, 1, 2} (beta=1 is the B1 trans cell).
+  #      beta=0.5 is hot/low-barrier so it converges fast (fewer steps); beta=2 is the
+  #      cold cell where any early-time mFR headroom would appear. ----
+  b2:
+    seeds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    rng_seed: 20260719
+    methods: [abf, fr_estimated, fr_uniform, fr_oracle, opes]
+    cells:
+      - {molecule: butane, beta: 0.5, decouple: false, init_mode: trans, n_steps: 25000, n_replicas: 384}
+      - {molecule: butane, beta: 2.0, decouple: false, init_mode: trans, n_steps: 55000, n_replicas: 384}
+  # ---- P1: pentane hidden-torsion test ----
+  p1:
+    seeds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+    rng_seed: 20260719
+    methods: [abf, fr_estimated, fr_uniform, fr_oracle, opes, fr_active]
+    cells:
+      - {molecule: pentane, beta: 1.0, sigma: 2.3, init_mode: trans,     n_steps: 45000, n_replicas: 384}
+      - {molecule: pentane, beta: 2.0, sigma: 2.3, init_mode: trans,     n_steps: 55000, n_replicas: 384}
+      - {molecule: pentane, beta: 1.0, sigma: 2.3, init_mode: dispersed, n_steps: 45000, n_replicas: 384}

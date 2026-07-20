@@ -1,0 +1,10 @@
+\begin{table}[t]\centering\small
+\caption{Pentane ($\beta{=}1$, localized): marginal accuracy \emph{and} hidden-conditional fidelity. \texttt{cond.\ TV} is the reference-weighted total variation of $p(\varphi_2|\varphi_1)$.}\label{tab:alk_pentane_main}
+\resizebox{\textwidth}{!}{\begin{tabular}{lrrrrrrrr}\toprule
+Method & final $L_2(F)$ & int.\ $L_2(F)$ & final $L_2(F')$ & transitions & anc.\ ESS & cond.\ TV & cond.\ basin & basins \\\midrule
+ABF & 0.284 & 9.236 & 0.297 & 551668 & -- & 0.028 & 0.022 & 9.000 \\
+ABF+mFR (est.) & 0.287 & 9.265 & 0.298 & 550917 & 346 & 0.027 & 0.020 & 9.000 \\
+ABF+mFR (uniform) & 0.287 & 9.265 & 0.298 & 550950 & 345 & 0.027 & 0.021 & 9.000 \\
+ABF+mFR (oracle) & 0.285 & 9.226 & 0.296 & 551134 & 361 & 0.027 & 0.020 & 9.000 \\
+OPES & 0.393 & 12.082 & 0.442 & 195576 & -- & 0.027 & 0.020 & 9.000 \\
+\bottomrule\end{tabular}}\end{table}
