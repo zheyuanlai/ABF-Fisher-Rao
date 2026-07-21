@@ -1,7 +1,7 @@
 \section{Cross-case synthesis}
 \label{sec:synthesis}
 
-The five cases are most natural when read as regimes of the same marginal
+The cases are most natural when read as regimes of the same marginal
 reallocation idea, not as repetitions of one conclusion. FR always acts by moving
 ensemble mass along the reaction coordinate, but what that buys depends on the
 current bottleneck: target direction in the easy regime, variance/support in the
@@ -24,11 +24,37 @@ assumed. \Cref{fig_alk_12_cross_case} places butane and pentane on the same
 ABF-error-vs-mFR-gain map as the WCA cells, testing whether the molecular points
 obey the same starvation relationship.
 
+The collective-variable extension (\cref{sec:cv_harder_1d,sec:cv_2d,sec:cv_does_it_help})
+pushes this refinement to its natural conclusion by changing the coordinate rather than the
+system. Making the biased coordinate genuinely harder --- the curved end-to-end distance
+$R_{15}$, which every torsional state must move through --- does produce the missing
+ingredient: at $\beta=2$ ABF is, for the first time in this study, sample-starved
+\emph{on the biased coordinate itself}. Yet mFR still buys nothing there (equivalent at the
+deployable rate, sharply harmful when pushed). The reason completes the statement: starvation
+on the biased coordinate is \emph{necessary but not sufficient}. Reallocation helps only when
+the deficit is one of \emph{support} --- regions the sampler can reach but under-weights ---
+and $R_{15}$ starvation is instead a \emph{dynamical} bottleneck, the rare crossing of cold
+torsional barriers, which cloning can amplify but never create. Conversely, promoting the
+hidden torsion into a true two-dimensional CV $(\varphi_1,\varphi_2)$ removes the starvation
+altogether, because biasing both dihedrals resolves both barriers directly. Every molecular
+coordinate we tried therefore fails one of the two preconditions --- either there is no
+starvation on the biased coordinate ($\varphi_1$, and the two-dimensional torus CV), or the
+starvation is dynamical rather than a support deficit ($R_{15}$) --- and the matched-seed
+comparisons in \cref{sec:cv_harder_1d,sec:cv_does_it_help} report the resulting verdict for
+each.
+
 \begin{figure}[t]\centering
   \includegraphics[width=0.7\textwidth]{fig_alk_12_cross_case.png}
   \caption{Cross-case starvation map: matched-seed mFR gain versus measured ABF
-  baseline error, with the butane and pentane points overlaid on the WCA regime
-  cells.}\label{fig_alk_12_cross_case}
+  baseline error, with the butane and pentane $\varphi_1$ points overlaid on the WCA
+  regime cells (grey). The collective-variable extension adds the two decisive points:
+  the pentane $R_{15}$ cell (purple star) sits at the \emph{largest} measured ABF error
+  anywhere in the study yet returns a \emph{negative} mFR gain, and the 2-D torsion cell
+  (teal triangle) is likewise flat. The WCA-derived reading --- that measured ABF error
+  predicts mFR gain --- therefore does not extrapolate to molecular coordinates: high ABF
+  error is necessary but not sufficient, because $R_{15}$ starvation is dynamical
+  (rare barrier crossing) rather than a marginal support deficit that reallocation can
+  repair.}\label{fig_alk_12_cross_case}
 \end{figure}
 
 \subsection{A regime spectrum}

@@ -1,0 +1,142 @@
+GPU ALLOCATION LOG — alkanes_cv_extension study
+================================================
+
+Policy: use exactly ONE physical GPU from {4,5,6,7}. Never 0-3. Never multi-GPU.
+
+--- Entry 1 ---
+Time (local): Mon Jul 20 18:07 2026
+nvidia-smi snapshot at selection:
+  GPU 0: 76% util, 108579 MiB used  (foreign, off-limits by policy)
+  GPU 1: 0% util, 5 MiB             (off-limits by policy)
+  GPU 2: 0% util, 5 MiB             (off-limits by policy)
+  GPU 3: 0% util, 5 MiB             (off-limits by policy)
+  GPU 4: 100% util, 31485 MiB used  (foreign 'symbolic' env, ~112 GB free)
+  GPU 5: 100% util, 32021 MiB used  (foreign 'symbolic' env, ~111 GB free)
+  GPU 6: 100% util, 73899 MiB used  (TWO foreign procs, ~70 GB free)
+  GPU 7: 100% util, 31899 MiB used  (foreign 'symbolic' env, ~112 GB free)
+
+SELECTED: GPU 4 (physical ID 4)
+Reason: Among the allowed {4,5,6,7}, GPUs 4/5/7 are the least crowded
+  (~31-32 GB used, ~112 GB free each). GPU 6 has two foreign procs (73 GB used).
+  GPU 4 has the lowest power draw (261 W) of the three light ones, suggesting
+  marginally lower contention. All allowed GPUs are compute-saturated by foreign
+  'symbolic' processes, but memory headroom is ample; we time-share SMs.
+  Will monitor and switch to 5 or 7 if GPU 4 contention worsens at a checkpoint.
+
+Usage: export CUDA_VISIBLE_DEVICES=4 ; inside Python use cuda:0 only.
+Runners assert torch.cuda.device_count() == 1.
+
+--- Entry 2 ---
+Time (local): Mon Jul 20 19:30 2026
+Re-verified GPU 4 during the screen pipeline. A large 108 GB foreign process (PID 184159)
+is present but on physical GPU 0 (off-limits; unrelated). GPU 4 unchanged: ~34 GB used
+(31 GB foreign 'symbolic' + ~3 GB mine), ~108 GB free. No memory pressure; no reallocation
+needed. All CV-extension GPU work remains on GPU 4 (CUDA_VISIBLE_DEVICES=4, cuda:0).
+Contention note: GPUs 4/5/7 stay compute-saturated by the foreign 'symbolic' env, so 2-D
+per-step wall-clock is ~55 ms (latency/contention-bound); the distance sampler is ~15 ms.
+
+--- Entry 3 ---
+Time (local): Mon Jul 20 19:55 2026
+GPU CHANGE: 4 -> 1 (user granted GPU 1 as a fallback when 0 and 4-7 are all occupied).
+Verified condition holds: GPU 0 (108 GB foreign, 73%) + GPUs 4-7 (all 100% foreign-contended)
+occupied; GPU 1 completely free (0% util, 5 MiB, 143 GB free). Also 2,3 free but ONLY GPU 1
+was granted, so using GPU 1 exclusively.
+Reason: GPU 1 is uncontended, so the expensive 2-D screens + methods run ~2-3x faster than the
+foreign-contended GPU 4. Cleanly stopped the GPU-4 pipeline first (killed driver + python child;
+verified no residual process on GPU 4) so exactly ONE GPU is ever in use (single-GPU policy).
+Already-completed work is cached and preserved: the decoupled-2D gate (validation JSON) and the
+references were done on GPU 4 and are reused. Remaining stages (2-D screen, R15, R14, assets)
+and phase-2 methods run on GPU 1 via CUDA_VISIBLE_DEVICES=1, cuda:0, --require-single-gpu.
+
+--- Entry 4 ---
+Time (local): Mon Jul 20 23:35 2026
+GPU CHANGE: 1 -> 0 (user granted GPU 0; it became "freer" than GPU 1).
+The large 108 GB foreign job MOVED off GPU 0 onto GPU 1: now GPU 0 = 0% util, 5 MiB used,
+143 GB free (idle); GPU 1 = 108 GB foreign job (crowding + contending my job). So GPU 0 is
+now the best choice. Cleanly stopped the GPU-1 pipeline first (killed driver + child; verified
+no residual process) so exactly ONE GPU is ever in use (single-GPU policy). Completed work
+preserved (cache): 2-D + R15 ABF screens, gate, references, R15 resolution gate, R14 beta1/beta2.
+R14 beta3 (in-progress, unsaved) will rerun. Remaining R14 + all of phase 2 (R15 mFR study,
+beta3 2-D, 2-D control) run on GPU 0 via CUDA_VISIBLE_DEVICES=0, cuda:0, --require-single-gpu.
+
+--- Entry 5 ---
+Time (local): Mon Jul 20 23:52 2026
+GPU CHANGE: 0 -> 1 (foreign job whack-a-mole). Right after moving to GPU 0, a foreign job
+(user jackfol, experiments_Rosenbrock_general.py --gpu 0, 108 GB) grabbed GPU 0. Meanwhile
+GPU 1 freed up (its prior foreign job left). Current: GPU 0 = jackfol 108 GB @ 64% util;
+GPU 1 = 0% util, 5 MiB, 143 GB free. jackfol's jobs are pinned via --gpu N (they target the
+143-GB idle GPUs 0-3, not the symbolic-occupied 4-7), so GPU 1 should stay free. Switched the
+combined driver back to GPU 1. Cleanly stopped GPU-0 work first (no residual). R14 beta3 reruns.
+
+--- Entry 6 ---
+Time (local): Tue Jul 21 00:5x 2026
+GPU CHANGE: 1 -> 0. Foreign-job whack-a-mole continued: jackfol's 108 GB job moved OFF GPU 0
+ONTO GPU 1 (co-located with mine, 99% util), leaving GPU 0 completely free (0%, 143 GB).
+Both GPU 0 and GPU 1 are user-granted; GPU 0 is now the free one, so remaining work (~4.5 h)
+moves there for ~2x throughput. Cleanly stopped all GPU-1 work first (force-killed the
+frozen-bias, follow-up driver and runner; verified GPU 1 holds only the foreign job) so exactly
+ONE GPU is in use. Completed+cached and preserved: gate, references, 2-D screen (4 cells),
+R15 screen+resgate, R14, R15 methods tuning (6) and production (6). Remaining on GPU 0:
+R15 frozen-bias, OPES tuning sweep, run-length control, beta=3 2-D cell, 2-D method control,
+2-D frozen-bias, easy-cell control, analysis/figures/assets.
+
+--- Entry 7 (policy) ---
+Time (local): Tue Jul 21 ~04:40 2026
+NO CHANGE (deliberate). jackfol's 108 GB job hopped BACK onto GPU 0 (now 99% util, co-located
+with my OPES sweep); GPU 1 is free again. Observed pattern: that foreign job alternates between
+GPUs 0 and 1 (both user-granted), each leg lasting O(10-30 min), so contention is roughly
+symmetric over time and chasing it has diminishing returns while costing in-progress work at
+every switch (4 switches so far: 4->1, 1->0, 0->1, 1->0).
+POLICY ADOPTED: do not switch mid-run. Remain on the current GPU until a natural stage
+boundary; switch only if the alternative granted GPU is still free at that boundary (zero lost
+work). Single-GPU invariant is unaffected -- exactly one GPU in use at all times.
+
+--- Entry 6 ---
+Time (local): Tue Jul 21 04:35 2026
+Consolidated to ONE driver on ONE GPU, and moved 0 -> 1.
+Situation found: two of my drivers were alive (drive_rest.sh pinned to GPU 0, drive_followup.sh
+pinned to GPU 1), both containing an OPES-sweep step -> risk of two simultaneous GPU jobs and
+duplicated/racing writes to the same r15_methods npz. Resolved by (a) killing the redundant
+drive_followup.sh (drive_rest.sh supersedes it: it also runs the OPES sweep, run-length control
+and assets), and (b) stopping drive_rest.sh, re-pointing it from GPU 0 to GPU 1, and relaunching.
+Reason for 0 -> 1: GPU 0 is 99% util / only 33 GB free (foreign jackfol Rosenbrock job, 108 GB),
+while GPU 1 is completely idle (0% util, 143 GB free) -> ~2x faster for the substantial
+remaining queue. Verified zero residual processes of mine before relaunch (single-GPU rule).
+Work already completed is cached and preserved; only the in-flight OPES-sweep config is redone.
+
+--- Entry 8 ---
+Time (local): Tue Jul 21 10:03 2026  (retro-documents the move that took effect ~09:41)
+GPU CHANGE: 1 -> 0, for the final closing stage only (frozen-bias re-runs).
+Physical GPU: 0. Selected because at the stage boundary GPU 1 had again been taken by the
+alternating foreign jackfol job while GPU 0 had freed up; per the Entry-7 policy the switch was
+made only at that boundary, with no in-flight work lost. Both GPUs are user-granted (the user
+granted GPU 1 as a fallback, then granted GPU 0 as "freer"; the mandated set 4-7 stayed
+foreign-occupied at 100% util throughout).
+NOTE (honesty): this switch was NOT logged when it happened -- the two chained closing drivers
+(drive_frozen_rerun.sh, drive_2dfrozen.sh) were written with CUDA_VISIBLE_DEVICES=0 and the
+entry is being added on discovery. No policy was violated (see verification below), but the
+log was incomplete for ~20 min of runtime.
+Work in this stage: (a) R15 frozen-bias re-run with the corrected stage/name filter -- finished
+09:57, reproduced the previous values to all quoted digits (ABF recon 1.9022 / online 1.4837;
+mFR recon 1.9250 / online 1.5137), so the manuscript number "mFR 2.20 vs 1.95" was stale and
+has been corrected to 1.92 vs 1.51 from the artifact; (b) 2-D frozen-bias, started 10:00:49.
+Single-GPU verification at 10:03:36 (nvidia-smi): GPU 0 = my frozen job (5.1 GB) co-resident
+with the foreign jackfol job (108 GB, 97% util); GPU 1 = 5 MiB / 0% (idle, nothing of mine);
+GPUs 2,3 = idle; GPUs 4-7 = foreign only. Exactly ONE GPU carries my work. No DDP, no sharding,
+CUDA_VISIBLE_DEVICES=0 with cuda:0 only.
+INCIDENT (self-inflicted, resolved): drive_2dfrozen.sh waits for the R15 re-run via
+`pgrep -f 'drive_frozen_rerun.sh'`. A monitoring shell of mine contained that literal string in
+its own command line, so the pgrep matched the monitor and the 2-D stage was deadlocked from
+09:57 to 10:00 waiting on a process that had already finished. Killed the monitor; the stage
+started immediately. No GPU was double-allocated at any point -- the effect was idle time only.
+
+--- Entry 9 (CLOSE-OUT) ---
+Time (local): Tue Jul 21 11:0x 2026
+ALL GPU WORK COMPLETE. Final stage (2-D frozen-bias) finished 10:55:48 on GPU 0.
+Result: ABF recon 0.3778 / online 0.7217; mFR recon 0.3777 / online 0.7230 -- the frozen
+reconstruction is ~2x BETTER than online here, the OPPOSITE sign to the starved R15 cell and
+the same sign as the converged phi1 case. The frozen-bias control therefore tracks the
+starvation verdict in all three coordinates.
+ORPHAN CHECK (nvidia-smi + pgrep, both run at close-out): ZERO processes of mine remain on any
+GPU. Every remaining compute app belongs to other users (jackfol on GPU 0; yesom on GPUs 4-7).
+No process of mine was left running, on any GPU, at any point after completion.

@@ -1,0 +1,98 @@
+# R15 mFR/OPES study on the STARVED cell (β2), triggered by the ABF screen finding a
+# starved cell. Tests whether mFR helps when ABF is genuinely starved along the biased 1-D
+# coordinate (the amplification mechanism: clone the rare torsional-barrier crossers that
+# reach under-sampled compact R). Separate output root from the ABF-only screen.
+experiment_name: alkanes_cv_r15_methods
+output_root: results/alkanes_cv_extension/r15_methods
+cache_dir: cache/alkanes_cv
+
+base:
+  kind: dist
+  molecule: pentane
+  sigma: 2.3
+  cv_i: 0
+  cv_j: 4
+  R_lo: 1.4
+  R_hi: 3.7
+  wall_lo: 1.45
+  wall_hi: 3.65
+  k_wall: 200.0
+  dist_n_grid: 256
+  dist_abf_bandwidth: 0.04
+  dist_kde_bandwidth: 0.06
+  n_rbins: 12
+  n_grid2: 48
+  thermal_delta: 10.0
+  save_every: 5000
+  abf_warmup_steps: 5000
+  estimator_burn_in_steps: 6000
+  abf_force_clip: 60.0
+  force_clip: 200.0
+  dt: 5.0e-4
+  ref_n_samples: 800000
+  fr_start_steps: 12000
+
+method_defaults:
+  target_ema_rate: 0.005
+  max_event_fraction: 0.01
+  fr_every: 5
+  score_clip: 2.0
+
+methods:
+  abf:          {type: abf}
+  # mFR rate ladder (plan §3.6): too-gentle -> useful? -> over-aggressive
+  fr_r0005:     {type: fr_estimated, fr_rate: 0.005}
+  fr_r002:      {type: fr_estimated, fr_rate: 0.02}
+  fr_r005:      {type: fr_estimated, fr_rate: 0.05}
+  fr_r010:      {type: fr_estimated, fr_rate: 0.10}
+  # canonical deployable + diagnostics (production)
+  fr_estimated: {type: fr_estimated, fr_rate: 0.02}   # gentle deployable (frozen after tuning)
+  fr_uniform:   {type: fr_uniform,   fr_rate: 0.02}
+  fr_oracle:    {type: fr_oracle,    fr_rate: 0.02}
+  fr_active:    {type: fr_estimated, fr_rate: 0.10}   # aggressive probe
+  opes:         {type: opes, opes_barrier: 8.0, opes_sigma: 0.10, opes_pace: 400}
+  # OPES grid for an INDEPENDENT tuning sweep on this cell (plan §3.7): the cold R15 free
+  # energy is steep, so the barrier parameter must be swept well above the phi1/WCA values.
+  opes_b8s05:   {type: opes, opes_barrier: 8.0,  opes_sigma: 0.05, opes_pace: 200}
+  opes_b16s10:  {type: opes, opes_barrier: 16.0, opes_sigma: 0.10, opes_pace: 400}
+  opes_b16s05:  {type: opes, opes_barrier: 16.0, opes_sigma: 0.05, opes_pace: 200}
+  opes_b24s10:  {type: opes, opes_barrier: 24.0, opes_sigma: 0.10, opes_pace: 200}
+
+stages:
+  # mFR rate ladder + OPES on HELD-OUT tuning seeds (disjoint stream)
+  tuning:
+    seeds: [101, 102, 103, 104]
+    rng_seed: 77777777
+    methods: [abf, fr_r0005, fr_r002, fr_r005, fr_r010, opes]
+    cells:
+      - {beta: 2.0, init_mode: trans, n_steps: 60000, n_replicas: 1024}   # primary starved
+  # FROZEN production: canonical methods, disjoint production seeds, on the primary starved cell.
+  production:
+    seeds: [1, 2, 3, 4, 5, 6, 7, 8]
+    rng_seed: 20260719
+    methods: [abf, fr_estimated, fr_uniform, fr_oracle, fr_active, opes]
+    cells:
+      - {beta: 2.0, init_mode: trans, n_steps: 80000, n_replicas: 1024}   # primary starved (localized)
+  # secondary starved cell (dispersed) — run if time permits
+  production_disp:
+    seeds: [1, 2, 3, 4, 5, 6, 7, 8]
+    rng_seed: 20260719
+    methods: [abf, fr_estimated, fr_active, opes]
+    cells:
+      - {beta: 2.0, init_mode: dispersed, n_steps: 80000, n_replicas: 1024}
+  # run-length control: ABF at 2x steps on the primary starved cell, to distinguish a genuine
+  # support deficit (persists) from mere slow-but-asymptotic convergence at 80k (would resolve).
+  runlength:
+    seeds: [1, 2, 3, 4]
+    rng_seed: 20260719
+    methods: [abf]
+    cells:
+      - {beta: 2.0, init_mode: trans, n_steps: 160000, n_replicas: 1024}
+  # INDEPENDENT OPES tuning sweep on the starved cell (held-out seeds), so the OPES baseline
+  # is reported at its best configuration rather than a single arbitrary one.
+  opes_tuning:
+    seeds: [101, 102, 103, 104]
+    rng_seed: 77777777
+    methods: [opes, opes_b8s05, opes_b16s10, opes_b16s05, opes_b24s10]
+    cells:
+      - {beta: 2.0, init_mode: trans, n_steps: 60000, n_replicas: 1024}

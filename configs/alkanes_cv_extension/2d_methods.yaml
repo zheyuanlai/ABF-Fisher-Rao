@@ -1,0 +1,80 @@
+# Stage 6/7: 2-D torsion CV method comparison. `tuning` (held-out seeds 101-104, mFR rate
+# ladder + OPES grid) then `production` (FROZEN methods, disjoint production seeds). If the
+# 2-D ABF screen finds NO starved cell, only the compact `control` stage is run (neutrality).
+experiment_name: alkanes_cv_2d_methods
+output_root: results/alkanes_cv_extension/2d_methods
+cache_dir: cache/alkanes_cv
+
+base:
+  kind: joint2d
+  molecule: pentane
+  sigma: 2.3
+  grid2d: 48
+  abf_bandwidth2d: 0.20
+  kde_bandwidth2d: 0.30
+  abf_min_count: 5.0
+  estimator_stride: 5
+  thermal_delta: 10.0
+  save_every: 5000
+  abf_warmup_steps: 5000
+  estimator_burn_in_steps: 8000
+  abf_force_clip: 60.0
+  force_clip: 200.0
+  dt: 5.0e-4
+  ref_n_samples: 40000
+  fr_start_steps: 9000
+
+method_defaults:
+  target_ema_rate: 0.005
+  max_event_fraction: 0.005
+  fr_every: 5
+  score_clip: 2.0
+
+methods:
+  abf:          {type: abf}
+  # mFR rate ladder (2-D; the 1-D optimum 0.02 is not assumed optimal here)
+  fr_r003:      {type: fr_estimated, fr_rate: 0.003}
+  fr_r010:      {type: fr_estimated, fr_rate: 0.010}
+  fr_r030:      {type: fr_estimated, fr_rate: 0.030}
+  fr_r100:      {type: fr_estimated, fr_rate: 0.100}
+  # canonical deployable + diagnostics (production)
+  fr_estimated: {type: fr_estimated, fr_rate: 0.010}
+  fr_uniform:   {type: fr_uniform,   fr_rate: 0.010}
+  fr_oracle:    {type: fr_oracle,    fr_rate: 0.010}
+  fr_active:    {type: fr_estimated, fr_rate: 0.100}   # labelled aggressive mechanism probe
+  opes:         {type: opes, opes_barrier: 8.0, opes_sigma: 0.30, opes_pace: 400}
+  opes_b4:      {type: opes, opes_barrier: 4.0, opes_sigma: 0.30, opes_pace: 400}
+  opes_b12:     {type: opes, opes_barrier: 12.0, opes_sigma: 0.40, opes_pace: 400}
+
+stages:
+  # mFR rate ladder on HELD-OUT tuning seeds (disjoint stream). Sized for the ~55 ms/step
+  # 2-D throughput under GPU contention: 4 rungs, 4 seeds batched, 45k steps.
+  tuning:
+    seeds: [101, 102, 103, 104]
+    rng_seed: 77777777
+    methods: [fr_r003, fr_r010, fr_r030, fr_r100]
+    cells:
+      - {beta: 2.0, init_mode: trans, n_steps: 45000, n_replicas: 2048}   # primary
+  # FROZEN production: canonical methods on the primary cell, disjoint production seeds.
+  # Sized for ~55 ms/step 2-D throughput under contention: core methods run first
+  # (--only-method abf,fr_estimated,opes,fr_active), diagnostics (uniform/oracle) if time.
+  production:
+    seeds: [1, 2, 3, 4, 5, 6]
+    rng_seed: 20260719
+    methods: [abf, fr_estimated, fr_uniform, fr_oracle, fr_active, opes]
+    cells:
+      - {beta: 2.0, init_mode: trans, n_steps: 45000, n_replicas: 2048}   # primary candidate
+  # easy control (used to show neutrality where ABF is not starved)
+  control:
+    seeds: [1, 2, 3, 4, 5, 6]
+    rng_seed: 20260719
+    methods: [abf, fr_estimated, opes]
+    cells:
+      - {beta: 1.0, init_mode: dispersed, n_steps: 50000, n_replicas: 2048}
+  # grid-resolution confirmation (winner methods only, grid 64)
+  confirm:
+    seeds: [1, 2, 3, 4]
+    rng_seed: 20260719
+    methods: [abf, fr_estimated]
+    cells:
+      - {beta: 2.0, init_mode: trans, n_steps: 60000, n_replicas: 2048, grid2d: 64}

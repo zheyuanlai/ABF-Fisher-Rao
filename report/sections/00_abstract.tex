@@ -1,7 +1,8 @@
 We study whether augmenting the Adaptive Biasing Force (ABF) method with a
 Fisher--Rao (FR) birth--death correction improves the computation of a
 reaction-coordinate free energy, and what kind of improvement it can reasonably be
-expected to provide. We test this on \emph{five} systems spanning model potentials,
+expected to provide. We test this on five core case studies (then extended along the
+collective variable itself) spanning model potentials,
 a condensed-phase dimer, and molecular torsions: a two-dimensional double-well
 \emph{metastability} model with a quadrature reference; a two-dimensional
 \emph{entropic-bottleneck} model with a narrow transverse channel, for which both
@@ -43,9 +44,20 @@ dihedral makes the conditional law $p(\varphi_2|\varphi_1)$ the binding difficul
 we separate genuine improvement (better $F(\varphi_1)$ with faithful conditional)
 from false improvement (flatter marginal but corrupted conditional), and report the
 matched-seed outcome the data support rather than assuming the coupled case must be
-positive. Across the cases, FR is best understood as a marginal-reallocation
-mechanism whose value depends on how starved the ABF estimator is \emph{along the
-biased coordinate}, how quickly cloned orthogonal degrees of freedom re-equilibrate,
-and how aggressively birth--death erodes ancestor diversity. The oracle target is
+positive. A final study varies the \emph{collective variable itself} to stress-test the
+mechanism: replacing the easy torsion with a harder chemically meaningful scalar --- the
+pentane end-to-end distance $R_{15}$ --- makes ABF genuinely sample-starved \emph{along the
+biased coordinate} at low temperature (the first starved coordinate in the study), yet even
+here mFR gives no improvement (equivalent at the deployable rate, monotonically worse and
+lineage-collapsing as it is pushed), because that starvation is a \emph{dynamical} bottleneck
+--- rare torsional-barrier crossings --- that marginal reallocation can only amplify, not
+create; and promoting the hidden torsion into a genuine two-dimensional CV $(\varphi_1,
+\varphi_2)$, with an exact vector generalized mean force and a periodic FFT Poisson
+projection, removes the starvation entirely (ABF resolves both barriers directly), so mFR is
+again neutral, now for a well-understood reason. Across all cases, FR is best understood as a
+marginal-reallocation mechanism whose value depends on how starved the ABF estimator is
+\emph{along the biased coordinate}, whether that starvation is a support deficit reallocation
+can fill or a dynamical bottleneck it cannot, how quickly cloned orthogonal degrees of freedom
+re-equilibrate, and how aggressively birth--death erodes ancestor diversity. The oracle target is
 therefore a diagnostic control, not a deployable method and not a universal upper
 bound.

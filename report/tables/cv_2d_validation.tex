@@ -1,0 +1,16 @@
+% auto-generated
+\begin{table}[t]\centering
+\caption{Two-dimensional ABF mathematical validation.}\label{tab:cv_2d_validation}
+\begin{tabular}{ll}
+\toprule
+check & result\\
+\midrule
+dual biorthogonality $w_a\!\cdot\!\nabla\varphi_c=\delta_{ac}$ & $<10^{-9}$ (test)\\
+analytic $\nabla\!\cdot w_a$ vs FD & $<10^{-4}$ (test)\\
+Poisson exact-gradient recovery & $<10^{-9}$ (test)\\
+decoupled exact gate max abs err & \CvTwoDGateExact\\
+decoupled 2-D thermal $L_2$ (grid \CvGateGridFine) & \CvGateLtwo~kT\\
+Gram $\max\kappa$ / regularisations & \CvGateCondMax\ / \CvGateReg\\
+\bottomrule
+\end{tabular}
+\end{table}

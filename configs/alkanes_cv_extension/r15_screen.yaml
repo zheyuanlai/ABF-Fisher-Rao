@@ -1,0 +1,53 @@
+# Stage 1/2: R15 (pentane end-to-end distance) minimal resolution gate + ABF-only
+# starvation screen. ABF only -- the decision gate for whether a full R15 mFR study runs.
+experiment_name: alkanes_cv_r15
+output_root: results/alkanes_cv_extension/r15
+cache_dir: cache/alkanes_cv
+
+base:
+  kind: dist
+  molecule: pentane
+  sigma: 2.3
+  cv_i: 0
+  cv_j: 4
+  R_lo: 1.4
+  R_hi: 3.7
+  wall_lo: 1.45
+  wall_hi: 3.65
+  k_wall: 200.0
+  dist_n_grid: 256
+  dist_abf_bandwidth: 0.04
+  dist_kde_bandwidth: 0.06
+  n_rbins: 12
+  n_grid2: 48
+  thermal_delta: 10.0
+  save_every: 5000
+  abf_force_clip: 60.0
+  force_clip: 200.0
+  dt: 5.0e-4
+  ref_n_samples: 800000
+
+method_defaults: {fr_every: 5, score_clip: 2.0}
+methods:
+  abf: {type: abf}
+
+stages:
+  # --- minimal estimator-resolution gate (NOT a research sweep): n_grid {128,256} x bw {h,h/2} ---
+  resgate:
+    seeds: [0, 1]
+    rng_seed: 55555
+    methods: [abf]
+    cells:
+      - {beta: 2.0, init_mode: trans, n_steps: 40000, n_replicas: 768, dist_n_grid: 256, dist_abf_bandwidth: 0.04}
+      - {beta: 2.0, init_mode: trans, n_steps: 40000, n_replicas: 768, dist_n_grid: 128, dist_abf_bandwidth: 0.04}
+      - {beta: 2.0, init_mode: trans, n_steps: 40000, n_replicas: 768, dist_n_grid: 256, dist_abf_bandwidth: 0.02}
+  # --- ABF-only starvation screen: beta x init (primary discovery = trans/extended) ---
+  screen:
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7]
+    rng_seed: 55555
+    methods: [abf]
+    cells:
+      - {beta: 1.0, init_mode: trans,     n_steps: 80000, n_replicas: 1024}
+      - {beta: 2.0, init_mode: trans,     n_steps: 80000, n_replicas: 1024}
+      - {beta: 1.0, init_mode: dispersed, n_steps: 80000, n_replicas: 1024}
+      - {beta: 2.0, init_mode: dispersed, n_steps: 80000, n_replicas: 1024}

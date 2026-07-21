@@ -1,0 +1,42 @@
+# Stage 5: 2-D torsion CV (phi1,phi2) ABF-only starvation screen (the decision gate for
+# whether a full 2-D mFR study runs). estimator_stride=5 accumulates the (Hessian) mean
+# force every 5 steps while applying the bias every step (standard ABF subsampling).
+experiment_name: alkanes_cv_2d_screen
+output_root: results/alkanes_cv_extension/2d
+cache_dir: cache/alkanes_cv
+
+base:
+  kind: joint2d
+  molecule: pentane
+  sigma: 2.3
+  grid2d: 48
+  abf_bandwidth2d: 0.20
+  kde_bandwidth2d: 0.30
+  abf_min_count: 5.0
+  estimator_stride: 5
+  thermal_delta: 10.0
+  save_every: 5000
+  abf_warmup_steps: 5000
+  estimator_burn_in_steps: 8000
+  abf_force_clip: 60.0
+  force_clip: 200.0
+  dt: 5.0e-4
+  ref_n_samples: 40000
+
+method_defaults: {fr_every: 5, score_clip: 2.0}
+methods:
+  abf: {type: abf}
+
+stages:
+  # P2-A..D (+ optional P2-E beta=3). Primary candidate = beta=2, localized trans-trans.
+  screen:
+    seeds: [0, 1, 2, 3]
+    rng_seed: 55555
+    methods: [abf]
+    # ordered by scientific priority (primary first) so a trim keeps the key result
+    cells:
+      - {beta: 2.0, init_mode: trans,     n_steps: 50000, n_replicas: 2048}   # P2-D (primary)
+      - {beta: 1.0, init_mode: dispersed, n_steps: 50000, n_replicas: 2048}   # P2-A (easy control)
+      - {beta: 2.0, init_mode: dispersed, n_steps: 50000, n_replicas: 2048}   # P2-C
+      - {beta: 1.0, init_mode: trans,     n_steps: 50000, n_replicas: 2048}   # P2-B
+      - {beta: 3.0, init_mode: trans,     n_steps: 70000, n_replicas: 2048}   # P2-E (cold escalation)

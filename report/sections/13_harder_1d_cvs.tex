@@ -1,0 +1,174 @@
+\section{Harder one-dimensional molecular coordinates: end-to-end distance}
+\label{sec:cv_harder_1d}
+
+The $\varphi_1$ studies (\cref{sec:case_butane,sec:case_pentane}) left one mechanism
+untested: in both alkanes ABF resolved the biased coordinate \emph{easily}, so marginal
+Fisher--Rao (mFR) never had a support deficit to repair. To probe whether mFR helps when
+ABF is genuinely sample-starved \emph{along the biased coordinate}, we replace the torsion
+by a harder but chemically meaningful scalar: the pentane end-to-end distance
+\begin{equation}
+  \xi(q) = R_{15}(q) = \lvert q_5 - q_1\rvert ,
+\end{equation}
+which measures molecular extension/compactness and depends jointly on both torsions and on
+the bond/angle fluctuations. Many torsional states map to the same $R_{15}$, so the hidden
+conditional here is the full joint torsion law $p(\varphi_1,\varphi_2\mid R_{15})$. As a
+secondary, easier control we also study the butane $R_{14}=\lvert q_4-q_1\rvert$.
+
+\subsection{Distance CV, generalized mean force, and reference}
+With $r=q_5-q_1$, $R=\lvert r\rvert$, $e=r/R$ we have $\nabla_{q_5}R=e$, $\nabla_{q_1}R=-e$,
+$\lvert\nabla R\rvert^2=2$, and (because $H_R\nabla R=0$) the den~Otter geometric term is
+exactly $\nabla\!\cdot v = 2/R$ for $v=\nabla R/\lvert\nabla R\rvert^2$, giving the local
+mean force
+\begin{equation}
+  f_R(q) = \tfrac12\,e\cdot\!\big(\nabla_{q_5}V-\nabla_{q_1}V\big) - \frac{2}{\beta R}.
+\end{equation}
+The analytic gradient/divergence match autodiff to $<10^{-9}/10^{-7}$; $R$ never approaches
+$0$ under the stiff bonds, and identical soft walls confine every method to a reliable
+interval. Because $R_{15}$ is non-periodic we use reflected-boundary KDE and a
+left-anchored trapezoidal PMF. The reference is built by
+internal-coordinate importance sampling: bonds/angles from their exact Boltzmann+Jacobian
+law, dihedrals from $e^{-\beta V_4}$, reweighted by $e^{-\beta V_\mathrm{nb}}$ (the 1--5 LJ;
+butane has none, so its reference is exact by construction). The primary (`$V_4$-proposal')
+estimator has effective-sample fraction \CvRfifteenEss; an independent uniform-proposal scheme
+agrees to \CvRfifteenCross~kT in the thermal window (range \CvRfifteenRange~kT), well inside the
+15\% success threshold. A minimal resolution gate ($n_\mathrm{grid}\in\{128,256\}$,
+bandwidth $\{h,h/2\}$) leaves the reference shape and the ABF diagnosis unchanged.
+
+\begin{figure}[t]\centering
+  \includegraphics[width=0.98\textwidth]{fig_cv_01_r15_reference_screen.png}
+  \caption{Pentane $R_{15}$: (a) reference free energy (minimum at the extended state,
+  compact configurations strongly disfavoured); (b) ABF convergence of the thermal-window
+  $L_2(F)$ for the four screen cells --- the $\beta{=}2$ cells remain far above the
+  $\beta{=}1$ ones ($1.43$--$1.58$ vs $0.67$--$0.74$~kT); (c) the ABF-sampled $R_{15}$ marginal (solid) against the \emph{unbiased}
+  Boltzmann law (dashed, same colour): ABF broadens the marginal towards compact $R$ as
+  intended, but the residual structure at $\beta{=}2$ is the support deficit the screen
+  detects.}
+  \label{fig_cv_r15}
+\end{figure}
+
+\subsection{ABF-only starvation screen: R15 is the first genuinely starved coordinate}
+We ran ABF alone across $\beta\in\{1,2\}$ (butane $R_{14}$: $\beta\in\{1,2,3\}$) with
+localized-trans and dispersed initializations, classifying each cell by \emph{distinct
+evidence families} of the pre-registered criteria: a magnitude/plateau family
+(normalized residual $L_2$ above the estimator floor), a support family
+(under-supported thermal $R$ bins), a mixing family (compact$\leftrightarrow$extended
+round trips per replica), and a conditional family (biased $p(\varphi_1,\varphi_2\mid R)$).
+Because the raw magnitude and plateau signals are not statistically independent, we count
+them as one family and require $\geq 2$ \emph{distinct} families for a ``starved'' verdict.
+\Cref{tab:cv_r15_screen} reports the outcome.
+
+Unlike the $\varphi_1$ torsion --- which ABF resolves easily --- the pentane $R_{15}$
+coordinate is classified \textbf{\CvRfifteenStarv} at $\beta=2$ (thermal $L_2\approx14$--16\%
+of the free-energy range, $\sim$2.5$\times$ the estimator floor, with $\sim$22\% of thermal
+$R$ bins under-supported and, in the dispersed cell, near-absent compact$\leftrightarrow$
+extended mixing). It is easy at $\beta=1$. The butane control $R_{14}$ is \textbf{easy} at
+$\beta\in\{1,2\}$ and only \textbf{\CvRfourteenStarv} at $\beta=3$. This yields a clean,
+graded picture: a chemically meaningful \emph{distance} CV \emph{can} make ABF sample-starved
+along the biased coordinate once the torsional barriers that change the distance are rarely
+crossed, and the difficulty is ordered by molecule --- pentane $R_{15}$ reaches a full
+\emph{starved} verdict already at $\beta=2$, whereas the easier butane $R_{14}$ never does at
+any temperature tested, reaching only \emph{intermediate} (a single evidence family: high
+error, but no support or mixing deficit) at the colder $\beta=3$. A minimal resolution gate leaves the
+$R_{15}$ starvation diagnosis unchanged ($L_2$ 21--22\% across $n_\mathrm{grid}\in\{128,256\}$
+and bandwidth $\{h,h/2\}$). A run-length control settles the obvious alternative explanation
+--- that the cell is merely under-converged at a fixed budget rather than starved: doubling
+the ABF budget from $80$k to $160$k steps reduces the thermal $L_2$ only from $15.1\%$ to
+$13.7\%$ of the range (a $9\%$ relative gain for $2\times$ the compute), leaves the error
+\emph{plateaued} (final-quarter change $-0.04$, i.e.\ no longer decreasing) still far above the
+$\sim$6--7\% estimator floor, and does \emph{not} fill the under-supported bins (low-support
+fraction $0.22\to0.28$). The deficit is therefore a genuine \emph{support} starvation that more
+of the same sampling does not cure.
+Because a starved cell exists, the pre-registered gate triggers the full $R_{15}$ mFR/OPES
+comparison below --- the study's one clean opportunity for mFR to help.
+\input{tables/cv_r15_screen.tex}
+
+\subsection{Does mFR rescue a starved ABF? No.}
+On the starved $R_{15}$ ($\beta=2$, localized trans) cell we ran the full ladder at matched
+seeds, initial conditions, replicas, steps and force budget. The result is unambiguous and,
+notably, \emph{the same as when ABF is not starved}: mFR gives \textbf{no improvement}. The
+deployable estimated-target mFR (rate $0.02$) is \textbf{\CvRfifteenmFRVerdict} to ABF
+(median change in final $L_2$: \CvRfifteenmFRRelFinal\,\%; win rate \CvRfifteenmFRWin). At
+production scale (eight matched seeds) ABF reaches a median final $L_2$ of $1.500$ and the
+deployable mFR $1.532$ ($+2.1\%$, inside the $\pm10\%$ practical-equivalence margin) with the
+hidden-conditional fidelity unchanged ($0.072$ both) --- and mFR fails to beat ABF on
+\emph{every one} of the eight matched seeds (win rate $\CvRfifteenmFRWin$). The labelled
+aggressive probe (rate $0.10$) is severely \emph{harmful}: $2.015$ ($+34.4\%$), with the
+ancestor ESS collapsing to $0.06\,N$ and the conditional degrading to $0.087$.
+
+Two diagnostics make the negative result decisive rather than a tuning artifact. First, the
+\emph{uniform} and \emph{oracle} targets perform identically to the estimated one
+($1.533$, $+2.2\%$ each): even a target built from the \emph{exact reference free energy} ---
+the quantity being computed --- buys nothing. The failure is therefore not poor target
+estimation but the reallocation mechanism itself. Second, the OPES baseline was swept
+independently on held-out seeds for this cell over barrier $\in\{8,16,24\}$, kernel width
+$\sigma\in\{0.05,0.10\}$ and deposition pace $\in\{200,400\}$: its \emph{best} configuration
+(barrier $8$, $\sigma=0.05$, pace $200$) still trails ABF by $+88\%$, larger barriers are
+monotonically worse ($+153$ to $+156\%$), and --- most tellingly --- \emph{every} configuration
+records \textbf{zero} compact$\leftrightarrow$extended round trips (the production
+configuration also degrades the conditional to $0.192$). An OPES bias grows only where walkers
+have already been, so on this steep cold profile no setting mobilises the barrier crossing at
+all. The same bottleneck therefore defeats a
+different marginal-biasing strategy, which is evidence about the \emph{coordinate}, not about
+any one algorithm. The rate ladder is correspondingly
+\emph{monotone in the wrong direction}: final $L_2$ rises from the ABF value as the mFR rate
+increases ($+0.4,+1.0,+4.4,+13.4$\% at rates $0.005,0.02,0.05,0.10$) while the ancestor ESS
+falls ($0.97\!\to\!0.87\!\to\!0.62\!\to\!0.17$ of $N$). There is no useful
+window. \Cref{fig_cv_r15_methods} shows the paired comparison, the rate ladder, and the
+hidden-conditional fidelity.
+
+\paragraph{Provenance of the deployed rate.} We record this precisely, because the ladder is
+monotone and therefore makes the selection rule degenerate. The pre-registered rule --- the
+smallest median integrated $L_2(F)$ on the held-out tuning seeds subject to the genealogy
+guard --- has its argmin at the \emph{gentlest} rung, $0.005$ (median integrated
+$L_2=83.30$ against ABF's $83.16$), not at the $0.02$ we deploy ($83.58$); the two stiffer
+rungs, $0.05$ and $0.10$, are worse still ($84.50$ and $85.94$), and only $0.10$ fails the
+genealogy guard. In other words the rule, applied literally to a monotone ladder, selects the rate that
+does the \emph{least}, because doing less is what minimises the error. We deploy $0.02$
+instead --- the gentlest rung at which birth--death is meaningfully active (ancestor ESS
+$0.87\,N$ rather than $0.97\,N$) --- so that the reported comparison actually exercises the
+mechanism under test. This choice is \emph{conservative against} mFR, not for it: the rule's
+own pick would have scored slightly better ($+0.3\%$ versus $+1.3\%$ on the tuning seeds).
+Every genealogy-passing rung is classified \emph{equivalent} to ABF, so the verdict does not
+depend on which is quoted; what the degeneracy shows is that on this coordinate the best
+available mFR configuration is the one closest to not running mFR at all.
+\input{tables/cv_r15_methods.tex}
+
+\begin{figure}[t]\centering
+  \includegraphics[width=0.98\textwidth]{fig_cv_06_r15_methods.png}
+  \caption{$R_{15}$ mFR/OPES on the \emph{starved} $\beta=2$ cell: (a) matched-seed relative
+  change in final $L_2(F)$ vs ABF (band $=\pm10\%$ equivalence, dashed $=-15\%$ positive
+  threshold); (b) the mFR rate ladder --- integrated $L_2$ rises and ancestor ESS collapses
+  with rate, no useful window; (c) hidden-conditional $p(\varphi_1,\varphi_2\mid R)$ fidelity
+  per method.}\label{fig_cv_r15_methods}
+\end{figure}
+
+The mechanism is diagnostic (\cref{sec:cv_does_it_help}, Q3): $R_{15}$ starvation is a
+\emph{dynamical} bottleneck --- extended replicas rarely cross the cold torsional barriers
+needed to reach compact $R$ --- not a \emph{support} deficit that marginal reallocation can
+fill. The support diagnostics locate the failure precisely, and the answer is more
+interesting than ``reallocation cannot fill the gap''. At the deployable rate mFR barely fires
+(ancestor ESS $0.79\,N$), so the support profile is essentially untouched (under-supported
+fraction $0.218$ versus ABF's $0.223$) and the error with it. Pushed to rate $0.10$ it does
+exactly what it is designed to do --- the under-supported fraction falls by nearly two thirds,
+$0.223\to0.082$ --- and yet the free energy becomes markedly \emph{worse} ($+34\%$). The reason
+is that the newly ``supported'' bins are filled with \emph{clones} rather than independent
+samples: ancestor ESS collapses to $0.06\,N$ and the round-trip count per replica actually
+\emph{falls} ($8.9\to6.0$), because independently evolving replicas are replaced by copies of
+the few that had already crossed. Reallocation thus converts a support deficit into a
+\emph{diversity} deficit: nominal occupancy improves while the effective sample size --- the
+quantity the mean-force estimator actually consumes --- degrades. Amplification is not
+discovery. The independently tuned OPES baseline and
+the diagnostic uniform/oracle targets are reported alongside in \cref{tab:cv_r15_methods}.
+
+The frozen-bias fairness control (freeze $B(R)$, run fresh dynamics with no updates and no
+birth--death, reconstruct $F=B-\beta^{-1}\log p_B+C$) delivers a second, independent
+confirmation that this cell is genuinely starved --- and it behaves \emph{oppositely} to the
+converged $\varphi_1$ case. There, freezing the learned bias reconstructed $F$ far more
+accurately than the online mean-force integral ($0.05$ vs $0.27$), proving the online residual
+was a mere estimator-resolution floor. Here the reconstruction is \emph{worse} than the online
+estimate for both methods (ABF $1.90$ vs $1.48$; mFR $1.92$ vs $1.51$, seed-averaged
+profiles): the learned $B(R)$ is itself inaccurate because the underlying sampling is
+deficient, and freezing it does not help since the frozen dynamics remain trapped by the same
+rare-crossing bottleneck. The residual is therefore \emph{not} a resolution artifact but real
+under-sampling --- exactly the distinction the starvation screen is meant to detect --- and
+mFR's learned bias is no better than ABF's, consistent with their practical equivalence.

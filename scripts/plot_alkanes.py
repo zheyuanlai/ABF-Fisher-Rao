@@ -303,10 +303,34 @@ def fig_cross_case(figdir, summ_dir):
                     [max(0, (r["rel_med"] - r["rel_lo"]) * 100)]], fmt="o", color=col, zorder=3)
         ax.annotate(r["cell"].replace("_s2.3", "").replace("_full", ""), (r["abf_med"], gain),
                     fontsize=6, xytext=(4, 4), textcoords="offset points")
+    # Collective-variable extension overlay: the harder coordinates (R15, R14, 2-D torus).
+    # These carry the decisive point -- a genuinely starved cell with NO mFR gain -- so they
+    # are drawn with distinct markers rather than folded into the phi1 series.
+    cv_specs = [("results/alkanes_cv_extension/r15_methods/summaries/cv_paired.csv",
+                 "production", "*", 200, "#7b1fa2", "pentane $R_{15}$ (starved)"),
+                ("results/alkanes_cv_extension/2d_methods/summaries/cv_paired.csv",
+                 "production", "^", 70, "#00897b", "pentane $(\\varphi_1,\\varphi_2)$ 2-D")]
+    for path, stage, marker, size, col, lab in cv_specs:
+        if not os.path.exists(path):
+            continue
+        try:
+            c = pd.read_csv(path)
+            c = c[(c.metric == "final_l2_F") & (c.method == "fr_estimated")
+                  & c.cell.astype(str).str.startswith(stage)]
+            for _, r in c.iterrows():
+                gain = -r["rel_med"] * 100.0
+                ax.errorbar(r["abf_med"], gain,
+                            yerr=[[max(0, (r["rel_hi"] - r["rel_med"]) * 100)],
+                                  [max(0, (r["rel_med"] - r["rel_lo"]) * 100)]],
+                            fmt=marker, ms=(12 if marker == "*" else 7), color=col,
+                            zorder=4, label=lab)
+                lab = None  # legend entry once per series
+        except Exception:
+            pass
     ax.axhline(0, color="k", lw=.7)
     ax.set_xlabel("measured ABF baseline error  (median final $L_2(F)$)")
     ax.set_ylabel("mFR gain vs ABF  (\\% reduction in $L_2(F)$)")
-    ax.set_title("Cross-case: mFR gain vs ABF starvation (butane/pentane)")
+    ax.set_title("Cross-case: mFR gain vs ABF starvation")
     ax.legend(fontsize=8)
     fig.tight_layout(); fig.savefig(os.path.join(figdir, "fig_alk_12_cross_case.png"), dpi=140)
     plt.close(fig)

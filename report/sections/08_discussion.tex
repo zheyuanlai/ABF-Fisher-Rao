@@ -1,7 +1,7 @@
 \section{Discussion, limitations, and future directions}
 \label{sec:discussion}
 
-\subsection{What the five cases establish (Q4, Q5)}
+\subsection{What the cases establish (Q4, Q5)}
 The study establishes a regime map rather than a universal ranking. FR is a mild
 accelerator, and sometimes a source of extra noise, when ABF is already
 well-sampled. It becomes valuable when ABF is starved of reaction-coordinate
@@ -31,11 +31,15 @@ conditional degrades. The configuration-resolved conditional diagnostics, which 
 \subsection{Limitations}
 We remain deliberately conservative about scope.
 \begin{enumerate}
-  \item \textbf{The reaction coordinates are low-dimensional.} All three systems
-        use a one-dimensional reaction coordinate (a Cartesian component in the
-        2D cases, a scalar bond length in WCA). Multi-dimensional or strongly
-        curved collective variables, where the geometric mean-force term and the
-        conditional sampling are far harder, are untested.
+  \item \textbf{Coordinate dimensionality and curvature.} The core cases use a
+        one-dimensional reaction coordinate (a Cartesian component in the 2D toys, a
+        scalar bond length in WCA, a signed dihedral in the alkanes). The
+        collective-variable extension (\cref{sec:cv_harder_1d,sec:cv_2d}) lifts this for
+        the alkanes: a strongly curved distance CV $R_{15}=|q_5-q_1|$ and a genuine
+        two-dimensional torsion CV $(\varphi_1,\varphi_2)\in\mathbb{T}^2$ with the exact
+        \emph{vector} generalized mean force (Gram matrix, dual fields, analytically
+        differentiated divergence) and a periodic FFT Poisson projection. Higher-dimensional
+        CVs and explicit path collective variables remain untested.
   \item \textbf{The oracle target is not a deployable method.} In every
         case the oracle uses the reference free energy, the unknown being
         computed, and is reported only as a diagnostic control (\cref{rem:oracle}).
@@ -69,6 +73,17 @@ We remain deliberately conservative about scope.
         does (slope $\EDBoracleSlope\%$, up to $+\EDBoraclePeak\%$). The
         entropic-specific benefit exists but is gated by the quality of the online
         free-energy target; the practical estimator does not realise it here.
+  \item \textbf{The molecular negative rests on a single starved cell.} Across every
+        coordinate we screened, exactly one is classified \emph{starved} along the biased
+        CV --- pentane $R_{15}$ at $\beta=2$ (\cref{sec:cv_harder_1d}) --- with butane
+        $R_{14}$ at $\beta=3$ only \emph{intermediate}. The claim that mFR fails to rescue
+        a starved ABF is therefore established on one cell, hardened by matched seeds, an
+        oracle target, an independent OPES sweep, a run-length control and a frozen-bias
+        reconstruction, but not replicated on a second independent molecular system. It is
+        also a statement about one mFR design (fixed-population kill-and-clone on the
+        biased marginal at a rate frozen from a monotone four-point ladder): schemes that
+        decorrelate clones after reallocation are untested and are not excluded by these
+        data.
 \end{enumerate}
 
 \subsection{Failure modes}
@@ -95,8 +110,20 @@ reading does not generalise.
   \item \textbf{Higher-dimensional and curved reaction coordinates.} The alkane
         dihedrals (\cref{sec:case_butane,sec:case_pentane}) take a first step ---
         a periodic, nonlinear CV with a nontrivial geometric term --- and the
-        natural extension is a 2D torus CV $(\varphi_1,\varphi_2)$ with the
-        periodic Poisson reconstruction (attempted as an optional stretch).
+        collective-variable extension completes it: a curved distance CV
+        (\cref{sec:cv_harder_1d}) and a genuine 2-D torus CV $(\varphi_1,\varphi_2)$
+        with the exact vector mean force and periodic Poisson reconstruction
+        (\cref{sec:cv_2d}). What remains open is \emph{higher} dimension (three or more
+        CVs, where the density estimate degrades faster than the sampling improves) and
+        path collective variables, where the CV itself is learned rather than chosen.
+  \item \textbf{Breaking the clone-correlation bottleneck.} The decisive $R_{15}$
+        finding --- that reallocation repairs nominal support while destroying lineage
+        diversity (\cref{sec:cv_does_it_help}) --- identifies the mechanism a useful
+        birth--death scheme would have to fix: clones must decorrelate before the
+        mean-force estimator consumes them. Rejuvenation moves after cloning (a short
+        randomised or tempered relaxation of the orthogonal coordinates), or a rate that
+        adapts to the measured orthogonal relaxation time rather than to the marginal
+        mismatch alone, are the natural candidates; neither is tested here.
   \item \textbf{Configuration-resolved conditional diagnostics.} Pentane realises
         this directly: $p(\varphi_2\mid\varphi_1)$ against the joint reference
         measures conditional fidelity rather than inferring it from structure,

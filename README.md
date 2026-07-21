@@ -530,3 +530,49 @@ CUDA_VISIBLE_DEVICES=5 python scripts/run_alkanes.py --config configs/alkanes/pr
 python scripts/analyze_alkanes.py --config configs/alkanes/production.yaml
 python scripts/plot_alkanes.py    --config configs/alkanes/production.yaml --stage production --report-figdir report/figures
 ```
+
+## CV extension: harder 1-D distance CVs and the 2-D torsion CV (pentane)
+
+Tests *when* marginal Fisher–Rao helps ABF by (i) replacing the easy torsion with a
+harder but chemically meaningful scalar — pentane end-to-end distance `R15=|q5-q1|`
+(and butane `R14`) — to see if ABF becomes genuinely sample-starved *along the biased
+coordinate*, and (ii) promoting the hidden pentane torsion into the CV itself,
+`ξ=(φ1,φ2)∈T²`, with the same joint CV driving ABF and mFR. New code is additive under
+`src/alkanes/{distance_cv,interval,cv2d,poisson2d,density2d,reference_cv,core_dist,core2d,opes_cv,metrics_cv,jobs_cv}.py`,
+`configs/alkanes_cv_extension/`, `scripts/*_alkanes_cv_*.py`,
+`tests/test_alkanes_{distance,cv2d,poisson2d,density2d,interval,cv_samplers}.py`,
+`results/alkanes_cv_extension/`; nothing else is modified. Full command list, GPU policy,
+stage gates and headline numbers:
+[`docs/ALKANES_CV_EXTENSION_PLAN.md`](docs/ALKANES_CV_EXTENSION_PLAN.md) and
+[`ALKANES_CV_EXTENSION_HANDOFF.md`](ALKANES_CV_EXTENSION_HANDOFF.md).
+
+The 2-D ABF uses the exact den-Otter vector mean force (Gram matrix + dual fields +
+analytically-differentiated divergence), a periodic FFT Hodge/Poisson projection to make
+the learned bias conservative, and a centred 2-D Fisher–Rao score with whole-configuration
+cloning; a hard *decoupled* gate checks it recovers `V4(φ1)+V4(φ2)+C`.
+
+**Headline outcome (all three questions answered; report §10–§12).**
+- **Q1** `R15` at β=2 is the study's *first genuinely starved* biased coordinate (thermal
+  L2 14–16% of range, ~22% of thermal bins under-supported, confirmed by a resolution gate
+  and a 2× run-length control). So a harder chemically meaningful CV *can* starve ABF.
+- **Q1b/Q2** mFR still does **not** help: **equivalent** to ABF on the starved `R15` cell
+  (+2.0%, 0/8 seed wins; the *oracle* target built from the exact reference performs
+  identically) and **equivalent** on the 2-D torus (+0.2%, 0/6 wins, which the screen shows
+  is never starved). OPES is far worse on both, with *zero* round trips on `R15`.
+- **Q3** The limiter differs by coordinate: **no marginal starvation** for φ1 and (φ1,φ2);
+  for `R15`, **poor discovery + genealogical collapse** — pushed hard enough to act, mFR
+  *does* repair nominal support (0.223→0.082 under-supported) yet makes the free energy
+  **34% worse**, because the new occupancy is clones (ancestor ESS →0.06N, round trips
+  *falling* 8.9→6.0). Marginal starvation is **necessary but not sufficient**: reallocation
+  can fill a *support* deficit, not a *barrier-crossing* one. Amplification is not discovery.
+
+```bash
+conda activate abffr
+CUDA_VISIBLE_DEVICES="" python -m pytest tests/test_alkanes_*.py -q                     # 70 validation gates (+3 GPU-parity skipped on CPU)
+CUDA_VISIBLE_DEVICES=4 python scripts/run_alkanes_cv_reference.py --betas 1.0 2.0        # references + cross-check
+CUDA_VISIBLE_DEVICES=4 python scripts/validate_alkanes_cv.py                             # 2-D ABF decoupled gate
+CUDA_VISIBLE_DEVICES=4 python scripts/run_alkanes_cv_extension.py --config configs/alkanes_cv_extension/2d_screen.yaml --stage screen --require-single-gpu
+python scripts/analyze_alkanes_cv_extension.py --config configs/alkanes_cv_extension/2d_screen.yaml
+python scripts/plot_alkanes_cv_extension.py --report-figdir report/figures
+python scripts/make_alkanes_cv_report_assets.py
+```

@@ -1,0 +1,99 @@
+\section{Two-dimensional ABF and marginal Fisher--Rao on the torsion torus}
+\label{sec:cv_2d}
+
+The mandatory test promotes the hidden pentane torsion into the CV itself,
+\begin{equation}
+  \xi(q) = (\varphi_1(q),\varphi_2(q)) \in \mathbb{T}^2,
+\end{equation}
+with \emph{the same} joint CV driving ABF and mFR ($\xi_\mathrm{ABF}=\xi_\mathrm{FR}$), so mFR
+cannot silently reshape $p(\varphi_2\mid\varphi_1)$ behind a one-dimensional ABF. This asks
+directly whether two-dimensional mFR reallocation improves two-dimensional ABF.
+
+\subsection{Vector generalized mean force and periodic Poisson projection}
+For $g_a=\nabla\varphi_a$, $H_a=\nabla^2\varphi_a$ (exact autodiff), the Gram matrix is
+$G_{ab}=g_a\!\cdot g_b$ and the dual fields $w_a=\sum_b (G^{-1})_{ab}g_b$ satisfy
+$w_a\!\cdot g_c=\delta_{ac}$ exactly. The mean-force components
+$f_a=\nabla V\!\cdot w_a-\beta^{-1}\nabla\!\cdot w_a$ use a divergence computed
+\emph{analytically} from the per-dihedral gradients and Hessians (via
+$\mathrm{d}G^{-1}=-G^{-1}\mathrm{d}G\,G^{-1}$), avoiding nested autodiff; it matches a
+finite-difference divergence of the dual field to $<10^{-4}$, and on the decoupled model
+reduces to $\nabla V\!\cdot w_a\to V_4'(\varphi_a)$ despite the two dihedrals sharing three
+atoms (a non-diagonal $G$). The Gram matrix is well conditioned on physical geometries
+($\max\kappa=\CvGateCondMax$, \CvGateReg\ regularisations).
+
+The scattered, smoothed mean-force field $g=(g_1,g_2)$ on the torus grid is not exactly
+conservative; the scalar bias is its Hodge projection onto gradients,
+$B=\arg\min_{\bar B=0}\int_{\mathbb{T}^2}\lvert\nabla B-g\rvert^2$, i.e.\ the periodic Poisson
+problem $\Delta B=\nabla\!\cdot g$ solved by FFT
+($\hat B(k)=-\mathrm{i}\,k\!\cdot\hat g(k)/\lvert k\rvert^2$, $\hat B(0)=0$). The projection
+recovers exact gradient fields and removes divergence-free noise to $<10^{-9}$
+(\cref{tab:cv_2d_validation}). The configuration-space bias force is
+$+\sum_a (\partial_{z_a}B)\,\nabla\varphi_a$, applied every step, while the (Hessian) mean
+force is accumulated on a stride --- a standard ABF subsampling that leaves the estimator
+unbiased.
+
+\paragraph{Exact decoupled gate.} With the 1--5 LJ switched off the exact free energy is
+$V_4(\varphi_1)+V_4(\varphi_2)+C$. The full 2-D pipeline recovers it to a thermal-window
+$L_2$ of \CvGateLtwo~kT on the $\CvGateGridFine{\times}\CvGateGridFine$ grid, essentially
+unchanged from \CvGateLtwoCoarse~kT on $\CvGateGridCoarse{\times}\CvGateGridCoarse$ --- the
+residual is resolution-limited in the \emph{estimator}, not in the grid --- and the internal-coordinate
+FEP reference reproduces $V_4\!\oplus V_4$ to \CvTwoDGateExact\ --- the residual is the shared
+mean-force-estimator resolution floor (\cref{rem:alk_floor}), not a systematic error.
+\input{tables/cv_2d_validation.tex}
+
+\begin{figure}[t]\centering
+  \includegraphics[width=0.98\textwidth]{fig_cv_02_2d_reference_gate.png}
+  \caption{(a) the joint reference $F(\varphi_1,\varphi_2)$; (b) a representative 2-D ABF
+  reconstruction; (c) the exact decoupled gate $L_2$ versus grid resolution --- flat, showing
+  the residual is the mean-force estimator floor rather than a grid-discretisation error.}
+  \label{fig_cv_2d_gate}
+\end{figure}
+
+\subsection{Two-dimensional density, score, and cloning}
+The joint marginal $\hat p_t(z)$ is a separable wrapped-Gaussian KDE on the torus; the
+centred Fisher--Rao score
+$S_t(z)=\log[(\hat p_t{+}\epsilon)/(\hat q_t{+}\epsilon)]-\!\int \hat p_t\log[\cdots]$ is
+interpolated bilinearly to each replica, and fixed-population kill-and-clone copies the whole
+molecular configuration with ancestor labels and independent future noise. The deployable
+target is $\hat q_\mathrm{est}\propto e^{-\beta(F_\mathrm{EMA}-B)}$; uniform and
+reference-oracle targets are diagnostic only, the latter guarded from deployable code.
+
+\paragraph{Frozen-bias check.} Freezing the learned $B(\varphi_1,\varphi_2)$ and running
+fresh dynamics with no updates and no birth--death reconstructs
+$F=B-\beta^{-1}\log p_B+C$ to $0.378$, roughly \emph{half} the online mean-force error
+($0.722$), and identically so for ABF and mFR. The learned two-dimensional bias is therefore
+considerably more accurate than the online $L_2$ suggests --- the residual is a shared
+mean-force-estimator resolution floor, not a systematic error --- and the ABF/mFR equivalence
+is a property of the learned bias itself, not of the online transient or of resampling.
+
+\subsection{ABF-only starvation screen: promoting the torsion removes the starvation}
+Before any mFR tuning we ran 2-D ABF alone on cells P2-A..D (\cref{tab:cv_2d_screen}), the
+primary being $\beta=2$ with localized trans--trans initialization, using the same
+distinct-evidence-family criteria as \cref{sec:cv_harder_1d}. The screen classifies
+the primary cell \textbf{\CvTwoDStarvPrimary}: at $\beta\in\{1,2\}$ and either
+initialization, ABF discovers all nine torsional basins (by step $\sim$3800 even when started
+cold and localized in trans--trans), sustains very strong mixing (100--360 joint round trips
+per replica), and converges to $5.0$--$7.3\%$ of the free-energy range, i.e.\ at or within
+about $1.5$ percentage points of the shared $5.8\%$ estimator floor measured on the decoupled
+gate --- and, decisively, with no support deficit: every basin is found and mixing is strong.
+
+Because that is a uniformly negative screen, we added a colder escalation (P2-E, $\beta=3$,
+localized) to check the verdict is not an artifact of insufficient difficulty. It is not: even
+there ABF finds all nine basins (by step $\sim$8400), keeps $\sim$20 round trips per replica,
+and plateaus at $10.4\%$ --- classified only \emph{intermediate}, with the error creeping just
+past the conservative threshold but \emph{no support deficit at all}. The contrast with the
+distance CV is the essential point: at the \emph{colder} $\beta=3$ the two-dimensional CV still
+enjoys complete basin discovery and healthy mixing, whereas $R_{15}$ at the \emph{warmer}
+$\beta=2$ is genuinely starved with $\sim$22\% of its thermally relevant bins under-supported.
+Biasing $(\varphi_1,\varphi_2)$ drives both torsional barriers \emph{directly}, so the
+support deficit that mFR exists to repair simply never forms. No cell being starved, the
+pre-registered gate calls for a compact neutrality control rather than a full
+successive-halving mFR study (\cref{sec:cv_does_it_help}).
+\input{tables/cv_2d_screen.tex}
+
+\begin{figure}[t]\centering
+  \includegraphics[width=0.9\textwidth]{fig_cv_03_2d_screen_basins.png}
+  \caption{2-D ABF starvation screen: joint nine-basin occupancy (left) and thermal-window
+  $L_2(F)$ convergence (right) across the P2 cells.}
+  \label{fig_cv_2d_screen}
+\end{figure}

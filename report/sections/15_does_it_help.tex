@@ -1,0 +1,130 @@
+\section{Does promoting the hidden torsion make marginal Fisher--Rao useful?}
+\label{sec:cv_does_it_help}
+
+We can now compare the three coordinates on a common axis: the one-dimensional torsion
+$\varphi_1$ (\cref{sec:case_pentane}), the harder one-dimensional distance $R_{15}$
+(\cref{sec:cv_harder_1d}), and the two-dimensional torsion $(\varphi_1,\varphi_2)$
+(\cref{sec:cv_2d}). The organizing question is whether mFR's benefit tracks \emph{measured
+starvation of the biased coordinate}, and whether any apparent gain is a genuine
+support gain or a lineage-diversity loss.
+
+\subsection{Method comparison}
+On a cell the ABF screen flags as \emph{starved} the pre-registered gate calls for the full
+ladder --- multi-replica shared-bias ABF, ABF+mFR with estimated / uniform / oracle targets,
+and an independently swept OPES --- which is what \cref{sec:cv_harder_1d} reports for
+$R_{15}$. Since no two-dimensional cell is starved, the gate instead calls for the compact
+\emph{neutrality control} reported here: ABF, the deployable estimated-target mFR, a labelled
+aggressive probe, and OPES (the uniform/oracle diagnostic targets are informative only where
+mFR has a support deficit to repair, and on $R_{15}$ they proved indistinguishable from the
+estimated target). Both are run at matched seeds, initial conditions, replicas, steps and
+force-evaluation budget. We are explicit about the asymmetry in how hyperparameters were set,
+because it is not the same on the two arms. On $R_{15}$ the mFR rate was chosen from a ladder
+run on disjoint held-out tuning seeds, and the OPES baseline was swept independently over
+barrier, kernel width and pace. On the two-dimensional arm neither search was run: the mFR
+rate ($0.01$) and the OPES configuration (barrier $8$, $\sigma=0.30$, pace $400$) were fixed
+\emph{a priori} in the configuration and never tuned, because the pre-registered gate does not
+authorise a hyperparameter study on a cell no screen classifies as starved. That is a real
+limitation of the two-dimensional OPES number in particular, which should be read as ``OPES at
+a plausible default'' rather than ``OPES at its best''. It does not weaken the mFR verdict,
+which is a null: an untuned mFR that lands within $0.2\%$ of ABF cannot have been flattered by
+the absence of tuning. The principal causal contrast is shared-bias ABF versus
+ABF+\emph{estimated-target} mFR. \Cref{tab:cv_2d_methods} collects the
+two-dimensional production comparison and \cref{fig_cv_methods} the matched-seed effect sizes
+and genealogy.
+
+The deployable 2-D mFR verdict on the primary cell is \textbf{\CvTwoDmFRVerdict}
+(median change in final $L_2(F)$ vs ABF: \CvTwoDmFRRelFinal\,\%): ABF reaches $0.724$ and mFR
+$0.725$, winning $0/6$ matched seeds, with every genealogy, event-cap and basin guard satisfied
+--- a genuine null, not a masked false improvement. A \emph{positive} result requires all
+twelve pre-registered criteria; a lower free-energy error accompanied by degraded basin
+occupancy, conditional structure or genealogy beyond the stated bounds is a \emph{false}
+improvement, not a success. OPES at its default configuration is again far worse ($1.682$,
+$+132\%$); as noted above it was not swept here, so this is a weaker statement than the
+independently tuned $R_{15}$ comparison.
+
+Comparing the two coordinates exposes a second regularity, about the \emph{cost} rather than
+the benefit of birth--death. The aggressive probe (rate $0.10$) costs only $+0.9\%$ here, with
+ancestor ESS holding at $0.35\,N$, whereas the same probe on the starved $R_{15}$ cell cost
+$+34\%$ with ESS collapsing to $0.06\,N$. The difference is how fast the system re-equilibrates
+after a clone: on the torus ABF sustains ${\sim}130$ joint round trips per replica, so cloned
+configurations decorrelate almost immediately and aggressive reallocation is merely useless;
+on the barrier-limited distance coordinate the clones stay correlated, so the same mechanism
+actively destroys the mean-force estimate. Birth--death is therefore cheap where it is
+unnecessary and expensive precisely where one would want to use it.
+
+\paragraph{Frozen-bias control: the same test, the opposite sign.} Freezing the learned
+two-dimensional bias $B(\varphi_1,\varphi_2)$, running fresh dynamics with no updates and no
+birth--death, and reconstructing $F=B-\beta^{-1}\log p_B+C$ reproduces the reference far
+\emph{better} than the online mean-force integral: $0.378$ against $0.722$ for ABF and $0.378$
+against $0.723$ for mFR, i.e.\ the online residual overstates the error in the learned bias by
+about a factor of two. This completes a three-way control with a consistent reading. Where the
+screen calls the coordinate easy --- the $\varphi_1$ torsion ($0.05$ vs $0.27$) and the
+two-dimensional torus here --- freezing \emph{improves} the reconstruction, so the online
+residual is a mean-force estimator-resolution floor and there is no systematic error for mFR
+to remove. Where the screen calls the coordinate starved --- $R_{15}$ --- freezing makes it
+\emph{worse} ($1.92$ vs $1.51$; \cref{sec:cv_harder_1d}), because the learned bias is itself
+built from deficient sampling. The control therefore discriminates the two situations
+independently of the starvation screen, and agrees with it in all three cases. That the two
+methods' reconstructions here are identical to three decimals ($0.3778$ vs $0.3777$) is a
+further statement of the null: mFR's learned bias is neither better nor worse than ABF's.
+\input{tables/cv_2d_methods.tex}
+
+\begin{figure}[t]\centering
+  \includegraphics[width=0.98\textwidth]{fig_cv_04_methods_comparison.png}
+  \caption{Matched-seed relative change in final $L_2(F)$ of each method vs ABF (left; the
+  shaded band is the $\pm10\%$ practical-equivalence margin, the dashed line the $-15\%$
+  positive threshold) and the final ancestor ESS of each mFR configuration (right; the dashed
+  line is the $0.30\,N$ genealogy floor).}
+  \label{fig_cv_methods}
+\end{figure}
+
+\begin{figure}[t]\centering
+  \includegraphics[width=0.9\textwidth]{fig_cv_05_fr_birth_death.png}
+  \caption{Spatial birth (clone-source) and death maps of the 2-D mFR birth--death process on
+  the torsion torus, showing where reallocation moves probability mass.}
+  \label{fig_cv_birthdeath}
+\end{figure}
+
+\subsection{Cross-case synthesis}
+\Cref{tab:cv_starvation_map} places all biased coordinates on one starvation map. The pattern
+across the study is that mFR's usefulness is gated by \emph{marginal starvation of the biased
+coordinate}: where ABF already resolves the coordinate (the $\varphi_1$ marginals, and any
+coordinate the screen classifies easy), mFR has no support deficit to repair and is at best
+practically equivalent; the residual difficulty then lives in an \emph{orthogonal} hidden
+coordinate that mFR --- acting only on the biased marginal --- cannot drive. Promoting the
+hidden torsion into the CV removes the orthogonal-coordinate excuse, so the two-dimensional
+comparison isolates whether mFR reallocation on the \emph{actual} slow manifold helps, and
+distinguishes a support gain from a lineage-diversity loss (ancestor ESS) and from
+two-dimensional density-estimation noise (empty-cell score spikes, curl before projection).
+\input{tables/cv_starvation_map.tex}
+
+The three coordinates answer Q3 cleanly, and the answer is not the same in each. For the
+one-dimensional torsion $\varphi_1$ and for the two-dimensional torus CV, the limiting factor
+is \textbf{(i) lack of marginal starvation}: ABF resolves the biased coordinate to the
+estimator floor (in 2-D it biases both dihedrals directly, discovering all nine basins and
+mixing strongly even cold and localized), so mFR has no support deficit to repair --- its
+measured verdict on the primary 2-D cell is \CvTwoDmFRVerdict. The density-estimation machinery is \emph{not} the bottleneck --- the Gram matrix is
+well conditioned, the FFT Poisson projection removes real curl, and the decoupled gate
+recovers $V_4\!\oplus V_4$ to the shared floor --- so we can exclude (ii). For the harder
+distance CV $R_{15}$, ABF \emph{is} starved, which isolates the decisive distinction: the
+starvation is a \textbf{dynamical bottleneck}, not a support deficit reallocation can fill
+with useful samples. Extended replicas rarely cross the cold torsional barriers that change
+$R_{15}$, and mFR can only clone those that already have. The support diagnostics show the
+resulting trade explicitly: pushed hard enough to act, mFR \emph{does} repair the nominal
+support (under-supported bin fraction $0.223\to0.082$) yet makes the free energy $34\%$
+\emph{worse}, because the newly occupied bins hold clones rather than independent samples
+(ancestor ESS $\to0.06\,N$, and round trips per replica \emph{falling} $8.9\to6.0$). The
+limiting factors are therefore \textbf{(iii) poor discovery} --- amplification is not
+discovery --- inseparably compounded by \textbf{(v) genealogical collapse}: reallocation here
+converts a support deficit into a diversity deficit, improving occupancy while degrading the
+effective sample size the mean-force estimator actually consumes. Conditional/orthogonal relaxation (iv) is a smaller effect here, since the
+hidden torsion conditional $p(\varphi_1,\varphi_2\mid R)$ stays well captured. The unifying
+statement is that marginal starvation of the biased coordinate is \emph{necessary but not
+sufficient} for mFR to help: it also requires that the starvation be a support deficit its
+whole-configuration reallocation can fill, rather than a barrier-crossing bottleneck it can
+only amplify. In every molecular collective variable we tried --- easy torsion, hard distance,
+two-dimensional torsion --- at least one of these preconditions fails, and the matched-seed
+verdicts reported above follow accordingly. The diagnostic oracle target and the frozen-bias
+control are reported alongside to separate the accuracy of the learned bias from the shared
+online mean-force resolution floor, so that a residual online $L_2$ common to every method is
+not mistaken for a systematic error mFR could have removed.

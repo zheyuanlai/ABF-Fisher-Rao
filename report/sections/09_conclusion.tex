@@ -1,10 +1,11 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-Across five controlled systems --- a 2D metastability model, a 2D entropic
+Across five core controlled systems --- a 2D metastability model, a 2D entropic
 bottleneck with an analytic conditional law, a many-body condensed-phase WCA dimer
-with a high-accuracy TI reference, and two united-atom alkane torsions --- Fisher--Rao
-birth--death helps ABF only after one specifies the regime. In the easy metastability
+with a high-accuracy TI reference, and two united-atom alkane torsions --- together with a
+collective-variable extension (a harder curved distance CV and a genuine two-dimensional
+torsion CV), Fisher--Rao birth--death helps ABF only after one specifies the regime. In the easy metastability
 setting it is a modest accelerator and the oracle diagnostic suggests target direction
 still matters. In the cold entropic bottleneck it gives a large practical gain
 ($+\EBgainStrong\%$, $\EBcoldWin/20$ seeds), but the oracle target is worse than
@@ -24,10 +25,24 @@ coupling --- a coordinate FR never biases. We therefore report, from matched see
 whether cloning whole configurations helps or corrupts that conditional, distinguishing
 genuine from false improvement rather than reading marginal flatness as success.
 
+Varying the collective variable itself sharpens this into a necessary condition.
+Replacing the easy torsion with a harder curved distance CV ($R_{15}$) does make ABF
+genuinely sample-starved along the biased coordinate at low temperature --- the first such
+case in the study --- yet mFR still gives no gain: it is equivalent at the deployable rate
+and monotonically worse (with collapsing lineage) as it is pushed, because that starvation is
+a \emph{dynamical} bottleneck (rare torsional-barrier crossings) that reallocation can only
+amplify, not create. Promoting the hidden torsion into a genuine two-dimensional CV
+$(\varphi_1,\varphi_2)$ instead \emph{removes} the starvation --- biasing both dihedrals
+directly resolves both barriers --- so mFR is neutral again, now for a fully understood
+reason. The lesson is that starvation of the biased coordinate is necessary but not
+sufficient: mFR helps only when that starvation is a \emph{support deficit} its reallocation
+can fill, not a dynamical barrier it cannot.
+
 The common object is marginal reallocation, not a universal variance-reduction
 slogan. FR moves whole configurations from over-represented to under-represented
-reaction-coordinate regions. When ABF is starved, this improves weighted support
-for the mean-force estimator; when ABF is already well sampled, it can add noise;
+reaction-coordinate regions. When ABF is starved by a support deficit, this improves weighted
+support for the mean-force estimator; when ABF is already well sampled, or starved by a
+dynamical bottleneck, it can add noise;
 and when the rate is too high, it collapses ancestor diversity. The oracle target
 is useful precisely because it reveals these regimes: it is best in the easy case,
 irrelevant in WCA, and harmful in the cold bottleneck. The practical recommendation

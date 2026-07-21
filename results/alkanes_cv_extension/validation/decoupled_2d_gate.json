@@ -1,0 +1,96 @@
+{
+  "device": "cuda",
+  "cuda_visible": "4",
+  "gate": [
+    {
+      "n_grid": 32,
+      "n_steps": 25000,
+      "n_replicas": 2048,
+      "beta": 1.0,
+      "estimator_stride": 5,
+      "l2_thermal_per_seed": [
+        0.47620051142013614,
+        0.46526228475444736
+      ],
+      "l2_full_per_seed": [
+        0.6591232918376236,
+        0.6468580858375543
+      ],
+      "l2_thermal_median": 0.47073139808729175,
+      "l2_full_median": 0.6529906888375889,
+      "F_range_kT": 7.800341114367279,
+      "gram_cond_max": 20.737295402807376,
+      "gram_reg_activations": 0,
+      "curl_pre_final_median": 0.5457107067158784,
+      "runtime_s": 814.3160353507847
+    },
+    {
+      "n_grid": 48,
+      "n_steps": 30000,
+      "n_replicas": 2048,
+      "beta": 1.0,
+      "estimator_stride": 5,
+      "l2_thermal_per_seed": [
+        0.4676506165940884,
+        0.4582904090593965
+      ],
+      "l2_full_per_seed": [
+        0.6382933832983478,
+        0.6287055047898775
+      ],
+      "l2_thermal_median": 0.46297051282674245,
+      "l2_full_median": 0.6334994440441126,
+      "F_range_kT": 7.932293576065329,
+      "gram_cond_max": 21.263818508627388,
+      "gram_reg_activations": 0,
+      "curl_pre_final_median": 0.5220824092129732,
+      "runtime_s": 983.2354092411697
+    }
+  ],
+  "stride_equivalence": [
+    {
+      "n_grid": 32,
+      "n_steps": 18000,
+      "n_replicas": 2048,
+      "beta": 1.0,
+      "estimator_stride": 1,
+      "l2_thermal_per_seed": [
+        0.4719397085533576,
+        0.46378400451852697
+      ],
+      "l2_full_per_seed": [
+        0.6537327542831118,
+        0.642983045156901
+      ],
+      "l2_thermal_median": 0.46786185653594226,
+      "l2_full_median": 0.6483578997200063,
+      "F_range_kT": 7.800341114367279,
+      "gram_cond_max": 21.00331515882335,
+      "gram_reg_activations": 0,
+      "curl_pre_final_median": 0.5198509524189732,
+      "runtime_s": 1067.4073167173192
+    },
+    {
+      "n_grid": 32,
+      "n_steps": 18000,
+      "n_replicas": 2048,
+      "beta": 1.0,
+      "estimator_stride": 5,
+      "l2_thermal_per_seed": [
+        0.4729472197474369,
+        0.46285596259514117
+      ],
+      "l2_full_per_seed": [
+        0.6545033665759779,
+        0.6439437941892173
+      ],
+      "l2_thermal_median": 0.46790159117128904,
+      "l2_full_median": 0.6492235803825976,
+      "F_range_kT": 7.800341114367279,
+      "gram_cond_max": 21.09539120265742,
+      "gram_reg_activations": 0,
+      "curl_pre_final_median": 0.5648410565454489,
+      "runtime_s": 561.8265506774187
+    }
+  ]
+}

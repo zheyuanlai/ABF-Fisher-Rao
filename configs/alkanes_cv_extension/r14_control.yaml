@@ -1,0 +1,40 @@
+# Stage 8 (secondary control): butane R14 = |q4-q1| ABF-only screen. Chemically meaningful
+# but expected easy (no LJ pair). A stronger negative control. Must not delay the 2-D study.
+experiment_name: alkanes_cv_r14
+output_root: results/alkanes_cv_extension/r14
+cache_dir: cache/alkanes_cv
+
+base:
+  kind: dist
+  molecule: butane
+  cv_i: 0
+  cv_j: 3
+  R_lo: 1.35
+  R_hi: 2.82
+  wall_lo: 1.38
+  wall_hi: 2.79
+  k_wall: 200.0
+  dist_n_grid: 256
+  dist_abf_bandwidth: 0.03
+  dist_kde_bandwidth: 0.05
+  n_rbins: 10
+  thermal_delta: 10.0
+  save_every: 5000
+  abf_force_clip: 60.0
+  force_clip: 200.0
+  dt: 5.0e-4
+  ref_n_samples: 400000
+
+method_defaults: {fr_every: 5, score_clip: 2.0}
+methods:
+  abf: {type: abf}
+
+stages:
+  screen:
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7]
+    rng_seed: 55555
+    methods: [abf]
+    cells:
+      - {beta: 1.0, init_mode: trans, n_steps: 60000, n_replicas: 768}
+      - {beta: 2.0, init_mode: trans, n_steps: 60000, n_replicas: 768}
+      - {beta: 3.0, init_mode: trans, n_steps: 80000, n_replicas: 768}

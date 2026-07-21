@@ -1,0 +1,81 @@
+{
+  "device": "cuda",
+  "dist": [
+    {
+      "cv": "pentane_R04",
+      "beta": 1.0,
+      "proposal_primary": "v4",
+      "ess_frac_v4": 0.8981442748020809,
+      "F_range_thermal_kT": 9.844407241455691,
+      "ess_frac_uniform": 0.07224344081127347,
+      "crosscheck_l2_thermal": 0.1802084073628615,
+      "convergence_ladder_l2": {
+        "200000": 0.016304410935149238,
+        "400000": 0.06881489632895023,
+        "800000": 0.028972274013769107
+      }
+    },
+    {
+      "cv": "pentane_R04",
+      "beta": 2.0,
+      "proposal_primary": "v4",
+      "ess_frac_v4": 0.8764177729020247,
+      "F_range_thermal_kT": 9.947801542514195,
+      "ess_frac_uniform": 0.015850159898891256,
+      "crosscheck_l2_thermal": 0.2556485645539762,
+      "convergence_ladder_l2": {
+        "200000": 0.06773347398024028,
+        "400000": 0.029691363321015244,
+        "800000": 0.03059774124944913
+      }
+    },
+    {
+      "cv": "butane_R03",
+      "beta": 1.0,
+      "proposal_primary": "v4",
+      "ess_frac_v4": 1.0,
+      "F_range_thermal_kT": 9.87377691220113,
+      "convergence_ladder_l2": {
+        "200000": 0.032339417644528745,
+        "400000": 0.01648782837693442,
+        "800000": 0.03983594248655932
+      }
+    },
+    {
+      "cv": "butane_R03",
+      "beta": 2.0,
+      "proposal_primary": "v4",
+      "ess_frac_v4": 1.0,
+      "F_range_thermal_kT": 9.878899177424191,
+      "convergence_ladder_l2": {
+        "200000": 0.16035271357580497,
+        "400000": 0.04402203612176846,
+        "800000": 0.0892252529991978
+      }
+    }
+  ],
+  "joint2d": [
+    {
+      "beta": 1.0,
+      "grid": 48,
+      "convergence_rms": {
+        "20000": 0.10953750844870949,
+        "40000": 0.14952228063970657
+      },
+      "decoupled_gate_max_abs_err": 1.7763568394002505e-15,
+      "decoupled_gate_pass": true,
+      "sem_max": 0.6770361301183361
+    },
+    {
+      "beta": 2.0,
+      "grid": 48,
+      "convergence_rms": {
+        "20000": 0.27056897242944916,
+        "40000": 0.09881481111717513
+      },
+      "decoupled_gate_max_abs_err": 1.7763568394002505e-15,
+      "decoupled_gate_pass": true,
+      "sem_max": 0.49988559524119397
+    }
+  ]
+}
