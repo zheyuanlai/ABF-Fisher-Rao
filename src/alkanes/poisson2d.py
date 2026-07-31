@@ -59,6 +59,13 @@ def poisson_projection(g1, g2, dz1, dz2):
     inv = torch.where(k2mag > EPS, 1.0 / k2mag.clamp_min(EPS), torch.zeros_like(k2mag))
     Bhat = -divhat * inv                                  # B_hat = -(i k.g_hat)/|k|^2
     Bhat[..., 0, 0] = 0.0                                 # enforce zero mean explicitly
+    # For even n the k = n/2 (Nyquist) mode is self-conjugate: taking .real of ifft2 below
+    # annihilates it in B but NOT in i k B_hat, so gB would carry content B does not, leaving
+    # gB != grad B (measured ~12% relative, curl_norm 1.7 at n=48).  Drop it from both.
+    if n1 % 2 == 0:
+        Bhat[..., n1 // 2, :] = 0.0
+    if n2 % 2 == 0:
+        Bhat[..., :, n2 // 2] = 0.0
     gB1hat = 1j * k1 * Bhat
     gB2hat = 1j * k2 * Bhat
     B = torch.fft.ifft2(Bhat).real.to(dt)

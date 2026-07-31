@@ -93,3 +93,38 @@ def test_batched_and_cpu_gpu_parity():
 if __name__ == "__main__":
     import subprocess
     raise SystemExit(subprocess.call([sys.executable, "-m", "pytest", __file__, "-q"]))
+
+
+@pytest.mark.parametrize("n", [35, 36, 48, 63, 64, 96, 97])
+def test_returned_gB_is_the_gradient_of_returned_B_on_random_input(n):
+    """``gB`` must equal ``grad(B)`` for a field the projection has NOT already bandlimited.
+
+    Regression test for the Nyquist defect: for even ``n`` the ``k = n/2`` mode is
+    self-conjugate, so ``.real`` after ``ifft2`` annihilated it in ``B`` while ``i k B_hat``
+    kept it in ``gB`` -- leaving ``gB != grad B`` by ~12% relative with ``curl_norm(gB) ~ 1.7``
+    at ``n = 48`` (the ``core2d`` default).  The pre-existing tests all feed
+    ``g = spectral_gradient(B0)``, whose Nyquist mode is already zero, so they could not see it.
+    """
+    dz = 2 * PI / n
+    torch.manual_seed(0)
+    g1 = torch.randn(2, n, n)
+    g2 = torch.randn(2, n, n)
+    B, gB1, gB2 = ps.poisson_projection(g1, g2, dz, dz)
+    sg1, sg2 = ps.spectral_gradient(B, dz, dz)
+    assert (gB1 - sg1).abs().max() < 1e-12
+    assert (gB2 - sg2).abs().max() < 1e-12
+    # the projected field is a gradient, hence exactly curl-free
+    assert ps.curl_norm(gB1, gB2, dz, dz).abs().max() < 1e-12
+
+
+def test_nyquist_mode_is_not_applied_as_a_force():
+    """A pure Nyquist input must produce neither a potential nor an applied gradient."""
+    n = 48
+    dz = 2 * PI / n
+    _, _, _, _, Z1, _ = _grids(n, n)
+    g1 = 30.0 * torch.sin((n // 2) * Z1)[None]
+    g2 = torch.zeros_like(g1)
+    B, gB1, gB2 = ps.poisson_projection(g1, g2, dz, dz)
+    assert B.abs().max() < 1e-12
+    assert gB1.abs().max() < 1e-12, "Nyquist content applied as a force but absent from B"
+    assert gB2.abs().max() < 1e-12
