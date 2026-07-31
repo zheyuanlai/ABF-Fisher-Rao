@@ -14,6 +14,15 @@ House rules inherited from `docs/SPEC_score_free_controls.md`: every quoted numb
 artifact or script it came from; claims are stated at their true strength; hyperparameter
 provenance is declared even when it is not guarded.
 
+> **STATUS UPDATE (supersedes the header above).** Repository state has moved since this document
+> was written. `ALANINE_EXECUTION_DECISION.md` is the authority on repository truth. Specifically:
+> gate **V8 (Nyquist) now PASSES** — fixed in `c6a6718` with regression tests; gate **V15 (umbrella
+> seed strain) now PASSES 576/576** — rigid-rotation seeding landed in `src/alanine/system.py`.
+> `src/alanine/` now exists (Stage-0 only: build, seed, force field; no sampler, no driver), so
+> "no file under `src/` has been modified" is no longer true. The *design* content below stands.
+> Note also that §0's physical model is superseded for the FIRST study by the execution decision's
+> conservative choice: **no HMR, dt = 1 fs, n_grid = 97 (odd)**.
+
 ---
 
 ## 0. DEVICE POLICY — READ BEFORE RUNNING ANYTHING
@@ -1472,14 +1481,14 @@ required before any Stage-1 or Stage-2 run. Mirror the alkane suite's structure
 | V5 | Gram conditioning over 2.70e6 thermal configs | `frac(cond > 100) = 0`, **zero** ridge activations | **PASS** (λ_min ≥ 98.0, cond_max 12.08) |
 | V6 | CV value vs independent numpy dihedral | < 1e−10 deg | **PASS 1.4e−14** |
 | V7 | **chirality** — reference FES global minimum location | within one grid cell of **(−78.8°, +56.2°)**. A mirrored build gives (+78.8°, −56.2°) and silently inverts every conclusion (§2.9) | pending |
-| V8 | **Nyquist consistency** — `max abs(gB − spectral_gradient(B))` on a **random** `g` | < 1e−12 | **FAILS TODAY** at even `n` (§3.5); fix + test |
+| V8 | **Nyquist consistency** — `max abs(gB − spectral_gradient(B))` on a **random** `g` | < 1e−12 | **PASS** — fixed `c6a6718`, measured 1.8e−15; regression tests on random `g` |
 | V9 | matched seeds — `abf` vs `fr_*` with `fr_start_steps = 1e9` | agree to 1e−9 | **the single most valuable test**; mirror from alkanes |
 | V10 | estimator stride 1 ≡ stride 5 | within seed noise | mirror |
 | V11 | whole-configuration cloning, fixed `N`, no source/target aliasing | exact | mirror **and extend to velocities** — the current test would pass a buggy position-only clone (§3.6) |
 | V12 | no-reference-leakage | non-oracle **raises** given a reference; `fr_oracle` **raises** without one; OPES has no oracle argument | mandatory; first statement of the sampler |
 | V13 | thermostat | ⟨T⟩ within **2 %** of 300 K over ≥ 20 ps | measured 290–296 K; pre-register the mild BAOAB cooling rather than discovering it later |
 | V14 | NeRF builder round-trip | `build_positions(φ,ψ)` → `signed_dihedral` recovers (φ,ψ) to 1e−10 deg | pending |
-| V15 | **umbrella seed strain**, every window | `HarmonicAngleForce < 50 kJ/mol` **and** max angle deviation `< 15°` | **FAILS TODAY for 61.8 % of windows** (§7.1) — blocking |
+| V15 | **umbrella seed strain**, every window | `HarmonicAngleForce < 50 kJ/mol` **and** max angle deviation `< 15°` | **PASS 576/576** — rigid-rotation seeding, `src/alanine/system.py` (the 61.8 % failure was the rejected NeRF path) |
 | V16 | rigid-rotor mean force | at a frozen non-CV geometry, den Otter `f_a` equals the analytic derivative of the ff14SB torsion sum along φ/ψ to 1e−8 | replaces the alkane `decouple` gate |
 | V17 | **per-seed RNG isolation** | forcing seed 0 to zero birth–death events leaves seeds 1..R−1 bit-identical | **FAILS TODAY** (§3.6); breaking fix |
 | V18 | **NaN containment** | injecting NaN into one replica of one seed leaves the other seeds' `B` finite **and** aborts the offending seed within one `save_every` | **FAILS TODAY** — currently contaminates 4096/4096 cells silently (§3.6) |
