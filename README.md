@@ -531,6 +531,54 @@ python scripts/analyze_alkanes.py --config configs/alkanes/production.yaml
 python scripts/plot_alkanes.py    --config configs/alkanes/production.yaml --stage production --report-figdir report/figures
 ```
 
+## Case VI: atomistic alanine dipeptide (Ace-Ala-Nme, vacuum) — CLOSED, neutrality control
+
+**Goal.** First atomistic system in the project: does oracle marginal Fisher-Rao improve 2-D ABF on
+the Ramachandran CV `xi = (phi, psi)`?
+
+**Outcome: EQUIVALENT. Alanine is retained as the atomistic NEUTRALITY CONTROL** — the role
+pentane 2-D plays for torsions. Closure tag `alanine-closed-v1`.
+
+Two separately preregistered experiments (see `ALANINE_ORACLE_PILOT_HANDOFF.md` §0):
+
+*A — pilot* (N in {2048, 4096}, 4 paired seeds, 100 ps, window 20-100 ps, C7eq init plus a
+reference-equilibrium crossed control): median change in kernel-matched integrated FES error
+**+0.013 % / -0.010 % / +0.031 %** against a **-10 %** threshold. Production not launched.
+
+*B — post-pilot rate sensitivity* (declared after A concluded; removes the "rate too gentle"
+objection, not an independent replication):
+
+| fr_rate | events | per-opportunity | median dFES | 95 % CI | wins | ESS_age | class |
+|---|---|---|---|---|---|---|---|
+| 0.02 | 3 021 | 0.126 % | -0.0100 % | [-0.063, -0.002] % | 3/4 | 0.966 | EQUIVALENT |
+| 0.15 | 22 830 | 0.876 % | -0.0025 % | [-0.054, +0.014] % | 2/4 | 0.813 | EQUIVALENT |
+| 0.45 | 66 818 | 2.557 % | +0.0236 % | [+0.009, +0.035] % | 0/4 | 0.602 | EQUIVALENT |
+
+Intensity varied **20x** across the intended 1-3 % band; events rose 22x and age-aware ancestor ESS
+fell 0.966 -> 0.602, so the mechanism verifiably worked harder — and accuracy did not move.
+Not inert (birth-death fired vs abf's 0), not discovery-limited (ABF reaches C7ax in 3.1-4.1 ps and
+holds ~5.6 % occupancy), not too gentle.
+
+**Permitted conclusion is narrow:** vacuum Ace-Ala-Nme, ff14SB, 300 K, `xi = (phi, psi)`, the frozen
+ABF estimator and the 20-100 ps transient. **Not evidence against marginal FR generally** — the
+reference shows psi carries at most a **0.75 kT** internal barrier, so there is no hidden slow
+coordinate here for reallocation to repair.
+
+Additive files: `src/alanine/`, `scripts/run_alanine_*.py`, `scripts/analyze_alanine.py`,
+`scripts/select_alanine_fr_rate.py`, `configs/alanine/`, `tests/test_alanine_*.py`.
+Handoffs: `ALANINE_REFERENCE_HANDOFF.md` (Stage-1 reference, 8/8 gates),
+`ALANINE_ORACLE_PILOT_HANDOFF.md`, `ALANINE_EXECUTION_DECISION.md`, `ALANINE_SPEC.md`.
+
+```bash
+CUDA_VISIBLE_DEVICES=7 python -u scripts/run_alanine_study.py --config configs/alanine/pilot.yaml --stage N4096
+python scripts/analyze_alanine.py --root results/alanine_oracle/pilot --stage N4096 --window 20 100 --kind pilot
+```
+
+Two bugs found here are worth carrying to any future oracle-target study: an `inf`-contaminated
+reference silently NaN-ing the oracle target (which would print the *same* word "EQUIVALENT" with
+the mechanism switched off), and basin identification by depth rather than **prominence** dropping
+the very basin under study.
+
 ## CV extension: harder 1-D distance CVs and the 2-D torsion CV (pentane)
 
 Tests *when* marginal Fisher–Rao helps ABF by (i) replacing the easy torsion with a

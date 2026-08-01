@@ -11,6 +11,26 @@ Companions: `ALANINE_REFERENCE_HANDOFF.md` (accepted Stage-1 reference),
 
 ---
 
+## 0. Two SEPARATE experiments — do not conflate them
+
+This document reports **two distinct, separately preregistered experiments**. They share the code,
+the reference and the frozen physical model, but they are different tests with different status.
+
+| | **Experiment A — the pilot** | **Experiment B — post-pilot rate sensitivity** |
+|---|---|---|
+| status | preregistered before any run | preregistered **after** A concluded, before B ran (`rate_ladder/PREREGISTRATION.json`) |
+| question | does oracle mFR beat ABF at the frozen safe rate? | was A's null merely an artifact of too gentle a rate? |
+| arms | `abf` and `fr_oracle`, both run | `fr_oracle` at 2 further rates; **A's `abf` reused exactly** |
+| rate | 0.02 (frozen by safety-only calibration) | 0.15 and 0.45 |
+| N, seeds | 2048 and 4096, 4 paired seeds | 4096, same 4 paired seeds |
+| initialisations | C7eq primary + reference-equilibrium crossed control | C7eq only |
+| result | **EQUIVALENT** (§8) | **EQUIVALENT at every rate** (§14) |
+| standing | the primary result | a **sensitivity check on A**, not an independent confirmation |
+
+Experiment B is a rate ladder run after a declared null. It is reported as a *sensitivity analysis*
+that removes one specific objection to A, and nothing more. It is **not** a second independent
+replication, and no positive claim rests on it.
+
 ## 1. Headline
 
 Oracle mFR, layered on corrected 2-D ABF and given the accepted reference as its target, makes
@@ -29,9 +49,21 @@ Negative = mFR better. The pilot threshold was **≤ −10 %**. Observed effects
 i.e. **300–1000× smaller than the threshold**, with confidence intervals lying wholly inside
 ±0.1 %. Endpoint mean-force change is likewise ~1e−5 in every stage.
 
-**Permitted conclusion.** This is a statement about *vacuum Ace-Ala-Nme with ξ = (φ,ψ)*, the
-frozen physical model, and the 20–100 ps transient window. It is **not** evidence about marginal
-Fisher–Rao in general.
+### Permitted conclusion — stated narrowly
+
+> Under **vacuum Ace-Ala-Nme, AMBER ff14SB, 300 K, ξ = (φ,ψ), the frozen ABF estimator
+> (n_grid 97, abf_bandwidth 0.08, kde_bandwidth 0.15, abf_min_count 200, clip 200 kJ/mol/rad,
+> project every 50 steps, stride 1), BAOAB at dt = 1 fs with γ = 1 ps⁻¹ and no HMR, and the tested
+> 20–100 ps transient window**, oracle marginal Fisher–Rao birth–death produces no measurable
+> change in the free-energy or mean-force estimate relative to ABF alone, at replacement
+> intensities spanning 0.13 %–2.56 % of the population per opportunity.
+
+**This is NOT evidence against marginal Fisher–Rao generally.** It does not generalise to other
+collective variables, other molecules, solvated systems, other temperatures, other estimator
+settings, longer or shorter windows, or the deployable (non-oracle) target. The reference itself
+supplies the mechanistic reason the result is local: ψ carries at most a **0.75 kT** internal
+barrier at every populated φ, so this system has no hidden slow coordinate for marginal
+reallocation to repair. Alanine was a control, and it behaved like one.
 
 ## 2. Repository state
 
@@ -239,8 +271,16 @@ At the top rate the sign also became inconsistent across weightings (equilibrium
 uniform-10 −), which is what noise-level effects look like. All safety criteria still passed at
 every rate (ESS ≥ 0.60 against a 0.30 floor, w_max ≤ 0.014 against 0.05, clip 0, no non-finite).
 
-Per the pre-declared stopping rule, **alanine is now closed**: no further rate, bandwidth, target
-or estimator variation is attempted.
+**Figure.** `results/alanine_oracle/figures/rate_response.png` — three panels against `fr_rate`:
+(a) replacement fraction per opportunity, with the intended 1–3 % band shaded; (b) median relative
+change in integrated FES error with 95 % CIs, the ±10 % equivalence band and the −10 % pass
+threshold; (c) minimum age-aware ancestor ESS with the 0.30 N floor. Panels (a) and (c) move
+strongly and monotonically; panel (b) does not move at all. Each figure states method, N, paired
+seeds, initialisation, window, weighting, and that the metrics are online.
+
+Per the pre-declared stopping rule, **alanine is now closed**: no further rate, bandwidth, target,
+reaction coordinate, physical condition or estimator variation is attempted, and the practical
+(non-oracle) target is not implemented.
 
 ## 15. Remaining open items
 
