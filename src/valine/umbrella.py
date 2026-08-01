@@ -51,6 +51,17 @@ def _dihedral_rb(q, idx):
     return torch.atan2(-y, -x)
 
 
+def dihedrals_iupac(q, quads):
+    """``(B, d)`` IUPAC dihedral values of ``q`` ``(B, A, 3)`` for a list of atom 4-tuples.
+
+    The same convention as :func:`valine.system.angles_np` and `alanine.cv2d.BackboneCV2D`, so
+    a torch trajectory and a numpy structure report the same angle.  Free-standing because the
+    unbiased explorations need CV readout without constructing a restraint.
+    """
+    return torch.stack([wrap_to_pi(_dihedral_rb(q, tuple(int(i) for i in idx)) + PI)
+                        for idx in quads], -1)
+
+
 def dihedral_grad_analytic(q, idx):
     """Closed-form ``d(theta)/dq`` for one dihedral; returns ``(B, 4, 3)``.
 

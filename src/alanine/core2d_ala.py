@@ -164,9 +164,20 @@ def _ancestor_stats_t(labels, N):
     return ess, (oh > 0).sum(1), w.amax(1)
 
 
+def _dihedral_iupac_t(x, idx):
+    """IUPAC signed dihedral of ``x (B,A,3)`` for one atom 4-tuple.  Used only for the optional
+    omitted-coordinate recorder below, never in the estimator path."""
+    p0, p1, p2, p3 = (x[:, i] for i in idx)
+    b0, b1, b2 = p0 - p1, p2 - p1, p3 - p2
+    b1n = b1 / b1.norm(dim=-1, keepdim=True)
+    v = b0 - (b0 * b1n).sum(-1, keepdim=True) * b1n
+    w = b2 - (b2 * b1n).sum(-1, keepdim=True) * b1n
+    return torch.atan2((torch.linalg.cross(b1n, v, dim=-1) * w).sum(-1), (v * w).sum(-1))
+
+
 def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, basin_labels,
                     device, dtype=torch.float64, reference_F=None, dump_dir=None,
-                    force_fn=None, rare_basin=2, verbose=True):
+                    force_fn=None, rare_basin=2, extra_angle_atoms=None, verbose=True):
     """Run ``R = len(seeds)`` matched-seed replicas of ``method``.
 
     ``init_positions``  ``(R, N, A, 3)`` -- identical across arms for a given seed.
@@ -178,6 +189,12 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
                         system-specific, so any other system must pass its own index
                         (e.g. ``basins.index["<name>"]``). Hardcoding it silently reports the
                         wrong basin's ancestor statistics.
+    ``extra_angle_atoms`` optional atom 4-tuple of a dihedral that is NOT in the CV, recorded at
+                        every save as ``extra_angle`` ``(T, R, N)``.  This is how the OMITTED
+                        coordinate is checked: a 2-D CV can look perfectly converged while the
+                        coordinate it hides is not equilibrated, and nothing else in this
+                        sampler would notice.  ``None`` (the default) reproduces the accepted
+                        alanine behaviour exactly -- no extra evaluation, no extra output key.
     """
     if not (0 <= int(rare_basin) <= int(basin_labels.max())):
         raise ValueError(f"rare_basin={rare_basin} outside the basin labels present "
@@ -243,6 +260,8 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
                             "n_unique", "wmax", "wmax_rare", "events_cum", "trust_frac",
                             "clip_frac", "temperature", "proj_resid", "curl_pre",
                             "score_std", "score_absmax", "ess_age_rare")}
+    if extra_angle_atoms is not None:
+        diag["extra_angle"] = []
     trust_frac = 0.0
     proj_resid = 0.0
     curl_pre = torch.zeros(R, device=device, dtype=dtype)
@@ -361,6 +380,10 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
             diag["curl_pre"].append(curl_pre.detach().cpu().numpy())
             diag["score_std"].append(score_std.detach().cpu().numpy())
             diag["score_absmax"].append(score_absmax.detach().cpu().numpy())
+            if extra_angle_atoms is not None:
+                diag["extra_angle"].append(
+                    _dihedral_iupac_t(q.reshape(R * N, A, 3), extra_angle_atoms)
+                    .reshape(R, N).to(torch.float32).cpu().numpy())
             Tsum = torch.zeros((), device=device, dtype=dtype); n_T = 0
 
         if step == sim.n_steps:

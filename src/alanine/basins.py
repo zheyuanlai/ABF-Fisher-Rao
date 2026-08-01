@@ -125,6 +125,11 @@ def watershed(F, seeds, ceiling):
     return label, level
 
 
+#: Ramachandran boxes for ALANINE'S (phi, psi) CV only.  Any other system -- or any other pair
+#: of angles -- must pass ``name_hints=()`` and take the neutral ``B0, B1, ...`` labels, because
+#: these boxes would otherwise attach a peptide-backbone name to, say, a chi1 rotamer that
+#: merely happens to fall inside the box.  A wrong basin NAME propagates into every table and
+#: is much harder to notice than a wrong number.
 NAME_HINTS = (
     ("C7eq", (-160.0, -40.0, 20.0, 140.0)),
     ("C5",   (-180.0, -100.0, 120.0, 180.0)),
@@ -133,11 +138,11 @@ NAME_HINTS = (
 )
 
 
-def _name_for(phi_deg, psi_deg, used):
+def _name_for(phi_deg, psi_deg, used, hints=NAME_HINTS):
     def inbox(v, lo, hi):
         d = abs((v - 0.5 * (lo + hi) + 180.0) % 360.0 - 180.0)
         return d <= 0.5 * (hi - lo) + 1e-9
-    for nm, (p0, p1, s0, s1) in NAME_HINTS:
+    for nm, (p0, p1, s0, s1) in hints:
         if nm not in used and inbox(phi_deg, p0, p1) and inbox(psi_deg, s0, s1):
             return nm
     return None
@@ -146,7 +151,8 @@ def _name_for(phi_deg, psi_deg, used):
 class BasinMap:
     """Reference-derived basin labelling, shared identically by every method arm."""
 
-    def __init__(self, F, mask, kT, ceiling_kT=8.0, min_prominence_kT=1.0, max_basins=8):
+    def __init__(self, F, mask, kT, ceiling_kT=8.0, min_prominence_kT=1.0, max_basins=8,
+                 name_hints=NAME_HINTS):
         F = np.asarray(F, dtype=float)
         self.n = F.shape[0]
         self.kT = float(kT)
@@ -162,7 +168,7 @@ class BasinMap:
         self.depths_kT = [float(v / self.kT) for _, _, v in mins]
         used, names = set(), []
         for (pd, sd) in self.centres_deg:
-            nm = _name_for(pd, sd, used) or f"B{len(names)}"
+            nm = _name_for(pd, sd, used, hints=name_hints) or f"B{len(names)}"
             used.add(nm)
             names.append(nm)
         self.names = names
