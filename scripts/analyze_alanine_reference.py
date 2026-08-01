@@ -52,9 +52,18 @@ def basin_populations(F, beta, boxes):
     G1, G2 = np.meshgrid(g, g, indexing="ij")
 
     def inbox(lo, hi, X):
-        lo, hi = lo % 360, hi % 360
-        Xm = X % 360
-        return (Xm >= lo) & (Xm <= hi) if lo <= hi else ((Xm >= lo) | (Xm <= hi))
+        """Periodic membership on the circle, correct for a FULL-RANGE box.
+
+        The naive ``lo % 360, hi % 360`` form maps (-180, 180) to lo == hi == 180 and selects a
+        single point instead of everything, which silently emptied the phi<0 / phi>0 boxes.
+        Work instead with the wrapped distance from the box centre.
+        """
+        if (hi - lo) >= 360.0 - 1e-9:
+            return np.ones_like(X, dtype=bool)
+        centre = 0.5 * (lo + hi)
+        half = 0.5 * (hi - lo)
+        d = np.abs((X - centre + 180.0) % 360.0 - 180.0)
+        return d <= half + 1e-9
 
     out = {}
     for name, (p0, p1, s0, s1) in boxes.items():
@@ -89,28 +98,77 @@ def mfep_barrier(F, a, b, n_iter=4000):
     return float("inf")
 
 
+def circular_internal_barrier(Fc, kT, min_depth_kT=0.5):
+    """Barrier separating the two deepest *populated* minima of a periodic 1-D profile.
+
+    For each of the two arcs joining them, take the maximum; the accessible route is the
+    SMALLER of those two maxima; the barrier is that height above the SHALLOWER minimum (the
+    one that would have to be escaped).  Returns 0 when the profile has only one well.
+
+    The earlier version returned ``max(Fc)`` over the whole circle, which is the height of the
+    sterically FORBIDDEN region, not a barrier between populated states -- it scored a
+    single-well profile at 6 kT instead of 0.
+    """
+    n = len(Fc)
+    loc = [i for i in range(n)
+           if Fc[i] <= Fc[(i - 1) % n] and Fc[i] <= Fc[(i + 1) % n] and np.isfinite(Fc[i])]
+    if len(loc) < 2:
+        return 0.0
+    loc.sort(key=lambda i: Fc[i])
+    a, b = loc[0], loc[1]
+    if (Fc[b] - Fc[a]) > 30.0 * kT:          # second well thermally irrelevant
+        return 0.0
+    i, j = (a, b) if a < b else (b, a)
+    arc1 = Fc[i:j + 1]
+    arc2 = np.concatenate([Fc[j:], Fc[:i + 1]])
+    route = min(np.nanmax(arc1), np.nanmax(arc2))
+    return float(max(0.0, route - Fc[b]))    # escape the shallower of the two
+
+
+def periodic_internal_barrier(Fc):
+    """Barrier separating the two lowest distinct basins of a PERIODIC 1-D profile.
+
+    Returns 0 when the profile has a single basin.  The previous implementation returned the
+    global maximum of the profile -- the height of the sterically forbidden wall -- which reads
+    15-22 kT for a one-basin conditional and would wrongly declare psi a hidden slow coordinate.
+    """
+    n = len(Fc)
+    mins = [i for i in range(n)
+            if Fc[i] <= Fc[(i - 1) % n] and Fc[i] <= Fc[(i + 1) % n] and np.isfinite(Fc[i])]
+    if len(mins) < 2:
+        return 0.0
+    mins.sort(key=lambda i: Fc[i])
+    a = mins[0]
+    # second basin: the next-lowest minimum that is not adjacent to the first
+    b = next((i for i in mins[1:] if min(abs(i - a), n - abs(i - a)) > 1), None)
+    if b is None:
+        return 0.0
+    # min-max barrier along the two arcs, measured from the SHALLOWER basin
+    def arc_max(i, j):
+        out, k = -np.inf, i
+        while k != j:
+            k = (k + 1) % n
+            out = max(out, Fc[k])
+        return out
+    saddle = min(arc_max(a, b), arc_max(b, a))
+    return float(saddle - Fc[b])
+
+
 def conditional_psi(F, beta, min_p=1e-3):
-    """F(psi|phi) internal barrier at every phi column carrying population."""
+    """Internal barrier of F(psi|phi) at every phi column carrying population."""
     n = F.shape[0]
     P = np.exp(-beta * np.where(np.isfinite(F), F, np.inf))
     pphi = P.sum(1) / P.sum()
+    g = grid_deg(n)
     rows = []
     for i in range(n):
         if pphi[i] <= min_p:
             continue
         col = P[i] / P[i].sum()
         Fc = -np.log(np.maximum(col, 1e-300)) / beta
-        Fc -= Fc.min()
-        finite = np.isfinite(Fc)
-        # internal barrier = max over the periodic circle of the min-max path between the two
-        # deepest minima; approximated by (max of the lower "saddle" region)
-        order = np.argsort(Fc)
-        lo = order[0]
-        # walk both ways from the global min; the internal barrier is the smaller of the two
-        # maxima encountered before returning to a point as low as the second minimum
-        fwd = max(Fc[(lo + k) % n] for k in range(1, n))
-        rows.append((float(np.degrees(grid_deg(n)[i])) if False else float(grid_deg(n)[i]),
-                     float(pphi[i]), float(fwd / (KB * 300.0))))
+        Fc = Fc - Fc.min()
+        rows.append((float(g[i]), float(pphi[i]),
+                     float(periodic_internal_barrier(Fc) / (KB * 300.0))))
     return rows
 
 

@@ -46,6 +46,9 @@ def main():
     ap.add_argument("--walkers", type=int, default=1024)
     ap.add_argument("--ps", type=float, default=400.0)
     ap.add_argument("--equil-ps", type=float, default=20.0)
+    ap.add_argument("--bias-equil-ps", type=float, default=300.0,
+                    help="discard while the ADAPTIVE BIAS is still growing; the first run's\n                          frac(phi>0) ran 0.30->0.65->0.61->0.39->0.21->0.11->0.09, i.e. the\n                          bias only plateaued after ~250 ps, and accumulating from 20 ps\n                          folded that transient in (dG 2.38 vs the reference 3.42 kT)")
+    ap.add_argument("--block-ps", type=float, default=50.0)
     ap.add_argument("--dt", type=float, default=0.001)
     ap.add_argument("--gamma", type=float, default=1.0)
     ap.add_argument("--temperature", type=float, default=300.0)
@@ -111,15 +114,25 @@ def main():
           f"param_hash={parameter_hash(P)}", flush=True)
 
     hist = torch.zeros(a.n_grid, a.n_grid, device=dev, dtype=dtype)
-    logw_max = None
+    block = torch.zeros(a.n_grid, a.n_grid, device=dev, dtype=dtype)
+    n_bias_eq = int(a.bias_equil_ps / a.dt)
+    n_block = int(a.block_ps / a.dt)
+    gdeg = np.degrees(-math.pi + (np.arange(a.n_grid) + 0.5) * (TWO_PI / a.n_grid))
+    pos_mask = torch.as_tensor(gdeg > 0, device=dev)
+    blocks = []
     n_acc = 0
+
+    def block_dG(h):
+        pp = (h / h.sum().clamp_min(1e-30))
+        Ppos = float(pp[pos_mask, :].sum())
+        return Ppos, -kT * math.log(max(Ppos, 1e-300) / max(1 - Ppos, 1e-300)) / kT
     for s in range(n_eq + n_pr):
         step_holder["s"] = s
         x, v, f = integ.step(x, v, f, gen)
         p1, p2 = cv(x)
         if (s + 1) % cfg.pace == 0:
             opes.deposit(p1[None], p2[None])
-        if s >= n_eq and (s + 1) % 100 == 0:
+        if s >= n_eq + n_bias_eq and (s + 1) % 100 == 0:
             # reweight to the unbiased ensemble: w = exp(+beta * A(z))
             from alkanes import density2d as d2
             A_at = d2.bilinear_interp2(opes._bias, opes.g1, opes.g2, opes.dz1, opes.dz2,
@@ -128,7 +141,16 @@ def main():
             i = torch.floor((p1 + math.pi) / opes.dz1).long().clamp_(0, a.n_grid - 1)
             j = torch.floor((p2 + math.pi) / opes.dz2).long().clamp_(0, a.n_grid - 1)
             hist.view(-1).scatter_add_(0, i * a.n_grid + j, w)
+            block.view(-1).scatter_add_(0, i * a.n_grid + j, w)
             n_acc += 1
+        if s >= n_eq + n_bias_eq and (s + 1 - n_eq - n_bias_eq) % n_block == 0 and float(block.sum()) > 0:
+            Pb, dGb = block_dG(block)
+            Pc, dGc = block_dG(hist)
+            blocks.append(dict(t_ps=(s + 1 - n_eq) * a.dt, P_block=Pb, dG_block_kT=dGb,
+                               P_cum=Pc, dG_cum_kT=dGc))
+            print(f"    block t={(s+1-n_eq)*a.dt:7.1f} ps : dG_block={dGb:6.3f} kT  "
+                  f"dG_cumulative={dGc:6.3f} kT  (P_block={Pb:.4f})", flush=True)
+            block.zero_()
         if (s + 1) % max((n_eq + n_pr) // 10, 1) == 0:
             check_finite(s + 1, ("q", x), ("v", v), ("f", f), dump_dir=a.out, tag="opes")
             el = time.perf_counter() - t0
@@ -151,6 +173,7 @@ def main():
                device=dev, cuda_visible_devices=os.environ.get("CUDA_VISIBLE_DEVICES", ""),
                P_phi_pos=P_pos, dG_phi_pos_kJ=dG, dG_phi_pos_kT=dG / kT,
                neff_frac=float(opes.neff_frac()[0]), n_kernels=int(opes.n_kernels()[0]),
+               bias_equil_ps=a.bias_equil_ps, blocks=blocks,
                wall_seconds=time.perf_counter() - t0)
     np.savez_compressed(os.path.join(a.out, "opes.npz"), F=F, p=p, meta=json.dumps(out))
     with open(os.path.join(a.out, "meta.json"), "w") as fh:
