@@ -21,7 +21,7 @@ base:
   abf_warmup_steps: 5000
   fr_start_steps: 20000        # 20 ps
   fr_every: 500                # 0.5 ps
-  fr_rate: FR_RATE_PLACEHOLDER
+  fr_rate: 0.02                # frozen by SAFETY calibration (cumulative event fraction 2.61%)
   score_clip: 2.0
   max_event_fraction: 0.05
   lineage_reset_steps: 6000    # 6 ps age-aware window
