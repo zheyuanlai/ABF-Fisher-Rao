@@ -131,8 +131,18 @@ def time_series(out, ref_pack, F_ref_smoothed, n_grid, window):
 
 
 # --------------------------------------------------------------------------- genealogy / cost
+def _rare_key(out, new, old):
+    """Read a rare-basin diagnostic, accepting the pre-rename alanine artifacts.
+
+    The keys were ``wmax_c7ax`` / ``ess_age_c7ax`` until the tracked basin became a parameter.
+    Artifacts written before that rename are still on disk and are still the accepted alanine
+    result, so both spellings are read; only the new one is ever written.
+    """
+    return out[new] if new in out else out[old]
+
+
 def genealogy_summary(out, window_ps, fr_start_steps=20000, fr_every=500):
-    """Age-aware ESS, max ancestor fraction (global and in C7ax), event fraction."""
+    """Age-aware ESS, max ancestor fraction (global and in the tracked rare basin), events."""
     t = np.asarray(out["times"], dtype=float)
     sel = (t >= window_ps[0]) & (t <= window_ps[1])
     R = out["ess_age"].shape[1]
@@ -152,8 +162,9 @@ def genealogy_summary(out, window_ps, fr_start_steps=20000, fr_every=500):
             ess_age_mean=float(np.nanmean(out["ess_age"][sel, r])),
             ess_perm_min=float(np.nanmin(out["ess_perm"][sel, r])),
             wmax_max=float(np.nanmax(out["wmax"][sel, r])),
-            wmax_c7ax_max=float(np.nanmax(out["wmax_c7ax"][sel, r])),
-            ess_age_c7ax_min=float(np.nanmin(out["ess_age_c7ax"][sel, r])),
+            wmax_rare_max=float(np.nanmax(_rare_key(out, "wmax_rare", "wmax_c7ax")[sel, r])),
+            ess_age_rare_min=float(
+                np.nanmin(_rare_key(out, "ess_age_rare", "ess_age_c7ax")[sel, r])),
             n_events=ev, n_opportunities=int(n_opp),
             event_fraction=ev / max(out["n_replicas"], 1) / n_opp,
             event_fraction_cumulative=ev / max(out["n_replicas"], 1),

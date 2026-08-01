@@ -1,0 +1,161 @@
+{
+  "param_hash": "86622b245bb0",
+  "cuda_visible_devices": "7",
+  "device": "cuda",
+  "n_windows": 144,
+  "batch": 4608,
+  "walkers_per_window_per_parent": 16,
+  "equil_steps": 50000,
+  "prod_steps": 250000,
+  "save_every": 50,
+  "kappa_backbone": 500.0,
+  "kappa_chi1": 100.0,
+  "seed": 20260801,
+  "chi_spacing_deg": 15.0,
+  "parent_chi1_deg": [
+    180.0,
+    -60.0
+  ],
+  "physical_model": "vacuum ff14SB, no constraints, no HMR, BAOAB, dt=1fs, gamma=1/ps, T=300K, float64",
+  "wall_seconds": 4974.295666217804,
+  "mean_temperature_K": 293.1708137050548,
+  "git": {
+    "commit": "f63a4e012e6930e8aa29d82ecce38168c4f56068",
+    "branch": "alanine-dipeptide",
+    "dirty": true
+  },
+  "gate_v1": {
+    "barrier": true,
+    "population": true,
+    "verdict": "PASS"
+  },
+  "summary": [
+    {
+      "backbone": "C7eq",
+      "phi": -80.0,
+      "psi": 80.0,
+      "barrier_kT": 17.271164475870872,
+      "wells_deg": [
+        -172.5,
+        -72.5,
+        57.499999999999986
+      ],
+      "wells_kT": [
+        0.0,
+        1.9607792276311649,
+        2.8274519836874616
+      ],
+      "rotamer_populations": {
+        "g_minus": 0.12027008286821769,
+        "g_plus": 0.04683806893753464,
+        "trans": 0.8328918481942479
+      }
+    },
+    {
+      "backbone": "C5",
+      "phi": -140.0,
+      "psi": 150.0,
+      "barrier_kT": 11.312710039781567,
+      "wells_deg": [
+        -67.5,
+        67.49999999999997,
+        177.5
+      ],
+      "wells_kT": [
+        0.7528782533907336,
+        0.0,
+        1.30641501220924
+      ],
+      "rotamer_populations": {
+        "g_minus": 0.27141562272459907,
+        "g_plus": 0.5492099050622232,
+        "trans": 0.1793744722131776
+      }
+    },
+    {
+      "backbone": "alphaR",
+      "phi": -70.0,
+      "psi": -30.0,
+      "barrier_kT": 11.437019940360381,
+      "wells_deg": [
+        -177.5,
+        -62.50000000000001,
+        67.49999999999997
+      ],
+      "wells_kT": [
+        1.5375069661420215,
+        0.0,
+        0.9911722222293601
+      ],
+      "rotamer_populations": {
+        "g_minus": 0.6161861615057993,
+        "g_plus": 0.22357298864081326,
+        "trans": 0.1602408498533872
+      }
+    },
+    {
+      "backbone": "alphaL",
+      "phi": 60.0,
+      "psi": 40.0,
+      "barrier_kT": 17.94176389430231,
+      "wells_deg": [
+        -157.5,
+        -57.500000000000014,
+        77.50000000000001
+      ],
+      "wells_kT": [
+        0.0,
+        0.02880720696360963,
+        2.638425144033747
+      ],
+      "rotamer_populations": {
+        "g_minus": 0.45958632625710755,
+        "g_plus": 0.03516607913429587,
+        "trans": 0.5052475946085964
+      }
+    },
+    {
+      "backbone": "C7ax",
+      "phi": 63.0,
+      "psi": -48.0,
+      "barrier_kT": 12.90582519147956,
+      "wells_deg": [
+        -177.5,
+        -52.50000000000001,
+        82.50000000000001
+      ],
+      "wells_kT": [
+        0.0,
+        4.530195278980521,
+        4.740354262596152
+      ],
+      "rotamer_populations": {
+        "g_minus": 0.01224701425318128,
+        "g_plus": 0.012398940119428197,
+        "trans": 0.9753540456273906
+      }
+    },
+    {
+      "backbone": "bridge",
+      "phi": -100.0,
+      "psi": 0.0,
+      "barrier_kT": 15.534488901161028,
+      "wells_deg": [
+        -167.5,
+        -62.50000000000001,
+        72.5
+      ],
+      "wells_kT": [
+        4.905331295727458,
+        0.0,
+        2.5313500148042336
+      ],
+      "rotamer_populations": {
+        "g_minus": 0.9162380067017685,
+        "g_plus": 0.07075021282446234,
+        "trans": 0.013011780473769153
+      }
+    }
+  ],
+  "config_hash": "189dbb6c208d"
+}

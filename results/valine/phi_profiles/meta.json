@@ -1,0 +1,347 @@
+{
+  "param_hash": "86622b245bb0",
+  "cuda_visible_devices": "7",
+  "device": "cuda",
+  "n_windows": 144,
+  "batch": 3968,
+  "walkers_per_window_per_parent": 16,
+  "equil_steps": 50000,
+  "prod_steps": 250000,
+  "save_every": 50,
+  "kappa_clamp": 500.0,
+  "kappa_scan": 100.0,
+  "seed": 20260801,
+  "scan": "phi",
+  "scan_column": 0,
+  "clamp_columns": [
+    1,
+    2
+  ],
+  "angle_order": [
+    "phi",
+    "psi",
+    "chi1"
+  ],
+  "window_spacing_deg": 15.0,
+  "parent_chi1_deg": [
+    180.0,
+    -60.0
+  ],
+  "physical_model": "vacuum ff14SB, no constraints, no HMR, BAOAB, dt=1fs, gamma=1/ps, T=300K, float64",
+  "wall_seconds": 4498.062824249268,
+  "mean_temperature_K": 293.23095093097777,
+  "git": {
+    "commit": "f63a4e012e6930e8aa29d82ecce38168c4f56068",
+    "branch": "alanine-dipeptide",
+    "dirty": true
+  },
+  "gate": {
+    "max_states_in_hidden_coordinate": 2,
+    "worst_sampled_barrier_kT": 42.04898960793044,
+    "cv": "psi_chi1",
+    "verdict": "FAIL"
+  },
+  "n_windows_kept": 124,
+  "dropped_windows": [
+    {
+      "anchor": "psi80_t",
+      "scan_deg": 150.0,
+      "kind": "omega",
+      "reason": "seed 0: omega_1 = 58.3 deg, 121.7 deg from trans"
+    },
+    {
+      "anchor": "psi80_t",
+      "scan_deg": 165.0,
+      "kind": "omega",
+      "reason": "seed 0: omega_1 = 43.8 deg, 136.2 deg from trans"
+    },
+    {
+      "anchor": "psi80_g-",
+      "scan_deg": 90.0,
+      "kind": "omega",
+      "reason": "seed 0: omega_1 = 100.3 deg, 79.7 deg from trans"
+    },
+    {
+      "anchor": "psi80_g-",
+      "scan_deg": 105.0,
+      "kind": "omega",
+      "reason": "seed 0: omega_1 = -45.4 deg, 134.6 deg from trans"
+    },
+    {
+      "anchor": "psi80_g-",
+      "scan_deg": 150.0,
+      "kind": "omega",
+      "reason": "seed 0: omega_1 = 66.8 deg, 113.2 deg from trans"
+    },
+    {
+      "anchor": "psi80_g-",
+      "scan_deg": 165.0,
+      "kind": "omega",
+      "reason": "seed 0: omega_1 = -154.9 deg, 25.1 deg from trans"
+    },
+    {
+      "anchor": "psi150_g+",
+      "scan_deg": 0.0,
+      "kind": "omega",
+      "reason": "seed 0: omega_1 = 152.4 deg, 27.6 deg from trans"
+    },
+    {
+      "anchor": "psi150_g+",
+      "scan_deg": 105.0,
+      "kind": "omega",
+      "reason": "seed 0: omega_1 = -152.4 deg, 27.6 deg from trans"
+    },
+    {
+      "anchor": "psim30_g-",
+      "scan_deg": 15.0,
+      "kind": "steric",
+      "reason": "seed 0: closest non-excluded contact 0.1763 nm < 0.18"
+    },
+    {
+      "anchor": "psim30_g-",
+      "scan_deg": 30.0,
+      "kind": "omega",
+      "reason": "seed 0: omega_2 = 73.6 deg, 106.4 deg from trans"
+    },
+    {
+      "anchor": "psim30_g-",
+      "scan_deg": 45.0,
+      "kind": "steric",
+      "reason": "seed 0: closest non-excluded contact 0.1779 nm < 0.18"
+    },
+    {
+      "anchor": "psim30_g-",
+      "scan_deg": 105.0,
+      "kind": "omega",
+      "reason": "seed 0: omega_1 = -13.2 deg, 166.8 deg from trans"
+    },
+    {
+      "anchor": "psim30_g-",
+      "scan_deg": 150.0,
+      "kind": "omega",
+      "reason": "seed 0: omega_1 = 56.3 deg, 123.7 deg from trans"
+    },
+    {
+      "anchor": "psi40_g-",
+      "scan_deg": -45.0,
+      "kind": "steric",
+      "reason": "seed 0: closest non-excluded contact 0.1780 nm < 0.18"
+    },
+    {
+      "anchor": "psi40_g-",
+      "scan_deg": -30.0,
+      "kind": "steric",
+      "reason": "seed 0: closest non-excluded contact 0.1769 nm < 0.18"
+    },
+    {
+      "anchor": "psi40_g-",
+      "scan_deg": 105.0,
+      "kind": "omega",
+      "reason": "seed 0: omega_1 = -45.1 deg, 134.9 deg from trans"
+    },
+    {
+      "anchor": "psi40_g-",
+      "scan_deg": 150.0,
+      "kind": "omega",
+      "reason": "seed 0: omega_1 = 63.7 deg, 116.3 deg from trans"
+    },
+    {
+      "anchor": "psi40_g-",
+      "scan_deg": 165.0,
+      "kind": "omega",
+      "reason": "seed 0: omega_1 = -152.9 deg, 27.1 deg from trans"
+    },
+    {
+      "anchor": "psim48_t",
+      "scan_deg": 150.0,
+      "kind": "omega",
+      "reason": "seed 0: omega_1 = 56.2 deg, 123.8 deg from trans"
+    },
+    {
+      "anchor": "psim48_t",
+      "scan_deg": 165.0,
+      "kind": "omega",
+      "reason": "seed 0: omega_1 = 40.8 deg, 139.2 deg from trans"
+    }
+  ],
+  "summary": [
+    {
+      "anchor": "psi80_t",
+      "anchor_values_deg": [
+        80.0,
+        180.0
+      ],
+      "scan": "phi",
+      "n_windows_kept": 22,
+      "barrier_kT": 39.72823955042486,
+      "n_wells": 2,
+      "n_states": 1,
+      "state_populations": [
+        1.0
+      ],
+      "separated_by_inaccessible_arc": false,
+      "wells_deg": [
+        -77.5,
+        57.499999999999986
+      ],
+      "wells_kT": [
+        0.0,
+        15.499373822780889
+      ],
+      "sector_populations": {
+        "sector_minus": 0.9935754301582517,
+        "sector_plus": 2.298489581258158e-07,
+        "sector_trans": 0.006424339992790108
+      }
+    },
+    {
+      "anchor": "psi80_g-",
+      "anchor_values_deg": [
+        80.0,
+        -60.0
+      ],
+      "scan": "phi",
+      "n_windows_kept": 20,
+      "barrier_kT": 42.04898960793044,
+      "n_wells": 2,
+      "n_states": 1,
+      "state_populations": [
+        1.0
+      ],
+      "separated_by_inaccessible_arc": false,
+      "wells_deg": [
+        -77.5,
+        37.49999999999999
+      ],
+      "wells_kT": [
+        0.0,
+        15.970902443355103
+      ],
+      "sector_populations": {
+        "sector_minus": 0.9946131692966212,
+        "sector_plus": 1.779198897221983e-07,
+        "sector_trans": 0.00538665278348892
+      }
+    },
+    {
+      "anchor": "psi150_g+",
+      "anchor_values_deg": [
+        150.0,
+        60.0
+      ],
+      "scan": "phi",
+      "n_windows_kept": 22,
+      "barrier_kT": 36.50579010277825,
+      "n_wells": 2,
+      "n_states": 1,
+      "state_populations": [
+        1.0
+      ],
+      "separated_by_inaccessible_arc": false,
+      "wells_deg": [
+        -152.5,
+        57.499999999999986
+      ],
+      "wells_kT": [
+        0.0,
+        25.728225944964702
+      ],
+      "sector_populations": {
+        "sector_minus": 0.07076591232952055,
+        "sector_plus": 4.00166387515032e-12,
+        "sector_trans": 0.9292340876664777
+      }
+    },
+    {
+      "anchor": "psim30_g-",
+      "anchor_values_deg": [
+        -30.0,
+        -60.0
+      ],
+      "scan": "phi",
+      "n_windows_kept": 19,
+      "barrier_kT": 30.828104062489523,
+      "n_wells": 2,
+      "n_states": 2,
+      "state_populations": [
+        0.7332,
+        0.2639
+      ],
+      "separated_by_inaccessible_arc": false,
+      "wells_deg": [
+        -62.50000000000001,
+        57.499999999999986
+      ],
+      "wells_kT": [
+        1.5009027070302532,
+        0.0
+      ],
+      "sector_populations": {
+        "sector_minus": 0.2627712087300574,
+        "sector_plus": 0.733384494676818,
+        "sector_trans": 0.0038442965931245227
+      }
+    },
+    {
+      "anchor": "psi40_g-",
+      "anchor_values_deg": [
+        40.0,
+        -60.0
+      ],
+      "scan": "phi",
+      "n_windows_kept": 19,
+      "barrier_kT": 41.64079028459669,
+      "n_wells": 2,
+      "n_states": 1,
+      "state_populations": [
+        0.9997
+      ],
+      "separated_by_inaccessible_arc": false,
+      "wells_deg": [
+        -77.5,
+        47.5
+      ],
+      "wells_kT": [
+        0.0,
+        8.153713640145009
+      ],
+      "sector_populations": {
+        "sector_minus": 0.996302014492987,
+        "sector_plus": 0.0002508764849879497,
+        "sector_trans": 0.003447109022024971
+      }
+    },
+    {
+      "anchor": "psim48_t",
+      "anchor_values_deg": [
+        -48.0,
+        180.0
+      ],
+      "scan": "phi",
+      "n_windows_kept": 22,
+      "barrier_kT": 30.225296842363722,
+      "n_wells": 3,
+      "n_states": 1,
+      "state_populations": [
+        0.9996
+      ],
+      "separated_by_inaccessible_arc": true,
+      "wells_deg": [
+        -137.5,
+        -62.50000000000001,
+        62.49999999999998
+      ],
+      "wells_kT": [
+        10.428444905037384,
+        8.679348884654766,
+        0.0
+      ],
+      "sector_populations": {
+        "sector_minus": 0.00034738871208177,
+        "sector_plus": 0.9996086474036268,
+        "sector_trans": 4.396388429137941e-05
+      }
+    }
+  ],
+  "config_hash": "e9584ce50e82"
+}

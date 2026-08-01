@@ -235,10 +235,14 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
     prev_basin = None
     trans = torch.zeros(R, n_basins, n_basins, device=device, dtype=torch.long)
 
+    # ``*_rare`` are the in-basin genealogy diagnostics for basin ``rare_basin``.  They were
+    # once named ``*_c7ax``, which was true only for alanine's depth ordering and would have
+    # silently mislabelled every other system's tracked basin; the artifact now records
+    # ``rare_basin`` explicitly so the name cannot drift from the index.
     diag = {k: [] for k in ("steps", "times", "pmf", "basin_frac", "ess_perm", "ess_age",
-                            "n_unique", "wmax", "wmax_c7ax", "events_cum", "trust_frac",
+                            "n_unique", "wmax", "wmax_rare", "events_cum", "trust_frac",
                             "clip_frac", "temperature", "proj_resid", "curl_pre",
-                            "score_std", "score_absmax", "ess_age_c7ax")}
+                            "score_std", "score_absmax", "ess_age_rare")}
     trust_frac = 0.0
     proj_resid = 0.0
     curl_pre = torch.zeros(R, device=device, dtype=dtype)
@@ -328,27 +332,27 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
                 _abort(step, "non-finite local mean force / CV / physical force")
             ess_p, nuq, wmx = _ancestor_stats_t(anc, N)
             ess_a, _, _ = _ancestor_stats_t(anc_age, N)
-            c7 = (cur == int(rare_basin))
+            in_rare = (cur == int(rare_basin))
             frac = torch.stack([(cur == k).to(dtype).mean(1) for k in range(n_basins)], -1)
-            wmax_c7 = torch.zeros(R, device=device, dtype=torch.float64)
-            ess_a_c7 = torch.zeros(R, device=device, dtype=torch.float64)
+            wmax_rare = torch.zeros(R, device=device, dtype=torch.float64)
+            ess_a_rare = torch.zeros(R, device=device, dtype=torch.float64)
             for r in range(R):
-                sel = anc_age[r][c7[r]]
+                sel = anc_age[r][in_rare[r]]
                 if sel.numel() > 0:
                     cnt = torch.bincount(sel, minlength=N).to(torch.float64)
                     w = cnt / cnt.sum()
-                    wmax_c7[r] = w.max()
-                    ess_a_c7[r] = 1.0 / (w * w).sum().clamp_min(EPS)
+                    wmax_rare[r] = w.max()
+                    ess_a_rare[r] = 1.0 / (w * w).sum().clamp_min(EPS)
             Tnow = float(Tsum / max(n_T, 1)) if n_T else float("nan")
             diag["steps"].append(step); diag["times"].append(step * sim.dt)
             diag["pmf"].append(B.detach().cpu().numpy())
             diag["basin_frac"].append(frac.detach().cpu().numpy())
             diag["ess_perm"].append((ess_p / N).cpu().numpy())
             diag["ess_age"].append((ess_a / N).cpu().numpy())
-            diag["ess_age_c7ax"].append((ess_a_c7 / N).cpu().numpy())
+            diag["ess_age_rare"].append((ess_a_rare / N).cpu().numpy())
             diag["n_unique"].append(nuq.cpu().numpy())
             diag["wmax"].append(wmx.cpu().numpy())
-            diag["wmax_c7ax"].append(wmax_c7.cpu().numpy())
+            diag["wmax_rare"].append(wmax_rare.cpu().numpy())
             diag["events_cum"].append(n_events.cpu().numpy())
             diag["trust_frac"].append(trust_frac)
             diag["clip_frac"].append(float(n_clip.item()) / max(float(n_force_eval.item()), 1.0))
@@ -405,6 +409,7 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
     wall = time.perf_counter() - t0
     out = dict(method=method, seeds=np.asarray(seeds), n_replicas=N, n_steps=sim.n_steps,
                grid=g1c.cpu().numpy(), dz=float(dz1), n_grid=n,
+               rare_basin=int(rare_basin),
                final_pmf=B.detach().cpu().numpy(),
                first_hit=first_hit.cpu().numpy(), trans_matrix=trans.cpu().numpy(),
                total_events=n_events.cpu().numpy(),

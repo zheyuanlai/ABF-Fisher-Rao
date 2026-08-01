@@ -1,0 +1,326 @@
+{
+  "param_hash": "86622b245bb0",
+  "cuda_visible_devices": "7",
+  "device": "cuda",
+  "n_windows": 144,
+  "batch": 4064,
+  "walkers_per_window_per_parent": 16,
+  "equil_steps": 50000,
+  "prod_steps": 250000,
+  "save_every": 50,
+  "kappa_clamp": 500.0,
+  "kappa_scan": 100.0,
+  "seed": 20260801,
+  "scan": "psi",
+  "scan_column": 1,
+  "clamp_columns": [
+    0,
+    2
+  ],
+  "angle_order": [
+    "phi",
+    "psi",
+    "chi1"
+  ],
+  "window_spacing_deg": 15.0,
+  "parent_chi1_deg": [
+    180.0,
+    -60.0
+  ],
+  "physical_model": "vacuum ff14SB, no constraints, no HMR, BAOAB, dt=1fs, gamma=1/ps, T=300K, float64",
+  "wall_seconds": 4441.943470001221,
+  "mean_temperature_K": 293.3194833560968,
+  "git": {
+    "commit": "f63a4e012e6930e8aa29d82ecce38168c4f56068",
+    "branch": "alanine-dipeptide",
+    "dirty": true
+  },
+  "gate": {
+    "max_states_in_hidden_coordinate": 1,
+    "worst_sampled_barrier_kT": 24.946496834396964,
+    "cv": "phi_chi1",
+    "verdict": "PASS"
+  },
+  "n_windows_kept": 127,
+  "dropped_windows": [
+    {
+      "anchor": "C7eq_t",
+      "scan_deg": -150.0,
+      "kind": "steric",
+      "reason": "seed 0: closest non-excluded contact 0.1649 nm < 0.18"
+    },
+    {
+      "anchor": "C7eq_t",
+      "scan_deg": -135.0,
+      "kind": "steric",
+      "reason": "seed 0: closest non-excluded contact 0.1601 nm < 0.18"
+    },
+    {
+      "anchor": "C7eq_t",
+      "scan_deg": -120.0,
+      "kind": "steric",
+      "reason": "seed 0: closest non-excluded contact 0.1781 nm < 0.18"
+    },
+    {
+      "anchor": "C7eq_g-",
+      "scan_deg": -105.0,
+      "kind": "steric",
+      "reason": "seed 0: closest non-excluded contact 0.1651 nm < 0.18"
+    },
+    {
+      "anchor": "C7eq_g-",
+      "scan_deg": -90.0,
+      "kind": "steric",
+      "reason": "seed 0: closest non-excluded contact 0.1701 nm < 0.18"
+    },
+    {
+      "anchor": "C5_g+",
+      "scan_deg": -165.0,
+      "kind": "steric",
+      "reason": "seed 0: closest non-excluded contact 0.1768 nm < 0.18"
+    },
+    {
+      "anchor": "C5_g+",
+      "scan_deg": -150.0,
+      "kind": "steric",
+      "reason": "seed 0: closest non-excluded contact 0.1656 nm < 0.18"
+    },
+    {
+      "anchor": "C5_g+",
+      "scan_deg": -135.0,
+      "kind": "steric",
+      "reason": "seed 0: closest non-excluded contact 0.1690 nm < 0.18"
+    },
+    {
+      "anchor": "C5_g+",
+      "scan_deg": -105.0,
+      "kind": "steric",
+      "reason": "seed 0: closest non-excluded contact 0.1678 nm < 0.18"
+    },
+    {
+      "anchor": "C5_g+",
+      "scan_deg": -90.0,
+      "kind": "steric",
+      "reason": "seed 0: closest non-excluded contact 0.1715 nm < 0.18"
+    },
+    {
+      "anchor": "alphaR_g-",
+      "scan_deg": -105.0,
+      "kind": "steric",
+      "reason": "seed 0: closest non-excluded contact 0.1651 nm < 0.18"
+    },
+    {
+      "anchor": "alphaR_g-",
+      "scan_deg": -90.0,
+      "kind": "steric",
+      "reason": "seed 0: closest non-excluded contact 0.1705 nm < 0.18"
+    },
+    {
+      "anchor": "alphaL_g-",
+      "scan_deg": -120.0,
+      "kind": "steric",
+      "reason": "seed 0: closest non-excluded contact 0.1771 nm < 0.18"
+    },
+    {
+      "anchor": "alphaL_g-",
+      "scan_deg": -105.0,
+      "kind": "steric",
+      "reason": "seed 0: closest non-excluded contact 0.1689 nm < 0.18"
+    },
+    {
+      "anchor": "C7ax_t",
+      "scan_deg": -165.0,
+      "kind": "steric",
+      "reason": "seed 0: closest non-excluded contact 0.1712 nm < 0.18"
+    },
+    {
+      "anchor": "C7ax_t",
+      "scan_deg": -150.0,
+      "kind": "omega",
+      "reason": "seed 0: omega_2 = 73.8 deg, 106.2 deg from trans"
+    },
+    {
+      "anchor": "C7ax_t",
+      "scan_deg": -135.0,
+      "kind": "steric",
+      "reason": "seed 0: closest non-excluded contact 0.1655 nm < 0.18"
+    }
+  ],
+  "summary": [
+    {
+      "anchor": "C7eq_t",
+      "anchor_values_deg": [
+        -80.0,
+        180.0
+      ],
+      "scan": "psi",
+      "n_windows_kept": 21,
+      "barrier_kT": 24.946496834396964,
+      "n_wells": 3,
+      "n_states": 1,
+      "state_populations": [
+        1.0
+      ],
+      "separated_by_inaccessible_arc": true,
+      "wells_deg": [
+        -127.50000000000001,
+        -17.500000000000007,
+        87.5
+      ],
+      "wells_kT": [
+        24.30781618918279,
+        6.8201616020878815,
+        0.0
+      ],
+      "sector_populations": {
+        "sector_minus": 0.0005766062100454834,
+        "sector_plus": 0.8131423286173378,
+        "sector_trans": 0.1862810651726166
+      }
+    },
+    {
+      "anchor": "C7eq_g-",
+      "anchor_values_deg": [
+        -80.0,
+        -60.0
+      ],
+      "scan": "psi",
+      "n_windows_kept": 22,
+      "barrier_kT": 23.38741331200472,
+      "n_wells": 2,
+      "n_states": 1,
+      "state_populations": [
+        1.0
+      ],
+      "separated_by_inaccessible_arc": false,
+      "wells_deg": [
+        37.49999999999999,
+        142.5
+      ],
+      "wells_kT": [
+        0.0,
+        2.5243898217042586
+      ],
+      "sector_populations": {
+        "sector_minus": 0.033517410636079624,
+        "sector_plus": 0.9113623940915585,
+        "sector_trans": 0.05512019527236173
+      }
+    },
+    {
+      "anchor": "C5_g+",
+      "anchor_values_deg": [
+        -140.0,
+        60.0
+      ],
+      "scan": "psi",
+      "n_windows_kept": 19,
+      "barrier_kT": 16.350487487737723,
+      "n_wells": 2,
+      "n_states": 1,
+      "state_populations": [
+        1.0
+      ],
+      "separated_by_inaccessible_arc": false,
+      "wells_deg": [
+        -22.5,
+        147.49999999999997
+      ],
+      "wells_kT": [
+        9.09888496837902,
+        0.0
+      ],
+      "sector_populations": {
+        "sector_minus": 0.0001875732468952827,
+        "sector_plus": 0.022827478396481957,
+        "sector_trans": 0.9769849483566229
+      }
+    },
+    {
+      "anchor": "alphaR_g-",
+      "anchor_values_deg": [
+        -70.0,
+        -60.0
+      ],
+      "scan": "psi",
+      "n_windows_kept": 22,
+      "barrier_kT": 24.752877322814168,
+      "n_wells": 2,
+      "n_states": 1,
+      "state_populations": [
+        1.0
+      ],
+      "separated_by_inaccessible_arc": false,
+      "wells_deg": [
+        32.499999999999986,
+        142.5
+      ],
+      "wells_kT": [
+        0.0,
+        2.754587540566224
+      ],
+      "sector_populations": {
+        "sector_minus": 0.052947822462957844,
+        "sector_plus": 0.9068492150464224,
+        "sector_trans": 0.04020296249061964
+      }
+    },
+    {
+      "anchor": "alphaL_g-",
+      "anchor_values_deg": [
+        60.0,
+        -60.0
+      ],
+      "scan": "psi",
+      "n_windows_kept": 22,
+      "barrier_kT": 21.584070042287205,
+      "n_wells": 1,
+      "n_states": 1,
+      "state_populations": [
+        1.0
+      ],
+      "separated_by_inaccessible_arc": false,
+      "wells_deg": [
+        -27.499999999999993
+      ],
+      "wells_kT": [
+        0.0
+      ],
+      "sector_populations": {
+        "sector_minus": 0.9604250577567945,
+        "sector_plus": 0.03957074099579438,
+        "sector_trans": 4.201247410972904e-06
+      }
+    },
+    {
+      "anchor": "C7ax_t",
+      "anchor_values_deg": [
+        63.0,
+        180.0
+      ],
+      "scan": "psi",
+      "n_windows_kept": 21,
+      "barrier_kT": 18.77713443468277,
+      "n_wells": 2,
+      "n_states": 1,
+      "state_populations": [
+        1.0
+      ],
+      "separated_by_inaccessible_arc": false,
+      "wells_deg": [
+        -52.50000000000001,
+        152.49999999999997
+      ],
+      "wells_kT": [
+        0.0,
+        16.613610745570806
+      ],
+      "sector_populations": {
+        "sector_minus": 0.9999019998208096,
+        "sector_plus": 9.728837541651006e-05,
+        "sector_trans": 7.118037740633686e-07
+      }
+    }
+  ],
+  "config_hash": "c3c3fb113f52"
+}
