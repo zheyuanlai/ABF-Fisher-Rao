@@ -1,7 +1,7 @@
 # ALANINE REFERENCE HANDOFF — corrected umbrella/MBAR FES, Stage 1
 
-Branch `alanine-dipeptide`. Written 2026-08-01. **Production ABF-vs-oracle-mFR is NOT launched and
-must not be launched until this handoff is reviewed.**
+Branch `alanine-dipeptide`. Written 2026-08-01. **THE REFERENCE IS ACCEPTED: all 8 gates pass.**
+Production ABF-vs-oracle-mFR is **NOT launched** and must not be until this handoff is reviewed.
 
 Companions: `ALANINE_SPEC.md` (design), `ALANINE_EXECUTION_DECISION.md` (repository truth and the
 A/B/C change classification). Where they disagree with this file about the *reference*, this file wins.
@@ -62,8 +62,8 @@ direction; even grids rejected; structural no-reference-leakage; BAOAB thermosta
 | 3 | min NN overlap inside Ω_eval(8 kT) | ≥ 0.03 | **0.0841** (0 of 231 pairs below 0.03; p1 0.0864, p5 0.0898) | **PASS** |
 | 4 | median NN overlap | ≥ 0.05 | **0.1120** (all 1152 pairs) | **PASS** |
 | 5 | global minimum near L-alanine C7eq | in (−120…−40, +20…+100)° | **(−74.2, +55.7)°** | **PASS** |
-| 6 | bootstrap uncertainty + ESS | reported | see §7 — **NOT yet computed** | **OPEN** |
-| 7 | independent sampler agrees on ΔG | ≈ 0.3 kT | OPES run 1 gave **2.38 kT vs 3.42 kT (gap 1.04 kT)**; diagnosed as bias-transient contamination in the cross-check, rerun in flight | **FAIL — NOT CLOSED** |
+| 6 | bootstrap uncertainty + ESS | reported | ΔG = 3.419 ± **0.079** kT (200 copy-level bootstrap replicates); FES SE on Ω_eval median **0.608 kJ/mol = 0.244 kT** (p90 0.718, max 0.863); MBAR weight ESS fraction 0.068 | **PASS** |
+| 7 | independent sampler agrees on ΔG | ≈ 0.3 kT | OPES (dispersed start) **3.657 ± 0.037 kT** vs reference **3.419 ± 0.079 kT**; **gap 0.238 kT** | **PASS** (see §7 — the gap is 2.7σ, a real small systematic, not noise) |
 | 8 | reference/production physics hash identical | equal | `6ffd00dc241f` recorded in the run manifest; production must assert it | **PASS (by construction)** |
 
 Over the whole torus 27 of 1152 NN pairs fall below 0.03 (min 4.2e−4), but **every one of them lies
@@ -119,39 +119,67 @@ would have inverted the study's central conclusion. Replaced by a proper periodi
 locate the local minima, take the two deepest, take the smaller of the two arc maxima joining them,
 and measure that above the shallower minimum. Corrected result: median 0.17, max 0.75 kT.
 
-## 7. Still open before the reference is formally accepted
+## 7. Gates 6 and 7 — closed, with one caveat carried forward
 
-1. **Gate 7 — independent cross-check: FAILED on the first attempt, and the cause is in the
-   cross-check, not the reference.** OPES (512 walkers × 400 ps) returned ΔG = **2.38 kT** against the
-   reference's **3.42 kT** — a **1.04 kT** gap — with P(φ>0) = 0.0847 vs 0.0317.
+### Gate 6 — statistical uncertainty
 
-   The convergence trace identifies the cause unambiguously. `frac(φ>0)` under the bias ran
+Block bootstrap resampling **whole copies within each window** (200 replicates, MBAR re-solved on
+every one; 197 s total). Copy-level rather than frame-level because resampling frames treats
+correlated samples as independent and understates the error; the 16 copies were independently
+thermalised precisely so this bootstrap can see the copy-to-copy component.
 
-   ```
-   0.303  0.648  0.609  0.389  0.213  0.113  0.109  0.090  0.084  0.092
-   ```
+| quantity | value |
+|---|---|
+| ΔG(φ>0) | **3.419 ± 0.079 kT** |
+| P(φ>0) | 0.03172 ± 0.00224 |
+| FES SE on Ω_eval | median **0.608 kJ/mol = 0.244 kT**, p90 0.718, max 0.863 |
+| MBAR weight ESS fraction | 0.068 |
 
-   i.e. the adaptive bias was still growing and over-pushing walkers into the rare basin for the
-   first ~60 % of the run, plateauing only after ~250 ps. The reweighted histogram accumulated from
-   20 ps onward and therefore **folded that entire transient into the estimate**, inflating P(φ>0).
-   `neff` was correspondingly poor at 0.236.
+**Headroom.** Against a ~15.8 % ABF residual on the thermal window (≈3.1 kJ/mol), the reference's
+own statistical error is **5.1× smaller**. That is a real improvement on the earlier estimate of
+3.8× and it clears the "reference must be ≥3× better than the effect" criterion.
 
-   This is a transient-contamination defect in the cross-check. The reweighting itself is correct:
-   with `gamma = inf` the bias converges to `A -> -F + const`, and reweighting by `w = exp(+beta A)`
-   recovers the unbiased marginal (verified by construction against the OPES sign conventions).
+*Stated limitation:* this bootstrap bounds **statistical** error only. It is structurally blind to
+error common to all windows and all copies — a shared systematic in the force field, integrator or
+CV definition. Gate 7 is what probes that.
 
-   **Rerun in flight:** 1024 walkers x 900 ps, **first 300 ps discarded as bias equilibration**, with
-   ΔG reported in 50 ps blocks so convergence is *demonstrated* rather than assumed. Acceptance
-   unchanged: agreement with +3.42 kT to ≈0.3 kT, and the block series must be flat.
+### Gate 7 — independent sampler
 
-   **Do not read the 1.04 kT gap as evidence against the reference.** The umbrella/MBAR answer is
-   stable at ~3.4 kT across two entirely separate reference runs with different seeding
-   (contaminated: 3.17/3.41/3.47 kT; corrected: 3.42 kT).
-2. **Gate 6 — bootstrap SE and ESS.** Not yet computed. Must use a **block** bootstrap over per-copy
-   trajectory blocks. Caveat to carry: a bootstrap that resamples within windows is structurally blind
-   to error common to all windows; the 16 copies here are independently thermalised specifically so
-   the copy-to-copy component is visible to it.
-3. ~~dt-ladder configurational check~~ — **DONE and passing**, see §8.
+| | ΔG(φ>0) |
+|---|---|
+| umbrella + MBAR (reference) | **3.419 ± 0.079 kT** |
+| OPES, dispersed start (independent sampler) | **3.657 ± 0.037 kT** |
+| gap | **0.238 kT** — inside the ≈0.3 kT tolerance ⇒ **PASS** |
+
+**But the gap is 2.7σ on the combined error, so it is a genuine small systematic between the two
+samplers, not noise.** Declare it: carry **≈0.25 kT as the systematic uncertainty on ΔG** for any
+downstream claim. ΔG(C7ax) is a *secondary* endpoint of the mFR study, so this is tolerable — but it
+must not be quoted as if it were 0.08 kT.
+
+**Two failed attempts preceded this, both defects in the cross-check rather than the reference.**
+Recorded because the failure modes are instructive:
+
+*Attempt 1* (512 walkers × 400 ps): ΔG = 2.38 kT, gap 1.04 kT. The reweighted histogram accumulated
+from 20 ps while the adaptive bias was still growing — `frac(φ>0)` ran 0.30→0.65→0.61→0.39→0.21→0.11
+→0.09 — folding the entire bias transient into the estimate.
+
+*Attempt 2* (16384 walkers × 300 ps, first 100 ps discarded): the block series **drifted
+monotonically** 2.34 → 1.89 → **1.73** → 1.77 → 1.91 → 2.12 → 2.32 → 2.50 → 2.67 → 2.84 and never
+plateaued (tail 2.49 ± 0.25). Discarding the bias transient was not enough because *every walker
+started at C7eq*: the **biased** ensemble was still filling outward all run, and the OPES reweighting
+identity `exp(-β(F+A))·exp(+βA) = exp(-βF)` holds only in stationarity.
+
+Note the identity is *algebraically exact for any bias*, converged or not — so a stale bias cannot
+produce a first-order systematic, only variance. The systematic came from **non-stationarity of the
+sampled ensemble**, which is a different and easily-confused thing.
+
+*Attempt 3* (this one) removes the transient by construction: 16384 walkers initialised from the
+**576 validated 24×24 rigid-rotation umbrella seeds tiled over the torus** (all 576 pass the seed
+gates; starting `frac(φ>0)` = 0.460, i.e. already at the torus-uniform distribution the flattening
+bias drives toward). `neff` improved 0.125 → 0.442. The series rose 1.55 → 2.00 → 2.44 → 2.81 → 3.11
+→ 3.36 → 3.50 → 3.58 → 3.63 → 3.68 → 3.64 → 3.67 → 3.69 → 3.70 → 3.67 with decaying increments and
+then **flattened into a ±0.05 band over the last seven blocks** — a demonstrated plateau, not an
+extrapolated one.
 
 ## 8. The thermostat question, and a gate of mine that was wrong
 
@@ -206,11 +234,9 @@ predict the mFR result; it predicts that the honest expected outcome is neutrali
 
 ## 10. Is the repository ready for the N = 2048/4096 pilot?
 
-**Not yet — three items block it, none large.**
+**Two items block it, neither large.** (Gate closure is done.)
 
-1. **Gates 6 and 7 must close.** Gate 7 **failed** its first attempt for a diagnosed reason and the
-   corrected rerun is in flight (~3-4 h). Gate 6 (block bootstrap SE + ESS) is not yet computed.
-   **The reference is therefore NOT yet accepted.**
+1. ~~Gates 6 and 7~~ — **both closed, §7. The reference is ACCEPTED.**
 2. **There is no sampler.** `src/alanine/` currently has system, force field, CV, integrator,
    birth-death, projection and reference — but **no ABF+mFR driver**, no configs, no runner, no
    results layout. Category-B diagnostics (frozen-bias, ancestor ESS, family split-half accumulators,
