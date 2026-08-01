@@ -166,13 +166,22 @@ def _ancestor_stats_t(labels, N):
 
 def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, basin_labels,
                     device, dtype=torch.float64, reference_F=None, dump_dir=None,
-                    force_fn=None, verbose=True):
+                    force_fn=None, rare_basin=2, verbose=True):
     """Run ``R = len(seeds)`` matched-seed replicas of ``method``.
 
     ``init_positions``  ``(R, N, A, 3)`` -- identical across arms for a given seed.
     ``basin_labels``    ``(n_grid, n_grid)`` long tensor from the reference watershed.
     ``force_fn``        optional compiled physical-force callable ``(B,A,3)->(B,A,3)``.
+    ``rare_basin``      index of the basin whose in-basin genealogy is tracked separately.
+                        Defaults to 2, which is C7ax for alanine's prominence ordering
+                        (C7eq=0, C5=1, C7ax=2) -- but the ordering is by DEPTH and is therefore
+                        system-specific, so any other system must pass its own index
+                        (e.g. ``basins.index["<name>"]``). Hardcoding it silently reports the
+                        wrong basin's ancestor statistics.
     """
+    if not (0 <= int(rare_basin) <= int(basin_labels.max())):
+        raise ValueError(f"rare_basin={rare_basin} outside the basin labels present "
+                         f"(0..{int(basin_labels.max())})")
     assert_no_reference_leakage(method, reference_F)
     require_odd_grid(sim.n_grid)
     is_fr = method in FR_METHODS
@@ -319,7 +328,7 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
                 _abort(step, "non-finite local mean force / CV / physical force")
             ess_p, nuq, wmx = _ancestor_stats_t(anc, N)
             ess_a, _, _ = _ancestor_stats_t(anc_age, N)
-            c7 = (cur == 2)
+            c7 = (cur == int(rare_basin))
             frac = torch.stack([(cur == k).to(dtype).mean(1) for k in range(n_basins)], -1)
             wmax_c7 = torch.zeros(R, device=device, dtype=torch.float64)
             ess_a_c7 = torch.zeros(R, device=device, dtype=torch.float64)
