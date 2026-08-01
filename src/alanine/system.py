@@ -176,8 +176,48 @@ def angle_report(system, x):
     return energy, dev.max(-1)
 
 
+def relax_seeds(tff, x, centers, kappa, n_steps=800, lr=2.0e-5, max_disp=0.004):
+    """Restrained steepest descent to relieve the STERIC clashes a rigid rotation creates.
+
+    A rigid dihedral rotation preserves every bond and angle, but it can still drive non-bonded
+    atoms into each other: measured over a 24x24 lattice, **18.6 % of rigidly rotated seeds sit
+    above E_min + 200 kJ/mol**, peaking at 2.3e6 kJ/mol with forces to 4.7e8 kJ/mol/nm, while
+    their bond angles and chirality are perfect.  Starting BAOAB from those explodes
+    (kinetic temperature ~1e27 K) *without ever producing a NaN*, so a finiteness check alone
+    does not catch it -- which is why :func:`validate_seed` also gates on total energy and force.
+
+    Minimisation runs under the umbrella restraint so ``(phi, psi)`` stays at the window centre,
+    and each step's displacement is capped so a huge initial force cannot throw the structure.
+
+    ``tff`` is a :class:`alanine.forcefield.TorchFF`; ``x`` is ``(K, 22, 3)`` in nm.
+    """
+    import torch as _t
+    from .reference import restraint_energy
+
+    def _dihedral(y, idx):
+        p0, p1, p2, p3 = (y[:, i] for i in idx)
+        b0, b1, b2 = p0 - p1, p2 - p1, p3 - p2
+        b1n = b1 / b1.norm(dim=-1, keepdim=True)
+        v = b0 - (b0 * b1n).sum(-1, keepdim=True) * b1n
+        w = b2 - (b2 * b1n).sum(-1, keepdim=True) * b1n
+        return _t.atan2((_t.linalg.cross(b1n, v, dim=-1) * w).sum(-1), (v * w).sum(-1))
+
+    y = _t.as_tensor(x).clone()
+    c = _t.as_tensor(centers, device=y.device, dtype=y.dtype)
+    for _ in range(int(n_steps)):
+        yg = y.detach().requires_grad_(True)
+        E = tff.energy(yg) + restraint_energy(_dihedral(yg, PHI_ATOMS),
+                                              _dihedral(yg, PSI_ATOMS), c, kappa)
+        g, = _t.autograd.grad(E.sum(), yg)
+        d = -lr * g
+        nrm = d.norm(dim=-1, keepdim=True).clamp_min(1e-12)
+        y = (y + d * _t.clamp(max_disp / nrm, max=1.0)).detach()
+    return y
+
+
 def validate_seed(system, x, centers, max_angle_energy=50.0, max_angle_dev_deg=15.0,
-                  cv_tol_deg=1.0):
+                  cv_tol_deg=1.0, energy=None, max_energy_above_min=200.0,
+                  force_max=None, max_force=1.0e5):
     """Stage-0 gate V15 for umbrella seeds.  Returns ``(ok (K,), report dict)``.
 
     A seed passes iff: L chirality; harmonic-angle energy below ``max_angle_energy`` kJ/mol;
@@ -185,7 +225,7 @@ def validate_seed(system, x, centers, max_angle_energy=50.0, max_angle_dev_deg=1
     ``cv_tol_deg`` of the requested centre.
     """
     x = np.asarray(x, dtype=float)
-    energy, dev = angle_report(system, x)
+    aenergy, dev = angle_report(system, x)
     chir = chirality(x)
     phi = signed_dihedral_np(x, PHI_ATOMS)
     psi = signed_dihedral_np(x, PSI_ATOMS)
@@ -196,14 +236,31 @@ def validate_seed(system, x, centers, max_angle_energy=50.0, max_angle_dev_deg=1
 
     dphi = wrap(phi - c[:, 0])
     dpsi = wrap(psi - c[:, 1])
-    ok = ((chir > 0) & (energy < max_angle_energy) & (dev < max_angle_dev_deg)
+    ok = ((chir > 0) & (aenergy < max_angle_energy) & (dev < max_angle_dev_deg)
           & (dphi < cv_tol_deg) & (dpsi < cv_tol_deg))
-    return ok, dict(angle_energy=energy, max_angle_dev_deg=dev, chirality=chir,
-                    dphi_deg=dphi, dpsi_deg=dpsi,
-                    n_fail_chirality=int((chir <= 0).sum()),
-                    n_fail_energy=int((energy >= max_angle_energy).sum()),
-                    n_fail_angle_dev=int((dev >= max_angle_dev_deg).sum()),
-                    n_fail_cv=int(((dphi >= cv_tol_deg) | (dpsi >= cv_tol_deg)).sum()))
+    rep = dict(angle_energy=aenergy, max_angle_dev_deg=dev, chirality=chir,
+               dphi_deg=dphi, dpsi_deg=dpsi,
+               n_fail_chirality=int((chir <= 0).sum()),
+               n_fail_angle_energy=int((aenergy >= max_angle_energy).sum()),
+               n_fail_angle_dev=int((dev >= max_angle_dev_deg).sum()),
+               n_fail_cv=int(((dphi >= cv_tol_deg) | (dpsi >= cv_tol_deg)).sum()))
+
+    # Steric gate.  Bond angles and chirality can be perfect while non-bonded atoms overlap;
+    # such a seed is finite but explodes on the first BAOAB step, so finiteness is not enough.
+    if energy is not None:
+        e = np.asarray(energy, dtype=float)
+        finite_e = np.isfinite(e)
+        thresh = (e[finite_e].min() + max_energy_above_min) if finite_e.any() else np.inf
+        ok = ok & finite_e & (e <= thresh)
+        rep["total_energy"] = e
+        rep["energy_threshold"] = float(thresh)
+        rep["n_fail_total_energy"] = int((~(finite_e & (e <= thresh))).sum())
+    if force_max is not None:
+        fm = np.asarray(force_max, dtype=float)
+        ok = ok & np.isfinite(fm) & (fm <= max_force)
+        rep["force_max"] = fm
+        rep["n_fail_force"] = int((~(np.isfinite(fm) & (fm <= max_force))).sum())
+    return ok, rep
 
 
 def window_centers(n_per_axis):
