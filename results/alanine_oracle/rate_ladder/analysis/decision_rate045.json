@@ -1,0 +1,102 @@
+{
+  "kind": "pilot",
+  "stage": "rate045",
+  "window_ps": [
+    20.0,
+    100.0
+  ],
+  "n_paired_seeds": 4,
+  "primary_kernel_matched_integrated_FES": {
+    "equilibrium": {
+      "median": 0.00023558191071425724,
+      "lo": 8.48243256429904e-05,
+      "hi": 0.0003521753401939995,
+      "win_rate": 0.0,
+      "n": 4,
+      "z0": -0.29839723388455863
+    },
+    "uniform8": {
+      "median": -4.552730526203653e-05,
+      "lo": -0.0001040063751205023,
+      "hi": 1.0203076985858566e-05,
+      "win_rate": 0.75,
+      "n": 4,
+      "z0": -0.29839723388455863
+    },
+    "uniform10": {
+      "median": -3.269391004337589e-05,
+      "lo": -4.594292969463797e-05,
+      "hi": -2.1691322333863762e-09,
+      "win_rate": 0.75,
+      "n": 4,
+      "z0": -0.305743434358149
+    }
+  },
+  "endpoint_mean_force": {
+    "median": -0.0001193880212852569,
+    "lo": -0.00028693864333740216,
+    "hi": -3.7273099506727965e-05,
+    "win_rate": 0.75,
+    "n": 4,
+    "z0": -0.23372303968598776
+  },
+  "signs": {
+    "equilibrium": 1.0,
+    "uniform8": -1.0,
+    "uniform10": -1.0
+  },
+  "genealogy": {
+    "ess_age_min": 0.6018219218336762,
+    "wmax_max": 0.013671875,
+    "event_fraction_per_opportunity_max": 0.0255665275621118,
+    "event_fraction_cumulative_max": 4.1162109375
+  },
+  "clip_fraction_max": 0.0,
+  "frozen_retention": null,
+  "checks": {
+    "fes_median_improvement": [
+      false,
+      0.00023558191071425724
+    ],
+    "seed_wins": [
+      false,
+      "0/4"
+    ],
+    "grad_improvement": [
+      false,
+      -0.0001193880212852569
+    ],
+    "sign_consistent_all_weightings": [
+      false,
+      {
+        "equilibrium": 1.0,
+        "uniform8": -1.0,
+        "uniform10": -1.0
+      }
+    ],
+    "ci_upper_below_zero": [
+      false,
+      0.0003521753401939995
+    ],
+    "ess_age_ge_0.30N": [
+      true,
+      0.6018219218336762
+    ],
+    "wmax_le_0.05": [
+      true,
+      0.013671875
+    ],
+    "event_fraction_lt_0.05": [
+      true,
+      0.0255665275621118
+    ],
+    "clip_fraction_lt_1e-4": [
+      true,
+      0.0
+    ]
+  },
+  "all_pass": false,
+  "classification": "EQUIVALENT",
+  "dG_systematic_kT": 0.25,
+  "note": "dG(C7ax) effects smaller than the 0.25 kT reference systematic are not resolvable and must not be claimed."
+}

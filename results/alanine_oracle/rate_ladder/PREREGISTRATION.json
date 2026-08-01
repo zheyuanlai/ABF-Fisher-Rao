@@ -1,0 +1,25 @@
+{
+  "experiment": "alanine oracle-mFR FR-rate ladder",
+  "declared_before_running": true,
+  "declared_at_commit": "c065c2d",
+  "motivation": "The pilot froze fr_rate=0.02, which reallocated only 0.13% of the population per FR opportunity -- 8-23x BELOW the 1-3% band the protocol intended as the operating point. Open item 14.1 of ALANINE_ORACLE_PILOT_HANDOFF.md. A null at that intensity does not test the mechanism at its designed strength.",
+  "status_of_this_experiment": "SEPARATE pre-declared test, NOT a revision of the pilot. A pass is hypothesis-generating and would require independent replication at a fixed rate before any positive claim.",
+  "arms": ["fr_oracle @ fr_rate=0.15", "fr_oracle @ fr_rate=0.45"],
+  "baseline": "the EXISTING pilot N4096 abf run, reused exactly. fr_rate never enters the abf code path (is_fr=False), gen_dyn depends only on rng_seed, and the initial ensemble only on init_seed -- so the abf trajectory is bit-identical at any fr_rate and the pairing is exact, not approximate.",
+  "held_fixed": ["N=4096", "seeds [10,11,12,13]", "init_seed 8484", "rng_seed 20260903", "100 ps", "window 20-100 ps", "C7eq init", "n_grid 97", "abf_bandwidth 0.08", "kde_bandwidth 0.15", "abf_min_count 200", "abf_force_clip 200", "project_every 50", "estimator_stride 1", "fr_start 20 ps", "fr_every 0.5 ps", "score_clip 2.0", "max_event_fraction 0.05"],
+  "target_intensity": {"rate_0.15": "1% per-opportunity event fraction", "rate_0.45": "3% per-opportunity event fraction"},
+  "success_criteria_identical_to_pilot": {
+    "median_kernel_matched_integrated_FES": "<= -10%",
+    "seed_wins": ">= 3 of 4",
+    "endpoint_mean_force": "<= -5%",
+    "sign_consistent_across_equilibrium_uniform8_uniform10": true,
+    "ci_upper_bound_below_zero": true,
+    "age_aware_ancestor_ESS": ">= 0.30 N",
+    "max_ancestor_fraction": "<= 0.05",
+    "per_opportunity_event_fraction": "< 5%",
+    "clip_fraction": "< 1e-4",
+    "no_nonfinite_or_leakage": true
+  },
+  "expectation_recorded_in_advance": "At fr_rate=0.02 the measured effect was +0.013% with a CI of +-0.02%, centred on zero rather than small-and-positive. Reaching -10% at 3-20x the rate requires extreme nonlinearity, not extrapolation. The prior is therefore that this also returns EQUIVALENT; the experiment is run because the intended operating band was never tested, not because an effect is expected.",
+  "stopping_rule": "If both rates return EQUIVALENT, alanine is closed as an atomistic neutrality control and no further rate, bandwidth, target or estimator variation is attempted. If a rate PASSES, it is reported as hypothesis-generating only, and the required follow-up is an independent replication at that fixed rate with fresh seeds -- not a further ladder."
+}

@@ -3,6 +3,7 @@
 Branch `alanine-dipeptide`. 2026-08-01.
 
 > **OUTCOME: the pilot FAILS its primary go/no-go criterion. Classification EQUIVALENT.**
+> **A subsequent 22x FR-rate ladder spanning the full intended operating band is ALSO EQUIVALENT (§14).**
 > **Production was NOT launched.** No hyperparameter was tuned after seeing the result.
 
 Companions: `ALANINE_REFERENCE_HANDOFF.md` (accepted Stage-1 reference),
@@ -210,12 +211,40 @@ verifiably populated, reallocation changes the FES estimate by ~0.01 %.
   failure invisible to it; *and* discovered-but-under-established behaviour; *and* an oracle
   improvement.
 
-## 14. Open items
+## 14. FR-rate ladder — the open item, now CLOSED
 
-1. The FR-rate denominator question (§7) is the one judgement call a reviewer might overturn.
-   A rate large enough to reach the [1 %, 3 %] per-opportunity band (~0.15–0.45, i.e. 7–20×
-   the tested rate) was never run. It would carry more turnover and lower ESS, but the null at
-   0.02 does not by itself exclude an effect at much higher intensity.
+Open item 1 below was the one real gap: the pilot's rate reallocated 0.13 % of the population per
+FR opportunity, 8–23× below the intended 1–3 % band. That band has now been tested directly,
+pre-declared in `results/alanine_oracle/rate_ladder/PREREGISTRATION.json` **before** the runs, with
+criteria identical to the pilot and the expectation of another null recorded in advance.
+
+The baseline is the pilot's N4096 `abf` run reused **exactly** — `fr_rate` never enters the abf
+code path, `gen_dyn` depends only on `rng_seed` and the initial ensemble only on `init_seed`, so
+the abf trajectory is bit-identical at any rate and the pairing on seeds [10,11,12,13] is exact.
+
+| fr_rate | events | per-opportunity | median Δ FES | 95 % CI | wins | ESS_age | w_max | class |
+|---|---|---|---|---|---|---|---|---|
+| 0.02 | 3 021 | 0.126 % | −0.0100 % | [−0.063, −0.002] % | 3/4 | 0.966 | 0.0015 | EQUIVALENT |
+| 0.15 | 22 830 | 0.876 % | −0.0025 % | [−0.054, +0.014] % | 2/4 | 0.813 | 0.0051 | EQUIVALENT |
+| 0.45 | 66 818 | 2.557 % | +0.0236 % | [+0.009, +0.035] % | 0/4 | 0.602 | 0.0137 | EQUIVALENT |
+
+**Intensity was varied 22×, spanning the entire intended operating band, and accuracy did not
+move.** The effect oscillates around zero at the 0.02 % level with no systematic trend, against a
+−10 % threshold. Meanwhile the mechanism demonstrably worked harder at every step: events rose
+3 021 → 22 830 → 66 818 and age-aware ancestor ESS fell monotonically 0.966 → 0.813 → 0.602. So
+the null is not "the mechanism was too gentle to matter" — the mechanism was turned up until it
+measurably eroded genealogical diversity, and the free-energy estimate still did not improve.
+
+At the top rate the sign also became inconsistent across weightings (equilibrium +, uniform-8 −,
+uniform-10 −), which is what noise-level effects look like. All safety criteria still passed at
+every rate (ESS ≥ 0.60 against a 0.30 floor, w_max ≤ 0.014 against 0.05, clip 0, no non-finite).
+
+Per the pre-declared stopping rule, **alanine is now closed**: no further rate, bandwidth, target
+or estimator variation is attempted.
+
+## 15. Remaining open items
+
+1. ~~FR-rate band untested~~ — **CLOSED by §14.**
 2. Frozen-bias validation is unexercised on this system (§8) and should be run before any future
    configuration's online gain is believed.
 3. `results/alanine_oracle/pilot/analysis/` currently holds per-stage copies of the CSVs; the
