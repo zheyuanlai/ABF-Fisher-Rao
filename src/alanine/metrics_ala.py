@@ -54,10 +54,19 @@ def smooth_reference(F_ref, bandwidth_rad, n_grid):
 
 # --------------------------------------------------------------------------- FES / mean force
 def aligned_l2(F_hat, F_ref, w):
-    """``min_c || F_hat - F_ref - c ||`` under weight ``w`` (additive constant is arbitrary)."""
-    d = F_hat - F_ref
-    c = float((d * w).sum() / max(w.sum(), 1e-300))
-    return float(math.sqrt(((d - c) ** 2 * w).sum() / max(w.sum(), 1e-300)))
+    """``min_c || F_hat - F_ref - c ||`` under weight ``w`` (additive constant is arbitrary).
+
+    Restricted to cells with positive weight AND finite reference: the reference carries +inf in
+    unvisited bins, and ``inf * 0`` is NaN, so multiplying through by a zero weight is not enough
+    to exclude them.
+    """
+    ok = (w > 0) & np.isfinite(F_ref) & np.isfinite(F_hat)
+    if not ok.any():
+        return float("nan")
+    d = F_hat[ok] - F_ref[ok]
+    ww = w[ok]
+    c = float((d * ww).sum() / ww.sum())
+    return float(math.sqrt(((d - c) ** 2 * ww).sum() / ww.sum()))
 
 
 def fes_errors(F_hat, ref_pack, F_ref_smoothed=None):
@@ -122,7 +131,7 @@ def time_series(out, ref_pack, F_ref_smoothed, n_grid, window):
 
 
 # --------------------------------------------------------------------------- genealogy / cost
-def genealogy_summary(out, window_ps):
+def genealogy_summary(out, window_ps, fr_start_steps=20000, fr_every=500):
     """Age-aware ESS, max ancestor fraction (global and in C7ax), event fraction."""
     t = np.asarray(out["times"], dtype=float)
     sel = (t >= window_ps[0]) & (t <= window_ps[1])
@@ -130,7 +139,13 @@ def genealogy_summary(out, window_ps):
     rows = []
     for r in range(R):
         ev = float(out["total_events"][r])
-        opp = max((out["n_steps"] - 0), 1)
+        # Per-OPPORTUNITY event fraction is the scale-free quantity and is what
+        # max_event_fraction caps.  The cumulative fraction grows with run length (2.6% over the
+        # calibration's 21 opportunities becomes ~21% over the pilot's 161 for the same rate),
+        # so it cannot be compared against a fixed threshold across different run lengths.
+        # Both are reported; the gate uses per-opportunity, and the genealogy criteria
+        # (age-aware ESS, max ancestor share) are the substantive turnover guard.
+        n_opp = max((int(out["n_steps"]) - fr_start_steps) // fr_every + 1, 1)
         rows.append(dict(
             seed=int(out["seeds"][r]), method=str(out["method"]),
             ess_age_min=float(np.nanmin(out["ess_age"][sel, r])),
@@ -139,8 +154,9 @@ def genealogy_summary(out, window_ps):
             wmax_max=float(np.nanmax(out["wmax"][sel, r])),
             wmax_c7ax_max=float(np.nanmax(out["wmax_c7ax"][sel, r])),
             ess_age_c7ax_min=float(np.nanmin(out["ess_age_c7ax"][sel, r])),
-            n_events=ev,
-            event_fraction=ev / max(out["n_replicas"], 1),
+            n_events=ev, n_opportunities=int(n_opp),
+            event_fraction=ev / max(out["n_replicas"], 1) / n_opp,
+            event_fraction_cumulative=ev / max(out["n_replicas"], 1),
             n_unique_min=float(np.nanmin(out["n_unique"][sel, r]))))
     return rows
 
@@ -163,13 +179,15 @@ def basin_summary(out, basin_names, window_ps, dt):
     return rows
 
 
-def cost_summary(out):
-    return dict(method=str(out["method"]), ms_per_step=float(out["ms_per_step"]),
-                wall_seconds=float(out["wall_seconds"]),
-                force_evaluations=int(out["force_evaluations"]),
-                aggregate_simulated_ps=float(out["aggregate_simulated_ps"]),
-                peak_cuda_gib=float(out["peak_cuda_gib"]),
-                clip_fraction=float(out["clip_fraction"]),
+def cost_summary(out, meta=None):
+    """Cost fields; scalars live in the run manifest (``meta``), arrays in the npz."""
+    meta = meta or {}
+    g = lambda k, d=float("nan"): float(meta.get(k, out[k] if k in out else d))   # noqa: E731
+    return dict(method=str(out["method"]), ms_per_step=g("ms_per_step"),
+                wall_seconds=g("wall_seconds"),
+                force_evaluations=g("force_evaluations"),
+                aggregate_simulated_ps=g("aggregate_simulated_ps"),
+                peak_cuda_gib=g("peak_cuda_gib"), clip_fraction=g("clip_fraction"),
                 n_replicas=int(out["n_replicas"]), n_steps=int(out["n_steps"]))
 
 

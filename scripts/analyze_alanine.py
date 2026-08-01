@@ -81,9 +81,11 @@ def main():
         t, ps = time_series(out, pack, F_sm, n_grid, tuple(a.window))
         ts_rows += t
         seed_rows += ps
-        gen_rows += genealogy_summary(out, tuple(a.window))
+        gen_rows += genealogy_summary(out, tuple(a.window),
+                                      fr_start_steps=int(meta.get("fr_start_steps", 20000)),
+                                      fr_every=int(meta.get("fr_every", 500)))
         bas_rows += basin_summary(out, bm.names, tuple(a.window), 0.001)
-        cost_rows.append(cost_summary(out) | {"run_id": meta["run_id"]})
+        cost_rows.append(cost_summary(out, meta) | {"run_id": meta["run_id"]})
 
     write_csv(os.path.join(ana, "time_series_metrics.csv"), ts_rows)
     write_csv(os.path.join(ana, "paired_seed_metrics.csv"), seed_rows)
@@ -114,6 +116,7 @@ def main():
     ess_min = min(r["ess_age_min"] for r in fr_gen)
     wmax_max = max(r["wmax_max"] for r in fr_gen)
     ev_max = max(r["event_fraction"] for r in fr_gen)
+    ev_cum_max = max(r["event_fraction_cumulative"] for r in fr_gen)
     clip_max = max(r["clip_fraction"] for r in cost_rows)
 
     frozen_ret = None
@@ -154,7 +157,8 @@ def main():
                     primary_kernel_matched_integrated_FES=stats,
                     endpoint_mean_force=gstat, signs=signs,
                     genealogy=dict(ess_age_min=ess_min, wmax_max=wmax_max,
-                                   event_fraction_max=ev_max),
+                                   event_fraction_per_opportunity_max=ev_max,
+                                   event_fraction_cumulative_max=ev_cum_max),
                     clip_fraction_max=clip_max, frozen_retention=frozen_ret,
                     checks={k: [bool(v[0]), v[1]] for k, v in checks.items()},
                     all_pass=bool(passed), classification=cls,
