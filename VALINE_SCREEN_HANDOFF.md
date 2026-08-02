@@ -1,7 +1,13 @@
 # ACE-VAL-NME SCREENING HANDOFF — V3 FAILS ON BRANCH B; Val is a second neutrality control
 
-Branch `alanine-dipeptide`. 2026-08-02. Companion to `VALINE_STAGE0_HANDOFF.md` (Stage 0) and
-`VALINE_SCREEN_SPEC.md` (the plan this executes).
+Branch `alanine-dipeptide`. 2026-08-02. Companion to `VALINE_STAGE0_HANDOFF.md` (Stage 0, whose
+§3, R1 and R4 carry inline corrections from this work) and `VALINE_SCREEN_SPEC.md` (the plan this
+executes).
+
+**Read in this order if you are picking this up cold:** §1 headline → §6c the V3 verdict → §7 what
+is cancelled and why → §5 and §6 for the two Stage-0 claims that turned out to be wrong. §6b and
+§6b-bis are the pilot's story, including a rejection that was itself a measurement error, and are
+only worth reading if you are going to build another umbrella reference on a 2-D CV.
 
 > **STATUS: the screening phase is COMPLETE and the answer is negative.** Stage 0 is frozen and
 > tagged `valine-stage0-accepted`. S1, distinguishability and the pilot reference all pass. The
@@ -292,7 +298,7 @@ blind to the omitted coordinate, because copies of a window share its ψ start. 
 in both pilots. Any reference on a 2-D CV needs a check that varies the omitted coordinate — but
 that check must be **paired by window**.
 
-## 6c. (superseded — v1's rejection narrative, kept for the record)
+## 6b-bis. (superseded — pilot v1's rejection narrative, kept for the record)
 
 `results/valine/pilot_reference_v1_rejected/` — 324 windows on (φ, χ₁), ψ **free**, two ψ starts
 (+120, −40), 8 copies each, 150 ps at dt = 0.5 fs, 65 min. MBAR converged cleanly (107 iterations,
@@ -436,53 +442,62 @@ the observed fractions the same way. The `capped weight` diagnostic — added pr
 inadequate reference would show up as a number rather than a confident wrong answer — is what
 caught it.
 
-## 7. What is NOT yet done — and what decides the study
+## 7. What happens next — and what must NOT
 
-**Gate V3: does ABF discover every state and then leave one persistently under-established?**
-That question is untested, and it is the gate that killed alanine. Everything above establishes
-only that a deficit, if one exists, would be *visible* and *nameable*.
+**V3 is decided (§6c): FAIL-B.** Under the screening plan's own rule that is a STOP, so the
+things that were queued behind V3 are now cancelled, not deferred:
 
-The machinery is built, smoke-tested end to end, and launched behind a gate:
-
-```
-scripts/run_valine_pilot_reference.py   coarse F_pilot(phi, chi1), psi FREE, dt = 0.5 fs
-scripts/analyze_valine_pilot.py         acceptance; EXITS NON-ZERO if the pilot fails
-scripts/run_valine_v3_screen.py         ABF only -- concentrated and stratified init
-scripts/analyze_valine_v3.py            V3 metrics and the decision rule
-```
-
-The V3 launch is chained **behind** `analyze_valine_pilot.py`'s exit code, so a 14 h run cannot
-start against a pilot that failed its own acceptance. Configuration:
-
-| | |
+| queued work | status |
 |---|---|
-| arms | concentrated **and** stratified, as different seeds of **one** batch |
-| seeds | 8 per arm (16 total), N = 2048 → B = 32768 |
-| length | 10⁶ steps = 1 ns at dt = 1 fs (unrestrained) |
-| grid | 97 × 97, estimator frozen at the alanine values |
-| cost | 52.7 ms/step → **14.6 h for both arms** |
-| checkpoint | every 50 ps, analysable on its own (see §8) |
+| full 24×24 Stage-4 reference | **cancelled** — it existed to support an mFR comparison |
+| sham arm (`METHODS` still lacks it) | **cancelled** — only needed to defend a positive result |
+| oracle mFR pilot | **cancelled** |
+| practical mFR target | **cancelled** |
 
-Running the arms in one batch is what makes the diagnostic arm affordable: the step cost is flat
-from B = 16384 (51.0 ms) to B = 32768 (52.7 ms), so the second arm costs **3 %**, not 100 %. Each
-seed of the sampler carries its own accumulators, bias field and genealogy, so they are genuinely
-independent replicas that merely share a step loop; the analyzer selects an arm by seed and
-refuses to mix them.
+**What must not happen.** The plan anticipated this branch and named the temptation explicitly:
+do not shorten the run, cut walkers, or lower the establishment band until a deficit appears.
+Every one of those makes the *relative* thresholds easier — `T_hit < 0.1 T_run` and "starved for
+≥ 0.2 T_run" both scale with run length — so a shorter run flatters the result rather than
+testing it. The measured margins are not close: discovery is 5–60× faster than required and the
+worst deficit is less than half the threshold.
 
-Two design points worth not re-deriving:
+### What the negative is worth, and what would follow it
 
-* **The establishment target is bias-aware.** ABF moves the biased equilibrium as it learns, so
-  the target is `q*_t ∝ exp(−β(F_pilot − B_t))` with `B_t` the saved bias, not the unbiased
-  population. Scoring against the unbiased population would flag a state as starved precisely
-  when ABF had correctly flattened it — manufacturing the very signal mFR is supposed to remove,
-  from a run in which nothing is wrong.
+Val is a **second neutrality control**, and a stronger one than alanine: alanine was neutral on a
+CV that turned out to have no meaningfully rare state, whereas Val was *selected* for an
+11–18 kT side-chain barrier and cleared V1, §32 and distinguishability (0.973) before failing V3.
+Two independent systems now say the same thing — when ABF's CV contains the slow coordinate, ABF
+establishes the populations on its own and marginal mFR has no deficit to repair.
+
+The honest reading of the project so far is that the regime where mFR helps is *narrow*, and the
+one system that ever showed a genuine support deficit (R15, `ALKANES_CV_EXTENSION_HANDOFF.md`)
+was discovery-limited rather than establishment-limited — the regime where mFR provably cannot
+act. Anyone continuing should be looking for a system that is establishment-limited by
+construction, not hoping to find one by trying more peptides.
+
+### Reusable machinery left behind
+
+```
+scripts/run_valine_state_map.py         T^3 state map from a torus-covering lattice
+scripts/analyze_valine_distinguishability.py   can the 3-D state be read off the 2-D CV?
+scripts/valine_state_sensitivity.py     re-cluster over the knobs; closes the AMBIGUOUS branch
+scripts/run_valine_pilot_reference.py   coarse F(xi) with the omitted coordinate FREE
+scripts/analyze_valine_pilot.py         acceptance; exits non-zero so a chain cannot ignore it
+scripts/run_valine_v3_screen.py         ABF only, both init arms in one batch
+scripts/analyze_valine_v3.py            V3 metrics and the decision rule
+scripts/plot_valine_screen.py           the four-panel figure
+```
+
+Two design points in there worth not re-deriving:
+
+* **The establishment target is bias-aware, and defined on the reference's support.** ABF moves
+  the biased equilibrium as it learns, so the target is `q*_t ∝ exp(−β(F_pilot − B_t))` — but
+  normalised over the cells the reference actually filled, and compared against observed
+  fractions conditioned the same way. Getting either half wrong is a silent, confident error;
+  see §6c.
 * **Only discovered states can be under-established.** Counting an undiscovered state as a
-  population deficit would report the R15 regime — where there is nothing to clone — as the
-  regime mFR repairs. This distinction is the whole gate.
-
-Prediction worth recording before the run, given §5: **B6** (φ>0, χ₁ = g+, basin-of-attraction
-weight 0.008 — by far the smallest) is the candidate for under-establishment, and it is
-structurally the analogue of alanine's C7ax.
+  population deficit reports the R15 regime — where there is nothing to clone — as the regime
+  mFR repairs. That distinction is the whole gate.
 
 ## 8. Code changes to shared machinery
 
