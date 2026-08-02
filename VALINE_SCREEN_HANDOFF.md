@@ -304,10 +304,35 @@ A median 1.4–1.9 kT error is a factor ~5 in a state population, and V3 asks wh
 falls below **half** its target. The pilot has to be better than the threshold it is used to
 evaluate, so v1 is kept as a record and **superseded**, not patched.
 
-**v2** attacks both halves of the failure: **four** ψ starts (+150, +60, −40, −140) instead of
-two, and **400 ps** of production instead of 150 — more independent initial conditions to average
-over, and more time for each to forget. ~2 h; doubling the number of starts is nearly free per
-step because the cost is flat in batch.
+**v2 — ACCEPTED.** Four ψ starts (+150, +60, −40, −140), 400 ps, 951 seeds × 8 copies. MBAR
+converged in 91 iterations, 85.3 % grid coverage, split-half 0.31 kT, kinetic temperature
+298.31 K.
+
+**And the check that rejected v1 was itself the wrong test.** v2's *unpaired* statistics look
+just as bad as v1's — per-start FES RMSE 4.40 kT, start-memory spread 0.169 — but the paired
+in-window test clears it outright:
+
+| | across-start | same-start noise floor | ratio |
+|---|---|---|---|
+| TV of `p(ψ \| window)`, median over the 61 windows carrying all four starts | **0.025** | 0.022 | **1.16** |
+
+ψ *is* equilibrated inside a window; the across-start difference is barely above pure sampling
+noise. The unpaired comparison failed for a reason that has nothing to do with ψ: **the starts do
+not cover the same windows** (only 61 of 315 survive structural validation for all four), and
+β/PPII occupancy is mostly a property of *which window* a walker sits in. Averaging over
+unmatched window sets converts a coverage difference into an apparent equilibration failure —
+an unpaired comparison wearing a paired comparison's clothes. Over the matched windows the
+start-memory spread is **0.010**, not 0.169.
+
+That does not retroactively rescue v1 — v1's own paired statistic was never computed, and v2 is
+better sampled regardless — but it does mean the *diagnostic*, not the reference, was the thing
+that needed fixing. The unpaired numbers are still reported, and explicitly **not gated on**.
+
+**The regions are the physical states, near one-to-one.** Mapping every S1 exploration frame to
+both its 3-D state and its pilot region: six of the eight regions are **100 % pure** in a single
+3-D state, and the two that are not (89 %, 98 %) mix only the B3/B5 pair already known to be
+kinetically one state. So "region B7 is starved" is a statement about (φ>0, χ₁ = g⁺), not about
+an artifact of the watershed.
 
 Two method corrections came out of this:
 

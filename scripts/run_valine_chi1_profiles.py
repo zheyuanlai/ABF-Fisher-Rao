@@ -45,7 +45,12 @@ from valine.system import (                                                  # n
 from valine.umbrella import (DihedralRestraint, count_states, mbar_1d_periodic,
                              run_restrained)  # noqa: E402
 
-ALLOWED_GPUS = {"4", "5", "6", "7"}
+#: The node was re-partitioned on 2026-08-02.  It used to be shared between two groups,
+#: which is why only 4 of the 8 devices were ours; the split gave this group its own
+#: four, renumbered 0-3.  They are still shared WITHIN the group, so the rule is now
+#: "any of 0-3, but EXACTLY ONE at a time" -- and it is the device_count check below,
+#: not this set, that actually enforces the "one" half of it.
+ALLOWED_GPUS = {"0", "1", "2", "3"}
 KB = 0.008314462618
 
 #: representative backbone points, in degrees.  Named from the alanine Ramachandran
@@ -102,7 +107,7 @@ SCAN_MODES = {
 def enforce_gpu_policy(est_peak_gib):
     cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
     if cvd is None:
-        raise SystemExit("CUDA_VISIBLE_DEVICES must be set explicitly (allowed: 4,5,6,7)")
+        raise SystemExit("CUDA_VISIBLE_DEVICES must be set explicitly (allowed: 0,1,2,3 -- exactly one)")
     cvd = cvd.strip()
     if cvd not in ALLOWED_GPUS:
         raise SystemExit(f"CUDA_VISIBLE_DEVICES={cvd!r} not an absolute index in {sorted(ALLOWED_GPUS)}")

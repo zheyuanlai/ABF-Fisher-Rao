@@ -97,3 +97,40 @@ def test_basin_map_gives_neutral_names_without_hints():
     ok = np.ones_like(F, dtype=bool)
     assert BasinMap(F, ok, 2.494).names[0] == "C7eq"          # the failure mode
     assert BasinMap(F, ok, 2.494, name_hints=()).names[0] == "B0"   # what Val uses
+
+
+# ------------------------------------------------------------------ closed-form 2x2 eigenvalues
+def test_sym2x2_eigvals_matches_lapack_and_removes_a_scaling_wall():
+    """The Gram matrix is 2x2, so its eigenvalues have a closed form.
+
+    ``torch.linalg.eigvalsh`` sent this to ``cusolverDnXsyevBatched``, which raised
+    CUSOLVER_STATUS_INTERNAL_ERROR somewhere between batch 32768 and 65536 -- a hard cap on how
+    much of an H200 the sampler could use -- and reserved ~13 GiB of workspace to do it.
+
+    The discriminant is written as a SUM OF SQUARES, ``((a-c)/2)^2 + b^2``, so it can never go
+    negative through rounding.  The algebraically equal ``(a+c)^2 - 4(ac - b^2)`` can, for
+    nearly-degenerate G, and would produce NaN eigenvalues in exactly the near-singular rows the
+    regulariser exists to catch.
+    """
+    from alkanes.cv2d import sym2x2_eigvals
+    g = torch.Generator().manual_seed(7)
+    for scale in (1e-8, 1.0, 1e8):
+        M = torch.randn(4000, 2, 2, dtype=torch.float64, generator=g) * scale
+        G = M @ M.transpose(-1, -2)                       # SPD, as the Gram matrix is
+        ref = torch.linalg.eigvalsh(G)
+        lo, hi = sym2x2_eigvals(G)
+        tol = 1e-13 * ref.abs().max()
+        assert (ref[:, 0] - lo).abs().max() <= tol
+        assert (ref[:, 1] - hi).abs().max() <= tol
+        assert torch.isfinite(lo).all() and torch.isfinite(hi).all()
+
+    # exactly degenerate: the naive discriminant is where this would go NaN
+    G = torch.eye(2, dtype=torch.float64).expand(64, 2, 2) * 3.7
+    lo, hi = sym2x2_eigvals(G)
+    assert torch.allclose(lo, torch.full_like(lo, 3.7))
+    assert torch.allclose(hi, torch.full_like(hi, 3.7))
+
+    # ascending order, which the callers rely on for lam_min / lam_max
+    M = torch.randn(500, 2, 2, dtype=torch.float64, generator=g)
+    lo, hi = sym2x2_eigvals(M @ M.transpose(-1, -2))
+    assert (lo <= hi).all()

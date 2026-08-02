@@ -63,7 +63,12 @@ from valine.system import (CHI1_ATOMS, N_ATOMS, PHI_ATOMS, PSI_ATOMS,        # n
                            make_seed, make_system, restrained_minimise, seed_lattice,
                            validate_seed)
 
-ALLOWED_GPUS = {"4", "5", "6", "7"}
+#: The node was re-partitioned on 2026-08-02.  It used to be shared between two groups,
+#: which is why only 4 of the 8 devices were ours; the split gave this group its own
+#: four, renumbered 0-3.  They are still shared WITHIN the group, so the rule is now
+#: "any of 0-3, but EXACTLY ONE at a time" -- and it is the device_count check below,
+#: not this set, that actually enforces the "one" half of it.
+ALLOWED_GPUS = {"0", "1", "2", "3"}
 TWO_PI = 2.0 * math.pi
 
 #: psi is not in the CV, so an initial structure still needs a psi.  Two values, alternated
@@ -74,11 +79,11 @@ PSI_INIT_DEG = (120.0, -40.0)
 def enforce_gpu_policy(est_peak_gib):
     cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
     if cvd is None:
-        raise SystemExit("CUDA_VISIBLE_DEVICES must be set explicitly (allowed: 4,5,6,7)")
+        raise SystemExit("CUDA_VISIBLE_DEVICES must be set explicitly (allowed: 0,1,2,3 -- exactly one)")
     cvd = cvd.strip()
     if cvd not in ALLOWED_GPUS:
         raise SystemExit(f"CUDA_VISIBLE_DEVICES={cvd!r} is not an absolute index in "
-                         f"{sorted(ALLOWED_GPUS)}; GPUs 0-3 belong to another user")
+                         f"{sorted(ALLOWED_GPUS)}; more than one device is visible")
     if torch.cuda.device_count() != 1:
         raise SystemExit(f"expected exactly 1 visible device, saw {torch.cuda.device_count()}")
     free = torch.cuda.mem_get_info()[0] / 2 ** 30

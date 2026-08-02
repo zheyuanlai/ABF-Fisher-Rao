@@ -1,0 +1,20 @@
+{
+  "script": "/home/zheyuanlai/ABF-Fisher-Rao/scripts/audit_target_ablation.py",
+  "generated_utc": "2026-07-21T19:08:54.272486+00:00",
+  "equivalence_margin_fraction_of_abf_baseline": 0.05,
+  "equivalence_margin_metric": "final_l2_F",
+  "equivalence_rule": "EQUIVALENT iff 95% paired bootstrap CI of the per-seed difference is CONTAINED in [-0.05*ABF_mean_final_L2F, +0.05*ABF_mean_final_L2F]; DIFFERENT iff CI disjoint from that band; UNDERPOWERED otherwise (includes every CI wider than the band).",
+  "n_bootstrap": 20000,
+  "bootstrap_rng_seed": 20260721,
+  "n_cells": 144,
+  "n_seed_rows": 6800,
+  "classification_counts": {
+    "U": 127,
+    "A": 10,
+    "C": 5,
+    "B": 2
+  },
+  "numpy": "2.4.6",
+  "pandas": "3.0.3",
+  "python": "3.14.4"
+}

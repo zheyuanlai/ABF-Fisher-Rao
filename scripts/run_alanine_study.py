@@ -1,6 +1,6 @@
 """Runner for the corrected 2-D alanine ABF vs oracle-mFR study.
 
-GPU policy is enforced here, not merely documented: only GPUs 4-7 may be used, exactly one
+GPU policy is enforced here, not merely documented: only one of GPUs 0-3 may be used, exactly one
 device must be visible, ``CUDA_VISIBLE_DEVICES`` must be set explicitly to an absolute allowed
 index, and free memory must exceed 1.5x the estimated peak.  The original absolute value is
 recorded in every artifact.
@@ -34,7 +34,12 @@ from alanine.forcefield import TorchFF, extract_parameters, parameter_hash    # 
 from alanine.system import (PHI_ATOMS, PSI_ATOMS, reference_minimum,          # noqa: E402
                             relax_seeds, seed_umbrella_lattice)
 
-ALLOWED_GPUS = {"4", "5", "6", "7"}
+#: The node was re-partitioned on 2026-08-02.  It used to be shared between two groups,
+#: which is why only 4 of the 8 devices were ours; the split gave this group its own
+#: four, renumbered 0-3.  They are still shared WITHIN the group, so the rule is now
+#: "any of 0-3, but EXACTLY ONE at a time" -- and it is the device_count check below,
+#: not this set, that actually enforces the "one" half of it.
+ALLOWED_GPUS = {"0", "1", "2", "3"}
 TWO_PI = 2.0 * math.pi
 
 
@@ -42,11 +47,11 @@ TWO_PI = 2.0 * math.pi
 def enforce_gpu_policy(est_peak_gib):
     vis = os.environ.get("CUDA_VISIBLE_DEVICES")
     if vis is None:
-        raise SystemExit("CUDA_VISIBLE_DEVICES must be set explicitly (absolute index, 4-7)")
+        raise SystemExit("CUDA_VISIBLE_DEVICES must be set explicitly (absolute index, 0-3)")
     vis = vis.strip()
     if vis not in ALLOWED_GPUS:
         raise SystemExit(f"CUDA_VISIBLE_DEVICES={vis!r} is not an allowed absolute index "
-                         f"(only {sorted(ALLOWED_GPUS)}); GPUs 0-3 must never be used")
+                         f"(only {sorted(ALLOWED_GPUS)}); exactly one device may be used")
     if torch.cuda.device_count() != 1:
         raise SystemExit(f"expected exactly 1 visible GPU, saw {torch.cuda.device_count()}")
     free, total = torch.cuda.mem_get_info()

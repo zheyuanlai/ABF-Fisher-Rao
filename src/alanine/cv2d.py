@@ -25,7 +25,8 @@ import math
 
 import torch
 
-from alkanes.cv2d import JointDihedralCV2D, abf_bias_force_2d  # noqa: F401  (re-exported)
+from alkanes.cv2d import (JointDihedralCV2D, abf_bias_force_2d,  # noqa: F401 re-exported
+                          sym2x2_eigvals)
 
 PI = math.pi
 TWO_PI = 2.0 * PI
@@ -123,8 +124,7 @@ class FastBackboneCV2D(BackboneCV2D):
         B = q.shape[0]
         gflat, H = self._grad_hess_union(q)
         G = torch.einsum("pbi,pci->pbc", gflat, gflat)
-        evals = torch.linalg.eigvalsh(G)
-        lam_min, lam_max = evals[:, 0], evals[:, 1]
+        lam_min, lam_max = sym2x2_eigvals(G)
         det = G[:, 0, 0] * G[:, 1, 1] - G[:, 0, 1] * G[:, 1, 0]
         eye = torch.eye(2, device=q.device, dtype=q.dtype)[None]
         bad = lam_min < self.reg_threshold

@@ -38,6 +38,30 @@ from .cv import _grad_phi4, _hess_phi4, DihedralCV
 EPS = 1.0e-12
 
 
+def sym2x2_eigvals(G):
+    """Ascending eigenvalues of a batch of SYMMETRIC 2x2 matrices, in closed form.
+
+    ``torch.linalg.eigvalsh`` dispatches this to ``cusolverDnXsyevBatched``, which is both
+    absurd for a 2x2 -- the characteristic polynomial is a quadratic -- and a hard scaling
+    wall: it raises ``CUSOLVER_STATUS_INTERNAL_ERROR`` somewhere between batch 32768 and
+    65536, which capped how much of an H200 this sampler could use.
+
+    For ``G = [[a, b], [b, c]]`` the roots of ``lam^2 - (a+c) lam + (ac - b^2)`` are
+
+        lam = (a + c)/2 +/- sqrt( ((a - c)/2)^2 + b^2 ),
+
+    and written that way the discriminant is a sum of squares, so it is never negative from
+    rounding and the square root is always real -- which the naive ``(a+c)^2 - 4(ac-b^2)``
+    form does not guarantee for nearly-degenerate G.  Agreement with ``eigvalsh`` is asserted
+    in ``tests/test_alkanes_cv2d.py``.
+    """
+    a, b, c = G[..., 0, 0], G[..., 0, 1], G[..., 1, 1]
+    half_tr = 0.5 * (a + c)
+    half_df = 0.5 * (a - c)
+    rad = torch.sqrt(half_df * half_df + b * b)
+    return half_tr - rad, half_tr + rad
+
+
 class JointDihedralCV2D:
     """Two dihedrals ``(atoms_a, atoms_b)`` (default pentane phi1=(0123), phi2=(1234))."""
 
@@ -108,9 +132,7 @@ class JointDihedralCV2D:
         gflat = g.reshape(B, 2, n)                                  # (B,2,n)
         G = torch.einsum("pbi,pci->pbc", gflat, gflat)             # (B,2,2)
         # eigen-diagnostics (symmetric 2x2)
-        evals = torch.linalg.eigvalsh(G)                           # ascending
-        lam_min = evals[:, 0]
-        lam_max = evals[:, 1]
+        lam_min, lam_max = sym2x2_eigvals(G)                       # ascending
         det = G[:, 0, 0] * G[:, 1, 1] - G[:, 0, 1] * G[:, 1, 0]
         eye = torch.eye(2, device=q.device, dtype=q.dtype)[None]
         # near-singular guard: branchless (no host sync). A constant tiny ridge stabilises

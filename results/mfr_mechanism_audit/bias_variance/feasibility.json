@@ -1,0 +1,245 @@
+{
+  "generated_by": "scripts/audit_bias_variance.py",
+  "read_only": true,
+  "definition": {
+    "bias2": "[mean_s Fp_hat_s(z) - Fp_ref(z)]^2 (plug-in) and its debiased form plug-in - Var_s/S",
+    "variance": "sample variance over independent seeds, ddof=1",
+    "identity": "mean_s (Fp_hat_s - Fp_ref)^2 = bias2_plugin + (S-1)/S * variance",
+    "weightings": [
+      "thermal_uniform_10kT: uniform over eval window AND F_ref - min <= 10 kT",
+      "thermal_uniform_20kT: same at 20 kT (sensitivity)",
+      "equilibrium: w proportional to exp(-beta (F_ref - min)) over the eval window, renormalised"
+    ],
+    "note": "all weights sum to 1, so integrated quantities are weighted means over bins and sqrt(int_mse_direct) is an RMS comparable to reported L2(F')"
+  },
+  "per_system": [
+    {
+      "system": "wca_dimer",
+      "n_cases": 86,
+      "cohorts": [
+        "phase_production_4seed",
+        "representative_10seed"
+      ],
+      "methods": [
+        "abf",
+        "fr_estimated",
+        "fr_estimated_adaptive",
+        "fr_oracle",
+        "fr_uniform"
+      ],
+      "seeds_per_case": [
+        4,
+        10
+      ]
+    },
+    {
+      "system": "entropic_bottleneck",
+      "n_cases": 6,
+      "cohorts": [
+        "stage0_reproduce_5seed",
+        "stage1_seeds_20seed"
+      ],
+      "methods": [
+        "abf",
+        "fr_estimated",
+        "fr_oracle",
+        "fr_uniform"
+      ],
+      "seeds_per_case": [
+        5,
+        20
+      ]
+    },
+    {
+      "system": "entropy_dominant_bottleneck",
+      "n_cases": 20,
+      "cohorts": [
+        "main_sweep_20seed"
+      ],
+      "methods": [
+        "abf",
+        "fr_estimated",
+        "fr_oracle",
+        "fr_uniform"
+      ],
+      "seeds_per_case": [
+        20
+      ]
+    },
+    {
+      "system": "pentane_R15",
+      "n_cases": 6,
+      "cohorts": [
+        "production_8seed"
+      ],
+      "methods": [
+        "abf",
+        "fr_active",
+        "fr_estimated",
+        "fr_oracle",
+        "fr_uniform",
+        "opes"
+      ],
+      "seeds_per_case": [
+        8
+      ]
+    },
+    {
+      "system": "pentane_2d_torsion_torus",
+      "n_cases": 4,
+      "cohorts": [
+        "production_6seed_DERIVED"
+      ],
+      "methods": [
+        "abf",
+        "fr_active",
+        "fr_estimated",
+        "opes"
+      ],
+      "seeds_per_case": [
+        6
+      ]
+    },
+    {
+      "system": "two_dim_xi_x_toy",
+      "n_cases": 13,
+      "cohorts": [
+        "production_gpu_5seed"
+      ],
+      "methods": [
+        "abf_fr_estimated_g0.01",
+        "abf_fr_estimated_g0.02",
+        "abf_fr_estimated_g0.05",
+        "abf_fr_estimated_g0.1",
+        "abf_fr_oracle_g0.01",
+        "abf_fr_oracle_g0.02",
+        "abf_fr_oracle_g0.05",
+        "abf_fr_oracle_g0.1",
+        "abf_fr_uniform_g0.01",
+        "abf_fr_uniform_g0.02",
+        "abf_fr_uniform_g0.05",
+        "abf_fr_uniform_g0.1",
+        "abf_only"
+      ],
+      "seeds_per_case": [
+        5
+      ]
+    }
+  ],
+  "split_half_proxy": {
+    "attempted": false,
+    "verdict": "IMPOSSIBLE from existing artifacts -- blocking data gap",
+    "reason": "An ancestor-FAMILY split-half requires (a) per-particle ancestor labels at the final time and (b) per-family mean-force accumulators. Neither is persisted: the engines keep ancestor labels only in memory and save ancestor ESS / n_unique / max-fraction scalars, and every system uses a single global mean-force accumulator shared by all replicas. No particle-level fallback was computed, per the audit constraint.",
+    "probe": [
+      {
+        "system": "wca_dimer",
+        "pattern": "results/wca_representative/raw/*.npz",
+        "files": 300,
+        "n_replicas": 1024,
+        "ancestor_or_ess_fields": {
+          "final_ancestor_ess": [],
+          "final_n_unique_ancestor": [],
+          "final_max_ancestor_frac": [],
+          "max_ancestor_frac_over_time": [],
+          "min_ancestor_ess": [],
+          "ancestor_ess_t": [
+            49
+          ],
+          "max_ancestor_frac_t": [
+            49
+          ],
+          "n_unique_ancestor_t": [
+            49
+          ],
+          "adaptive_log_ess_frac": [
+            0
+          ]
+        },
+        "fields_with_a_replica_axis": {},
+        "per_particle_ancestor_labels": false
+      },
+      {
+        "system": "wca_dimer",
+        "pattern": "results/wca_phase_diagram/production/raw/*.npz",
+        "files": 224,
+        "n_replicas": 1024,
+        "ancestor_or_ess_fields": {
+          "final_ancestor_ess": [],
+          "final_n_unique_ancestor": [],
+          "final_max_ancestor_frac": [],
+          "max_ancestor_frac_over_time": [],
+          "min_ancestor_ess": [],
+          "ancestor_ess_t": [
+            49
+          ],
+          "max_ancestor_frac_t": [
+            49
+          ],
+          "n_unique_ancestor_t": [
+            49
+          ]
+        },
+        "fields_with_a_replica_axis": {},
+        "per_particle_ancestor_labels": false
+      },
+      {
+        "system": "entropic_bottleneck",
+        "pattern": "results/entropic_bottleneck/raw/stage1_seeds/*.npz",
+        "files": 40,
+        "n_replicas": 256,
+        "ancestor_or_ess_fields": {
+          "cfg__ess_window_steps": [],
+          "ess_t": [
+            101
+          ],
+          "final_ess": []
+        },
+        "fields_with_a_replica_axis": {},
+        "per_particle_ancestor_labels": false
+      },
+      {
+        "system": "entropy_dominant_bottleneck",
+        "pattern": "results/entropy_dominant_bottleneck/sweep_20260614_015145/raw/main/*.npz",
+        "files": 400,
+        "n_replicas": 512,
+        "ancestor_or_ess_fields": {
+          "cfg__ess_window_steps": [],
+          "ess_t": [
+            401
+          ],
+          "final_ess": []
+        },
+        "fields_with_a_replica_axis": {},
+        "per_particle_ancestor_labels": false
+      },
+      {
+        "system": "pentane_R15",
+        "pattern": "results/alkanes_cv_extension/r15_methods/raw/*.npz",
+        "files": 18,
+        "n_replicas": 1024,
+        "ancestor_or_ess_fields": {},
+        "fields_with_a_replica_axis": {},
+        "per_particle_ancestor_labels": false
+      },
+      {
+        "system": "pentane_2d_torsion_torus",
+        "pattern": "results/alkanes_cv_extension/2d_methods/raw/*.npz",
+        "files": 7,
+        "n_replicas": 2048,
+        "ancestor_or_ess_fields": {},
+        "fields_with_a_replica_axis": {},
+        "per_particle_ancestor_labels": false
+      },
+      {
+        "system": "alkanes_dihedral",
+        "pattern": "results/alkanes/production/raw/*.npz",
+        "files": 38,
+        "n_replicas": 384,
+        "ancestor_or_ess_fields": {},
+        "fields_with_a_replica_axis": {},
+        "per_particle_ancestor_labels": false
+      }
+    ],
+    "requires": "new instrumented runs that dump per-particle ancestor labels and family-partitioned mean-force accumulators"
+  }
+}
