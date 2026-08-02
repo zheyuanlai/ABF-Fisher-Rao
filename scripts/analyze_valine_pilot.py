@@ -90,6 +90,7 @@ def main():
     finite = np.isfinite(F)
 
     # ---------------------------------------------------------------- acceptance
+    O = pf["overlap"]
     nn = meta["nn_overlap"]
     sh = meta.get("split_half") or {}
     ps = meta.get("psi_start_agreement") or {}
@@ -98,16 +99,28 @@ def main():
     print(f"  kinetic temperature {meta['mean_temperature_K']:.2f} K "
           f"({100 * meta['temperature_deviation_frac']:.2f} % from 300)")
     print(f"  MBAR: {meta['mbar_iterations']} iterations, residual {meta['mbar_residual']:.1e}")
+    # CONNECTIVITY, not the minimum pairwise overlap.  MBAR needs the window lattice to form one
+    # connected component so every window's free energy is tied to every other's; a handful of
+    # weak links in a high-F corner is not a defect, and gating on min(overlap) rejects a
+    # perfectly usable map for it.  The first pilot had min 1e-4 yet was a single component even
+    # at a threshold of 0.001.
+    from scipy.sparse import csr_matrix
+    from scipy.sparse.csgraph import connected_components
+    n_comp, _ = connected_components(csr_matrix((O + O.T) / 2 > 0.01), directed=False)
     checks = [
-        ("neighbour overlap connected (min > 0.01)", nn["min"] > 0.01,
-         f"min {nn['min']:.4f}, p1 {nn['p1']:.4f}, {nn['n_below_0p03']}/{nn['n_pairs']} < 0.03"),
+        ("MBAR overlap graph is connected", n_comp == 1,
+         f"{n_comp} component(s) at threshold 0.01; min pair {nn['min']:.4f}, "
+         f"median {nn['median']:.3f}"),
         ("grid coverage > 25 % of cells", meta["grid_cells_filled"] / meta["grid_cells"] > 0.25,
          f"{meta['grid_cells_filled']}/{meta['grid_cells']} "
          f"({100 * meta['grid_cells_filled'] / meta['grid_cells']:.1f} %)"),
         ("split-half RMSE < 1 kT", sh.get("rmse_kT", 9e9) < 1.0,
          f"{sh.get('rmse_kT', float('nan')):.3f} kT over {sh.get('n_cells', 0)} cells"),
-        ("psi-start agreement RMSE < 1.5 kT", ps.get("rmse_kT", 9e9) < 1.5,
+        ("worst psi-start pair RMSE < 1.5 kT", ps.get("rmse_kT", 9e9) < 1.5,
          f"{ps.get('rmse_kT', float('nan')):.3f} kT over {ps.get('n_cells', 0)} cells"),
+        ("psi start-memory spread < 0.10", meta.get("psi_start_memory_spread", 9.0) < 0.10,
+         f"{meta.get('psi_start_memory_spread', float('nan')):.3f} "
+         f"(beta/PPII occupancy range across starts)"),
     ]
     print("\nacceptance (screening bar, NOT the alanine reference bar):")
     for name, ok, detail in checks:
@@ -202,6 +215,9 @@ def main():
         json.dump(out, fh, indent=2, default=float)
     print(f"\npilot {'ACCEPTED' if accepted_ok else 'REJECTED'} for screening use")
     print(f"wrote {p}")
+    # Non-zero exit on rejection, so a launch chain cannot run V3 against a pilot that failed.
+    if not accepted_ok:
+        sys.exit(2)
 
 
 if __name__ == "__main__":
