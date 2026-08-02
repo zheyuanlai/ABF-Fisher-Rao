@@ -72,6 +72,55 @@ def slice_barrier(F, kT):
                 second_well_kT=float((f[b] - f[a]) / kT))
 
 
+def psi_equilibration(pilot, n_bins=36):
+    """PAIRED test of whether psi has equilibrated inside each umbrella window.
+
+    Compare ``p(psi | window)`` ACROSS STARTS WITHIN THE SAME WINDOW, and calibrate against the
+    same statistic computed between COPIES OF ONE START, which is pure sampling noise.
+
+    The paired part is the whole point.  The first two versions of this check compared the psi
+    starts *globally* -- a mean beta/PPII occupancy per start, and a per-start MBAR free energy --
+    and both reported a large disagreement for a reason that has nothing to do with psi: the
+    starts do not cover the same windows.  Only 61 of 315 windows survive structural validation
+    for all four starts, and beta/PPII occupancy is mostly a property of WHICH WINDOW a walker is
+    in.  Averaging over unmatched window sets turns a coverage difference into an apparent
+    equilibration failure -- an unpaired comparison wearing a paired comparison's clothes.
+    Measured here: start-memory spread 0.169 over all windows, 0.010 over the matched ones.
+
+    Returns medians of the across-start worst pair, of the same-start noise floor, and the ratio.
+    """
+    s = np.load(os.path.join(pilot, "samples.npz"), allow_pickle=True)
+    th, win, ps0 = s["theta"], s["window"], s["psi_start"]
+    psi = th[:, th.shape[1] // 2:, 1].astype(np.float64)      # second half only
+    starts = np.array(sorted(set(ps0.tolist())))
+    have = {}
+    for w, p in zip(win, ps0):
+        have.setdefault(int(w), set()).add(round(float(p), 6))
+    full = sorted(w for w, ss in have.items() if len(ss) == len(starts))
+    edges = np.linspace(-math.pi, math.pi, n_bins + 1)
+
+    worst, floor = [], []
+    for w in full:
+        hs = []
+        for p in starts:
+            h, _ = np.histogram(psi[(win == w) & np.isclose(ps0, p)].ravel(), bins=edges)
+            hs.append(h / max(h.sum(), 1))
+        worst.append(max(0.5 * np.abs(hs[i] - hs[j]).sum()
+                         for i in range(len(hs)) for j in range(i + 1, len(hs))))
+        idx = np.flatnonzero((win == w) & np.isclose(ps0, starts[0]))
+        if len(idx) >= 4:
+            ha, _ = np.histogram(psi[idx[:len(idx) // 2]].ravel(), bins=edges)
+            hb, _ = np.histogram(psi[idx[len(idx) // 2:]].ravel(), bins=edges)
+            floor.append(0.5 * np.abs(ha / max(ha.sum(), 1) - hb / max(hb.sum(), 1)).sum())
+    if not worst or not floor:
+        return None
+    mw, mf = float(np.median(worst)), float(np.median(floor))
+    return dict(n_starts=len(starts), n_matched_windows=len(full),
+                across_start_tv_median=mw, same_start_noise_floor=mf,
+                ratio=mw / max(mf, 1e-9),
+                across_start_tv_p90=float(np.percentile(worst, 90)))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--pilot", default="results/valine/pilot_reference")
@@ -116,12 +165,18 @@ def main():
          f"({100 * meta['grid_cells_filled'] / meta['grid_cells']:.1f} %)"),
         ("split-half RMSE < 1 kT", sh.get("rmse_kT", 9e9) < 1.0,
          f"{sh.get('rmse_kT', float('nan')):.3f} kT over {sh.get('n_cells', 0)} cells"),
-        ("worst psi-start pair RMSE < 1.5 kT", ps.get("rmse_kT", 9e9) < 1.5,
-         f"{ps.get('rmse_kT', float('nan')):.3f} kT over {ps.get('n_cells', 0)} cells"),
-        ("psi start-memory spread < 0.10", meta.get("psi_start_memory_spread", 9.0) < 0.10,
-         f"{meta.get('psi_start_memory_spread', float('nan')):.3f} "
-         f"(beta/PPII occupancy range across starts)"),
     ]
+    pe = psi_equilibration(a.pilot)
+    if pe is not None:
+        checks.append(
+            ("psi equilibrated in-window (paired)", pe["ratio"] < 2.0,
+             f"across-start TV {pe['across_start_tv_median']:.3f} vs same-start noise floor "
+             f"{pe['same_start_noise_floor']:.3f} (ratio {pe['ratio']:.2f}) over "
+             f"{pe['n_matched_windows']} windows carrying all {pe['n_starts']} starts"))
+    print("\nreported but NOT gated -- both compare subsets covering DIFFERENT windows, so they "
+          "\nmeasure coverage as much as equilibration (see psi_equilibration's docstring):")
+    print(f"  per-start FES RMSE (worst pair) {ps.get('rmse_kT', float('nan')):.2f} kT;  "
+          f"unpaired start-memory spread {meta.get('psi_start_memory_spread', float('nan')):.3f}")
     print("\nacceptance (screening bar, NOT the alanine reference bar):")
     for name, ok, detail in checks:
         print(f"  [{'PASS' if ok else 'FAIL'}] {name:38s} {detail}")
@@ -197,6 +252,11 @@ def main():
 
     out = dict(pilot=a.pilot, accepted=bool(accepted_ok),
                checks=[dict(name=c[0], passed=bool(c[1]), detail=c[2]) for c in checks],
+               psi_equilibration=pe,
+               unpaired_psi_diagnostics_note=(
+                   "psi_start_agreement and psi_start_memory_spread in meta.json compare subsets "
+                   "covering DIFFERENT windows and are confounded by coverage; the paired "
+                   "psi_equilibration test supersedes them"),
                regions=[dict(name=nm, centre_deg=list(bm.centres_deg[k]),
                              depth_kT=bm.depths_kT[k], population=pops[nm],
                              cells=int((bm.label == k).sum()))
