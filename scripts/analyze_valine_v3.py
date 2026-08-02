@@ -115,6 +115,7 @@ def main():
     ap.add_argument("--run-dir", default="results/valine/v3_screen/raw")
     ap.add_argument("--pilot", default="results/valine/pilot_reference")
     ap.add_argument("--hold-frac", type=float, default=0.05)
+    ap.add_argument("--distinguishability", default="results/valine/state_map/distinguishability.json")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
 
@@ -274,6 +275,14 @@ def main():
     c2 = len(starved) > 0
     c5 = all(s["starved_seeds"] >= max(1, R // 2) for s in starved) if starved else False
     psi_ok = (psi_res is None) or (psi_res.get("global_tv", 0.0) < 0.15)
+    # Condition 3 is not a property of this run: whether a deficit is RESOLVABLE in (phi, chi1)
+    # was decided by the distinguishability gate.  Read its verdict rather than restating it,
+    # and refuse to pass V3 while it is unknown -- a deficit mFR cannot see is not actionable,
+    # however large it is.
+    dg = None
+    if os.path.exists(a.distinguishability):
+        dg = json.load(open(a.distinguishability))
+    c3 = (dg is not None) and dg["gate"]["verdict"] == "PASS"
 
     print("\n" + "=" * 72)
     print(f"GATE V3 conditions (init = {meta['init']})")
@@ -282,8 +291,10 @@ def main():
     print(f"  2 >=1 state below {DEFICIT_RATIO:.0%} of its bias-aware target for >="
           f"{DEFICIT_FRAC:.0%} of the run: {c2}"
           + (f"  -- {[s['state'] for s in starved]}" if starved else ""))
-    print(f"  3 deficit resolved in (phi, chi1): requires the distinguishability gate "
-          f"(see distinguishability.json)")
+    print(f"  3 deficit resolved in (phi, chi1) [distinguishability gate]: {c3}"
+          + (f"  (balanced acc {dg['classification']['balanced_accuracy']:.3f}, "
+             f"max overlap {dg['overlap_max']:.3f})" if dg else
+             f"  -- {a.distinguishability} not found; run analyze_valine_distinguishability.py"))
     print(f"  4 omitted psi conditional still correct: {psi_ok}"
           + (f" (TV {psi_res['global_tv']:.4f})" if psi_res and "global_tv" in psi_res else ""))
     print(f"  5 deficit reproducible across seeds: {c5}")
@@ -297,14 +308,16 @@ def main():
         note = ("Every state is discovered AND established. Val is a second neutrality control "
                 "alongside alanine. STOP -- do NOT shorten the run or cut walkers to manufacture "
                 "a deficit.")
-    elif c2 and c5 and psi_ok:
+    elif c2 and c3 and c5 and psi_ok:
         verdict = "PASS proceed to mFR"
         note = ("Discovered and persistently under-established -- the regime mFR is supposed to "
                 "address. Next: full Stage-4 reference, then the sham arm, then oracle mFR.")
     else:
         verdict = "AMBIGUOUS"
-        note = ("A deficit exists but is not reproducible across seeds, or the omitted "
-                "coordinate is off. Improve the pilot locally and repeat V3; do not go to FR.")
+        note = ("A deficit exists but is not reproducible across seeds, the omitted coordinate "
+                "is off, or the distinguishability gate has not passed (so the deficit is not "
+                "resolvable in the selected CV). Improve the pilot or the state map locally and "
+                "repeat V3; do not go to FR.")
     print(f"\nVERDICT: {verdict}")
     print(f"  {note}")
     print("=" * 72)
@@ -323,7 +336,11 @@ def main():
                                deficit_ratio=DEFICIT_RATIO, est_band=list(EST_BAND),
                                hold_frac=a.hold_frac),
                conditions=dict(discovery=bool(c1), under_established=bool(c2),
+                               deficit_resolvable_in_cv=bool(c3),
                                omitted_psi_ok=bool(psi_ok), reproducible=bool(c5)),
+               distinguishability=(None if dg is None else dg["gate"]),
+               starved_states=[s["state"] for s in starved],
+               missed_states=[s["state"] for s in missed],
                verdict=verdict, note=note)
     out = a.out or os.path.join(os.path.dirname(os.path.dirname(path)),
                                 f"v3_metrics_{meta['init']}.json")

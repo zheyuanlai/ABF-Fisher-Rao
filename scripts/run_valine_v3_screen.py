@@ -55,7 +55,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 
 from alanine.basins import BasinMap                                           # noqa: E402
 from alanine.core2d_ala import AlaSimConfig, run_sampler_ala                  # noqa: E402
-from alanine.cv2d import BackboneCV2D                                         # noqa: E402
+from alanine.cv2d import BackboneCV2D, FastBackboneCV2D                       # noqa: E402
 from alanine.dynamics import BAOAB, KB, SeedFailure                           # noqa: E402
 from alanine.forcefield import TorchFF, extract_parameters, parameter_hash    # noqa: E402
 from valine import accepted                                                   # noqa: E402
@@ -112,17 +112,36 @@ def build_initial_ensemble(system, tff, targets_deg, counts, equil_ps, dt, gamma
     """
     X, e = make_seed((-80.0, 80.0, 180.0), system=system)
     validate_seed(system, X[None], np.radians([[-80.0, 80.0, 180.0]]), energy=[e])
-    reps = []
-    for tgt in np.asarray(targets_deg, dtype=float):
+    reps, kept, dropped = [], [], []
+    for s, tgt in enumerate(np.asarray(targets_deg, dtype=float)):
         rot = seed_lattice(X, np.radians([tgt]))[0]
         rel, _ = restrained_minimise(system, rot * 10.0, tgt)
-        validate_seed(system, rel[None] * 0.1, np.radians([tgt])[None], cv_tol_deg=5.0)
+        try:
+            validate_seed(system, rel[None] * 0.1, np.radians([tgt])[None], cv_tol_deg=5.0)
+        except ValueError as exc:
+            # A stratified start can land on a (phi, psi, chi1) combination that is sterically
+            # impossible even though its (phi, chi1) region is real -- psi is not in the CV, so
+            # the region does not pick psi for us.  Record it and redistribute those walkers
+            # rather than aborting; silently dropping them would shrink the ensemble instead.
+            dropped.append({"target_deg": tgt.tolist(), "walkers": int(counts[s]),
+                            "reason": str(exc)})
+            continue
         reps.append(rel * 0.1)
+        kept.append(int(counts[s]))
+    if not reps:
+        raise SystemExit("every requested start structure failed validation")
+    total = int(np.sum(counts))
+    kept = np.asarray(kept, dtype=np.int64)
+    kept = kept + (total - kept.sum()) // len(kept)
+    kept[-1] += total - kept.sum()
     x0 = np.concatenate([np.repeat(reps[s][None], int(c), axis=0)
-                         for s, c in enumerate(counts) if int(c) > 0])
+                         for s, c in enumerate(kept) if int(c) > 0])
     if verbose:
         print(f"  {len(reps)} distinct start structures -> {x0.shape[0]} walkers; "
               f"thermalising {equil_ps} ps", flush=True)
+        for dd in dropped:
+            print(f"    dropped start {np.round(dd['target_deg'], 1).tolist()} deg: "
+                  f"{dd['reason']}", flush=True)
     x = torch.as_tensor(x0, device=device, dtype=dtype).contiguous()
     integ = BAOAB(tff.masses.cpu().numpy(), dt, gamma, temperature, lambda z: tff.forces(z),
                   device=device, dtype=dtype)
@@ -133,7 +152,7 @@ def build_initial_ensemble(system, tff, targets_deg, counts, equil_ps, dt, gamma
         x, v, f = integ.step(x, v, f, g)
     if not torch.isfinite(x).all():
         raise RuntimeError("non-finite positions after initial thermalisation")
-    return x
+    return x, dropped
 
 
 def main():
@@ -152,6 +171,9 @@ def main():
     ap.add_argument("--max-basins", type=int, default=8)
     ap.add_argument("--smoke", action="store_true")
     ap.add_argument("--cpu", action="store_true", help="wiring checks only; never production")
+    ap.add_argument("--dense-cv", action="store_true",
+                    help="use the dense-Hessian CV instead of the union-block one (cross-check)")
+    ap.add_argument("--benchmark", action="store_true")
     ap.add_argument("--overwrite", action="store_true")
     a = ap.parse_args()
 
@@ -207,7 +229,13 @@ def main():
     if phash != pmeta["param_hash"]:
         raise SystemExit(f"param_hash {phash} != pilot's {pmeta['param_hash']}")
     tff = TorchFF(P, device=device, dtype=dtype)
-    cv = BackboneCV2D(PHI_ATOMS, CHI1_ATOMS, n_atoms=N_ATOMS)
+    # The union-block CV restricts the den Otter machinery to the 6 atoms {4,6,8,10,12,20} the
+    # two dihedrals actually touch -- 18 of 84 coordinates, so the Hessian contraction shrinks
+    # ~22x.  It is an optimisation of an exactly known quantity: G, div_v, the local mean force
+    # and the scattered bias force are bitwise or 1e-12 identical to the dense path
+    # (tests/test_valine_sampler.py).  ``--dense-cv`` runs the original path for cross-checking.
+    cv = (BackboneCV2D if a.dense_cv else FastBackboneCV2D)(
+        PHI_ATOMS, CHI1_ATOMS, n_atoms=N_ATOMS)
 
     sim = AlaSimConfig(dt=accepted.DT_UNRESTRAINED_PS, n_steps=a.n_steps, n_replicas=N,
                        save_every=a.save_every, n_grid=n_grid, **accepted.ESTIMATOR)
@@ -236,10 +264,25 @@ def main():
               f"{per} walkers each")
 
     t0 = time.perf_counter()
-    init = build_initial_ensemble(system, tff, tgt, cnt, a.init_equil_ps, sim.dt, sim.gamma,
-                                  sim.temperature, device, dtype, seed=4242 + hash(a.init) % 997)
+    init, init_dropped = build_initial_ensemble(
+        system, tff, tgt, cnt, a.init_equil_ps, sim.dt, sim.gamma, sim.temperature,
+        device, dtype, seed=4242 + (0 if a.init == "concentrated" else 131))
     init = init.reshape(R, N, N_ATOMS, 3)
     print(f"  initial ensemble built in {time.perf_counter() - t0:.0f}s", flush=True)
+
+    if a.benchmark:
+        bsim = AlaSimConfig(**{**{f.name: getattr(sim, f.name)
+                                  for f in AlaSimConfig.__dataclass_fields__.values()},
+                               "n_steps": 300, "save_every": 300})
+        t0 = time.perf_counter()
+        run_sampler_ala("abf", tff, cv, bsim, a.seeds, init, bm.label_tensor(device=device),
+                        device, dtype=dtype, reference_F=None, rare_basin=0, verbose=False)
+        torch.cuda.synchronize()
+        ms = (time.perf_counter() - t0) / 300 * 1e3
+        print(f"\n{'dense' if a.dense_cv else 'union-block'} CV: {ms:.2f} ms/step at "
+              f"B={R * N}  ->  {a.n_steps} steps = {a.n_steps * ms / 1e3 / 3600:.2f} h;  "
+              f"peak {torch.cuda.max_memory_allocated() / 2 ** 30:.2f} GiB")
+        return
 
     os.makedirs(os.path.join(a.out, "raw"), exist_ok=True)
     rid = f"abf__{a.init}__N{N}__T{sim.n_steps}__ns{R}__{sim.config_hash()}"
@@ -263,12 +306,14 @@ def main():
     payload["meta"] = json.dumps(dict(
         stage="V3 ABF-only screen", method="abf", init=a.init, n_replicas=N,
         n_steps=sim.n_steps, seeds=list(a.seeds), config_hash=sim.config_hash(),
+        cv_class=type(cv).__name__, cv_atoms=[list(PHI_ATOMS), list(CHI1_ATOMS)],
         param_hash=phash, pilot=pilot_path, pilot_config_hash=pmeta["config_hash"],
         pilot_is_screening_only=True,
         basin_names=bm.names, basin_centres_deg=bm.centres_deg,
         basin_depths_kT=bm.depths_kT, pilot_populations=pops, rare_basin=rare,
         ceiling_kT=a.ceiling_kT, min_prominence_kT=a.min_prominence_kT,
         psi_init_deg=list(PSI_INIT_DEG), init_equil_ps=a.init_equil_ps,
+        init_targets_deg=tgt, init_dropped=init_dropped,
         cuda_visible_devices=cvd, device=device, dtype="float64", kT_kJ=kT,
         git=git_info(), wall_seconds=out["wall_seconds"], ms_per_step=out["ms_per_step"],
         clip_fraction=out["clip_fraction"], force_evaluations=out["force_evaluations"],

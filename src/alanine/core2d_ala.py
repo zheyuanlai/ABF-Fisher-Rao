@@ -292,6 +292,14 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
         raise SeedFailure(f"{why} in method={method} at step {step}; dump -> {path}",
                           int(torch.argmax(n_nonfinite).item()), step, path)
 
+    # A union-block CV (``FastBackboneCV2D``) returns its per-CV gradient in the COMPACT
+    # ``(B, 2, n_union, 3)`` layout instead of the full ``(B, 2, A, 3)`` one, and supplies
+    # ``scatter_bias`` to push a CV-space bias back out to full Cartesian coordinates.  The two
+    # layouts are not interchangeable, so dispatch on the method rather than on the shape; the
+    # dense path below is untouched when it is absent.  The two agree bitwise -- see
+    # ``test_union_block_mean_force_matches_dense``.
+    scatter = getattr(cv, "scatter_bias", None)
+
     def _bias_at(phi_t, gfull_t, ramp):
         """Magnitude-clipped gradient of the saved potential, pushed to Cartesian."""
         a1 = torch.nan_to_num(phi_t[:, 0].reshape(R, N), 0.0, 0.0, 0.0)
@@ -300,8 +308,12 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
         c_2 = d2.bilinear_interp2(ramp * gB2, g1c, g2c, dz1, dz2, a1, a2)
         nclip = ((c_1 * c_1 + c_2 * c_2) > sim.abf_force_clip ** 2).sum()
         c_1, c_2 = clip_magnitude(c_1, c_2, sim.abf_force_clip)
-        cart = (c_1.reshape(R * N)[:, None, None] * gfull_t[:, 0]
-                + c_2.reshape(R * N)[:, None, None] * gfull_t[:, 1]).reshape(R, N, A, 3)
+        if scatter is not None:
+            cart = scatter(gfull_t, c_1.reshape(R * N), c_2.reshape(R * N), A).reshape(
+                R, N, A, 3)
+        else:
+            cart = (c_1.reshape(R * N)[:, None, None] * gfull_t[:, 0]
+                    + c_2.reshape(R * N)[:, None, None] * gfull_t[:, 1]).reshape(R, N, A, 3)
         return cart, a1, a2, nclip
 
     for step in range(sim.n_steps + 1):
