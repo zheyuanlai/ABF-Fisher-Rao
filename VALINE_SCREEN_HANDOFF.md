@@ -185,7 +185,98 @@ dt = 0.5 fs is kept for the restrained pilot anyway: it is the value the plan fr
 an already-small artifact is cheap insurance on a reference MBAR cannot unwind. Relaxing a frozen
 value mid-study to save wall-clock is the wrong trade.
 
-## 6b. The pilot reference, and why v1 was thrown away
+## 6b. The pilot reference — and a diagnostic that failed it for the wrong reason
+
+**Accepted: `results/valine/pilot_reference/`** — 324 windows on (φ, χ₁), ψ **free** and started
+from **four** values (+150, +60, −40, −140), 951 (window, ψ-start) seeds × 8 copies, 400 ps at
+dt = 0.5 fs. MBAR 91 iterations, residual 8.8e−9; overlap graph a single connected component;
+85.3 % grid coverage; split-half over copies **0.31 kT**; kinetic temperature 298.31 K.
+
+| region | centre (φ, χ₁) | population | | region | centre (φ, χ₁) | population |
+|---|---|---|---|---|---|---|
+| B0 | (−78, −178) | 0.4201 | | B4 | (−141, −71) | 0.0701 |
+| B1 | (−74, −63) | 0.1898 | | B5 | (−82, +63) | 0.0380 |
+| B2 | (−152, +67) | 0.1840 | | **B6** | (+56, −52) | **0.0055** |
+| B3 | (+63, −174) | 0.0900 | | **B7** | (+56, +82) | **0.0014** |
+
+The two rarest regions, B6 and B7, both sit at φ > 0 — behind the megabasin barrier. They are the
+candidates for under-establishment in V3.
+
+**The regions ARE the physical states.** Mapping every S1 exploration frame to both its 3-D state
+and its pilot region (`region_state_map.json`) gives a near one-to-one correspondence — six of the
+eight regions are 100 % pure:
+
+> ⚠ **Name collision.** Pilot *regions* and S1 *states* are both labelled `B0…`. They are
+> different labellings. Below, `S:` prefixes the 3-D state.
+
+| region | = state | rotamer, backbone | purity | | region | = state | rotamer, backbone | purity |
+|---|---|---|---|---|---|---|---|---|
+| B0 | S:B4 | t, φ<0 | 1.00 | | B4 | S:B5 | g−, φ<0 | 0.98 |
+| B1 | S:B3 | g−, φ<0 | 0.89 | | B5 | S:B1 | g+, φ<0 | 1.00 |
+| B2 | S:B1 | g+, φ<0 | 1.00 | | **B6** | **S:B2** | **g−, φ>0** | 1.00 |
+| B3 | S:B0 | t, φ>0 | 1.00 | | **B7** | **S:B6** | **g+, φ>0** | 1.00 |
+
+The only impurity is the S:B3/S:B5 pair — the two states the transition matrix already showed to
+be kinetically one. This is an independent confirmation of the distinguishability gate, measured
+on a different artifact.
+
+So the V3 prediction sharpens: **B7 = the g+ rotamer of the φ>0 backbone**, population 0.0014, is
+the analogue of alanine's C7ax and the state to watch.
+
+**Barriers, and this is the free-energy confirmation of §5:**
+
+| transition | barrier |
+|---|---|
+| χ₁ rotamer, backbone free (2-D min-max path) | **1.1 – 7.4 kT** |
+| crossing the φ megabasin | **9.7 – 14.1 kT** |
+| χ₁ at *fixed* φ (1-D slice, ψ relaxed) | median 4.1 kT, up to 15.3 |
+
+The last row is why the *effective* 2-D path is the number to quote: conditioning on φ can make
+the χ₁ barrier look three times larger than what a walker free in φ actually pays. Stage 0's
+11.3–17.9 kT conditions on φ **and** ψ, and is larger still.
+
+### The diagnostic that was wrong
+
+Two successive pilots were **rejected by a check that was measuring the wrong thing**, and the
+error is worth stating precisely because it is easy to repeat.
+
+Both ψ checks compared subsets that **do not cover the same windows**. Only 61 of 315 windows
+survive structural validation for all four ψ starts, and β/PPII occupancy is mostly a property of
+*which window* a walker sits in. Averaging over unmatched window sets converts a coverage
+difference into an apparent equilibration failure — an unpaired comparison wearing a paired
+comparison's clothes.
+
+| | |
+|---|---|
+| start-memory spread, **all** windows | 0.169 → "ψ is not equilibrated" |
+| start-memory spread, windows carrying **all four** starts | **0.010** |
+| and by production quarter | 0.043 → 0.021 → 0.017 → **0.006** |
+
+Replaced by a **paired** test that needs no MBAR at all: compare `p(ψ | window)` **across starts
+within the same window**, calibrated against the same statistic between **copies of one start**,
+which is pure sampling noise.
+
+```
+across-start worst-pair TV   0.025   (median over the 61 matched windows)
+same-start noise floor       0.022
+ratio                        1.16    ->  psi IS equilibrated
+```
+
+Corroboration that ψ was never the problem: in the **unrestrained** S1 exploration ψ changes basin
+~226 times per walker per ns, roughly 83× faster than χ₁. A coordinate that fast does not fail to
+equilibrate over 400 ps.
+
+The confounded numbers (per-start FES RMSE 4.40 kT, unpaired start-memory spread 0.169) are still
+printed, labelled as confounded, and **not** gated on. Pilot v1's 3.22 kT was very likely the same
+artifact; it is superseded on sampling grounds regardless and kept at
+`results/valine/pilot_reference_v1_rejected/`.
+
+**A second, real lesson from v1 that still stands:** a split-half over *copies* is structurally
+blind to the omitted coordinate, because copies of a window share its ψ start. It read 0.31–0.38 kT
+in both pilots. Any reference on a 2-D CV needs a check that varies the omitted coordinate — but
+that check must be **paired by window**.
+
+## 6c. (superseded — v1's rejection narrative, kept for the record)
 
 `results/valine/pilot_reference_v1_rejected/` — 324 windows on (φ, χ₁), ψ **free**, two ψ starts
 (+120, −40), 8 copies each, 150 ps at dt = 0.5 fs, 65 min. MBAR converged cleanly (107 iterations,
