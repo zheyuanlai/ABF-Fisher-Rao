@@ -123,11 +123,22 @@ def main():
 
     path = a.run
     if path is None:
-        cand = sorted(glob.glob(os.path.join(a.run_dir, "*.npz")), key=os.path.getmtime)
+        cand = sorted([p for p in glob.glob(os.path.join(a.run_dir, "*.npz"))
+                       if not p.endswith(".static.npz")], key=os.path.getmtime)
         if not cand:
             raise SystemExit(f"no runs in {a.run_dir}")
         path = cand[-1]
-    d = np.load(path, allow_pickle=True)
+    d = dict(np.load(path, allow_pickle=True))
+    partial = "meta" not in d
+    if partial:
+        # A mid-run checkpoint carries only the accumulating diagnostics.  The static half --
+        # the pilot FES, the region labels, the metadata -- was written before the sampler
+        # started, precisely so a checkpoint is analysable without waiting for the run to end.
+        stat = path.replace(".partial.npz", ".static.npz")
+        if not os.path.exists(stat):
+            raise SystemExit(f"{path} is a checkpoint and {stat} is missing")
+        d.update(np.load(stat, allow_pickle=True))
+        print(f"*** PARTIAL run: analysing a checkpoint at step {int(d['step'])} ***")
     meta = json.loads(str(d["meta"]))
     kT = meta["kT_kJ"]
     beta = 1.0 / kT
@@ -155,7 +166,9 @@ def main():
           f"T_run={T_run:.0f} ps  regions={K}"
           + (f"   (selected from a {len(init_of_seed)}-seed batch carrying both arms)"
              if meta["init"] == "both" else ""))
-    print(f"health: clip {meta['clip_fraction']:.2e}  mean T "
+    clipf = meta.get("clip_fraction", float(d["clip_fraction"]) if "clip_fraction" in d
+                     else float("nan"))
+    print(f"health: clip {clipf:.2e}  mean T "
           f"{np.nanmean(np.asarray(d['temperature'], dtype=float)):.2f} K "
           f"(batch-wide; the arms share a step loop)")
 
@@ -368,7 +381,7 @@ def main():
     print(f"  {note}")
     print("=" * 72)
 
-    res = dict(run=path, init=arm, run_init=meta["init"], n_seeds=R,
+    res = dict(run=path, partial=bool(partial), init=arm, run_init=meta["init"], n_seeds=R,
                n_replicas=meta["n_replicas"], seeds=seeds_all.tolist(),
                T_run_ps=float(T_run), regions=names,
                pilot_capped_weight_mean=float(capped.mean()),
@@ -390,7 +403,7 @@ def main():
                missed_states=[s["state"] for s in missed],
                verdict=verdict, note=note)
     out = a.out or os.path.join(os.path.dirname(os.path.dirname(path)),
-                                f"v3_metrics_{arm}.json")
+                                f"v3_metrics_{arm}{'_partial' if partial else ''}.json")
     with open(out, "w") as fh:
         json.dump(res, fh, indent=2, default=float)
     print(f"\nwrote {out}")

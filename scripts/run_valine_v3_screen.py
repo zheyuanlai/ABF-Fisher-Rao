@@ -319,6 +319,27 @@ def main():
         raise SystemExit(f"{path} exists; pass --overwrite to replace it")
 
     labels = bm.label_tensor(device=device)
+
+    # The static half of the artifact is written BEFORE the sampler starts, so a checkpoint
+    # taken mid-run is analysable on its own.  Without this a 14 h run yields nothing readable
+    # until it finishes, which defeats the point of checkpointing at all.
+    static = dict(F_pilot=F_pilot, basin_label=bm.label,
+                  basin_centres_deg=np.array(bm.centres_deg))
+    static_meta = dict(
+        stage="V3 ABF-only screen", method="abf", init=a.init, n_replicas=N,
+        n_steps=sim.n_steps, seeds=list(a.seeds), config_hash=sim.config_hash(),
+        cv_class=type(cv).__name__, cv_atoms=[list(PHI_ATOMS), list(CHI1_ATOMS)],
+        param_hash=phash, pilot=pilot_path, pilot_config_hash=pmeta["config_hash"],
+        pilot_is_screening_only=True,
+        basin_names=bm.names, basin_centres_deg=bm.centres_deg,
+        basin_depths_kT=bm.depths_kT, pilot_populations=pops, rare_basin=rare,
+        ceiling_kT=a.ceiling_kT, min_prominence_kT=a.min_prominence_kT,
+        psi_init_deg=list(PSI_INIT_DEG), init_equil_ps=a.init_equil_ps,
+        init_targets_deg=tgt, init_dropped=init_dropped, init_of_seed=init_of_seed,
+        cuda_visible_devices=cvd, device=device, dtype="float64", kT_kJ=kT, git=git_info())
+    np.savez_compressed(path.replace(".npz", ".static.npz"),
+                        meta=json.dumps(static_meta, default=float), **static)
+
     try:
         out = run_sampler_ala("abf", tff, cv, sim, a.seeds, init, labels, device, dtype=dtype,
                               reference_F=None, rare_basin=rare,
@@ -334,18 +355,7 @@ def main():
     payload["basin_label"] = bm.label
     payload["basin_centres_deg"] = np.array(bm.centres_deg)
     payload["meta"] = json.dumps(dict(
-        stage="V3 ABF-only screen", method="abf", init=a.init, n_replicas=N,
-        n_steps=sim.n_steps, seeds=list(a.seeds), config_hash=sim.config_hash(),
-        cv_class=type(cv).__name__, cv_atoms=[list(PHI_ATOMS), list(CHI1_ATOMS)],
-        param_hash=phash, pilot=pilot_path, pilot_config_hash=pmeta["config_hash"],
-        pilot_is_screening_only=True,
-        basin_names=bm.names, basin_centres_deg=bm.centres_deg,
-        basin_depths_kT=bm.depths_kT, pilot_populations=pops, rare_basin=rare,
-        ceiling_kT=a.ceiling_kT, min_prominence_kT=a.min_prominence_kT,
-        psi_init_deg=list(PSI_INIT_DEG), init_equil_ps=a.init_equil_ps,
-        init_targets_deg=tgt, init_dropped=init_dropped, init_of_seed=init_of_seed,
-        cuda_visible_devices=cvd, device=device, dtype="float64", kT_kJ=kT,
-        git=git_info(), wall_seconds=out["wall_seconds"], ms_per_step=out["ms_per_step"],
+        static_meta, wall_seconds=out["wall_seconds"], ms_per_step=out["ms_per_step"],
         clip_fraction=out["clip_fraction"], force_evaluations=out["force_evaluations"],
         peak_cuda_gib=out["peak_cuda_gib"]), default=float)
     tmp = path + ".tmp.npz"
