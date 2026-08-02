@@ -34,8 +34,13 @@ of aggregate unbiased sampling. φ is in the CV. See §5.
 | distinguishability | `results/valine/state_map/distinguishability.json` | CPU |
 | clustering sensitivity | `results/valine/state_map/state_sensitivity.json` | 18 settings, CPU |
 | dt bias re-measurement | `results/valine/dt_bias/` | 3 timesteps × 3 restraints, one batch each |
-| pilot reference | `results/valine/pilot_reference/` | *running* |
-| V3 ABF-only screen | `results/valine/v3_screen/` | *not yet run* |
+| pilot reference | `results/valine/pilot_reference/` | 324 windows, 586 seeds × 8 copies, ~70 min |
+| V3 ABF-only screen | `results/valine/v3_screen/` | *see §7* |
+| figures | `results/valine/figures/valine_screen.png` | CPU |
+
+All on GPU 7, one process at a time. Measured step costs, for anyone sizing a follow-up: the ABF
+sampler is **50.5 ms/step at B = 16384** and **flat in batch** — so seeds are nearly free and run
+*length* is the only real cost lever.
 
 All on GPU 7. GPUs 4–6 were saturated by another user throughout and were never touched; 0–3
 were never used.
