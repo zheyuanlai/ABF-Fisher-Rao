@@ -177,7 +177,8 @@ def _dihedral_iupac_t(x, idx):
 
 def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, basin_labels,
                     device, dtype=torch.float64, reference_F=None, dump_dir=None,
-                    force_fn=None, rare_basin=2, extra_angle_atoms=None, verbose=True):
+                    force_fn=None, rare_basin=2, extra_angle_atoms=None,
+                    checkpoint_path=None, checkpoint_every=0, verbose=True):
     """Run ``R = len(seeds)`` matched-seed replicas of ``method``.
 
     ``init_positions``  ``(R, N, A, 3)`` -- identical across arms for a given seed.
@@ -195,6 +196,13 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
                         coordinate it hides is not equilibrated, and nothing else in this
                         sampler would notice.  ``None`` (the default) reproduces the accepted
                         alanine behaviour exactly -- no extra evaluation, no extra output key.
+    ``checkpoint_path`` / ``checkpoint_every``
+                        write the diagnostics accumulated SO FAR to an ``.npz`` every this many
+                        steps.  Purely additive: it reads state and writes a file, touching no
+                        sampler variable, so the trajectory is bit-identical with it on or off.
+                        It exists because a multi-hour run that dies near the end otherwise
+                        yields nothing at all, while a partial record still shows whether
+                        discovery and establishment had happened.  ``0`` (default) disables it.
     """
     if not (0 <= int(rare_basin) <= int(basin_labels.max())):
         raise ValueError(f"rare_basin={rare_basin} outside the basin labels present "
@@ -403,6 +411,21 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
                     .reshape(R, N).to(torch.float32).cpu().numpy())
                 diag["walker_basin"].append(cur.to(torch.int16).cpu().numpy())
             Tsum = torch.zeros((), device=device, dtype=dtype); n_T = 0
+
+        if (checkpoint_every and checkpoint_path and step > 0
+                and step % checkpoint_every == 0 and step < sim.n_steps):
+            tmp = checkpoint_path + ".tmp.npz"
+            np.savez_compressed(
+                tmp, step=step, method=method, seeds=np.asarray(seeds),
+                n_replicas=N, rare_basin=int(rare_basin),
+                first_hit=first_hit.cpu().numpy(), trans_matrix=trans.cpu().numpy(),
+                total_events=n_events.cpu().numpy(),
+                clip_fraction=float(n_clip.item()) / max(float(n_force_eval.item()), 1.0),
+                **{k: np.asarray(v) for k, v in diag.items()})
+            os.replace(tmp, checkpoint_path)
+            if verbose:
+                print(f"    checkpoint @ step {step} ({step * sim.dt:.0f} ps) -> "
+                      f"{checkpoint_path}", flush=True)
 
         if step == sim.n_steps:
             break

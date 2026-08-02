@@ -170,6 +170,8 @@ def main():
     ap.add_argument("--n-replicas", type=int, default=2048)
     ap.add_argument("--n-steps", type=int, default=1_000_000)
     ap.add_argument("--save-every", type=int, default=2_000)
+    ap.add_argument("--checkpoint-every", type=int, default=50_000,
+                    help="write partial diagnostics this often; 0 disables")
     ap.add_argument("--init-equil-ps", type=float, default=20.0)
     ap.add_argument("--ceiling-kT", type=float, default=8.0)
     ap.add_argument("--min-prominence-kT", type=float, default=1.0)
@@ -321,6 +323,8 @@ def main():
         out = run_sampler_ala("abf", tff, cv, sim, a.seeds, init, labels, device, dtype=dtype,
                               reference_F=None, rare_basin=rare,
                               extra_angle_atoms=PSI_ATOMS,   # the OMITTED coordinate
+                              checkpoint_path=path.replace(".npz", ".partial.npz"),
+                              checkpoint_every=a.checkpoint_every,
                               dump_dir=os.path.join(a.out, "raw", "_failures"))
     except SeedFailure as e:
         raise SystemExit(f"sampler failed: {e}")
