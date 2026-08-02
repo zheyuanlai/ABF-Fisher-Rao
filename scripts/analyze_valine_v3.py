@@ -233,32 +233,50 @@ def main():
     psi_res = None
     if "extra_angle" in d.files:
         psi = np.asarray(d["extra_angle"])               # (T, R, N) recorded psi
-        pilot_npz = os.path.join(a.pilot, "pilot_reference.npz")
         half = len(times) // 2
+        edges = np.linspace(-math.pi, math.pi, 37)
         psi_res = {"n_bins": 36, "per_state": []}
-        if os.path.exists(pilot_npz):
-            pf = np.load(pilot_npz, allow_pickle=True)
-            if "mbar_logw" in pf.files:
-                n = F_pilot.shape[0]
-                ci = to_cell(pf["mbar_phi"].astype(np.float64), n)
-                cj = to_cell(pf["mbar_chi1"].astype(np.float64), n)
-                ref_lab = label[ci, cj]
-                w = np.exp(pf["mbar_logw"] - pf["mbar_logw"].max())
-                edges = np.linspace(-math.pi, math.pi, 37)
-                # walkers' basin at each save is not stored per walker, so condition the RUN's
-                # psi on the run's own CV cell -- recomputed here is impossible, so use the
-                # ensemble-level psi distribution as the comparison. Stated plainly: this is a
-                # global check, not a per-state one, unless per-walker labels are recorded.
-                hr, _ = np.histogram(pf["mbar_psi"].astype(np.float64), bins=edges, weights=w)
-                hv, _ = np.histogram(psi[half:].reshape(-1), bins=edges)
-                hr = hr / hr.sum()
-                hv = hv / hv.sum()
-                psi_res["global_tv"] = float(0.5 * np.abs(hr - hv).sum())
-                psi_res["reference"] = "pilot MBAR"
-                print(f"omitted coordinate psi: global TV(run, pilot) = "
-                      f"{psi_res['global_tv']:.4f}")
-        psi_res["run_hist"] = np.histogram(psi[half:].reshape(-1),
-                                           bins=np.linspace(-math.pi, math.pi, 37))[0].tolist()
+        pilot_npz = os.path.join(a.pilot, "pilot_reference.npz")
+        pf = np.load(pilot_npz, allow_pickle=True) if os.path.exists(pilot_npz) else None
+        if pf is not None and "mbar_logw" in pf.files:
+            n = F_pilot.shape[0]
+            ref_lab = label[to_cell(pf["mbar_phi"].astype(np.float64), n),
+                            to_cell(pf["mbar_chi1"].astype(np.float64), n)]
+            w = np.exp(pf["mbar_logw"] - pf["mbar_logw"].max())
+            rpsi = pf["mbar_psi"].astype(np.float64)
+            hr, _ = np.histogram(rpsi, bins=edges, weights=w)
+            hv, _ = np.histogram(psi[half:].reshape(-1), bins=edges)
+            psi_res["global_tv"] = float(0.5 * np.abs(hr / hr.sum() - hv / hv.sum()).sum())
+            psi_res["reference"] = "pilot MBAR"
+            print(f"omitted coordinate psi: global TV(run, pilot) = "
+                  f"{psi_res['global_tv']:.4f}")
+            # Per state.  Globally this check is nearly useless: two states can each carry the
+            # wrong psi distribution in opposite directions and still sum to the right one.
+            if "walker_basin" in d.files:
+                wb = np.asarray(d["walker_basin"])[half:]         # (T', R, N)
+                pv = psi[half:]
+                worst = 0.0
+                for k in range(K):
+                    mr = ref_lab == k
+                    mv = wb == k
+                    if mr.sum() < 200 or mv.sum() < 200:
+                        psi_res["per_state"].append(dict(state=names[k], tv=None,
+                                                         n_ref=int(mr.sum()),
+                                                         n_run=int(mv.sum())))
+                        continue
+                    a_, _ = np.histogram(rpsi[mr], bins=edges, weights=w[mr])
+                    b_, _ = np.histogram(pv[mv], bins=edges)
+                    tvk = float(0.5 * np.abs(a_ / a_.sum() - b_ / b_.sum()).sum())
+                    worst = max(worst, tvk)
+                    psi_res["per_state"].append(dict(state=names[k], tv=tvk,
+                                                     n_ref=int(mr.sum()), n_run=int(mv.sum())))
+                psi_res["worst_state_tv"] = worst
+                parts = []
+                for r in psi_res["per_state"]:
+                    parts.append(f"{r['state']} n/a" if r["tv"] is None
+                                 else f"{r['state']} {r['tv']:.3f}")
+                print("  per state TV: " + ", ".join(parts))
+        psi_res["run_hist"] = np.histogram(psi[half:].reshape(-1), bins=edges)[0].tolist()
 
     # ------------------------------------------------------------------ verdict
     discovered = [s for s in per_state
@@ -274,7 +292,12 @@ def main():
     c1 = len(missed) == 0
     c2 = len(starved) > 0
     c5 = all(s["starved_seeds"] >= max(1, R // 2) for s in starved) if starved else False
-    psi_ok = (psi_res is None) or (psi_res.get("global_tv", 0.0) < 0.15)
+    # Judge on the WORST state when per-state numbers exist; the global TV can be small while a
+    # single state's omitted-coordinate distribution is badly wrong, because errors of opposite
+    # sign in different states cancel in the sum.
+    psi_tv = (None if psi_res is None else
+              psi_res.get("worst_state_tv", psi_res.get("global_tv")))
+    psi_ok = (psi_tv is None) or (psi_tv < 0.15)
     # Condition 3 is not a property of this run: whether a deficit is RESOLVABLE in (phi, chi1)
     # was decided by the distinguishability gate.  Read its verdict rather than restating it,
     # and refuse to pass V3 while it is unknown -- a deficit mFR cannot see is not actionable,
@@ -296,7 +319,7 @@ def main():
              f"max overlap {dg['overlap_max']:.3f})" if dg else
              f"  -- {a.distinguishability} not found; run analyze_valine_distinguishability.py"))
     print(f"  4 omitted psi conditional still correct: {psi_ok}"
-          + (f" (TV {psi_res['global_tv']:.4f})" if psi_res and "global_tv" in psi_res else ""))
+          + (f" (worst-state TV {psi_tv:.4f})" if psi_tv is not None else " (not measured)"))
     print(f"  5 deficit reproducible across seeds: {c5}")
     if not c1:
         verdict = "FAIL-A discovery-limited"

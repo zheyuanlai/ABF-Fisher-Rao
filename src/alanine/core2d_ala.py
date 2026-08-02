@@ -261,7 +261,12 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
                             "clip_frac", "temperature", "proj_resid", "curl_pre",
                             "score_std", "score_absmax", "ess_age_rare")}
     if extra_angle_atoms is not None:
+        # The per-walker basin label is saved alongside, so the omitted coordinate can be
+        # checked CONDITIONALLY on the state.  Globally it is nearly useless: two states can
+        # each have the wrong psi distribution in opposite directions and still sum to the
+        # right one.  ``cur`` is already computed every step, so this costs a cast.
         diag["extra_angle"] = []
+        diag["walker_basin"] = []
     trust_frac = 0.0
     proj_resid = 0.0
     curl_pre = torch.zeros(R, device=device, dtype=dtype)
@@ -396,6 +401,7 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
                 diag["extra_angle"].append(
                     _dihedral_iupac_t(q.reshape(R * N, A, 3), extra_angle_atoms)
                     .reshape(R, N).to(torch.float32).cpu().numpy())
+                diag["walker_basin"].append(cur.to(torch.int16).cpu().numpy())
             Tsum = torch.zeros((), device=device, dtype=dtype); n_T = 0
 
         if step == sim.n_steps:
