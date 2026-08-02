@@ -22,10 +22,13 @@ stiff mode -- while the unrestrained system sits within 0.6 sigma of 300 K at ev
 MBAR removes the restraint using its ANALYTIC potential, so a discretisation error in the
 sampled distribution is not unwound by it.  `valine.accepted` enforces this.
 
-**psi is free, and is started from two well-separated values.**  psi is the coordinate the
-selected CV omits.  Running both starts and comparing is the global version of the sec.32 check,
-which was made only at six anchors: if a substantial region of (phi, chi1) contained two slowly
-interconverting psi states, the two starts would disagree there and the CV would be inadequate.
+**psi is free, and is started from several well-separated values.**  psi is the coordinate the
+selected CV omits.  Running every start and comparing them pairwise is the global version of the
+sec.32 check, which was made only at six anchors: if a substantial region of (phi, chi1) held two
+slowly interconverting psi states, the starts would disagree there.  Note what this catches that
+a split-half over COPIES cannot -- copies of one window share its psi start, so that test is
+blind to psi by construction, and in the first pilot it read 0.38 kT while the psi starts
+disagreed by 3.22 kT.
 
 **A softer restraint, because the spacing is coarser.**  Overlap depends on the ratio of the
 restrained width sqrt(kT/kappa) to the window spacing, not on kappa alone.  The alanine
@@ -69,9 +72,16 @@ KB = 0.008314462618
 TWO_PI = 2.0 * math.pi
 QUADS = (PHI_ATOMS, PSI_ATOMS, CHI1_ATOMS)
 
-#: Two well-separated psi starts.  They bracket the populated backbone regions the V1 scan
-#: found: beta/PPII (psi ~ +80..+150) and alpha (psi ~ -50..+40).
-PSI_STARTS_DEG = (120.0, -40.0)
+#: Default psi starts.  psi is the coordinate the selected CV omits, and it is NOT restrained
+#: here, so each window has to equilibrate it on its own.  The FIRST pilot used two starts
+#: (+120, -40) and 150 ps, and its two starts disagreed by a median 1.4-1.9 kT in the populated
+#: region -- against 0.38 kT for a split-half over copies, which shares a psi start and is
+#: therefore blind to exactly this.  Walkers do cross (38.8 % changed psi basin in 150 ps) but
+#: retain start memory (final basin fraction 0.551 vs 0.463), so the failure is incomplete
+#: EQUILIBRATION, not trapping.  Four starts spread around the circle plus a longer production
+#: attack both halves of that: more independent initial conditions to average over, and more
+#: time for each to forget.
+PSI_STARTS_DEG = (150.0, 60.0, -40.0, -140.0)
 
 
 def enforce_gpu_policy(est_peak_gib):
@@ -150,6 +160,8 @@ def main():
     ap.add_argument("--out", default="results/valine/pilot_reference")
     ap.add_argument("--windows", type=int, default=18, help="per axis; 18 -> 324 windows")
     ap.add_argument("--copies", type=int, default=8, help="per (window, psi-start)")
+    ap.add_argument("--psi-starts", type=float, nargs="+", default=None,
+                    help="override the psi start values (deg)")
     ap.add_argument("--kappa", type=float, default=None,
                     help="kJ/mol/rad^2; default reproduces alanine's width/spacing ratio 0.43")
     ap.add_argument("--randomize-ps", type=float, default=5.0)
@@ -165,6 +177,9 @@ def main():
     ap.add_argument("--cpu", action="store_true")
     a = ap.parse_args()
 
+    global PSI_STARTS_DEG
+    if a.psi_starts:
+        PSI_STARTS_DEG = tuple(float(x) for x in a.psi_starts)
     dt = accepted.DT_RESTRAINED_PS                    # 0.5 fs -- see module docstring
     accepted.assert_accepted(dt_ps=dt, n_grid=a.n_grid, restrained=True)
     require_odd_grid(a.n_grid)
@@ -270,6 +285,23 @@ def main():
     print(f"kinetic temperature deviation {100 * t_dev:.2f} % "
           f"({'OK' if t_dev < 0.02 else 'EXCEEDS the 2 % guard'})", flush=True)
 
+    # How much does a window still remember which psi it started from?  This is the quantity
+    # the first pilot failed on, so it is measured directly rather than only inferred from the
+    # per-start FES comparison further down.
+    psi_tr = traj[:, :, 1].astype(np.float64)
+    late = psi_tr[:, psi_tr.shape[1] // 2:]
+    in_beta = ((late > math.radians(60)) | (late < math.radians(-150))).mean(1)
+    memory = {}
+    for p0 in sorted(set(psi0.tolist())):
+        m = np.isclose(psi0, p0)
+        memory[f"{math.degrees(p0):+.0f}"] = float(in_beta[m].mean())
+    spread = max(memory.values()) - min(memory.values())
+    print(f"psi start memory (fraction in the beta/PPII basin over the last half): "
+          + ", ".join(f"{k} deg -> {v:.3f}" for k, v in memory.items()))
+    print(f"  spread across starts {spread:.3f} "
+          f"({'OK' if spread < 0.10 else 'LARGE -- psi is not equilibrated within windows'})",
+          flush=True)
+
     np.savez_compressed(os.path.join(a.out, "samples.npz"),
                         theta=traj.astype(np.float32), window=wid, psi_start=psi0,
                         centres=np.repeat(cen_np, a.copies, axis=0), temperature=temps)
@@ -364,8 +396,16 @@ def main():
     F_b = fes_subset(copy_of_sample >= a.copies // 2)
     print("  per-psi-start ...", flush=True)
     psi_of_sample = psi0[seed_of_sample[idx]]
-    F_p1 = fes_subset(psi_of_sample > 0, seed_mask=psi0_np > 0)
-    F_p2 = fes_subset(psi_of_sample < 0, seed_mask=psi0_np < 0)
+    starts = sorted(set(psi0_np.tolist()))
+    F_per_start = {}
+    for p0 in starts:
+        F_per_start[p0] = fes_subset(np.isclose(psi_of_sample, p0),
+                                     seed_mask=np.isclose(psi0_np, p0))
+    # With more than two starts the honest summary is the WORST pair, not an average: a single
+    # start that fails to equilibrate is exactly the failure mode this check exists to catch,
+    # and averaging it against three agreeing ones would hide it.
+    F_p1 = F_per_start[starts[0]]
+    F_p2 = F_per_start[starts[-1]]
 
     def compare(A, Bm, tag):
         if A is None or Bm is None:
@@ -383,7 +423,16 @@ def main():
         return r
 
     split = compare(F_a, F_b, "split-half (copies)")
-    psicmp = compare(F_p1, F_p2, "psi-start agreement")
+    pair_cmp = {}
+    for i in range(len(starts)):
+        for j in range(i + 1, len(starts)):
+            r = compare(F_per_start[starts[i]], F_per_start[starts[j]],
+                        f"psi {math.degrees(starts[i]):+.0f} vs {math.degrees(starts[j]):+.0f}")
+            if r is not None:
+                pair_cmp[f"{math.degrees(starts[i]):+.0f}_vs_{math.degrees(starts[j]):+.0f}"] = r
+    psicmp = (max(pair_cmp.values(), key=lambda r: r["rmse_kT"]) if pair_cmp else None)
+    if psicmp is not None:
+        print(f"  WORST psi-start pair: RMSE {psicmp['rmse_kT']:.2f} kT")
 
     np.savez_compressed(
         os.path.join(a.out, "pilot_reference.npz"),
@@ -426,6 +475,8 @@ def main():
         "mean_temperature_K": float(temps.mean()),
         "temperature_deviation_frac": float(t_dev),
         "split_half": split, "psi_start_agreement": psicmp,
+        "psi_start_pairwise": pair_cmp,
+        "psi_start_memory": memory, "psi_start_memory_spread": float(spread),
         "n_dropped_seeds": len(dropped), "dropped_seeds": dropped[:50],
         "wall_seconds": wall, "git": git_info(),
     }

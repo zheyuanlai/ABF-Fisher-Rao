@@ -1,0 +1,515 @@
+{
+  "stage": "S-pilot: coarse screening reference F_pilot(phi, chi1)",
+  "IS_NOT_PUBLICATION_QUALITY": true,
+  "purpose": "provisional target populations for the V3 establishment metric only",
+  "param_hash": "86622b245bb0",
+  "cuda_visible_devices": "7",
+  "device": "cuda",
+  "physical_model": "vacuum ff14SB, NoCutoff, no constraints, no HMR, BAOAB, gamma=1/ps, T=300K, float64, IUPAC dihedrals",
+  "dt_ps": 0.0005,
+  "dt_reason": "restrained; 1 fs under-integrates the dihedral clamp",
+  "windows_per_axis": 18,
+  "n_windows": 324,
+  "n_seeds": 586,
+  "copies_per_seed": 8,
+  "batch": 4688,
+  "kappa": 112.3,
+  "sigma_deg": 8.53906804199087,
+  "sigma_over_spacing": 0.4269534020995435,
+  "psi_starts_deg": [
+    120.0,
+    -40.0
+  ],
+  "psi_restrained": false,
+  "randomize_ps": 5.0,
+  "equil_ps": 50.0,
+  "prod_ps": 150.0,
+  "save_every": 200,
+  "frames": 1500,
+  "seed": 20260802,
+  "n_grid": 97,
+  "mbar_iterations": 107,
+  "mbar_residual": 9.730550587505604e-09,
+  "mbar_samples": 234400,
+  "nn_overlap": {
+    "min": 5.843166503182359e-05,
+    "p1": 0.005997328566897256,
+    "median": 0.22356039955579343,
+    "n_below_0p03": 22,
+    "n_pairs": 612
+  },
+  "grid_cells_filled": 7958,
+  "grid_cells": 9409,
+  "mean_temperature_K": 298.3583028695231,
+  "temperature_deviation_frac": 0.005472323768256426,
+  "split_half": {
+    "n_cells": 2802,
+    "rmse_kT": 0.38092376854957594,
+    "max_kT": 2.178851740146661
+  },
+  "psi_start_agreement": {
+    "n_cells": 2794,
+    "rmse_kT": 3.2236072405698595,
+    "max_kT": 8.464310793966188
+  },
+  "n_dropped_seeds": 62,
+  "dropped_seeds": [
+    {
+      "window": 180,
+      "target_deg": [
+        20.0,
+        -40.0,
+        -180.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1794 nm < 0.18"
+    },
+    {
+      "window": 181,
+      "target_deg": [
+        20.0,
+        -40.0,
+        -160.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1798 nm < 0.18"
+    },
+    {
+      "window": 182,
+      "target_deg": [
+        20.0,
+        -40.0,
+        -140.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1798 nm < 0.18"
+    },
+    {
+      "window": 183,
+      "target_deg": [
+        20.0,
+        -40.0,
+        -120.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1797 nm < 0.18"
+    },
+    {
+      "window": 184,
+      "target_deg": [
+        20.0,
+        -40.0,
+        -100.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1793 nm < 0.18"
+    },
+    {
+      "window": 185,
+      "target_deg": [
+        20.0,
+        -40.0,
+        -80.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1794 nm < 0.18"
+    },
+    {
+      "window": 186,
+      "target_deg": [
+        20.0,
+        -40.0,
+        -60.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1798 nm < 0.18"
+    },
+    {
+      "window": 188,
+      "target_deg": [
+        20.0,
+        -40.0,
+        -20.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1799 nm < 0.18"
+    },
+    {
+      "window": 189,
+      "target_deg": [
+        20.0,
+        -40.0,
+        0.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1798 nm < 0.18"
+    },
+    {
+      "window": 190,
+      "target_deg": [
+        20.0,
+        -40.0,
+        20.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1792 nm < 0.18"
+    },
+    {
+      "window": 191,
+      "target_deg": [
+        20.0,
+        -40.0,
+        40.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1794 nm < 0.18"
+    },
+    {
+      "window": 192,
+      "target_deg": [
+        20.0,
+        -40.0,
+        60.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1797 nm < 0.18"
+    },
+    {
+      "window": 195,
+      "target_deg": [
+        20.0,
+        -40.0,
+        120.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1795 nm < 0.18"
+    },
+    {
+      "window": 196,
+      "target_deg": [
+        20.0,
+        -40.0,
+        140.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1792 nm < 0.18"
+    },
+    {
+      "window": 197,
+      "target_deg": [
+        20.0,
+        -40.0,
+        160.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1790 nm < 0.18"
+    },
+    {
+      "window": 198,
+      "target_deg": [
+        40.0,
+        -40.0,
+        -180.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1776 nm < 0.18"
+    },
+    {
+      "window": 199,
+      "target_deg": [
+        40.0,
+        -40.0,
+        -160.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1779 nm < 0.18"
+    },
+    {
+      "window": 200,
+      "target_deg": [
+        40.0,
+        -40.0,
+        -140.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1780 nm < 0.18"
+    },
+    {
+      "window": 201,
+      "target_deg": [
+        40.0,
+        -40.0,
+        -120.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1778 nm < 0.18"
+    },
+    {
+      "window": 202,
+      "target_deg": [
+        40.0,
+        -40.0,
+        -100.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1774 nm < 0.18"
+    },
+    {
+      "window": 203,
+      "target_deg": [
+        40.0,
+        -40.0,
+        -80.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1777 nm < 0.18"
+    },
+    {
+      "window": 204,
+      "target_deg": [
+        40.0,
+        -40.0,
+        -60.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1779 nm < 0.18"
+    },
+    {
+      "window": 205,
+      "target_deg": [
+        40.0,
+        -40.0,
+        -40.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1783 nm < 0.18"
+    },
+    {
+      "window": 206,
+      "target_deg": [
+        40.0,
+        -40.0,
+        -20.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1783 nm < 0.18"
+    },
+    {
+      "window": 207,
+      "target_deg": [
+        40.0,
+        -40.0,
+        0.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1778 nm < 0.18"
+    },
+    {
+      "window": 208,
+      "target_deg": [
+        40.0,
+        -40.0,
+        20.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1773 nm < 0.18"
+    },
+    {
+      "window": 209,
+      "target_deg": [
+        40.0,
+        -40.0,
+        40.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1773 nm < 0.18"
+    },
+    {
+      "window": 210,
+      "target_deg": [
+        40.0,
+        -40.0,
+        60.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1778 nm < 0.18"
+    },
+    {
+      "window": 211,
+      "target_deg": [
+        40.0,
+        -40.0,
+        80.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1784 nm < 0.18"
+    },
+    {
+      "window": 212,
+      "target_deg": [
+        40.0,
+        -40.0,
+        100.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1785 nm < 0.18"
+    },
+    {
+      "window": 213,
+      "target_deg": [
+        40.0,
+        -40.0,
+        120.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1781 nm < 0.18"
+    },
+    {
+      "window": 214,
+      "target_deg": [
+        40.0,
+        -40.0,
+        140.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1776 nm < 0.18"
+    },
+    {
+      "window": 215,
+      "target_deg": [
+        40.0,
+        -40.0,
+        160.0
+      ],
+      "reason": "seed 0: closest non-excluded contact 0.1775 nm < 0.18"
+    },
+    {
+      "window": 256,
+      "target_deg": [
+        100.0,
+        120.0,
+        -100.0
+      ],
+      "reason": "seed 0: omega_1 = -31.8 deg, 148.2 deg from trans"
+    },
+    {
+      "window": 258,
+      "target_deg": [
+        100.0,
+        120.0,
+        -60.0
+      ],
+      "reason": "seed 0: omega_1 = -35.9 deg, 144.1 deg from trans"
+    },
+    {
+      "window": 258,
+      "target_deg": [
+        100.0,
+        -40.0,
+        -60.0
+      ],
+      "reason": "seed 0: omega_1 = -27.8 deg, 152.2 deg from trans"
+    },
+    {
+      "window": 262,
+      "target_deg": [
+        100.0,
+        120.0,
+        20.0
+      ],
+      "reason": "seed 0: omega_1 = -27.2 deg, 152.8 deg from trans"
+    },
+    {
+      "window": 262,
+      "target_deg": [
+        100.0,
+        -40.0,
+        20.0
+      ],
+      "reason": "seed 0: omega_1 = -24.2 deg, 155.8 deg from trans"
+    },
+    {
+      "window": 264,
+      "target_deg": [
+        100.0,
+        120.0,
+        60.0
+      ],
+      "reason": "seed 0: omega_1 = -38.7 deg, 141.3 deg from trans"
+    },
+    {
+      "window": 264,
+      "target_deg": [
+        100.0,
+        -40.0,
+        60.0
+      ],
+      "reason": "seed 0: omega_1 = -33.1 deg, 146.9 deg from trans"
+    },
+    {
+      "window": 272,
+      "target_deg": [
+        120.0,
+        120.0,
+        -140.0
+      ],
+      "reason": "seed 0: omega_1 = -35.1 deg, 144.9 deg from trans"
+    },
+    {
+      "window": 273,
+      "target_deg": [
+        120.0,
+        120.0,
+        -120.0
+      ],
+      "reason": "seed 0: omega_1 = -148.2 deg, 31.8 deg from trans"
+    },
+    {
+      "window": 274,
+      "target_deg": [
+        120.0,
+        120.0,
+        -100.0
+      ],
+      "reason": "seed 0: omega_1 = -150.3 deg, 29.7 deg from trans"
+    },
+    {
+      "window": 281,
+      "target_deg": [
+        120.0,
+        120.0,
+        40.0
+      ],
+      "reason": "seed 0: omega_1 = -56.6 deg, 123.4 deg from trans"
+    },
+    {
+      "window": 281,
+      "target_deg": [
+        120.0,
+        -40.0,
+        40.0
+      ],
+      "reason": "seed 0: omega_1 = -48.7 deg, 131.3 deg from trans"
+    },
+    {
+      "window": 289,
+      "target_deg": [
+        140.0,
+        120.0,
+        -160.0
+      ],
+      "reason": "seed 0: omega_1 = -48.2 deg, 131.8 deg from trans"
+    },
+    {
+      "window": 289,
+      "target_deg": [
+        140.0,
+        -40.0,
+        -160.0
+      ],
+      "reason": "seed 0: omega_1 = -36.4 deg, 143.6 deg from trans"
+    },
+    {
+      "window": 290,
+      "target_deg": [
+        140.0,
+        120.0,
+        -140.0
+      ],
+      "reason": "seed 0: omega_1 = -151.4 deg, 28.6 deg from trans"
+    },
+    {
+      "window": 291,
+      "target_deg": [
+        140.0,
+        120.0,
+        -120.0
+      ],
+      "reason": "seed 0: omega_1 = -152.7 deg, 27.3 deg from trans"
+    },
+    {
+      "window": 295,
+      "target_deg": [
+        140.0,
+        120.0,
+        -40.0
+      ],
+      "reason": "seed 0: omega_1 = -24.3 deg, 155.7 deg from trans"
+    }
+  ],
+  "wall_seconds": 3903.3412697315216,
+  "git": {
+    "commit": "1add709d5a15e3e5da4a10212bd9144096ec51ca",
+    "branch": "alanine-dipeptide",
+    "dirty": true
+  },
+  "config_hash": "efe11fad3da8"
+}
