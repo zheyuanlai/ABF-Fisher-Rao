@@ -38,6 +38,39 @@ reason. The lesson is that starvation of the biased coordinate is necessary but 
 sufficient: mFR helps only when that starvation is a \emph{support deficit} its reallocation
 can fill, not a dynamical barrier it cannot.
 
+Two all-atom dipeptides then close the molecular question, and a constructed model answers
+the one it leaves open. Vacuum alanine and valine (\cref{sec:neutrality}) were both chosen as
+systems where mFR ought to help, both cleared every gate preceding the decisive one, and both
+returned \textbf{\AlaVerdict}. Valine is the more informative of the two because the reason it
+was selected proved measurable and wrong: its $11$--$18\,k_BT$ side-chain barrier is a
+backbone-\emph{clamped conditional} barrier, worth $1.1$--$7.4\,k_BT$ with the backbone free,
+and the genuinely slow coordinate is the backbone $\varphi$ --- which is in the CV. Both
+peptides therefore fail the same necessary condition, and for the same reason as the alkanes:
+ABF discovers and populates every state by itself.
+
+Read together, the systems sort into three regimes rather than along one axis
+(\cref{sec:three_regimes}): \emph{ABF-sufficient} (found early, populated early --- the
+alkanes, the two-dimensional torus CV, both dipeptides; mFR neutral), \emph{discovery-limited}
+(never found --- $R_{15}$; mFR cannot act), and \emph{establishment-limited} (found early,
+populated slowly), which is the only regime mFR serves and the only one that never arose on
+its own. Continuing to sample molecules would not have fixed that, because the regime is
+decided by whether the slow coordinate is inside the collective variable --- a property of the
+coordinate, not of the method. We therefore construct the regime instead
+(\cref{sec:gateway}), in an entropic-gateway model whose free energy is analytic, screen it
+with ABF alone across a $\GwCells$-cell map, and freeze both the classification and the
+anchor cell before running any Fisher--Rao arm. There mFR improves the integrated free-energy
+error by $\GwEstGain\%$ $[\GwEstCIlo, \GwEstCIhi]$ on $\GwEstWins$ matched seeds at a rate
+that passes the preregistered diversity gates, largely repairing the population deficit the
+cell was selected for, and the effect survives the control in which discovery is handed to
+the sampler for free.
+
+The control that matters most is the one this study previously lacked entirely. Every
+Fisher--Rao arm anywhere in this work derives its replacement direction from the same score
+and differs only in how the target is built, so ``the gain comes from balanced resampling''
+had never been tested. A \textbf{matched sham} --- the same number of clone and delete events
+at the same times, with which walkers they act on randomised --- is $\GwShamVerdict$ to ABF
+at every rate on the ladder. The gain is the Fisher--Rao direction, not the turnover.
+
 The common object is marginal reallocation, not a universal variance-reduction
 slogan. FR moves whole configurations from over-represented to under-represented
 reaction-coordinate regions. When ABF is starved by a support deficit, this improves weighted
@@ -49,3 +82,10 @@ irrelevant in WCA, and harmful in the cold bottleneck. The practical recommendat
 is therefore regime-aware: use the estimated target, choose a moderate rate
 calibrated to orthogonal relaxation and ancestor diversity, and expect the largest
 returns where ABF alone lacks reaction-coordinate support.
+
+Stated as a falsifiable claim: \emph{marginal Fisher--Rao reallocation does not accelerate
+barrier discovery, and does not improve a free energy ABF already resolves. Its useful regime
+is narrower and more specific --- a relevant state must already have been discovered, remain
+distinguishable in the selected marginal, and be receiving population too slowly under
+ordinary ABF.} Each of the three conditions is independently falsified somewhere in this
+study, and all three hold together only where the method is shown to work.

@@ -1,0 +1,222 @@
+\section{Atomistic neutrality controls: two dipeptides}
+\label{sec:neutrality}
+
+The united-atom alkanes of \cref{sec:case_butane,sec:case_pentane} are deliberately simple,
+and the limitation this study carried longest was that its molecular negative rested on a
+single system with a single kind of coordinate. This section adds two all-atom peptides.
+Both were selected in advance as candidates where mFR ought to help, both cleared every
+screening gate that precedes the decisive one, and both then failed it in the same way:
+\emph{ABF establishes the populations on its own}. They are reported because a screen that
+only reports the systems that passed is not a screen.
+
+The two are not redundant. Alanine dipeptide is the standard benchmark and was chosen for
+familiarity; valine dipeptide was chosen for a specific reason --- a side-chain rotamer
+barrier that ought to have produced a persistently under-populated state --- and it is the
+stronger negative precisely because that reason turned out to be measurable, and wrong.
+
+\subsection{Screening gates, and the one that decides}
+\label{sec:neutrality_gates}
+Both peptides were run through the same pre-registered sequence. A state map locates the
+metastable states in the full torsional space. A \emph{distinguishability} gate then asks
+whether the selected two-dimensional CV can resolve those states at all: marginal mFR sees
+exactly $p(\xi)$, so if two states project onto overlapping regions of the CV, a deficit in
+one is not a resolvable feature of $p(\xi)$ and no marginal reallocation could preferentially
+clone into it. A coarse umbrella/MBAR reference with the omitted coordinate left \emph{free}
+supplies the state populations. Only then does the decisive gate run.
+
+That gate asks for a state that is \textbf{discovered early and stays under-populated}. It
+requires, for each state $k$, the persistence-based hitting time $T_{\mathrm{hit},k}$ and
+the establishment time $T_{\mathrm{est},k}$ measured against the \emph{bias-aware} target
+\begin{equation}
+  Q^\star_k(t) \;=\; \frac{\int_{C_k} e^{-\beta(F_{\mathrm{ref}}(z)-B_t(z))}\dd z}
+                          {\int e^{-\beta(F_{\mathrm{ref}}(z)-B_t(z))}\dd z},
+  \label{eq:biasaware}
+\end{equation}
+normalised over the reference's support with the observed populations conditioned the same
+way. Scoring against the \emph{unbiased} populations instead would report a state as starved
+exactly when ABF has correctly flattened it --- manufacturing the very signal mFR is meant to
+remove, from a run in which nothing is wrong. Three outcomes are possible and only one
+licenses going further: an important state not found early is \emph{discovery-limited}, the
+$R_{15}$ regime where mFR cannot act; every state found \emph{and} established means
+\emph{ABF is already sufficient}; a discovered but persistently under-populated state is the
+regime mFR addresses. Both peptides returned the middle verdict.
+
+\subsection{Alanine dipeptide: the mechanism ran, and changed nothing}
+\label{sec:ala}
+Vacuum Ace-Ala-Nme (22 atoms, AMBER ff14SB, 300~K, BAOAB at $\mathrm{d}t=1$~fs with
+$\gamma=1$~ps$^{-1}$, no constraints and no hydrogen-mass repartitioning) on the standard
+CV $\xi=(\varphi,\psi)$. The reference is umbrella sampling with MBAR over
+$\AlaWindows$ windows and 16 independently thermalised copies each, $\AlaRefAgg~\mu$s
+aggregate; a copy-level block bootstrap with MBAR re-solved on every replicate gives
+$\Delta G(\varphi>0) = \AlaRefdG \pm \AlaRefdGse\,k_BT$ and a median FES standard error of
+$\AlaRefFse\,k_BT$, with a further $\approx\AlaRefSyst\,k_BT$ inter-sampler systematic
+carried explicitly from an independent OPES cross-check.
+
+The reference settles the question before the sampler runs. The C7eq$\leftrightarrow$C7ax
+barrier is a genuine $\AlaRareBarrier\,k_BT$, so the system is metastable and not trivially
+easy --- but the internal barrier of $F(\psi\mid\varphi)$ is at most
+$\AlaPsiBarrierMax\,k_BT$ at every populated $\varphi$ (median $\AlaPsiBarrierMed$). There is
+no hidden slow coordinate: two-dimensional ABF on $(\varphi,\psi)$ biases the only slow
+directions that exist.
+
+The oracle pilot then confirms the consequence with the mechanism verifiably running.
+Starting every walker in C7eq, plain ABF discovers C7ax at $\AlaRareHitLo$--$\AlaRareHitHi$~ps
+in every seed and holds it at $\AlaRareOcc\%$ occupancy over the $\AlaWindow$~ps analysis
+window --- against a reference equilibrium population of $\AlaRarePop$. The rare basin is not
+merely reached; the transient ensemble \emph{over}-populates it. Against that baseline,
+oracle mFR changes the kernel-matched integrated FES error by $\AlaGainMain\%$
+$[\AlaGainCIlo, \AlaGainCIhi]$ on $\AlaGainWins$ paired seeds, against a preregistered
+improvement bar of $\AlaThreshold\%$ --- a difference three orders of magnitude smaller than
+the threshold, and roughly four orders below the reference's own uncertainty. Repeating from
+a reference-equilibrium initialisation instead of a pure C7eq start gives $\AlaGainRefeq\%$.
+Verdict: \textbf{\AlaVerdict}.
+
+An FR-rate ladder spanning $\AlaEventSpan\times$ in realised replacement events
+($\AlaEventLo \to \AlaEventHi$ over rates $\AlaRateLo \to \AlaRateHi$; the ratio of the
+\emph{rates} is $22.5\times$ and of the per-opportunity intensities $20.4\times$, so the
+denominator is worth naming) leaves the result flat: $\AlaGainMain\%$, $\AlaGainRateMid\%$,
+$\AlaGainRateHi\%$. Over that same span the age-aware ancestor ESS falls from $\AlaEssHi$ to
+$\AlaEssLo$ --- still above the $\AlaEssGate\,N$ floor, with $w_{\max} \le \AlaWmaxHi$. So the
+null is not inertia: reallocation is demonstrably doing work to the ensemble, the cost of
+that work is visible in the genealogy, and none of it reaches the free energy.
+
+\begin{remark}[Two bugs that would each have produced this same verdict for the wrong reason]
+\label{rem:ala_bugs}
+Both were caught, and both are worth recording because each would have printed the word
+\emph{equivalent} while the study measured nothing.
+
+First, the accepted reference stores $+\infty$ in the 226 of 9409 cells no umbrella window
+ever visited. Centring it computes $\infty - \infty$, so the oracle target is \texttt{NaN}
+over the \emph{entire} grid, no birth or death weight is ever positive, and the oracle arm
+silently degenerates into plain ABF --- reporting zero events and perfect equivalence with
+itself. It was caught only because a test asserted that birth--death actually fires.
+
+Second, the basin partition originally ranked reference minima \emph{by depth} and kept the
+deepest few. That returns six shallow sub-minima inside the $\varphi<0$ megabasin and
+\emph{omits C7ax entirely}, which is seventh by depth and is the one basin the study is
+about. Prominence merging replaces it.
+
+A third, in the reference analysis, is the most instructive: the ``internal barrier'' of
+$F(\psi\mid\varphi)$ was computed as the column's global maximum, i.e.\ the height of the
+sterically forbidden region rather than of any barrier a walker crosses. It reported a median
+of $15.74\,k_BT$ and the conclusion ``$\psi$ is a hidden slow coordinate'' --- the exact
+reverse of the truth, and the premise on which the entire study design rested. The corrected
+periodic min--max barrier gives the $\AlaPsiBarrierMed\,k_BT$ quoted above. The lesson these
+share is that a plausible summary statistic computed on the wrong domain fails silently and
+in the direction that confirms the design.
+\end{remark}
+
+\subsection{Valine dipeptide: selected for a barrier that was not there}
+\label{sec:val}
+Ace--Val--Nme has genuine coupled backbone--rotamer structure. A lattice-seeded state map
+over the whole $(\varphi,\psi,\chi_1)$ torus finds seven metastable states which factor
+almost exactly as backbone megabasin $\times$ $\chi_1$ rotamer, and the selected CV
+$\xi = (\varphi,\chi_1)$ recovers the full three-dimensional state label with $0.973$
+cross-validated balanced accuracy and a worst pairwise footprint overlap of $0.189$, so a
+population deficit would be visible to a marginal score. The umbrella reference on
+$(\varphi,\chi_1)$, with $\psi$ free and started from four values, resolves $\ValRegions$
+regions whose populations span $0.42$ down to $\ValRarePop$.
+
+The decisive gate then fails outright. Over a $\ValTrun$~ps run with $\ValSeeds$ seeds of
+$\ValWalkers$ walkers, ABF reaches every one of the $\ValRegions$ regions within
+$\ValFirstTouch$~ps, holds them persistently from $\ValThit$~ps, and establishes every one
+inside the $\pm50\%$ band by $\ValTest$~ps --- against a discovery threshold of $10\%$ of the
+run. The worst relative deficit over the second half is $\ValDmax$ against a $0.50$
+threshold, and no region sits below half its target for more than $\ValBelowHalf$ of the run
+against a $\ValBelowHalfThresh$ threshold. The rarest region, at an unbiased population of
+$\ValRarePop$, is nonetheless found by every seed and ends at $\ValRareOccTarget$ of its
+bias-aware target. ABF's own free energy lands $\ValPmfErr\,k_BT$ from the reference
+(seeds $\ValPmfErrLo$--$\ValPmfErrHi$; marginal TV $\ValMarginalTV$), so this is not a badly
+converged run flattering itself. Verdict: \textbf{\ValVerdict}.
+
+\begin{figure}[t]\centering
+  \includegraphics[width=\linewidth]{fig_val_01_screen.png}
+  \caption{Ace--Val--Nme, the decisive gate. \textbf{Top left}: region occupancy (solid)
+  against the bias-aware target $Q^\star_k(t)$ of \cref{eq:biasaware} (dashed), all eight
+  regions over three decades of population. \textbf{Top right}: the same as a ratio; every
+  region enters the establishment band and stays there. \textbf{Bottom left}: worst-case
+  hitting and establishment times against the discovery threshold. \textbf{Bottom right}:
+  ABF's own accuracy, with the concentrated and stratified initialisations giving the same
+  answer --- the diagnostic control doing its job, since the verdict is then not an artifact
+  of where the walkers started.}\label{fig_val_01_screen}
+\end{figure}
+
+\paragraph{The reason valine was chosen was measurable, and wrong.} The system was selected
+because a preliminary umbrella scan put the $\chi_1$ rotamer barrier at $11$--$18\,k_BT$,
+which would make the rotamers effectively uncrossable and, on that reading, would have made a
+$\chi_1$-hidden design discovery-limited. Direct measurement contradicts it: $\chi_1$
+rotamers interconvert at $2.70$ changes per walker per ns, a rate that is flat from $30$ to
+$300$~ps and identical for walkers seeded in a well and on a barrier --- an equilibrium rate,
+not a seeding transient. The $11$--$18\,k_BT$ figures are \emph{backbone-clamped conditional}
+barriers, measured with $\varphi$ and $\psi$ restrained at
+$\kappa = 500$~kJ\,mol$^{-1}$rad$^{-2}$; the clamp forbids the backbone relaxation that
+accompanies the rotation. With the backbone free the effective two-dimensional min--max path
+costs $1.1$--$7.4\,k_BT$. The genuinely slow coordinate is $\varphi$, which crossed its
+megabasin four times in $2581$~ns of aggregate unbiased sampling --- and $\varphi$ is in the
+CV. That is the whole explanation for the verdict, and it is the same explanation as for
+every other ABF-sufficient system in this study.
+
+\begin{remark}[Conditional barriers are not the barrier a walker pays]
+\label{rem:clamped}
+Conditioning on the other coordinates can inflate a barrier severalfold: for valine the
+$\chi_1$ barrier at fixed $\varphi$ has median $4.1\,k_BT$ and reaches $15.3$, while the
+effective path with a free backbone costs $1.1$--$7.4$. A restrained scan is the natural way
+to measure a torsional barrier and it systematically over-states the one that matters for
+sampling. This is worth stating separately because it is the kind of error that survives
+review: the measurement is correct, it is simply not a measurement of the quantity the design
+depends on.
+\end{remark}
+
+\subsection{Three diagnostics that were wrong, and are worth not repeating}
+\label{sec:neutrality_diagnostics}
+The valine screen produced three measurement errors. None can change its verdict --- the
+decisive condition fails by a wide margin, and two of the three touch conditions that only
+ever gated a \emph{pass} --- but all three are properties of machinery meant to be reused,
+and each is a mistake that produces a confident wrong answer rather than an obvious one.
+
+\paragraph{An unpaired comparison in paired clothing.} The omitted-coordinate check compared
+$p_{\mathrm{ABF}}(\psi\mid \text{region})$ against $p_{\mathrm{ref}}(\psi\mid \text{region})$
+and reported a worst-region total variation of $\ValPsiOriginal$, apparently failing a
+$\ValPsiThresh$ threshold. But ABF deliberately \emph{flattens} within a region while the
+reference is Boltzmann-weighted inside it, so the two weight the region's interior
+differently even when the $\psi$ conditional at every fixed $(\varphi,\chi_1)$ cell is
+identical. Comparing cell by cell and aggregating with \emph{common} weights gives
+$\ValPsiMatched$, and the condition passes. The signature was visible in the original numbers
+--- the two largest, most internally varied regions disagreed while the six smaller ones did
+not --- which is what a weighting artifact looks like and not what a genuine conditional
+error looks like.
+
+\paragraph{A counter that reads zero exactly when the barrier is real.} State entries were
+counted only between \emph{consecutively labelled} frames. Reaching the $\varphi>0$ regions
+means crossing a corridor above the region ceiling, where frames are unlabelled, so the
+counter reported zero entries into $\ValEntriesNaive$ --- three regions with finite hitting
+times that were demonstrably reached. The failure mode is perverse: the higher the barrier,
+the more certainly the counter reads zero. Carrying the last labelled state across the
+corridor gives $\ValEntriesCorridor$ entries respectively.
+
+\paragraph{A target that concentrated where the reference knew nothing.} The first version of
+\cref{eq:biasaware} capped cells the reference never filled at $F_{\min}+30\,k_BT$ and
+normalised over the whole torus. Because ABF flattens, $B_t$ grows large exactly in those
+cells and $e^{-\beta(F_{\mathrm{capped}}-B_t)}$ explodes there: $97\%$ of the target mass
+landed in the cells the reference was least able to speak about. The fix is to define the
+target on the reference's labelled support and condition the observed fractions the same way.
+The diagnostic that caught it printed the offending number --- and was noticed only because a
+human read the log. It is now an assertion, and the closure artifacts record
+$\lvert\sum_k Q^\star_k - 1\rvert < 5\times10^{-16}$ and the matching statement for the
+observed populations.
+
+\subsection{What the two neutrality controls establish}
+Two independent all-atom systems, one of them selected specifically for a barrier that mFR
+should have been able to exploit, both return the same verdict: when ABF's collective
+variable contains the slow coordinate, ABF discovers \emph{and} establishes the populations
+by itself, and marginal reallocation has no deficit to repair. This is not evidence that mFR
+fails; it is evidence about which regime it belongs to, and it is what motivates constructing
+that regime deliberately in \cref{sec:gateway} rather than continuing to sample molecules.
+
+It also sets a standing prohibition that the screening plans state explicitly and that we
+record here because the temptation is structural: both $T_{\mathrm{hit}} < 0.1\,T$ and
+``starved for at least $0.2\,T$'' scale with run length, so shortening the run, cutting
+walkers or widening the establishment band would manufacture a deficit rather than measure
+one. The margins here are not close --- discovery is more than an order of magnitude faster
+than required and the worst deficit is well under half its threshold --- and a negative
+obtained at this margin is worth more than a positive obtained by retuning.

@@ -83,7 +83,25 @@ We remain deliberately conservative about scope.
         also a statement about one mFR design (fixed-population kill-and-clone on the
         biased marginal at a rate frozen from a monotone four-point ladder): schemes that
         decorrelate clones after reallocation are untested and are not excluded by these
-        data.
+        data. \emph{Partly addressed.} The two all-atom dipeptides of
+        \cref{sec:neutrality} are independent molecular systems and independently return a
+        null --- but they are nulls of a different kind, ABF-sufficient rather than starved,
+        so they replicate the \emph{neutrality} result and not the starvation result. The
+        discovery-limited claim still rests on $R_{15}$ alone.
+  \item \textbf{The positive regime is now demonstrated on a system built for it.}
+        \Cref{sec:gateway} produces the establishment-limited regime deliberately rather
+        than hoping to find it, and supplies the sham control the earlier positives lack.
+        That is a strength for attribution and a limitation for generality: the anchor is a
+        two-dimensional model with an analytic free energy, and the only \emph{many-body}
+        establishment-limited evidence remains the WCA dimer, where no sham arm was run. The
+        natural next step is to port the matched sham to the WCA cells, which requires no new
+        physics and would test whether the attribution transfers.
+  \item \textbf{One artifact behind a reported number no longer exists.} The alanine
+        $N=2048$ stage's decision record was overwritten by a later stage that wrote
+        unsuffixed filenames, so the numbers quoted in \cref{sec:ala} are from the $N=4096$
+        stage, whose artifact survives. The raw trajectories are retained and the overwritten
+        stage reproduces on recomputation, but a result whose artifact is gone should be
+        labelled rather than quietly re-derived.
 \end{enumerate}
 
 \subsection{Failure modes}

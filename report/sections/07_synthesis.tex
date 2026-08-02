@@ -9,6 +9,52 @@ starved regimes, diversity control in the many-body regime, and --- in the molec
 torsions --- whether the sample starvation lives on the \emph{biased} coordinate at
 all.
 
+\subsection{Three regimes, and only one of them is mFR's}
+\label{sec:three_regimes}
+Taking the study as a whole, a system is characterised by \emph{two} timescales relative to
+the run: how long a relevant state takes to be \textbf{found}, and how long it then takes to
+be \textbf{populated}. That gives three regimes, and every system here falls into one of
+them.
+
+\begin{itemize}
+  \item \textbf{ABF-sufficient} --- found early, populated early. Butane and pentane's
+  $\varphi_1$, the two-dimensional torus CV, and both dipeptides of \cref{sec:neutrality}.
+  The slow coordinate is inside the collective variable, ABF flattens it, no support deficit
+  ever forms, and mFR is \emph{practically equivalent} to ABF in every matched-seed
+  comparison. This is the largest group, and it is why the study reports far more nulls than
+  positives.
+  \item \textbf{Discovery-limited} --- never found. Pentane's $R_{15}$ end-to-end distance
+  (\cref{sec:cv_harder_1d}), the only genuinely starved coordinate in the study. mFR cannot
+  act: reallocation amplifies walkers that exist and cannot create one in a state nothing has
+  reached. Pushed harder it converts a support deficit into a \emph{diversity} deficit and
+  makes the estimate worse.
+  \item \textbf{Establishment-limited} --- found early, populated slowly. The WCA dimer
+  (\cref{sec:case_wca}) and the constructed entropic gateway (\cref{sec:gateway}). Here, and
+  only here, mFR helps.
+\end{itemize}
+
+The value of the gateway construction is that it makes the third regime reachable on demand
+instead of by luck, and supplies the control the other cases lack. Because its free energy is
+analytic, its regime map is complete, and its anchor was frozen before any FR arm ran, it can
+carry the one comparison that decides whether the mechanism is what it claims: a
+\textbf{matched sham} that performs the same number of clone and delete events at the same
+times, with the direction randomised. The sham is equivalent to ABF at every rate
+(\cref{tab:gw_anchor}), while mFR at a health-passing rate improves the integrated error by
+$\GwEstGain\%$. Whatever mFR is doing in this regime, it is not simply the turnover.
+
+\begin{remark}[Three ways of saying ``ABF is starved'', only one of which mFR repairs]
+\label{rem:starvation_kinds}
+Much of the confusion this study had to work through comes from treating ``starvation'' as
+one thing. The alkane and WCA analyses distinguish a \emph{support} deficit from a
+\emph{dynamical} bottleneck; the dipeptide screens add a third distinction that neither
+captured, between a state that is \emph{under-populated} and one that is merely
+\emph{rare}. Valine's rarest region carries an unbiased population of $\ValRarePop$ and is
+nonetheless established to $\ValRareOccTarget$ of its bias-aware target: rare is not starved.
+Measuring against the \emph{unbiased} population rather than the bias-aware target of
+\cref{eq:biasaware} would have called it starved, and would have manufactured exactly the
+signal mFR is supposed to remove from a run in which nothing was wrong.
+\end{remark}
+
 \subsection{The molecular refinement: starvation must be on the biased coordinate}
 The alkanes (\cref{sec:case_butane,sec:case_pentane}) sharpen the WCA ``FR helps in
 proportion to ABF starvation'' finding into a precise statement:

@@ -68,7 +68,15 @@ whether one slogan can describe all of them:
         does marginal FR help, is it superfluous, or can it produce a ``false
         improvement'' that flattens the biased marginal while corrupting a hidden
         conditional law?} (Q5)
+  \item \textbf{Is the gain, where it exists, attributable to Fisher--Rao steering at
+        all --- or would resampling of the same intensity and schedule have done as
+        much?} (Q6)
 \end{enumerate}
+Q6 was added late and is the sharpest of the six, because until it was asked every arm in
+this study shared the same replacement direction and differed only in how the target was
+built. Answering it requires a regime where mFR demonstrably helps \emph{and} a control
+that strips the direction while holding the intensity fixed; \cref{sec:gateway} constructs
+both.
 The systems are (i) a two-dimensional double-well \emph{metastability} model
 with a quadrature reference (\cref{sec:case_meta}); (ii) a two-dimensional
 \emph{entropic-bottleneck} model with a narrow transverse channel, for which both
@@ -86,6 +94,17 @@ where improved coverage must be balanced against lineage diversity, and two
 molecular torsions that test the mechanism where the collective variable is a
 nonlinear function of a three-dimensional configuration.
 
+Two later additions complete the picture. Two all-atom dipeptides --- vacuum
+\emph{alanine} and \emph{valine} (\cref{sec:neutrality}) --- were selected as systems where
+mFR ought to help and instead serve as \emph{neutrality controls}, because ABF discovers and
+populates every metastable state on its own. Their failure is systematic rather than
+accidental: it is what happens whenever the slow coordinate lies inside the collective
+variable, which is a property of the coordinate rather than of the method, and which no
+further choice of molecule would fix. The remaining regime --- a state found early but
+populated slowly --- is therefore constructed deliberately as an \emph{entropic gateway}
+(\cref{sec:gateway}), screened with ABF alone and with its anchor cell frozen before any
+Fisher--Rao arm ran.
+
 Our contributions are: (i) a consistent ABF--FR notation that covers the analytic
 two-dimensional models, the many-body WCA collective variable, and the periodic
 molecular dihedral with its correct nonlinear generalized mean force
@@ -94,8 +113,15 @@ that quantify both the practical estimated-target method and diagnostic
 uniform/oracle targets, including a pre-registered practical-equivalence test for the
 easy butane control and configuration-resolved hidden-conditional diagnostics for
 pentane (\cref{sec:case_meta,sec:case_eb,sec:case_wca,sec:case_butane,sec:case_pentane});
-and (iii) a cross-case synthesis (\cref{sec:synthesis}) that explains why the
-conclusions are intentionally different across examples. A recurring methodological point is the careful
+(iii) a pre-registered screening protocol that decides, \emph{before} any Fisher--Rao arm is
+run, whether a system can test the method at all --- separating states that are never found
+from states that are found and stay under-populated, against a \emph{bias-aware} target that
+does not mistake correct flattening for starvation (\cref{sec:neutrality_gates}); (iv) a
+matched sham-resampling control that holds the replacement schedule and count fixed while
+randomising the direction, which is what makes the positive result attributable
+(\cref{sec:gw_sham}); and (v) a cross-case synthesis (\cref{sec:synthesis}) that resolves the
+examples into three regimes and explains why the
+conclusions are intentionally different across them. A recurring methodological point is the careful
 interpretation of an \emph{oracle} target that uses the reference free energy: it
 is a diagnostic control, never a deployable method and not a universal upper
 bound. Its behaviour is itself part of the evidence: best in the easy

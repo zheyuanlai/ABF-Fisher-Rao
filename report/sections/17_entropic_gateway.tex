@@ -1,0 +1,185 @@
+\section{Building the missing regime: an entropic gateway}
+\label{sec:gateway}
+
+Every system in this study so far has landed in one of two regimes, and neither of them
+tests marginal reallocation. The alkane torsions, the two-dimensional torus CV and the two
+dipeptides of \cref{sec:neutrality} are \emph{ABF-sufficient}: the slow coordinate is in the
+collective variable, ABF flattens it, and every state is populated long before the run ends,
+so no deficit ever forms. The $R_{15}$ distance CV of \cref{sec:cv_harder_1d} is
+\emph{discovery-limited}: the state is never reached, and reallocation cannot clone a walker
+that does not exist. The regime mFR is actually supposed to serve --- a state that is
+\emph{found early} but \emph{populated slowly} --- has never appeared on its own.
+
+The response is not to try more molecules. If the slow coordinate is included in the CV,
+ABF will flatten it again; if it is omitted, the system becomes discovery-limited or
+conditionally non-ergodic, where marginal reallocation provably cannot act. Either way the
+outcome is decided by the choice of coordinate rather than by the method, and searching for
+a molecule that happens to fall between the two is example hunting. We instead construct the
+missing regime deliberately, in a model where discovery and establishment can be moved
+independently and the free energy is known in closed form.
+
+\subsection{Model and screening design}
+We reuse the smooth entropic channel of \cref{sec:case_eb},
+\begin{equation}
+  V_{s,r}(x,y) = H(x^2-1)^2 + \tfrac12\,\omega_{s,r}(x)^2 y^2,
+  \qquad
+  \omega_{s,r}(x) = \omega_{\mathrm{out}} + (\omega_{\mathrm{in}}-\omega_{\mathrm{out}})
+                    e^{-x^2/2s^2},
+  \qquad \xi(x,y) = x,
+  \label{eq:gateway}
+\end{equation}
+with $r = \omega_{\mathrm{in}}/\omega_{\mathrm{out}} > 1$ and the analytic free energy
+$F_{s,r}(x) = H(x^2-1)^2 + \beta^{-1}\log\omega_{s,r}(x) + C$. Because $F$ is exact there is
+no reference simulation to converge and no reference error to confound the classification ---
+the single largest advantage over any molecular alternative. The constriction at $x=0$ is a
+narrow entropic gateway: a walker can occasionally cross, repeated independent crossings stay
+slow, the far chamber is visible in $\xi$, and a discovered walker there is a valid sample
+that reallocation could multiply. That is precisely the mechanism mFR claims.
+
+The screen is \textbf{ABF only} --- no Fisher--Rao arm of any kind --- over
+$s \in \{0.10,0.15,0.20,0.30\}$, $r \in \{4,8,16,32\}$ and
+$\beta \in \{2,4,8,16\}$, at $\GwSeeds$ seeds, $N=\GwWalkers$ walkers and $T=\GwTrun$, in
+both a concentrated left-basin initialisation and a control in which one walker starts in
+the right basin. We hold $\beta H = 8\,k_BT$ fixed, so that
+$\beta F(x) = \beta H (x^2-1)^2 + \log\omega(x)$ carries no residual $\beta$ dependence: the
+\emph{dimensionless landscape is identical in every cell}, the total barrier is
+$8 + \log r \in [\GwBarrierLo, \GwBarrierHi]\,k_BT$ throughout, and $\beta$ varies only how
+fast walkers move through it, at an unchanged sampling budget.
+
+\begin{remark}[Why $\beta$ is on the map, and what it is not]
+\label{rem:gw_beta}
+A sizing scan established that $(s,r)$ alone does not span the regimes: at fixed $\beta$ the
+gateway geometry moves the establishment gap only weakly, monotonically and in the expected
+direction (narrower and more severe gateways are harder). Reporting a single $(s,r)$ slice
+would therefore have hidden the axis that does the work. That axis is the ratio of transport
+time to run time, which no regime defined by a \emph{ratio of timescales} can avoid. It is
+worth separating this from the move the dipeptide screens explicitly forbid --- shortening
+the run until a deficit appears --- because the two are close. Shortening the run cuts
+exploration \emph{and} compute together, and makes every relative threshold easier;
+$\beta$ cuts exploration at \emph{fixed} compute and leaves the landscape untouched. What
+protects the comparison is not this distinction alone but the preregistration below.
+\end{remark}
+
+With $T_{\mathrm{hit}}$ the first time $\widehat P_t(B_+) > 0$ persistently and
+$T_{\mathrm{est}}$ the first time $\tfrac12 Q^\star_+(t) \le \widehat P_t(B_+) \le
+\tfrac32 Q^\star_+(t)$ persistently --- both on a trailing window of $5\%$ of the run,
+against the \emph{bias-aware} target
+$Q^\star_+(t) = \int_{B_+} e^{-\beta(F-\widehat F_t)} \big/ \int e^{-\beta(F-\widehat F_t)}$
+--- each cell is labelled by a rule fixed before any of it ran:
+\emph{discovery-limited} if $T_{\mathrm{hit}} \ge 0.1\,T$ in at least a quarter of seeds;
+otherwise \emph{establishment-limited} if $T_{\mathrm{est}}-T_{\mathrm{hit}} > 0.25\,T$ or
+the state is below half its target for at least $0.2\,T$;
+otherwise \emph{ABF-sufficient} if $T_{\mathrm{est}}-T_{\mathrm{hit}} < 0.1\,T$;
+otherwise \emph{intermediate}. Discovery is tested first because a state that is not
+reliably found cannot be judged on how fast it fills.
+
+\subsection{The regime map}
+\Cref{fig_gw_01_phase_diagram} reports all $\GwCells$ cells, including every cell where mFR
+could not possibly help. Of these, $\GwSuff$ are ABF-sufficient, $\GwInter$ intermediate,
+$\GwEst$ establishment-limited and $\GwDisc$ discovery-limited. The map is layered in
+$\beta$: $\beta=2$ is ABF-sufficient everywhere, $\beta=4$ intermediate everywhere,
+$\beta=8$ mixed, and $\beta=16$ establishment-limited everywhere. No cell of this model is
+discovery-limited; that regime is represented in this study by $R_{15}$, not here.
+
+\begin{figure}[t]\centering
+  \includegraphics[width=\linewidth]{fig_gw_01_phase_diagram.png}
+  \caption{ABF-only regime map of the entropic gateway, all $\GwCells$ cells. Rows are the
+  two initialisations, columns the transport ladder $\beta$; each panel is the
+  $(s,r)$ plane and each tile is annotated with the establishment gap
+  $(T_{\mathrm{est}}-T_{\mathrm{hit}})/T$. The dimensionless landscape is identical in every
+  tile ($\beta H = 8\,k_BT$ fixed), so the layering in $\beta$ is a statement about
+  timescales, not about thermodynamics. The black box marks the preregistered mFR anchor.
+  Within a fixed $\beta$ the gateway geometry modulates the gap only at the margin --- a
+  result, not a nuisance, and the reason the whole map is shown rather than one
+  slice.}\label{fig_gw_01_phase_diagram}
+\end{figure}
+
+\subsection{The anchor, chosen before any Fisher--Rao arm existed}
+The classification was written to disk, hashed and committed \emph{before} a single
+Fisher--Rao arm was run on this system, and the anchor follows from a rule stated in that
+same artifact: the headline initialisation; regime establishment-limited; \emph{interior,
+not knife-edge}, meaning every neighbour along $s$, $r$ and $\beta$ present in the map shares
+its regime; then the largest median integrated deficit among the survivors. This selects
+\begin{equation*}
+  \beta = \GwAnchorBeta, \qquad s = \GwAnchorS, \qquad r = \GwAnchorR .
+\end{equation*}
+Under ABF alone the right chamber there is reached at $T_{\mathrm{hit}}/T = \GwAnchorThit$ by
+\emph{every} seed, reaches its establishment band only at
+$T_{\mathrm{est}}/T = \GwAnchorTest$, sits below half its bias-aware target for
+$\GwAnchorBelowHalf$ of the run, and ends at $\GwAnchorOccTarget$ of that target. A state
+found in the first $4\%$ of the run and still short at the end is exactly the deficit mFR
+claims to repair. The $\beta=8$ cells were rejected by the same rule despite lying nearer the
+regime boundary: their gap of $\approx0.21$ falls below the $0.25$ threshold and they qualify
+only through the below-half criterion at $\approx0.20$ against a $0.20$ threshold --- the
+knife-edge the rule exists to exclude.
+
+\subsection{Four arms, and what the sham controls}
+\label{sec:gw_sham}
+Every arm inside a seed shares initial conditions and Langevin noise, so all comparisons are
+paired. Alongside ABF, oracle mFR (target from the analytic $F$; non-deployable) and
+practical mFR (target from the online EMA of the bias), we run a \textbf{matched sham}: it
+fires at the same event times and performs the \emph{same realised number} of clone and
+delete events as the oracle arm --- copied from its partner row, not re-derived from its own
+diverged state --- and differs only in drawing the identities uniformly at random. Across
+$128$ paired comparisons the counts matched with $\GwShamMismatch$ mismatches.
+
+This control has not existed anywhere in this study before. Every previous arm
+(\texttt{fr\_estimated}, \texttt{fr\_uniform}, \texttt{fr\_oracle}, \texttt{fr\_active})
+derives its replacement direction from the same Fisher--Rao score and differs only in how the
+target is built, so the proposition ``the gain comes from balanced resampling rather than
+from Fisher--Rao steering'' had never been tested against an arm that lacks the direction.
+
+\input{tables/gateway_anchor.tex}
+
+\Cref{tab:gw_anchor} gives the result, quoted at the rate that passes the preregistered
+health gates ($\mathrm{ESS}_{\mathrm{anc}}/N \ge \GwEssGate$, $w_{\max} \le \GwWmaxGate$).
+Practical mFR improves the integrated free-energy error by $\GwEstGain\%$
+$[\GwEstCIlo, \GwEstCIhi]$ on $\GwEstWins$ matched seeds; oracle mFR by $\GwOracleGain\%$
+$[\GwOracleCIlo, \GwOracleCIhi]$ on $\GwOracleWins$. The deficit the anchor was selected for
+is largely repaired --- integrated deficit $\GwEstDeficit\%$ for the deployable arm and
+$\GwOracleDeficit\%$ for the oracle --- and $T_{\mathrm{est}}$ falls by $\GwEstTest\%$.
+
+\textbf{The sham is flat}: $\GwShamGain\%$ $[\GwShamCIlo, \GwShamCIhi]$, $\GwShamWins$ seeds,
+\textbf{\GwShamVerdict} to ABF, at every rate on the ladder. Since it performs the same
+number of replacements at the same times as the arm it shadows, the gain is attributable to
+the Fisher--Rao \emph{direction} and not to turnover of that magnitude.
+
+\begin{figure}[t]\centering
+  \includegraphics[width=\linewidth]{fig_gw_02_anchor.png}
+  \caption{The anchor comparison. \textbf{Top left}: right-chamber occupancy against the
+  bias-aware target; ABF and the sham track each other while both mFR arms reach the target
+  far earlier. \textbf{Top right}: free-energy error. \textbf{Bottom left}: the FR-rate
+  ladder with bootstrap CIs over matched seeds, against the $\pm10\%$ practical-equivalence
+  margin --- the sham straddles zero throughout. \textbf{Bottom right}: the cost side. Gains
+  keep growing with rate, but ancestor diversity collapses through the preregistered floor,
+  which is why the headline is quoted at a health-passing rate and not at the largest
+  number.}\label{fig_gw_02_anchor}
+\end{figure}
+
+\subsection{Two things the design was built to rule out}
+\paragraph{It is establishment, not discovery.} In the mechanism control one walker starts
+across the gateway, so discovery is handed to the sampler for free and any remaining
+acceleration must be population establishment. Practical mFR still gives
+$\GwOneRightGain\%$ $[\GwOneRightCIlo, \GwOneRightCIhi]$ on $\GwOneRightWins$ seeds with the
+health gates passing. The effect survives when first passage is removed.
+
+\paragraph{The headline is not the largest available number.} At the frozen rate
+$\gamma = \GwFrozenGamma$ inherited from the accepted entropic-bottleneck setup, the gains
+are considerably larger --- $\GwFrozenOracleGain\%$ for the oracle and $\GwFrozenEstGain\%$
+for the practical arm --- but \emph{both health gates fail}
+($\mathrm{ESS}_{\mathrm{anc}}/N = \GwFrozenOracleEss$ and $\GwFrozenEstEss$,
+$w_{\max} = \GwFrozenOracleWmax$). We report the health-passing rate instead, and the whole
+ladder with it. This is the same accuracy--diversity boundary the WCA dimer exhibits
+(\cref{sec:case_wca}), reached here from the other side.
+
+\begin{remark}[The deployable target captures the gain here]
+\label{rem:gw_deployable}
+In the entropy-dominant stress test (\cref{sec:eb_entropy_dominant}) the oracle target
+diverged sharply from the online estimate, and the deployable arm captured essentially none
+of the oracle's benefit. At this anchor the two coincide: $\GwEstGain\%$ against
+$\GwOracleGain\%$. The difference is instructive --- what the oracle buys there is the
+\emph{shape} of an entropy-dominated free energy, which an online estimate cannot yet
+resolve, whereas what it buys here is a coarse instruction to move mass across the gateway,
+which the online estimate resolves perfectly well. Target quality matters in proportion to
+how much shape information the reallocation actually needs.
+\end{remark}

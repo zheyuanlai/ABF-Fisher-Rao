@@ -54,7 +54,30 @@ lineage-collapsing as it is pushed), because that starvation is a \emph{dynamica
 create; and promoting the hidden torsion into a genuine two-dimensional CV $(\varphi_1,
 \varphi_2)$, with an exact vector generalized mean force and a periodic FFT Poisson
 projection, removes the starvation entirely (ABF resolves both barriers directly), so mFR is
-again neutral, now for a well-understood reason. Across all cases, FR is best understood as a
+again neutral, now for a well-understood reason.
+
+Two all-atom peptides extend the negative to real molecules and one constructed model
+supplies the missing positive control. Vacuum \emph{alanine} and \emph{valine} dipeptides
+were both selected as systems where mFR ought to help and both return
+\textbf{\AlaVerdict}: valine's slow coordinate turns out to be the backbone $\varphi$ rather
+than the side-chain rotamer it was chosen for --- its $11$--$18\,k_BT$ $\chi_1$ barrier is a
+backbone-\emph{clamped} conditional barrier, worth $1.1$--$7.4\,k_BT$ once the backbone is
+free --- and in both peptides ABF discovers \emph{and} establishes every state on its own, so
+reallocation has no deficit to repair. Reading these together with the alkane results gives
+three regimes rather than a spectrum: \emph{ABF-sufficient} (found early, populated early;
+mFR neutral), \emph{discovery-limited} (never found; mFR cannot act), and
+\emph{establishment-limited} (found early, populated slowly), which is the only regime mFR
+serves and the one that never arose on its own. We therefore build it: an entropic-gateway
+model with analytic free energy, screened by ABF alone over a $\GwCells$-cell regime map
+whose classification and anchor cell were frozen and committed \emph{before} any Fisher--Rao
+arm was run. At that anchor mFR improves the integrated free-energy error by
+$\GwEstGain\%$ $[\GwEstCIlo, \GwEstCIhi]$ on $\GwEstWins$ matched seeds while a
+\textbf{matched sham} --- the same number of clone/delete events at the same times, with the
+direction randomised --- is $\GwShamVerdict$ to ABF. This is the first control in the study
+that separates Fisher--Rao steering from resampling of the same intensity, and it attributes
+the gain to the steering.
+
+Across all cases, FR is best understood as a
 marginal-reallocation mechanism whose value depends on how starved the ABF estimator is
 \emph{along the biased coordinate}, whether that starvation is a support deficit reallocation
 can fill or a dynamical bottleneck it cannot, how quickly cloned orthogonal degrees of freedom

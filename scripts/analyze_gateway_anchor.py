@@ -261,6 +261,9 @@ def make_figure(path, d, prov, rows):
                  f"$r$={prov['anchor']['r']:g})", fontsize=12)
     fig.tight_layout(rect=(0, 0, 1, 0.95))
     fig.savefig(path, format="pdf", bbox_inches="tight")
+    # PNG as well: every other figure in the report is a PNG, and mixing raster
+    # and vector includes has bitten this build before.
+    fig.savefig(path.replace(".pdf", ".png"), dpi=170, bbox_inches="tight")
     plt.close(fig)
     print(f"wrote {path}")
 

@@ -610,6 +610,9 @@ def make_figure(path, times, P, Q, err_t, names, s, init_of_seed):
     fig.suptitle("Ace-Val-Nme gate V3: FAIL-B, ABF is already sufficient", fontsize=13)
     fig.tight_layout(rect=(0, 0, 1, 0.96))
     fig.savefig(path, format="pdf", bbox_inches="tight")
+    # PNG as well: every other figure in the report is a PNG, and mixing raster
+    # and vector includes has bitten this build before.
+    fig.savefig(path.replace(".pdf", ".png"), dpi=170, bbox_inches="tight")
     plt.close(fig)
     print(f"wrote {path}")
 

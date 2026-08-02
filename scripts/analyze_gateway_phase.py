@@ -63,6 +63,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", default=os.path.join(ROOT, "results/gateway_phase/production"))
     ap.add_argument("--out", default=None)
+    ap.add_argument("--refreeze", action="store_true",
+                    help="overwrite an existing frozen classification (breaks the "
+                         "before-any-FR-arm provenance chain; use deliberately)")
     a = ap.parse_args()
     out = a.out or a.dir
     d, prov = load(a.dir)
@@ -146,10 +149,28 @@ def main():
             priority="discovery-limited > establishment-limited > ABF-sufficient > "
                      "intermediate"),
         regime_counts=counts, table=table, anchor=anchor, anchor_rule=anchor_note)
+    # A file called "frozen" must not silently re-freeze.  The anchor run records the
+    # frozen file's timestamp and hash as its provenance, so rewriting it -- even with
+    # identical content and a new timestamp -- breaks the chain that proves the cell was
+    # chosen before any Fisher-Rao arm ran.  Re-running for the figure alone is the common
+    # case and must not have that side effect.
     fpath = os.path.join(out, "phase_classification.frozen.json")
-    with open(fpath, "w") as fh:
-        json.dump(frozen, fh, indent=2, default=float)
-    print(f"\nwrote {fpath}")
+    if os.path.exists(fpath) and not a.refreeze:
+        old = json.load(open(fpath))
+        same = (old["raw_sha256"] == frozen["raw_sha256"]
+                and old["regime_counts"] == frozen["regime_counts"]
+                and old["anchor"] == frozen["anchor"])
+        print(f"\n{fpath} exists and is NOT rewritten "
+              f"(frozen {old['frozen_at']}).")
+        print(f"  re-derived classification {'MATCHES' if same else 'DIFFERS FROM'} the "
+              f"frozen one." + ("" if same else "  Pass --refreeze deliberately if the "
+                                "inputs really changed."))
+        if not same:
+            raise SystemExit(2)
+    else:
+        with open(fpath, "w") as fh:
+            json.dump(frozen, fh, indent=2, default=float)
+        print(f"\nwrote {fpath}")
     print(f"\nANCHOR (preregistered): beta={anchor['beta']:g}, s={anchor['s']:g}, "
           f"r={anchor['r']:g}  [{anchor['regime']}]")
     print(f"  {anchor_note}")
@@ -247,6 +268,9 @@ def make_figure(path, table, betas, ss, rs, anchor):
                  fontsize=12)
     fig.tight_layout(rect=(0, 0.06, 1, 0.93))
     fig.savefig(path, format="pdf", bbox_inches="tight")
+    # PNG as well: every other figure in the report is a PNG, and mixing raster
+    # and vector includes has bitten this build before.
+    fig.savefig(path.replace(".pdf", ".png"), dpi=170, bbox_inches="tight")
     plt.close(fig)
     print(f"wrote {path}")
 
