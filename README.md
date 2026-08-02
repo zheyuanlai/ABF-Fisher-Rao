@@ -624,3 +624,87 @@ python scripts/analyze_alkanes_cv_extension.py --config configs/alkanes_cv_exten
 python scripts/plot_alkanes_cv_extension.py --report-figdir report/figures
 python scripts/make_alkanes_cv_report_assets.py
 ```
+
+---
+
+## Case VII: valine dipeptide (Ace-Val-Nme, vacuum) — CLOSED, second neutrality control
+
+**Goal.** A peptide chosen for a *side-chain* barrier: does mFR help 2-D ABF on
+`xi = (phi, chi1)` when a rotamer state should be persistently under-populated?
+
+**Outcome: gate V3 FAILS on branch B — ABF is already sufficient.** Closure tag
+`valine-closed-neutral-v1`; authoritative artifacts in `results/valine/closure/`.
+
+ABF reaches all 8 regions within **5.4 ps** (first touch, every seed), holds them persistently
+from 18 ps, and establishes every one by **52 ps** of a 300 ps run. The rarest region
+(population 0.0014) ends at **1.46x** its bias-aware target. Worst second-half relative deficit
+0.56 against 0.50-for-20 %-of-run; ABF's own free energy lands 0.248 kT from the pilot. No
+discovered-but-under-established state exists, so mFR has nothing to repair.
+
+**The reason valine was selected was measurable, and wrong.** Its 11-18 kT `chi1` barrier is a
+backbone-**clamped conditional** barrier; with the backbone free the 2-D min-max path costs
+1.1-7.4 kT and rotamers interconvert at 2.70 changes/walker/ns. The slow coordinate is `phi` —
+which is in the CV. See `VALINE_SCREEN_HANDOFF.md` and the ledger/brief under `closure/`.
+
+**Three reusable diagnostics were wrong and are fixed in `src/mfr_diagnostics.py`:**
+
+| defect | symptom | fix |
+|---|---|---|
+| omitted-coordinate check | worst-region TV 0.280, apparent FAIL | compare at **matched CV cells** with common weights -> **0.055**, PASS |
+| state-entry counter | reads **0** for every region behind an unlabelled corridor | carry the last labelled state across the corridor -> 1655/704/527 |
+| establishment target | 97 % of target mass outside the reference's support | normalise on the labelled support, and **assert** it rather than print it |
+
+```bash
+conda activate abffr
+python scripts/close_valine.py                    # CPU only; rebuilds results/valine/closure/
+PYTHONPATH=src python -m pytest tests/test_mfr_diagnostics.py -q
+```
+
+---
+
+## Case VIII: entropic gateway — building the establishment-limited regime on purpose
+
+**Why.** Butane, pentane, the 2-D torus CV, alanine and valine are all *ABF-sufficient*;
+pentane `R15` is *discovery-limited*. The regime mFR actually serves — a state **found early**
+but **populated slowly** — never arose on its own, and would not have arisen from trying more
+peptides, because the regime is decided by whether the slow coordinate is inside the CV.
+
+**Design.** The smooth entropic channel of Case II, whose free energy is analytic (so there is
+no reference error to confound anything). **ABF only**, 2048 runs over
+`s x r x beta = 4 x 4 x 4` cells, 16 seeds, two initialisations. `beta*H = 8 kT` is held fixed,
+so the dimensionless landscape is identical everywhere and `beta` varies only transport speed
+at fixed compute.
+
+**All 128 cells are reported**: 32 ABF-sufficient, 42 intermediate, 54 establishment-limited,
+0 discovery-limited. A sizing scan showed `(s, r)` alone does **not** span the regimes — the
+timescale ratio does — which is why `beta` is on the map rather than hidden behind one slice.
+
+**The classification and anchor were frozen and committed before any FR arm ran**
+(`results/gateway_phase/production/PREREGISTRATION.md`, commit `61a8c1d`; FR results in
+`ddec5a3`). `analyze_gateway_phase.py` refuses to rewrite the frozen file without `--refreeze`.
+
+**Result at the anchor** (`beta=16, s=0.10, r=32`; matched seeds, health gates
+`ESS_anc/N >= 0.30`, `w_max <= 0.05`):
+
+| arm | gamma | I_F vs ABF | 95 % CI | seeds won |
+|---|---|---|---|---|
+| **sham** (matched intensity) | any | **-4.0 %** | [-7.4, +1.7] | 11/16 — **equivalent** |
+| practical mFR | 1.5 | **-14.2 %** | [-17.7, -10.6] | 14/16 |
+| oracle mFR | 0.5 | -14.4 % | [-16.4, -5.0] | 15/16 |
+
+The **sham** fires at the same times and performs the *same realised* clone/delete counts as
+the oracle arm (0 mismatches in 128 paired comparisons), differing only in randomising which
+walkers they act on — and it is flat at every rate. **The gain is the Fisher-Rao direction, not
+the turnover.** No arm anywhere else in this repo has ever had that control. The mechanism
+control (one walker seeded across the gateway, so discovery is free) still gives -6.5 % on
+16/16, so the effect is population *establishment*, not first passage.
+
+```bash
+conda activate abffr
+CUDA_VISIBLE_DEVICES=2 python -u scripts/calibrate_gateway.py      # sizing only; feeds no verdict
+CUDA_VISIBLE_DEVICES=2 python -u scripts/run_gateway_phase.py      # ABF only, ~4.5 min
+python scripts/analyze_gateway_phase.py                            # classify + freeze
+CUDA_VISIBLE_DEVICES=2 python -u scripts/run_gateway_anchor.py     # 4 arms x rate ladder, ~1.5 min
+python scripts/analyze_gateway_anchor.py
+python scripts/make_neutrality_report_assets.py                    # report macros
+```
