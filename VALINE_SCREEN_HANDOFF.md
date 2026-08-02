@@ -185,19 +185,93 @@ dt = 0.5 fs is kept for the restrained pilot anyway: it is the value the plan fr
 an already-small artifact is cheap insurance on a reference MBAR cannot unwind. Relaxing a frozen
 value mid-study to save wall-clock is the wrong trade.
 
+## 6b. The pilot reference, and why v1 was thrown away
+
+`results/valine/pilot_reference_v1_rejected/` — 324 windows on (φ, χ₁), ψ **free**, two ψ starts
+(+120, −40), 8 copies each, 150 ps at dt = 0.5 fs, 65 min. MBAR converged cleanly (107 iterations,
+residual 9.7e−9), 84.6 % of the 97² grid filled, kinetic temperature 298.36 K. It still fails:
+
+| check | value | verdict |
+|---|---|---|
+| MBAR overlap graph connected | 1 component (even at threshold 0.001) | pass |
+| grid coverage | 7958/9409 = 84.6 % | pass |
+| split-half over **copies** | RMSE **0.38 kT** | pass |
+| **ψ-start agreement** | RMSE **3.22 kT**, median \|d\| 1.4–1.9 kT where the population is | **fail** |
+
+Those last two are not in tension, and the reason matters: **copies of a window share its ψ start**,
+so a split-half over copies is blind to ψ by construction. It reads 0.38 kT while the thing it
+cannot see is off by 3.22 kT. Any reference built this way and checked only by split-half would
+look converged.
+
+The failure is incomplete *equilibration* of the omitted coordinate, not trapping:
+
+* ψ moves — **38.8 %** of walkers changed ψ basin during 150 ps;
+* but remembers — mean β/PPII occupancy over the second half is **0.551** for walkers started at
+  ψ = +120° and **0.463** for ψ = −40°.
+
+A median 1.4–1.9 kT error is a factor ~5 in a state population, and V3 asks whether an occupancy
+falls below **half** its target. The pilot has to be better than the threshold it is used to
+evaluate, so v1 is kept as a record and **superseded**, not patched.
+
+**v2** attacks both halves of the failure: **four** ψ starts (+150, +60, −40, −140) instead of
+two, and **400 ps** of production instead of 150 — more independent initial conditions to average
+over, and more time for each to forget. ~2 h; doubling the number of starts is nearly free per
+step because the cost is flat in batch.
+
+Two method corrections came out of this:
+
+* the per-start comparison now runs every **pair** and reports the **worst**. With more than two
+  starts, an average would hide a single start that failed to equilibrate — which is the entire
+  failure mode being tested for.
+* acceptance gates on **connectivity** of the overlap graph, not on `min(overlap)`. v1 had a
+  minimum pair overlap of 1e−4 and was nevertheless a single connected component; rejecting it
+  for that number would have been rejecting a usable map for the wrong reason.
+
+### What v1 does already establish, because it does not depend on ψ equilibration
+
+The **effective** barriers — min-max paths through the 2-D (φ, χ₁) plane:
+
+| transition | barrier |
+|---|---|
+| χ₁ rotamer, same backbone | **1.6 – 7.0 kT** |
+| crosses the φ megabasin | **9.9 – 14.1 kT** |
+
+This is the free-energy confirmation of §5. Stage 0's clamped 11.3–17.9 kT is roughly **twice**
+the barrier a walker with a free backbone actually pays, and the φ megabasin — not χ₁ — carries
+the large one.
+
 ## 7. What is NOT yet done — and what decides the study
 
 **Gate V3: does ABF discover every state and then leave one persistently under-established?**
 That question is untested, and it is the gate that killed alanine. Everything above establishes
 only that a deficit, if one exists, would be *visible* and *nameable*.
 
-The machinery is built, smoke-tested end to end, and waiting:
+The machinery is built, smoke-tested end to end, and launched behind a gate:
 
 ```
 scripts/run_valine_pilot_reference.py   coarse F_pilot(phi, chi1), psi FREE, dt = 0.5 fs
+scripts/analyze_valine_pilot.py         acceptance; EXITS NON-ZERO if the pilot fails
 scripts/run_valine_v3_screen.py         ABF only -- concentrated and stratified init
 scripts/analyze_valine_v3.py            V3 metrics and the decision rule
 ```
+
+The V3 launch is chained **behind** `analyze_valine_pilot.py`'s exit code, so a 14 h run cannot
+start against a pilot that failed its own acceptance. Configuration:
+
+| | |
+|---|---|
+| arms | concentrated **and** stratified, as different seeds of **one** batch |
+| seeds | 8 per arm (16 total), N = 2048 → B = 32768 |
+| length | 10⁶ steps = 1 ns at dt = 1 fs (unrestrained) |
+| grid | 97 × 97, estimator frozen at the alanine values |
+| cost | 52.7 ms/step → **14.6 h for both arms** |
+| checkpoint | every 50 ps, analysable on its own (see §8) |
+
+Running the arms in one batch is what makes the diagnostic arm affordable: the step cost is flat
+from B = 16384 (51.0 ms) to B = 32768 (52.7 ms), so the second arm costs **3 %**, not 100 %. Each
+seed of the sampler carries its own accumulators, bias field and genealogy, so they are genuinely
+independent replicas that merely share a step loop; the analyzer selects an arm by seed and
+refuses to mix them.
 
 Two design points worth not re-deriving:
 
