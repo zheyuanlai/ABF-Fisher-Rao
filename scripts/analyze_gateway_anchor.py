@@ -42,12 +42,21 @@ def verdict(med_pct, ci):
     """Practical-equivalence call on the standing +/-10 % margin.
 
     Sign convention: a NEGATIVE percentage is an improvement (the error went down).
+
+    A directional call requires the interval to **exclude zero**.  Without that condition a
+    median of -1.1 % with a CI of [-11.1, +6.4] gets labelled an "improvement" purely because
+    the interval is wide -- the label then reports the imprecision of the estimate rather than
+    the size of the effect, which is exactly backwards.  An interval that straddles zero and
+    also reaches beyond the margin supports neither claim, and is called inconclusive.
     """
     if not np.isfinite(med_pct):
         return "undetermined"
-    if abs(med_pct) <= EQUIV_MARGIN * 100 and abs(ci[0]) <= EQUIV_MARGIN * 100 \
-            and abs(ci[1]) <= EQUIV_MARGIN * 100:
+    lo, hi = min(ci), max(ci)
+    within = abs(lo) <= EQUIV_MARGIN * 100 and abs(hi) <= EQUIV_MARGIN * 100
+    if within:
         return "equivalent"
+    if lo * hi <= 0:
+        return "inconclusive"
     return "improvement" if med_pct < 0 else "harmful"
 
 

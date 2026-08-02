@@ -73,7 +73,8 @@ whose classification and anchor cell were frozen and committed \emph{before} any
 arm was run. At that anchor mFR improves the integrated free-energy error by
 $\GwEstGain\%$ $[\GwEstCIlo, \GwEstCIhi]$ on $\GwEstWins$ matched seeds while a
 \textbf{matched sham} --- the same number of clone/delete events at the same times, with the
-direction randomised --- is $\GwShamVerdict$ to ABF. This is the first control in the study
+direction randomised --- stays within $\GwShamRangeLo\%$ to $\GwShamRangeHi\%$ with no
+interval excluding zero. This is the first control in the study
 that separates Fisher--Rao steering from resampling of the same intensity, and it attributes
 the gain to the steering.
 

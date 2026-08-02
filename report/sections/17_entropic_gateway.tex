@@ -139,10 +139,23 @@ $[\GwOracleCIlo, \GwOracleCIhi]$ on $\GwOracleWins$. The deficit the anchor was 
 is largely repaired --- integrated deficit $\GwEstDeficit\%$ for the deployable arm and
 $\GwOracleDeficit\%$ for the oracle --- and $T_{\mathrm{est}}$ falls by $\GwEstTest\%$.
 
-\textbf{The sham is flat}: $\GwShamGain\%$ $[\GwShamCIlo, \GwShamCIhi]$, $\GwShamWins$ seeds,
-\textbf{\GwShamVerdict} to ABF, at every rate on the ladder. Since it performs the same
-number of replacements at the same times as the arm it shadows, the gain is attributable to
-the Fisher--Rao \emph{direction} and not to turnover of that magnitude.
+\textbf{The sham is flat.} At the frozen rate it is $\GwShamGain\%$
+$[\GwShamCIlo, \GwShamCIhi]$ on $\GwShamWins$ seeds, \textbf{\GwShamVerdict} to ABF; across
+\emph{all} eight (rate, initialisation) cells its median effect spans
+$\GwShamRangeLo\%$ to $\GwShamRangeHi\%$, and the confidence interval excludes zero in
+$\GwShamExclZero$ of them. Since it performs the same number of replacements at the same
+times as the arm it shadows, the gain is attributable to the Fisher--Rao \emph{direction} and
+not to turnover of that magnitude.
+
+\begin{remark}[A directional label needs an interval that excludes zero]
+\label{rem:gw_verdict}
+Two of the eight sham cells are reported as \emph{inconclusive} rather than equivalent: their
+medians are small ($-1.1\%$, and $+2.3\%$) but their bootstrap intervals reach past the
+$\pm10\%$ margin while still straddling zero. An earlier version of the decision rule called
+the first of these an ``improvement'' purely because its interval was wide, which reports the
+imprecision of the estimate rather than the size of the effect. No sham cell supports a
+directional claim in either direction, which is the statement the control needs to make.
+\end{remark}
 
 \begin{figure}[t]\centering
   \includegraphics[width=\linewidth]{fig_gw_02_anchor.png}

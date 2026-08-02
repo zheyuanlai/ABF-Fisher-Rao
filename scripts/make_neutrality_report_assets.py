@@ -45,7 +45,8 @@ GW_MACROS = [
     "GwEstWmax", "GwEstDeficit", "GwEstTest", "GwOracleGain", "GwOracleCIlo",
     "GwOracleCIhi", "GwOracleWins", "GwOracleGamma", "GwOracleEss", "GwOracleDeficit",
     "GwShamGain", "GwShamCIlo", "GwShamCIhi", "GwShamWins", "GwShamVerdict",
-    "GwShamMismatch", "GwFrozenGamma", "GwFrozenOracleGain", "GwFrozenEstGain",
+    "GwShamMismatch", "GwShamRangeLo", "GwShamRangeHi", "GwShamExclZero",
+    "GwFrozenGamma", "GwFrozenOracleGain", "GwFrozenEstGain",
     "GwFrozenOracleEss", "GwFrozenEstEss", "GwFrozenOracleWmax", "GwOneRightGain",
     "GwOneRightCIlo", "GwOneRightCIhi", "GwOneRightWins", "GwEssGate", "GwWmaxGate",
 ]
@@ -207,6 +208,16 @@ def gateway():
                 if pre == "GwEst":
                     v["GwEstWmax"] = f"{b['max_wmax']:.3f}"
                     v["GwEstTest"] = f"{b['T_est_pct']:.1f}"
+        # The sham across EVERY (rate, init) cell, not just the headline row: the claim
+        # being made is that it never moves the error, so it has to be checked everywhere.
+        sh = [r for r in a["rows"] if r["arm"] == "sham"]
+        if sh:
+            m = [r["int_l2_f_pct"] for r in sh]
+            v["GwShamRangeLo"] = f"{min(m):+.1f}"
+            v["GwShamRangeHi"] = f"{max(m):+.1f}"
+            v["GwShamExclZero"] = sum(
+                1 for r in sh
+                if r["int_l2_f_ci_lo"] * r["int_l2_f_ci_hi"] > 0)
         h = a["headline"]
         if "sham" in h:
             s = h["sham"]

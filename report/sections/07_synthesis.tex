@@ -38,9 +38,10 @@ instead of by luck, and supplies the control the other cases lack. Because its f
 analytic, its regime map is complete, and its anchor was frozen before any FR arm ran, it can
 carry the one comparison that decides whether the mechanism is what it claims: a
 \textbf{matched sham} that performs the same number of clone and delete events at the same
-times, with the direction randomised. The sham is equivalent to ABF at every rate
-(\cref{tab:gw_anchor}), while mFR at a health-passing rate improves the integrated error by
-$\GwEstGain\%$. Whatever mFR is doing in this regime, it is not simply the turnover.
+times, with the direction randomised. Across every rate and both initialisations the sham's
+median effect stays between $\GwShamRangeLo\%$ and $\GwShamRangeHi\%$ and no interval excludes
+zero (\cref{tab:gw_anchor}), while mFR at a health-passing rate improves the integrated error
+by $\GwEstGain\%$. Whatever mFR is doing in this regime, it is not simply the turnover.
 
 \begin{remark}[Three ways of saying ``ABF is starved'', only one of which mFR repairs]
 \label{rem:starvation_kinds}
