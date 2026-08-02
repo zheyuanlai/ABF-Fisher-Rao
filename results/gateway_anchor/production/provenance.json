@@ -1,0 +1,81 @@
+{
+  "script": "run_gateway_anchor.py",
+  "git_rev": "61a8c1d380a22f77f576132b97ca0d7a83522964",
+  "host": "atlas",
+  "cuda_visible_devices": "2",
+  "device": "NVIDIA H200 NVL",
+  "torch": "2.12.0+cu130",
+  "python": "3.14.4",
+  "anchor": {
+    "beta": 16.0,
+    "s": 0.1,
+    "r": 32.0,
+    "init": "left",
+    "regime": "establishment-limited",
+    "n_seeds": 16,
+    "barrier_kT": 11.465735902799727,
+    "T_hit_frac": 0.04000040000400004,
+    "T_est_frac": 0.4650046500465005,
+    "est_gap_frac": 0.43000430004300044,
+    "below_half_frac": 0.4228855721393035,
+    "seeds_late_discovery": 0,
+    "seeds_never_established": 0,
+    "final_occupancy": 0.33056640625,
+    "final_target": 0.3991261304942134,
+    "occ_over_target": 0.8282254179666961,
+    "integrated_deficit": 7.870705301467735,
+    "max_rel_deficit": 0.9990061591134998,
+    "final_l2_f": 0.010519117884749907,
+    "int_l2_f": 1.0647802969107758,
+    "int_l2_fp": 6.336520373645293
+  },
+  "frozen_source": "results/gateway_phase/production/phase_classification.frozen.json",
+  "frozen_raw_sha256": "8352bcad1396a48d",
+  "frozen_at": "2026-08-02T18:04:16",
+  "arms": [
+    "abf",
+    "sham",
+    "fr_oracle",
+    "fr_estimated"
+  ],
+  "gamma_ladder": [
+    0.5,
+    1.5,
+    5.0,
+    15.0
+  ],
+  "gamma_frozen": 15.0,
+  "inits": [
+    "left",
+    "one_right"
+  ],
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "n_walkers": 2048,
+  "dt": 0.0004,
+  "n_steps": 100000,
+  "save_every": 500,
+  "T_total": 40.0,
+  "health_gates": {
+    "ess_anc_over_N_min": 0.3,
+    "wmax_max": 0.05
+  },
+  "wall_seconds": 87.54975581169128,
+  "n_runs": 512
+}
