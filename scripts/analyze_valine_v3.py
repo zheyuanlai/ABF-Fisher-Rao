@@ -114,6 +114,8 @@ def main():
     ap.add_argument("--run", default=None, help="path to a v3 raw .npz (default: newest)")
     ap.add_argument("--run-dir", default="results/valine/v3_screen/raw")
     ap.add_argument("--pilot", default="results/valine/pilot_reference")
+    ap.add_argument("--arm", default=None, choices=("concentrated", "stratified"),
+                    help="select one arm when the run carried both as different seeds")
     ap.add_argument("--hold-frac", type=float, default=0.05)
     ap.add_argument("--distinguishability", default="results/valine/state_map/distinguishability.json")
     ap.add_argument("--out", default=None)
@@ -137,12 +139,25 @@ def main():
     B_t = np.asarray(d["pmf"])                           # (T, R, n, n)
     F_pilot = np.asarray(d["F_pilot"])
     label = np.asarray(d["basin_label"])
+    seeds_all = np.asarray(d["seeds"])
+    # A run may carry BOTH initialisations as different seeds of one batch -- each seed has its
+    # own accumulators, bias and genealogy, so they are independent replicas.  Select one arm
+    # here; mixing them would average a headline experiment with its own diagnostic control.
+    init_of_seed = np.asarray(meta.get("init_of_seed", [meta["init"]] * frac.shape[1]))
+    arm = a.arm or (meta["init"] if meta["init"] != "both" else "concentrated")
+    keep_r = np.flatnonzero(init_of_seed == arm)
+    if keep_r.size == 0:
+        raise SystemExit(f"no seeds with init={arm!r}; run has {sorted(set(init_of_seed))}")
+    frac, B_t, seeds_all = frac[:, keep_r], B_t[:, keep_r], seeds_all[keep_r]
     R = frac.shape[1]
     print(f"run   {os.path.basename(path)}")
-    print(f"init={meta['init']}  R={R} seeds  N={meta['n_replicas']}  "
-          f"T_run={T_run:.0f} ps  regions={K}")
+    print(f"arm={arm}  R={R} seeds  N={meta['n_replicas']}  "
+          f"T_run={T_run:.0f} ps  regions={K}"
+          + (f"   (selected from a {len(init_of_seed)}-seed batch carrying both arms)"
+             if meta["init"] == "both" else ""))
     print(f"health: clip {meta['clip_fraction']:.2e}  mean T "
-          f"{np.nanmean(np.asarray(d['temperature'], dtype=float)):.2f} K")
+          f"{np.nanmean(np.asarray(d['temperature'], dtype=float)):.2f} K "
+          f"(batch-wide; the arms share a step loop)")
 
     print("\ncomputing bias-aware ideal populations Q*_k(t) ...", flush=True)
     Q, capped = ideal_biased_population(F_pilot, B_t, label, beta, kT=kT)
@@ -163,7 +178,7 @@ def main():
             after = times >= (t_hit if np.isfinite(t_hit) else 0.0)
             starved = (P < DEFICIT_RATIO * Qk) & after
             rows.append(dict(
-                state=names[k], k=k, seed=int(d["seeds"][r]),
+                state=names[k], k=k, seed=int(seeds_all[r]),
                 T_hit_ps=t_hit, T_est_ps=t_est,
                 A_k=float(D[after].sum() * dt_save),
                 mean_occupancy=float(P[after].mean()) if after.any() else float("nan"),
@@ -172,7 +187,7 @@ def main():
                 # fraction of RECORDED SAVE POINTS, not sum(dt)/T_run: with n saves there are
                 # n-1 intervals, so the latter exceeds 1 whenever every point is starved.
                 starved_frac_of_run=float(starved.sum() / len(times)),
-                entries=int(np.asarray(d["trans_matrix"])[r, :, k].sum())))
+                entries=int(np.asarray(d["trans_matrix"])[keep_r[r], :, k].sum())))
 
     def agg(k, key):
         return np.array([x[key] for x in rows if x["k"] == k], dtype=float)
@@ -232,7 +247,7 @@ def main():
     # ------------------------------------------------------------------ omitted coordinate
     psi_res = None
     if "extra_angle" in d.files:
-        psi = np.asarray(d["extra_angle"])               # (T, R, N) recorded psi
+        psi = np.asarray(d["extra_angle"])[:, keep_r]    # (T, R_arm, N) recorded psi
         half = len(times) // 2
         edges = np.linspace(-math.pi, math.pi, 37)
         psi_res = {"n_bins": 36, "per_state": []}
@@ -253,9 +268,12 @@ def main():
             # Per state.  Globally this check is nearly useless: two states can each carry the
             # wrong psi distribution in opposite directions and still sum to the right one.
             if "walker_basin" in d.files:
-                wb = np.asarray(d["walker_basin"])[half:]         # (T', R, N)
+                wb = np.asarray(d["walker_basin"])[half:][:, keep_r]   # (T', R_arm, N)
                 pv = psi[half:]
-                worst = 0.0
+                # ``worst`` starts at None, not 0.0.  If no state has enough samples to compare,
+                # a 0.0 would read as a perfect match and silently pass condition 4; the caller
+                # must fall back to the global TV instead.
+                worst = None
                 for k in range(K):
                     mr = ref_lab == k
                     mv = wb == k
@@ -267,10 +285,13 @@ def main():
                     a_, _ = np.histogram(rpsi[mr], bins=edges, weights=w[mr])
                     b_, _ = np.histogram(pv[mv], bins=edges)
                     tvk = float(0.5 * np.abs(a_ / a_.sum() - b_ / b_.sum()).sum())
-                    worst = max(worst, tvk)
+                    worst = tvk if worst is None else max(worst, tvk)
                     psi_res["per_state"].append(dict(state=names[k], tv=tvk,
                                                      n_ref=int(mr.sum()), n_run=int(mv.sum())))
-                psi_res["worst_state_tv"] = worst
+                psi_res["n_states_compared"] = sum(
+                    1 for r in psi_res["per_state"] if r["tv"] is not None)
+                if worst is not None:
+                    psi_res["worst_state_tv"] = worst
                 parts = []
                 for r in psi_res["per_state"]:
                     parts.append(f"{r['state']} n/a" if r["tv"] is None
@@ -297,6 +318,8 @@ def main():
     # sign in different states cancel in the sum.
     psi_tv = (None if psi_res is None else
               psi_res.get("worst_state_tv", psi_res.get("global_tv")))
+    psi_scope = ("worst-state" if psi_res and "worst_state_tv" in psi_res
+                 else "global (no state had enough samples)")
     psi_ok = (psi_tv is None) or (psi_tv < 0.15)
     # Condition 3 is not a property of this run: whether a deficit is RESOLVABLE in (phi, chi1)
     # was decided by the distinguishability gate.  Read its verdict rather than restating it,
@@ -308,7 +331,7 @@ def main():
     c3 = (dg is not None) and dg["gate"]["verdict"] == "PASS"
 
     print("\n" + "=" * 72)
-    print(f"GATE V3 conditions (init = {meta['init']})")
+    print(f"GATE V3 conditions (init = {arm})")
     print(f"  1 every state discovered by {DISCOVERY_FRAC:.0%} of the run in >=75 % of seeds: "
           f"{c1}" + ("" if c1 else f"  -- missed {[s['state'] for s in missed]}"))
     print(f"  2 >=1 state below {DEFICIT_RATIO:.0%} of its bias-aware target for >="
@@ -319,7 +342,7 @@ def main():
              f"max overlap {dg['overlap_max']:.3f})" if dg else
              f"  -- {a.distinguishability} not found; run analyze_valine_distinguishability.py"))
     print(f"  4 omitted psi conditional still correct: {psi_ok}"
-          + (f" (worst-state TV {psi_tv:.4f})" if psi_tv is not None else " (not measured)"))
+          + (f" ({psi_scope} TV {psi_tv:.4f})" if psi_tv is not None else " (not measured)"))
     print(f"  5 deficit reproducible across seeds: {c5}")
     if not c1:
         verdict = "FAIL-A discovery-limited"
@@ -345,7 +368,8 @@ def main():
     print(f"  {note}")
     print("=" * 72)
 
-    res = dict(run=path, init=meta["init"], n_seeds=R, n_replicas=meta["n_replicas"],
+    res = dict(run=path, init=arm, run_init=meta["init"], n_seeds=R,
+               n_replicas=meta["n_replicas"], seeds=seeds_all.tolist(),
                T_run_ps=float(T_run), regions=names,
                pilot_capped_weight_mean=float(capped.mean()),
                pilot_capped_weight_max=float(capped.max()),
@@ -366,7 +390,7 @@ def main():
                missed_states=[s["state"] for s in missed],
                verdict=verdict, note=note)
     out = a.out or os.path.join(os.path.dirname(os.path.dirname(path)),
-                                f"v3_metrics_{meta['init']}.json")
+                                f"v3_metrics_{arm}.json")
     with open(out, "w") as fh:
         json.dump(res, fh, indent=2, default=float)
     print(f"\nwrote {out}")

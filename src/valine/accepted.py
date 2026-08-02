@@ -35,12 +35,30 @@ REJECTED_CV = {"psi_chi1": "hidden coordinate phi carries two populated states (
 #: integrator implements no SHAKE and ``extract_parameters`` refuses a constrained system.
 DT_UNRESTRAINED_PS = 0.001
 
-#: Restrained dynamics (umbrella windows).  0.5 fs, because the stiff dihedral clamp is
-#: under-integrated at 1 fs: measured kinetic temperature 293.2 K (-6.8 K, ~10 sigma) at 1 fs,
-#: recovering to 299.0 K at 0.5 fs and 299.8 K at 0.25 fs -- a clean O(dt^2) signature.  The
-#: UNRESTRAINED system is within 0.6 sigma of 300 K at every step size, so this is a property of
-#: the restraint, not of the C-H stretches.  A softer clamp may be substituted only if its
-#: kinetic temperature is verified first.
+#: Restrained dynamics (umbrella windows).  0.5 fs.
+#:
+#: The ORIGINAL justification -- that the stiff dihedral clamp is under-integrated at 1 fs while
+#: the unrestrained system is fine -- is REFUTED; see CORRECTIONS below and
+#: results/valine/dt_bias/.  Measured at 2048 walkers per group (kinetic sampling sigma 1.02 K,
+#: against the 5.79 K of the B=64 measurement that produced the original claim):
+#:
+#:     dt      T_kin - 300 K                    T_bond - 300 K        T_angle - 300 K
+#:             unrestrained / clamp500 / clamp110
+#:     1.0 fs  -7.01 / -6.63 / -6.88            +25.8 / +27.7 / +26.6   -59.9 / -60.1 / -59.7
+#:     0.5 fs  -1.70 / -1.56 / -1.72            +24.9 / +26.2 / +25.7   -59.4 / -59.5 / -59.4
+#:
+#: The kinetic deficit is INDEPENDENT of the restraint and scales as O(dt^2) (7.01/1.70 = 4.1).
+#: It is the integrator, not the clamp.  The equipartition estimators on bonds and angles are
+#: essentially UNCHANGED between the two timesteps (0.9 K and 0.5 K of a 26 K and 60 K offset),
+#: so their offsets are static properties of a curvilinear-coordinate estimator -- internal
+#: coordinates are not independent normal modes -- and NOT a temperature error, which would have
+#: scaled with dt exactly as T_kin does.  The CONFIGURATIONAL distribution is therefore not
+#: corrupted by the timestep, and free energies at 1 fs are sound.
+#:
+#: 0.5 fs is kept anyway, for two reasons that are about discipline rather than physics: it is
+#: the value the screening plan froze, and halving an already-small kinetic artifact is cheap
+#: insurance on a reference MBAR cannot unwind.  Relaxing a frozen value mid-study to save
+#: wall-clock is the wrong trade.
 DT_RESTRAINED_PS = 0.0005
 
 #: Periodic grid.  MUST be odd -- ``alanine.projection.require_odd_grid`` raises otherwise,
@@ -65,10 +83,45 @@ GENEALOGY_GATES = dict(ess_age_over_N_min=0.30, wmax_max=0.05)
 
 #: Measured Stage-0 verdicts, so a later analysis cannot restate them differently.
 STAGE0_RESULTS = {
-    "gate_V1": "PASS -- chi1 barrier 11.3-17.9 kT vs a >=2 kT requirement",
+    "gate_V1": "PASS -- chi1 barrier >= 2 kT.  The NUMBER 11.3-17.9 kT is a CLAMPED conditional "
+               "barrier; see CORRECTIONS['chi1_barrier_is_clamped'] for the free-backbone value",
     "gate_sec32_phi_chi1": "PASS -- one populated state in hidden psi at all six anchors",
-    "gate_sec32_psi_chi1": "FAIL -- two populated states in hidden phi at (psi=-30, chi1=g-)",
+    "gate_sec32_psi_chi1": "FAIL -- two populated states in hidden phi at (psi=-30, chi1=g-); "
+                           "corroborated by S1, which saw 4 phi crossings in 2581 ns",
+    "gate_distinguishability": "PASS -- balanced accuracy 0.973 recovering the 3-D state from "
+                               "(phi, chi1); worst footprint overlap 0.189",
     "gate_V3": "NOT YET MEASURED -- discovery vs establishment; decides the study",
+}
+
+#: Measurements that CONTRADICT a claim in `VALINE_STAGE0_HANDOFF.md`.  Kept here rather than
+#: only in the handoff so that code reading the checkpoint sees the correction too.
+CORRECTIONS = {
+    "chi1_barrier_is_clamped": (
+        "Handoff sec.3 argues that a ~10 kT chi1 barrier is 'essentially never crossed by "
+        "unbiased dynamics', and concludes a chi1-hidden design would have been "
+        "discovery-limited -- called there the single most important Stage-0 result.  The S1 "
+        "exploration measures the opposite: 2.70 chi1 rotamer changes per walker per ns, FLAT "
+        "from 30 to 300 ps and identical for walkers seeded in a well (2.70) and on a barrier "
+        "(2.69), i.e. an equilibrium rate.  That implies 6-8 kT with the backbone FREE against "
+        "11.3-17.9 kT measured with phi and psi clamped at kappa=500 kJ/mol/rad^2.  The clamp "
+        "forbids the backbone relaxation that accompanies the rotation.  This also explains R1's "
+        "'honest surprise' that the umbrella barriers exceeded their own MEP upper bound: both "
+        "clamp the backbone, so they share the defect.  V1 still passes; the discovery-limited "
+        "argument for putting chi1 in the CV does not survive."),
+    "the_slow_coordinate_is_phi": (
+        "S1 saw 4 persistent phi-megabasin crossings in 2581 ns of aggregate unbiased sampling, "
+        "against 2.7 chi1 crossings per walker per ns.  The transition matrix is strictly "
+        "block-diagonal in sign(phi).  phi, not chi1, is the coordinate ABF must flatten -- and "
+        "phi is in the selected CV."),
+    "kinetic_temperature_is_not_the_restraint": (
+        "Handoff R4 attributes a 6.8 K kinetic-temperature deficit to the stiff dihedral clamp, "
+        "from a B=64 measurement whose sampling sigma was 5.79 K -- too noisy to resolve the "
+        "unrestrained deficit, which was therefore read as absent.  At B=2048 per group "
+        "(sigma 1.02 K) the deficit at dt=1 fs is -7.01 K UNRESTRAINED and -6.63 K clamped: the "
+        "clamp is marginally WARMER, not colder.  It halves-squared with dt and the "
+        "configurational estimators do not move, so it is an integrator artifact and the "
+        "configurational distribution is unaffected.  See DT_RESTRAINED_PS and "
+        "results/valine/dt_bias/."),
 }
 
 

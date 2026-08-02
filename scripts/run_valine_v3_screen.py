@@ -159,8 +159,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="results/valine/v3_screen")
     ap.add_argument("--pilot", default="results/valine/pilot_reference")
+    # ``both`` runs the two initialisations as DIFFERENT SEEDS OF ONE BATCH.  Each seed of
+    # run_sampler_ala carries its own accumulators, its own bias field and its own genealogy, so
+    # they are independent replicas that happen to share a step loop -- and the measured step
+    # cost is flat in batch (alanine: 48-50 ms from B=8192 to B=16384), so the diagnostic arm is
+    # very nearly free.  Running them separately would double the wall-clock for nothing.
     ap.add_argument("--init", default="concentrated",
-                    choices=("concentrated", "stratified"))
+                    choices=("concentrated", "stratified", "both"))
     ap.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2, 3, 4, 5, 6, 7])
     ap.add_argument("--n-replicas", type=int, default=2048)
     ap.add_argument("--n-steps", type=int, default=1_000_000)
@@ -171,8 +176,8 @@ def main():
     ap.add_argument("--max-basins", type=int, default=8)
     ap.add_argument("--smoke", action="store_true")
     ap.add_argument("--cpu", action="store_true", help="wiring checks only; never production")
-    ap.add_argument("--dense-cv", action="store_true",
-                    help="use the dense-Hessian CV instead of the union-block one (cross-check)")
+    ap.add_argument("--union-cv", action="store_true",
+                    help="union-block CV instead of the dense one; equivalent, not faster here")
     ap.add_argument("--benchmark", action="store_true")
     ap.add_argument("--overwrite", action="store_true")
     a = ap.parse_args()
@@ -229,12 +234,16 @@ def main():
     if phash != pmeta["param_hash"]:
         raise SystemExit(f"param_hash {phash} != pilot's {pmeta['param_hash']}")
     tff = TorchFF(P, device=device, dtype=dtype)
-    # The union-block CV restricts the den Otter machinery to the 6 atoms {4,6,8,10,12,20} the
-    # two dihedrals actually touch -- 18 of 84 coordinates, so the Hessian contraction shrinks
-    # ~22x.  It is an optimisation of an exactly known quantity: G, div_v, the local mean force
-    # and the scattered bias force are bitwise or 1e-12 identical to the dense path
-    # (tests/test_valine_sampler.py).  ``--dense-cv`` runs the original path for cross-checking.
-    cv = (BackboneCV2D if a.dense_cv else FastBackboneCV2D)(
+    # The DENSE CV is the default, and that is a measured decision rather than an inherited one.
+    # The union-block class restricts the den Otter machinery to the 6 atoms the two dihedrals
+    # touch (18 of 84 coordinates, a ~22x smaller Hessian contraction) and is exactly equivalent
+    # -- but benchmarked head to head at B=16384 it is NOT faster: 51.8 vs 50.5 ms/step, a wash
+    # within noise.  The step is dominated by the four `torch.func` grad/hess dispatches, whose
+    # cost the alkanes module already documents as ~6 ms each and FLAT IN BATCH; shrinking the
+    # tensors they feed does not help.  It does cut peak memory (8.40 vs 10.08 GiB).  With no
+    # speedup on offer, the dense path wins on being the one the alanine result was obtained
+    # with.  ``--union-cv`` selects the other for cross-checking.
+    cv = (FastBackboneCV2D if a.union_cv else BackboneCV2D)(
         PHI_ATOMS, CHI1_ATOMS, n_atoms=N_ATOMS)
 
     sim = AlaSimConfig(dt=accepted.DT_UNRESTRAINED_PS, n_steps=a.n_steps, n_replicas=N,
@@ -243,31 +252,48 @@ def main():
           f"({sim.n_steps * sim.dt:.0f} ps)  grid {n_grid}  config_hash {sim.config_hash()}")
 
     # ---------------------------------------------------------------- initial ensemble
-    B = R * N
-    if a.init == "concentrated":
-        dom = int(np.argmax([pops[nm] for nm in bm.names]))
-        c = bm.centres_deg[dom]
-        tgt = [[c[0], p, c[1]] for p in PSI_INIT_DEG]
-        cnt = [B // 2, B - B // 2]
-        print(f"  concentrated in {bm.names[dom]} at (phi {c[0]:+.1f}, chi1 {c[1]:+.1f}) deg, "
-              f"psi starts {PSI_INIT_DEG}")
-    else:
+    def spec_for(mode, n_walkers):
+        if mode == "concentrated":
+            dom = int(np.argmax([pops[nm] for nm in bm.names]))
+            c = bm.centres_deg[dom]
+            print(f"  concentrated in {bm.names[dom]} at (phi {c[0]:+.1f}, chi1 {c[1]:+.1f}) "
+                  f"deg, psi starts {PSI_INIT_DEG}")
+            return ([[c[0], p, c[1]] for p in PSI_INIT_DEG],
+                    [n_walkers // 2, n_walkers - n_walkers // 2])
         tgt, cnt = [], []
-        per = B // (len(bm.names) * len(PSI_INIT_DEG))
-        for k, nm in enumerate(bm.names):
+        per = n_walkers // (len(bm.names) * len(PSI_INIT_DEG))
+        for k in range(len(bm.names)):
             c = bm.centres_deg[k]
             for p in PSI_INIT_DEG:
                 tgt.append([c[0], p, c[1]])
                 cnt.append(per)
-        cnt[-1] += B - sum(cnt)
+        cnt[-1] += n_walkers - sum(cnt)
         print(f"  stratified over {len(bm.names)} regions x {len(PSI_INIT_DEG)} psi starts, "
               f"{per} walkers each")
+        return tgt, cnt
 
     t0 = time.perf_counter()
-    init, init_dropped = build_initial_ensemble(
-        system, tff, tgt, cnt, a.init_equil_ps, sim.dt, sim.gamma, sim.temperature,
-        device, dtype, seed=4242 + (0 if a.init == "concentrated" else 131))
-    init = init.reshape(R, N, N_ATOMS, 3)
+    if a.init == "both":
+        if R % 2:
+            raise SystemExit("--init both needs an even number of seeds")
+        blocks, init_dropped, init_of_seed = [], [], []
+        for h, mode in enumerate(("concentrated", "stratified")):
+            tg, cn = spec_for(mode, (R // 2) * N)
+            x, dr = build_initial_ensemble(system, tff, tg, cn, a.init_equil_ps, sim.dt,
+                                           sim.gamma, sim.temperature, device, dtype,
+                                           seed=4242 + 131 * h)
+            blocks.append(x.reshape(R // 2, N, N_ATOMS, 3))
+            init_dropped += [dict(d, init=mode) for d in dr]
+            init_of_seed += [mode] * (R // 2)
+        init = torch.cat(blocks, 0)
+        tgt = None
+    else:
+        tgt, cnt = spec_for(a.init, R * N)
+        init, init_dropped = build_initial_ensemble(
+            system, tff, tgt, cnt, a.init_equil_ps, sim.dt, sim.gamma, sim.temperature,
+            device, dtype, seed=4242 + (0 if a.init == "concentrated" else 131))
+        init = init.reshape(R, N, N_ATOMS, 3)
+        init_of_seed = [a.init] * R
     print(f"  initial ensemble built in {time.perf_counter() - t0:.0f}s", flush=True)
 
     if a.benchmark:
@@ -313,7 +339,7 @@ def main():
         basin_depths_kT=bm.depths_kT, pilot_populations=pops, rare_basin=rare,
         ceiling_kT=a.ceiling_kT, min_prominence_kT=a.min_prominence_kT,
         psi_init_deg=list(PSI_INIT_DEG), init_equil_ps=a.init_equil_ps,
-        init_targets_deg=tgt, init_dropped=init_dropped,
+        init_targets_deg=tgt, init_dropped=init_dropped, init_of_seed=init_of_seed,
         cuda_visible_devices=cvd, device=device, dtype="float64", kT_kJ=kT,
         git=git_info(), wall_seconds=out["wall_seconds"], ms_per_step=out["ms_per_step"],
         clip_fraction=out["clip_fraction"], force_evaluations=out["force_evaluations"],
