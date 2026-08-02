@@ -21,8 +21,9 @@ minimum-energy-path pre-screen says χ₁ has three well-separated rotamer wells
 ~2.5 kT at each. The free-energy measurement has since confirmed this: **gate V1 passes** with
 barriers of 11.3–17.9 kT, and the §32 screen selects **ξ = (φ, χ₁)**. See RESULTS below.
 
-**The most consequential finding is not a number, it is a design correction that the
-measurement forces.** See §3.
+**§3 of this document is WRONG and is retained only with its correction attached.** It argued
+that a ~10 kT χ₁ barrier made a χ₁-hidden design discovery-limited, and called that the most
+consequential Stage-0 result. The S1 exploration measured the opposite. See §3-CORRECTED.
 
 ## 2. What was built
 
@@ -50,7 +51,7 @@ Note on the plan's wording: "the same hydrogen-bond constraints" resolves, in th
 **no constraints at all** — `extract_parameters` raises if the system carries any, because the
 torch integrator implements no SHAKE. dt = 1 fs is therefore mandatory, not a choice.
 
-## 3. The design correction: χ₁ must be VISIBLE, and the pre-screen shows why
+## 3. The design correction: χ₁ must be VISIBLE — **ARGUMENT REFUTED, see §3-CORRECTED**
 
 The **frozen** design (`ALANINE_SPEC.md`, memory `alanine-study-status`) put Val's headline on
 ξ = (φ, ψ) with **χ₁ hidden**. The plan now on the table instead makes χ₁ one of the two
@@ -73,15 +74,39 @@ This is a **minimum energy path with the backbone clamped**, so it is an *upper 
 F(χ₁|φ,ψ): entropy and the backbone relaxation these restraints forbid both lower it. The
 C7ax row has 26.9 kT forward/backward hysteresis and is not trustworthy; the other five are.
 
-**The implication.** A χ₁ barrier of order 10 kT is essentially never crossed by unbiased
-dynamics (e^−10 ≈ 5e−5). So under the *frozen* χ₁-hidden design, Ace-Val-Nme would have been
-**discovery-limited** — `T_hit ≈ T_run`, the R15 regime the repo already documented as a
-failure mode for mFR, and the plan's own Outcome C. mFR cannot clone a state no walker has
-reached. Making χ₁ visible puts the barrier *under the ABF bias*, which flattens it and
-restores discovery; the remaining question then becomes the establishment transient, which is
-exactly the regime mFR is supposed to address.
+### §3-CORRECTED — the implication I drew here was wrong
 
-So the plan's change is not cosmetic. It is what keeps the system out of the R15 regime.
+**What I wrote.** That a ~10 kT χ₁ barrier is essentially never crossed by unbiased dynamics
+(e^−10 ≈ 5e−5), so a χ₁-hidden design would be discovery-limited — the R15 regime — and that
+making χ₁ visible is what rescues the system.
+
+**What was measured.** The S1 exploration (`results/valine/state_map/`, 300 ps × 8604 walkers,
+backbone FREE) records **2.70 χ₁ rotamer changes per walker per nanosecond**, flat from 30 to
+300 ps and identical for walkers seeded in a well (2.70) and on a barrier (2.69) — an
+equilibrium rate, not a transient. That corresponds to **6–8 kT with the backbone free**, not
+the 11.3–17.9 kT measured with φ and ψ clamped at κ = 500 kJ/mol/rad².
+
+**Why I was wrong, specifically.** I took a *clamped conditional* barrier, F(χ₁ | φ, ψ) at fixed
+backbone, and reasoned with it about *unbiased free-backbone* kinetics. Those are different
+quantities: the real rotation path lets the backbone relax with the side chain, and the clamp
+forbids exactly that relaxation. The error is not the measurement — the umbrella profiles are
+sound for what they measure — it is the inference drawn from them.
+
+This also explains the "honest surprise" recorded in R1, that the umbrella barriers came out
+*above* their own MEP upper bound. Both clamp the backbone, so both share the same defect, and
+the MEP was never an upper bound on the free-backbone barrier at all.
+
+**What survives.** Gate V1 still passes: there is a real χ₁ barrier with three populated
+rotamers whose identity shifts with the backbone. What does *not* survive is the
+discovery-limited argument for putting χ₁ in the CV.
+
+**What replaces it.** S1 found **φ**, not χ₁, to be the slow coordinate: 4 persistent
+φ-megabasin crossings in 2581 ns of aggregate unbiased sampling, against 2.7 χ₁ crossings per
+walker per ns, with a transition matrix strictly block-diagonal in sign(φ). φ is the coordinate
+ABF must flatten — and φ is in the selected CV. So (φ, χ₁) remains the right choice, but
+because it contains the slow coordinate, not because it rescues χ₁ from being undiscoverable.
+The independent §32 result that (ψ, χ₁) is inadmissible is unaffected, and is corroborated:
+hiding φ hides precisely the coordinate that almost never crosses.
 
 **Consequence for the gates.** Decision-doc gate **V2** ("χ₁ rotamers occupy meaningfully
 different (φ,ψ) regions") is written for the χ₁-hidden design and becomes *tautological* once
@@ -320,11 +345,16 @@ margins are large (t 83 % at C7eq against g⁺ 55 % at C5). This is the backbone
 coupling the plan hypothesises in §9, measured directly rather than assumed, and it is what
 makes (φ, χ₁) contain genuinely distinct populated cells.
 
-**One honest surprise.** The MEP pre-screen was an *upper bound* — entropy and forbidden
-backbone relaxation should both have lowered it — yet the free-energy barriers (11.3–17.9 kT)
-came out **at or slightly above** the MEP values (10.1–16.7 kT). The pre-screen was not
-conservative in the way expected. It does not change the verdict, which passes by 5×, but the
-MEP should not be trusted as a bound for Ile/Leu without rechecking.
+**These are CLAMPED conditional barriers.** They are the right quantity for gate V1 — is there
+a real χ₁ barrier at a given backbone conformation — and the wrong quantity for reasoning about
+unbiased χ₁ kinetics, where the backbone is free to relax along the rotation path. With the
+backbone free, S1 measures 6–8 kT rather than 11.3–17.9. Quoting these numbers as "the χ₁
+barrier" without the qualifier is the error §3-CORRECTED describes.
+
+This also resolves what was recorded here as an "honest surprise": that the umbrella barriers
+came out at or slightly *above* their own MEP "upper bound" (10.1–16.7 kT). Both clamp the
+backbone, so both overstate by the same mechanism, and the MEP was never a bound on the
+free-backbone barrier at all.
 
 ## R2. Gate §32: (φ,χ₁) **PASS**, (ψ,χ₁) **FAIL** — the recorded prediction holds
 
@@ -359,47 +389,61 @@ coordinate. **The gate that killed alanine — discovery followed by a persisten
 deficit (V3) — has not been tested.** That is the next experiment, and it should run before the
 576-window Stage-4 reference.
 
-## R4. Kinetic temperature runs ~2 % low — caused by the STIFF RESTRAINT, not by C–H
+## R4. Kinetic temperature runs ~2 % low — the INTEGRATOR, not the restraint
 
 All three runs report a mean kinetic temperature of 293.2–293.3 K rather than 300 K. With
 3·28·4608 degrees of freedom the sampling sigma is 0.68 K, so a 6.8 K deficit is ~10 sigma and
 systematic.
 
-Measured attribution (B=64, 30 ps, sigma_T = 5.79 K):
+Definitive measurement, `results/valine/dt_bias/` — 2048 walkers per group, all three restraint
+strengths run as groups of **one batch** per timestep so run-to-run variation cannot enter the
+comparison. Single-sample sampling sigma per group is **1.02 K** (against 5.79 K for the B = 64
+sweep this supersedes):
 
-| restraint | dt | mean T | deviation |
-|---|---|---|---|
-| none | 1.00 fs | 296.41 | −3.59 |
-| none | 0.50 fs | 296.78 | −3.22 |
-| none | 0.25 fs | 298.45 | −1.55 |
-| kappa = 500 / 100 | **1.00 fs** | **293.17** | **−6.83** |
-| kappa = 500 / 100 | 0.50 fs | 299.00 | −1.00 |
-| kappa = 500 / 100 | 0.25 fs | 299.81 | −0.19 |
+| dt | unrestrained | clamp 500/100 | clamp 110/110 | T_bond (unres.) | T_angle (unres.) |
+|---|---|---|---|---|---|
+| 1.00 fs | 292.99 | 293.37 | 293.12 | 325.79 | 240.11 |
+| 0.50 fs | 298.30 | 298.44 | 298.28 | 324.89 | 240.61 |
+| 0.25 fs | 299.75 | 299.40 | 299.43 | 324.54 | 241.04 |
 
-The unrestrained system sits within ~0.6 sigma of 300 K at every step size. The restrained one
-is 6.8 K low at dt = 1 fs and recovers to −1.0 K at dt = 0.5 fs and −0.2 K at 0.25 fs — the
-O(dt²) signature of an under-integrated stiff mode. The kappa = 500 kJ/mol/rad² **backbone
-restraint** is the fast mode, not the C–H stretches. The dt = 1 fs value reproduces the
-production runs' 293.2 K exactly.
+The naive standard error over the 500 saved samples is ≈ 0.05 K, but those samples are 0.05 ps
+apart and strongly correlated, so it understates the true uncertainty and is not quoted as the
+resolution. Judge against the 1.02 K single-sample sigma instead: the 7 K deficit is many times
+it, while the 0.38 K unrestrained-vs-clamped difference is *within* it — which is the point.
 
-**Consequences, stated plainly.**
+Three things follow:
 
-* It is a property of the *umbrella* runs, which carry stiff restraints. The ABF/mFR production
-  runs carry no restraint — only a smooth learned bias — so they are not affected, and the
-  alanine study's dt = 1 fs freeze stands.
-* For the profiles reported above it is immaterial to the verdicts: a 2.3 % error in the kT
-  scale moves a 17.3 kT barrier to ~16.9 kT, against a 2 kT threshold passed by 5×.
-* **It is not immaterial for Stage 4.** The 576-window (φ,χ₁) umbrella reference is meant to be
-  publication quality, and MBAR removes the restraint using its *analytic* potential, so a
-  discretisation error in the sampled distribution is not fully unwound. Run the Stage-4
-  reference at **dt = 0.5 fs**, or with a softer clamp, and verify the kinetic temperature
-  before accepting it.
+* the deficit is **independent of the restraint** — at dt = 1 fs the clamped runs are marginally
+  *warmer* than the unrestrained one, not colder;
+* it scales as **O(dt²)** — 7.01/1.70 = 4.1, against 4 for exact dt² — so it is a discretisation
+  artifact of BAOAB with unconstrained C–H stretches;
+* the bond and angle equipartition estimators **do not move with dt** (0.9 K and 0.5 K of a
+  26 K and 60 K offset). Their offsets are static properties of a curvilinear-coordinate
+  estimator — internal coordinates are not independent normal modes — and not a temperature
+  error, which would have scaled with dt exactly as T_kin does.
 
-**Correction notice.** An earlier version of this section attributed the deficit to the known
-BAOAB O(dt²) kinetic bias from unconstrained C–H stretches and asserted it was independent of
-the restraint. That was wrong, and it was wrong because the first diagnostic computed its step
-count as `60.0/(dt*1000)` — 60 steps instead of 60,000 — so it measured the first 60 fs before
-thermalisation, found ~170 K everywhere, and showed no dt dependence *because nothing had
-equilibrated in any of the runs*. The corrected sweep above shows a clean dt² recovery. The
-original hypothesis (stiff restraint under-integration) was correct and was abandoned on the
-strength of a broken measurement.
+The last point is the one that matters: the **configurational** distribution is not corrupted by
+the timestep, and free energies computed at dt = 1 fs are sound. This is also why the alanine
+study's dt = 1 fs freeze stands.
+
+**Consequences.**
+
+* It affects the ABF/mFR production runs *equally* — they are unrestrained, and unrestrained is
+  where the deficit is largest. There is no restraint-free escape from it.
+* For every verdict reported here it is immaterial: a 2.3 % error in the kT scale moves a
+  17.3 kT barrier to ~16.9 kT, against a 2 kT threshold passed by 5×.
+* `accepted.py` nevertheless freezes **dt = 0.5 fs for restrained (umbrella) dynamics** and
+  1 fs for unrestrained. Not because the clamp needs it — it does not — but because 0.5 fs is
+  the value the screening plan froze, and halving an already-small artifact is cheap insurance
+  on a reference MBAR cannot unwind.
+
+**Correction history, kept because both errors are instructive.**
+
+1. My first diagnostic computed its step count as `60.0/(dt*1000)` — 60 steps instead of 60,000
+   — so it measured the first 60 fs before thermalisation, read ~170 K everywhere, and showed no
+   dt dependence *because nothing had equilibrated in any run*.
+2. The replacement swung the other way: a B=64 sweep (sigma_T = 5.79 K) put the unrestrained
+   deficit at −3.59 K, which at that noise level is indistinguishable from both 0 and −7, and
+   the section then concluded that the stiff clamp was the cause and that unrestrained runs were
+   unaffected. The B=2048 measurement above refutes it. **A 5.79 K sigma cannot resolve a 7 K
+   effect**, and the conclusion drawn from it happened to be the tidier story.
