@@ -1,16 +1,26 @@
-# ACE-VAL-NME SCREENING HANDOFF — S1, distinguishability, and two Stage-0 corrections
+# ACE-VAL-NME SCREENING HANDOFF — V3 FAILS ON BRANCH B; Val is a second neutrality control
 
 Branch `alanine-dipeptide`. 2026-08-02. Companion to `VALINE_STAGE0_HANDOFF.md` (Stage 0) and
 `VALINE_SCREEN_SPEC.md` (the plan this executes).
 
-> **STATUS.** Stage 0 is frozen and tagged `valine-stage0-accepted`. The S1 state map and the
-> global distinguishability gate are **done and both pass**. Two Stage-0 claims are **corrected
-> by measurement**, one of them load-bearing. The pilot reference and the decisive V3 screen are
-> **running / not yet run** — see §7. Nothing here says mFR will help.
+> **STATUS: the screening phase is COMPLETE and the answer is negative.** Stage 0 is frozen and
+> tagged `valine-stage0-accepted`. S1, distinguishability and the pilot reference all pass. The
+> decisive gate **V3 FAILS on branch B — ABF is already sufficient** (§6c): every one of the eight
+> regions is discovered within 4.1 ps by 16/16 seeds and established within 45 ps, so there is no
+> discovered-but-under-established state for mFR to repair. **Do not proceed to the Stage-4
+> reference, the sham arm, or an mFR comparison.** Three Stage-0 claims are corrected by
+> measurement along the way.
 
 ---
 
 ## 1. Headline
+
+**Ace-Val-Nme is a second neutrality control, not a positive example.** ABF on ξ = (φ, χ₁)
+discovers every metastable region in 0.5–4.1 ps and establishes every one of them within 45 ps of
+a 300 ps run, with its free energy landing 0.247 kT from the reference. mFR has nothing to act on.
+That verdict is worth more than a marginal positive would have been: Val was *selected* for a real
+side-chain barrier and cleared every gate ahead of V3, so its failure is evidence about the
+method's regime rather than about a badly chosen molecule.
 
 The molecule has **seven metastable states** in (φ, ψ, χ₁), and they factor almost exactly as
 **backbone megabasin × χ₁ rotamer**. The selected CV ξ = (φ, χ₁) recovers the full 3-D state
@@ -35,15 +45,21 @@ of aggregate unbiased sampling. φ is in the CV. See §5.
 | clustering sensitivity | `results/valine/state_map/state_sensitivity.json` | 18 settings, CPU |
 | dt bias re-measurement | `results/valine/dt_bias/` | 3 timesteps × 3 restraints, one batch each |
 | pilot reference | `results/valine/pilot_reference/` | 324 windows, 586 seeds × 8 copies, ~70 min |
-| V3 ABF-only screen | `results/valine/v3_screen/` | *see §7* |
+| V3 ABF-only screen | `results/valine/v3_screen/` | 16 seeds x 2048, 300 ps, 4.5 h -- **FAIL-B, §6c** |
 | figures | `results/valine/figures/valine_screen.png` | CPU |
 
-All on GPU 7, one process at a time. Measured step costs, for anyone sizing a follow-up: the ABF
-sampler is **50.5 ms/step at B = 16384** and **flat in batch** — so seeds are nearly free and run
-*length* is the only real cost lever.
+One GPU at a time throughout. The node was re-partitioned mid-study (8 shared devices → this
+group's own four, renumbered 0–3); everything before that ran on the old GPU 7, everything after
+on GPU 0.
 
-All on GPU 7. GPUs 4–6 were saturated by another user throughout and were never touched; 0–3
-were never used.
+Measured step costs, for anyone sizing a follow-up: the ABF sampler is **~51 ms/step and flat in
+batch from B = 8192 to B = 32768**, so seeds are nearly free and run *length* is the only real
+cost lever — the screening plan's "equal-compute arm by varying N" is not equal compute. Two
+optimisations found while sizing V3: `torch.linalg.eigvalsh` on the 2×2 Gram matrix was
+dispatching to `cusolverDnXsyevBatched`, which **crashed above B = 32768** and reserved ~13 GiB
+of workspace — replaced by the closed form, peak memory 20.1 → 7.3 GiB. And the union-block CV,
+which an earlier benchmark had shown to be no faster, is 1.09–1.24× faster once cuSOLVER is no
+longer masking it.
 
 ## 3. S1 — the state map, and why it is a lattice rather than a long run
 
@@ -355,6 +371,70 @@ The **effective** barriers — min-max paths through the 2-D (φ, χ₁) plane:
 This is the free-energy confirmation of §5. Stage 0's clamped 11.3–17.9 kT is roughly **twice**
 the barrier a walker with a free backbone actually pays, and the φ megabasin — not χ₁ — carries
 the large one.
+
+## 6c. GATE V3 — **FAIL-B: ABF is already sufficient.** Val is a second neutrality control.
+
+`results/valine/v3_screen/` — ABF only, 300 ps, 16 seeds × 2048 walkers, concentrated and
+stratified arms as different seeds of one batch. clip fraction 0, zero non-finite.
+
+**Every region is discovered almost immediately, and every region is established.**
+
+| region | pilot pop | T_hit / T_run | T_est / T_run | occupancy / bias-aware target |
+|---|---|---|---|---|
+| B0 (φ<0, t) | 0.420 | 0.000 | 0.147 | 0.98 |
+| B1 (φ<0, g⁻) | 0.190 | 0.000 | 0.073 | 0.94 |
+| B2 (φ<0, g⁺) | 0.184 | 0.000 | 0.150 | 1.07 |
+| B3 (φ>0, t) | 0.090 | 0.020 | 0.033 | 1.04 |
+| B4 (φ<0, g⁻) | 0.070 | 0.000 | 0.137 | 1.13 |
+| B5 (φ<0, g⁺) | 0.038 | 0.000 | 0.090 | 0.91 |
+| B6 (φ>0, g⁻) | 0.0055 | 0.020 | 0.050 | 0.83 |
+| B7 (φ>0, g⁺) | 0.0014 | 0.020 | 0.027 | 1.36 |
+
+Discovery: **0.5–4.1 ps in 16/16 seeds**, against a threshold of 10 % of the run (30 ps) — five
+to sixty times faster than required. Establishment: everything inside the ±50 % band by **45 ps**.
+The worst relative deficit over the second half of the run is **0.23**, against a 0.50 threshold,
+and no region is below half its target for more than 4.6 % of the run (threshold 20 %).
+
+**The two arms agree.** Concentrated and stratified give the same verdict with the same numbers,
+which is the diagnostic control doing its job: the result is not an artifact of where the walkers
+started. And ABF's own free energy lands within **0.247 kT RMSE** of the pilot (marginal TV 0.069),
+so this is not a case of a badly converged run flattering itself.
+
+Even B7 — the rarest region at an unbiased population of 0.0014, the one predicted in §7 as the
+candidate for starvation — is discovered in 4.1 ps by every seed and ends **above** its target.
+
+**Verdict: FAIL-B.** There is no discovered-but-under-established state, so there is nothing for
+mFR to repair. Under the screening plan's own rule this is a STOP, and explicitly *not* an
+invitation to shorten the run or cut walkers until a deficit appears. Val joins alanine as a
+second neutrality control — and it is a much stronger one, because unlike alanine it was chosen
+for a real barrier, cleared every prior gate, and still shows nothing.
+
+### Three caveats, stated because they qualify the numbers rather than the verdict
+
+* **Condition 4 (omitted ψ) reads FAIL at worst-state TV 0.28, and that measurement is
+  confounded.** It compares `p_ABF(ψ | region)` with `p_pilot(ψ | region)`, but ABF *flattens*
+  within a region while the pilot is Boltzmann-weighted inside it, so the two weight the region's
+  interior differently even when the ψ conditional at fixed (φ, χ₁) is identical. The signature
+  fits: the two largest, most internally varied regions (B0 0.25, B1 0.28) disagree, while the
+  six smaller ones sit at 0.02–0.15. This does not change the verdict — V3 fails on condition 2,
+  and conditions 4 and 5 only gate a PASS — but the check needs re-deriving before it is quoted.
+* **Condition 5 is a vacuous False**: there are no starved states, so "reproducible across seeds"
+  has nothing to range over.
+* **The `entries` column reads 0 for B3, B6 and B7** — the three φ>0 regions — although they are
+  demonstrably reached. Transitions are only counted between consecutively-labelled frames, and
+  reaching φ>0 means crossing a corridor above the 8 kT region ceiling, which is unlabelled. The
+  zero is an artifact of the counter, and is itself consistent with the 9.9–14.1 kT φ barrier.
+
+### One metric bug this exposed, worth not repeating
+
+The first version of the establishment target capped cells the pilot never filled at
+`F_min + 30 kT` and normalised over the whole torus. That put **97 % of the target mass in
+exactly those cells**: ABF flattens, so `B_t` grows large where the pilot never sampled, and
+`exp(−β(F_capped − B_t))` explodes there. The target concentrated wherever the reference was
+least trustworthy. The fix is to define the target on the pilot's labelled support and condition
+the observed fractions the same way. The `capped weight` diagnostic — added precisely so an
+inadequate reference would show up as a number rather than a confident wrong answer — is what
+caught it.
 
 ## 7. What is NOT yet done — and what decides the study
 

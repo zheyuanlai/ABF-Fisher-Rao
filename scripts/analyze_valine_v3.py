@@ -60,29 +60,34 @@ EST_BAND = (0.5, 1.5)          # established = within this multiplicative band
 
 
 def ideal_biased_population(F_pilot, B_t, label, beta, cap_kT=30.0, kT=1.0):
-    """``Q*_k(t)`` for every region, plus the weight the pilot could not resolve.
-
-    Cells the pilot never filled are capped rather than dropped, exactly as
-    ``core2d_ala.sanitize_reference`` does: ``inf - inf`` would make the whole target NaN and
-    every deficit silently zero.  The capped weight is returned so an inadequate pilot shows up
-    as a number instead of as a confident wrong answer.
-    """
-    finite = np.isfinite(F_pilot)
-    F = np.where(finite, F_pilot, np.nanmin(F_pilot[finite]) + cap_kT * kT)
+    """``Q*_k(t)``, the ideal biased population of each region under the current ABF bias."""
+    # RESTRICT to the labelled support, do not cap-and-include.
+    #
+    # Capping unfilled cells at F_min + 30 kT and normalising over the whole torus is what the
+    # first version did, and it put 97 % of the target mass in exactly those cells.  The reason
+    # is structural: ABF flattens, so B_t grows large in the high-F regions the pilot never
+    # sampled, and exp(-beta (F_capped - B_t)) then EXPLODES there -- the target concentrates
+    # wherever the reference is least trustworthy, which is the opposite of what is wanted.
+    #
+    # The pilot only knows F on its finite support, and the regions C_k are carved out of that
+    # support by construction (BasinMap labels only cells below the ceiling).  So the target is
+    # defined on the labelled cells and normalised there, and the observed fractions are
+    # conditioned the same way.  Both then sum to 1 and are comparable.  The walker fraction
+    # falling OUTSIDE every region is returned instead of being silently absorbed.
     K = int(label.max()) + 1
+    inside = label >= 0
     T, R = B_t.shape[0], B_t.shape[1]
     Q = np.zeros((T, R, K))
-    capped = np.zeros((T, R))
     for t in range(T):
         for r in range(R):
-            lg = -beta * (F - B_t[t, r])
-            lg -= lg.max()
-            q = np.exp(lg)
+            lg = -beta * (F_pilot - B_t[t, r])
+            lg = np.where(inside, lg, -np.inf)
+            lg -= lg[inside].max()
+            q = np.where(inside, np.exp(lg), 0.0)
             q /= q.sum()
             for k in range(K):
                 Q[t, r, k] = q[label == k].sum()
-            capped[t, r] = q[~finite].sum()
-    return Q, capped
+    return Q, None
 
 
 def first_persistent(cond, times, hold_frac=0.05):
@@ -173,9 +178,16 @@ def main():
           f"(batch-wide; the arms share a step loop)")
 
     print("\ncomputing bias-aware ideal populations Q*_k(t) ...", flush=True)
-    Q, capped = ideal_biased_population(F_pilot, B_t, label, beta, kT=kT)
-    print(f"  probability mass in cells the pilot never filled: "
-          f"mean {capped.mean():.4f}, max {capped.max():.4f}")
+    Q, _ = ideal_biased_population(F_pilot, B_t, label, beta, kT=kT)
+    # Condition the OBSERVED fractions on the same support the target is defined on.  ABF
+    # deliberately flattens, so it pushes a large share of the ensemble above the region ceiling;
+    # that share is a legitimate diagnostic, not a deficit, and must not be compared against a
+    # target that excludes it.
+    inside_frac = frac.sum(axis=2)                       # (T, R)
+    print(f"  walkers inside a labelled region: mean {inside_frac.mean():.4f} "
+          f"(the rest are above the {meta['ceiling_kT']:.0f} kT region ceiling, where ABF has "
+          f"flattened the landscape -- expected, not a deficit)")
+    frac = frac / np.maximum(inside_frac[:, :, None], 1e-12)
 
     # ------------------------------------------------------------------ per-state metrics
     dt_save = float(np.diff(times).mean())
@@ -259,14 +271,14 @@ def main():
 
     # ------------------------------------------------------------------ omitted coordinate
     psi_res = None
-    if "extra_angle" in d.files:
+    if "extra_angle" in d:
         psi = np.asarray(d["extra_angle"])[:, keep_r]    # (T, R_arm, N) recorded psi
         half = len(times) // 2
         edges = np.linspace(-math.pi, math.pi, 37)
         psi_res = {"n_bins": 36, "per_state": []}
         pilot_npz = os.path.join(a.pilot, "pilot_reference.npz")
         pf = np.load(pilot_npz, allow_pickle=True) if os.path.exists(pilot_npz) else None
-        if pf is not None and "mbar_logw" in pf.files:
+        if pf is not None and "mbar_logw" in pf:
             n = F_pilot.shape[0]
             ref_lab = label[to_cell(pf["mbar_phi"].astype(np.float64), n),
                             to_cell(pf["mbar_chi1"].astype(np.float64), n)]
@@ -280,7 +292,7 @@ def main():
                   f"{psi_res['global_tv']:.4f}")
             # Per state.  Globally this check is nearly useless: two states can each carry the
             # wrong psi distribution in opposite directions and still sum to the right one.
-            if "walker_basin" in d.files:
+            if "walker_basin" in d:
                 wb = np.asarray(d["walker_basin"])[half:][:, keep_r]   # (T', R_arm, N)
                 pv = psi[half:]
                 # ``worst`` starts at None, not 0.0.  If no state has enough samples to compare,
@@ -384,8 +396,7 @@ def main():
     res = dict(run=path, partial=bool(partial), init=arm, run_init=meta["init"], n_seeds=R,
                n_replicas=meta["n_replicas"], seeds=seeds_all.tolist(),
                T_run_ps=float(T_run), regions=names,
-               pilot_capped_weight_mean=float(capped.mean()),
-               pilot_capped_weight_max=float(capped.max()),
+               walkers_inside_regions_mean=float(inside_frac.mean()),
                per_state=per_state, per_seed=rows,
                D_max_final=float(Dmax[-1].mean()),
                D_max_second_half=float(Dmax[len(times) // 2:].mean()),
