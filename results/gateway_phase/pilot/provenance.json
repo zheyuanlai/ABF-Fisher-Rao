@@ -1,0 +1,50 @@
+{
+  "script": "run_gateway_phase.py",
+  "git_rev": "747c755ca66703d3d6c640dca3a53a2f113bcacc",
+  "host": "atlas",
+  "cuda_visible_devices": "2",
+  "device": "NVIDIA H200 NVL",
+  "torch": "2.12.1+cu130",
+  "python": "3.13.13",
+  "s_values": [
+    0.1,
+    0.3
+  ],
+  "r_values": [
+    4.0,
+    32.0
+  ],
+  "seeds": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "inits": [
+    "left"
+  ],
+  "n_walkers": 2048,
+  "dt": 0.0004,
+  "n_steps": 20000,
+  "save_every": 500,
+  "T_total": 8.0,
+  "methods": [
+    "abf"
+  ],
+  "reference": "analytic",
+  "thresholds": {
+    "discovery_frac": 0.1,
+    "est_gap_sufficient": 0.1,
+    "est_gap_limited": 0.25,
+    "below_half_frac": 0.2,
+    "est_band": [
+      0.5,
+      1.5
+    ],
+    "hold_frac": 0.05,
+    "discovery_seed_frac": 0.25,
+    "x_basin": 0.5
+  },
+  "wall_seconds": 14.076893091201782,
+  "n_runs": 16
+}
