@@ -269,6 +269,13 @@ def main():
             for p in PSI_INIT_DEG:
                 tgt.append([c[0], p, c[1]])
                 cnt.append(per)
+        if per < 1:
+            # Without this the remainder line silently dumps every walker onto the LAST start,
+            # producing a "stratified" arm that is concentrated in one region -- which would
+            # make the diagnostic arm answer the same question as the headline one.
+            raise SystemExit(
+                f"{n_walkers} walkers over {len(tgt)} stratified starts is < 1 each; "
+                f"increase --n-replicas or the number of seeds")
         cnt[-1] += n_walkers - sum(cnt)
         print(f"  stratified over {len(bm.names)} regions x {len(PSI_INIT_DEG)} psi starts, "
               f"{per} walkers each")
@@ -307,7 +314,7 @@ def main():
                         device, dtype=dtype, reference_F=None, rare_basin=0, verbose=False)
         torch.cuda.synchronize()
         ms = (time.perf_counter() - t0) / 300 * 1e3
-        print(f"\n{'dense' if a.dense_cv else 'union-block'} CV: {ms:.2f} ms/step at "
+        print(f"\n{type(cv).__name__}: {ms:.2f} ms/step at "
               f"B={R * N}  ->  {a.n_steps} steps = {a.n_steps * ms / 1e3 / 3600:.2f} h;  "
               f"peak {torch.cuda.max_memory_allocated() / 2 ** 30:.2f} GiB")
         return
