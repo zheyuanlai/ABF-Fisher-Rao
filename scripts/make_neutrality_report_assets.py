@@ -37,6 +37,17 @@ VAL_MACROS = [
     "ValPsiMatched", "ValPsiOriginal", "ValPsiThresh", "ValEntriesNaive",
     "ValEntriesCorridor", "ValVerdict",
 ]
+WCS_MACROS = [
+    "WcsSeeds", "WcsCell", "WcsSteps", "WcsReplicas", "WcsRate",
+    "WcsEstGain", "WcsEstCIlo", "WcsEstCIhi", "WcsEstWins", "WcsEstEss", "WcsEstAnc",
+    "WcsShamGain", "WcsShamCIlo", "WcsShamCIhi", "WcsShamCIloNinety",
+    "WcsShamCIhiNinety", "WcsShamTost",
+    "WcsDirect", "WcsDirectCIlo", "WcsDirectCIhi", "WcsDirectWins",
+    "WcsOracleGain", "WcsOracleCIlo", "WcsOracleCIhi",
+    "WcsOracleDirect", "WcsOracleDirectCIlo", "WcsOracleDirectCIhi",
+    "WcsMismatch", "WcsVerdict", "WcsCritOne", "WcsCritTwo",
+    "WcsAbfRoundTrips", "WcsEstRoundTrips", "WcsShamRoundTrips",
+]
 GW_MACROS = [
     "GwCells", "GwSuff", "GwInter", "GwEst", "GwDisc", "GwSeeds", "GwWalkers", "GwTrun",
     "GwBarrierLo", "GwBarrierHi", "GwAnchorBeta", "GwAnchorS", "GwAnchorR",
@@ -323,6 +334,54 @@ def gateway():
     return v, src
 
 
+def wca_sham():
+    """WCA matched-sham control macros.  Absent until the run is aggregated."""
+    p = os.path.join(ROOT, "results/wca_sham/sham/sham_summary.json")
+    if not os.path.exists(p):
+        return {}, "results/wca_sham (not yet aggregated)"
+    d = json.load(open(p))
+    rows = {r["arm"]: r for r in d["vs_abf"]}
+    v = {
+        "WcsSeeds": len(d["seeds"]),
+        "WcsCell": "b1\\_h2", "WcsSteps": "120\\,000", "WcsReplicas": 1024,
+        "WcsRate": "0.10",
+        "WcsMismatch": d["sham_mismatches"],
+        "WcsVerdict": d["verdict"].split(" -- ")[0],
+        "WcsCritOne": "PASS" if d["criterion_1"] else "FAIL",
+        "WcsCritTwo": "PASS" if d["criterion_2"] else "FAIL",
+    }
+    if "fr_estimated" in rows:
+        e = rows["fr_estimated"]
+        v.update(WcsEstGain=f"{e['pct']:.2f}", WcsEstCIlo=f"{e['ci95'][0]:.2f}",
+                 WcsEstCIhi=f"{e['ci95'][1]:.2f}",
+                 WcsEstWins=f"{e['wins']}/{e['n_seeds']}",
+                 WcsEstEss=f"{e['ess_frac']:.3f}", WcsEstAnc=f"{e['max_anc_frac']:.3f}",
+                 WcsEstRoundTrips=f"{e['round_trips']:.0f}")
+    if "sham_practical" in rows:
+        sp = rows["sham_practical"]
+        v.update(WcsShamGain=f"{sp['pct']:+.2f}", WcsShamCIlo=f"{sp['ci95'][0]:.2f}",
+                 WcsShamCIhi=f"{sp['ci95'][1]:.2f}",
+                 WcsShamCIloNinety=f"{sp['ci90'][0]:.2f}",
+                 WcsShamCIhiNinety=f"{sp['ci90'][1]:.2f}",
+                 WcsShamRoundTrips=f"{sp['round_trips']:.0f}")
+        t = d["tost"].get("sham_practical")
+        if t:
+            v["WcsShamTost"] = "equivalent" if t["equivalent"] else "not shown equivalent"
+    if "fr_oracle" in rows:
+        o = rows["fr_oracle"]
+        v.update(WcsOracleGain=f"{o['pct']:.2f}", WcsOracleCIlo=f"{o['ci95'][0]:.2f}",
+                 WcsOracleCIhi=f"{o['ci95'][1]:.2f}")
+    for arm, pre in (("fr_estimated", "WcsDirect"), ("fr_oracle", "WcsOracleDirect")):
+        dd = d["direct"].get(arm)
+        if dd:
+            v[pre] = f"{dd['pct']:.2f}"
+            v[pre + "CIlo"] = f"{dd['ci95'][0]:.2f}"
+            v[pre + "CIhi"] = f"{dd['ci95'][1]:.2f}"
+            if arm == "fr_estimated":
+                v["WcsDirectWins"] = f"{dd['wins']}/{dd['n_seeds']}"
+    return v, "results/wca_sham/sham/sham_summary.json"
+
+
 def main():
     os.makedirs(TABLES, exist_ok=True)
     v, s = alanine()
@@ -331,6 +390,8 @@ def main():
     emit(os.path.join(TABLES, "valine_numbers.tex"), VAL_MACROS, v, s)
     g, s = gateway()
     emit(os.path.join(TABLES, "gateway_numbers.tex"), GW_MACROS, g, s)
+    w, s = wca_sham()
+    emit(os.path.join(TABLES, "wca_sham_numbers.tex"), WCS_MACROS, w, s)
 
 
 if __name__ == "__main__":
