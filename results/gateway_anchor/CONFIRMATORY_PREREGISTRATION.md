@@ -124,3 +124,60 @@ while `tau_hit` is identical to four digits
 (`results/gateway_phase/production/beta_scaling_audit.json`). The anchor remains a legitimate
 finite-budget comparison — methods are always evaluated at finite budget — but no claim is
 made that varying `beta` produced different landscapes.
+
+---
+
+# Amendment 1 (2026-08-03) — a baseline-pairing defect, found by code inspection
+
+**Appended, not edited.** Everything above stands as originally committed.
+
+## The defect
+
+The two FR arms carry different rates, and `gamma` is a per-configuration quantity, so the
+run is executed as two batches: `[abf, fr_estimated, sham_practical]` at
+`gamma = 1.5` and `[abf, fr_oracle, sham_oracle]` at `gamma = 0.5`. The runner keeps only the
+**first** batch's `abf` copy, so the oracle arms are compared against a baseline drawn from a
+different batch.
+
+Initial conditions are seeded from the seed alone and therefore *do* match across batches.
+The Langevin noise stream is seeded from `batch_seed` and therefore does **not**. So:
+
+| comparison | pairing | affected? |
+|---|---|---|
+| `fr_estimated` vs `abf` (**primary claim**) | same batch, same noise | no |
+| `sham_practical` vs `abf` | same batch, same noise | no |
+| `fr_estimated` vs `sham_practical` (**attribution**) | same batch, same noise | no |
+| `fr_oracle` vs `sham_oracle` (attribution) | same batch, same noise | no |
+| `fr_oracle` vs `abf` | matched ICs, **unmatched noise** | **yes** |
+| `sham_oracle` vs `abf` (**the TOST**) | matched ICs, **unmatched noise** | **yes** |
+
+The primary claim and both direct arm-versus-sham contrasts are unaffected. What is affected
+is the oracle arm's comparison against ABF and — importantly — the `sham_oracle` equivalence
+test, whose interval is inflated by noise that does not cancel.
+
+## Why this is being fixed, and the awkward fact about it
+
+`sham_oracle` is the one test in the confirmatory run that **failed** (90 % CI
+$[-5.63, +1.05]$, just past the $-5\%$ margin). Fixing a statistic after it fails is exactly
+the shape of an analysis that gets fitted to its result, so the reasoning is recorded here
+before the re-run:
+
+* the defect is identifiable **from the code alone**, without reference to any outcome —
+  two batches, one discarded baseline, a noise stream keyed to `batch_seed`;
+* it is a defect in the *direction* of an inflated interval, which is precisely what a
+  failed equivalence test looks like, so leaving it in place would also be a choice that
+  favours a particular conclusion;
+* the primary claim is untouched either way, so nothing about the headline depends on this.
+
+## What will be re-run, and what will be reported
+
+Re-run **the oracle batch only**, with `abf` retained and each arm compared against its own
+batch's baseline. The practical batch is not re-run and its numbers do not change. Because
+adding a method changes how noise is broadcast across the batch, the oracle arms' realisations
+change; the corrected `fr_oracle` and `sham_oracle` numbers replace the current ones.
+
+**Declared now, before the re-run:** the corrected `sham_oracle` TOST result is reported
+whichever way it comes out. If it still fails, the manuscript continues to say that only the
+practical arm supports an equivalence claim. If it now passes, the manuscript says that it
+passes *only after* this correction, and this amendment is cited. The original numbers are
+retained in `confirmatory_summary.json` alongside the corrected ones.
