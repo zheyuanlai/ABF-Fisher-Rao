@@ -90,8 +90,17 @@ def main():
     arms = [x for x in ("abf", "fr_estimated", "sham_practical", "fr_oracle", "sham_oracle")
             if x in runs]
     seeds = sorted(set.intersection(*[set(runs[x]) for x in arms]))
+    # A partial run must NOT produce a verdict. The seed-count criterion is absolute
+    # (">= 12 of 16"), so on 5 complete seeds it fails mechanically and the decision block
+    # would announce NOT REPLICATED for a run that is simply unfinished -- a confident wrong
+    # answer of exactly the kind this project keeps having to catch. Interim numbers are
+    # still printed, because watching a run is legitimate; the verdict is withheld.
+    complete = len(seeds) >= RULE["n_seeds"]
     print(f"WCA matched-sham control -- {len(seeds)} complete seeds "
           f"{min(seeds)}-{max(seeds)}, arms {arms}")
+    if not complete:
+        print(f"\n*** INTERIM: {len(seeds)} of {RULE['n_seeds']} preregistered seeds are "
+              f"complete. Numbers below are provisional and NO VERDICT IS ISSUED. ***")
     nan_runs = [(m, s) for m in arms for s in seeds if runs[m][s]["had_nan"]]
     print(f"  runs flagged had_nan: {len(nan_runs)}"
           + (f"  {nan_runs}" if nan_runs else ""))
@@ -167,8 +176,8 @@ def main():
                                                    prim["pct"]),
         f"CI95 upper < {RULE['ci95_upper_max']:g}%": (prim["ci95"][1] < RULE["ci95_upper_max"],
                                                       prim["ci95"][1]),
-        f"seeds improved >= {RULE['min_seeds']}": (prim["wins"] >= RULE["min_seeds"],
-                                                   prim["wins"]),
+        f"seeds improved >= {RULE['min_seeds']} of {RULE['n_seeds']}":
+            (prim["wins"] >= RULE["min_seeds"], prim["wins"]),
         f"min ESS/N >= {RULE['ess_frac_min']:g}": (prim["ess_frac"] >= RULE["ess_frac_min"],
                                                    prim["ess_frac"]),
         f"max anc frac <= {RULE['wmax_max']:g}": (prim["max_anc_frac"] <= RULE["wmax_max"],
@@ -203,6 +212,19 @@ def main():
               f"90% CI [{lo:+6.2f},{hi:+6.2f}]")
 
     print(f"\n{'=' * 96}")
+    if not complete:
+        verdict = (f"NO VERDICT -- {len(seeds)}/{RULE['n_seeds']} seeds complete. The "
+                   f"seed-count criterion cannot be met by an unfinished run, so the "
+                   f"decision rule is not applied.")
+        print(f"VERDICT: {verdict}")
+        out = dict(seeds=seeds, arms=arms, metric=METRIC, rule=RULE, margin=MARGIN,
+                   complete=False, vs_abf=rows, direct=direct, tost=tost,
+                   criterion_1=None, criterion_2=bool(c2), verdict=verdict,
+                   sham_mismatches=len(bad), nan_runs=len(nan_runs))
+        with open(os.path.join(a.dir, "sham_summary.json"), "w") as fh:
+            json.dump(out, fh, indent=2, default=float)
+        print(f"\nwrote {a.dir}/sham_summary.json (INTERIM -- complete=false)")
+        return
     if c1 and c2:
         verdict = ("TRANSFERS -- the directional Fisher-Rao mechanism beats matched turnover "
                    "on a many-body molecular system")
@@ -215,7 +237,7 @@ def main():
     print(f"VERDICT: {verdict}")
 
     out = dict(seeds=seeds, arms=arms, metric=METRIC, rule=RULE, margin=MARGIN,
-               vs_abf=rows, direct=direct, tost=tost,
+               complete=True, vs_abf=rows, direct=direct, tost=tost,
                criterion_1=bool(c1), criterion_2=bool(c2), verdict=verdict,
                sham_mismatches=len(bad), nan_runs=len(nan_runs))
     with open(os.path.join(a.dir, "sham_summary.json"), "w") as fh:

@@ -1,0 +1,160 @@
+{
+  "seeds": [
+    400,
+    401,
+    402,
+    403,
+    404
+  ],
+  "arms": [
+    "abf",
+    "fr_estimated",
+    "sham_practical",
+    "fr_oracle",
+    "sham_oracle"
+  ],
+  "metric": "integrated_l2_f",
+  "rule": {
+    "median_pct_max": -10.0,
+    "ci95_upper_max": -5.0,
+    "min_seeds": 12,
+    "n_seeds": 16,
+    "direct_median_max": -5.0,
+    "ess_frac_min": 0.1,
+    "wmax_max": 0.05
+  },
+  "margin": [
+    -5.0,
+    5.0
+  ],
+  "complete": false,
+  "vs_abf": [
+    {
+      "arm": "fr_estimated",
+      "n_seeds": 5,
+      "pct": -25.4164242559172,
+      "ci95": [
+        -28.888176305501382,
+        -17.33511655551801
+      ],
+      "ci90": [
+        -28.888176305501382,
+        -17.33511655551801
+      ],
+      "wins": 5,
+      "median_metric": 29.72037468585136,
+      "abf_metric": 40.1494323387557,
+      "ess_frac": 0.17181208053691274,
+      "max_anc_frac": 0.01953125,
+      "round_trips": 791345.0,
+      "repl": 2176.0
+    },
+    {
+      "arm": "sham_practical",
+      "n_seeds": 5,
+      "pct": -0.02413297982294616,
+      "ci95": [
+        -3.3094929949678646,
+        13.432236288587882
+      ],
+      "ci90": [
+        -3.3094929949678646,
+        13.432236288587882
+      ],
+      "wins": 3,
+      "median_metric": 40.59950171671031,
+      "abf_metric": 40.1494323387557,
+      "ess_frac": 0.19467680608365018,
+      "max_anc_frac": 0.017578125,
+      "round_trips": 778625.0,
+      "repl": 2176.0
+    },
+    {
+      "arm": "fr_oracle",
+      "n_seeds": 5,
+      "pct": -12.511830532759948,
+      "ci95": [
+        -21.666931058355196,
+        -9.283139845308286
+      ],
+      "ci90": [
+        -21.666931058355196,
+        -9.283139845308286
+      ],
+      "wins": 5,
+      "median_metric": 34.65392585248307,
+      "abf_metric": 40.1494323387557,
+      "ess_frac": 0.19654510556621882,
+      "max_anc_frac": 0.017578125,
+      "round_trips": 787928.0,
+      "repl": 1775.0
+    },
+    {
+      "arm": "sham_oracle",
+      "n_seeds": 5,
+      "pct": 5.508851935159677,
+      "ci95": [
+        -4.5938606073461505,
+        20.40343455236829
+      ],
+      "ci90": [
+        -4.5938606073461505,
+        20.40343455236829
+      ],
+      "wins": 2,
+      "median_metric": 41.42662567711241,
+      "abf_metric": 40.1494323387557,
+      "ess_frac": 0.22515391380826738,
+      "max_anc_frac": 0.015625,
+      "round_trips": 777910.0,
+      "repl": 1775.0
+    }
+  ],
+  "direct": {
+    "fr_estimated": {
+      "vs": "sham_practical",
+      "pct": -26.796208255879204,
+      "ci95": [
+        -34.248342283994575,
+        -14.505688298666385
+      ],
+      "wins": 5,
+      "n_seeds": 5,
+      "excludes_zero": true
+    },
+    "fr_oracle": {
+      "vs": "sham_oracle",
+      "pct": -21.075307964241343,
+      "ci95": [
+        -24.655919914613975,
+        -8.299224741530074
+      ],
+      "wins": 5,
+      "n_seeds": 5,
+      "excludes_zero": true
+    }
+  },
+  "tost": {
+    "sham_practical": {
+      "equivalent": false,
+      "ci90": [
+        -3.3094929949678646,
+        13.432236288587882
+      ],
+      "median": -0.02413297982294616
+    },
+    "sham_oracle": {
+      "equivalent": false,
+      "ci90": [
+        -4.5938606073461505,
+        20.40343455236829
+      ],
+      "median": 5.508851935159677
+    }
+  },
+  "criterion_1": null,
+  "criterion_2": true,
+  "verdict": "NO VERDICT -- 5/16 seeds complete. The seed-count criterion cannot be met by an unfinished run, so the decision rule is not applied.",
+  "sham_mismatches": 0,
+  "nan_runs": 0
+}

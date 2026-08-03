@@ -340,6 +340,11 @@ def wca_sham():
     if not os.path.exists(p):
         return {}, "results/wca_sham (not yet aggregated)"
     d = json.load(open(p))
+    if not d.get("complete", False):
+        # An unfinished run must not reach the manuscript. Placeholders are the correct
+        # output here: they compile, and they are visibly not a result.
+        return {}, ("results/wca_sham (INTERIM -- "
+                    f"{len(d.get('seeds', []))} seeds, macros withheld)")
     rows = {r["arm"]: r for r in d["vs_abf"]}
     v = {
         "WcsSeeds": len(d["seeds"]),
