@@ -141,11 +141,19 @@ class Method:
 
 
 ABF = Method("abf", use_fr=False, target_mode="none")
-SHAM = Method("sham", use_fr=True, target_mode="none", sham=True, shadows="fr_oracle")
 FR_ORACLE = Method("fr_oracle", use_fr=True, target_mode="oracle")
 FR_ESTIMATED = Method("fr_estimated", use_fr=True, target_mode="estimated")
+# One sham per FR arm.  A single sham shadowing the oracle cannot attribute the *practical*
+# arm's gain: the two arms fire different numbers of events at different times (their targets
+# differ), so the oracle's shadow is not a matched control for the deployable method.  Each
+# sham copies its own partner's realised counts, at its own partner's event times.
+SHAM_ORACLE = Method("sham_oracle", use_fr=True, target_mode="none", sham=True,
+                     shadows="fr_oracle")
+SHAM_PRACTICAL = Method("sham_practical", use_fr=True, target_mode="none", sham=True,
+                        shadows="fr_estimated")
+SHAM = SHAM_ORACLE          # backwards-compatible alias for the calibration artifacts
 
-METHODS = {m.name: m for m in (ABF, SHAM, FR_ORACLE, FR_ESTIMATED)}
+METHODS = {m.name: m for m in (ABF, FR_ORACLE, FR_ESTIMATED, SHAM_ORACLE, SHAM_PRACTICAL)}
 
 
 def assert_no_oracle_leakage(methods: Sequence[Method]) -> None:
@@ -609,6 +617,108 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     assert worst < 1e-9, f"observed region fractions do not sum to 1 (worst {worst:.3e})"
 
     return _finalize(locals())
+
+
+# -----------------------------------------------------------------------------
+# frozen-bias validation: an endpoint that does not reuse the online estimator
+# -----------------------------------------------------------------------------
+def run_frozen_bias(Fp_frozen, cfgs_per_row, group=None, n_steps=40_000, burn_frac=0.5,
+                    seed=987_654, device=DEVICE, dtype=DTYPE):
+    """Score a learned bias by sampling under it, with no adaptation and no birth-death.
+
+    The online integrated error is computed from the same accumulators the FR mechanism
+    perturbs, and birth-death makes replicas correlated descendants, so a gain measured that
+    way could in principle be a change in the *statistics of the estimator* rather than a
+    better bias.  This closes that gap.
+
+    Each row's final mean force ``Fp_frozen`` is held fixed while a **fresh, independent**
+    population -- started identically for every arm, so no arm inherits an advantage from
+    where its walkers happened to end up -- runs under it with the ABF accumulators switched
+    off and no resampling.
+
+    ``group`` is an ``(R,)`` array of group ids; rows sharing a group share their fresh
+    initial conditions **and their Langevin noise**, so the arms of one seed are compared on
+    the same realisation and the endpoint stays paired.  Without it each row draws its own
+    noise, and the arm-to-arm difference picks up a sampling variance that has nothing to do
+    with the bias being scored.  Default: every row is its own group.
+
+    At equilibrium the sampled density is
+    ``p_B(x) propto exp(-beta (F(x) - B(x)))``, so
+
+        F_hat(x) = B(x) - beta^{-1} log p_B(x) + const,     B = cumtrapz(Fp_frozen),
+
+    and ``||F_hat - F_ref||`` is an estimate of the bias's quality that never touches the
+    adaptive estimator.  A first ``burn_frac`` of the run is discarded and the density is
+    time-averaged over the remainder.
+
+    ``Fp_frozen`` is ``(R, G)``; ``cfgs_per_row`` is the length-``R`` list of configs those
+    rows were run with.  Returns per-row L2 errors and the reconstructed profiles.
+    """
+    R = Fp_frozen.shape[0]
+    assert len(cfgs_per_row) == R, "one config per frozen-bias row"
+    x_grid, dx, eval_mask, idx0 = build_grid(device, dtype)
+    c0 = cfgs_per_row[0]
+    k_eta, r_eta = gaussian_kernel(c0.eta, dx, device, dtype)
+
+    def col(fn):
+        return torch.tensor([fn(c) for c in cfgs_per_row], device=device,
+                            dtype=dtype).unsqueeze(1)
+    beta = col(lambda c: c.beta); Hc = col(lambda c: c.H)
+    oout = col(lambda c: c.omega_out); oin = col(lambda c: c.omega_in)
+    sw = col(lambda c: c.s)
+    N, dt = c0.N, c0.dt
+    noise_amp = torch.sqrt(2.0 * dt / beta)
+
+    Fp = torch.as_tensor(Fp_frozen, device=device, dtype=dtype)
+    F_ref, _ = eb.reference_profiles(x_grid, eval_mask, beta, Hc, oout, oin, sw)
+
+    # Fresh start: uniform over the domain, with the transverse channel drawn from its exact
+    # conditional so it begins equilibrated.  Rows in one group share the realisation.
+    if group is None:
+        gidx = torch.arange(R, device=device)
+    else:
+        g = np.asarray(group)
+        uniq = {v: i for i, v in enumerate(dict.fromkeys(g.tolist()))}
+        gidx = torch.as_tensor([uniq[v] for v in g.tolist()], device=device,
+                               dtype=torch.long)
+    G = int(gidx.max().item()) + 1
+    gen = torch.Generator(device=device); gen.manual_seed(seed)
+    X = (XMIN + (XMAX - XMIN) * torch.rand((G, N), device=device, dtype=dtype,
+                                           generator=gen))[gidx]
+    om0 = omega_of(X, oout, oin, sw)
+    Y = torch.randn((G, N), device=device, dtype=dtype, generator=gen)[gidx] * torch.sqrt(
+        1.0 / (beta * om0 ** 2))
+
+    burn = int(burn_frac * n_steps)
+    acc = torch.zeros((R, N_GRID), device=device, dtype=dtype)
+    n_acc = 0
+    for step in range(n_steps):
+        om = omega_of(X, oout, oin, sw)
+        dom = domega_of(X, oout, oin, sw)
+        fx = dU_of(X, Hc) + om * dom * Y * Y
+        fy = om * om * Y
+        zx = torch.randn((G, N), device=device, dtype=dtype, generator=gen)[gidx]
+        zy = torch.randn((G, N), device=device, dtype=dtype, generator=gen)[gidx]
+        # The bias is FROZEN: interpolated from the stored profile, never re-accumulated.
+        X = reflect_into(X + (-fx + interp1d(X, Fp, dx)) * dt + noise_amp * zx, XMIN, XMAX)
+        Y = Y + (-fy) * dt + noise_amp * zy
+        if step >= burn:
+            acc += binned_density(X, k_eta, r_eta, dx)
+            n_acc += 1
+    p_B = torch.clamp(acc / max(n_acc, 1), min=EPS)
+    p_B = p_B / p_B.sum(dim=1, keepdim=True)
+
+    B = cumtrapz(Fp, dx)
+    F_hat = B - torch.log(p_B) / beta
+    F_hat = F_hat - F_hat[:, eval_mask].mean(dim=1, keepdim=True)
+    F_ref_c = F_ref - F_ref[:, eval_mask].mean(dim=1, keepdim=True)
+    err = l2_error(F_hat, F_ref_c, eval_mask)
+    # in kT, so rows at different beta are comparable
+    err_kT = err * beta.squeeze(1)
+    return dict(l2_f=err.detach().cpu().numpy(), l2_f_kT=err_kT.detach().cpu().numpy(),
+                F_hat=F_hat.detach().cpu().numpy(), F_ref=F_ref_c.detach().cpu().numpy(),
+                p_B=p_B.detach().cpu().numpy(), x_grid=x_grid.detach().cpu().numpy(),
+                n_steps=n_steps, burn_frac=burn_frac, seed=seed, n_groups=G)
 
 
 def _finalize(L):
