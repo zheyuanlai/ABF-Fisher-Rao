@@ -683,28 +683,49 @@ timescale ratio does — which is why `beta` is on the map rather than hidden be
 (`results/gateway_phase/production/PREREGISTRATION.md`, commit `61a8c1d`; FR results in
 `ddec5a3`). `analyze_gateway_phase.py` refuses to rewrite the frozen file without `--refreeze`.
 
-**Result at the anchor** (`beta=16, s=0.10, r=32`; matched seeds, health gates
-`ESS_anc/N >= 0.30`, `w_max <= 0.05`):
+**The beta axis is a TIME BUDGET, not a landscape axis** (`scripts/audit_gateway_scaling.py`).
+Because `beta*H` is fixed, `beta*F(x)` is identical in every cell; under `tau = t/beta`,
+`ytilde = sqrt(beta) y` the longitudinal SDE is exactly beta-free. Measured: `T_est/T_run`
+varies **6.62x** across the ladder while `tau_est` varies **1.21x** against an **8x** change in
+beta, and `tau_hit` is identical to four digits. Report it as a *finite-budget establishment
+map*, not as a sweep over different equilibrium problems.
 
-| arm | gamma | I_F vs ABF | 95 % CI | seeds won |
+**Confirmatory result** (`beta=16, s=0.10, r=32`; **32 fresh seeds**, rates frozen from a
+separate calibration pass, no ladder, rule frozen in
+`results/gateway_anchor/CONFIRMATORY_PREREGISTRATION.md`):
+
+| comparison | I_F | 95 % CI | seeds won | frozen-bias |
 |---|---|---|---|---|
-| **sham** (matched intensity) | any | **-4.0 %** | [-7.4, +1.7] | 11/16 — **equivalent** |
-| practical mFR | 1.5 | **-14.2 %** | [-17.7, -10.6] | 14/16 |
-| oracle mFR | 0.5 | -14.4 % | [-16.4, -5.0] | 15/16 |
+| practical mFR vs ABF | **-12.12 %** | [-14.50, -8.41] | 31/32 | -12.40 % |
+| sham (practical) vs ABF | +0.35 % | [-1.66, +2.62]* | — | -4.38 % |
+| **practical mFR vs its OWN sham** | **-11.79 %** | [-14.10, -8.19] | 31/32 | -6.42 % |
+| oracle mFR vs its own sham | -8.89 % | [-13.72, -5.60] | 29/32 | -11.07 % |
 
-The **sham** fires at the same times and performs the *same realised* clone/delete counts as
-the oracle arm (0 mismatches in 128 paired comparisons), differing only in randomising which
-walkers they act on — and it is flat at every rate. **The gain is the Fisher-Rao direction, not
-the turnover.** No arm anywhere else in this repo has ever had that control. The mechanism
-control (one walker seeded across the gateway, so discovery is free) still gives -6.5 % on
-16/16, so the effect is population *establishment*, not first passage.
+\* 90 % CI, the TOST interval; the practical sham is **equivalent** to ABF within ±5 %.
+
+Three method rules came out of this and are now standard: **one sham per FR arm** (the two
+arms fire different counts, so an oracle-shadowing sham is not matched to the practical arm);
+the **direct arm-vs-its-own-sham contrast** is the attribution statistic, because it holds the
+event schedule and count fixed so only direction differs; and **TOST**, since "no CI excluded
+zero" is not equivalence. Under TOST the *oracle* arm's sham is **not** shown equivalent, so
+only the practical arm supports the claim.
+
+An **estimator-independent** frozen-bias endpoint (freeze the learned bias, launch a fresh
+identical population, no adaptation and no birth-death, reconstruct `F = B - kT log p_B`)
+agrees on the primary arm. It also shows uniform turnover improving the bias a little
+(-4.38 %), so the honest summary is a **split**: turnover contributes a minority, direction
+the majority. The mechanism control (one walker seeded across the gateway, so discovery is
+free) gives -10.75 % on 29/32, so the effect is population *establishment*, not first passage.
 
 ```bash
 conda activate abffr
 CUDA_VISIBLE_DEVICES=2 python -u scripts/calibrate_gateway.py      # sizing only; feeds no verdict
 CUDA_VISIBLE_DEVICES=2 python -u scripts/run_gateway_phase.py      # ABF only, ~4.5 min
 python scripts/analyze_gateway_phase.py                            # classify + freeze
-CUDA_VISIBLE_DEVICES=2 python -u scripts/run_gateway_anchor.py     # 4 arms x rate ladder, ~1.5 min
+python scripts/audit_gateway_scaling.py                            # beta-scaling audit
+CUDA_VISIBLE_DEVICES=2 python -u scripts/run_gateway_anchor.py     # CALIBRATION: rate ladder
 python scripts/analyze_gateway_anchor.py
+CUDA_VISIBLE_DEVICES=2 python -u scripts/run_gateway_confirm.py    # CONFIRMATORY: 32 fresh seeds
+python scripts/analyze_gateway_confirm.py
 python scripts/make_neutrality_report_assets.py                    # report macros
 ```
