@@ -46,19 +46,62 @@ $\beta F(x) = \beta H (x^2-1)^2 + \log\omega(x)$ carries no residual $\beta$ dep
 $8 + \log r \in [\GwBarrierLo, \GwBarrierHi]\,k_BT$ throughout, and $\beta$ varies only how
 fast walkers move through it, at an unchanged sampling budget.
 
-\begin{remark}[Why $\beta$ is on the map, and what it is not]
+\begin{remark}[The $\beta$ axis is a time budget, not a family of landscapes]
 \label{rem:gw_beta}
 A sizing scan established that $(s,r)$ alone does not span the regimes: at fixed $\beta$ the
 gateway geometry moves the establishment gap only weakly, monotonically and in the expected
-direction (narrower and more severe gateways are harder). Reporting a single $(s,r)$ slice
-would therefore have hidden the axis that does the work. That axis is the ratio of transport
-time to run time, which no regime defined by a \emph{ratio of timescales} can avoid. It is
-worth separating this from the move the dipeptide screens explicitly forbid --- shortening
-the run until a deficit appears --- because the two are close. Shortening the run cuts
-exploration \emph{and} compute together, and makes every relative threshold easier;
-$\beta$ cuts exploration at \emph{fixed} compute and leaves the landscape untouched. What
-protects the comparison is not this distinction alone but the preregistration below.
+direction. Reporting a single $(s,r)$ slice would therefore have hidden the axis that does
+the work --- but it is essential to be precise about what that axis \emph{is}, and it is not
+a family of different physical problems.
+
+Because $\beta H$ is held fixed, $\beta F(x)$ is identical in every cell by construction.
+Substituting $\tilde y = \sqrt{\beta}\,y$ and $\tilde b = \beta b$ and rescaling time by
+$\tau = t/\beta$ gives
+\begin{equation}
+  \dd x = -\big[G(x,\tilde y) - \tilde b(x)\big]\dd\tau + \sqrt2\,\dd W_\tau,
+  \qquad
+  \dd\tilde y = -\beta\,\omega^2 \tilde y \dd\tau + \sqrt{2\beta}\,\dd W_\tau,
+  \label{eq:gw_rescale}
+\end{equation}
+with $G = 4\beta H x(x^2-1) + \omega\omega'\tilde y^2$. The \emph{longitudinal} equation ---
+the one the collective variable lives on --- is exactly $\beta$-free. $\beta$ survives only
+as the transverse relaxation rate relative to longitudinal motion, and in the direction that
+makes large $\beta$ \emph{more} adiabatic: as $\beta\to\infty$ the fast $\tilde y$ averages,
+$\langle\omega\omega'\tilde y^2\rangle = (\log\omega)'$, so
+$\langle G\rangle = \dd(\beta F)/\dd x$ and the limiting dynamics has no $\beta$ at all.
+
+The measurement agrees. Across the $\BsBetaFold\times$ ladder, $T_{\mathrm{est}}/T_{\mathrm{run}}$
+varies $\BsTestFracFold\times$ --- which is what made it look like a regime axis --- while
+$\tau_{\mathrm{est}}$ varies only $\BsTauEstFold\times$ and $\tau_{\mathrm{hit}}$ is identical
+to four digits ($\BsTauHit$). The residual drifts downward with $\beta$, the sign predicted by
+finite-$\beta$ non-adiabaticity.
+
+\textbf{We therefore report this table as a finite-budget establishment map}, not as a phase
+diagram over physically different equilibrium problems. The collapse is not exact, and what
+breaks it is worth naming: the ABF estimator does \emph{not} rescale --- counts accumulate per
+step, so each cell receives $\beta$ times more samples per unit $\tau$, and the time-averaged
+error still varies $\BsMeanErrFold\times$ --- followed by finite-$\beta$ non-adiabaticity and
+the FR event frequency per unit $\tau$. Bandwidths live in $x$ and are invariant.
+
+None of this weakens the comparison that follows. Methods are always evaluated at finite
+budget, and a regime defined by a ratio of timescales can only be reached by moving that
+ratio. What it forbids is the claim that varying $\beta$ produced different free-energy
+landscapes; it did not, and \cref{eq:gw_rescale} is why.
 \end{remark}
+
+\begin{figure}[t]\centering
+  \includegraphics[width=\linewidth]{fig_gw_03_beta_collapse.png}
+  \caption{The $\beta$ axis collapses under the rescaling of \cref{eq:gw_rescale}.
+  \textbf{Left}: as originally reported, the establishment time as a fraction of the run
+  varies $\BsTestFracFold\times$ across the ladder, which reads like a regime axis.
+  \textbf{Middle}: in rescaled time $\tau = t/\beta$ it varies $\BsTauEstFold\times$ against
+  an $\BsBetaFold\times$ change in $\beta$, and $\tau_{\mathrm{hit}}$ is identical to four
+  digits. \textbf{Right}: the same points against the available budget
+  $\tau_{\max} = T/\beta$, which is what the ladder actually varies. Small points are
+  individual runs, large points the median over the 16 seeds and 16 $(s,r)$ cells at that
+  $\beta$. The residual drift is downward in $\beta$, the sign predicted by finite-$\beta$
+  non-adiabaticity of the transverse channel.}\label{fig_gw_03_beta_collapse}
+\end{figure}
 
 With $T_{\mathrm{hit}}$ the first time $\widehat P_t(B_+) > 0$ persistently and
 $T_{\mathrm{est}}$ the first time $\tfrac12 Q^\star_+(t) \le \widehat P_t(B_+) \le
@@ -73,13 +116,15 @@ otherwise \emph{ABF-sufficient} if $T_{\mathrm{est}}-T_{\mathrm{hit}} < 0.1\,T$;
 otherwise \emph{intermediate}. Discovery is tested first because a state that is not
 reliably found cannot be judged on how fast it fills.
 
-\subsection{The regime map}
+\subsection{The finite-budget establishment map}
 \Cref{fig_gw_01_phase_diagram} reports all $\GwCells$ cells, including every cell where mFR
 could not possibly help. Of these, $\GwSuff$ are ABF-sufficient, $\GwInter$ intermediate,
 $\GwEst$ establishment-limited and $\GwDisc$ discovery-limited. The map is layered in
 $\beta$: $\beta=2$ is ABF-sufficient everywhere, $\beta=4$ intermediate everywhere,
-$\beta=8$ mixed, and $\beta=16$ establishment-limited everywhere. No cell of this model is
-discovery-limited; that regime is represented in this study by $R_{15}$, not here.
+$\beta=8$ mixed, and $\beta=16$ establishment-limited everywhere. Per \cref{rem:gw_beta} that
+layering is a statement about how much rescaled time a fixed step budget buys, not about
+different landscapes. No cell of this model is discovery-limited; that regime is represented
+in this study by $R_{15}$, not here.
 
 \begin{figure}[t]\centering
   \includegraphics[width=\linewidth]{fig_gw_01_phase_diagram.png}
@@ -129,32 +174,61 @@ derives its replacement direction from the same Fisher--Rao score and differs on
 target is built, so the proposition ``the gain comes from balanced resampling rather than
 from Fisher--Rao steering'' had never been tested against an arm that lacks the direction.
 
+\subsection{A calibration run, then a confirmatory one}
+\label{sec:gw_confirm}
+The first pass at this anchor selected each arm's FR rate from a four-point ladder
+\emph{and} reported that rate's confidence interval on the same runs. That is
+tuning-selection bias: the interval is conditioned on having chosen the best-looking rung. We
+treat that pass as calibration only. It fixed
+$\gamma_{\mathrm{practical}} = \GwEstGamma$ and $\gamma_{\mathrm{oracle}} = \GwOracleGamma$
+--- the gentlest rates that pass the preregistered health gates
+($\mathrm{ESS}_{\mathrm{anc}}/N \ge \GwEssGate$, $w_{\max} \le \GwWmaxGate$) --- and those,
+together with every other knob, the primary metric and the success rule, were frozen in a
+committed preregistration before the confirmatory run began.
+
+The confirmatory run uses $\GwcSeeds$ fresh seeds, disjoint from the calibration seeds, with
+no ladder and no tuning. Its success rule, fixed in advance, required the practical arm to
+reach a median $\le -10\%$ with a $95\%$ CI upper endpoint below $-5\%$ on at least $24$ of
+$32$ seeds, with both health gates passing.
+
 \input{tables/gateway_anchor.tex}
 
-\Cref{tab:gw_anchor} gives the result, quoted at the rate that passes the preregistered
-health gates ($\mathrm{ESS}_{\mathrm{anc}}/N \ge \GwEssGate$, $w_{\max} \le \GwWmaxGate$).
-Practical mFR improves the integrated free-energy error by $\GwEstGain\%$
-$[\GwEstCIlo, \GwEstCIhi]$ on $\GwEstWins$ matched seeds; oracle mFR by $\GwOracleGain\%$
-$[\GwOracleCIlo, \GwOracleCIhi]$ on $\GwOracleWins$. The deficit the anchor was selected for
-is largely repaired --- integrated deficit $\GwEstDeficit\%$ for the deployable arm and
-$\GwOracleDeficit\%$ for the oracle --- and $T_{\mathrm{est}}$ falls by $\GwEstTest\%$.
+\Cref{tab:gw_anchor} gives the confirmatory result. Practical mFR improves the integrated
+free-energy error by $\GwcEstGain\%$ $[\GwcEstCIlo, \GwcEstCIhi]$ on $\GwcEstWins$ matched
+seeds, at $\mathrm{ESS}_{\mathrm{anc}}/N = \GwcEstEss$ and $w_{\max} = \GwcEstWmax$: every
+criterion passes. The deficit the anchor was selected for is largely repaired, and
+$T_{\mathrm{est}}$ falls by $\GwEstTest\%$.
 
-\textbf{The sham is flat.} At the frozen rate it is $\GwShamGain\%$
-$[\GwShamCIlo, \GwShamCIhi]$ on $\GwShamWins$ seeds, \textbf{\GwShamVerdict} to ABF; across
-\emph{all} eight (rate, initialisation) cells its median effect spans
-$\GwShamRangeLo\%$ to $\GwShamRangeHi\%$, and the confidence interval excludes zero in
-$\GwShamExclZero$ of them. Since it performs the same number of replacements at the same
-times as the arm it shadows, the gain is attributable to the Fisher--Rao \emph{direction} and
-not to turnover of that magnitude.
+\paragraph{The attribution statistic.} Comparing each arm against ABF and then eyeballing the
+two contrasts is weaker than comparing an arm against \emph{its own sham} directly on the same
+seed, which holds the event schedule and the replacement count fixed by construction so that
+only the selection direction differs. That contrast gives
+\begin{equation*}
+  \text{practical mFR vs its sham: } \GwcDirect\%\ [\GwcDirectCIlo, \GwcDirectCIhi],
+  \quad \GwcDirectWins \text{ seeds},
+  \qquad
+  \text{oracle vs its sham: } \GwcOracleDirect\%\ [\GwcOracleDirectCIlo,
+  \GwcOracleDirectCIhi].
+\end{equation*}
+Both intervals exclude zero. Separately, the practical sham is \textbf{\GwcShamTost} to ABF
+by two one-sided tests against a $\pm\GwcMargin\%$ margin
+($\GwcShamGain\%$, $90\%$ CI $[\GwcShamCIlo, \GwcShamCIhi]$).
 
-\begin{remark}[A directional label needs an interval that excludes zero]
+\begin{remark}[Two statistical points, and two places this study got them wrong]
 \label{rem:gw_verdict}
-Two of the eight sham cells are reported as \emph{inconclusive} rather than equivalent: their
-medians are small ($-1.1\%$, and $+2.3\%$) but their bootstrap intervals reach past the
-$\pm10\%$ margin while still straddling zero. An earlier version of the decision rule called
-the first of these an ``improvement'' purely because its interval was wide, which reports the
-imprecision of the estimate rather than the size of the effect. No sham cell supports a
-directional claim in either direction, which is the statement the control needs to make.
+\emph{A directional label needs an interval that excludes zero.} The calibration analysis
+labelled a sham cell an ``improvement'' on a median of $-1.1\%$ with an interval of
+$[-11.1, +6.4]$, purely because the interval was wide. That reports the imprecision of the
+estimate rather than the size of the effect; a directional call now requires the interval to
+exclude zero, and anything else is equivalent or inconclusive.
+
+\emph{``No interval excluded zero'' is not equivalence.} Failure to detect an effect is not
+evidence that the effect is negligible, and the calibration write-up leaned on exactly that
+phrasing. Equivalence is now a TOST against a predeclared margin. It matters: under the
+correct test the \emph{oracle} arm's sham is \GwcShamOracleTost{}
+($90\%$ CI $[\GwcShamOracleCIlo, \GwcShamOracleCIhi]$, whose lower end just clears the
+margin), so only the practical arm's sham supports an equivalence claim. The headline rests
+on the practical arm, and the oracle's is reported as inconclusive.
 \end{remark}
 
 \begin{figure}[t]\centering
@@ -169,30 +243,120 @@ directional claim in either direction, which is the statement the control needs 
   number.}\label{fig_gw_02_anchor}
 \end{figure}
 
-\subsection{Two things the design was built to rule out}
+\subsection{Three things the design was built to rule out}
 \paragraph{It is establishment, not discovery.} In the mechanism control one walker starts
 across the gateway, so discovery is handed to the sampler for free and any remaining
 acceleration must be population establishment. Practical mFR still gives
-$\GwOneRightGain\%$ $[\GwOneRightCIlo, \GwOneRightCIhi]$ on $\GwOneRightWins$ seeds with the
+$\GwcOneRight\%$ $[\GwcOneRightCIlo, \GwcOneRightCIhi]$ on $\GwcOneRightWins$ seeds with the
 health gates passing. The effect survives when first passage is removed.
 
-\paragraph{The headline is not the largest available number.} At the frozen rate
-$\gamma = \GwFrozenGamma$ inherited from the accepted entropic-bottleneck setup, the gains
-are considerably larger --- $\GwFrozenOracleGain\%$ for the oracle and $\GwFrozenEstGain\%$
-for the practical arm --- but \emph{both health gates fail}
+\paragraph{It is a better bias, not a better-behaved estimator.} $I_F$ is computed from the
+same accumulators the FR mechanism perturbs, and birth--death makes replicas correlated
+descendants, so a gain measured that way could in principle be a change in the estimator's
+statistics rather than a genuinely better bias. We therefore freeze each arm's learned mean
+force at the same physical time, launch a \emph{fresh} population --- identical across arms,
+so no arm inherits an advantage from where its walkers ended up --- with no adaptation and no
+birth--death, and reconstruct
+$\widehat F = B - \beta^{-1}\log \hat p_B$ from the sampled density. On that
+estimator-independent endpoint practical mFR gives $\GwcFrozen\%$
+$[\GwcFrozenCIlo, \GwcFrozenCIhi]$: the same sign and essentially the same size as the online
+number. The bias itself is better.
+
+This endpoint also refines the attribution rather than merely confirming it. The practical
+sham reads $\GwcShamFrozen\%$ $[\GwcShamFrozenCIlo, \GwcShamFrozenCIhi]$ here --- small, but
+\emph{not} equivalent within the margin, unlike on the online endpoint. Uniform turnover does
+improve the learned bias a little. The direct arm-versus-sham contrast on the same endpoint
+is $\GwcDirectFrozen\%$ $[\GwcDirectFrozenCIlo, \GwcDirectFrozenCIhi]$, still excluding zero.
+The honest summary is therefore a split rather than a clean dichotomy: generic turnover
+contributes a minority of the benefit, and the Fisher--Rao direction contributes the majority.
+
+\paragraph{The headline is not the largest available number.} At the rate
+$\gamma = \GwFrozenGamma$ inherited from the accepted entropic-bottleneck setup, the
+calibration gains are considerably larger --- $\GwFrozenOracleGain\%$ for the oracle and
+$\GwFrozenEstGain\%$ for the practical arm --- but \emph{both health gates fail}
 ($\mathrm{ESS}_{\mathrm{anc}}/N = \GwFrozenOracleEss$ and $\GwFrozenEstEss$,
-$w_{\max} = \GwFrozenOracleWmax$). We report the health-passing rate instead, and the whole
-ladder with it. This is the same accuracy--diversity boundary the WCA dimer exhibits
+$w_{\max} = \GwFrozenOracleWmax$). The confirmatory rates are the gentlest that pass, not the
+best-performing. This is the same accuracy--diversity boundary the WCA dimer exhibits
 (\cref{sec:case_wca}), reached here from the other side.
+
+\subsection{Why the regime exists at all: a two-state reduction}
+\label{sec:gw_twostate}
+The separation the gateway was built to create is not special to this potential. Coarse-grain
+the reaction coordinate into ``not in the rare state'' and ``in it'', let $p(t)$ be the
+population fraction of the rare state and $q$ its target mass, and write the mean-field
+kinetics as
+\begin{equation}
+  \dot p = k_{01}(1-p) - k_{10}\,p ,
+  \qquad
+  p(\infty) = \frac{k_{01}}{k_{01}+k_{10}} = q .
+  \label{eq:twostate}
+\end{equation}
+Two timescales follow, and they are not the same one.
+
+\emph{Discovery} is a first-passage event among $N$ independent walkers, so it happens on
+\begin{equation}
+  T_{\mathrm{hit}} \sim \frac{1}{N k_{01}} ,
+  \label{eq:thit}
+\end{equation}
+which is fast simply because $N$ is large: a rare crossing becomes likely once you have
+enough tries. \emph{Establishment} is the relaxation of \cref{eq:twostate} toward $q$, whose
+rate is the eigenvalue $k_{01}+k_{10}$ and which therefore takes
+\begin{equation}
+  T_{\mathrm{est}} \sim \frac{1}{k_{01}+k_{10}} ,
+  \label{eq:test}
+\end{equation}
+with \emph{no factor of $N$}. Adding walkers buys discovery and does not buy establishment.
+The ratio $T_{\mathrm{est}}/T_{\mathrm{hit}} \sim N k_{01}/(k_{01}+k_{10})$ grows with $N$, so
+the establishment-limited window is not a curiosity of this model --- it is what a
+many-walker sampler generically produces once $k_{01}$ is small, which is exactly the
+condition under which the coordinate was worth biasing in the first place.
+
+Marginal Fisher--Rao reallocation adds a term whose local linear rate near $q$ is set by the
+resampling intensity $\gamma$ rather than by the physical crossing rate:
+\begin{equation}
+  \dot p = \underbrace{k_{01}(1-p) - k_{10}p}_{\text{physical transport}}
+         \;+\; \underbrace{\gamma\,p\,\log\!\big(q/p\big)\,\big|_{\text{lin}}
+               \approx -\gamma\,(p-q)}_{\text{reallocation}} ,
+  \label{eq:fr_relax}
+\end{equation}
+so the relaxation rate becomes $k_{01}+k_{10}+\gamma$ while the fixed point stays at $q$
+provided the target is correct. That single expression accounts for all four outcomes in this
+study:
+\begin{itemize}
+  \item \textbf{ABF-sufficient} (alanine, valine, the alkanes): $k_{01}+k_{10}$ is already
+  large compared with $1/T$, so $\gamma$ changes a relaxation that had already finished.
+  Adding it can only inject resampling noise --- which is what the neutral verdicts, and the
+  mild harm at high rate, look like.
+  \item \textbf{Establishment-limited} (the gateway, and \cref{sec:case_wca}):
+  $N k_{01} \gg 1/T \gg k_{01}+k_{10}$. Discovery is done, relaxation is not, and $\gamma$
+  supplies the missing rate. This is the regime, and \cref{eq:fr_relax} says it exists
+  whenever the two inequalities can be satisfied together.
+  \item \textbf{Discovery-limited} ($R_{15}$): $N k_{01} \lesssim 1/T$, so $p(t) = 0$ over the
+  whole run. The reallocation term is proportional to $p$ and vanishes identically --- mFR
+  cannot create a representative of a state that has none. No choice of $\gamma$ changes
+  this, which is why the $R_{15}$ rate ladder is monotone in the wrong direction.
+  \item \textbf{The cost}, and why $\gamma$ cannot simply be raised: the term in
+  \cref{eq:fr_relax} moves \emph{copies}, so the ancestor diversity decays at a rate that
+  also scales with $\gamma$. Accuracy improves with $\gamma$ while the effective sample size
+  the mean-force estimator consumes decays with it, which is the accuracy--diversity boundary
+  seen in both the WCA rate ladder and this study's own health-gate failures at
+  $\gamma = \GwFrozenGamma$.
+\end{itemize}
+The reduction is deliberately crude --- it assumes a single rare state, mean-field kinetics
+and a correct target --- but it is enough to say why the three regimes are three and not a
+continuum, and why the boundary between them moves with $N$ and with $T$ rather than with the
+shape of the potential.
 
 \begin{remark}[The deployable target captures the gain here]
 \label{rem:gw_deployable}
 In the entropy-dominant stress test (\cref{sec:eb_entropy_dominant}) the oracle target
 diverged sharply from the online estimate, and the deployable arm captured essentially none
-of the oracle's benefit. At this anchor the two coincide: $\GwEstGain\%$ against
-$\GwOracleGain\%$. The difference is instructive --- what the oracle buys there is the
-\emph{shape} of an entropy-dominated free energy, which an online estimate cannot yet
-resolve, whereas what it buys here is a coarse instruction to move mass across the gateway,
-which the online estimate resolves perfectly well. Target quality matters in proportion to
-how much shape information the reallocation actually needs.
+of the oracle's benefit. At this anchor the two coincide: the direct-versus-sham contrasts are
+$\GwcDirect\%$ for the practical arm and $\GwcOracleDirect\%$ for the oracle. In terms of
+\cref{eq:fr_relax}, both targets place the fixed point close enough to $q$ that what matters
+is $\gamma$, not the residual target error; the oracle buys shape information the
+reallocation here does not need. Target quality matters in proportion to how much shape
+information the reallocation actually requires, which is small when the instruction is
+``move mass across the gateway'' and large when it is ``reproduce an entropy-dominated
+profile''.
 \end{remark}

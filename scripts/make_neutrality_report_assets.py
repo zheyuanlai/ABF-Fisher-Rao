@@ -49,6 +49,19 @@ GW_MACROS = [
     "GwFrozenGamma", "GwFrozenOracleGain", "GwFrozenEstGain",
     "GwFrozenOracleEss", "GwFrozenEstEss", "GwFrozenOracleWmax", "GwOneRightGain",
     "GwOneRightCIlo", "GwOneRightCIhi", "GwOneRightWins", "GwEssGate", "GwWmaxGate",
+    # confirmatory run (fresh seeds, frozen rates) -- prefix Gwc
+    "GwcSeeds", "GwcEstGain", "GwcEstCIlo", "GwcEstCIhi", "GwcEstWins", "GwcEstEss",
+    "GwcEstWmax", "GwcShamGain", "GwcShamCIlo", "GwcShamCIhi", "GwcShamTost",
+    "GwcDirect", "GwcDirectCIlo", "GwcDirectCIhi", "GwcDirectWins",
+    "GwcOracleDirect", "GwcOracleDirectCIlo", "GwcOracleDirectCIhi",
+    "GwcFrozen", "GwcFrozenCIlo", "GwcFrozenCIhi",
+    "GwcShamFrozen", "GwcShamFrozenCIlo", "GwcShamFrozenCIhi",
+    "GwcDirectFrozen", "GwcDirectFrozenCIlo", "GwcDirectFrozenCIhi",
+    "GwcOneRight", "GwcOneRightCIlo", "GwcOneRightCIhi", "GwcOneRightWins",
+    "GwcShamOracleTost", "GwcShamOracleCIlo", "GwcShamOracleCIhi", "GwcMargin",
+    # beta-scaling audit -- prefix Bs
+    "BsTauEstFold", "BsBetaFold", "BsTestFracFold", "BsTauHit", "BsMeanErrFold",
+    "BsBetaHkT",
 ]
 
 
@@ -242,6 +255,71 @@ def gateway():
             v["GwOneRightCIhi"] = f"{b['int_l2_f_ci_hi']:.2f}"
             v["GwOneRightWins"] = f"{b['int_l2_f_wins']}/{b['n_seeds']}"
         src += " + anchor_summary.json"
+    # ---- confirmatory run + beta-scaling audit -------------------------------
+    cp = os.path.join(ROOT, "results/gateway_anchor/confirmatory/confirmatory_summary.json")
+    if os.path.exists(cp):
+        c = json.load(open(cp))
+        pre2 = c["preregistration"]
+        mk = pre2["primary_metric"]
+        v["GwcSeeds"] = pre2["seeds"]["count"]
+        v["GwcMargin"] = f"{pre2['sham_equivalence']['margin_pct'][1]:g}"
+        left = {r["arm"]: r for r in c["rows"] if r["init"] == "left"}
+        one = {r["arm"]: r for r in c["rows"] if r["init"] == "one_right"}
+        e = left["fr_estimated"]
+        v["GwcEstGain"] = f"{e[mk + '_pct']:.2f}"
+        v["GwcEstCIlo"] = f"{e[mk + '_ci95'][0]:.2f}"
+        v["GwcEstCIhi"] = f"{e[mk + '_ci95'][1]:.2f}"
+        v["GwcEstWins"] = f"{e[mk + '_wins']}/{e['n_seeds']}"
+        v["GwcEstEss"] = f"{e['min_ess_frac']:.3f}"
+        v["GwcEstWmax"] = f"{e['max_wmax']:.3f}"
+        v["GwcFrozen"] = f"{e['frozen_l2_f_kT_pct']:.2f}"
+        v["GwcFrozenCIlo"] = f"{e['frozen_l2_f_kT_ci95'][0]:.2f}"
+        v["GwcFrozenCIhi"] = f"{e['frozen_l2_f_kT_ci95'][1]:.2f}"
+        sp = left["sham_practical"]
+        v["GwcShamGain"] = f"{sp[mk + '_pct']:+.2f}"
+        v["GwcShamCIlo"] = f"{sp[mk + '_ci90'][0]:.2f}"
+        v["GwcShamCIhi"] = f"{sp[mk + '_ci90'][1]:.2f}"
+        v["GwcShamTost"] = ("equivalent" if c["sham_tost"]["sham_practical"]["equivalent"]
+                            else "NOT equivalent")
+        v["GwcShamFrozen"] = f"{sp['frozen_l2_f_kT_pct']:.2f}"
+        v["GwcShamFrozenCIlo"] = f"{sp['frozen_l2_f_kT_ci90'][0]:.2f}"
+        v["GwcShamFrozenCIhi"] = f"{sp['frozen_l2_f_kT_ci90'][1]:.2f}"
+        so = c["sham_tost"].get("sham_oracle")
+        if so:
+            v["GwcShamOracleTost"] = ("equivalent" if so["equivalent"]
+                                      else "not shown equivalent")
+            v["GwcShamOracleCIlo"] = f"{so['ci90'][0]:.2f}"
+            v["GwcShamOracleCIhi"] = f"{so['ci90'][1]:.2f}"
+        o = one.get("fr_estimated")
+        if o:
+            v["GwcOneRight"] = f"{o[mk + '_pct']:.2f}"
+            v["GwcOneRightCIlo"] = f"{o[mk + '_ci95'][0]:.2f}"
+            v["GwcOneRightCIhi"] = f"{o[mk + '_ci95'][1]:.2f}"
+            v["GwcOneRightWins"] = f"{o[mk + '_wins']}/{o['n_seeds']}"
+        for rec in c.get("direct_vs_sham", []):
+            if rec["init"] != "left":
+                continue
+            pre3 = "Gwc" + ("Direct" if rec["arm"] == "fr_estimated" else "OracleDirect")
+            v[pre3] = f"{rec['pct']:.2f}"
+            v[pre3 + "CIlo"] = f"{rec['ci95'][0]:.2f}"
+            v[pre3 + "CIhi"] = f"{rec['ci95'][1]:.2f}"
+            if rec["arm"] == "fr_estimated":
+                v["GwcDirectWins"] = f"{rec['wins']}/{rec['n_seeds']}"
+                if "frozen_pct" in rec:
+                    v["GwcDirectFrozen"] = f"{rec['frozen_pct']:.2f}"
+                    v["GwcDirectFrozenCIlo"] = f"{rec['frozen_ci95'][0]:.2f}"
+                    v["GwcDirectFrozenCIhi"] = f"{rec['frozen_ci95'][1]:.2f}"
+        src += " + confirmatory_summary.json"
+    bp = os.path.join(ROOT, "results/gateway_phase/production/beta_scaling_audit.json")
+    if os.path.exists(bp):
+        b = json.load(open(bp))
+        v["BsTauEstFold"] = f"{b['fold_range_tau_est']:.2f}"
+        v["BsBetaFold"] = f"{b['beta_fold']:.0f}"
+        v["BsTestFracFold"] = f"{b['fold_range_T_est_frac']:.2f}"
+        v["BsMeanErrFold"] = f"{b.get('fold_range_mean_err', float('nan')):.2f}"
+        v["BsTauHit"] = f"{list(b['per_beta'].values())[0]['tau_hit']:.3f}"
+        v["BsBetaHkT"] = "8"
+        src += " + beta_scaling_audit.json"
     return v, src
 
 

@@ -67,16 +67,22 @@ reallocation has no deficit to repair. Reading these together with the alkane re
 three regimes rather than a spectrum: \emph{ABF-sufficient} (found early, populated early;
 mFR neutral), \emph{discovery-limited} (never found; mFR cannot act), and
 \emph{establishment-limited} (found early, populated slowly), which is the only regime mFR
-serves and the one that never arose on its own. We therefore build it: an entropic-gateway
-model with analytic free energy, screened by ABF alone over a $\GwCells$-cell regime map
-whose classification and anchor cell were frozen and committed \emph{before} any Fisher--Rao
-arm was run. At that anchor mFR improves the integrated free-energy error by
-$\GwEstGain\%$ $[\GwEstCIlo, \GwEstCIhi]$ on $\GwEstWins$ matched seeds while a
-\textbf{matched sham} --- the same number of clone/delete events at the same times, with the
-direction randomised --- stays within $\GwShamRangeLo\%$ to $\GwShamRangeHi\%$ with no
-interval excluding zero. This is the first control in the study
-that separates Fisher--Rao steering from resampling of the same intensity, and it attributes
-the gain to the steering.
+serves and the one that never arose on its own. A two-state reduction explains why: discovery
+is a first-passage event among $N$ walkers and takes $\sim 1/(N k_{01})$, whereas
+establishment is a relaxation at rate $k_{01}+k_{10}$ with no factor of $N$, so more walkers
+buy the first and not the second and the gap between them widens with $N$. We therefore build
+that regime deliberately: an entropic-gateway model with analytic free energy, screened by
+ABF alone over a $\GwCells$-cell \emph{finite-budget establishment map} whose classification
+and anchor cell were frozen and committed \emph{before} any Fisher--Rao arm was run. On
+$\GwcSeeds$ fresh seeds at rates frozen in a separate calibration pass, mFR improves the
+integrated free-energy error by $\GwcEstGain\%$ $[\GwcEstCIlo, \GwcEstCIhi]$ on
+$\GwcEstWins$ seeds, and beats \emph{its own} \textbf{matched sham} --- the same number of
+clone/delete events at the same times, direction randomised --- directly by $\GwcDirect\%$
+$[\GwcDirectCIlo, \GwcDirectCIhi]$, with the sham itself \GwcShamTost{} to ABF within a
+$\pm\GwcMargin\%$ margin. An estimator-independent frozen-bias endpoint, which discards the
+online accumulators entirely, agrees at $\GwcFrozen\%$. This is the first control in the
+study that separates Fisher--Rao steering from resampling of the same intensity, and it
+attributes the majority of the gain to the steering.
 
 Across all cases, FR is best understood as a
 marginal-reallocation mechanism whose value depends on how starved the ABF estimator is

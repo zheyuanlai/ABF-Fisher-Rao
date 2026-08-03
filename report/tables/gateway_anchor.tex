@@ -1,38 +1,44 @@
 % Auto-generated numbers via tables/gateway_numbers.tex; layout maintained by hand.
 \begin{table}[t]\centering
-\caption{Matched-seed comparison at the preregistered establishment-limited anchor
-($\beta=\GwAnchorBeta$, $s=\GwAnchorS$, $r=\GwAnchorR$), $\GwSeeds$ seeds,
-$N=\GwWalkers$. Percentages are paired differences in the integrated free-energy error
-$I_F$ against ABF on the same seed, with a bootstrap $95\%$ CI over seeds; \textbf{negative
-is better}. Each arm is quoted at its best rate that passes the preregistered health gates
-$\mathrm{ESS}_{\mathrm{anc}}/N \ge \GwEssGate$ and $w_{\max} \le \GwWmaxGate$. The sham
-performs the same number of clone/delete events at the same times as the oracle arm
-($\GwShamMismatch$ count mismatches in $128$ paired comparisons) and differs only in
-randomising which walkers they act on.}
+\caption{\textbf{Confirmatory} run at the preregistered establishment-limited anchor
+($\beta=\GwAnchorBeta$, $s=\GwAnchorS$, $r=\GwAnchorR$): $\GwcSeeds$ fresh seeds, rates
+frozen from a separate calibration pass, no ladder and no tuning. Percentages are paired
+differences against ABF on the same seed with a bootstrap CI over seeds; \textbf{negative is
+better}. Each sham fires at its own partner's event times with its partner's realised
+clone/delete counts, and differs only in randomising which walkers they act on. The
+\emph{direct} rows are the attribution statistic: each FR arm against its own sham on the same
+seed, which holds the schedule and the count fixed so that only the selection direction
+differs. Health gates $\mathrm{ESS}_{\mathrm{anc}}/N \ge \GwEssGate$ and
+$w_{\max} \le \GwWmaxGate$ pass for every arm shown.}
 \label{tab:gw_anchor}
 \small
-\begin{tabular}{lrrrrrr}
+\begin{tabular}{lrrrrr}
 \toprule
-arm & $\gamma$ & $I_F$ vs ABF & 95\% CI & won & deficit &
-$\mathrm{ESS}/N$ \\
+comparison & $\gamma$ & $\Delta I_F$ & 95\% CI & seeds won & frozen-bias $\Delta$ \\
 \midrule
-sham (matched intensity) & \GwFrozenGamma & \GwShamGain\% &
-  $[\GwShamCIlo, \GwShamCIhi]$ & \GwShamWins & --- & --- \\
-practical mFR & \GwEstGamma & \textbf{\GwEstGain\%} &
-  $[\GwEstCIlo, \GwEstCIhi]$ & \GwEstWins & \GwEstDeficit\% & \GwEstEss \\
-oracle mFR & \GwOracleGamma & \GwOracleGain\% &
-  $[\GwOracleCIlo, \GwOracleCIhi]$ & \GwOracleWins & \GwOracleDeficit\% & \GwOracleEss \\
+\multicolumn{6}{l}{\emph{against ABF}}\\
+practical mFR & \GwEstGamma & \textbf{\GwcEstGain\%} &
+  $[\GwcEstCIlo, \GwcEstCIhi]$ & \GwcEstWins & \GwcFrozen\% \\
+sham (practical) & \GwEstGamma & \GwcShamGain\% &
+  $[\GwcShamCIlo, \GwcShamCIhi]^{\dagger}$ & --- & \GwcShamFrozen\% \\
 \midrule
-\multicolumn{7}{l}{\emph{at the frozen rate $\gamma=\GwFrozenGamma$ --- larger gains, both
-health gates failed}}\\
-oracle mFR & \GwFrozenGamma & \GwFrozenOracleGain\% & --- & --- & --- &
-  \GwFrozenOracleEss \\
-practical mFR & \GwFrozenGamma & \GwFrozenEstGain\% & --- & --- & --- & \GwFrozenEstEss \\
+\multicolumn{6}{l}{\emph{direct: each arm against its own sham --- the attribution test}}\\
+practical mFR vs sham & \GwEstGamma & \textbf{\GwcDirect\%} &
+  $[\GwcDirectCIlo, \GwcDirectCIhi]$ & \GwcDirectWins & \GwcDirectFrozen\% \\
+oracle mFR vs sham & \GwOracleGamma & \GwcOracleDirect\% &
+  $[\GwcOracleDirectCIlo, \GwcOracleDirectCIhi]$ & --- & --- \\
 \midrule
-\multicolumn{7}{l}{\emph{mechanism control: one walker seeded across the gateway, so
+\multicolumn{6}{l}{\emph{mechanism control: one walker seeded across the gateway, so
 discovery is free}}\\
-practical mFR & \GwEstGamma & \GwOneRightGain\% &
-  $[\GwOneRightCIlo, \GwOneRightCIhi]$ & \GwOneRightWins & --- & --- \\
+practical mFR & \GwEstGamma & \GwcOneRight\% &
+  $[\GwcOneRightCIlo, \GwcOneRightCIhi]$ & \GwcOneRightWins & --- \\
 \bottomrule
 \end{tabular}
+
+\vspace{2pt}
+{\footnotesize $^{\dagger}$ 90\,\% CI, the interval for the two-one-sided-tests equivalence
+check against a $\pm\GwcMargin\,\%$ margin; the practical sham is \GwcShamTost{} to ABF on
+this endpoint. The oracle arm's sham is \GwcShamOracleTost{}
+($90\,\%$ CI $[\GwcShamOracleCIlo, \GwcShamOracleCIhi]$), so only the practical arm supports
+an equivalence claim.}
 \end{table}
