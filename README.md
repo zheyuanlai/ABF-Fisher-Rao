@@ -729,3 +729,57 @@ CUDA_VISIBLE_DEVICES=2 python -u scripts/run_gateway_confirm.py    # CONFIRMATOR
 python scripts/analyze_gateway_confirm.py
 python scripts/make_neutrality_report_assets.py                    # report macros
 ```
+
+---
+
+## Case IX: does the mechanism transfer? A matched sham on the WCA dimer — **YES**
+
+**Why.** Every Fisher-Rao arm anywhere in this repository — `fr_estimated`, `fr_uniform`,
+`fr_oracle`, `fr_active` — derives its replacement *direction* from the same score and differs
+only in how the target is built. So the WCA positive was a positive against ABF and against
+other score-driven arms, and never against **turnover of the same intensity**. Until that
+control existed, "mFR helps" and "any resampling of this magnitude helps" were indistinguishable.
+
+**Design.** Nothing retuned. The accepted `b1_h2` cell (beta=1, h=2, w=2, M=100, a=1.5),
+120 000 steps, N=1024, FR rate 0.10 — every knob read back from the production YAML and
+asserted, so editing that file cannot move the experiment. Only the **16 seeds are new**
+(400-415, verified unused). Rule frozen in `results/wca_sham/PREREGISTRATION.md` before running.
+
+Because the WCA sampler runs one method per process, a sham cannot watch its partner online.
+It runs in a **second pass**, replaying the partner's per-opportunity event-count sequence
+recorded on the same seed, choosing which replicas die and which are copied uniformly at
+random. Realised totals matched with **0 discrepancies** across all seeds and both partners.
+
+**Result — both preregistered criteria PASS. Verdict: TRANSFERS.**
+
+| comparison | dI_F | 95 % CI | seeds |
+|---|---|---|---|
+| practical mFR vs ABF | **-22.83 %** | [-25.42, -17.34] | **16/16** |
+| **practical mFR vs ITS OWN SHAM** | **-26.38 %** | [-28.89, -16.22] | **16/16** |
+| oracle mFR vs its own sham | -21.08 % | [-24.01, -16.23] | 15/16 |
+| sham (practical) vs ABF | **+2.60 %** | [-0.65, +9.22] | 5/16 |
+
+Health passes (min ancestor ESS/N 0.170, max ancestor fraction 0.019). The ESS floor is 0.10
+here rather than the gateway's 0.30, **declared in advance**, because the accepted WCA
+configuration already runs at ~0.17 — the stricter gate would have failed the configuration
+under test rather than tested it.
+
+**Two things worth carrying forward:**
+
+* The sham **fails** the equivalence test, and in the *harmful* direction. The prereg's outcome
+  table only enumerated a sham failing on the *improving* side. A control that makes the
+  estimate worse cannot explain an arm that makes it 23 % better, so attribution is stronger
+  than equivalence would have been — but the rule did not distinguish the direction of failure,
+  and the write-up says so rather than quietly reading it the favourable way. **Write outcome
+  tables with both polarities.**
+* **Round trips are within 1 % across all arms** (ABF 780k, mFR 790k, sham 780k) while `I_F`
+  differs by over 20 %. mFR is *not* buying barrier crossings; it redistributes population
+  among replicas already crossing — exactly what the two-state reduction predicts, confirmed
+  on a system it was not built from.
+
+```bash
+conda activate abffr
+CUDA_VISIBLE_DEVICES=3 python -u scripts/run_wca_sham.py      # 80 runs, ~6.4 GPU-hours
+python scripts/analyze_wca_sham.py                            # frozen rule; NO VERDICT if incomplete
+python scripts/make_neutrality_report_assets.py               # report macros
+```

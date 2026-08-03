@@ -738,7 +738,19 @@ improves the integrated free-energy error by \WcsEstGain\% $[\WcsEstCIlo, \WcsEs
 arm against its own sham, which holds the event schedule and the replacement count fixed so
 that only the selection direction differs --- gives \WcsDirect\%
 $[\WcsDirectCIlo, \WcsDirectCIhi]$ on \WcsDirectWins{} seeds, with the interval excluding zero.
-Verdict: \textbf{\WcsVerdict}.
+Verdict: \textbf{\WcsVerdict} (\cref{fig_wca_07_sham}).
+
+\begin{figure}[t]\centering
+  \includegraphics[width=\linewidth]{fig_wca_07_sham.png}
+  \caption{The matched-sham control on the WCA dimer, \WcsSeeds{} fresh seeds at the accepted
+  cell. \textbf{(a)} Paired per-seed change in the integrated free-energy error against ABF on
+  the same seed; bars are medians. Both mFR arms sit below zero, both shams above it.
+  \textbf{(b)} The attribution test: each arm against \emph{its own} sham, which fired the same
+  number of clone and delete events at the same times and differs only in which replicas it
+  acted on. \textbf{(c)} Round trips per run differ by under $1\%$ across arms while the free
+  energy differs by more than twenty --- the mechanism redistributes population rather than
+  creating barrier crossings.}\label{fig_wca_07_sham}
+\end{figure}
 
 \begin{remark}[The sham is not equivalent to ABF --- it is slightly worse]
 \label{rem:wca_sham_harmful}
