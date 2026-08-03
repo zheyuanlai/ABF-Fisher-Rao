@@ -33,6 +33,36 @@ them.
   (\cref{sec:case_wca}). Here mFR helps, and in both systems it beats a matched sham.
 \end{itemize}
 
+\Cref{tab:regime_map} states this benchmark by benchmark, and \cref{fig:regime_map} places
+every system on the same two axes. The column order there is deliberate: the discovery and
+establishment evidence are recorded \emph{before} the mFR column and are derived from
+ABF-only diagnostics --- first-touch and establishment times, support fractions, occupancy
+against a bias-aware target --- so the regime is never defined by the outcome it is used to
+explain. Defining ``ABF-sufficient'' as ``mFR did not improve'' would make the map circular
+and unfalsifiable; defining it by whether ABF has already resolved the coordinate under the
+budget does not.
+
+\input{tables/regime_map.tex}
+
+\begin{figure}[t]\centering
+  \includegraphics[width=0.94\textwidth]{fig_regime_map.png}
+  \caption{The regime map, on categorical axes. Both axes are two-state because that is what
+  the evidence supports: each system carries a discovery verdict and an establishment verdict,
+  not a continuous adequacy score, and interpolating coordinates to draw a scatter plot would
+  present a classification as a measurement. The upper-left cell is empty by construction ---
+  a state cannot be well established before it has been discovered. Only the outlined cell is
+  mFR's. Generated from \texttt{results/closure/v1\_regime\_map.csv} by
+  \texttt{report/scripts/make\_regime\_map\_figure.py}.}
+  \label{fig:regime_map}
+\end{figure}
+
+\Cref{tab:closure_inventory} collects the headline comparisons for the two
+establishment-limited systems on a single sign convention. The complete inventory ---
+\ClosureRows{} rows, every arm and every system, favourable and unfavourable alike --- is
+regenerated from artifacts into \texttt{results/closure/v1\_results\_inventory.csv}.
+
+\input{tables/closure_inventory.tex}
+
 \Cref{sec:gw_twostate} gives the reason these are three regimes and not a continuum. Coarse-%
 grained to two states, discovery is a first-passage event among $N$ walkers and so takes
 $T_{\mathrm{hit}}\sim 1/(N k_{01})$, whereas establishment is a relaxation at rate
@@ -49,10 +79,14 @@ analytic, its map is complete, and its anchor was frozen before any FR arm ran, 
 the comparison that decides whether the mechanism is what it claims: a \textbf{matched sham}
 that performs the same number of clone and delete events at the same times, with the direction
 randomised. On $\GwcSeeds$ fresh seeds with the rates frozen in advance, mFR beats
-\emph{its own sham} directly by $\GwcDirect\%$ $[\GwcDirectCIlo, \GwcDirectCIhi]$ on
-$\GwcDirectWins$ seeds, and the sham is \GwcShamTost{} to ABF within a $\pm\GwcMargin\%$
-margin (\cref{tab:gw_anchor}). An estimator-independent frozen-bias endpoint agrees. Whatever
-mFR is doing in this regime, the majority of it is not the turnover.
+\emph{its own sham} directly by $\GwrDirect\%$ $[\GwrDirectCIlo, \GwrDirectCIhi]$ on
+$\GwrDirectWins$ seeds in the quoted replicate, and by $\GwcDirect\%$
+$[\GwcDirectCIlo, \GwcDirectCIhi]$ on $\GwcDirectWins$ in the first pass
+(\cref{tab:gw_anchor,tab:closure_inventory}). An estimator-independent frozen-bias endpoint
+agrees in both. The separate \emph{equivalence} test on the sham does not replicate --- it
+passes in the first pass and misses the $\pm\GwcMargin\%$ margin in the second
+(\cref{rem:gw_replicate}) --- so the attribution here rests on the direct contrast rather than
+on equivalence. Whatever mFR is doing in this regime, the majority of it is not the turnover.
 
 \begin{remark}[The qualifier on WCA is now removed]
 \label{rem:wca_possibly}
@@ -140,6 +174,18 @@ benefit is limited by the diversity of cloned many-body configurations.
 \input{tables/synthesis.tex}
 
 \subsection{The gain follows starvation, but the mechanism changes}
+\begin{remark}[Two sign conventions, and which one is in force where]
+\label{rem:sign_convention}
+This paragraph is written in the \emph{gain} convention inherited from the earliest cases:
+$+x\%$ means the error fell by $x\%$, so positive is better. Every closure table
+(\cref{tab:synthesis,tab:closure_inventory,tab:regime_map}) and every preregistered
+comparison instead reports the \emph{relative change} in error, where negative is better.
+The two differ only by a sign, but they differ on the quantity a reader is most likely to
+quote, so the inventory normalises all of them:
+\texttt{results/closure/v1\_results\_inventory.csv} carries one column, one convention, and
+the endpoint named per row.
+\end{remark}
+
 The practical, estimated-target FR gain tracks how starved the ABF estimator is.
 Where ABF is a strong baseline the gain is small and not unconditional ---
 $+\EstIntegImpPct\%$ on the integrated error in the metastability case, with a

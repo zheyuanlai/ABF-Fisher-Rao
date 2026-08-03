@@ -60,8 +60,10 @@ coordinate, not of the method. We therefore construct the regime instead
 with ABF alone across a $\GwCells$-cell finite-budget map, and freeze both the classification
 and the anchor cell before running any Fisher--Rao arm. A calibration pass fixes the rates; a
 separate \emph{confirmatory} run on $\GwcSeeds$ fresh seeds, with no ladder and no tuning,
-then meets every criterion of a success rule written down in advance: $\GwcEstGain\%$
-$[\GwcEstCIlo, \GwcEstCIhi]$ on $\GwcEstWins$ seeds with both diversity gates passing. The
+then meets every criterion of a success rule written down in advance, and does so twice: the
+quoted replicate gives $\GwrEstGain\%$ $[\GwrEstCIlo, \GwrEstCIhi]$ on $\GwrEstWins$ seeds and
+the first pass gave $\GwcEstGain\%$ $[\GwcEstCIlo, \GwcEstCIhi]$ on $\GwcEstWins$, both with
+the diversity gates passing (\cref{rem:gw_replicate}). The
 effect survives the control in which discovery is handed to the sampler for free, and it
 survives an estimator-independent endpoint in which each arm's learned bias is frozen and
 scored by a fresh population with no adaptation and no birth--death ($\GwcFrozen\%$).

@@ -1,0 +1,105 @@
+\section{Executive synthesis}
+\label{sec:executive}
+
+This section states the v1 result in full before any of the machinery. Everything asserted
+here is traceable to \cref{tab:closure_inventory,tab:regime_map} and, through them, to the
+artifact-derived inventory\\
+\texttt{results/closure/v1\_results\_inventory.csv}.
+
+\paragraph{What marginal Fisher--Rao changes.}
+ABF learns a bias from a mean force estimated on whatever configurations its walkers happen
+to occupy. The marginal Fisher--Rao (mFR) step adds one thing to that: at fixed population
+size it kills replicas where the empirical reaction-coordinate marginal $\phat_t$ exceeds a
+target $q_t$ and clones replicas where it falls short. It moves \emph{existing} walkers
+between regions of the biased coordinate. It does not change the potential, the estimator, or
+the dynamics between events, and it cannot put a walker anywhere that no walker has already
+reached.
+
+\paragraph{Three finite-time regimes.}
+Which of those properties binds is decided by two timescales measured against the run length:
+how long a relevant state takes to be \textbf{found}, and how long it then takes to be
+adequately \textbf{populated}. That gives three regimes, and every benchmark in this report
+falls into one of them (\cref{tab:regime_map}).
+
+\begin{itemize}
+  \item \textbf{ABF-sufficient} --- found early, populated early. Butane and pentane on
+  $\varphi_1$, pentane on the torsion torus $(\varphi_1,\varphi_2)$, both dipeptides, the
+  metastability model, and the entropic bottleneck at $\beta\le4$. There is no marginal
+  imbalance left for reallocation to correct.
+  \item \textbf{Discovery-limited} --- not found. Pentane's end-to-end distance $R_{15}$ at
+  $\beta=2$, the only genuinely starved biased coordinate in the study. Selection amplifies a
+  configuration that exists; it cannot manufacture a torsional crossing.
+  \item \textbf{Establishment-limited} --- found early, populated slowly. The constructed
+  entropic gateway, the condensed-phase WCA dimer, and the entropic bottleneck at $\beta=8$.
+  This is the regime mFR serves.
+\end{itemize}
+
+\begin{figure}[!ht]\centering
+  \fbox{\parbox{0.93\textwidth}{\centering\vspace{2pt}
+  $\begin{aligned}
+    \text{ABF-sufficient} \;&\Longrightarrow\; \text{mFR is unnecessary or neutral},\\
+    \text{discovery-limited} \;&\Longrightarrow\; \text{mFR cannot act before discovery},\\
+    \text{establishment-limited} \;&\Longrightarrow\;
+      \text{directed mFR reallocation can help}.
+  \end{aligned}$
+  \vspace{2pt}}}
+  \caption{The v1 conclusion. The implications run one way: the regime is diagnosed from
+  discovery and establishment evidence that does not mention mFR, and the mFR outcome is then
+  a prediction rather than the definition. \Cref{tab:regime_map} states the evidence for each
+  benchmark separately from the outcome for exactly this reason.}
+  \label{fig:boxed_conclusion}
+\end{figure}
+
+\paragraph{The two positives, and the control that earns them.}
+Both establishment-limited systems were tested against a \emph{matched-turnover sham}: the
+same number of kill-and-clone events, at the same times, with the direction randomised. This
+is the control that separates Fisher--Rao steering from resampling of the same intensity, and
+until it existed ``mFR helps'' and ``any turnover of this magnitude helps'' were
+indistinguishable.
+
+On the constructed gateway, at a cell classified and frozen before any Fisher--Rao arm was
+written, practical mFR improves the time-integrated free-energy error by
+$\ClosureGwTwoGain\%$ on $\ClosureGwTwoWins$ fresh seeds in the quoted replicate
+($\ClosureGwOneGain\%$ on $\ClosureGwOneWins$ in the first pass), and beats its own sham
+directly in both. On the WCA dimer, with no hyperparameter reopened and $16$ fresh seeds, it
+improves the same endpoint by $\ClosureWcaGain\%$ on $\ClosureWcaWins$ seeds and beats its own
+sham by $\ClosureWcaDirect\%$ on $\ClosureWcaDirectWins$. The sham itself is not better than
+ABF in either system.
+
+Barrier round trips in the WCA test differ by $\ClosureWcaRoundTripPct\%$ between mFR and ABF
+while the free-energy error differs by $\ClosureWcaGain\%$ --- roughly an eighteen-fold
+separation between the transport change and the accuracy change. In this setup the mechanism
+is therefore consistent with redistributing population among replicas that were already
+crossing, rather than with buying additional crossings.
+
+\paragraph{The boundary cases, which are not failed benchmarks.}
+Four molecular systems and two model potentials return neutral or adverse results, and they
+are load-bearing rather than embarrassing: they are what makes the positive claim narrow
+enough to be useful. Butane, pentane on $\varphi_1$, the torsion torus, and both dipeptides
+establish that when ABF already resolves the slow coordinate along the biased CV, directed
+reallocation has no work left to do --- in the alanine dipeptide even the \emph{oracle}
+target, built from the reference free energy itself, changes nothing across a $22\times$
+range of realised event rate. Pentane's $R_{15}$ establishes the harder point: making the
+biased coordinate genuinely starved is \emph{not} sufficient, because that starvation is a
+dynamical bottleneck rather than a support deficit, and pushing mFR hard enough to repair the
+nominal support makes the free energy substantially worse while ancestor diversity collapses
+and round trips fall. Amplification is not discovery.
+
+\paragraph{Principal limitations.}
+The positive rests on two systems, one of them constructed for the purpose. The gateway's
+sham \emph{equivalence} test passes in the first confirmatory pass and misses the
+preregistered margin in the replicate, so equivalence is not established there and the claim
+rests on the direct arm-versus-sham contrast instead; on the WCA dimer that direct contrast
+was preregistered, and the sham fails equivalence in the adverse direction. No practical
+(estimated-target) mFR arm was ever run on alanine, and no mFR arm at all was run on valine,
+whose screen stopped the study before one was justified. The deployable estimated target
+remains the binding constraint wherever an oracle target shows headroom. And every conclusion
+is conditioned on the specific model, coordinate, budget, and implementation tested here.
+
+Finally, a parallel audit line in this repository --- forked from the same commit, closed
+separately, and \emph{not} merged --- reaches more conservative conclusions on the WCA system:
+it finds the cached thermodynamic-integration reference inflates the measured improvement by
+about $2\times$ on a related endpoint, and it rejects variance reduction as the mechanism.
+It does not cover the gateway, the matched sham, the alkanes or the dipeptides, so it refutes
+no number reported here, but it is unreconciled and \cref{rem:audit_line} states exactly what
+it puts in doubt.

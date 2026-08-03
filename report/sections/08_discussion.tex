@@ -29,6 +29,34 @@ conditional degrades. The configuration-resolved conditional diagnostics, which 
 2D and WCA cases could only infer from structure, make this measurable directly.
 
 \subsection{Limitations}
+
+\begin{remark}[An unreconciled parallel audit, and what it puts in doubt]
+\label{rem:audit_line}
+A second research line exists in this repository and is \emph{not} incorporated here. It
+forked from the same commit as this work on 2026-07-21, ran its own closure on 2026-07-28,
+and lives on the local branch \texttt{claude/variance-aware-abf}; its artifacts are
+\texttt{results/v1\_closure/v1\_results\_table.csv} and \texttt{docs/V1\_FINAL\_CLAIM\_LEDGER.md}.
+Two of its findings bear directly on claims made above.
+
+First, it audits the \emph{reference}. Three independent high-precision constrained-TI
+replicates place the cached TI reference about $10\times$ the arm effect away from their
+mean, and the WCA contrast it measures reads $-4.75\%$ on the cached reference against
+$-2.41\%$ on the high-precision one --- an inflation of roughly $2\times$. Second, it rejects
+\emph{estimator-variance reduction} as the mechanism, on the grounds that variance is about
+$1\%$ of the WCA error budget and \emph{rises} under directed balancing, and it finds the
+Fisher--Rao score no better than plain count balancing in WCA.
+
+What that line measures is not what \cref{sec:wca_sham} measures: a different endpoint
+(final $L^2(F')$ rather than integrated $L^2(F)$), different arms, and a different run tree.
+Its table covers WCA, the entropic bottleneck and $R_{15}$ only --- it predates the gateway,
+the matched sham, the alkane torsions and both dipeptides, and so refutes no number reported
+here. But it means two things in this report should be read as provisional: the
+variance-reduction language of \cref{sec:case_eb,sec:case_wca}, and the fact that the Case IX
+headline rests on the cached TI reference whose inflation for \emph{that} endpoint and cell
+has not been measured. Reconciling the two lines is outstanding work, and we flag it rather
+than quietly choosing the more favourable of the two readings.
+\end{remark}
+
 We remain deliberately conservative about scope.
 \begin{enumerate}
   \item \textbf{Coordinate dimensionality and curvature.} The core cases use a

@@ -98,6 +98,19 @@ distinguishes a support gain from a lineage-diversity loss (ancestor ESS) and fr
 two-dimensional density-estimation noise (empty-cell score spikes, curl before projection).
 \input{tables/cv_starvation_map.tex}
 
+\Cref{tab:alkane_closure} collects the alkane outcome in one place, on the closure sign
+convention. It is arranged in three blocks because the three coordinates fail for three
+different reasons, and flattening them into a single ``mFR does not help on alkanes'' would
+lose the only part of this that generalises. On the torsion coordinates ABF already resolves
+the barrier and there is nothing to reallocate. On $R_{15}$ there is a genuine support deficit
+and reallocation still cannot use it, because the deficit is maintained by a rare barrier
+crossing rather than by an imbalance among reachable configurations --- which the
+\texttt{fr\_active} row makes concrete: pushed hard enough to repair the nominal support, mFR
+makes the free energy substantially worse. On the torsion torus the deficit is removed by
+construction, by putting the slow coordinate into the CV.
+
+\input{tables/alkane_closure.tex}
+
 The three coordinates answer Q3 cleanly, and the answer is not the same in each. For the
 one-dimensional torsion $\varphi_1$ and for the two-dimensional torus CV, the limiting factor
 is \textbf{(i) lack of marginal starvation}: ABF resolves the biased coordinate to the

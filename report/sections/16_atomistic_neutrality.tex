@@ -206,6 +206,20 @@ $\lvert\sum_k Q^\star_k - 1\rvert < 5\times10^{-16}$ and the matching statement 
 observed populations.
 
 \subsection{What the two neutrality controls establish}
+\input{tables/dipeptide_closure.tex}
+
+\Cref{tab:dipeptide_closure} collects every dipeptide arm that was run. Two features of it
+carry more weight than the numbers. First, the alanine arm is the \emph{oracle} target, built
+from the reference free energy itself --- the quantity the method is trying to estimate --- so
+what the table reports is the ideal-information control returning nothing, across a
+$22\times$ range of realised event rate over which the age-aware ancestor ESS falls from
+$\AlaEssHi$ to $\AlaEssLo$. The mechanism demonstrably worked harder and the accuracy did not
+move. That is a stronger null than a practical arm would have produced, because a practical
+arm's null is always partly attributable to a noisy online target. Second, valine has no row
+at all: its establishment gate never fired, so no mFR arm was justified and none was run. Its
+classification therefore rests on the ABF-only screen and not on a measured mFR outcome, and
+we state that rather than presenting an absence as a null result.
+
 Two independent all-atom systems, one of them selected specifically for a barrier that mFR
 should have been able to exploit, both return the same verdict: when ABF's collective
 variable contains the slow coordinate, ABF discovers \emph{and} establishes the populations

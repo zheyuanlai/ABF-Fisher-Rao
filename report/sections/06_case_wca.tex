@@ -772,9 +772,13 @@ unaffected and passes on its own terms.
 
 \begin{remark}[mFR is not buying barrier crossings]
 \label{rem:wca_roundtrips}
-Round trips per run are essentially identical across the arms: \WcsAbfRoundTrips{} for ABF,
-\WcsEstRoundTrips{} for practical mFR and \WcsShamRoundTrips{} for its sham, a spread of about
-$1\%$. The free-energy error nonetheless differs by more than twenty per cent between them. So
+Round trips per run are nearly identical across the arms: \WcsAbfRoundTrips{} for ABF,
+\WcsEstRoundTrips{} for practical mFR and \WcsShamRoundTrips{} for its sham. Paired on the
+same seeds, practical mFR changes barrier crossings by $\ClosureWcaRoundTripPct\%$
+$[\ClosureWcaRoundTripCIlo, \ClosureWcaRoundTripCIhi]$ while changing the integrated
+free-energy error by \WcsEstGain\% --- a separation of roughly eighteen-fold between the
+transport change and the accuracy change. The crossing change is small but resolvably
+nonzero, so the claim is that transport is nearly unchanged, not that it is untouched. So
 the mechanism is not acting by increasing transport across the barrier; it is redistributing
 population among replicas that were already crossing. That is exactly what the two-state
 reduction of \cref{sec:gw_twostate} predicts --- the reallocation term changes the relaxation

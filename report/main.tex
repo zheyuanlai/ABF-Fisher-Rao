@@ -6,6 +6,7 @@
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{graphicx}
 \usepackage{booktabs}
+\usepackage{array}      % >{...} column modifiers, for ragged-right p-columns
 \usepackage{multirow}
 \usepackage{subcaption}
 \usepackage{geometry}
@@ -77,6 +78,11 @@
 \input{tables/gateway_numbers.tex}
 % WCA matched-sham control; placeholders until results/wca_sham is aggregated.
 \input{tables/wca_sham_numbers.tex}
+% --- v1 closure macros (prefix Closure): the authoritative results inventory and the
+% regime map, regenerated from artifacts by scripts/build_closure_inventory.py. Every
+% number here is read out of an aggregated artifact and renormalised onto one sign
+% convention; nothing is recomputed and nothing is entered by hand.
+\input{tables/closure_numbers.tex}
 
 \title{\bfseries Does Fisher--Rao Birth--Death Help Adaptive Biasing Force?\\
 From Model Potentials and a Condensed-Phase Dimer to Molecular Torsions}
@@ -91,6 +97,7 @@ From Model Potentials and a Condensed-Phase Dimer to Molecular Torsions}
 \input{sections/00_abstract.tex}
 \end{abstract}
 
+\input{sections/00b_executive_synthesis.tex}
 \input{sections/01_introduction.tex}
 \input{sections/02_background_abf.tex}
 \input{sections/03_fisher_rao_correction.tex}

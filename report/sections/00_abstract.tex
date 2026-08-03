@@ -75,11 +75,13 @@ that regime deliberately: an entropic-gateway model with analytic free energy, s
 ABF alone over a $\GwCells$-cell \emph{finite-budget establishment map} whose classification
 and anchor cell were frozen and committed \emph{before} any Fisher--Rao arm was run. On
 $\GwcSeeds$ fresh seeds at rates frozen in a separate calibration pass, mFR improves the
-integrated free-energy error by $\GwcEstGain\%$ $[\GwcEstCIlo, \GwcEstCIhi]$ on
-$\GwcEstWins$ seeds, and beats \emph{its own} \textbf{matched sham} --- the same number of
-clone/delete events at the same times, direction randomised --- directly by $\GwcDirect\%$
-$[\GwcDirectCIlo, \GwcDirectCIhi]$; a second replicate on a corrected batch structure gives
-$\GwrEstGain\%$ and $\GwrDirect\%$. An estimator-independent frozen-bias endpoint, which
+integrated free-energy error by $\GwrEstGain\%$ $[\GwrEstCIlo, \GwrEstCIhi]$ on
+$\GwrEstWins$ seeds, and beats \emph{its own} \textbf{matched sham} --- the same number of
+clone/delete events at the same times, direction randomised --- directly by $\GwrDirect\%$
+$[\GwrDirectCIlo, \GwrDirectCIhi]$. That run is a replicate on a corrected batch structure
+and is the one the preregistration's amendment nominates for quoting; the first pass gave
+$\GwcEstGain\%$ and $\GwcDirect\%$ and is neither withdrawn nor overwritten. An
+estimator-independent frozen-bias endpoint, which
 discards the online accumulators entirely, agrees at $\GwcFrozen\%$.
 
 The same control is then carried to the many-body system. At the accepted WCA-dimer
@@ -87,9 +89,11 @@ configuration, on \WcsSeeds{} fresh seeds with no hyperparameter reopened, pract
 improves the integrated error by \WcsEstGain\% $[\WcsEstCIlo, \WcsEstCIhi]$ on
 \WcsEstWins{} seeds and beats its own matched sham by \WcsDirect\%
 $[\WcsDirectCIlo, \WcsDirectCIhi]$, while the sham itself is \emph{not} better than ABF
-($\WcsShamGain\%$). Round trips are within $1\%$ across all arms, so the mechanism is not
-buying barrier crossings but redistributing population among replicas already crossing ---
-which is what a two-state reduction of the kinetics predicts. These are the first controls in
+($\WcsShamGain\%$). Paired on the same seeds, round trips move by
+$\ClosureWcaRoundTripPct\%$ $[\ClosureWcaRoundTripCIlo, \ClosureWcaRoundTripCIhi]$ while the
+error moves by \WcsEstGain\%, so in this setup the mechanism is consistent with
+redistributing population among replicas already crossing rather than with buying barrier
+crossings --- which is what a two-state reduction of the kinetics predicts. These are the first controls in
 the study that separate Fisher--Rao steering from resampling of the same intensity and timing,
 and they attribute the gain to the steering in both a designed model and a condensed-phase
 molecular system.

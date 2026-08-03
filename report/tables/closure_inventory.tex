@@ -1,0 +1,21 @@
+\begin{table}[t]
+\centering
+\footnotesize
+\caption{Authoritative headline comparisons for the two establishment-limited systems, regenerated from artifacts by \texttt{scripts/build\_closure\_inventory.py}. The endpoint is the time-integrated $L^2$ free-energy error in every row; the statistic is the median over matched seeds of the per-seed relative change, so \textbf{negative is better}. Intervals are 95\,\% bootstrap intervals of that median. The full inventory, including every neutral and adverse row, is \texttt{results/closure/v1\_results\_inventory.csv}.}
+\label{tab:closure_inventory}
+\begin{tabular}{llrrl}
+\toprule
+System & Comparison & $\Delta I_F$ (\%) & 95\,\% CI & seeds \\
+\midrule
+Gateway, confirmatory v2 & practical mFR vs.\ ABF & $-12.48$ & [-16.30, -9.84] & 31/32 \\
+Gateway, confirmatory v2 & practical mFR vs.\ its own sham & $-14.95$ & [-16.22, -12.34] & 32/32 \\
+Gateway, confirmatory v2 & matched sham vs.\ ABF & $+1.92$ & [-2.35, 6.08] & 14/32 \\
+Gateway, confirmatory v1 & practical mFR vs.\ ABF & $-12.12$ & [-14.50, -8.41] & 31/32 \\
+Gateway, confirmatory v1 & practical mFR vs.\ its own sham & $-11.79$ & [-14.10, -8.19] & 31/32 \\
+Gateway, confirmatory v1 & matched sham vs.\ ABF & $+0.35$ & [-2.32, 2.84] & 16/32 \\
+WCA dimer, Case IX & practical mFR vs.\ ABF & $-22.83$ & [-25.42, -17.34] & 16/16 \\
+WCA dimer, Case IX & practical mFR vs.\ its own sham & $-26.38$ & [-28.89, -16.22] & 16/16 \\
+WCA dimer, Case IX & matched sham vs.\ ABF & $+2.60$ & [-0.65, 9.22] & 5/16 \\
+\bottomrule
+\end{tabular}
+\end{table}
