@@ -62,6 +62,16 @@ def main():
 
     ana = os.path.join(a.root, "analysis")
     os.makedirs(ana, exist_ok=True)
+
+    # Every output is written twice: once under its plain name and once tagged with the
+    # stage. Without the tag each stage overwrites the previous one's analysis, and the
+    # surviving files silently belong to whichever stage ran last -- which is how the N2048
+    # pilot's analysis was lost while its raw runs sat intact next to it. The suffixed copy
+    # is the citable artifact; the plain name is kept so existing paths keep resolving.
+    def outputs(fname):
+        stem, ext = os.path.splitext(fname)
+        return [os.path.join(ana, fname), os.path.join(ana, f"{stem}_{a.stage}{ext}")]
+
     bm, ref_meta = from_reference(a.reference)
     F_ref = np.load(a.reference, allow_pickle=True)["F"]
     kT = ref_meta["kT_kJ"]
@@ -87,15 +97,18 @@ def main():
         bas_rows += basin_summary(out, bm.names, tuple(a.window), 0.001)
         cost_rows.append(cost_summary(out, meta) | {"run_id": meta["run_id"]})
 
-    write_csv(os.path.join(ana, "time_series_metrics.csv"), ts_rows)
-    write_csv(os.path.join(ana, "paired_seed_metrics.csv"), seed_rows)
-    write_csv(os.path.join(ana, "genealogy_metrics.csv"), gen_rows)
-    write_csv(os.path.join(ana, "basin_metrics.csv"), bas_rows)
-    write_csv(os.path.join(ana, "cost_metrics.csv"), cost_rows)
-    json.dump(dict(reference=a.reference, param_hash=ref_meta["param_hash"],
-                   kT_kJ=kT, n_grid=n_grid, basins=bm.summary(),
-                   dG_systematic_kT=0.25), open(os.path.join(ana, "reference_provenance.json"), "w"),
-              indent=2, default=float)
+    for rows, fname in ((ts_rows, "time_series_metrics.csv"),
+                        (seed_rows, "paired_seed_metrics.csv"),
+                        (gen_rows, "genealogy_metrics.csv"),
+                        (bas_rows, "basin_metrics.csv"),
+                        (cost_rows, "cost_metrics.csv")):
+        for p in outputs(fname):
+            write_csv(p, rows)
+    prov = dict(reference=a.reference, param_hash=ref_meta["param_hash"],
+                kT_kJ=kT, n_grid=n_grid, stage=a.stage, window=list(a.window),
+                basins=bm.summary(), dG_systematic_kT=0.25)
+    for p in outputs("reference_provenance.json"):
+        json.dump(prov, open(p, "w"), indent=2, default=float)
 
     # ------------------------------------------------------------------ paired statistics
     crit = PILOT if a.kind == "pilot" else PROD
@@ -166,7 +179,9 @@ def main():
                     note=("dG(C7ax) effects smaller than the 0.25 kT reference systematic are "
                           "not resolvable and must not be claimed."))
     name = "pilot_decision.json" if a.kind == "pilot" else "production_decision.json"
-    json.dump(decision, open(os.path.join(ana, name), "w"), indent=2, default=float)
+    written = outputs(name)
+    for p in written:
+        json.dump(decision, open(p, "w"), indent=2, default=float)
 
     print("=" * 78)
     print(f"{a.kind.upper()}  stage={a.stage}  window={a.window} ps  seeds={int(prim['n'])}")
@@ -179,7 +194,7 @@ def main():
     print(f"  endpoint mean force: median {gstat['median']:+.4f} "
           f"CI [{gstat['lo']:+.4f}, {gstat['hi']:+.4f}]")
     print(f"\n  CLASSIFICATION: {cls}")
-    print(f"  wrote {os.path.join(ana, name)}")
+    print(f"  wrote {' and '.join(written)}")
 
 
 if __name__ == "__main__":

@@ -61,7 +61,8 @@ GW_MACROS = [
     "GwFrozenOracleEss", "GwFrozenEstEss", "GwFrozenOracleWmax", "GwOneRightGain",
     "GwOneRightCIlo", "GwOneRightCIhi", "GwOneRightWins", "GwEssGate", "GwWmaxGate",
     # confirmatory run (fresh seeds, frozen rates) -- prefix Gwc
-    "GwcSeeds", "GwcEstGain", "GwcEstCIlo", "GwcEstCIhi", "GwcEstWins", "GwcEstEss",
+    "GwcSeeds", "GwcPrimary", "GwcEstGain", "GwcEstCIlo", "GwcEstCIhi", "GwcEstWins",
+    "GwcEstEss",
     "GwcEstWmax", "GwcShamGain", "GwcShamCIlo", "GwcShamCIhi", "GwcShamTost",
     "GwcDirect", "GwcDirectCIlo", "GwcDirectCIhi", "GwcDirectWins",
     "GwcOracleDirect", "GwcOracleDirectCIlo", "GwcOracleDirectCIhi",
@@ -280,6 +281,10 @@ def gateway():
         mk = pre2["primary_metric"]
         v["GwcSeeds"] = pre2["seeds"]["count"]
         v["GwcMargin"] = f"{pre2['sham_equivalence']['margin_pct'][1]:g}"
+        # Amendment 2 keys its "quote the replicate" rule on both passes clearing the
+        # PRIMARY rule, which is separate from the sham equivalence test, so the verdict for
+        # each pass has to be available on its own.
+        v["GwcPrimary"] = "PASS" if c["primary_pass"] else "FAIL"
         left = {r["arm"]: r for r in c["rows"] if r["init"] == "left"}
         one = {r["arm"]: r for r in c["rows"] if r["init"] == "one_right"}
         e = left["fr_estimated"]

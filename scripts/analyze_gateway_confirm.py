@@ -54,7 +54,13 @@ def paired_rel(v_arm, v_base):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--dir", default=os.path.join(ROOT, "results/gateway_anchor/confirmatory"))
+    # Matches the runner's default. Amendment 2 of the preregistration declares the
+    # single-batch replicate the quoted run when both pass, so a no-argument invocation must
+    # land on it; pointing at the superseded first pass has to be an explicit choice.
+    ap.add_argument("--dir",
+                    default=os.path.join(ROOT, "results/gateway_anchor/confirmatory_v2"),
+                    help="confirmatory run directory (default: the quoted replicate, "
+                         "confirmatory_v2; pass .../confirmatory for the first pass)")
     a = ap.parse_args()
     d = np.load(os.path.join(a.dir, "raw.npz"), allow_pickle=True)
     prov = json.load(open(os.path.join(a.dir, "provenance.json")))
@@ -94,7 +100,14 @@ def main():
              else np.full(method.shape, "practical"))
     abf_groups = sorted(set(group[method == "abf"].tolist()))
     per_group_baseline = len(abf_groups) > 1
-    if not per_group_baseline:
+    # One ABF batch has two opposite meanings. Amendment 2 made the FR rate ride on the
+    # method so all five arms share a single batch, tagged "all" by the runner: that is the
+    # fully noise-matched case. A pre-Amendment-2 artifact instead has one batch because the
+    # other batch's baseline was discarded, which is the defect. Distinguish them by the tag
+    # rather than by the count, or the corrected run is flagged as the broken one.
+    single_shared_batch = (len(abf_groups) == 1 and abf_groups[0] == "all")
+    noise_matched = per_group_baseline or single_shared_batch
+    if not noise_matched:
         print(f"*** WARNING: only one ABF batch ({abf_groups}) is present, so arms from the "
               f"other batch are scored against a NOISE-UNMATCHED baseline. Their intervals "
               f"are inflated. See Amendment 1 of the preregistration. ***\n")
@@ -119,7 +132,7 @@ def main():
             sd = seed[sel]
             rec = dict(init=ini, arm=arm, n_seeds=int(sel.sum()),
                        gamma=float(d["gamma"][sel][0]), baseline_batch=str(gb),
-                       baseline_noise_matched=bool(per_group_baseline))
+                       baseline_noise_matched=bool(noise_matched))
             for k in METRICS:
                 v = d[k][sel].astype(float)
                 b = np.array([base[(gb, x)][k] for x in sd], dtype=float)
@@ -312,6 +325,7 @@ def main():
 
     out = dict(preregistration=pre, primary=prim, direct_vs_sham=direct,
                per_group_baseline=bool(per_group_baseline), abf_batches=abf_groups,
+               baseline_noise_matched=bool(noise_matched),
                primary_checks=
                {k: dict(pass_=bool(v[0]), value=float(v[1])) for k, v in checks.items()},
                primary_pass=bool(primary_pass), sham_tost=tost,

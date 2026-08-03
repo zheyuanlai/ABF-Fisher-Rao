@@ -56,6 +56,22 @@ def rel(a, b):
     return out
 
 
+def _round_trip_paired(runs, arm, seeds):
+    """Paired per-seed relative change in barrier round trips, arm vs ABF.
+
+    Draws from its OWN generator. Sharing the accuracy statistics' stream would shift every
+    interval computed after it, so adding a diagnostic would silently move published numbers.
+    """
+    rng = np.random.default_rng(BOOT_SEED + 1)
+    v = np.array([runs[arm][s]["n_round_trips"] for s in seeds], float)
+    b = np.array([runs["abf"][s]["n_round_trips"] for s in seeds], float)
+    r = rel(v, b)
+    lo, hi = ci(boot(r, rng), 0.95)
+    return dict(round_trips_paired_pct=float(np.nanmedian(r)),
+                round_trips_paired_ci95=[lo, hi],
+                round_trips_wins=int(np.sum(v > b)))
+
+
 def load(raw_dir):
     runs = {}
     for p in sorted(glob.glob(os.path.join(raw_dir, "*.npz"))):
@@ -135,6 +151,11 @@ def main():
                          max_anc_frac=float(np.nanmedian(maf)),
                          round_trips=float(np.nanmedian(
                              [runs[arm][s]["n_round_trips"] for s in seeds])),
+                         # The report's establishment reading rests on crossings moving by
+                         # ~1% while the error moves by >20%, so the crossing statistic has
+                         # to be paired per seed like the accuracy one, not left as a ratio
+                         # of medians that no interval attaches to.
+                         **_round_trip_paired(runs, arm, seeds),
                          repl=float(np.nanmedian(
                              [runs[arm][s]["total_replacement_events"] for s in seeds]))))
     print(f"vs ABF on {METRIC} (paired, negative = better)")
