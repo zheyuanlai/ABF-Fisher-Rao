@@ -121,6 +121,61 @@ def main():
                                     and rec["max_wmax"] <= rule["wmax_max"])
             rows.append(rec)
 
+    # ------------------------------------- direct FR-vs-its-own-sham contrast
+    # Comparing each arm against ABF separately and then eyeballing the two contrasts is a
+    # weaker attribution test than comparing the arm against its sham DIRECTLY on the same
+    # seed: the direct contrast holds the event schedule and count fixed by construction, so
+    # the only thing that differs is the selection direction.
+    direct = []
+    for sham, partner in pre["sham_partners"].items():
+        for ini in sorted(set(init.tolist())):
+            va, vs, sds = [], [], []
+            for s_ in sorted(set(seed.tolist())):
+                m1 = (init == ini) & (seed == s_) & (method == partner)
+                m2 = (init == ini) & (seed == s_) & (method == sham)
+                if m1.any() and m2.any():
+                    va.append(float(d[pre["primary_metric"]][m1][0]))
+                    vs.append(float(d[pre["primary_metric"]][m2][0]))
+                    sds.append(s_)
+            va, vs = np.asarray(va), np.asarray(vs)
+            rel = paired_rel(va, vs)      # FR arm relative to its own sham
+            dist = boot(rel, rng, NB)
+            lo95, hi95 = ci(dist, 0.95)
+            rec = dict(arm=partner, sham=sham, init=ini, n_seeds=len(va),
+                       pct=float(np.nanmedian(rel)), ci95=[lo95, hi95],
+                       wins=int(np.sum(va < vs)), excludes_zero=bool(lo95 * hi95 > 0))
+            # Same contrast on the estimator-independent endpoint. This matters when a sham
+            # is not itself equivalent to ABF: the arm-vs-sham difference is still the
+            # quantity that isolates direction, on whichever endpoint it is measured.
+            if has_frozen:
+                fa = np.asarray([float(d["frozen_l2_f_kT"][(init == ini) & (seed == x)
+                                                           & (method == partner)][0])
+                                 for x in sds])
+                fs = np.asarray([float(d["frozen_l2_f_kT"][(init == ini) & (seed == x)
+                                                           & (method == sham)][0])
+                                 for x in sds])
+                frel = paired_rel(fa, fs)
+                fd = boot(frel, rng, NB)
+                flo, fhi = ci(fd, 0.95)
+                rec.update(frozen_pct=float(np.nanmedian(frel)), frozen_ci95=[flo, fhi],
+                           frozen_wins=int(np.sum(fa < fs)),
+                           frozen_excludes_zero=bool(flo * fhi > 0))
+            direct.append(rec)
+    print("Direct contrast -- each FR arm against ITS OWN sham, same seed, same event "
+          "schedule\n(this is the attribution test: only the selection direction differs)")
+    for r in direct:
+        tag = "" if r["init"] == "left" else "   [mechanism control]"
+        line = (f"  {r['arm']:>14s} vs {r['sham']:<15s} {r['pct']:+7.2f}% "
+                f"[{r['ci95'][0]:+6.2f},{r['ci95'][1]:+6.2f}]  {r['wins']:2d}/{r['n_seeds']} "
+                f"{'CI excl. 0' if r['excludes_zero'] else 'CI incl. 0'}")
+        if "frozen_pct" in r:
+            line += (f" | frozen {r['frozen_pct']:+7.2f}% "
+                     f"[{r['frozen_ci95'][0]:+6.2f},{r['frozen_ci95'][1]:+6.2f}] "
+                     f"{r['frozen_wins']:2d}/{r['n_seeds']} "
+                     f"{'excl. 0' if r['frozen_excludes_zero'] else 'incl. 0'}")
+        print(line + tag)
+    print()
+
     # -------------------------------------------------- sham intensity match
     bad = 0
     for sham, partner in pre["sham_partners"].items():
@@ -223,8 +278,19 @@ def main():
               f"vs ABF on the reconstructed free energy")
         print(f"  sign {'AGREES with' if agree else 'DISAGREES with'} the online endpoint"
               + ("" if agree else " -- the frozen-bias reading wins, per the prereg"))
+        # The shams must be read on this endpoint too: equivalence on the online metric does
+        # not imply equivalence on the reconstructed bias, and the difference is informative.
+        for sham in pre["sham_partners"]:
+            rs = next((x for x in rows if x["init"] == "left" and x["arm"] == sham), None)
+            if rs is None:
+                continue
+            lo, hi = rs["frozen_l2_f_kT_ci90"]
+            inside = (lo >= eqv["margin_pct"][0]) and (hi <= eqv["margin_pct"][1])
+            print(f"  {sham:>16s}: {rs['frozen_l2_f_kT_pct']:+.2f}% "
+                  f"90% CI [{lo:+.2f},{hi:+.2f}] -> "
+                  f"{'equivalent' if inside else 'NOT equivalent on this endpoint'}")
 
-    out = dict(preregistration=pre, primary=prim, primary_checks=
+    out = dict(preregistration=pre, primary=prim, direct_vs_sham=direct, primary_checks=
                {k: dict(pass_=bool(v[0]), value=float(v[1])) for k, v in checks.items()},
                primary_pass=bool(primary_pass), sham_tost=tost,
                headline_supported=bool(headline),

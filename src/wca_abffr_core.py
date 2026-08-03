@@ -34,7 +34,14 @@ import torch.nn.functional as F
 EPS = 1.0e-12
 
 FR_METHODS = ("fr_estimated", "fr_uniform", "fr_oracle", "fr_estimated_adaptive")
-ALL_METHODS = ("abf",) + FR_METHODS
+# Matched-sham arms.  They resample -- at their partner's event times, with their partner's
+# realised counts -- but the direction is randomised, so they carry no target and compute no
+# score.  Each replays a per-event count sequence recorded from its own partner; a sham
+# shadowing the oracle is not a control for the practical arm, because the two arms build
+# different targets and therefore fire different numbers of events.
+SHAM_METHODS = ("sham_practical", "sham_oracle")
+SHAM_PARTNER = {"sham_practical": "fr_estimated", "sham_oracle": "fr_oracle"}
+ALL_METHODS = ("abf",) + FR_METHODS + SHAM_METHODS
 # Methods that maintain the online EMA estimated target (never see the TI reference).
 ESTIMATED_TARGET_METHODS = ("fr_estimated", "fr_estimated_adaptive")
 
@@ -595,6 +602,45 @@ def fixed_population_birth_death_torch(q, score, sim, ancestors=None, fr_interva
         "replacement": int(n_events), "death_idx": death_indices, "birth_src": clone_sources}
 
 
+def uniform_birth_death_torch(q, n_events, ancestors=None, generator=None):
+    """Kill ``n_events`` replicas uniformly at random and refill from survivors.
+
+    The matched-sham replacement step.  It is handed a count -- the count its partner FR arm
+    actually realised at this event -- and performs the same number of replacements at the
+    same time, choosing *which* replicas die and which are copied uniformly at random.
+
+    Everything that distinguishes it from ``fixed_population_birth_death_torch`` is the
+    selection: no score, no death weights, no birth weights.  The population size, the copy
+    semantics (whole replica configuration), the lineage bookkeeping and the event count are
+    identical, so a difference in outcome is attributable to the Fisher-Rao *direction*.
+
+    Clone sources are drawn from the survivors only, matching the FR arm, where a replica
+    that dies has zero birth weight and so cannot be its own source.
+    """
+    R = q.shape[0]
+    empty = torch.empty(0, dtype=torch.long, device=q.device)
+    n_events = int(n_events)
+    if n_events < 1:
+        return (q.clone(), None if ancestors is None else ancestors.clone(),
+                {"replacement": 0, "death_idx": empty, "birth_src": empty})
+    n_events = min(n_events, R - 1)          # at least one survivor must remain
+    perm = torch.randperm(R, device=q.device, generator=generator)
+    death_indices = perm[:n_events]
+    survivors = perm[n_events:]
+    pick = torch.randint(survivors.numel(), (n_events,), device=q.device,
+                         generator=generator)
+    clone_sources = survivors[pick]
+    q_new = q.clone()
+    q_new[death_indices] = q.index_select(0, clone_sources)
+    ancestors_new = None
+    if ancestors is not None:
+        ancestors_new = ancestors.clone()
+        ancestors_new[death_indices] = ancestors.index_select(0, clone_sources)
+    return q_new, ancestors_new, {"replacement": int(n_events),
+                                  "death_idx": death_indices,
+                                  "birth_src": clone_sources}
+
+
 # ---------------------------------------------------------------------------
 # Adaptive diversity-aware FR schedule (deployable; ONLINE quantities only).
 # ---------------------------------------------------------------------------
@@ -840,7 +886,7 @@ def assert_no_oracle_leakage(method, oracle_free_energy):
 @torch.inference_mode()
 def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                     oracle_free_energy=None, collect_diagnostics=True, verbose=True,
-                    track_crossings=False):
+                    track_crossings=False, replay_counts=None):
     """Run one sampler on the GPU.
 
     method in {abf, fr_estimated, fr_uniform, fr_oracle}. The FR target is built
@@ -859,7 +905,21 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
     if method not in ALL_METHODS:
         raise ValueError(f"method must be one of {ALL_METHODS}, got {method!r}")
     assert_no_oracle_leakage(method, oracle_free_energy)
-    is_fr = method in FR_METHODS
+    is_sham = method in SHAM_METHODS
+    is_fr = (method in FR_METHODS) or is_sham
+    if is_sham:
+        # A sham with no schedule to replay would silently become plain ABF and still print
+        # a verdict, so this is an error rather than a default.
+        if replay_counts is None:
+            raise ValueError(
+                f"{method!r} requires replay_counts: the per-event replacement counts "
+                f"realised by {SHAM_PARTNER[method]!r} on the same seed. Without them the "
+                f"arm is not intensity-matched and is not the control it claims to be.")
+        replay_counts = [int(x) for x in np.asarray(replay_counts).ravel().tolist()]
+    elif replay_counts is not None:
+        raise ValueError(f"replay_counts is only meaningful for {SHAM_METHODS}")
+    fr_event_counts = []          # per FR opportunity; what a sham later replays
+    sham_event_idx = 0
 
     torch.manual_seed(sim.seed)
     q = (lattice_initial_conditions(params, sim.n_replicas, engine.device, engine.dtype, seed=sim.seed)
@@ -1016,8 +1076,34 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                      and (next_step - sim.fr_start_steps) % max(int(sim.fr_every), 1) == 0)
             if do_fr:
                 z_new = reaction_coordinate(q, params)
-                q_grid = _build_fr_target(method, grid, F_target_ema, current_bias_profile,
-                                          oracle_t, params.beta)
+                if is_sham:
+                    # Replay the partner's realised count at this same opportunity index,
+                    # with the direction randomised.  No target and no score are built, so a
+                    # sham cannot read a reference even by accident.  The opportunity index
+                    # is what makes the timing match: `do_fr` depends only on the step
+                    # schedule, which is identical for every arm.
+                    K = (replay_counts[sham_event_idx]
+                         if sham_event_idx < len(replay_counts) else 0)
+                    sham_event_idx += 1
+                    q, ancestors, stats = uniform_birth_death_torch(q, K,
+                                                                    ancestors=ancestors)
+                    total_replacement_events += stats["replacement"]
+                    last_event_fraction = stats["replacement"] / float(sim.n_replicas)
+                    fr_event_counts.append(int(stats["replacement"]))
+                    if track_crossings and side is not None and stats["replacement"] > 0:
+                        di, bs = stats["death_idx"], stats["birth_src"]
+                        side[di] = side.index_select(0, bs)
+                    if collect_diagnostics and stats["replacement"] > 0:
+                        zb = z_new.index_select(0, stats["birth_src"])
+                        zd = z_new.index_select(0, stats["death_idx"])
+                        birth_hist += np.histogram(to_numpy(zb), bins=sim.n_grid,
+                                                   range=(sim.z_min, sim.z_max))[0]
+                        death_hist += np.histogram(to_numpy(zd), bins=sim.n_grid,
+                                                   range=(sim.z_min, sim.z_max))[0]
+                    q_grid = None
+                else:
+                    q_grid = _build_fr_target(method, grid, F_target_ema,
+                                              current_bias_profile, oracle_t, params.beta)
                 if q_grid is not None:
                     score, p_fr, q_fr, kl_pq = fr_score_torch(z_new, grid, sim, q_grid)
                     # aggregate score stats (cheap; used by Part B safety diagnostics)
@@ -1059,6 +1145,10 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                         fr_rate_override=rate_override)
                     total_replacement_events += stats["replacement"]
                     last_event_fraction = stats["replacement"] / float(sim.n_replicas)
+                    # Recorded per FR opportunity so a matched sham can replay this exact
+                    # sequence later; the sham runs in a separate process, so the schedule
+                    # has to travel through the artifact.
+                    fr_event_counts.append(int(stats["replacement"]))
                     if is_adaptive:
                         adaptive_log["step"].append(int(next_step))
                         adaptive_log["fr_rate_eff"].append(gates["rate_eff"])
@@ -1088,11 +1178,19 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                                                    range=(sim.z_min, sim.z_max))[0]
                         death_hist += np.histogram(to_numpy(zd), bins=sim.n_grid,
                                                    range=(sim.z_min, sim.z_max))[0]
+                elif not is_sham:
+                    # The target is not ready yet: a real opportunity with zero events. It
+                    # must still occupy a slot, or a sham replaying the sequence would shift
+                    # every later count onto the wrong opportunity.
+                    fr_event_counts.append(0)
 
     diag["runtime_seconds"] = time.perf_counter() - t0
     diag["method"] = method
     diag["grid"] = to_numpy(grid)
     diag["total_replacement_events"] = total_replacement_events
+    diag["fr_event_counts"] = np.asarray(fr_event_counts, dtype=np.int64)
+    diag["sham_partner"] = SHAM_PARTNER.get(method)
+    diag["sham_replayed_events"] = int(sham_event_idx) if is_sham else 0
     diag["F_target_ema"] = to_numpy(F_target_ema) if F_target_ema is not None else None
     diag["birth_hist"] = birth_hist
     diag["death_hist"] = death_hist
@@ -1143,6 +1241,11 @@ def _build_fr_target(method, grid, F_target_ema, current_bias_profile, oracle_t,
         return fr_target_estimated_torch(grid, F_target_ema, current_bias_profile, beta)
     if method == "fr_oracle":
         return fr_target_oracle_torch(grid, oracle_t, current_bias_profile, beta)
+    if method in SHAM_METHODS:
+        # A sham has no target by construction -- it replays its partner's event counts and
+        # picks uniformly at random. Returning None (rather than raising) is what keeps the
+        # diagnostics call site honest: there is nothing to log, so it logs NaN.
+        return None
     raise ValueError(method)
 
 

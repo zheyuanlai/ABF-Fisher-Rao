@@ -229,8 +229,14 @@ def fr_event_stats(spec: PhaseRunSpec, steps, repl_cumulative, n_replicas):
                 clones_per_fr_application=deaths_per_app)
 
 
-def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase", verbose=False):
-    """Run one phase-diagram job; return a flat dict of scalars + arrays to save."""
+def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase", verbose=False,
+                replay_counts=None):
+    """Run one phase-diagram job; return a flat dict of scalars + arrays to save.
+
+    ``replay_counts`` is required by the matched-sham methods and rejected by every other
+    one: it is the per-FR-opportunity replacement count its partner arm realised on the same
+    seed, which the sham reproduces with the direction randomised.
+    """
     params = build_params(spec)
     sim = build_sim(spec, base)
     ref = get_reference(spec, base, engine, cache_dir=cache_dir, verbose=verbose)
@@ -240,7 +246,8 @@ def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase",
     t0 = time.perf_counter()
     diag = core.run_sampler_gpu(spec.method, params, sim, engine, initial_q=ic,
                                 oracle_free_energy=oracle_fe, collect_diagnostics=True,
-                                verbose=verbose, track_crossings=True)
+                                verbose=verbose, track_crossings=True,
+                                replay_counts=replay_counts)
     fin = core.final_l2_errors(diag, ref, sim)
     ts = core.timeseries_l2(diag, ref, sim)
 
@@ -331,6 +338,10 @@ def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase",
         "final_eff_counts": (diag["eff_counts"][-1] if len(diag["eff_counts"]) else np.full_like(grid, np.nan)),
         "F_target_ema": (diag["F_target_ema"] if diag["F_target_ema"] is not None else np.full_like(grid, np.nan)),
         "birth_hist": diag["birth_hist"], "death_hist": diag["death_hist"], "hist_edges": diag["hist_edges"],
+        # the per-opportunity replacement schedule, so a matched sham can replay this run
+        "fr_event_counts": diag["fr_event_counts"],
+        "sham_partner": (diag["sham_partner"] or ""),
+        "sham_replayed_events": diag["sham_replayed_events"],
     }
     return out
 
