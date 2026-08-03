@@ -1,5 +1,11 @@
 # WCA reviewer-proofing + OPES baseline — HANDOFF
 
+> **v1 is closed.** This file documents how the WCA follow-up and OPES layers were *built* and
+> is kept for provenance. For the frozen state, the authoritative results table, the headline
+> numbers with their caveats, and the deferred v2 questions, start at
+> [`CLOSURE_v1.md`](CLOSURE_v1.md). Do not launch anything described below.
+
+
 Two additive layers: (1) the WCA reviewer-proofing follow-up (Parts B–G, below),
 and (2) the OPES_METAD baseline across all three systems (see the OPES section at
 the end). The Part H serial-ABF closeout formerly in `HANDOFF_WCA_CLOSEOUT.md` was
