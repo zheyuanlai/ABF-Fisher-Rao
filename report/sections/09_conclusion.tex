@@ -70,19 +70,32 @@ The control that matters most is the one this study previously lacked entirely. 
 Fisher--Rao arm anywhere in this work derives its replacement direction from the same score
 and differs only in how the target is built, so ``the gain comes from balanced resampling''
 had never been tested. A \textbf{matched sham} --- the same number of clone and delete events
-at the same times, with which walkers they act on randomised --- is \GwcShamTost{} to ABF
-within a $\pm\GwcMargin\%$ margin, and mFR beats it \emph{directly}, on the same seeds and the
-same event schedule, by $\GwcDirect\%$ $[\GwcDirectCIlo, \GwcDirectCIhi]$. The majority of the
-gain is the Fisher--Rao direction rather than the turnover; the frozen-bias endpoint shows
-that uniform turnover contributes a minority of it, and we report that split rather than
-claiming a clean dichotomy.
+at the same times, with which walkers they act on randomised --- never improves on ABF in
+either pass ($\GwcShamGain\%$ and $\GwrShamGain\%$), and mFR beats it \emph{directly}, on
+the same seeds and the same event schedule, by $\GwcDirect\%$
+$[\GwcDirectCIlo, \GwcDirectCIhi]$ and $\GwrDirect\%$ $[\GwrDirectCIlo, \GwrDirectCIhi]$.
 
-Two limits of this are worth stating in the same breath. The $\beta$ axis of the map is a
+Two honest qualifications travel with that. The formal equivalence test on the sham passes in
+the first pass and misses in the second by about four tenths of a percentage point
+(\cref{rem:gw_replicate}); since both point estimates put the sham on the \emph{harmful} side
+of ABF, that failure cannot mean turnover explains the gain, but the preregistered rule was
+written without distinguishing the direction of such a failure and we report it as written.
+And on the frozen-bias endpoint the first pass shows uniform turnover contributing a small
+share of the benefit, so the split is quantified rather than presented as a clean dichotomy.
+
+The attribution then transfers to the many-body system. At the accepted WCA-dimer cell, on
+\WcsSeeds{} fresh seeds with nothing retuned, practical mFR improves the integrated error by
+\WcsEstGain\% $[\WcsEstCIlo, \WcsEstCIhi]$ on \WcsEstWins{} seeds and beats its own matched
+sham by \WcsDirect\% $[\WcsDirectCIlo, \WcsDirectCIhi]$, while matched random turnover is
+itself \emph{not} an improvement on ABF ($\WcsShamGain\%$). Round trips differ by under
+$1\%$ across arms, so the mechanism redistributes population rather than creating crossings ---
+the behaviour the two-state reduction predicts, confirmed on a system it was not built from.
+
+One limit is worth stating in the same breath. The $\beta$ axis of the gateway map is a
 \emph{time-budget} axis, not a family of landscapes: $\beta F$ is identical in every cell by
 construction, and under $\tau = t/\beta$ the longitudinal dynamics is exactly $\beta$-free
-(\cref{rem:gw_beta}). And the attribution is so far demonstrated on a two-dimensional model,
-not a many-body one --- the WCA dimer's positive result is a positive against ABF and not yet
-against matched turnover (\cref{rem:wca_possibly}).
+(\cref{rem:gw_beta}). The map says which budgets put a system in which regime, not which
+potentials do.
 
 The common object is marginal reallocation, not a universal variance-reduction
 slogan. FR moves whole configurations from over-represented to under-represented

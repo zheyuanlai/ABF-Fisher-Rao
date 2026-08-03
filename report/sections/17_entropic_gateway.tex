@@ -243,6 +243,43 @@ on the practical arm, and the oracle's is reported as inconclusive.
   number.}\label{fig_gw_02_anchor}
 \end{figure}
 
+\begin{remark}[A second replicate, and where the preregistered rule turned out to be blunt]
+\label{rem:gw_replicate}
+The confirmatory run was executed twice. The first pass carried a pairing defect found by code
+inspection: the two FR rates were run as two batches, the Langevin stream is keyed to the
+batch, and the oracle arms were therefore scored against a baseline from the other batch
+(matched initial conditions, unmatched noise). The primary claim and both direct contrasts
+lived inside a single batch and were unaffected. The fix was structural --- the FR rate now
+rides on the method, so all five arms share one batch --- which necessarily re-runs every arm,
+so the second pass is reported as a \emph{replicate} rather than a correction, and the first is
+neither withdrawn nor overwritten.
+
+\textbf{The primary claim replicates.} Across two independent noise realisations, practical
+mFR gives $\GwcEstGain\%$ $[\GwcEstCIlo, \GwcEstCIhi]$ on $\GwcEstWins$ seeds and
+$\GwrEstGain\%$ $[\GwrEstCIlo, \GwrEstCIhi]$ on $\GwrEstWins$; the estimator-independent
+frozen-bias endpoint gives $\GwcFrozen\%$ and $\GwrFrozen\%$. The direct
+arm-versus-its-own-sham contrast gives $\GwcDirect\%$ and $\GwrDirect\%$
+$[\GwrDirectCIlo, \GwrDirectCIhi]$ on $\GwrDirectWins$ seeds, excluding zero in both.
+
+\textbf{The sham equivalence test does not replicate, and the rule is at fault.} The practical
+sham reads $\GwcShamGain\%$ in the first pass (90\,\% CI $[\GwcShamCIlo, \GwcShamCIhi]$,
+\GwcShamTost) and $\GwrShamGain\%$ in the second (90\,\% CI
+$[\GwrShamCIloNinety, \GwrShamCIhiNinety]$, \GwrShamTost{} --- it misses the $+5\%$ bound by
+about four tenths of a percentage point). Both point estimates are \emph{positive}: the sham is
+never better than ABF, and in the replicate it is slightly worse.
+
+The preregistered headline rule required the primary criteria \emph{and} sham equivalence, so
+by its letter the replicate does not support the headline. We report that. But the rule is
+blunt in a way worth naming rather than working around: it does not distinguish the direction
+in which equivalence fails, and a sham that makes the estimate worse cannot be the explanation
+for an arm that makes it better. On the frozen-bias endpoint the same sham is \GwrShamFrozenTost{}
+($\GwrShamFrozen\%$). The statistic that actually isolates direction is the direct contrast,
+which is decisive in both passes --- and which, for this system, was added during analysis of
+the first pass and is therefore \emph{post hoc} here. It was preregistered for the WCA
+comparison (\cref{sec:wca_sham}), where it also passes, and that is the stronger claim of the
+two because nothing about it was chosen after the fact.
+\end{remark}
+
 \subsection{Three things the design was built to rule out}
 \paragraph{It is establishment, not discovery.} In the mechanism control one walker starts
 across the gateway, so discovery is handed to the sampler for free and any remaining

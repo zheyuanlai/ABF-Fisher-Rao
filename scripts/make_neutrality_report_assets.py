@@ -73,6 +73,12 @@ GW_MACROS = [
     # beta-scaling audit -- prefix Bs
     "BsTauEstFold", "BsBetaFold", "BsTestFracFold", "BsTauHit", "BsMeanErrFold",
     "BsBetaHkT",
+    # confirmatory replicate (single batch) -- prefix Gwr
+    "GwrEstGain", "GwrEstCIlo", "GwrEstCIhi", "GwrEstWins", "GwrEstEss",
+    "GwrShamGain", "GwrShamCIloNinety", "GwrShamCIhiNinety", "GwrShamTost",
+    "GwrDirect", "GwrDirectCIlo", "GwrDirectCIhi", "GwrDirectWins",
+    "GwrFrozen", "GwrFrozenCIlo", "GwrFrozenCIhi",
+    "GwrShamFrozen", "GwrShamFrozenTost", "GwrPrimary",
 ]
 
 
@@ -321,6 +327,41 @@ def gateway():
                     v["GwcDirectFrozenCIlo"] = f"{rec['frozen_ci95'][0]:.2f}"
                     v["GwcDirectFrozenCIhi"] = f"{rec['frozen_ci95'][1]:.2f}"
         src += " + confirmatory_summary.json"
+    rp = os.path.join(ROOT,
+                      "results/gateway_anchor/confirmatory_v2/confirmatory_summary.json")
+    if os.path.exists(rp):
+        c2 = json.load(open(rp))
+        mk2 = c2["preregistration"]["primary_metric"]
+        L2 = {r["arm"]: r for r in c2["rows"] if r["init"] == "left"}
+        e2 = L2["fr_estimated"]
+        v["GwrEstGain"] = f"{e2[mk2 + '_pct']:.2f}"
+        v["GwrEstCIlo"] = f"{e2[mk2 + '_ci95'][0]:.2f}"
+        v["GwrEstCIhi"] = f"{e2[mk2 + '_ci95'][1]:.2f}"
+        v["GwrEstWins"] = f"{e2[mk2 + '_wins']}/{e2['n_seeds']}"
+        v["GwrEstEss"] = f"{e2['min_ess_frac']:.3f}"
+        v["GwrFrozen"] = f"{e2['frozen_l2_f_kT_pct']:.2f}"
+        v["GwrFrozenCIlo"] = f"{e2['frozen_l2_f_kT_ci95'][0]:.2f}"
+        v["GwrFrozenCIhi"] = f"{e2['frozen_l2_f_kT_ci95'][1]:.2f}"
+        v["GwrPrimary"] = "PASS" if c2["primary_pass"] else "FAIL"
+        s2 = L2["sham_practical"]
+        v["GwrShamGain"] = f"{s2[mk2 + '_pct']:+.2f}"
+        v["GwrShamCIloNinety"] = f"{s2[mk2 + '_ci90'][0]:.2f}"
+        v["GwrShamCIhiNinety"] = f"{s2[mk2 + '_ci90'][1]:.2f}"
+        v["GwrShamFrozen"] = f"{s2['frozen_l2_f_kT_pct']:+.2f}"
+        t2 = c2["sham_tost"].get("sham_practical")
+        if t2:
+            v["GwrShamTost"] = ("equivalent" if t2["equivalent"]
+                                else "not shown equivalent")
+        lo, hi = s2["frozen_l2_f_kT_ci90"]
+        v["GwrShamFrozenTost"] = ("equivalent" if (lo >= -5.0 and hi <= 5.0)
+                                  else "not shown equivalent")
+        for rec in c2.get("direct_vs_sham", []):
+            if rec["init"] == "left" and rec["arm"] == "fr_estimated":
+                v["GwrDirect"] = f"{rec['pct']:.2f}"
+                v["GwrDirectCIlo"] = f"{rec['ci95'][0]:.2f}"
+                v["GwrDirectCIhi"] = f"{rec['ci95'][1]:.2f}"
+                v["GwrDirectWins"] = f"{rec['wins']}/{rec['n_seeds']}"
+        src += " + confirmatory_v2"
     bp = os.path.join(ROOT, "results/gateway_phase/production/beta_scaling_audit.json")
     if os.path.exists(bp):
         b = json.load(open(bp))
@@ -346,6 +387,7 @@ def wca_sham():
         return {}, ("results/wca_sham (INTERIM -- "
                     f"{len(d.get('seeds', []))} seeds, macros withheld)")
     rows = {r["arm"]: r for r in d["vs_abf"]}
+    abf_rt = d.get("abf_round_trips")
     v = {
         "WcsSeeds": len(d["seeds"]),
         "WcsCell": "b1\\_h2", "WcsSteps": "120\\,000", "WcsReplicas": 1024,
@@ -355,6 +397,8 @@ def wca_sham():
         "WcsCritOne": "PASS" if d["criterion_1"] else "FAIL",
         "WcsCritTwo": "PASS" if d["criterion_2"] else "FAIL",
     }
+    if abf_rt is not None:
+        v["WcsAbfRoundTrips"] = f"{abf_rt:.0f}"
     if "fr_estimated" in rows:
         e = rows["fr_estimated"]
         v.update(WcsEstGain=f"{e['pct']:.2f}", WcsEstCIlo=f"{e['ci95'][0]:.2f}",

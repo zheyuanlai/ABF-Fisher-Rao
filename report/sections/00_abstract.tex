@@ -78,11 +78,21 @@ $\GwcSeeds$ fresh seeds at rates frozen in a separate calibration pass, mFR impr
 integrated free-energy error by $\GwcEstGain\%$ $[\GwcEstCIlo, \GwcEstCIhi]$ on
 $\GwcEstWins$ seeds, and beats \emph{its own} \textbf{matched sham} --- the same number of
 clone/delete events at the same times, direction randomised --- directly by $\GwcDirect\%$
-$[\GwcDirectCIlo, \GwcDirectCIhi]$, with the sham itself \GwcShamTost{} to ABF within a
-$\pm\GwcMargin\%$ margin. An estimator-independent frozen-bias endpoint, which discards the
-online accumulators entirely, agrees at $\GwcFrozen\%$. This is the first control in the
-study that separates Fisher--Rao steering from resampling of the same intensity, and it
-attributes the majority of the gain to the steering.
+$[\GwcDirectCIlo, \GwcDirectCIhi]$; a second replicate on a corrected batch structure gives
+$\GwrEstGain\%$ and $\GwrDirect\%$. An estimator-independent frozen-bias endpoint, which
+discards the online accumulators entirely, agrees at $\GwcFrozen\%$.
+
+The same control is then carried to the many-body system. At the accepted WCA-dimer
+configuration, on \WcsSeeds{} fresh seeds with no hyperparameter reopened, practical mFR
+improves the integrated error by \WcsEstGain\% $[\WcsEstCIlo, \WcsEstCIhi]$ on
+\WcsEstWins{} seeds and beats its own matched sham by \WcsDirect\%
+$[\WcsDirectCIlo, \WcsDirectCIhi]$, while the sham itself is \emph{not} better than ABF
+($\WcsShamGain\%$). Round trips are within $1\%$ across all arms, so the mechanism is not
+buying barrier crossings but redistributing population among replicas already crossing ---
+which is what a two-state reduction of the kinetics predicts. These are the first controls in
+the study that separate Fisher--Rao steering from resampling of the same intensity and timing,
+and they attribute the gain to the steering in both a designed model and a condensed-phase
+molecular system.
 
 Across all cases, FR is best understood as a
 marginal-reallocation mechanism whose value depends on how starved the ABF estimator is

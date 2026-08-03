@@ -710,3 +710,62 @@ Thus the practical recommendation is conditional, not automatic: use gentle,
 diversity-preserving mFR in starved WCA regimes, and monitor ABF error,
 transition support, FR event fractions, and genealogy before increasing the
 birth--death strength.
+
+\subsection{Does the directional mechanism survive a matched sham? A many-body test}
+\label{sec:wca_sham}
+Everything above compares mFR against ABF and against other \emph{score-driven} arms
+(\texttt{fr\_uniform}, \texttt{fr\_oracle}), each of which derives its replacement direction
+from the same Fisher--Rao score and differs only in how the target is built. So the WCA
+positive, however reproducible, was a positive against ABF and never against \emph{turnover of
+the same intensity}. \Cref{sec:gateway} supplies that control in a two-dimensional model; this
+subsection supplies it here, in the many-body system.
+
+Nothing is retuned. The cell is the accepted \WcsCell{} configuration
+($\beta=1$, $h=2$, $w=2$, $M=100$, $a=1.5$), the budget is \WcsSteps{} steps at
+$N=\WcsReplicas$, and every Fisher--Rao knob is read back from the production YAML and
+asserted, so an edit to that file cannot move this experiment. Only the seeds are new
+(\WcsSeeds{} of them, verified unused anywhere in the study). Because the WCA sampler runs one
+method per process, a sham cannot observe its partner online: it replays the per-event
+replacement count sequence its partner recorded \emph{on the same seed}, choosing which
+replicas die and which are copied uniformly at random. Across all seeds and both partners the
+realised totals matched with \WcsMismatch{} discrepancies.
+
+\input{tables/wca_sham.tex}
+
+\Cref{tab:wca_sham} gives the result, and both preregistered criteria pass. Practical mFR
+improves the integrated free-energy error by \WcsEstGain\% $[\WcsEstCIlo, \WcsEstCIhi]$ on
+\WcsEstWins{} matched seeds. The attribution criterion --- the \emph{direct} contrast of each
+arm against its own sham, which holds the event schedule and the replacement count fixed so
+that only the selection direction differs --- gives \WcsDirect\%
+$[\WcsDirectCIlo, \WcsDirectCIhi]$ on \WcsDirectWins{} seeds, with the interval excluding zero.
+Verdict: \textbf{\WcsVerdict}.
+
+\begin{remark}[The sham is not equivalent to ABF --- it is slightly worse]
+\label{rem:wca_sham_harmful}
+The equivalence test was written expecting the sham to land \emph{on} ABF, and it does not:
+matched random turnover reads $\WcsShamGain\%$, and its interval sits far enough to the
+positive side that it is \WcsShamTost{} within a $\pm5\%$ margin. That is a failure of the
+equivalence criterion, and it is reported as one --- but it fails in the direction that
+strengthens rather than weakens the attribution. A control that makes the estimate
+\emph{worse} cannot be the explanation for an arm that makes it \WcsEstGain\% better. The
+entire gain, and a little more, is attributable to the direction in which mass is moved.
+
+The preregistration's outcome table did not anticipate this polarity: it enumerated the case
+where a sham fails equivalence \emph{in the improving direction} (where the gain would be
+partly generic turnover) but not the case where it fails on the harmful side. That is a gap in
+the rule as written, and the reading above is therefore an interpretation rather than a
+predeclared outcome. The predeclared attribution criterion --- the direct contrast --- is
+unaffected and passes on its own terms.
+\end{remark}
+
+\begin{remark}[mFR is not buying barrier crossings]
+\label{rem:wca_roundtrips}
+Round trips per run are essentially identical across the arms: \WcsAbfRoundTrips{} for ABF,
+\WcsEstRoundTrips{} for practical mFR and \WcsShamRoundTrips{} for its sham, a spread of about
+$1\%$. The free-energy error nonetheless differs by more than twenty per cent between them. So
+the mechanism is not acting by increasing transport across the barrier; it is redistributing
+population among replicas that were already crossing. That is exactly what the two-state
+reduction of \cref{sec:gw_twostate} predicts --- the reallocation term changes the relaxation
+rate toward the target without touching the physical crossing rate $k_{01}$ --- and it is an
+independent confirmation of that model on a system it was not built from.
+\end{remark}

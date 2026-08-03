@@ -238,6 +238,8 @@ def main():
 
     out = dict(seeds=seeds, arms=arms, metric=METRIC, rule=RULE, margin=MARGIN,
                complete=True, vs_abf=rows, direct=direct, tost=tost,
+               abf_round_trips=float(np.nanmedian(
+                   [runs["abf"][s]["n_round_trips"] for s in seeds])),
                criterion_1=bool(c1), criterion_2=bool(c2), verdict=verdict,
                sham_mismatches=len(bad), nan_runs=len(nan_runs))
     with open(os.path.join(a.dir, "sham_summary.json"), "w") as fh:
