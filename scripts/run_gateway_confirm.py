@@ -71,7 +71,10 @@ def build_config(pre, init, gamma):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--prereg", default=PREREG)
-    ap.add_argument("--tag", default="confirmatory")
+    # confirmatory_v2 by default: the single-batch replicate declared in Amendment 2.
+    # The original two-batch run stays at results/gateway_anchor/confirmatory/ and is not
+    # overwritten -- both are reported, not the better of the two.
+    ap.add_argument("--tag", default="confirmatory_v2")
     ap.add_argument("--chunk", type=int, default=64,
                     help="max (config, seed) rows per batch")
     ap.add_argument("--skip-frozen-bias", action="store_true")
