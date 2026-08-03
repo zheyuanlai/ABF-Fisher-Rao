@@ -181,3 +181,47 @@ whichever way it comes out. If it still fails, the manuscript continues to say t
 practical arm supports an equivalence claim. If it now passes, the manuscript says that it
 passes *only after* this correction, and this amendment is cited. The original numbers are
 retained in `confirmatory_summary.json` alongside the corrected ones.
+
+---
+
+# Amendment 2 (2026-08-03) — the fix is structural, so it re-runs every arm
+
+Amendment 1 proposed re-running *only* the oracle batch. On implementing it the better fix
+turned out to be structural rather than surgical, and it changes what gets re-run, so the
+change is declared here before it is executed.
+
+## What changed in the code
+
+The FR rate now rides on the **method** rather than on the configuration
+(`Method.gamma`, resolved by `Method.rate()`; a sham inherits its partner's rate). Two arms
+can therefore carry two different rates inside **one** batch, so all five arms share initial
+conditions *and* the Langevin noise stream, and there is no cross-batch comparison anywhere.
+This removes the defect at its source instead of compensating for it in the analysis.
+
+## The consequence, stated plainly
+
+A single batch means the noise realisation changes for **every** arm, not just the oracle
+ones. The practical arm's numbers will therefore move too. That is more than Amendment 1
+said would happen, and re-running a primary claim that has already passed is exactly the
+pattern that invites fitting an analysis to its result. So:
+
+* **The original run is not withdrawn or overwritten.** It stays at
+  `results/gateway_anchor/confirmatory/` and remains the result of the preregistration as
+  originally written. Its primary claim was correctly paired and is unaffected by the defect.
+* The single-batch run is a **second confirmatory replicate**, written to
+  `results/gateway_anchor/confirmatory_v2/`. Same seeds, same frozen configuration, same
+  frozen success rule, different noise realisation.
+* **Both are reported.** Not the better of the two.
+
+## Declared now, before the replicate runs
+
+| outcome | reading |
+|---|---|
+| both runs pass the success rule | the result replicates across noise realisations; quote the replicate, cite both |
+| replicate passes, original passed, numbers differ materially | report the spread as the honest uncertainty on the effect size |
+| replicate **fails** the success rule | the effect does not survive a second realisation; the manuscript reports a failed replication and the positive claim is withdrawn pending more seeds |
+| corrected `sham_oracle` TOST passes | say it passes only after the pairing correction, and cite Amendment 1 |
+| corrected `sham_oracle` TOST still fails | unchanged: only the practical arm supports an equivalence claim |
+
+Nothing else about the experiment changes: same cell, same rates, same seeds 100–131, same
+metric, same thresholds, no ladder, no tuning.

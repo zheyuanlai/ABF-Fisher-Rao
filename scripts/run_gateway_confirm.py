@@ -34,6 +34,7 @@ import socket
 import subprocess
 import sys
 import time
+import dataclasses
 
 import numpy as np
 import torch
@@ -85,14 +86,18 @@ def main():
     if torch.cuda.is_available():
         assert torch.cuda.device_count() == 1, "pin exactly one GPU"
 
-    # Arms, in the preregistered order.  The two FR rates are per-arm, so each arm needs its
-    # own config row; a sham inherits its partner's rate because it must fire at the partner's
-    # event times with the partner's counts.
+    # Arms, in the preregistered order.  The two FR rates ride on the METHODS rather than on
+    # the config, so all five arms run in ONE batch and share initial conditions and Langevin
+    # noise.  Splitting them across batches to give them different rates -- which the first
+    # version did -- puts an arm and its baseline in different noise streams and silently
+    # unpairs the comparison; see Amendment 1 of the preregistration.  A sham inherits its
+    # partner's rate because it must fire at the partner's event times with its counts.
     rates = pre["rates"]
-    groups = [("practical", rates["fr_estimated"],
-               [gw.ABF, gw.FR_ESTIMATED, gw.SHAM_PRACTICAL]),
-              ("oracle", rates["fr_oracle"],
-               [gw.ABF, gw.FR_ORACLE, gw.SHAM_ORACLE])]
+    ARMS = [gw.ABF,
+            dataclasses.replace(gw.FR_ESTIMATED, gamma=float(rates["fr_estimated"])),
+            gw.SHAM_PRACTICAL,
+            dataclasses.replace(gw.FR_ORACLE, gamma=float(rates["fr_oracle"])),
+            gw.SHAM_ORACLE]
     seeds = list(range(pre["seeds"]["first"],
                        pre["seeds"]["first"] + pre["seeds"]["count"]))
     assert not (set(seeds) & set(range(16))), "confirmatory seeds must not reuse calibration seeds"
@@ -110,27 +115,22 @@ def main():
 
     t_start = time.time()
     recs_all = []
-    for gname, gamma, arms in groups:
-        rows = [(build_config(pre, init, gamma), sd)
-                for init in pre["inits"] for sd in seeds]
-        print(f"group {gname}: gamma={gamma:g}, arms {[m.name for m in arms]}, "
-              f"{len(rows)} (config, seed) rows x {len(arms)} arms")
-        for i in range(0, len(rows), a.chunk):
-            chunk = rows[i:i + a.chunk]
-            spec = gw.BatchSpec(configs=[x for x, _ in chunk],
-                                seeds=[y for _, y in chunk], methods=arms,
-                                batch_seed=30_000 + hash(gname) % 1000 + i)
-            t0 = time.time()
-            recs = gw.simulate_batch(spec)
-            # 'abf' appears in both groups on the same seeds; keep only the first copy so the
-            # paired baseline is one run, not two runs that differ by their FR generator draw.
-            if gname != groups[0][0]:
-                recs = [r for r in recs if r["method"] != "abf"]
-            for r in recs:
-                r["group"] = gname
-            recs_all.extend(recs)
-            print(f"  chunk {i // a.chunk + 1}/{-(-len(rows) // a.chunk)}: "
-                  f"{len(chunk)} rows in {time.time() - t0:.1f}s", flush=True)
+    rows = [(build_config(pre, init, rates["fr_estimated"]), sd)
+            for init in pre["inits"] for sd in seeds]
+    print(f"arms {[m.name for m in ARMS]}, {len(rows)} (config, seed) rows x "
+          f"{len(ARMS)} arms, one batch per chunk (shared noise)")
+    for i in range(0, len(rows), a.chunk):
+        chunk = rows[i:i + a.chunk]
+        spec = gw.BatchSpec(configs=[x for x, _ in chunk],
+                            seeds=[y for _, y in chunk], methods=ARMS,
+                            batch_seed=30_000 + i)
+        t0 = time.time()
+        recs = gw.simulate_batch(spec)
+        for r in recs:
+            r["group"] = "all"          # one batch: every arm shares this baseline
+        recs_all.extend(recs)
+        print(f"  chunk {i // a.chunk + 1}/{-(-len(rows) // a.chunk)}: "
+              f"{len(chunk)} rows in {time.time() - t0:.1f}s", flush=True)
 
     # ------------------------------------------------------------ frozen bias
     fb = None
@@ -139,7 +139,7 @@ def main():
               "population for every arm", flush=True)
         f = pre["frozen_bias"]
         Fp = np.stack([r["Fp_hat"] for r in recs_all])
-        cfgs = [build_config(pre, r["init"], r["config"]["gamma"]) for r in recs_all]
+        cfgs = [build_config(pre, r["init"], r["gamma"]) for r in recs_all]
         # Group by (init, seed) so every arm of one seed is scored on the SAME fresh
         # population and the same Langevin noise -- the frozen-bias endpoint is a paired
         # comparison, exactly like the online one.
@@ -161,7 +161,7 @@ def main():
     for k in recs_all[0]:
         if k not in keys and k != "config":
             npz[k] = np.array([r[k] for r in recs_all])
-    npz["gamma"] = np.array([r["config"]["gamma"] for r in recs_all])
+    # r["gamma"] is the rate the arm ACTUALLY ran at, not the config default
     npz["config_json"] = np.array([json.dumps(r["config"], sort_keys=True)
                                    for r in recs_all])
     if fb is not None:

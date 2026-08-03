@@ -138,6 +138,20 @@ class Method:
     target_mode: str      # 'none' | 'estimated' | 'oracle' | 'uniform'
     sham: bool = False    # randomise the score association, keep the event schedule
     shadows: str = ""     # for sham arms: the method whose realised counts are copied
+    gamma: float = float("nan")   # per-arm FR rate; NaN means "use the config's"
+
+    def rate(self, cfg) -> float:
+        """The FR rate this arm runs at.
+
+        Arms need independent rates -- the practical and oracle targets have different safe
+        operating points -- but splitting them across batches to achieve that would put each
+        arm in a different Langevin noise stream, and then an arm and the baseline it is
+        compared against would no longer be paired.  Carrying the rate on the *method*
+        instead keeps every arm in one batch, sharing initial conditions and noise, which is
+        what makes the comparison paired.  A sham inherits its partner's rate because it must
+        fire at the partner's event times.
+        """
+        return float(cfg.gamma) if math.isnan(self.gamma) else float(self.gamma)
 
 
 ABF = Method("abf", use_fr=False, target_mode="none")
@@ -479,7 +493,7 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
         return torch.tensor([fn(c) for c in cfgs], device=device, dtype=dtype)
     beta_b = cfg_b(lambda c: c.beta); H_b = cfg_b(lambda c: c.H)
     oout_b = cfg_b(lambda c: c.omega_out); oin_b = cfg_b(lambda c: c.omega_in)
-    s_b = cfg_b(lambda c: c.s); gamma_b = cfg_b(lambda c: c.gamma)
+    s_b = cfg_b(lambda c: c.s)
     ema_b = cfg_b(lambda c: c.target_ema_rate); clip_b = cfg_b(lambda c: c.score_clip)
     maxfrac_b = cfg_b(lambda c: c.max_event_fraction)
 
@@ -487,7 +501,13 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
         return t_b.repeat_interleave(M).unsqueeze(1)
     beta = to_run(beta_b); Hc = to_run(H_b)
     oout = to_run(oout_b); oin = to_run(oin_b); sw = to_run(s_b)
-    gamma_r = to_run(gamma_b); ema = to_run(ema_b)
+    # The FR rate is resolved per (config, method): a sham takes its partner's rate so it
+    # fires on the partner's schedule, and every arm stays in this one batch.
+    rate_of = {m.name: m for m in methods}
+    gamma_r = torch.tensor(
+        [[(rate_of[m.shadows] if m.sham else m).rate(c) for c in cfgs for m in methods]],
+        device=device, dtype=dtype).reshape(R, 1)
+    ema = to_run(ema_b)
     clip_r = to_run(clip_b); maxfrac_r = to_run(maxfrac_b)
     cap_r = torch.floor(maxfrac_r * N).long()
     noise_amp = torch.sqrt(2.0 * dt / beta)
@@ -747,6 +767,9 @@ def _finalize(L):
                 barrier_kT=cfgs[b].barrier_kT(),
                 method=methods[m].name, target_mode=methods[m].target_mode,
                 sham=methods[m].sham, seed=int(L["spec"].seeds[b]),
+                # the rate this arm ACTUALLY ran at, which is the method's when it carries
+                # one and the config's otherwise -- never re-derive it from the config alone
+                gamma=float(L["gamma_r"][r, 0]),
                 t=t_axis, P_regions=P, Q_regions=Q,
                 l2_f_t=npy(ts_l2f[r]), l2_fp_t=npy(ts_l2fp[r]),
                 ess_t=npy(L["ts_ess"][r]), wmax_t=npy(L["ts_wmax"][r]),

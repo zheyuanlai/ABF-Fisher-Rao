@@ -132,3 +132,30 @@ def test_frozen_bias_does_not_adapt():
     a = gw.run_frozen_bias(zero, [cfg], n_steps=8_000, seed=1, device=CPU)["l2_f_kT"][0]
     b = gw.run_frozen_bias(zero, [cfg], n_steps=16_000, seed=1, device=CPU)["l2_f_kT"][0]
     assert abs(a - b) / a < 0.5, (a, b)
+
+
+# ------------------------------------------------- per-method FR rate (one batch)
+def test_per_method_gamma_keeps_every_arm_in_one_batch():
+    """Different arms need different rates without being split across batches.
+
+    Splitting them is what unpaired the oracle comparison in the first confirmatory run: the
+    Langevin noise stream is keyed to the batch, so an arm in one batch and the baseline it
+    is scored against in another share initial conditions but not noise. Carrying the rate on
+    the method keeps all five arms in a single batch.
+    """
+    fre = gw.Method("fr_estimated", True, "estimated", gamma=1.5)
+    fro = gw.Method("fr_oracle", True, "oracle", gamma=0.5)
+    cfg = _cfg(gamma=99.0)          # a config value no arm should end up using
+    out = _run([gw.ABF, fre, gw.SHAM_PRACTICAL, fro, gw.SHAM_ORACLE], cfg=cfg)
+    assert out["fr_estimated"]["gamma"] == 1.5
+    assert out["fr_oracle"]["gamma"] == 0.5
+    assert out["abf"]["gamma"] == 99.0          # no override => falls back to the config
+    # a sham must fire at its partner's rate, or it cannot reproduce the schedule
+    assert out["sham_practical"]["gamma"] == 1.5
+    assert out["sham_oracle"]["gamma"] == 0.5
+    for sham, partner in (("sham_practical", "fr_estimated"),
+                          ("sham_oracle", "fr_oracle")):
+        assert out[sham]["n_die"] == out[partner]["n_die"]
+        assert out[sham]["n_clone"] == out[partner]["n_clone"]
+    # and the two rates must actually produce different behaviour, or the test is vacuous
+    assert out["fr_estimated"]["n_die"] != out["fr_oracle"]["n_die"]

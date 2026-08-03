@@ -86,23 +86,43 @@ def main():
     if has_frozen:
         METRICS.append("frozen_l2_f_kT")
 
+    # Each arm is compared against the ABF baseline from ITS OWN batch. The two FR rates
+    # force two batches and the noise stream is keyed to the batch, so a cross-batch baseline
+    # shares initial conditions but not noise and its interval does not cancel. If the
+    # artifact predates that fix it carries only one baseline; fall back to it and say so.
+    group = (d["group"].astype(str) if "group" in d.files
+             else np.full(method.shape, "practical"))
+    abf_groups = sorted(set(group[method == "abf"].tolist()))
+    per_group_baseline = len(abf_groups) > 1
+    if not per_group_baseline:
+        print(f"*** WARNING: only one ABF batch ({abf_groups}) is present, so arms from the "
+              f"other batch are scored against a NOISE-UNMATCHED baseline. Their intervals "
+              f"are inflated. See Amendment 1 of the preregistration. ***\n")
+
+    def baseline_for(arm):
+        g = group[method == arm]
+        return g[0] if per_group_baseline and g.size else abf_groups[0]
+
     rows = []
     for ini in sorted(set(init.tolist())):
         base = {}
-        for s_ in sorted(set(seed.tolist())):
-            m = (init == ini) & (seed == s_) & (method == "abf")
-            if m.any():
-                base[s_] = {k: float(d[k][m][0]) for k in METRICS}
+        for gname in abf_groups:
+            for s_ in sorted(set(seed.tolist())):
+                m = (init == ini) & (seed == s_) & (method == "abf") & (group == gname)
+                if m.any():
+                    base[(gname, s_)] = {k: float(d[k][m][0]) for k in METRICS}
         for arm in [x for x in pre["arms"] if x != "abf"]:
             sel = (init == ini) & (method == arm)
             if not sel.any():
                 continue
+            gb = baseline_for(arm)
             sd = seed[sel]
             rec = dict(init=ini, arm=arm, n_seeds=int(sel.sum()),
-                       gamma=float(d["gamma"][sel][0]))
+                       gamma=float(d["gamma"][sel][0]), baseline_batch=str(gb),
+                       baseline_noise_matched=bool(per_group_baseline))
             for k in METRICS:
                 v = d[k][sel].astype(float)
-                b = np.array([base[x][k] for x in sd], dtype=float)
+                b = np.array([base[(gb, x)][k] for x in sd], dtype=float)
                 rel = paired_rel(v, b)
                 dist = boot(rel, rng, NB)
                 lo95, hi95 = ci(dist, 0.95)
@@ -290,7 +310,9 @@ def main():
                   f"90% CI [{lo:+.2f},{hi:+.2f}] -> "
                   f"{'equivalent' if inside else 'NOT equivalent on this endpoint'}")
 
-    out = dict(preregistration=pre, primary=prim, direct_vs_sham=direct, primary_checks=
+    out = dict(preregistration=pre, primary=prim, direct_vs_sham=direct,
+               per_group_baseline=bool(per_group_baseline), abf_batches=abf_groups,
+               primary_checks=
                {k: dict(pass_=bool(v[0]), value=float(v[1])) for k, v in checks.items()},
                primary_pass=bool(primary_pass), sham_tost=tost,
                headline_supported=bool(headline),
