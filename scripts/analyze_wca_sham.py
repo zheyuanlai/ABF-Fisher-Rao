@@ -32,7 +32,7 @@ BOOT_SEED, N_BOOT = 20260803, 10_000
 PARTNER = {"sham_practical": "fr_estimated", "sham_oracle": "fr_oracle"}
 SCALARS = ("integrated_l2_f", "l2_f", "l2_fp", "n_round_trips", "n_barrier_crossings",
            "final_ancestor_ess", "min_ancestor_ess", "max_ancestor_frac_over_time",
-           "total_replacement_events", "frac_stretched_final")
+           "total_replacement_events", "n_replicas", "frac_stretched_final")
 
 
 def boot(x, rng, n=N_BOOT):
@@ -116,8 +116,7 @@ def main():
         lo90, hi90 = ci(dist, 0.90)
         ess = np.array([runs[arm][s]["min_ancestor_ess"] for s in seeds], float)
         maf = np.array([runs[arm][s]["max_ancestor_frac_over_time"] for s in seeds], float)
-        n_rep = np.array([runs[arm][s]["n_replicas"] if "n_replicas" in runs[arm][s]
-                          else 1024 for s in seeds], float)
+        n_rep = np.array([runs[arm][s]["n_replicas"] for s in seeds], float)
         rows.append(dict(arm=arm, n_seeds=len(seeds), pct=float(np.nanmedian(r)),
                          ci95=[lo95, hi95], ci90=[lo90, hi90],
                          wins=int(np.sum(v < b)),
