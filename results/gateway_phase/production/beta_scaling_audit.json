@@ -1,0 +1,62 @@
+{
+  "T_total": 40.0,
+  "betas": [
+    2.0,
+    4.0,
+    8.0,
+    16.0
+  ],
+  "per_beta": {
+    "2.0": {
+      "tau_max": 20.0,
+      "T_est_frac": 0.06500065000650007,
+      "tau_est": 1.3,
+      "tau_hit": 0.1,
+      "int_l2_f": 5.005791207071713,
+      "occ": 1.015487825969847
+    },
+    "4.0": {
+      "tau_max": 10.0,
+      "T_est_frac": 0.12000120001200011,
+      "tau_est": 1.2,
+      "tau_hit": 0.1,
+      "int_l2_f": 2.5969202768755224,
+      "occ": 1.0150985233298833
+    },
+    "8.0": {
+      "tau_max": 5.0,
+      "T_est_frac": 0.22000220002200024,
+      "tau_est": 1.1,
+      "tau_hit": 0.1,
+      "int_l2_f": 1.4469735271032667,
+      "occ": 0.9743479224692333
+    },
+    "16.0": {
+      "tau_max": 2.5,
+      "T_est_frac": 0.4300043000430004,
+      "tau_est": 1.075,
+      "tau_hit": 0.1,
+      "int_l2_f": 0.9626463380529037,
+      "occ": 0.8343397886371317
+    }
+  },
+  "fold_range_T_est_frac": 6.615384615384614,
+  "fold_range_tau_est": 1.2093023255813955,
+  "beta_fold": 8.0,
+  "collapsed": true,
+  "residual_trend": "decreasing",
+  "conclusion": "The beta axis is a dimensionless-time-budget axis. beta*F(x) is identical in every cell by construction, and the longitudinal SDE is exactly beta-free under tau = t/beta with ytilde = sqrt(beta) y. Report the table as a finite-budget establishment map, not as a map over distinct landscapes.",
+  "scaling": {
+    "time": "tau = t / beta",
+    "transverse": "ytilde = sqrt(beta) * y",
+    "force": "btilde = beta * b",
+    "longitudinal_sde": "dx = -[G(x,ytilde) - btilde] dtau + sqrt(2) dW",
+    "transverse_sde": "dytilde = -beta omega^2 ytilde dtau + sqrt(2 beta) dW",
+    "breaks": [
+      "ABF estimator sample budget does not rescale (beta x more samples per unit tau)",
+      "finite-beta non-adiabaticity (shrinks with beta)",
+      "FR event frequency per unit tau scales with beta",
+      "dtau = dt/beta (refinement, not distortion)"
+    ]
+  }
+}
