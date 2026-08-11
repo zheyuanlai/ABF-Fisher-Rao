@@ -574,4 +574,49 @@ changed, why, and **whether any result had been seen at the time**. v1's Amendme
 gateway confirmatory preregistration is the template: it fixed in advance what to quote when
 both passes succeeded, before either had been read.
 
-*(no amendments)*
+### Amendment 1 — deca-alanine umbrella window layout (2026-08-11)
+
+**No arm result, no screen result and no reference PMF had been seen. Nothing downstream of the
+reference existed at the time of this change.**
+
+§6.3 froze 64 windows on `[1.20, 3.60]` at `k = 2000 kJ/mol/nm²`. A 12-window smoke run appeared
+to show that layout sampling only up to 3.49 nm, leaving the top of the evaluation domain
+uncovered. **That appearance was an artifact of the smoke run's 4 000-step pull, and the
+calibration says so.** With the preregistered 20 000-step pull, the frozen layout covers the
+domain on both edges (sampled `xi` in `[1.089, 3.643]`) with healthy neighbour overlap. The
+original motivation for changing anything was therefore wrong, and is recorded as wrong.
+
+Measured on three candidate layouts, 8 replicas per window, 20 k pull / 30 k equilibration /
+60 k production:
+
+| layout | spacing | sd/spacing | min neighbour overlap | sampled range | cis bonds |
+|---|---|---|---|---|---|
+| **frozen** 64w `[1.20, 3.60]` k=2000 | 0.0381 | 1.33 | 0.785 | [1.089, 3.643] | 0/512 |
+| **cand-A** 96w `[1.10, 3.80]` k=3200 | 0.0284 | 1.31 | 0.821 | [1.003, 3.725] | 0/768 |
+| **cand-B** 128w `[1.10, 3.80]` k=6000 | 0.0213 | 1.15 | 0.830 | [1.040, 3.750] | 1/1024 |
+
+All three are viable. One **genuine** defect survives the correction, and it is the only reason
+this amendment exists: in the frozen layout the highest window centre coincides with `R_hi`, and
+under the steep end of the PMF it displaces downward by 0.105 nm, so the top bin of the
+evaluation domain rests on the tail of a single displaced window rather than sitting between two
+windows. That is a structural asymmetry in the estimator, not a tuning preference.
+
+**Change:** deca-alanine umbrella windows become
+
+```
+  96 windows uniformly on [1.15, 3.70] nm      k_umbrella = 3200 kJ/mol/nm^2      n_rep = 32
+```
+
+so that the evaluation domain `[1.20, 3.60]` is strictly **interior** to the window range. The
+stiffness follows the window spacing, and is the rung the calibration shows producing zero cis
+peptide bonds (cand-B's stiffer pull produced one, so cand-B is rejected on structural integrity,
+not on cost). Cost: `B = 3072`, ~2.9 h per build, ~8.7 h for the three required builds;
+12 288 ns aggregate per build.
+
+**Additional gate added at the same time:** replicas are screened with
+`deca.system.validate_thermal` **after the pull and again after equilibration**, and any replica
+carrying a cis peptide bond or a chirality flip is excluded from the reference with its count
+reported. A hard pull is exactly the operation that can produce one, and an excluded replica must
+be visible, never silently averaged in.
+
+`R_lo`, `R_hi`, `n_grid`, the evaluation domain and every gate threshold are **unchanged**.
