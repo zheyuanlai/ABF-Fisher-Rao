@@ -1,0 +1,35 @@
+{
+  "rows": [
+    {
+      "R": 2.9,
+      "max_pool_tv": 0.9999999999999999,
+      "mf_spread": 0.01691711822453623,
+      "mf_mean": -0.1691297690030549,
+      "ref": -0.17496681805588632,
+      "rel_err": 0.03336089161184265,
+      "xbar": 2.9000457825456984
+    },
+    {
+      "R": 3.2,
+      "max_pool_tv": 0.0027083333333332675,
+      "mf_spread": 0.08713534961895064,
+      "mf_mean": -16.393769311141487,
+      "ref": -10.877563911814091,
+      "rel_err": 0.5071177190084133,
+      "xbar": 3.2041015134531543
+    }
+  ],
+  "mix_tv_threshold": 0.15,
+  "mixed_at": [
+    3.2
+  ],
+  "not_mixed_at": [
+    2.9
+  ],
+  "verdict": "CASE III -- MIXED: classify by the region carrying the free-energy error. Gate 0 fails where the pools do not mix; do NOT call those regions discovery-limited merely because rare states are also poorly visited.",
+  "dt": 0.0002,
+  "k_umbrella": 4000.0,
+  "n_rep": 48,
+  "prod_steps": 1000000,
+  "beta": 2.0
+}
