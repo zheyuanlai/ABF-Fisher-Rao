@@ -43,15 +43,23 @@ GATE_A_THRESHOLD = 0.30
 EFFECT_SIZE_PCT = 10.0
 
 
-def _blocks(xi_all, keep, n_w, n_rep, n_sample):
-    """Recover ``(n_sample, n_kept_w)`` per window from the flattened window-major array."""
-    keep = np.asarray(keep, bool).reshape(n_w, n_rep)
+def _blocks(xi_all, keep_flat, n_w, n_rep, n_builds, n_sample):
+    """Recover ``(n_sample, n_kept_w)`` blocks, build-major then window-major.
+
+    ``xi_all`` is the concatenation over builds of each build's window-major flattening, and
+    ``keep`` spans all builds -- ``(n_builds, n_w, n_rep)`` -- not one. Time order is preserved
+    inside every block, which is the whole reason a drift check is possible after the fact.
+    """
+    keep = np.asarray(keep_flat, bool).reshape(n_builds, n_w, n_rep)
     out, off = [], 0
-    for w in range(n_w):
-        nk = int(keep[w].sum())
-        n = n_sample * nk
-        out.append(xi_all[off:off + n].reshape(n_sample, nk))
-        off += n
+    for b in range(n_builds):
+        blocks = []
+        for w in range(n_w):
+            nk = int(keep[b, w].sum())
+            n = n_sample * nk
+            blocks.append(xi_all[off:off + n].reshape(n_sample, nk))
+            off += n
+        out.append(blocks)
     if off != xi_all.size:
         raise AssertionError(f"layout mismatch: consumed {off} of {xi_all.size}")
     return out, keep
@@ -111,10 +119,18 @@ def main():
 
     # --------------------------------------------------------------- drift in time
     n_sample = xi_all.size // int(np.asarray(keep_flat, bool).sum())
-    blocks, keep = _blocks(xi_all.astype(np.float64), keep_flat, n_w, n_rep, n_sample)
+    per_build_blocks, keep = _blocks(xi_all.astype(np.float64), keep_flat, n_w, n_rep,
+                                     n_builds, n_sample)
     half = n_sample // 2
-    g1, _, F1, c1 = _F_from_blocks([b[:half] for b in blocks], keep, cfg, centers)
-    g2, _, F2, c2 = _F_from_blocks([b[half:] for b in blocks], keep, cfg, centers)
+    F1s, F2s = [], []
+    for b in range(n_builds):
+        blocks = per_build_blocks[b]
+        _, _, f1, _ = _F_from_blocks([x[:half] for x in blocks], keep[b], cfg, centers)
+        _, _, f2, _ = _F_from_blocks([x[half:] for x in blocks], keep[b], cfg, centers)
+        F1s.append(f1 - f1[mask].mean())
+        F2s.append(f2 - f2[mask].mean())
+    F1 = np.mean(F1s, axis=0)
+    F2 = np.mean(F2s, axis=0)
     F1 = F1 - F1[mask].mean()
     F2 = F2 - F2[mask].mean()
     drift = float(np.sqrt(((F1 - F2)[mask] ** 2).sum() * dz))
