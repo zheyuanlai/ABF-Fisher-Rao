@@ -702,3 +702,42 @@ prediction that was confirmed.
 
 The 2 kT merge threshold is a judgement fixed in advance, not tuned. It is deliberately low:
 merging aggressively would manufacture a single basin and force the fallback.
+
+### Amendment 4 — initial conditions for the ABF-only screen (2026-08-11)
+
+**Written before the screen ran, before the reference finished, and before any `F_ref`,
+basin structure, `T_hit` or occupancy existed.**
+
+§6.5 fixes the screen budget (16 walkers × 0.5 ns, 8 ensembles) but not where the walkers
+start. That omission is not cosmetic: **the initial condition decides Gate B outright.**
+
+Two defensible conventions exist and they give opposite answers by construction:
+
+* **Distributed along `xi`** — the usual multiple-walker ABF deployment, walkers spread across
+  the reaction coordinate. Under it every state is occupied at `t = 0`, so `T_hit = 0`
+  everywhere and **Gate B can never fail**. Discovery-limitation would be defined out of
+  existence rather than tested.
+* **All from the folded basin** — the natural physical initial condition for deca-alanine and
+  the one the Park–Schulten helix-coil setup uses. Discovery becomes a genuine question.
+
+**Chosen: all walkers start from the equilibrated α-helix.** Reasons, in order:
+
+1. it keeps Gate B a real test rather than a formality;
+2. it is the physically natural starting state, not a construction;
+3. it matches how v1 seeded its screens — the valine V3 screen started from one region and
+   *measured* when the others were reached (all 8 by 5.4 ps), which is the calibration for what
+   "discovered easily" looks like.
+
+**Protocol.** Each of the 8 ensembles (seeds 3000–3007) builds 16 walkers from the ideal
+`(-57, -47)` helix with independent thermal jitter, relaxes them under
+`deca.umbrella.relax_pool`, and runs **20 ps of unbiased Langevin equilibration**. That
+equilibration is **outside** the 0.5 ns ABF budget and is declared as such — it thermalises the
+structure, it does not advance the free-energy estimate, and no ABF accumulation occurs during
+it.
+
+**The bias this introduces, stated rather than discovered later.** A folded start makes
+discovery *harder* than a distributed start, so this choice can only push the classification
+**toward** discovery-limited. If deca-alanine comes out discovery-limited, that verdict must be
+read with this in mind and reported alongside it — it would be a statement about the folded
+start plus the 8 ns budget, not about the coordinate in general. It cannot manufacture an
+establishment-limited verdict, which is the direction that would license an mFR arm.
