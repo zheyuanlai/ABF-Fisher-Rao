@@ -841,3 +841,57 @@ weight. **This set is fixed here and may not be revised after seeing the screen.
 
 **Passing Gate C does not license production.** The clone-decorrelation gate (§2.5) and the rate
 calibration of §3 still stand between a licensed classification and any five-arm run.
+
+### Amendment 7 — Gate 0: the ABF baseline must itself be valid (2026-08-11)
+
+**Added after the corrected screen, and it does not change any existing threshold.** It adds a
+gate that must be passed *before* Gates B, C and 6 are meaningful at all.
+
+**What happened.** The corrected screen — with both defects of Amendment 5 fixed — still produced
+`A_hat` spanning **86.7–110.3 kT** against a 72.0 kT reference, with **95.1–99.96 %** of walkers
+pinned above 2.80 nm and a one-way population trace (`[1.00, 0, 0]` at 0 ps → `[0, 0, 1.00]` by
+100 ps, never returning). Its learned mean force disagreed with `dF_ref/dR` by **61 %** in bins
+holding up to **2 × 10⁶ effective counts**, so sampling volume cannot be the explanation.
+
+**What the audit established.** `results/v2_validity_audits/deca_mean_force/` accumulated the
+*same* `f_loc = ∇V·v − β⁻¹ ∇·v` estimator inside **umbrella-restrained** windows, whose
+conditional sampling at fixed `xi` was already validated. Result: **8.4 % relative error**,
+sub-1 % agreement through the well-converged interior (e.g. 103.66 vs 103.20, 127.08 vs 127.40,
+133.04 vs 132.49), and integrating `⟨f_loc⟩` gives **69.4 kT against the reference's 67.1 kT** on
+the same range.
+
+> **The estimator, the CV geometry, the reference and the integration are mutually consistent.
+> There is no bug in the mean force. What fails is ABF's *conditional* equilibration:** the
+> peptide's hidden conformational degrees of freedom do not relax at fixed end-to-end distance
+> within 16 walkers × 0.5 ns, so ABF averages over a non-equilibrium conditional ensemble, its
+> mean force is systematically wrong, the bias overshoots, and the population makes a one-way
+> trip to the extended end.
+
+**Gate 0 (ABF baseline validity), evaluated before Gates B and C.** From ABF-only data plus the
+accepted reference:
+
+```
+  span(A_hat_T) within [0.75, 1.25] x span(F_ref)          and
+  no seed with > 0.90 of walkers in one tercile over the whole second half
+```
+
+Failing either, the run is classified **`ABF-baseline-invalid`** and
+
+> **STOP. Gates B, C and 6 are not evaluated and no regime is assigned.**
+
+The reason is not conservatism. `Q*_k(t)` and `Q*_y(t)` are both computed **from the applied
+bias `B_t`**. If `B_t` is 20–53 % wrong, the targets are wrong, and a deficit measured against
+them is an artifact of the baseline rather than evidence about establishment. The withdrawn
+screen and the corrected screen both "passed" Gate C for precisely this reason.
+
+**Why this is not a budget excuse.** The 8 ns aggregate is the literature benchmark and was run
+faithfully, with 16 walkers sharing one estimator — i.e. genuinely multiple-walker ABF. The
+budget is **not** raised in response. Raising it until the baseline works would be tuning the
+benchmark to manufacture a workable control.
+
+**The mechanistic consequence, recorded now.** A conditional-equilibration failure is a **third**
+failure mode, distinct from discovery-limited and establishment-limited, and **mFR cannot repair
+it by construction**: mFR reallocates population *along* `xi`. If the conditional ensemble at
+each `xi` is wrong, moving walkers along `xi` does not fix it — no marginal reallocation rule
+can, and that includes the book-Laplacian and count-balancing baselines. This belongs in the
+regime map as its own category.
