@@ -78,13 +78,24 @@ def main():
     ap.add_argument("--checkpoint-every", type=int, default=1_000_000)   # 1 ns
     ap.add_argument("--no-stop", action="store_true",
                     help="collect every checkpoint but never stop early")
+    # smoke-only overrides; production uses the frozen UmbrellaConfig defaults
+    ap.add_argument("--n-windows", type=int, default=None)
+    ap.add_argument("--n-rep", type=int, default=None)
+    ap.add_argument("--n-pull-steps", type=int, default=None)
+    ap.add_argument("--n-equil-steps", type=int, default=None)
+    ap.add_argument("--sample-every", type=int, default=None)
     args = ap.parse_args()
 
     if args.device == "cuda" and not torch.cuda.is_available():
         raise SystemExit("no CUDA device visible; set CUDA_VISIBLE_DEVICES to one idle GPU")
 
-    cfg = UmbrellaConfig() if args.n_prod_steps is None else \
-        UmbrellaConfig(n_prod_steps=args.n_prod_steps)
+    over = {k: v for k, v in dict(
+        n_prod_steps=args.n_prod_steps, n_windows=args.n_windows, n_rep=args.n_rep,
+        n_pull_steps=args.n_pull_steps, n_equil_steps=args.n_equil_steps,
+        sample_every=args.sample_every).items() if v is not None}
+    cfg = UmbrellaConfig(**over)
+    if over:
+        print(f"!! NON-DEFAULT CONFIG (smoke): {over}", flush=True)
     per_build = cfg.n_windows * cfg.n_rep
     os.makedirs(args.out, exist_ok=True)
     os.makedirs(os.path.join(args.out, "raw"), exist_ok=True)
@@ -102,18 +113,35 @@ def main():
     trace = []
     t0 = time.perf_counter()
 
+    ckpt_F = []
+
     def on_checkpoint(step, snap):
         ns = step * cfg.dt / 1000.0
         r = analyse_builds(snap["xi"], snap["y"], snap["keep"], cfg, args.n_builds, per_build)
+        # Retain the consensus F itself, not only the between-build spread.  Agreement BETWEEN
+        # builds is statistical reproducibility; it cannot see a systematic error that moves all
+        # three together (e.g. an equilibration that is uniformly too short).  Drift of the
+        # consensus ACROSS checkpoints can.  Saving F per checkpoint is what makes that
+        # measurable after the fact.
+        ckpt_F.append(dict(ns=float(ns), F=r["F_consensus"].copy()))
+        drift = float("nan")
+        if len(ckpt_F) > 1:
+            d = ckpt_F[-1]["F"] - ckpt_F[-2]["F"]
+            m = r["mask"]
+            drift = float(np.sqrt((d[m] ** 2).sum() * r["dz"]))
         rec = dict(step=int(step), ns_per_replica=float(ns), ratio=r["ratio"],
                    pairwise_l2_max=float(np.nanmax(r["pairwise_l2"])),
+                   consensus_drift_l2=drift,
                    F_span_kJ=r["span"], resolvable_kJ=r["tolerable"],
                    elapsed_hours=(time.perf_counter() - t0) / 3600.0)
         trace.append(rec)
+        np.savez_compressed(os.path.join(args.out, "checkpoint_pmfs.npz"),
+                            grid=r["grid"], ns=np.array([c["ns"] for c in ckpt_F]),
+                            F=np.stack([c["F"] for c in ckpt_F]))
         print(f"    [checkpoint {ns:.2f} ns/replica]  max pairwise L2 "
               f"{rec['pairwise_l2_max']:.4f} kJ/mol   span {r['span']:.1f}   "
-              f"ratio {r['ratio']:.4f}  (stop at <= {STOP_RATIO} and >= {STOP_FLOOR_NS} ns)",
-              flush=True)
+              f"ratio {r['ratio']:.4f}   drift {drift:.4f}  "
+              f"(stop at <= {STOP_RATIO} and >= {STOP_FLOOR_NS} ns)", flush=True)
         with open(os.path.join(args.out, "convergence_trace.json"), "w") as fh:
             json.dump(trace, fh, indent=2)
         if args.no_stop:

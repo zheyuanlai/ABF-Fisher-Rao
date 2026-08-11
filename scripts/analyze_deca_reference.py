@@ -1,17 +1,27 @@
-"""Reference acceptance for deca-alanine (v2 preregistration §4.5), and the Gate A statistic.
-
-Answers two questions, in order, and refuses to answer the second if the first fails:
-
-  1. **Is the reference good enough to score a 10 % effect?**  Three independent builds,
-     pairwise ``L2`` discrepancy, bootstrap uncertainty, and a convergence trace against
-     reference compute.  §4.5 exists because the v1 audit found a cached WCA TI reference
-     sitting ~10x the arm effect away from a high-precision consensus.
-
-  2. **Gate A — is the hidden conformational structure visible in the CV?**  Maximum pairwise
-     total variation between ``p(xi | Y = a)`` across the frozen 9-state label.  Below 0.30 the
-     collective variable cannot separate the states and deca-alanine STOPS.
+"""Post-hoc audit of the deca-alanine reference: drift, acceptance, and Gate A.
 
     python scripts/analyze_deca_reference.py --dir results/deca/reference
+
+Why a separate drift check exists
+---------------------------------
+§4.5 acceptance is a statement about the spread **between** independent builds. That measures
+statistical reproducibility and it is blind to a systematic error that moves all three builds
+together -- an equilibration uniformly too short, say. The between-build ratio can be superb
+while the consensus is still sliding.
+
+Two independent things are therefore checked here:
+
+1. **Time drift.** ``F`` from the first half of production against ``F`` from the second half.
+   If the reference is converged these agree; if the hidden conformational degrees of freedom
+   inside each window are still relaxing, they do not. The sample layout preserves time order
+   inside each window block, so this is recoverable from the saved artifact.
+
+2. **Initial-condition independence.** The builds are seeded from *deliberately different*
+   conformational pools (helical, extended, PPII, bridge, mixed, left-handed). Tight agreement
+   between them is therefore not merely statistical -- three runs that started from different
+   regions of conformation space and landed on the same PMF is evidence that the slow degrees
+   of freedom equilibrated. This is reported explicitly because it is the stronger of the two
+   arguments and would otherwise go unstated.
 """
 from __future__ import annotations
 
@@ -22,143 +32,130 @@ import os
 import sys
 
 import numpy as np
+import torch
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
 from deca.labels import N_GATE_A_STATES, conditional_tv                    # noqa: E402
+from deca.umbrella import UmbrellaConfig, mbar_weights, pmf_from_weights, window_centers  # noqa: E402
 
-GATE_A_THRESHOLD = 0.30          # §2.2, frozen
-EFFECT_SIZE_PCT = 10.0           # the effect the reference must be able to resolve
-
-
-def load_builds(d):
-    out = []
-    for p in sorted(glob.glob(os.path.join(d, "raw", "deca_umbrella_build*.npz"))):
-        z = np.load(p, allow_pickle=True)
-        out.append(dict(path=p, grid=z["grid"], F=z["F_ref"], p=z["p_ref"],
-                        counts=z["bin_counts"], xi=z["xi_all"], w=z["weights"],
-                        y=z["y_all"], edges=z["gate_a_edges"],
-                        R_lo=float(z["cfg_R_lo"]), R_hi=float(z["cfg_R_hi"]),
-                        beta=1.0 / (0.008314462618 * float(z["cfg_temperature"]))))
-    return out
+GATE_A_THRESHOLD = 0.30
+EFFECT_SIZE_PCT = 10.0
 
 
-def _align(F, mask):
-    """Free energies are defined up to a constant; compare only after removing it."""
-    return F - F[mask].mean()
+def _blocks(xi_all, keep, n_w, n_rep, n_sample):
+    """Recover ``(n_sample, n_kept_w)`` per window from the flattened window-major array."""
+    keep = np.asarray(keep, bool).reshape(n_w, n_rep)
+    out, off = [], 0
+    for w in range(n_w):
+        nk = int(keep[w].sum())
+        n = n_sample * nk
+        out.append(xi_all[off:off + n].reshape(n_sample, nk))
+        off += n
+    if off != xi_all.size:
+        raise AssertionError(f"layout mismatch: consumed {off} of {xi_all.size}")
+    return out, keep
 
 
-def pairwise_l2(builds, mask, dz):
-    n = len(builds)
-    M = np.full((n, n), np.nan)
-    for a in range(n):
-        for b in range(n):
-            if a != b:
-                d = _align(builds[a]["F"], mask) - _align(builds[b]["F"], mask)
-                M[a, b] = float(np.sqrt((d[mask] ** 2).sum() * dz))
-    return M
-
-
-def bootstrap_consensus(builds, mask, dz, n_boot=2000, rng=None):
-    """Bootstrap the consensus F over builds.  Returns (F_mean, F_sd, l2_sd)."""
-    rng = rng or np.random.default_rng(0)
-    A = np.stack([_align(b["F"], mask) for b in builds])
-    n = A.shape[0]
-    idx = rng.integers(0, n, size=(n_boot, n))
-    boots = A[idx].mean(1)
-    boots = boots - boots[:, mask].mean(1, keepdims=True)
-    Fm = A.mean(0)
-    Fm = Fm - Fm[mask].mean()
-    l2 = np.sqrt(((boots - Fm[None]) ** 2)[:, mask].sum(1) * dz)
-    return Fm, boots.std(0), float(l2.std()), float(np.percentile(l2, 95))
+def _F_from_blocks(blocks, keep, cfg, centers):
+    """Rebuild the (n_sample, n_w*n_rep) array a slice implies, then MBAR + PMF."""
+    n_w, n_rep = keep.shape
+    n_sample = blocks[0].shape[0]
+    xi = np.zeros((n_sample, n_w * n_rep), dtype=np.float64)
+    for w in range(n_w):
+        idx = np.flatnonzero(keep[w])
+        xi[:, w * n_rep + idx] = blocks[w]
+        dead = np.flatnonzero(~keep[w])
+        if dead.size:                      # fill excluded slots with in-window values; the
+            xi[:, w * n_rep + dead] = blocks[w][:, :1]   # keep mask drops them again anyway
+    xa, w_, info, _ = mbar_weights(xi, centers, n_rep, cfg.k_umbrella, cfg.beta,
+                                   keep=keep.reshape(-1))
+    grid, dz, p, F, counts = pmf_from_weights(xa, w_, cfg)
+    return grid, dz, F, counts
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", default="results/deca/reference")
-    ap.add_argument("--min-builds", type=int, default=3)
     args = ap.parse_args()
 
-    builds = load_builds(args.dir)
-    print(f"loaded {len(builds)} build(s) from {args.dir}")
-    if not builds:
-        raise SystemExit("no builds found")
+    with open(os.path.join(args.dir, "reference_summary.json")) as fh:
+        s = json.load(fh)
+    path = sorted(glob.glob(os.path.join(args.dir, "raw", "deca_umbrella__*.npz")))[-1]
+    z = np.load(path, allow_pickle=True)
+    grid, F_cons, F_builds = z["grid"], z["F_consensus"], z["F_builds"]
+    keep_flat, xi_all, w_all, y_all = z["keep"], z["xi_all"], z["weights"], z["y_all"]
 
-    grid = builds[0]["grid"]
+    cfg = UmbrellaConfig()
+    n_w, n_rep = cfg.n_windows, cfg.n_rep
+    per_build = n_w * n_rep
+    n_builds = F_builds.shape[0]
+    centers = window_centers(cfg)
+    mask = (grid >= cfg.R_lo) & (grid <= cfg.R_hi)
     dz = float(grid[1] - grid[0])
-    R_lo, R_hi = builds[0]["R_lo"], builds[0]["R_hi"]
-    mask = (grid >= R_lo) & (grid <= R_hi)
-    beta = builds[0]["beta"]
 
-    # ---------------------------------------------------------------- per-build sanity
-    print("\n--- per build ---")
-    for i, b in enumerate(builds):
-        F = _align(b["F"], mask)
-        empty = int((b["counts"][mask] == 0).sum())
-        print(f"  build {i}: F span {F[mask].max()-F[mask].min():8.2f} kJ/mol "
-              f"({(F[mask].max()-F[mask].min())*beta:6.1f} kT)  "
-              f"min at {grid[mask][F[mask].argmin()]:.3f} nm  "
-              f"empty bins {empty}  min count {int(b['counts'][mask].min())}")
+    print(f"artifact: {path}")
+    print(f"builds {n_builds}   ns/replica {s['ns_per_replica']}   "
+          f"aggregate {s['aggregate_ns']:.0f} ns   runtime {s['runtime_hours']:.2f} h")
 
-    verdict = {}
-    if len(builds) < args.min_builds:
-        print(f"\n!! only {len(builds)} build(s); §4.5 requires at least {args.min_builds}. "
-              "Reference is NOT accepted and Gate A is not evaluated.")
-        verdict["reference_accepted"] = False
-        verdict["reason"] = f"only {len(builds)} builds"
-    else:
-        # ------------------------------------------------------------ §4.5 acceptance
-        M = pairwise_l2(builds, mask, dz)
-        Fm, Fsd, l2_sd, l2_p95 = bootstrap_consensus(builds, mask, dz)
-        span = float(Fm[mask].max() - Fm[mask].min())
-        tolerable = EFFECT_SIZE_PCT / 100.0 * span
+    # --------------------------------------------------------------- §4.5 acceptance (restated)
+    span = float(F_cons[mask].max() - F_cons[mask].min())
+    tol = EFFECT_SIZE_PCT / 100.0 * span
+    print("\n--- §4.5 acceptance ---")
+    print(f"  max pairwise L2 between builds : {s['pairwise_l2_max']:.4f} kJ/mol")
+    print(f"  consensus span                 : {span:.2f} kJ/mol "
+          f"({span / (0.008314462618*300.0):.1f} kT)")
+    print(f"  a {EFFECT_SIZE_PCT:.0f}% effect is            : {tol:.2f} kJ/mol")
+    print(f"  ratio (want < 1.0)             : {s['ratio']:.4f}")
+    print(f"  ACCEPTED                       : {s['reference_accepted']}")
 
-        print("\n--- §4.5 reference acceptance ---")
-        print(f"  pairwise L2 between builds (kJ/mol): "
-              f"max {np.nanmax(M):.3f}  median {np.nanmedian(M):.3f}")
-        print(f"  bootstrap consensus L2 sd {l2_sd:.3f}, 95th pct {l2_p95:.3f} kJ/mol")
-        print(f"  consensus F span {span:.2f} kJ/mol; a {EFFECT_SIZE_PCT:.0f}% effect is "
-              f"{tolerable:.2f} kJ/mol")
-        ratio = float(np.nanmax(M) / tolerable)
-        print(f"  worst pairwise discrepancy / resolvable effect = {ratio:.3f}")
-        accepted = bool(ratio < 1.0)
-        print(f"  ACCEPTED: {accepted}"
-              + ("" if accepted else "   -- rebuild with more or longer windows"))
-        verdict.update(reference_accepted=accepted,
-                       pairwise_l2_max=float(np.nanmax(M)),
-                       pairwise_l2_median=float(np.nanmedian(M)),
-                       bootstrap_l2_sd=l2_sd, bootstrap_l2_p95=l2_p95,
-                       F_span_kJ=span, resolvable_effect_kJ=float(tolerable),
-                       discrepancy_over_effect=ratio)
-        np.savez_compressed(os.path.join(args.dir, "consensus_reference.npz"),
-                            grid=grid, F_ref=Fm, F_sd=Fsd, dz=dz, R_lo=R_lo, R_hi=R_hi,
-                            n_builds=len(builds), pairwise_l2=M)
+    # --------------------------------------------------------------- drift in time
+    n_sample = xi_all.size // int(np.asarray(keep_flat, bool).sum())
+    blocks, keep = _blocks(xi_all.astype(np.float64), keep_flat, n_w, n_rep, n_sample)
+    half = n_sample // 2
+    g1, _, F1, c1 = _F_from_blocks([b[:half] for b in blocks], keep, cfg, centers)
+    g2, _, F2, c2 = _F_from_blocks([b[half:] for b in blocks], keep, cfg, centers)
+    F1 = F1 - F1[mask].mean()
+    F2 = F2 - F2[mask].mean()
+    drift = float(np.sqrt(((F1 - F2)[mask] ** 2).sum() * dz))
+    print("\n--- time drift (first half of production vs second) ---")
+    print(f"  L2(F_first, F_second) : {drift:.4f} kJ/mol")
+    print(f"  as a fraction of a {EFFECT_SIZE_PCT:.0f}% effect : {drift / tol:.4f}")
+    conv = drift < tol
+    print(f"  CONVERGED IN TIME (want < 1.0) : {conv}")
+    if not conv:
+        print("  !! the consensus is still moving. Between-build agreement CANNOT see this.")
 
-        # ------------------------------------------------------------ Gate A
-        if accepted:
-            xi = np.concatenate([b["xi"] for b in builds])
-            w = np.concatenate([b["w"] / b["w"].sum() for b in builds])
-            y = np.concatenate([b["y"] for b in builds]).astype(int)
-            edges = builds[0]["edges"]
-            tv, occ, p_cond = conditional_tv(xi, y, w, edges, min_count=1e-3 * w.sum())
-            with np.errstate(invalid="ignore"):
-                tv_max = float(np.nanmax(tv)) if np.isfinite(tv).any() else float("nan")
-            live = int((occ >= 1e-3 * w.sum()).sum())
-            print("\n--- Gate A: CV visibility (§2.2) ---")
-            print(f"  labels with enough weight to compare: {live}/{N_GATE_A_STATES}")
-            print(f"  weight share per label: {np.round(occ/occ.sum(), 4)}")
-            print(f"  max pairwise TV( p(xi|Y=a), p(xi|Y=b) ) = {tv_max:.4f} "
-                  f"(threshold {GATE_A_THRESHOLD})")
-            passed = bool(np.isfinite(tv_max) and tv_max >= GATE_A_THRESHOLD)
-            print(f"  GATE A: {'PASS -- continue to the ABF-only screen' if passed else 'FAIL -- STOP; the CV cannot separate these states'}")
-            verdict.update(gate_a_max_tv=tv_max, gate_a_pass=passed,
-                           gate_a_live_labels=live)
-            np.savez_compressed(os.path.join(args.dir, "gate_a.npz"),
-                                tv=tv, occupancy=occ, p_cond=p_cond, edges=edges)
+    # --------------------------------------------------------------- initial-condition spread
+    print("\n--- initial-condition independence ---")
+    print("  builds were seeded from different conformational pools (helix, extended, PPII,")
+    print("  bridge, mixed, left-handed), so their agreement is evidence about slow modes,")
+    print("  not merely about statistics.")
+    for b in range(n_builds):
+        d = F_builds[b] - F_cons
+        print(f"    build {b}: L2 from consensus = {np.sqrt((d[mask]**2).sum()*dz):.4f} kJ/mol")
 
-    with open(os.path.join(args.dir, "reference_acceptance.json"), "w") as fh:
+    # --------------------------------------------------------------- Gate A (restated)
+    edges = z["gate_a_edges"]
+    tv, occ, p_cond = conditional_tv(xi_all, y_all.astype(int), w_all, edges,
+                                     min_count=1e-3 * w_all.sum())
+    with np.errstate(invalid="ignore"):
+        tv_max = float(np.nanmax(tv)) if np.isfinite(tv).any() else float("nan")
+    print("\n--- Gate A: CV visibility (§2.2) ---")
+    print(f"  labels occupied : {int((occ > 0).sum())}/{N_GATE_A_STATES}")
+    print(f"  weight share    : {np.round(occ / occ.sum(), 4)}")
+    print(f"  max pairwise TV : {tv_max:.4f}  (threshold {GATE_A_THRESHOLD})")
+    print(f"  GATE A          : {'PASS' if tv_max >= GATE_A_THRESHOLD else 'FAIL -- STOP'}")
+
+    verdict = dict(reference_accepted=bool(s["reference_accepted"]), ratio=float(s["ratio"]),
+                   span_kJ=span, drift_l2_kJ=drift, drift_over_effect=float(drift / tol),
+                   converged_in_time=bool(conv), gate_a_max_tv=tv_max,
+                   gate_a_pass=bool(tv_max >= GATE_A_THRESHOLD),
+                   overall_usable=bool(s["reference_accepted"] and conv))
+    with open(os.path.join(args.dir, "reference_audit.json"), "w") as fh:
         json.dump(verdict, fh, indent=2)
-    print(f"\nwrote {os.path.join(args.dir, 'reference_acceptance.json')}")
+    print(f"\nwrote {os.path.join(args.dir, 'reference_audit.json')}")
+    print(f"REFERENCE USABLE: {verdict['overall_usable']}")
 
 
 if __name__ == "__main__":
