@@ -666,3 +666,39 @@ the stop would have fired, when the rule does not fire.
 **No gate threshold, no success rule, no arm definition and no evaluation domain changes.** The
 only thing this amendment can affect is how much reference compute is spent, and it can only
 spend less when the preregistered acceptance criterion is already exceeded by 2×.
+
+### Amendment 3 — how the states `C_k` are defined (2026-08-11)
+
+**Written while the reference was still equilibrating. `F_ref` did not exist, no checkpoint had
+been computed, and no occupancy, `T_hit` or Gate result existed.**
+
+§2 refers to "relevant metastable regions `C_1, …, C_K` in the chosen CV space" without fixing
+how they are found. Every one of Gates B and C is a statement about those regions, so leaving
+the rule open until after `F_ref` is in hand would let the states be chosen to produce a
+verdict. The rule is therefore fixed here, in advance, **including its fallback**, because the
+shape of the deca-alanine PMF is not yet known and a rule that only covers the convenient case
+is not a rule.
+
+**Primary rule — basins of the reference.**
+
+1. Evaluate `F_ref` on the frozen evaluation grid over `[R_lo, R_hi]`.
+2. Find all local minima.
+3. Merge any adjacent pair whose separating barrier, measured from the **higher** of the two
+   minima, is below **2 kT**. Repeat to convergence.
+4. If **two or more** minima survive, they are the states `C_k`, with boundaries at the
+   intervening barrier maxima and at the domain edges.
+
+**Fallback — a single-basin PMF.** If only one minimum survives, the end-to-end coordinate has
+no multi-basin structure and there is nothing for a basin rule to find. The states are then the
+frozen **equal-width tercile partition** of `[R_lo, R_hi]` — compact / intermediate / extended —
+which is the convention the alkane `R15` distance-CV study already used. This is declared as a
+partition of the coordinate, **not** as a claim that the three regions are metastable.
+
+**What each branch means, fixed now.** A single-basin PMF is itself informative: it says the
+deca-alanine difficulty the literature reports is not a multi-basin structure *in `xi`*, which
+is precisely the case Gate A exists to catch and which would push the interesting question into
+the conditional `p(Y | xi)`. That reading is recorded here so it cannot later be presented as a
+prediction that was confirmed.
+
+The 2 kT merge threshold is a judgement fixed in advance, not tuned. It is deliberately low:
+merging aggressively would manufacture a single basin and force the fallback.
