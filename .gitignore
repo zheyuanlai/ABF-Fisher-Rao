@@ -39,8 +39,13 @@ venv/
 # Local-only / non-project files
 system-prompt.md
 
-# Docs folder (local notes, not version-controlled)
-docs/
+# Docs folder (local notes, not version-controlled).
+# Written as docs/* rather than docs/ so the negation below can take effect: git cannot
+# re-include a file whose parent DIRECTORY is excluded.
+docs/*
+# ...except preregistrations. A prereg that is not under version control cannot be "frozen at
+# a commit", which is the only property that makes it worth anything.
+!docs/V2_PREREGISTRATION.md
 # WCA phase-diagram transient local run artifacts
 results/wca_phase_diagram/*/report_assets/
 results/wca_phase_diagram/*/logs/
