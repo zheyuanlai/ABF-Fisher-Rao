@@ -1014,3 +1014,58 @@ instrument. Gate 0 is a screen for when to run it, not a substitute for it.**
 * **Resolvable by:** the same controlled restrained-sampling test, run on R15. If restrained
   `<f_loc>` reproduces the R15 reference, the reference is sound and ABF's conditional sampling
   is implicated; if it does not, the reference is implicated instead.
+
+### Amendment 10 — Gate 0 leads, the classifier is four-way, and there are three timescales (2026-08-11)
+
+**Frozen before the R15 conditional-mixing experiment ran.**
+
+**Gate order.** Gate 0 is evaluated **first**, ahead of Gate A:
+
+```
+  Gate 0 : is the ABF conditional mean force trustworthy?   <-- NEW, leads
+  Gate A : can the relevant states be distinguished through xi?
+  Gate B : were they discovered?
+  Gate C : were they established?
+```
+
+Classification is by the **first failing gate**. A benchmark is never labelled discovery-limited
+merely because rare states also have poor visitation: if Gate 0 fails in the region responsible
+for the free-energy error, the benchmark is **conditional-equilibration-limited**, whatever the
+visitation looks like.
+
+**Three timescales, not two.** The favourable mFR window is not `T_hit << T <~ T_est`. It is
+
+```
+  T_hit  <<  tau_perp  <<  T_est
+```
+
+with `tau_perp` the relaxation time of the hidden coordinates *at fixed* `xi`:
+
+| | |
+|---|---|
+| `T_hit` too large | discovery-limited |
+| `tau_perp` too large | **conditional-equilibration-limited** |
+| both small, `T_est` large | **mFR opportunity** |
+| all small | ABF-sufficient |
+
+> **mFR works when the system locally forgets a cloned configuration faster than the marginal
+> population equilibrates.**
+
+This is the same quantity as Gate D's clone-decorrelation time, arrived at from the estimator
+side rather than the genealogy side; the two conditions are now recognised as one.
+
+**Retrospective obligation.** The WCA dimer and the entropic gateway were classified
+establishment-limited **before Gate 0 existed**. Their interpretation is therefore not yet
+established: it must be *backfilled*, not assumed. Until each passes a Gate 0 audit, the phrase
+"establishment-limited positive" is provisional for both. Neither the WCA prior-selection
+comparison nor NaCl proceeds before that backfill.
+
+**Not a setback to be engineered around.** `d/dt p_t(y|xi)|_FR = 0` (Amendment 8) makes this
+limitation **structural** to marginal selection, covering count balancing and the Chapter-6
+Laplacian rule equally. The project's claim is therefore not "birth-death added to ABF sometimes
+helps" but *"we characterise when marginal population selection can and cannot accelerate
+adaptive free-energy estimation"*. No attempt will be made to "fix" mFR against this regime.
+
+**Deca-alanine is frozen where it is.** The 8/32/128 ns budget-scaling study answers "how long
+does ABF need before deca conditionally equilibrates" — an ABF question, not an mFR question —
+and is demoted to an optional appendix after the core campaign.
