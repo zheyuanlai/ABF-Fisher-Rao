@@ -109,6 +109,41 @@ def diverse_pool(n, cfg: UmbrellaConfig, rng):
     return np.stack(out)
 
 
+def relax_pool(engine, x, n_steps=1500, lr=2.0e-5, max_disp=0.004,
+               max_energy_above_min=500.0, max_force=1.0e5):
+    """Capped-displacement steepest descent to relieve the steric clashes in a built pool.
+
+    A rigid internal-coordinate build preserves every bond and angle and can still drive
+    non-bonded atoms into each other.  :mod:`alanine.system` documents the consequence exactly:
+    such a seed is *finite* but explodes on the first BAOAB step, reaching absurd kinetic
+    temperatures **without ever producing a NaN**, so a finiteness check does not catch it.
+
+    Measured here before this function existed: 2 of 3072 deca-alanine replicas blew up during
+    the umbrella pull, ending 13 283 nm from their restraint centre.  The structural screening
+    excluded them and the reference was never corrupted -- but the compute was wasted and a
+    failure that a finiteness check cannot see should not be left to a downstream gate.
+
+    Each step is capped in displacement so a huge initial force cannot throw the structure.
+    Returns ``(x_relaxed, ok, report)``; ``ok`` gates on energy above the pool minimum and on
+    maximum force, which is what actually predicts an explosion.
+    """
+    y = x.detach().clone() if torch.is_tensor(x) else torch.as_tensor(x)
+    y = y.clone()
+    for _ in range(int(n_steps)):
+        f = engine.forces(y)
+        d = lr * f
+        nrm = d.norm(dim=-1, keepdim=True).clamp_min(1e-12)
+        y = (y + d * torch.clamp(max_disp / nrm, max=1.0)).detach()
+    e = engine.energy(y)
+    fmax = engine.forces(y).abs().amax(dim=(-2, -1))
+    finite = torch.isfinite(e) & torch.isfinite(fmax)
+    e_min = e[finite].min() if bool(finite.any()) else torch.tensor(float("inf"))
+    ok = finite & (e <= e_min + max_energy_above_min) & (fmax <= max_force)
+    rep = dict(energy=e.detach().cpu().numpy(), force_max=fmax.detach().cpu().numpy(),
+               energy_min=float(e_min), n_fail=int((~ok).sum()))
+    return y, ok.cpu().numpy(), rep
+
+
 def _restraint_force(grad_full, R, centers, k):
     """Cartesian force from ``V = 0.5 k (R - R_c)^2``, i.e. ``-k (R - R_c) grad R``."""
     return dist_bias_force(grad_full, -k * (R - centers))
@@ -134,6 +169,23 @@ def run_umbrella(engine, cfg: UmbrellaConfig, build_index=0, device="cuda",
     rng = np.random.default_rng(cfg.rng_seed + 7919 * build_index)
     X0 = diverse_pool(B, cfg, rng)
     q = torch.as_tensor(X0, device=device, dtype=dtype).contiguous()
+
+    # Relieve build-induced steric clashes BEFORE any dynamics.  Without this, a finite but
+    # clashing seed explodes on the first BAOAB step and no finiteness check sees it.
+    q, ok_seed, rep_seed = relax_pool(engine, q)
+    n_bad = int((~ok_seed).sum())
+    if n_bad:
+        if n_bad > 0.05 * B:
+            raise RuntimeError(f"{n_bad}/{B} relaxed seeds still fail the energy/force gate; "
+                               "the pool builder is producing unusable structures")
+        good = np.flatnonzero(ok_seed)
+        repl = good[rng.integers(0, good.size, size=n_bad)]
+        q[torch.as_tensor(np.flatnonzero(~ok_seed), device=device)] = \
+            q[torch.as_tensor(repl, device=device)].clone()
+    if verbose:
+        print(f"  seed relaxation: {B - n_bad}/{B} pass "
+              f"(E_min {rep_seed['energy_min']:.1f} kJ/mol, "
+              f"|F|max {rep_seed['force_max'].max():.2e}); {n_bad} replaced", flush=True)
 
     gen = torch.Generator(device=device).manual_seed(int(cfg.rng_seed) + 104729 * build_index)
     integ = BAOAB(engine.masses, dt=cfg.dt, gamma=cfg.gamma, temperature=cfg.temperature,
@@ -165,7 +217,13 @@ def run_umbrella(engine, cfg: UmbrellaConfig, build_index=0, device="cuda",
     pull_err = np.abs(R_after_pull - np.repeat(centers_np, n_r))
     # Amendment 1: a hard pull is exactly the operation that can flip a stereocentre or
     # isomerise a peptide bond, so screen here rather than discover it in the samples.
+    # A replica that blew up is finite, so the CV itself is the tell: 13 283 nm was observed
+    # before seed relaxation existed.  Screen on it explicitly rather than trusting chirality
+    # to happen to catch every explosion.
+    sane_cv = np.isfinite(R_after_pull) & (R_after_pull > 0.2) & (R_after_pull < 10.0)
     ok_pull, rep_pull = dsys.validate_thermal(q.cpu().numpy(), dsys.N_RES)
+    ok_pull = ok_pull & sane_cv
+    rep_pull["n_fail_cv_sanity"] = int((~sane_cv).sum())
     if verbose:
         print(f"  pull done ({time.perf_counter()-t0:.0f}s): |R - R_c| median "
               f"{np.median(pull_err):.4f} max {pull_err.max():.4f} nm; "
@@ -227,18 +285,50 @@ def run_umbrella(engine, cfg: UmbrellaConfig, build_index=0, device="cuda",
 
 
 # --------------------------------------------------------------------------- MBAR
-def mbar_weights(xi, centers, n_rep, k_umbrella, beta, subsample_stride=1, keep=None,
-                 aux=None):
-    """Unbiased-ensemble MBAR weights for every sample.
+#: MBAR solves a dense ``(n_states, n_samples)`` reduced-potential matrix.  At the production
+#: budget the raw sample count is ~24.6 M over 97 states, i.e. **~19 GB** of float64 -- it does
+#: not run.  Free energies are therefore solved on a strided subsample and then applied to every
+#: sample; see :func:`mbar_weights`.
+MBAR_MAX_SAMPLES = 400_000
 
-    ``xi`` is ``(n_sample, n_windows * n_rep)`` with columns ordered window-major.  The unbiased
-    state is appended as an extra state with zero reduced potential and zero samples, so
-    ``weights()[:, -1]`` is exactly the reweighting to the Boltzmann ensemble.
 
-    ``keep`` is the structural screening mask over replicas (Amendment 1).  Excluded replicas
-    are dropped and ``N_k`` is rebuilt per window from what survives, so a window that lost a
-    replica is not silently credited with samples it does not have.  ``aux`` is an optional dict
-    of ``(n_sample, B)`` arrays (structural labels) reordered the same way, returned alongside.
+def _order_by_window(arr, n_w, n_rep, keep, stride=1):
+    """Flatten ``(n_sample, n_w * n_rep)`` to window-major 1-D, dropping screened replicas."""
+    a = arr[::stride]
+    m = a.shape[0]
+    a = a.reshape(m, n_w, n_rep)
+    parts, counts = [], np.zeros(n_w, dtype=int)
+    for w in range(n_w):
+        block = a[:, w, keep[w]].reshape(-1)
+        parts.append(block)
+        counts[w] = block.size
+    return np.concatenate(parts), counts
+
+
+def mbar_weights(xi, centers, n_rep, k_umbrella, beta, keep=None, aux=None,
+                 max_mbar_samples=MBAR_MAX_SAMPLES):
+    """Unbiased-ensemble weights for every sample, via MBAR free energies.
+
+    ``xi`` is ``(n_sample, n_windows * n_rep)`` with columns ordered window-major.
+
+    **Two-stage, because one stage does not fit.** MBAR's dense reduced-potential matrix is
+    ``n_states x n_samples``; at the production budget that is ~24.6 M samples over 97 states,
+    about 19 GB. Stage 1 solves the state free energies ``f_k`` on a uniformly strided subsample
+    sized to ``max_mbar_samples``. Stage 2 applies those ``f_k`` to **every** sample in chunks:
+
+        w_n  proportional to  1 / sum_k N_k exp(f_k - u_k(x_n))
+
+    ``f_k`` are properties of the states, not of how many samples were drawn, so this is exact
+    given ``f_k`` -- it simply spends the histogram's statistics on all the data while spending
+    the solver's on as much as it can hold. Striding uniformly per replica keeps the per-window
+    proportions identical between the two stages, which is what makes the ``N_k`` consistent.
+    Samples 0.5 ps apart are in any case strongly correlated, so the subsample loses little.
+
+    ``keep`` is the Amendment 1 structural screening mask over replicas; excluded replicas are
+    dropped and ``N_k`` rebuilt per window from what survives. ``aux`` is an optional dict of
+    ``(n_sample, B)`` arrays reordered identically and returned alongside.
+
+    Returns ``(xi_all, weights, info, aux_out)``.
     """
     from pymbar import MBAR
 
@@ -247,33 +337,42 @@ def mbar_weights(xi, centers, n_rep, k_umbrella, beta, subsample_stride=1, keep=
     if keep is None:
         keep = np.ones(B, dtype=bool)
     keep = np.asarray(keep, dtype=bool).reshape(n_w, n_rep)
+    n_kept = int(keep.sum())
 
-    x = xi[::subsample_stride]                                # (m, B)
-    m = x.shape[0]
-    x_w = x.reshape(m, n_w, n_rep)
+    total = n_s * n_kept
+    stride = max(1, int(np.ceil(total / max(max_mbar_samples, 1))))
 
-    parts, N_k = [], np.zeros(n_w + 1, dtype=int)
-    aux_parts = {k: [] for k in (aux or {})}
-    for w in range(n_w):
-        sel = keep[w]
-        block = x_w[:, w, sel].reshape(-1)                    # (m * n_kept,)
-        parts.append(block)
-        N_k[w] = block.size
-        for k, arr in (aux or {}).items():
-            a = arr[::subsample_stride].reshape(m, n_w, n_rep)
-            aux_parts[k].append(a[:, w, sel].reshape(-1))
-    x_all = np.concatenate(parts)
-    N_k[-1] = 0
+    # ---- stage 1: free energies on a strided subsample -----------------------------------
+    x_sub, N_sub = _order_by_window(xi, n_w, n_rep, keep, stride=stride)
+    u_kn = np.zeros((n_w + 1, x_sub.size))
+    u_kn[:n_w] = beta * 0.5 * k_umbrella * (x_sub[None, :] - centers[:, None]) ** 2
+    N_k_sub = np.concatenate([N_sub, [0]])
+    mbar = MBAR(u_kn, N_k_sub, solver_protocol="robust")
+    f_k = np.asarray(mbar.f_k, dtype=np.float64)
 
-    # u_kn[k, n] = beta * 0.5 * k_u * (xi_n - R_k)^2 ; unbiased row is zero
-    u_kn = np.zeros((n_w + 1, x_all.size))
-    d = x_all[None, :] - centers[:, None]
-    u_kn[:n_w] = beta * 0.5 * k_umbrella * d ** 2
+    # ---- stage 2: apply f_k to every sample, in chunks ------------------------------------
+    x_all, N_full = _order_by_window(xi, n_w, n_rep, keep, stride=1)
+    N_k_full = np.concatenate([N_full, [0]]).astype(np.float64)
+    logN = np.log(np.maximum(N_k_full[:n_w], 1e-300))
+    w = np.empty(x_all.size, dtype=np.float64)
+    chunk = 1_000_000
+    for s in range(0, x_all.size, chunk):
+        xc = x_all[s:s + chunk].astype(np.float64)
+        u = beta * 0.5 * k_umbrella * (xc[None, :] - centers[:, None]) ** 2
+        # log sum_k N_k exp(f_k - u_k), stabilised
+        a = (logN + f_k[:n_w])[:, None] - u
+        mx = a.max(0)
+        w[s:s + chunk] = -(mx + np.log(np.exp(a - mx[None, :]).sum(0)))
+    w -= w.max()
+    w = np.exp(w)
+    w /= w.sum()
 
-    mbar = MBAR(u_kn, N_k, solver_protocol="robust")
-    W = mbar.weights()                                        # (N_total, n_w + 1)
-    out_aux = {k: np.concatenate(v) for k, v in aux_parts.items()}
-    return x_all, W[:, -1], mbar, out_aux
+    aux_out = {k: _order_by_window(np.asarray(v), n_w, n_rep, keep, stride=1)[0]
+               for k, v in (aux or {}).items()}
+    info = dict(f_k=f_k, N_k_subsample=N_k_sub, N_k_full=N_k_full, stride=int(stride),
+                n_mbar_samples=int(x_sub.size), n_total_samples=int(x_all.size),
+                n_kept_replicas=n_kept, mbar=mbar)
+    return x_all, w, info, aux_out
 
 
 def pmf_from_weights(xi_all, w, cfg: UmbrellaConfig, device="cpu", smooth_F_bandwidth=0.0):
