@@ -268,6 +268,8 @@ def run_umbrella(engine, cfg: UmbrellaConfig, build_index=0, n_builds=1, device=
     n_sample = 0
     stopped_early_at = 0
 
+    t_prod0 = time.perf_counter()
+
     def _snapshot():
         return dict(xi=np.stack(xi_s), y=np.stack(y_s), keep=keep,
                     **{k: np.stack(v) for k, v in lab_s.items()})
@@ -282,10 +284,16 @@ def run_umbrella(engine, cfg: UmbrellaConfig, build_index=0, n_builds=1, device=
                 lab_s[k].append(L[k].to(torch.float32).cpu().numpy())
             n_sample += 1
         if verbose and progress_every and (s + 1) % progress_every == 0:
-            el = time.perf_counter() - t0
+            # Rate is measured from the START OF PRODUCTION, not from t0.  Including the pull
+            # and equilibration in the rate inflates the remaining-time estimate by roughly the
+            # ratio of setup to production steps -- at 5 % done that read 775 min against a
+            # true 6.2 h, which is alarming and wrong.
+            el_prod = time.perf_counter() - t_prod0
+            el_all = time.perf_counter() - t0
             frac = (s + 1) / cfg.n_prod_steps
-            print(f"    prod {100*frac:5.1f}%  {el/60:6.1f} min elapsed, "
-                  f"~{el/frac*(1-frac)/60:6.1f} min left", flush=True)
+            print(f"    prod {100*frac:5.1f}%  {el_all/60:6.1f} min elapsed "
+                  f"({el_prod/60:6.1f} min of production), "
+                  f"~{el_prod/frac*(1-frac)/60:6.1f} min left", flush=True)
         if (on_checkpoint is not None and checkpoint_every
                 and (s + 1) % checkpoint_every == 0 and n_sample > 1):
             if bool(on_checkpoint(s + 1, _snapshot())):
