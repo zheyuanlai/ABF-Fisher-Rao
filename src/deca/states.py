@@ -99,6 +99,112 @@ def bias_aware_target(grid, F_ref, B_t, beta, edges):
     return out / out.sum(axis=1, keepdims=True).clip(1e-300)
 
 
+#: Amendment 6: structural labels carrying at least this share of reference weight are
+#: eligible for the corroboration gate.  Frozen from the reference alone, before the corrected
+#: screen was analysed.
+STRUCTURAL_WEIGHT_FLOOR = 1.0e-3
+#: The eligible set that floor produced on the accepted reference.  Recorded explicitly so it
+#: cannot be silently recomputed against a screen result.
+ELIGIBLE_LABELS = (0, 1, 2, 3, 4, 5, 6, 8)
+
+
+def reference_joint(xi_ref, y_ref, w_ref, grid, n_labels=9):
+    """``p_ref(xi, y)`` on the evaluation grid, from MBAR-weighted reference samples.
+
+    Out-of-domain samples are dropped, never clamped -- the defect that carved a fake well into
+    the reference PMF.  Returns ``(joint (n_labels, n_grid), label_weight (n_labels,))``.
+    """
+    grid = np.asarray(grid, float)
+    dz = float(grid[1] - grid[0])
+    lo, hi = grid[0] - 0.5 * dz, grid[-1] + 0.5 * dz
+    xi = np.asarray(xi_ref, float).ravel()
+    y = np.asarray(y_ref).ravel().astype(int)
+    w = np.asarray(w_ref, float).ravel()
+    inside = (xi >= lo) & (xi <= hi)
+    xi, y, w = xi[inside], y[inside], w[inside]
+    idx = np.clip(((xi - lo) / dz).astype(int), 0, grid.size - 1)
+
+    joint = np.zeros((n_labels, grid.size))
+    for a in range(n_labels):
+        m = y == a
+        if m.any():
+            np.add.at(joint[a], idx[m], w[m])
+    tot = joint.sum()
+    joint = joint / max(tot, 1e-300)
+    return joint, joint.sum(axis=1)
+
+
+def bias_aware_structural_target(joint, B_t, beta, eligible=ELIGIBLE_LABELS):
+    """``Q*_y(t)`` — Amendment 6.  ``B_t`` is ``(T, n_grid)`` or ``(n_grid,)``; returns ``(T, L)``.
+
+    ``Q*_y  proportional to  integral p_ref(xi, y) exp(beta B_t(xi)) dxi``
+
+    the exact structural analogue of :func:`bias_aware_target`: the bias depends only on ``xi``,
+    so it reweights the joint pointwise in ``xi``.  Normalised over the **eligible** labels only,
+    so an excluded sliver cannot absorb probability mass.
+    """
+    B = np.atleast_2d(np.asarray(B_t, float))
+    e = np.asarray(eligible, int)
+    logw = beta * B                                     # (T, n_grid)
+    logw = logw - logw.max(axis=1, keepdims=True)
+    w = np.exp(logw)
+    num = w @ joint[e].T                                # (T, L)
+    return num / num.sum(axis=1, keepdims=True).clip(1e-300)
+
+
+def structural_occupancy(label_y, eligible=ELIGIBLE_LABELS):
+    """Fraction of walkers carrying each eligible label.  ``(T, R, N)`` -> ``(T, R, L)``.
+
+    Renormalised over the eligible labels so it is comparable with
+    :func:`bias_aware_structural_target`, which is normalised the same way.
+    """
+    y = np.asarray(label_y).astype(int)
+    T, R, N = y.shape
+    out = np.zeros((T, R, len(eligible)))
+    for i, a in enumerate(eligible):
+        out[..., i] = (y == a).sum(axis=-1)
+    tot = out.sum(axis=-1, keepdims=True)
+    return np.divide(out, tot, out=np.zeros_like(out), where=tot > 0)
+
+
+def structural_establishment(label_y, steps, joint, B_t, beta, n_steps,
+                             eligible=ELIGIBLE_LABELS, deficit=ESTABLISHMENT_DEFICIT,
+                             span=ESTABLISHMENT_SPAN):
+    """Amendment 6 corroboration gate.  Returns a dict; ``any_deficit`` is the licensing bit."""
+    occ = structural_occupancy(label_y, eligible)                # (T, R, L)
+    Q = bias_aware_structural_target(joint, B_t, beta, eligible)  # (T_B, L)
+    T, R, L = occ.shape
+    if Q.shape[0] == 1:
+        Q = np.repeat(Q, T, axis=0)                  # a time-constant bias applies at every t
+    elif Q.shape[0] != T:
+        raise ValueError(f"bias has {Q.shape[0]} time points but occupancy has {T}; "
+                         "align B_t with the label trace before calling")
+    half = T // 2
+    steps = np.asarray(steps)
+    dt_frac = (steps[-1] - steps[0]) / max(T - 1, 1) / max(n_steps, 1)
+    need = int(np.ceil(span / max(dt_frac, 1e-12)))
+
+    Qh = Q[half:][:, None, :]
+    under = occ[half:] < deficit * Qh
+    runs = np.zeros((R, L), dtype=int)
+    for r in range(R):
+        for k in range(L):
+            runs[r, k] = _longest_true_run(under[:, r, k])
+    persistent = runs >= need
+    ratio = occ[half:] / np.clip(Qh, 1e-12, None)
+    return dict(
+        eligible_labels=list(map(int, eligible)),
+        required_contiguous_points=int(need),
+        longest_deficit_run=runs.tolist(),
+        labels_with_persistent_deficit=[int(eligible[k]) for k in range(L)
+                                        if bool(persistent[:, k].any())],
+        seeds_with_deficit_per_label=persistent.sum(axis=0).tolist(),
+        mean_second_half_occupancy=occ[half:].mean(axis=(0, 1)).tolist(),
+        mean_second_half_target=Q[half:].mean(axis=0).tolist(),
+        min_ratio_per_label=np.nanmin(ratio, axis=(0, 1)).tolist(),
+        any_deficit=bool(persistent.any()))
+
+
 def occupancy(xi_trace, edges):
     """Fraction of walkers in each state over time.  ``xi_trace`` ``(T, R, N)`` -> ``(T, R, K)``."""
     xi = np.asarray(xi_trace)

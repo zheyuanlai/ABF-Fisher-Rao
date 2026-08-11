@@ -120,6 +120,26 @@ def main():
         print(f"\n!! {msg} -- verdict below is PROCEDURAL, not evidence")
 
     v = st.classify(xi, steps, edges, Q, n_steps=n_steps)
+
+    # ---------------------------------------------------- Amendment 6: structural corroboration
+    joint, label_w = st.reference_joint(rz["xi_all"], rz["y_all"].astype(int),
+                                        rz["weights"], grid)
+    lab_y = sz["label_y"].astype(int)                 # (S_lab, R, N)
+    lab_steps = sz["label_steps"]
+    B_lab = np.stack([np.interp(lab_steps, save_steps, B_mean[:, g])
+                      for g in range(grid.size)], axis=-1)     # (S_lab, n_grid)
+    sv = st.structural_establishment(lab_y, lab_steps, joint, B_lab, beta, n_steps=n_steps)
+
+    print("\n--- Amendment 6: structural corroboration ---")
+    print(f"  eligible labels (frozen): {sv['eligible_labels']}")
+    print(f"  reference weight share  : {np.round(label_w[list(st.ELIGIBLE_LABELS)], 4)}")
+    print(f"  mean 2nd-half occupancy : {np.round(sv['mean_second_half_occupancy'], 4)}")
+    print(f"  mean 2nd-half target Q* : {np.round(sv['mean_second_half_target'], 4)}")
+    print(f"  min occ/Q* per label    : {np.round(sv['min_ratio_per_label'], 4)}")
+    print(f"  needs {sv['required_contiguous_points']} contiguous label-trace points below 0.5 Q*")
+    print(f"  labels with persistent deficit: {sv['labels_with_persistent_deficit']}")
+    print(f"  STRUCTURAL DEFICIT: {sv['any_deficit']}")
+    v["structural"] = sv
     print("\n--- Gate B: discovery (§2.3) ---")
     print(f"  threshold: T_hit < {v['discovery_threshold_steps']:.0f} steps "
           f"(0.1 T) on >= {st.DISCOVERY_MIN_SEEDS}/{xi.shape[1]} seeds")
@@ -132,10 +152,85 @@ def main():
     print(f"  worst second-half relative deficit: "
           f"{v['worst_second_half_relative_deficit']:.4f}")
     print(f"  persistent deficit found: {v['gate_c_establishment']}")
-    print(f"\n=== REGIME: {v['regime'].upper()} ===")
-    print(f"    licenses an mFR arm: {v['licenses_mfr']}")
-    if not v["licenses_mfr"]:
+    # ---------------------------------------------------- mechanical decision (Amendment 6)
+    coord_deficit = bool(v["gate_c_establishment"])
+    struct_deficit = bool(sv["any_deficit"])
+    if not v["gate_b_discovery"]:
+        regime, licensed = "discovery-limited", False
+        why = "a relevant state is not reliably discovered by 0.1 T"
+    elif not coord_deficit:
+        regime, licensed = "ABF-sufficient", False
+        why = "no persistent coordinate-level deficit"
+    elif not struct_deficit:
+        regime, licensed = "coordinate-deficit-only", False
+        why = ("a tercile of a monotone 72 kT PMF is underpopulated, but NO physically "
+               "meaningful structural state is. Amendment 6: not a corroborated deficit")
+    else:
+        regime, licensed = "establishment-limited", True
+        why = "early discovery + persistent coordinate deficit + persistent structural deficit"
+    v["regime"] = regime
+    v["licenses_mfr"] = licensed
+    v["decision_basis"] = why
+
+    print(f"\n=== REGIME: {regime.upper()} ===")
+    print(f"    basis: {why}")
+    print(f"    licenses the clone-decorrelation gate: {licensed}")
+    if not licensed:
         print("    STOP. Do not run mFR. This is a result -- report it as one.")
+    else:
+        print("    NOTE: this licenses Gate D (clone decorrelation) and the §3 rate")
+        print("          calibration ONLY. It does NOT license five-arm production.")
+
+    # ---------------------------------------------------- per-seed authoritative table
+    import csv
+    kT = 1.0 / beta
+    occ = st.occupancy(xi, edges)
+    socc = st.structural_occupancy(lab_y)
+    half = xi.shape[0] // 2
+    dz = float(grid[1] - grid[0])
+    F_ref_c = F_ref - F_ref.mean()
+    rows = []
+    for r in range(n_seeds):
+        A_T = pmf_t[-1, r]
+        A_T = A_T - A_T.mean()
+        l2_T = float(np.sqrt(((A_T - F_ref_c) ** 2).sum() * dz))
+        l2_int = float(np.mean([np.sqrt((((pmf_t[s, r] - pmf_t[s, r].mean()) - F_ref_c) ** 2
+                                         ).sum() * dz) for s in range(pmf_t.shape[0])]))
+        dA = np.gradient(A_T, grid)
+        dF = np.gradient(F_ref_c, grid)
+        row = dict(
+            seed=int(sz["seeds"][r]),
+            T_hit_over_T=[float(h) / n_steps if h >= 0 else np.nan
+                          for h in v["hitting_steps"][r]],
+            coord_occ_2nd_half=[float(x) for x in occ[half:, r].mean(axis=0)],
+            struct_occ_2nd_half=[float(x) for x in socc[len(socc) // 2:, r].mean(axis=0)],
+            longest_coord_deficit_run=[int(x) for x in v["longest_deficit_run"][r]],
+            longest_struct_deficit_run=[int(x) for x in sv["longest_deficit_run"][r]],
+            A_span_kT=float((A_T.max() - A_T.min()) / kT),
+            A_abs_max_kT=float(np.abs(A_T).max() / kT),
+            l2_F_final=l2_T, l2_F_integrated=l2_int,
+            l2_Fprime_final=float(np.sqrt(((dA - dF) ** 2).sum() * dz)),
+            xi_min=float(xi[:, r].min()), xi_max=float(xi[:, r].max()),
+            frac_above_2p80=float((xi[half:, r] > 2.7969).mean()),
+        )
+        rows.append(row)
+    with open(os.path.join(args.screen, "screen_table.csv"), "w", newline="") as fh:
+        wtr = csv.DictWriter(fh, fieldnames=list(rows[0]))
+        wtr.writeheader()
+        for row in rows:
+            wtr.writerow({k: (json.dumps(x) if isinstance(x, list) else x)
+                          for k, x in row.items()})
+    ref_span_kT = float((F_ref_c.max() - F_ref_c.min()) / kT)
+    print("\n--- per-seed screen table (also written to screen_table.csv) ---")
+    print(f"  reference span = {ref_span_kT:.1f} kT   (A_hat span is a DIAGNOSTIC, not a gate)")
+    print(f"  {'seed':>5} {'A span kT':>10} {'L2(F) fin':>10} {'L2(F) int':>10} "
+          f"{'>2.80 nm':>9} {'xi range':>16}")
+    for row in rows:
+        print(f"  {row['seed']:>5} {row['A_span_kT']:>10.1f} {row['l2_F_final']:>10.2f} "
+              f"{row['l2_F_integrated']:>10.2f} {row['frac_above_2p80']:>9.4f} "
+              f"  [{row['xi_min']:.3f},{row['xi_max']:.3f}]")
+    v["reference_span_kT"] = ref_span_kT
+    v["per_seed"] = rows
 
     v["reference_ratio"] = ref.get("ratio")
     v["gate_a_max_tv"] = ref.get("gate_a_max_pairwise_tv")
