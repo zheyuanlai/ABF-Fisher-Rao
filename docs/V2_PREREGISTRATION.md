@@ -894,4 +894,70 @@ failure mode, distinct from discovery-limited and establishment-limited, and **m
 it by construction**: mFR reallocates population *along* `xi`. If the conditional ensemble at
 each `xi` is wrong, moving walkers along `xi` does not fix it — no marginal reallocation rule
 can, and that includes the book-Laplacian and count-balancing baselines. This belongs in the
-regime map as its own category.
+regime map as its own category. Amendment 8 makes it one.
+
+### Amendment 8 — a fourth regime, and why marginal selection cannot reach it (2026-08-11)
+
+**Terminology adopted: `conditional-equilibration-limited`.** The defining situation is
+
+```
+  marginal sampling in xi looks abundant, but  p_t(q | xi)  is NOT  mu(q | xi)
+```
+
+so ABF's conditional mean force is biased at finite time no matter how many samples a bin holds.
+Deca-alanine exhibited it at up to 2×10⁶ effective counts per bin with a 61 % mean-force error.
+The name is chosen because it says exactly what fails; `orthogonal-relaxation-limited` is an
+acceptable synonym.
+
+**Why no marginal selection rule can repair it — proof.** The mFR score depends on the CV alone,
+`S_t = S_t(xi)`. Writing the joint law of CV and hidden conformation as `p_t(xi, y)`, the
+birth–death contribution is, up to the sign convention of `deca.selection`,
+
+```
+  d/dt p_t(xi, y) |_FR  =  -gamma S_t(xi) p_t(xi, y)
+```
+
+Marginalising over `y` gives `d/dt p_t^xi = -gamma S_t(xi) p_t^xi`. Then for the conditional
+`p_t(y | xi) = p_t(xi, y) / p_t^xi(xi)`, the quotient rule gives
+
+```
+  d/dt p_t(y | xi) |_FR
+      = [ (-gamma S p(xi,y)) p^xi  -  p(xi,y) (-gamma S p^xi) ] / (p^xi)^2
+      = 0
+```
+
+> **The mean-field selection step leaves the conditional distribution exactly invariant.**
+
+This holds for **any** score that is a function of `xi` alone, so it covers the book-Laplacian
+rule and count balancing as well as Fisher–Rao: it is a statement about the entire
+marginal-selection family, not about mFR specifically.
+
+**Stated limit of the claim.** This is a mean-field statement. Finite-population cloning followed
+by independent propagation can perturb the conditional distribution indirectly, so the claim is
+**not** that mFR can never under any circumstances affect `p(y | xi)` — it is that there is **no
+systematic selection pressure at fixed `xi`** to repair it. That distinction must survive into
+the manuscript.
+
+**The regime map becomes four-way.**
+
+| regime | what fails | mFR expectation |
+|---|---|---|
+| ABF-sufficient | nothing important | neutral |
+| discovery-limited | the state is never reached | cannot clone what does not exist |
+| **establishment-limited** | state reached, population relaxes slowly | **the useful regime** |
+| conditional-equilibration-limited | `p_t(q \| xi)` is wrong | marginal selection cannot directly repair it |
+
+**Gate 0 becomes universal.** It applies to every benchmark from here, before Gates A/B/C, and
+no future result may be forced into "discovery" or "establishment" when the honest answer is
+that the ABF baseline was never valid. The classification for **all** systems — including the
+R15 re-audit — is now four-way, not three-way.
+
+**Deca-alanine is closed as a mechanistic boundary result**, not deleted and not retried at a
+larger budget. Its value is precisely that it demonstrates something the alkanes and dipeptides
+did not: a CV can separate the structural states well (Gate A = 0.754) and ABF can still fail,
+because the *conditional* equilibrium along that CV is not reached in the available time.
+Extending `16 × 0.5 ns` until ABF becomes tractable and then looking for an mFR gain would be
+searching for a budget that manufactures the desired comparison, and is refused. A preregistered
+budget-scaling study (8 / 32 / 128 ns aggregate) asking only whether `|F'_t − F'_ref|` falls as
+conditional mixing catches up would be a legitimate appendix diagnostic — **a study of ABF
+conditional equilibration, not an mFR search** — and is not a current priority.

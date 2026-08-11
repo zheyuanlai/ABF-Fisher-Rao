@@ -53,6 +53,17 @@ class DistSimConfig:
     abf_bias_scale: float = 1.0
     abf_warmup_steps: int = 5_000
     abf_force_clip: float = 60.0
+    #: Support floor before a bin's mean force is trusted to APPLY bias (the standard ABF
+    #: `fullSamples` guard).  **Defaults to 0.0 = disabled, which reproduces frozen v1 exactly**;
+    #: v1 is immutable and every published R15 number was produced with no guard.
+    #:
+    #: This field exists because v1 is internally inconsistent: `Sim2DConfig` carries
+    #: `abf_min_count = 5.0` and `core2d._project_bias` masks untrusted cells, while
+    #: `DistSimConfig` had no such field at all and `jobs_cv._dist_sim` never passed one.  The
+    #: 2-D torsion cell therefore ran WITH the guard and R15 ran WITHOUT it, so the two v1
+    #: classifications were never on equal footing.  The v2 audit in
+    #: `results/v2_validity_audits/r15_abf_guard/` turns it on and changes nothing else.
+    abf_min_count: float = 0.0
     estimator_burn_in_steps: int = 6_000
     # Fisher--Rao (hyperparameters are on the normalised CV in [0,1] internally where noted)
     fr_rate: float = 0.02
@@ -202,8 +213,16 @@ def run_sampler_dist(method, params: pot.AlkaneParams, sim: DistSimConfig, seeds
         A_hat = iv.free_energy_from_mean_force(mf_profile, grid, dz)
         ramp = min(1.0, step / max(sim.abf_warmup_steps, 1))
         abf_scale = sim.abf_bias_scale * ramp
-        B_n = abf_scale * A_hat
-        mf_at = iv.interval_interp(mf_profile, grid, Rv).clamp(-sim.abf_force_clip, sim.abf_force_clip)
+        # `fullSamples` guard on the APPLIED bias only; the stored estimator keeps the full mean
+        # force.  `abf_min_count <= 0` is a no-op and reproduces frozen v1 bit-for-bit.
+        if sim.abf_min_count > 0.0:
+            trust = (iv.effective_counts(csum, K_abf) / sim.abf_min_count).clamp(0.0, 1.0)
+            mf_bias_profile = mf_profile * trust
+        else:
+            mf_bias_profile = mf_profile
+        B_n = abf_scale * iv.free_energy_from_mean_force(mf_bias_profile, grid, dz)
+        mf_at = iv.interval_interp(mf_bias_profile, grid, Rv).clamp(-sim.abf_force_clip,
+                                                                    sim.abf_force_clip)
         bias_at = abf_scale * mf_at
         wall_g = _wall_gforce(Rv, sim)
         applied = (bias_at + wall_g)

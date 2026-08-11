@@ -75,6 +75,9 @@ class CVRunSpec:
     abf_bandwidth2d: float = 0.20
     kde_bandwidth2d: float = 0.30
     abf_min_count: float = 5.0
+    #: Distance-CV `fullSamples` guard. 0.0 = disabled = frozen v1 behaviour; see
+    #: alkanes.core_dist.DistSimConfig.abf_min_count for why it is a separate field.
+    abf_min_count_dist: float = 0.0
     density_ema: float = 0.0
     estimator_stride: int = 1
     # conditional torsion grid
@@ -206,6 +209,7 @@ def _dist_sim(spec: CVRunSpec) -> cd.DistSimConfig:
         wall_hi=spec.wall_hi, k_wall=spec.k_wall, n_grid=spec.dist_n_grid,
         abf_bandwidth=spec.dist_abf_bandwidth, kde_bandwidth=spec.dist_kde_bandwidth,
         abf_warmup_steps=spec.abf_warmup_steps, abf_force_clip=spec.abf_force_clip,
+        abf_min_count=spec.abf_min_count_dist,
         estimator_burn_in_steps=spec.estimator_burn_in_steps, fr_rate=spec.fr_rate,
         score_clip=spec.score_clip, fr_start_steps=spec.fr_start_steps, fr_every=spec.fr_every,
         target_ema_rate=spec.target_ema_rate, max_event_fraction=spec.max_event_fraction,
@@ -441,7 +445,8 @@ def expand_stage(cfg, stage):
                 n_rbins=int(c.get("n_rbins", 12)), thermal_delta=float(c.get("thermal_delta", 10.0)),
                 grid2d=int(c.get("grid2d", 48)), abf_bandwidth2d=float(c.get("abf_bandwidth2d", 0.20)),
                 kde_bandwidth2d=float(c.get("kde_bandwidth2d", 0.30)),
-                abf_min_count=float(c.get("abf_min_count", 5.0)), density_ema=float(mk.get("density_ema", 0.0)),
+                abf_min_count=float(c.get("abf_min_count", 5.0)),
+                abf_min_count_dist=float(c.get("abf_min_count_dist", 0.0)), density_ema=float(mk.get("density_ema", 0.0)),
                 estimator_stride=int(c.get("estimator_stride", 1)), n_grid2=int(c.get("n_grid2", 48)),
                 fr_rate=float(mk.get("fr_rate", 0.0)), target_ema_rate=float(mk.get("target_ema_rate", 0.005)),
                 max_event_fraction=float(mk.get("max_event_fraction", 0.01)), fr_every=int(mk.get("fr_every", 5)),
