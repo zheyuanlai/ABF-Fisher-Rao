@@ -961,3 +961,56 @@ searching for a budget that manufactures the desired comparison, and is refused.
 budget-scaling study (8 / 32 / 128 ns aggregate) asking only whether `|F'_t − F'_ref|` falls as
 conditional mixing catches up would be a legitimate appendix diagnostic — **a study of ABF
 conditional equilibration, not an mFR search** — and is not a current priority.
+
+### Amendment 9 — Gate 0's span clause is retracted (2026-08-11)
+
+**My own Amendment 7 was wrong on one clause. The R15 audit found it, and I verified it
+independently from the raw artifacts before accepting it.**
+
+**Retracted: the span clause.** Amendment 7 required
+`span(A_hat_T) in [0.75, 1.25] x span(F_ref)`. Measured span ratios:
+
+| system / cell | span ratio | independent verdict |
+|---|---|---|
+| deca-alanine screen | 1.20 – 1.53 | baseline invalid |
+| R15 dispersed β1 | **1.311** | *easy*, `normL2(F) = 0.068` |
+| R15 trans β1 | **1.356** | *easy*, `normL2(F) = 0.076` |
+| R15 dispersed β2 | 1.467 | starved |
+| R15 trans β2 | 1.503 | starved |
+
+**The ranges overlap.** The statistic cannot separate a baseline that is demonstrably fine from
+one that is demonstrably broken, so it is not a validity test. `max − min` over 183–256 bins is
+a two-order-statistic quantity dominated by tail noise, and it says nothing about whether the
+learned bias is trustworthy. The clause is deleted, not re-tuned.
+
+**Retained: the pinning clause.** `no seed with > 0.90 of walkers in one tercile over the whole
+second half` does discriminate cleanly — deca **0.951–0.9996** against R15 **0.46–0.74**.
+
+**Not adopted: a threshold on mean-force agreement.** The relative error
+`mean|mf_hat − F'_ref| / mean|F'_ref|` on well-supported bins is the statistic that actually
+diagnosed deca (0.61). But it does **not** cleanly separate on its own either: R15 β=1 reads
+0.264–0.265 while being demonstrably fine (`normL2(F) = 0.068`), because mean force is far
+noisier than the free energy it integrates to. Setting a threshold now would also fix R15's
+verdict **after** seeing R15's number, which is the failure mode this document exists to
+prevent. **No threshold is set.**
+
+**How conditional-equilibration is attributed, then.** By the controlled experiment, not by a
+screen statistic. For deca the question was settled by accumulating the *same* `f_loc` estimator
+inside restrained windows with validated conditional sampling: 8.4 % error there against 61 % in
+the ABF run exonerated the estimator, the CV geometry, the reference and the integration, leaving
+conditional equilibration as the only remaining explanation. **That controlled test is the
+instrument. Gate 0 is a screen for when to run it, not a substitute for it.**
+
+**R15 status after the audit.**
+
+* **Primary question answered:** the missing `fullSamples` guard is immaterial for R15 — deltas
+  `normL2(F) <= 0.0004`, `span ratio <= 0.003`, `lowSupport = 0.000`. The v1 R15 numbers stand
+  as published, and the discovery-limited pillar is **not** invalidated by the guard.
+* **Newly open:** the β=2 cells show relative mean-force error **0.564 / 0.593**, essentially
+  deca's 0.61. Whether they are *discovery-limited* or *conditional-equilibration-limited* is
+  **unresolved**, and Amendment 8 forbids forcing it into the three-way box. A confound must be
+  handled: the R15 reference is importance-sampling based, a different object from deca's
+  umbrella+MBAR reference, so part of that error could be reference error.
+* **Resolvable by:** the same controlled restrained-sampling test, run on R15. If restrained
+  `<f_loc>` reproduces the R15 reference, the reference is sound and ABF's conditional sampling
+  is implicated; if it does not, the reference is implicated instead.
