@@ -741,3 +741,103 @@ discovery *harder* than a distributed start, so this choice can only push the cl
 read with this in mind and reported alongside it — it would be a statement about the folded
 start plus the 8 ns budget, not about the coordinate in general. It cannot manufacture an
 establishment-limited verdict, which is the direction that would license an mFR arm.
+
+### Amendment 5 — withdrawal of the first deca-alanine screen verdict (2026-08-11)
+
+The first ABF-only screen reported `REGIME: ESTABLISHMENT-LIMITED`, `licenses_mfr: true`.
+**That verdict is WITHDRAWN, not amended.** Two independent implementation defects, both in v2
+code written for this campaign, invalidate it. The run is retained at
+`results/deca/screen_RETRACTED_no_min_count_guard/` with a `RETRACTED.md`; nothing in it may be
+cited.
+
+**Defect 1 — out-of-domain samples clamped into edge bins.**
+`alkanes.interval.bin_counts` clamps out-of-range samples into bin 0 / bin *n*−1, which is
+harmless in the alkane study because soft walls make it rare. **Amendment 1 of this document
+deliberately bracketed the umbrella centres at `[1.15, 3.70]` around the evaluation domain
+`[1.20, 3.60]`**, so 4.82 % of reference samples lay outside the domain *by design* and were
+piled into bin 0. That carved a spurious 2.65 kT well at `grid[0]` against neighbours at
+~5.3 kT. The Amendment 3 basin finder read it as a genuine second minimum and split off a
+0.056 nm "state" lying below the screen's soft wall at 1.25 nm — a region that can never be
+populated — so Gate C reported a persistent deficit. **A fix introduced by this preregistration
+manufactured the artifact it then certified.**
+
+**Defect 2 — `abf_min_count` declared and never applied.**
+`deca.core.DecaSimConfig` carried `abf_min_count` and no code read it.
+`alkanes.interval.mean_force_profile` guards only `den > EPS`, so a bin holding a single sample
+contributed that one instantaneous local mean force as its conditional average. The applied bias
+ran away:
+
+| | measured on the withdrawn run |
+|---|---|
+| learned `A_hat` span | **102.5 kT** against a 72.0 kT reference (+42 %) |
+| walkers above 2.80 nm, second half | **97.9 %** |
+| occupancy of the folded basin (holds the 1.64 nm minimum) | **0.008** |
+
+`Q*` is computed *from* the learned bias, so Gate C compared a wrong occupancy against a wrong
+target. This is the standard ABF `fullSamples` guard; `alanine.core2d_ala` applies it correctly
+(`trust = den >= min_count`) and the deca sampler did not.
+
+**What survives.** The reference is umbrella + MBAR and independent of ABF: rebuilt with the
+edge fix it gives ratio **0.0337**, span **72.0 kT**, minimum **1.637 nm**, accepted. **Gate A
+survives at 0.754** against the 0.30 threshold. Amendment 3's single-basin fallback fired as
+preregistered.
+
+**Nothing is retuned in response to the invalid run.** No physical parameter, seed, budget,
+evaluation domain, state definition or gate threshold changes because of it. The corrected screen
+re-runs seeds 3000–3007 at 16 walkers × 0.5 ns from the equilibrated helix, against the same
+`F_ref` and the same thresholds. The only permitted differences are the two correctness fixes and
+the corroboration gate of Amendment 6.
+
+### Amendment 6 — structural corroboration is required to license a deca-alanine mFR arm (2026-08-11)
+
+**Written before the corrected screen was analysed. The eligible label set below was frozen from
+the reference alone, with no screen result in hand.**
+
+The accepted `F_ref` is **single-basin and monotone**, spanning ~72 kT with its minimum near
+1.64 nm, so Amendment 3's fallback partitions `xi` into three terciles. That partition is
+objective, but it is **not sufficient to license an mFR production experiment**, because a
+tercile can be underpopulated simply for being the far tail of a 72 kT climb. Tail starvation is
+not the establishment mechanism this project is about, and the deca-alanine literature problem
+concerns *conformations in parallel valleys*, not thirds of a distance interval.
+
+Gate A has already supplied the better object: the structural labels are strongly separated in
+`xi`, `max TV = 0.754` against a 0.30 threshold.
+
+**New requirement.** The tercile Gates B and C remain the preregistered coordinate-level
+diagnostic. In addition, a deca-alanine mFR arm is licensed **only if** a persistent
+establishment deficit is also present in at least one **physically meaningful structural state
+`Y` that is visible in `xi`**.
+
+**Bias-aware structural target.** With `p_ref(xi, y)` the reference joint and `B_t(xi)` the bias
+ABF has applied,
+
+```
+                integral  p_ref(xi, y) exp(beta B_t(xi)) dxi
+  Q*_y(t)  =  ---------------------------------------------------
+              sum_y'  integral  p_ref(xi, y') exp(beta B_t(xi)) dxi
+```
+
+the exact structural analogue of the coordinate target `Q*_k(t)` of §2.1 (the bias depends only
+on `xi`, so it reweights the joint pointwise in `xi`). The establishment criterion is unchanged:
+`R_y(t) = Q_y(t) / Q*_y(t) < 0.5` persistently for at least `0.20 T`.
+
+**Eligible labels, frozen now.** Reference weight shares over the 9-state composite label:
+
+| label | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|---|
+| share | 5.93e-2 | 7.89e-3 | 7.37e-2 | 5.72e-2 | 6.60e-3 | 2.45e-1 | 4.94e-2 | **2.88e-4** | 5.01e-1 |
+
+Applying the already-frozen 1e-3 reference-weight floor, the eligible set is
+**`{0, 1, 2, 3, 4, 5, 6, 8}`**; only label 7 is excluded, for carrying 2.9e-4 of the reference
+weight. **This set is fixed here and may not be revised after seeing the screen.**
+
+**Decision rule.**
+
+```
+  coordinate deficit AND structural deficit   ->  establishment-limited; continue to Gate D
+  coordinate deficit, NO structural deficit   ->  STOP: no physically corroborated deficit
+  no coordinate deficit                       ->  ABF-sufficient or discovery-limited; STOP
+```
+
+**Passing Gate C does not license production.** The clone-decorrelation gate (§2.5) and the rate
+calibration of §3 still stand between a licensed classification and any five-arm run.
