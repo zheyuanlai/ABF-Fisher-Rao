@@ -149,25 +149,43 @@ def _restraint_force(grad_full, R, centers, k):
     return dist_bias_force(grad_full, -k * (R - centers))
 
 
-def run_umbrella(engine, cfg: UmbrellaConfig, build_index=0, device="cuda",
-                 dtype=torch.float64, verbose=True, progress_every=200_000):
-    """Run all windows in one batch.  Returns a dict of samples and diagnostics.
+def run_umbrella(engine, cfg: UmbrellaConfig, build_index=0, n_builds=1, device="cuda",
+                 dtype=torch.float64, verbose=True, progress_every=200_000,
+                 checkpoint_every=0, on_checkpoint=None):
+    """Run every window of every build in one batch.  Returns samples and diagnostics.
 
-    Batch layout is ``(n_windows * n_rep, 112, 3)`` -- one process, one GPU, one noise stream,
-    which is the v1 design and the reason arm-to-arm comparisons stay paired.
+    Batch layout is ``(n_builds * n_windows * n_rep, 112, 3)`` -- one process, one GPU, one
+    noise stream, which is the v1 design and the reason comparisons stay paired.
+
+    **All builds advance together, on purpose.**  §4.5 acceptance is a statement about the
+    spread *between* independent builds, so it cannot be evaluated until every build has
+    reached the same amount of sampling.  Running them sequentially would mean no acceptance
+    test until the last one finished, which forecloses stopping early.  Interleaving also puts
+    the batch past the per-state cost knee: measured 0.99 us/state-step at ``B = 2048`` against
+    0.79-0.82 us at ``B >= 4096``.
+
+    ``on_checkpoint(n_sample, samples) -> bool`` is called every ``checkpoint_every``
+    production steps; returning ``True`` stops production early.  ``samples`` carries the
+    arrays accumulated so far.  This is how the §4.5 convergence-versus-compute trace is
+    produced -- as a by-product of the run rather than as extra work.
     """
     n_w, n_r = cfg.n_windows, cfg.n_rep
-    B = n_w * n_r
+    per_build = n_w * n_r
+    B = n_builds * per_build
     beta = cfg.beta
     centers_np = window_centers(cfg)
-    centers = torch.as_tensor(np.repeat(centers_np, n_r), device=device, dtype=dtype)
+    centers = torch.as_tensor(np.tile(np.repeat(centers_np, n_r), n_builds),
+                              device=device, dtype=dtype)
 
     i_cv, j_cv = dsys.terminal_carbonyls(dsys.N_RES)
     cv = DistanceCV(i_cv, j_cv)
     labels = DecaLabels(device=device, dtype=dtype)
 
+    # Each build gets its own RNG, so "independently initialised" means what it says.
     rng = np.random.default_rng(cfg.rng_seed + 7919 * build_index)
-    X0 = diverse_pool(B, cfg, rng)
+    X0 = np.concatenate([
+        diverse_pool(per_build, cfg, np.random.default_rng(cfg.rng_seed + 7919 * (build_index + b)))
+        for b in range(n_builds)])
     q = torch.as_tensor(X0, device=device, dtype=dtype).contiguous()
 
     # Relieve build-induced steric clashes BEFORE any dynamics.  Without this, a finite but
@@ -214,7 +232,7 @@ def run_umbrella(engine, cfg: UmbrellaConfig, build_index=0, device="cuda",
     check_finite(cfg.n_pull_steps, ("q", q[None]), ("v", v[None]), tag="deca_umbrella_pull")
 
     R_after_pull = cv.value(q).cpu().numpy()
-    pull_err = np.abs(R_after_pull - np.repeat(centers_np, n_r))
+    pull_err = np.abs(R_after_pull - np.tile(np.repeat(centers_np, n_r), n_builds))
     # Amendment 1: a hard pull is exactly the operation that can flip a stereocentre or
     # isomerise a peptide bond, so screen here rather than discover it in the samples.
     # A replica that blew up is finite, so the CV itself is the tell: 13 283 nm was observed
@@ -248,6 +266,12 @@ def run_umbrella(engine, cfg: UmbrellaConfig, build_index=0, device="cuda",
     # --- production ---
     xi_s, y_s, lab_s = [], [], {k: [] for k in ("n_hbonds", "alpha_frac", "rg", "ca_rmsd_helix")}
     n_sample = 0
+    stopped_early_at = 0
+
+    def _snapshot():
+        return dict(xi=np.stack(xi_s), y=np.stack(y_s), keep=keep,
+                    **{k: np.stack(v) for k, v in lab_s.items()})
+
     for s in range(cfg.n_prod_steps):
         q, v, f = step(q, v, f)
         if (s + 1) % cfg.sample_every == 0:
@@ -262,6 +286,14 @@ def run_umbrella(engine, cfg: UmbrellaConfig, build_index=0, device="cuda",
             frac = (s + 1) / cfg.n_prod_steps
             print(f"    prod {100*frac:5.1f}%  {el/60:6.1f} min elapsed, "
                   f"~{el/frac*(1-frac)/60:6.1f} min left", flush=True)
+        if (on_checkpoint is not None and checkpoint_every
+                and (s + 1) % checkpoint_every == 0 and n_sample > 1):
+            if bool(on_checkpoint(s + 1, _snapshot())):
+                stopped_early_at = s + 1
+                if verbose:
+                    print(f"    STOP: acceptance met at {(s+1)*cfg.dt:.2f} ps per replica",
+                          flush=True)
+                break
     check_finite(cfg.n_prod_steps, ("q", q[None]), ("v", v[None]), tag="deca_umbrella_prod")
 
     ok_thermal, rep_thermal = dsys.validate_thermal(q.cpu().numpy(), dsys.N_RES)
@@ -276,6 +308,7 @@ def run_umbrella(engine, cfg: UmbrellaConfig, build_index=0, device="cuda",
         n_fail_cis_equil=int(rep_equil["n_fail_cis"]),
         n_fail_chirality_equil=int(rep_equil["n_fail_chirality"]),
         centers=centers_np, n_windows=n_w, n_rep=n_r, n_sample=n_sample,
+        n_builds=n_builds, per_build=per_build, stopped_early_at=stopped_early_at,
         build_index=build_index, config=asdict(cfg), config_hash=cfg.config_hash(),
         pull_error_nm=pull_err, runtime_seconds=time.perf_counter() - t0,
         final_thermal_pass=int(np.sum(ok_thermal)), final_thermal_n=int(ok_thermal.size),

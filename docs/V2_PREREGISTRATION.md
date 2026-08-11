@@ -620,3 +620,49 @@ reported. A hard pull is exactly the operation that can produce one, and an excl
 be visible, never silently averaged in.
 
 `R_lo`, `R_hi`, `n_grid`, the evaluation domain and every gate threshold are **unchanged**.
+
+### Amendment 2 — reference stopping rule (2026-08-11)
+
+**Written before any checkpoint had been computed. No reference PMF, no acceptance statistic
+and no Gate A result existed at the time. Nothing downstream of the reference existed.**
+
+§6.3 fixes 4 ns per replica, giving 12 288 ns per build — about **96× the deca-alanine ABF
+literature benchmark of 128 ns**, and ~288× across three builds. §4.5 does not ask for a fixed
+amount of sampling; it asks that reference uncertainty be small against the effect being
+measured, and it *already* requires a convergence trace against reference compute. Running a
+fixed 4 ns and then reporting that trace does the work twice and never acts on it.
+
+**Structural change.** The three builds now run **interleaved in one batch**
+(`B = 3 × 96 × 32 = 9216`) rather than sequentially. §4.5 acceptance is a statement about the
+spread *between* independent builds, so it cannot be evaluated until every build has reached
+the same sampling; sequential builds forbid stopping early by construction. Interleaving also
+puts the batch past the measured per-state cost knee (0.99 µs/state-step at `B = 2048` against
+0.79–0.82 µs at `B ≥ 4096`). Each build keeps its own RNG and its own diverse pool, so
+"independently initialised" still means what it says.
+
+**Stopping rule.** At checkpoints of **1, 2, 3 and 4 ns** per replica, compute each build's
+`F_b` and the §4.5 statistic
+
+```
+  ratio  =  max pairwise L2 between builds  /  ( 0.10 x consensus F span )
+```
+
+Production stops at the first checkpoint where **both**
+
+```
+  ratio <= 0.5           and           sampling >= 2 ns per replica
+```
+
+The 2 ns floor exists so the run cannot stop on a single lucky checkpoint. The 0.5 margin
+exists so it cannot stop sitting on the acceptance boundary at 1.0 — the reference must be
+**twice** as good as the minimum, not barely good enough. If the rule is never met by 4 ns, the
+run completes the full 4 ns and reports `ratio`; a final `ratio > 1.0` means the reference is
+**not accepted** and must be rebuilt longer or with more windows, exactly as §4.5 already says.
+
+Every checkpoint is retained and written out, so the convergence-versus-compute trace §4.5
+requires is a by-product of the run rather than separate work — including the checkpoints after
+the stop would have fired, when the rule does not fire.
+
+**No gate threshold, no success rule, no arm definition and no evaluation domain changes.** The
+only thing this amendment can affect is how much reference compute is spent, and it can only
+spend less when the preregistered acceptance criterion is already exceeded by 2×.
