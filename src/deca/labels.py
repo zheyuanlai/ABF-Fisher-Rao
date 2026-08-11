@@ -168,6 +168,13 @@ def conditional_tv(xi, y, weights, grid_edges, n_states=N_GATE_A_STATES, min_cou
     w = np.asarray(weights, float).ravel()
     edges = np.asarray(grid_edges, float)
     nb = len(edges) - 1
+
+    # Drop out-of-range samples rather than clamping them into the edge bins.  The umbrella
+    # windows deliberately bracket the evaluation domain (Amendment 1), so samples outside it
+    # exist by design; clamping them piles that mass onto the two end bins and distorts every
+    # conditional density there.  Same defect that carved a fake basin into the reference PMF.
+    inside = (xi >= edges[0]) & (xi <= edges[-1])
+    xi, y, w = xi[inside], y[inside], w[inside]
     idx = np.clip(np.digitize(xi, edges) - 1, 0, nb - 1)
 
     p = np.zeros((n_states, nb))

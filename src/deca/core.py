@@ -201,11 +201,26 @@ def run_sampler_deca(method, engine, sim: DecaSimConfig, seeds, init_positions,
 
         mf_profile = iv.mean_force_profile(fsum, csum, K_abf)
         A_hat = iv.free_energy_from_mean_force(mf_profile, grid, dz)
+
+        # --- per-bin trust ramp (the standard ABF `fullSamples` guard) -----------------------
+        # `mean_force_profile` only guards `den > EPS`, so a bin holding ONE sample contributes
+        # that single instantaneous local mean force as its conditional average.  Integrating
+        # that noise across the grid produces a bias that drives walkers irreversibly to one
+        # end, and the estimate never recovers because they stop sampling anywhere else.
+        # Measured on the first deca screen without this guard: the learned profile spanned
+        # 102.5 kT against a 72.0 kT reference (+42 %), 97.9 % of walkers ended pinned above
+        # 2.80 nm, and the folded basin containing the global minimum was left empty.
+        # The ESTIMATE keeps the full mean force; only the APPLIED bias is ramped, exactly as
+        # NAMD ramps by `fullSamples` and as `alanine.core2d_ala` gates by `abf_min_count`.
+        eff = iv.effective_counts(csum, K_abf)
+        trust = (eff / max(sim.abf_min_count, 1e-12)).clamp(0.0, 1.0)
+        mf_bias_profile = mf_profile * trust
+
         ramp = min(1.0, step / max(sim.abf_warmup_steps, 1))
         abf_scale = sim.abf_bias_scale * ramp
-        B_n = abf_scale * A_hat
-        mf_at = iv.interval_interp(mf_profile, grid, Rv).clamp(-sim.abf_force_clip,
-                                                               sim.abf_force_clip)
+        B_n = abf_scale * iv.free_energy_from_mean_force(mf_bias_profile, grid, dz)
+        mf_at = iv.interval_interp(mf_bias_profile, grid, Rv).clamp(-sim.abf_force_clip,
+                                                                    sim.abf_force_clip)
         applied = abf_scale * mf_at + _wall_gforce(Rv, sim)
         bias_force = dist_bias_force(grad_full.reshape(R * N, A, 3),
                                      applied.reshape(R * N)).reshape(R, N, A, 3)

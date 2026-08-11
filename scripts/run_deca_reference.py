@@ -44,11 +44,12 @@ def analyse_builds(xi, y, keep, cfg, n_builds, per_build):
         sl = slice(b * per_build, (b + 1) * per_build)
         xa, w, info, aux = mbar_weights(xi[:, sl], cen, cfg.n_rep, cfg.k_umbrella, cfg.beta,
                                         keep=keep[sl], aux={"y": y[:, sl].astype(np.float64)})
-        grid, dz, p, F, counts = pmf_from_weights(xa, w, cfg)
+        grid, dz, p, F, counts, n_drop = pmf_from_weights(xa, w, cfg)
         Fs.append(F)
         extras.append(dict(xi=xa, w=w, y=aux["y"].astype(int), counts=counts,
+                           n_dropped=n_drop,
                            stride=info["stride"], n_mbar=info["n_mbar_samples"]))
-    grid, dz, _, _, _ = pmf_from_weights(extras[0]["xi"], extras[0]["w"], cfg)
+    grid, dz, _, _, _, _ = pmf_from_weights(extras[0]["xi"], extras[0]["w"], cfg)
     mask = (grid >= cfg.R_lo) & (grid <= cfg.R_hi)
 
     A = np.stack([F - F[mask].mean() for F in Fs])

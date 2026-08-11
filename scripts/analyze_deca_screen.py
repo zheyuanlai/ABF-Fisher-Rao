@@ -71,11 +71,22 @@ def main():
     steps = sz["xi_trace_steps"]
     pmf_t = sz["pmf"]                         # (S, R, n_grid) -- the learned A_hat over time
     save_steps = sz["steps"]
-    cfg = json.loads(json.dumps(sz["config"].item())) if "config" in sz.files else {}
-    n_steps = int(cfg.get("n_steps", steps[-1]))
-    beta = 1.0 / (KB * float(cfg.get("temperature", 300.0)))
-    scale = float(cfg.get("abf_bias_scale", 1.0))
-    warm = float(cfg.get("abf_warmup_steps", 1))
+    # The sampler config is the source of truth for beta, the bias ramp and the run length.
+    # It is NOT in the npz (savez keeps arrays only), so it comes from provenance.json -- and
+    # its absence is a hard error. Silently falling back to defaults gave abf_warmup_steps = 1
+    # instead of 10000, which sets the bias ramp to 1 from step 0 and shifts every Q*.
+    prov_path = os.path.join(args.screen, "provenance.json")
+    if not os.path.exists(prov_path):
+        raise SystemExit(f"no {prov_path}; cannot know the sampler config, refusing to guess")
+    with open(prov_path) as fh:
+        cfg = json.load(fh)["config"]
+    for k in ("n_steps", "temperature", "abf_bias_scale", "abf_warmup_steps"):
+        if k not in cfg:
+            raise SystemExit(f"provenance config is missing {k!r}; refusing to guess")
+    n_steps = int(cfg["n_steps"])
+    beta = 1.0 / (KB * float(cfg["temperature"]))
+    scale = float(cfg["abf_bias_scale"])
+    warm = float(cfg["abf_warmup_steps"])
 
     # ------------------------------------------------------------------ states (Amendment 3)
     edges, minima, fallback = st.find_basins(grid, F_ref, beta)

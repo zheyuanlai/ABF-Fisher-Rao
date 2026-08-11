@@ -78,7 +78,7 @@ def _F_from_blocks(blocks, keep, cfg, centers):
             xi[:, w * n_rep + dead] = blocks[w][:, :1]   # keep mask drops them again anyway
     xa, w_, info, _ = mbar_weights(xi, centers, n_rep, cfg.k_umbrella, cfg.beta,
                                    keep=keep.reshape(-1))
-    grid, dz, p, F, counts = pmf_from_weights(xa, w_, cfg)
+    grid, dz, p, F, counts, _ = pmf_from_weights(xa, w_, cfg)
     return grid, dz, F, counts
 
 

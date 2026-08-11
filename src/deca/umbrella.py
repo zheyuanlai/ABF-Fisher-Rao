@@ -437,8 +437,22 @@ def pmf_from_weights(xi_all, w, cfg: UmbrellaConfig, device="cpu", smooth_F_band
 
     grid, dz = iv.interval_grid(cfg.n_grid, cfg.R_lo, cfg.R_hi, device=device,
                                 dtype=torch.float64)
-    z = torch.as_tensor(np.asarray(xi_all, dtype=np.float64), device=device)[None]
-    wt = torch.as_tensor(np.asarray(w, dtype=np.float64), device=device)[None]
+
+    # **Drop out-of-domain samples; do NOT let them be clamped into the edge bins.**
+    # ``iv.bin_counts`` clamps out-of-range samples into bin 0 / bin n-1, which is harmless in
+    # the alkane study because soft walls make it rare -- but Amendment 1 deliberately places
+    # the umbrella centres at [win_lo, win_hi] BRACKETING [R_lo, R_hi], so entire windows sample
+    # outside the evaluation domain by design.  Clamping them piles that mass into the edge bins
+    # and carves a spurious ~2.7 kT well at grid[0]: a fake basin, which propagated into a fake
+    # ESTABLISHMENT-LIMITED verdict on the first screen.  The coverage fix created the artifact.
+    x = np.asarray(xi_all, dtype=np.float64)
+    wv = np.asarray(w, dtype=np.float64)
+    inside = (x >= cfg.R_lo) & (x <= cfg.R_hi)
+    n_dropped = int((~inside).sum())
+    x, wv = x[inside], wv[inside]
+
+    z = torch.as_tensor(x, device=device)[None]
+    wt = torch.as_tensor(wv, device=device)[None]
     hist = iv.bin_sum(z, wt, cfg.n_grid, cfg.R_lo, cfg.R_hi)
     counts = iv.bin_counts(z, cfg.n_grid, cfg.R_lo, cfg.R_hi)
 
@@ -450,4 +464,4 @@ def pmf_from_weights(xi_all, w, cfg: UmbrellaConfig, device="cpu", smooth_F_band
         F = torch.where(torch.isfinite(F), Fs, F)
     F = F - F[torch.isfinite(F)].mean()
     return (grid.cpu().numpy(), float(dz), p[0].cpu().numpy(), F[0].cpu().numpy(),
-            counts[0].cpu().numpy())
+            counts[0].cpu().numpy(), n_dropped)

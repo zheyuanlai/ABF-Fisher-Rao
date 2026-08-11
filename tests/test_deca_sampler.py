@@ -206,6 +206,26 @@ def test_selection_conserves_population_and_records_events(engine):
     assert np.isfinite(out["pmf"]).all()
 
 
+def test_abf_min_count_actually_ramps_the_applied_bias(engine):
+    """The `fullSamples` guard must be APPLIED, not merely declared in the config.
+
+    Without it a bin holding one sample contributes that single instantaneous force as its
+    conditional mean, and the integrated bias drives walkers irreversibly to one end. On the
+    first deca screen that produced a 102.5 kT profile against a 72.0 kT reference and left the
+    folded basin empty. A config field that nothing reads is worse than no field at all.
+
+    With an enormous min_count the bias is ramped to ~zero everywhere, so the run must coincide
+    with pure unbiased dynamics under the walls; with min_count = 0 it must not.
+    """
+    x0 = _init(2, 8)
+    huge = _tiny_cfg(fr_rate=0.0, abf_min_count=1e12, abf_warmup_steps=1)
+    zero = _tiny_cfg(fr_rate=0.0, abf_min_count=0.0, abf_warmup_steps=1)
+    a = run_sampler_deca("abf", engine, huge, [0, 1], x0, device="cpu", verbose=False)
+    b = run_sampler_deca("abf", engine, zero, [0, 1], x0, device="cpu", verbose=False)
+    assert not np.array_equal(a["xi_trace"], b["xi_trace"]), \
+        "abf_min_count had no effect on the trajectory -- the guard is not wired up"
+
+
 def test_sampler_runs_and_traces_are_consistent(engine):
     cfg = _tiny_cfg(fr_rate=0.0)
     out = run_sampler_deca("abf", engine, cfg, [0, 1], _init(2, 8), device="cpu", verbose=False)
