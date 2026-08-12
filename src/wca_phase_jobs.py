@@ -230,7 +230,7 @@ def fr_event_stats(spec: PhaseRunSpec, steps, repl_cumulative, n_replicas):
 
 
 def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase", verbose=False,
-                replay_counts=None):
+                replay_counts=None, store_profiles=False):
     """Run one phase-diagram job; return a flat dict of scalars + arrays to save.
 
     ``replay_counts`` is required by the matched-sham methods and rejected by every other
@@ -268,6 +268,21 @@ def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase",
                           if np.isfinite(q_final).all() else float("nan"))
 
     fre = fr_event_stats(spec, diag["steps"], diag["repl_cumulative"], sim.n_replicas)
+
+    # Case IX retained only scored scalars, so its headline could never be rescored against
+    # a corrected reference -- the whole reason Stage C needs fresh dynamics. Storing the
+    # profile time series (49 x 160 float32 ~ 31 kB/run) removes that trap for good.
+    # Purely ADDITIVE: no existing key changes, so v1 artifacts stay valid.
+    profiles = {}
+    if store_profiles:
+        profiles = dict(
+            pmf_t=np.asarray(diag["pmf"], dtype=np.float32),
+            mean_force_t=np.asarray(diag["mean_force"], dtype=np.float32),
+            profile_steps=np.asarray(diag["steps"]),
+            profile_times=np.asarray(diag["times"]),
+            reference_free_energy=np.asarray(ref["free_energy"], dtype=np.float64),
+            reference_mean_force=np.asarray(ref["mean_force"], dtype=np.float64),
+            reference_label=str(ref.get("label", "")))
 
     # genealogy summaries
     maf = np.asarray(diag["max_ancestor_frac"], dtype=float)
@@ -343,6 +358,7 @@ def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase",
         "sham_partner": (diag["sham_partner"] or ""),
         "sham_replayed_events": diag["sham_replayed_events"],
     }
+    out.update(profiles)
     return out
 
 

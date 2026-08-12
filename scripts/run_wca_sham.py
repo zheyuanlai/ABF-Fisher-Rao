@@ -82,6 +82,10 @@ def main():
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--overwrite", action="store_true")
     ap.add_argument("--verbose", action="store_true")
+    ap.add_argument("--cache-dir", default=CACHE,
+                    help="TI reference cache; point at a corrected reference for Stage C")
+    ap.add_argument("--store-profiles", action="store_true",
+                    help="retain F_hat_t(z), so a future reference change can be rescored")
     a = ap.parse_args()
 
     cfg = jobs.load_yaml(a.config)
@@ -137,7 +141,8 @@ def main():
                 continue
             eng = jobs.get_engine(sp, engines)
             t0 = time.time()
-            out = jobs.execute_run(sp, base, eng, cache_dir=CACHE, verbose=a.verbose)
+            out = jobs.execute_run(sp, base, eng, cache_dir=a.cache_dir, verbose=a.verbose,
+                                   store_profiles=a.store_profiles)
             jobs.save_run(path, out)
             counts[m] = np.asarray(out["fr_event_counts"])
             done += 1
@@ -163,7 +168,8 @@ def main():
                     f"Re-run pass 1 for this seed with --overwrite.")
             eng = jobs.get_engine(sp, engines)
             t0 = time.time()
-            out = jobs.execute_run(sp, base, eng, cache_dir=CACHE, verbose=a.verbose,
+            out = jobs.execute_run(sp, base, eng, cache_dir=a.cache_dir, verbose=a.verbose,
+                                   store_profiles=a.store_profiles,
                                    replay_counts=counts[partner])
             assert int(out["total_replacement_events"]) == int(counts[partner].sum()), (
                 "sham did not reproduce its partner's total replacement count")
