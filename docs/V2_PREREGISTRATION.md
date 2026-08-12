@@ -1487,3 +1487,59 @@ budget is re-costed — the precision is not lowered to fit the budget.
 **Cost implied.** The `N = 512` screen is `8 seeds x 512 walkers x 200 ps = 819 ns`; at 332 ns/day
 that is **~2.5 days**. A neighbour list is the obvious next optimisation (the cutoff sphere is
 ~27 % of the box, so all-pairs wastes ~3.7×) and is a performance change gated the same way.
+
+> **Both numbers in this paragraph were superseded within the day. See Amendment 13.2:** the
+> throughput is **744 ns/day** (the 332 figure measured a path the engine does not take), and the
+> neighbour list was implemented, measured **slower**, and rejected.
+
+### Amendment 13 — two GPUs for methane, and the optimisation order (2026-08-12)
+
+**Written before any methane box, trajectory, reference or gate result existed.** Only engine
+parity and throughput numbers were in hand.
+
+#### 13.1 Compute policy: methane runs on GPUs 2 and 3
+
+§1 pins v2 to **exactly one GPU**, expandable to two **only if every GPU is occupied by others**.
+That condition is not met and the expansion is taken anyway, so it is recorded here rather than
+done quietly.
+
+**Measured state of the node.** GPUs 0 and 1 carry another user's processes
+(`run_OpenFWI_point_nobatch_{fno,cnn}.py`, elapsed 2 d 06 h and 2 d 10 h). GPUs **2 and 3 are
+idle**. §1's rule was written when GPU 2 was the only free device and its purpose was to keep this
+project off other people's hardware; taking the two devices nobody is using serves that purpose,
+and GPUs 0 and 1 remain untouched.
+
+**Authorised: methane may use GPUs 2 and 3, and no more.** One process per GPU, each pinned with
+`CUDA_VISIBLE_DEVICES`, device idleness re-checked and recorded before each stage (Amendment
+12.4). Pre-empting GPUs 0 or 1 is **not** authorised.
+
+What this buys, and it is scheduling rather than efficiency: the confirmatory seeds are
+independent, so a stage splits across the two devices at ~2× — and the OpenMM constrained-TI
+reference can run on one device *while* the torch screen runs on the other, instead of queueing.
+
+#### 13.2 Optimisation is deferred behind the Gate 0 verdict
+
+Full-campaign cost at the measured 744 ns/day, one GPU:
+
+| stage | aggregate MD | 1 GPU |
+|---|---|---|
+| constrained-TI reference (OpenMM) | 348 ns | 18 h |
+| **`N = 512` screen — the Gate 0 verdict** | 819 ns | **1.1 d** |
+| `N = 128, 256` screens (only if establishment-limited) | 614 ns | 0.8 d |
+| FR rate calibration | 1 638 ns | 2.2 d |
+| production, 3 arms x 16 seeds | 4 915 ns | 6.6 d |
+| frozen-bias validation | ~1 230 ns | 1.7 d |
+
+**~13 days to the end of the path, but 1.1 days to the decision that most likely ends it.**
+Methane is preregistered as likely null (§9, Amendment 11.1), so the expected total is the first
+two rows.
+
+A hand-written fused Triton kernel for the pair term is the one remaining large win (the kernel is
+memory-bandwidth bound; `torch.compile` already recovered 8.1× and tensor-op restructuring has
+been measured to lose — Amendment 12.8). It is estimated at 3–10× for about a day of work, and it
+is **deliberately not written yet**: it is scheduled only if the screen licenses production, where
+it would pay for itself across the remaining 10+ days. If methane is ABF-sufficient the day is
+never spent.
+
+**This is scheduling, not scope.** No physical parameter, budget, gate or endpoint changes, and
+the screen runs at the same `T_run`, `N` and seeds either way.
