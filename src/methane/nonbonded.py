@@ -96,6 +96,20 @@ class PairTerms:
         self.excluded = excl
         self.exclusion_pairs = ex
 
+        # --- site subsets for energy_forces_split -------------------------------------------
+        self.lj_index = torch.nonzero(self.epsilon > 0, as_tuple=True)[0]
+        self.q_index = torch.nonzero(self.charge != 0, as_tuple=True)[0]
+        li, qi = self.lj_index, self.q_index
+        self.lj_sig = self.sig_ij[li][:, li].contiguous()
+        self.lj_eps = self.eps_ij[li][:, li].contiguous()
+        self.lj_self = torch.eye(li.numel(), dtype=torch.bool, device=device)
+        self.q_qq = self.qq_ij[qi][:, qi].contiguous()
+        self.q_excluded = excl[qi][:, qi].contiguous()
+        # every intramolecular exclusion is O-H or H-H, and hydrogens carry no LJ, so the LJ set
+        # can only ever exclude the self-pair.  Asserted, not assumed.
+        if bool(excl[li][:, li].fill_diagonal_(False).any()):
+            raise RuntimeError("LJ site set carries a non-self exclusion; split path invalid")
+
     def _min_image(self, d):
         return d - self.L * torch.round(d / self.L)
 
@@ -150,6 +164,125 @@ class PairTerms:
             forces[:, lo:hi, :] = -(coef * d).sum(dim=2)                       # (B,c,3)
         return 0.5 * energy, forces
 
+    def energy_forces_split(self, x, chunk=128):
+        """Same result as :meth:`energy_forces`, with LJ and Coulomb over their own site sets.
+
+        .. warning::
+           **MEASURED SLOWER -- kept as a recorded negative, do not re-try without a new idea.**
+           B=512, float32, compiled, idle H200: **509 ns/day against 744** for the plain
+           all-pairs path (chunk 256; chunk 128 is far worse at 109).  Correct to ``1e-11`` in
+           energy against the parity-validated path, so this is a performance result, not a bug.
+           The two ``index_add_`` scatters and the sub-set gathers cost more than the 9/10 of LJ
+           arithmetic they remove, because the kernel is bound by memory traffic and this
+           restructuring adds two extra passes over the positions.
+
+        Only **514** of the 1538 sites carry Lennard-Jones (512 water oxygens + 2 methanes); the
+        1024 hydrogens carry charge alone.  The combined loop therefore evaluates ``sr6``,
+        ``sr12`` and the switching polynomial for ~2.1 M pairs per walker whose ``epsilon`` is
+        identically zero.  Splitting the two interactions costs one extra gather and removes
+        9/10 of the LJ arithmetic.
+
+        A convenient consequence: **the LJ set needs no exclusion mask.**  Every intramolecular
+        exclusion is O-H or H-H, and hydrogens are not in the LJ set, so only the self-pair has
+        to be dropped.  The Coulomb set keeps the full mask.
+        """
+        B, N, _ = x.shape
+        energy = x.new_zeros(B)
+        forces = x.new_zeros(B, N, 3)
+
+        # ---- Lennard-Jones over LJ-bearing sites only ---------------------------------------
+        li = self.lj_index
+        xl = x[:, li, :]
+        nl_ = li.numel()
+        e_acc = x.new_zeros(B)
+        f_acc = x.new_zeros(B, nl_, 3)
+        for lo in range(0, nl_, chunk):
+            hi = min(lo + chunk, nl_)
+            d = self._min_image(xl[:, lo:hi, None, :] - xl[:, None, :, :])
+            r = (d * d).sum(-1).clamp_min(1e-24).sqrt()
+            live = (r < self.cutoff) & (~self.lj_self[lo:hi, :])
+            inv_r = torch.where(live, 1.0 / r, torch.zeros_like(r))
+            sr6 = (self.lj_sig[lo:hi, :] * inv_r).pow(6)
+            sr12 = sr6 * sr6
+            e_lj = 4.0 * self.lj_eps[lo:hi, :] * (sr12 - sr6)
+            dlj = -24.0 * self.lj_eps[lo:hi, :] * (2.0 * sr12 - sr6) * inv_r
+            s, ds = switch_and_derivative(r, self.switch, self.cutoff)
+            e_acc = e_acc + torch.where(live, e_lj * s, torch.zeros_like(r)).sum(dim=(1, 2))
+            dE = torch.where(live, dlj * s + e_lj * ds, torch.zeros_like(r))
+            f_acc[:, lo:hi, :] = -((dE * inv_r).unsqueeze(-1) * d).sum(dim=2)
+        energy = energy + 0.5 * e_acc
+        forces.index_add_(1, li, f_acc)
+
+        # ---- PME real-space Coulomb over charged sites only ---------------------------------
+        qi = self.q_index
+        xq = x[:, qi, :]
+        nq = qi.numel()
+        two_a_sqrtpi = 2.0 * self.alpha / np.sqrt(np.pi)
+        e_acc = x.new_zeros(B)
+        f_acc = x.new_zeros(B, nq, 3)
+        for lo in range(0, nq, chunk):
+            hi = min(lo + chunk, nq)
+            d = self._min_image(xq[:, lo:hi, None, :] - xq[:, None, :, :])
+            r = (d * d).sum(-1).clamp_min(1e-24).sqrt()
+            live = (r < self.cutoff) & (~self.q_excluded[lo:hi, :])
+            inv_r = torch.where(live, 1.0 / r, torch.zeros_like(r))
+            ar = self.alpha * r
+            erfc = torch.erfc(ar)
+            qq = self.q_qq[lo:hi, :]
+            e_acc = e_acc + torch.where(live, qq * erfc * inv_r,
+                                        torch.zeros_like(r)).sum(dim=(1, 2))
+            dE = torch.where(live,
+                             -qq * (erfc * inv_r * inv_r
+                                    + two_a_sqrtpi * torch.exp(-ar * ar) * inv_r),
+                             torch.zeros_like(r))
+            f_acc[:, lo:hi, :] = -((dE * inv_r).unsqueeze(-1) * d).sum(dim=2)
+        energy = energy + 0.5 * e_acc
+        forces.index_add_(1, qi, f_acc)
+        return energy, forces
+
+    def energy_forces_nl(self, x, nl, chunk=256):
+        """Same quantities as :meth:`energy_forces`, over a :class:`VerletList`.
+
+        Parameters are combined **from per-site vectors** rather than gathered out of ``(N, N)``
+        tables: the tables would themselves stream ``(B, chunk, N)`` per step, which is precisely
+        the traffic the neighbour list exists to remove.
+        """
+        B, N, _ = x.shape
+        energy = x.new_zeros(B)
+        forces = x.new_zeros(B, N, 3)
+        two_a_sqrtpi = 2.0 * self.alpha / np.sqrt(np.pi)
+        for lo in range(0, N, chunk):
+            hi = min(lo + chunk, N)
+            j = nl.idx[:, lo:hi, :]                                    # (B,c,M)
+            ok = nl.valid[:, lo:hi, :]
+            xj = torch.gather(x, 1, j.reshape(B, -1, 1).expand(-1, -1, 3)).view(*j.shape, 3)
+            d = self._min_image(x[:, lo:hi, None, :] - xj)
+            r = (d * d).sum(-1).clamp_min(1e-24).sqrt()
+
+            live = ok & (r < self.cutoff)
+            inv_r = torch.where(live, 1.0 / r, torch.zeros_like(r))
+
+            sig = 0.5 * (self.sigma[lo:hi].view(1, -1, 1) + self.sigma[j])
+            eps = torch.sqrt(self.epsilon[lo:hi].view(1, -1, 1) * self.epsilon[j])
+            qq = ONE_4PI_EPS0 * self.charge[lo:hi].view(1, -1, 1) * self.charge[j]
+
+            sr6 = (sig * inv_r).pow(6)
+            sr12 = sr6 * sr6
+            e_lj = 4.0 * eps * (sr12 - sr6)
+            dlj = -24.0 * eps * (2.0 * sr12 - sr6) * inv_r
+            s, ds = switch_and_derivative(r, self.switch, self.cutoff)
+
+            ar = self.alpha * r
+            erfc = torch.erfc(ar)
+            e_el = qq * erfc * inv_r
+            del_ = -qq * (erfc * inv_r * inv_r + two_a_sqrtpi * torch.exp(-ar * ar) * inv_r)
+
+            e_pair = torch.where(live, e_lj * s + e_el, torch.zeros_like(r))
+            dE_dr = torch.where(live, dlj * s + e_lj * ds + del_, torch.zeros_like(r))
+            energy = energy + e_pair.sum(dim=(1, 2))
+            forces[:, lo:hi, :] = -((dE_dr * inv_r).unsqueeze(-1) * d).sum(dim=2)
+        return 0.5 * energy, forces
+
     def exclusion_correction(self, x):
         """``-q_i q_j erf(alpha r)/r`` over excluded pairs: removes their reciprocal share.
 
@@ -176,6 +309,79 @@ class PairTerms:
     def self_energy(self):
         """Ewald self term ``-alpha/sqrt(pi) * ONE_4PI_EPS0 * sum q^2``; no forces."""
         return -(self.alpha / np.sqrt(np.pi)) * ONE_4PI_EPS0 * float((self.charge ** 2).sum())
+
+
+class VerletList:
+    """Padded per-walker neighbour list within ``cutoff + skin``, rebuilt every few hundred steps.
+
+    .. warning::
+       **MEASURED SLOWER -- kept as a recorded negative, do not re-try at this box size.**
+       B=512, float32, compiled, idle H200: **655 ns/day against 744** for plain all-pairs, and
+       correct to ``5e-12`` in energy against the parity-validated path.  The reason is
+       structural rather than fixable: at ``L = 2.61 nm`` a ``1.25 nm`` list radius captures
+       **862 of 1538** sites -- 56 % of the box -- so the list culls only 1.8x while replacing
+       contiguous streaming with random-access gathers.  A neighbour list needs a box several
+       cutoffs wide to pay, and this one is 2.5 cutoffs across.  It would become worth
+       re-measuring for a larger box (the 1024-water finite-size check of SPEC §1.3).
+
+    Cell lists are useless at this box size -- ``L ~ 2.6 nm`` with a ``1.05 nm`` cutoff admits
+    only 2 cells per axis, so every cell is a neighbour of every other and nothing is culled.
+    A Verlet list is the only structure that helps, and it helps because the *memory traffic*, not
+    the arithmetic, is what bounds this kernel: the all-pairs path streams ``(B, chunk, N)``
+    intermediates when only ~40 % of those slots are inside the cutoff.
+
+    The list is ``(B, N, M)`` with a validity mask, ``M`` fixed at build time from the observed
+    maximum.  Rebuild cadence is set by the skin: SPC/E oxygens diffuse ~0.03 nm/ps, so a 0.2 nm
+    skin survives thousands of 0.5 fs steps; ``rebuild_every`` is nonetheless checked against the
+    **measured** maximum displacement, and a violation raises rather than silently dropping pairs.
+    """
+
+    def __init__(self, n_sites, box_nm, cutoff_nm, skin_nm=0.20):
+        self.n = int(n_sites)
+        self.L = float(box_nm)
+        self.r_list = float(cutoff_nm) + float(skin_nm)
+        self.skin = float(skin_nm)
+        self.idx = None            # (B, N, M) long
+        self.valid = None          # (B, N, M) bool
+        self.x_built = None        # positions at last rebuild, for the drift check
+
+    def _min_image(self, d):
+        return d - self.L * torch.round(d / self.L)
+
+    def rebuild(self, x, excluded, chunk=128, headroom=1.15):
+        """Rebuild from positions ``(B, N, 3)``; excluded and self pairs are dropped here once."""
+        B, N, _ = x.shape
+        counts = []
+        masks = []
+        for lo in range(0, N, chunk):
+            hi = min(lo + chunk, N)
+            d = self._min_image(x[:, lo:hi, None, :] - x[:, None, :, :])
+            r2 = (d * d).sum(-1)
+            m = (r2 < self.r_list ** 2) & (~excluded[lo:hi, :])
+            masks.append(m)
+            counts.append(m.sum(-1))
+        counts = torch.cat(counts, dim=1)
+        m_max = int(counts.max().item())
+        M = min(N, max(8, int(m_max * headroom)))
+
+        idx = x.new_zeros(B, N, M, dtype=torch.long)
+        valid = x.new_zeros(B, N, M, dtype=torch.bool)
+        off = 0
+        for m in masks:
+            c = m.shape[1]
+            # stable argsort of ~mask brings the True entries to the front, in index order
+            order = torch.argsort((~m).to(torch.uint8), dim=-1, stable=True)[..., :M]
+            idx[:, off:off + c] = order
+            valid[:, off:off + c] = torch.gather(m, -1, order)
+            off += c
+        self.idx, self.valid = idx, valid
+        self.x_built = x.detach().clone()
+        return M
+
+    def check_drift(self, x):
+        """Max displacement since the rebuild; must stay under half the skin."""
+        d = self._min_image(x - self.x_built)
+        return float(d.norm(dim=-1).max())
 
 
 class MethaneNonbonded:

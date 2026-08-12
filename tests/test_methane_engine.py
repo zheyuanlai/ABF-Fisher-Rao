@@ -209,3 +209,31 @@ def test_forces_are_the_gradient_of_the_energy(built):
         em, _ = ff.energy_forces(xm)
         fd = -float(ep[0] - em[0]) / (2 * h)
         assert abs(fd - float(f[0, i, d])) <= 1e-4 * max(1.0, abs(float(f[0, i, d])))
+
+
+def test_alternative_pair_paths_agree_with_the_parity_validated_one(built):
+    """The neighbour-list and split-site paths are measured *slower* (see their docstrings).
+
+    They are retained as recorded negatives, so they must stay correct: a future change that
+    breaks them silently would waste someone's time re-deriving why they were rejected.
+    """
+    from methane.nonbonded import VerletList
+    mod, system, pos, L = built
+    ff = MethaneNonbonded(system, mod.topology, L)
+    rng = np.random.default_rng(11)
+    x = torch.tensor(np.stack([
+        msys.apply_constraints(system, mod.topology, pos + rng.normal(0, 0.002, pos.shape))
+        for _ in range(3)]))
+
+    e_ap, f_ap = ff.pair.energy_forces(x, chunk=128)
+    scale = float(f_ap.abs().max())
+
+    e_sp, f_sp = ff.pair.energy_forces_split(x, chunk=128)
+    assert float((e_sp - e_ap).abs().max()) / abs(float(e_ap[0])) < 1e-12
+    assert float((f_sp - f_ap).abs().max()) / scale < 1e-12
+
+    nl = VerletList(ff.n, L, msys.CUTOFF_NM)
+    nl.rebuild(x, ff.pair.excluded, chunk=128)
+    e_nl, f_nl = ff.pair.energy_forces_nl(x, nl, chunk=128)
+    assert float((e_nl - e_ap).abs().max()) / abs(float(e_ap[0])) < 1e-12
+    assert float((f_nl - f_ap).abs().max()) / scale < 1e-12
