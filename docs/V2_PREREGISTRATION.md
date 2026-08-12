@@ -1069,3 +1069,366 @@ adaptive free-energy estimation"*. No attempt will be made to "fix" mFR against 
 **Deca-alanine is frozen where it is.** The 8/32/128 ns budget-scaling study answers "how long
 does ABF need before deca conditionally equilibrates" — an ABF question, not an mFR question —
 and is demoted to an optional appendix after the core campaign.
+
+### Amendment 11 — methane/water is promoted to a gated benchmark, and the periodic engine is built for it first (2026-08-12)
+
+**Written before any methane code, engine, box, reference, screen, gate result or arm result
+existed.** At the time of writing a repository-wide search for a periodic, solvated, Ewald,
+reaction-field or rigid-water code path returns nothing: there is no methane simulation in this
+project and never has been. Nothing downstream of this amendment exists, so nothing in it can
+have been chosen to produce a verdict.
+
+The design being adopted is recorded in full in `docs/SPEC_methane_water.md`, which this
+amendment licenses and which may not be edited after the screen runs except by a further
+numbered amendment.
+
+#### 11.1 What changes, and what explicitly does not
+
+§9 preregisters the methane pair as **"ABF-only screen only; preregistered likely-null"**, with
+screening seeds 5000–5007 and *no* calibration or production block — i.e. it was scoped so that
+it could never produce an mFR result at all. It is promoted here to a full benchmark under the
+universal gates: the ABF-only screen runs first, and an mFR arm exists **only if Gate 0 → A → B
+→ C → D all pass**, on exactly the terms deca-alanine and NaCl are held to.
+
+**What does not change is the prediction.** Methane remains preregistered as **likely-null**.
+Promotion licenses a production *conditional on the gates*; it is not a forecast that they will
+pass, and it may not be read as one afterwards. §9's stop clause is carried over verbatim and is
+binding:
+
+> if ABF is sufficient, **STOP and report that prediction** as a literature-anchored negative
+> control. **The run length is not tuned until it passes.**
+
+That last sentence is restated because the adopted design proposes `T_run = 200 ps`, and 200 ps
+is frozen **now**, before an engine exists to measure anything with. If methane comes out
+ABF-sufficient at 200 ps, the result is "ABF-sufficient at 200 ps"; the budget is not raised
+until a deficit appears. The deca-alanine precedent (Amendment 7, "why this is not a budget
+excuse") governs.
+
+#### 11.2 Execution order: methane moves ahead of NaCl
+
+§0 orders the queue deca → WCA → NaCl → methane. Methane and NaCl are swapped.
+
+The reason is that **they need the same engine**, and methane is the better shakedown for it: the
+solute is neutral and is a single Lennard-Jones site, so the periodic solvated engine can be
+validated with no ionic finite-size correction, no charged-solute Ewald artifact, and no solute
+internal degrees of freedom to confound the parity gate. NaCl then inherits an engine that has
+already passed §8.1 against OpenMM on a system where any disagreement is unambiguously the
+water. Building the engine for NaCl first and discovering a defect there would leave the defect
+entangled with the charge treatment.
+
+This reordering is licensed by the fact that Amendment 10's retrospective obligation is
+**discharged**: WCA Gate 0 passes (`results/v2_validity_audits/wca_gate0/`, pool spread 0.040 of
+`|F'_ref|`) and the gateway passes (`.../gateway_gate0/`, 0.036 global). Amendment 10 blocked
+NaCl behind that backfill; the block is lifted for both.
+
+**System 2 (WCA) is untouched and continues in parallel.** Nothing in this amendment or its spec
+alters a WCA artifact, threshold or conclusion, and the open Stage-A finding — that the cached TI
+reference is wrong at `z ≈ 0.25` by 23σ — is unaffected.
+
+#### 11.3 The engine-equivalence gate of §8.1 is binding on methane
+
+§8.1 was written for NaCl. It applies to methane unchanged, and **before any methane free energy
+is computed**:
+
+```
+  V_torch ~ V_openmm      grad V_torch ~ grad V_openmm      xi_torch = xi_openmm
+  f_local,torch ~ f_local,openmm                            F_ABF,torch ~ F_ABF,openmm
+```
+
+> An approximate reimplementation is **not** a literature reproduction and will not be called
+> one. If the gate fails, methane does not run.
+
+Two additions specific to rigid water, which NaCl will also need:
+
+* **constraint satisfaction** — every O–H and H–H distance holds to `<= 1e-8 nm` of its rigid
+  value over a production-length trajectory;
+* **equipartition** — the configurational temperature and the kinetic temperature of the
+  constrained system agree with the thermostat setpoint, measured per degree of freedom with the
+  constrained DOF count, on both a `0.5 fs` and a `1 fs` timestep.
+
+The parity gate is a statement about energies and forces at fixed configurations and is therefore
+independent of the constraint algorithm; the two clauses above are what validate the constraint
+algorithm, and they are gates, not diagnostics.
+
+#### 11.4 A universal reference-construction rule (generalising Amendments 1 and 5)
+
+The adopted design proposed umbrella centres on `[3.3, 9.0] Å` with the evaluation domain **also**
+`[3.3, 9.0] Å`. **That is the exact configuration that produced the retracted deca-alanine
+screen.** `alkanes.interval.bin_counts` clamps out-of-range samples into bin 0 / bin *n*−1; with
+centres coincident with the domain edges the outermost windows spill mass outside the domain, it
+piles into the edge bins, a spurious edge well appears, Amendment 3's basin finder reads it as a
+state, and Gate C certifies a deficit in a region that can never be populated. Amendment 5 records
+that this cost a screen verdict, and that the fix which caused it was introduced *by this very
+document*.
+
+The rule is therefore lifted out of the deca-specific text and made universal:
+
+> **Umbrella window centres must strictly bracket the evaluation domain.** Any estimator
+> consuming reference samples must either exclude out-of-domain samples or be demonstrated
+> insensitive to them, and **the fraction of reference samples falling outside the evaluation
+> domain is reported for every reference build.**
+
+Methane's layout follows: evaluation domain `[3.3, 9.0] Å`, window centres on `[3.0, 9.3] Å`.
+This applies retroactively to no accepted artifact — deca's accepted reference already carries
+the edge fix — and prospectively to NaCl.
+
+#### 11.5 Seeds
+
+The §5 table gains the two blocks methane did not have. Screening is unchanged.
+
+| System | screening (ABF-only) | calibration | confirmatory production |
+|---|---|---|---|
+| methane / water | 5000–5007 (8) | **5100–5103 (4)** | **5200–5215 (16)** |
+
+The blocks are disjoint by construction, as for every other system.
+
+#### 11.6 Deliberately left open: the arm set
+
+§4.2 fixes **five** arms. The adopted design proposes **three** — `abf`, `mfr_practical`,
+`mfr_sham` — dropping `book_laplacian` and `count_balancing`.
+
+That is not a cosmetic difference. Those two arms are how the campaign answers **Q1**, which §0
+calls "the highest-value question in the queue and the one v1 never asked": is the Fisher–Rao
+direction better than the directed selection rules ABF already had? Deca-alanine is closed
+without answering it and NaCl is now behind methane, so **methane is the only system in the queue
+that could answer Q1 in explicit solvent.** Dropping the two arms forfeits that permanently for
+this campaign; a three-arm positive could only be reported as "mFR beats ABF and beats matched
+random turnover", which is what v1 already established twice.
+
+**The decision is deferred, not made.** It changes nothing about the engine, the reference, the
+screen or any gate, and those are the whole of the work until a production is licensed — which
+the preregistration predicts will not happen. It must be **frozen before the calibration stage**
+of §3, and this amendment records the recommendation: **keep all five.** The two prior-art arms
+add two thirds to the cost of a production stage that only exists if five gates pass, and their
+selection intensities `c` are tuned on the same calibration seeds by the same §3.4 procedure, so
+they add no new tuning surface.
+
+#### 11.7 Success rule: §4.3 stands
+
+The adopted design proposes a stricter primary criterion (median `<= -15 %` vs ABF, `-10` to
+`-15 %` vs sham, `>= 13/16` seed wins). **§4.3 remains the binding rule** — median `<= -10 %`,
+95 % CI upper end `< -5 %`, `>= 12/16`, plus the §4.3 attribution clause — because a per-system
+success threshold is not comparable across the campaign, and choosing one system's threshold
+after seeing other systems' effect sizes is the failure mode this document exists to prevent.
+
+Nothing is lost: the stricter numbers are preregistered here as a **secondary label**,
+`STRONG POSITIVE`, reported alongside the §4.3 verdict. They can only ever be more demanding than
+§4.3 and are never a substitute for it.
+
+#### 11.8 One citation is not carried forward
+
+The adopted design justifies `dt = 0.5 fs` by attributing a rigid-water timestep/equipartition
+finding to Asthagiri *et al.*, **J. Chem. Phys.** 128, 244512 (2008) — the same reference used for
+the methane model. That paper is about the role of attractive methane–water interactions in the
+pair PMF, and the attribution could not be verified. **It is dropped rather than propagated.**
+
+`dt = 0.5 fs` is retained as **our own conservative choice**, justified by the parity test the
+design already specifies (§11.3 equipartition clause plus a `0.5` vs `1 fs` comparison of the
+PMF and `tau_perp`), and by the fact that this study interprets solvent decorrelation times
+mechanistically and so cannot afford an integrator artifact in `tau_perp`. If the parity test
+shows `1 fs` indistinguishable, `1 fs` may be adopted for production and the change recorded.
+
+The Lorentz–Berthelot methane–water mixing rule is likewise labelled **our implementation
+choice**, not a literature value, exactly as the design proposed — carried into the spec as a
+declared deviation on the model of §6.1's ff14SB-vs-CHARMM declaration.
+
+### Amendment 12 — TI-first reference, sequential `N`, Q3 before Q1, and WCA is non-blocking (2026-08-12)
+
+**Written before any methane dynamics, box, reference, mean force, screen, gate result or arm
+result had been observed.** The only methane numbers in existence at the time were the
+force-field constants of Amendment 11 and two engine *throughput* measurements (§12.4 below),
+neither of which is a physical result. Nothing downstream of this amendment exists.
+
+This amendment changes **execution strategy only**. The physical model, the reaction coordinate,
+the evaluation domain, `T_run = 200 ps`, the Gate 0/A/B/C/D definitions and thresholds, the seed
+blocks and the §4.3 success criterion are **untouched**.
+
+#### 12.1 WCA is non-blocking and deferred
+
+System 2 (the WCA Case IX re-run against a high-precision reference) is **deferred by
+instruction** and is not a prerequisite for anything in methane. Stage A is left where it is:
+the finding that the cached TI reference is wrong at `z ≈ 0.25` by 23σ stands, unactioned, and
+Case IX remains scored against a reference now known to be defective. **That exposure is open
+and is recorded here as open** — it is not resolved by this amendment and must not be described
+as resolved.
+
+Amendment 10's retrospective obligation was about *Gate 0*, and it is discharged for both WCA and
+the gateway. The reference defect is a separate matter and blocks only the WCA effect size.
+
+#### 12.2 Constrained TI becomes the **primary** reference; umbrella becomes a sparse cross-check
+
+SPEC §4.1 makes umbrella + MBAR primary at
+
+```
+  64 windows x 2 families x 32 replicas x 2.5 ns x 3 builds  =  30.72 us aggregate MD
+```
+
+before methane has been asked whether it is interesting at all. For a benchmark preregistered as
+**likely null** that is the wrong order of spending, and the alternative is not a compromise but
+arguably the better instrument.
+
+**Primary reference — constrained/restrained TI**, on the already-frozen grid
+`r_j = 0.34, 0.36, ..., 0.90 nm` (29 points):
+
+```
+  29 points x 16 replicas x (50 ps equilibration + 200 ps production) x 3 independent builds
+     =  348 ns aggregate MD          (88x less than the umbrella design)
+
+  16 replicas per point split 8 wet-like / 8 dry-like initial solvent environments
+  F_ref(r) = C + integral_{r_0}^{r} fbar(s) ds        W_ref(r) = F_ref(r) + 2 beta^-1 log r + C'
+```
+
+Three reasons this is *better*, not merely cheaper:
+
+1. **It estimates the very object ABF learns.** `F'(r) = E[f(q) | xi = r]` with the local mean
+   force already derived, implemented and autodiff-validated in `alkanes.distance_cv`. An
+   umbrella reference estimates `F` and only implies `F'`.
+2. **The wet/dry split makes the reference double as the Gate 0 instrument.** Amendment 9 records
+   that a conditional-equilibration question is settled by restrained sampling with independently
+   prepared families, not by a screen statistic — "that controlled test is the instrument". Here
+   it is built into the reference stage instead of being a separate audit.
+3. **It keeps the reference engine independent of the arm engine** (§12.4): the reference is
+   computed in OpenMM, the population arms in the batched torch sampler. A shared-engine defect
+   would cancel in an arm-vs-reference comparison and hide; separate engines cannot.
+
+**The WCA lesson is honoured, not ignored.** What failed at WCA was a *cached, single-preparation,
+inadequately validated* TI reference — `constrained_ti_reference_gpu` seeded every replica from
+one lattice preparation and was structurally blind to a cage-equilibration failure. This design
+is that reference's opposite: three independent builds, two deliberately opposed solvent
+families, block uncertainty, and a convergence trace.
+
+> **Declared structural exposure of TI, stated because it is real.** `F` is obtained by
+> *integrating* `fbar`, so a systematic error at one `r` propagates to every larger `r`; umbrella
+> + MBAR has no such accumulation. This is mitigated, not eliminated, by §12.3.
+
+**Acceptance, replacing SPEC §4.3's umbrella clauses:** at production checkpoints of
+`50, 100, 200, 400 ps`, compare the three builds' integrated `F` and the wet-vs-dry conditional
+mean forces. **Extend only the points** whose build spread or family disagreement remains
+materially above the target tolerance — not the whole grid. Acceptance keeps the §4.5 form:
+three independent builds agreeing within `ratio <= 0.5`, block/bootstrap uncertainty reported,
+out-of-domain fraction reported, and the `W' = F' + 2/(beta r)` identity holding to `1e-10`.
+
+#### 12.3 Umbrella + MBAR survives as a sparse independent anchor
+
+Retained, **after** TI and at a fraction of the cost: a small umbrella/MBAR build at sparse
+windows around the three physically meaningful locations found from `F_ref` — contact minimum,
+desolvation barrier, solvent-separated minimum — used to anchor the integrated TI curve and to
+test the accumulation exposure declared above. It is a cross-check on an independent estimator,
+not a second full reference. Its window centres still bracket the evaluation domain
+(Amendment 11.4).
+
+If TI and the sparse umbrella anchor disagree beyond their combined uncertainty, **the reference
+is not accepted** and SPEC §11.2's stop applies.
+
+#### 12.4 Engine strategy: two measured shortcuts, and what they did and did not buy
+
+**Shortcut 1 — a CUDA-enabled OpenMM. TAKEN, and it works.** The `abffr` environment ships
+OpenMM with `Reference/CPU/OpenCL` only. A conda-forge install pinned to a CUDA build
+(`conda create -n methane-cuda -c conda-forge python=3.11 openmm cuda-version=12`) exposes the
+`CUDA` platform. Measured on the frozen 1538-site system, **on an otherwise idle GPU**:
+
+| platform | ms/step | ns/day (one replica) |
+|---|---|---|
+| CUDA, mixed | 0.093 | **462** |
+| CUDA, double | 0.125 | **345** |
+| OpenCL | 0.26 | 169 |
+| CPU | 13.9 | 3.1 |
+| Reference | 60.3 | 0.7 |
+
+> **A contended GPU reads 28× slower and looks like a code defect.** The first CUDA benchmark
+> returned 16 ns/day; the cause was another user's job arriving on that device mid-measurement
+> (100 % utilisation, 11 GB). **Every throughput number in this campaign is measured on a
+> verified-idle device and the device's idle state is recorded with it.** The compute policy is
+> unchanged — exactly one GPU at a time, pinned — but §1's designation of *GPU 2* no longer
+> holds: GPUs 0, 1 and 2 carry other users' processes and methane runs on **GPU 3**, re-checked
+> before each stage.
+
+At 462 ns/day the 348 ns TI reference is **~18 h of serial OpenMM**, which is why §12.2 is
+affordable at all. The reference therefore runs in OpenMM and does **not** wait for the torch
+engine.
+
+**Shortcut 2 — `torch-pme` instead of hand-written smooth PME. To be tested, not trusted.**
+`torch-pme` 0.5.0 provides differentiable PyTorch PME/P3M/Ewald with GPU support and installs as
+a pure-python wheel. It is adopted **only if** it reproduces OpenMM's reciprocal electrostatics
+*plus* the self and intramolecular-exclusion corrections to the frozen `1e-6` of SPEC §3.2 on the
+12-configuration parity set. Otherwise the hand-written PME already planned proceeds. This is a
+short spike, taken before any FFT code is written.
+
+**The batched torch engine is still required, and the reason is measured.** OpenMM runs one
+system at a time, and 1538 atoms cannot saturate an H200. The ABF/mFR arms need `N` walkers
+sharing one estimator with birth–death across the population; served by `N` serial OpenMM
+contexts that is `~2.05e8` walker-steps per seed at 0.093 ms each — **days per seed**. Batching
+the population into one step is the whole reason this project has its own samplers. So:
+
+```
+  OpenMM (CUDA)   ->  parity oracle, NPT box, constrained-TI reference
+  batched torch   ->  ABF screen and every population arm
+```
+
+#### 12.5 The `N` ladder is executed sequentially, starting at `N = 512`
+
+SPEC §6.3 screens `N in {128, 256, 512}`. The ladder is unchanged; only its **order** is fixed,
+and it is fixed here in advance:
+
+```
+  run N = 512 first, on seeds 5000-5007
+```
+
+Under the mechanism being tested `T_hit ~ 1/N` while `T_est` receives no comparable
+acceleration, so `N = 512` is the setting with the best chance of exhibiting `T_hit << T_est`.
+It is also a **dominance screen** for both null modes, which is what makes stopping early
+legitimate rather than convenient:
+
+| `N = 512` verdict | action | why it dominates |
+|---|---|---|
+| discovery-limited | **STOP** | fewer walkers cannot discover *faster* |
+| ABF-sufficient | **STOP** | the preregistered likely outcome; fewer walkers make discovery noisier, which is not the discovered-but-under-established mechanism |
+| conditional-equilibration-limited | **STOP** | Amendment 8: no marginal score acts on `p(y\|xi)` |
+| **establishment-limited** | run `N = 128, 256`, then take the **smallest** eligible `N` by the frozen §8.2 rule | — |
+
+> **The map is reported as partial when it stops early.** SPEC §6.3 says "the entire map is
+> reported"; under sequential execution that becomes "every cell that was run is reported, and
+> the cells not run are named, with the frozen rule that skipped them". A partial map is never
+> presented as a complete one.
+
+#### 12.6 First reported methane result is the three timescales, not an `F` error
+
+After the `N = 512` ABF-only screen the first quantity reported is
+
+```
+  T_hit ,   tau_perp ,   T_est
+```
+
+and the Gate 0 verdict — **nothing about mFR**. This is already the preregistered gate order
+(Amendment 10); it is restated because it is also the reporting order, so that no `F`-error
+comparison can be seen before the regime is classified.
+
+#### 12.7 Q3 first, Q1 conditional on a positive Q3
+
+Amendment 11.6 left the arm set open and recommended all five. **It is now decided: three arms
+first.**
+
+```
+  ABF        mfr_practical        matched-turnover sham
+```
+
+That triple already separates the baseline from generic resampling from directed Fisher–Rao
+reallocation, which is exactly Q3 — does the establishment mechanism transfer to an independent
+explicit-solvent atomistic system. Q1 (Fisher–Rao versus prior directed selection) is answered by
+`book_laplacian` and `count_balancing`, and those run **as a separate prior-art closure on the
+already-frozen physical setting, conditional on a positive Q3.**
+
+**Where the line sits, stated precisely.** This is outcome-dependent *execution ordering*. It is
+**not** outcome-dependent modification of the physical experiment, the mFR parameters, the gates
+or the success rule, none of which may move. When the Q1 arms run they run on the same frozen
+setting, the same seeds `5200–5215`, with **nothing retuned**, and their baseline intensities `c`
+calibrated by the same §3.4 procedure on `5100–5103`.
+
+**The cost of the ordering, declared.** Because the decision to run the Q1 arms is taken after
+seeing Q3, the Q1 comparison is **not** part of the same preregistered primary analysis as Q3.
+It is a declared follow-up, reported as such, and **reported whatever it shows** — including the
+outcome where it ties or reverses and the novelty claim of §0 dies. A tie is tested by TOST, as
+§4.3 already requires.
+
+If methane is null, the three-arm design has saved the two extra arms and Q1 remains open for
+NaCl, which is where it was always going to be answered if methane fails.
