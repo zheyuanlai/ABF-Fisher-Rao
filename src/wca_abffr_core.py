@@ -128,6 +128,9 @@ class SimConfig:
     fr_every: int = 5
     target_ema_rate: float = 0.005
     max_event_fraction: float = 0.02
+    #: Selection intensity `c` for the prior-art arms (book_laplacian, count_balancing).
+    #: Read only by those methods; every other arm is unaffected, so v1 stays bit-identical.
+    prior_c: float = 1.0
 
     # Region boundaries (compact / transition / stretched) for diagnostics.
     transition_lo: float = 0.25

@@ -64,6 +64,7 @@ class PhaseRunSpec:
     fr_every: int
     fr_start_steps: int
     score_clip: float
+    prior_c: float = 1.0
 
     @property
     def M(self) -> int:
@@ -102,7 +103,8 @@ def build_sim(spec: PhaseRunSpec, base: dict) -> "core.SimConfig":
         n_replicas=int(spec.n_replicas), n_steps=int(spec.n_steps), seed=int(spec.seed),
         save_every=int(spec.save_every), fr_rate=float(spec.fr_rate),
         target_ema_rate=float(spec.target_ema_rate),
-        max_event_fraction=float(spec.max_event_fraction), fr_every=int(spec.fr_every),
+        max_event_fraction=float(spec.max_event_fraction),
+        prior_c=float(getattr(spec, 'prior_c', 1.0)), fr_every=int(spec.fr_every),
         fr_start_steps=int(spec.fr_start_steps), score_clip=float(spec.score_clip),
     )
     valid = core.SimConfig.__dataclass_fields__.keys()
