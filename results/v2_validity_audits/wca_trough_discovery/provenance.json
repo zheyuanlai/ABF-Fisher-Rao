@@ -1,0 +1,39 @@
+{
+  "git_rev": "e9f14cfa58b4e3fa1902c17252779dace27d6cde",
+  "dtype": "float32 (core.DTYPE)",
+  "hashes": {
+    "dense_mf": "8479405a44135c3e",
+    "sparse_mf": "d96531965605be11",
+    "cached_mf": "6816ec38478215c8",
+    "gate0_mf": "039cb52fc7a8e574"
+  },
+  "dense": {
+    "n_z": 29,
+    "dz": 0.01000000536441803,
+    "z_range": [
+      0.1599999964237213,
+      0.4399999976158142
+    ],
+    "preps": [
+      "lattice",
+      "from_lo",
+      "from_hi",
+      "hot"
+    ],
+    "n_rep": 128,
+    "prep_steps": 20000,
+    "equil_steps": 20000,
+    "prod_steps": 60000,
+    "smoothing": "none"
+  },
+  "cached": {
+    "n_z": 51,
+    "dz": 0.02799999713897705,
+    "smoothing": "smooth_profile_torch(sigma=1.0) in GRID UNITS"
+  },
+  "trough": {
+    "minimum_z": 0.25999999046325684,
+    "minimum_value": 0.4244818687438965,
+    "cached_at_minimum": 1.9313991468406118
+  }
+}
