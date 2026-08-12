@@ -40,8 +40,14 @@ FR_METHODS = ("fr_estimated", "fr_uniform", "fr_oracle", "fr_estimated_adaptive"
 # shadowing the oracle is not a control for the practical arm, because the two arms build
 # different targets and therefore fire different numbers of events.
 SHAM_METHODS = ("sham_practical", "sham_oracle")
+#: Prior-art directed selection, added in v2 for Q1. Both depend on the CV ALONE, so the
+#: invariance theorem d/dt p(y|xi)|_sel = 0 covers them exactly as it covers Fisher-Rao:
+#: they redistribute the marginal and supply no selection pressure at fixed xi.
+#:   book_laplacian   Lelievre-Rousset-Stoltz Ch.6:  S = c * d2p/dz2 / p
+#:   count_balancing  Remark 6.10 / Comer et al. NAMD: S = c * (1 - p/p_bar)
+PRIOR_SELECTION_METHODS = ("book_laplacian", "count_balancing")
 SHAM_PARTNER = {"sham_practical": "fr_estimated", "sham_oracle": "fr_oracle"}
-ALL_METHODS = ("abf",) + FR_METHODS + SHAM_METHODS
+ALL_METHODS = ("abf",) + FR_METHODS + SHAM_METHODS + PRIOR_SELECTION_METHODS
 # Methods that maintain the online EMA estimated target (never see the TI reference).
 ESTIMATED_TARGET_METHODS = ("fr_estimated", "fr_estimated_adaptive")
 
@@ -538,6 +544,41 @@ def fr_score_torch(z_samples, grid, sim, q_grid, eps=EPS):
     return score, p_grid, q_grid, kl_pq
 
 
+def prior_selection_score_torch(method, z_samples, grid, sim, c=1.0, eps=EPS):
+    """Chapter-6 Laplacian selection and count balancing, on this project's sign convention.
+
+    **Sign.** `fixed_population_birth_death_torch` kills positive scores. Chapter 6 writes its
+    selection function `S` so that POSITIVE means MULTIPLY, so both rules are negated here.
+    Getting this backwards would run to completion and mean the opposite of the claim.
+
+      book_laplacian   S_book  = c * d2p/dz2 / p        -> score = -S_book
+                       multiplies where p is CONVEX (density valleys), which is what shifts the
+                       marginal diffusion from beta^-1 to beta^-1 + c
+      count_balancing  S_count = c * (1 - p/p_bar)      -> score = -S_count = c*(p/p_bar - 1)
+                       kills the over-represented; saturating, unlike the FR log-ratio
+
+    The second derivative is taken on the KDE-smoothed density: a second derivative of a raw
+    histogram is dominated by counting noise, which would silently turn this baseline into a
+    second sham.
+    """
+    p_grid = normalize_density_on_grid_torch(
+        kde_1d_torch(grid, z_samples, sim.kde_bandwidth, sim.z_min, sim.z_max), grid, eps=eps
+    )
+    if method == "count_balancing":
+        p_bar = p_grid.mean()
+        raw_grid = c * (p_grid / torch.clamp(p_bar, min=eps) - 1.0)
+    elif method == "book_laplacian":
+        dz = float(grid[1] - grid[0])
+        d2 = torch.zeros_like(p_grid)
+        d2[1:-1] = (p_grid[2:] - 2.0 * p_grid[1:-1] + p_grid[:-2]) / (dz * dz)
+        d2[0], d2[-1] = d2[1], d2[-2]
+        raw_grid = -c * d2 / torch.clamp(p_grid, min=eps)
+    else:
+        raise ValueError(method)
+    raw = interp_uniform_grid_edge(raw_grid, grid, z_samples)
+    return recentered_clipped_score_torch(raw, sim.score_clip), p_grid
+
+
 def fixed_population_birth_death_torch(q, score, sim, ancestors=None, fr_interval=None,
                                        fr_rate_override=None):
     """Fixed-population birth-death with a max_event_fraction safeguard.
@@ -906,7 +947,8 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
         raise ValueError(f"method must be one of {ALL_METHODS}, got {method!r}")
     assert_no_oracle_leakage(method, oracle_free_energy)
     is_sham = method in SHAM_METHODS
-    is_fr = (method in FR_METHODS) or is_sham
+    is_prior = method in PRIOR_SELECTION_METHODS
+    is_fr = (method in FR_METHODS) or is_sham or is_prior
     if is_sham:
         # A sham with no schedule to replay would silently become plain ABF and still print
         # a verdict, so this is an error rather than a default.
@@ -1104,8 +1146,14 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                 else:
                     q_grid = _build_fr_target(method, grid, F_target_ema,
                                               current_bias_profile, oracle_t, params.beta)
+                if is_prior:
+                    score, p_fr = prior_selection_score_torch(
+                        method, z_new, grid, sim, c=float(getattr(sim, "prior_c", 1.0)))
+                    q_fr, kl_pq = None, float("nan")
+                    q_grid = p_fr        # non-None so the shared branch below runs
                 if q_grid is not None:
-                    score, p_fr, q_fr, kl_pq = fr_score_torch(z_new, grid, sim, q_grid)
+                    if not is_prior:
+                        score, p_fr, q_fr, kl_pq = fr_score_torch(z_new, grid, sim, q_grid)
                     # aggregate score stats (cheap; used by Part B safety diagnostics)
                     sstat = score_statistics(score, sim.score_clip)
                     _score_std_sum += sstat["score_std"]
@@ -1241,6 +1289,8 @@ def _build_fr_target(method, grid, F_target_ema, current_bias_profile, oracle_t,
         return fr_target_estimated_torch(grid, F_target_ema, current_bias_profile, beta)
     if method == "fr_oracle":
         return fr_target_oracle_torch(grid, oracle_t, current_bias_profile, beta)
+    if method in PRIOR_SELECTION_METHODS:
+        return None          # these build their own score; no target exists
     if method in SHAM_METHODS:
         # A sham has no target by construction -- it replays its partner's event counts and
         # picks uniformly at random. Returning None (rather than raising) is what keeps the
