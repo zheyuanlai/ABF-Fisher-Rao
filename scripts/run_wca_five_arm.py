@@ -55,7 +55,13 @@ N_STEPS = int(_os.environ.get('FIVEARM_STEPS', 120_000))
 N_REPLICAS = int(_os.environ.get('FIVEARM_N', 1024))
 SAVE_EVERY = 2500
 PRIOR = ("book_laplacian", "count_balancing")
-C_LADDER = (0.1, 0.3, 1.0, 3.0)
+# Extended down by Amendment 11. The original (0.1, 0.3, 1.0, 3.0) could not match
+# `book_laplacian`: its score is pinned at `score_clip`, so a 30x change in c moved turnover
+# only 1.44x (2498 -> 3592) and the ladder bottomed out at 5.5x the target.
+# The 0.012-0.02 rungs refine the region where `book_laplacian`'s match lands: turnover triples
+# between c=0.01 (360) and c=0.03 (1088), so the coarse ladder left it 21 % UNDER target.
+# Refining can only drive a baseline closer to mFR's turnover, i.e. only ever strengthens it.
+C_LADDER = (0.001, 0.003, 0.01, 0.012, 0.015, 0.02, 0.03, 0.1, 0.3, 1.0, 3.0)
 CAL_SEEDS = tuple(int(x) for x in _os.environ.get('FIVEARM_CAL','500,501').split(','))                      # held out from the 400-415 confirmatory block
 CONFIRM_SEEDS = tuple(range(400, 416))
 
@@ -117,10 +123,20 @@ def main():
                                      prior_c=c))
                     reps.append(float(o["total_replacement_events"]))
                 r = float(np.median(reps))
-                active = r >= 0.5 * N_REPLICAS          # §3.2 activity requirement
+                # Amendment 11. §3.2 writes the activity floor as `0.5 N` = 512, but that rule
+                # was written for the mFR RATE ladder and does not transfer to the prior-art
+                # `c` ladder: the target here is mFR's OWN turnover, 457, which is below 512.
+                # Under the literal rule mFR is itself "inactive", and every baseline is forced
+                # to select HARDER than the arm it is matched to -- the exact confound that
+                # turnover matching exists to remove. The floor is therefore taken relative to
+                # the matched target, which preserves the intent (strike arms that do nothing)
+                # without contradicting the matching objective.
+                active = r >= 0.5 * tgt
                 rows.append(dict(c=c, replacements=r, active=active,
                                  rel_to_target=r / max(tgt, 1.0)))
-                print(f"  {m:16s} c={c:5.2f}: {r:8.0f} replacements  "
+                # %g, not %5.2f: the ladder now spans 0.001-3.0 and a fixed 2-decimal format
+                # printed both 0.001 and 0.003 as "0.00" in the calibration record
+                print(f"  {m:16s} c={c:<6g}: {r:8.0f} replacements  "
                       f"({r/max(tgt,1.0):5.2f}x target)  active={active}", flush=True)
             ok = [r for r in rows if r["active"]]
             pick = min(ok or rows, key=lambda r: abs(np.log(max(r["replacements"], 1) / max(tgt, 1))))
@@ -132,7 +148,10 @@ def main():
         with open(os.path.join(args.out, "calibration.json"), "w") as fh:
             json.dump(dict(target_turnover=tgt, cal_seeds=list(CAL_SEEDS),
                            c_ladder=list(C_LADDER), chosen=chosen, table=table,
-                           activity_rule="median replacements >= 0.5 N",
+                           activity_rule="median replacements >= 0.5 * target turnover "
+                                         "(Amendment 11; NOT 0.5 N, which mFR itself fails)",
+                           matched=dict((m, float(np.median([r["replacements"] for r in table[m]
+                                        if r["c"] == chosen[m]])) / max(tgt, 1.0)) for m in PRIOR),
                            note="mFR is NOT retuned; only the prior-art intensities are chosen"),
                       fh, indent=2)
         print(f"wrote {args.out}/calibration.json   chosen: {chosen}")

@@ -1543,3 +1543,157 @@ never spent.
 
 **This is scheduling, not scope.** No physical parameter, budget, gate or endpoint changes, and
 the screen runs at the same `T_run`, `N` and seeds either way.
+
+---
+
+### Amendment 11 — the prior-art `c` ladder needs its own activity floor, and a wider span (2026-08-12)
+
+**Status: adopted before any confirmatory five-arm run.** The calibration stage has run; the
+confirmatory block (seeds 400–415) had not started when this was written, and
+`results/wca_five_arm/confirm/raw/` was empty.
+
+§3.4 says the prior-art selection intensities `c` are "tuned by the same procedure" as the mFR
+rate ladder. Running that procedure surfaced two ways in which it does not transfer.
+
+**(a) The `0.5 N` activity floor contradicts the matching objective.** §3.2 strikes a rung as
+inactive unless `N_replacements >= 0.5 N`. With `N = 1024` that floor is **512**. The matching
+target — `fr_estimated`'s own median turnover on the held-out seeds — is **457**.
+
+So under the literal rule the proposed method is itself *inactive*, and every baseline is
+required to select **harder** than the arm it is being matched to. That is precisely the
+confound turnover matching exists to remove: §4.2's whole point is that no arm may win by
+selecting more.
+
+The floor was written for the mFR **rate** ladder, where it guards against a ladder that
+"selects the arm that does nothing." That intent is preserved by taking the floor **relative to
+the matched target**:
+
+```
+  N_replacements  >=  0.5 * target_turnover        (prior-art c ladder only)
+```
+
+The mFR rate ladder keeps `0.5 N` unchanged. On the calibration data this changes nothing for
+`count_balancing` (it still selects `c = 1.0`; the rungs it strikes, `c = 0.1` and `0.3` at 73
+and 168 replacements, are struck under either rule).
+
+**(b) The ladder `(0.1, 0.3, 1.0, 3.0)` cannot match `book_laplacian`.** Measured:
+
+| `c` | 0.1 | 0.3 | 1.0 | 3.0 |
+|---|---|---|---|---|
+| replacements | 2498 | 3282 | 3532 | 3592 |
+| × target | 5.47 | 7.18 | 7.73 | 7.86 |
+
+A **30×** change in `c` moves turnover **1.44×**. `S = c ∂²p/∂z² / p` is large enough that the
+score sits at `score_clip = 2.0` across the entire original ladder, so `c` is nearly inoperative
+there and the ladder bottoms out at 5.5× the target. This is consistent with the independently
+measured clip behaviour in `tests/test_wca_prior_selection.py` (recentre+clip deviation
+`2.6e-2` for `book_laplacian` against `1.9e-9` for `count_balancing`).
+
+The ladder is extended **downward** to
+
+```
+  (0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0, 3.0)
+```
+
+The four original rungs are retained and their completed runs are reused unchanged, so this is
+strictly an extension of the search, not a replacement of it.
+
+**What is not changed.** The mFR configuration is still not retuned (§3.4). The held-out
+calibration seeds (500, 501) are unchanged and still disjoint from the confirmatory block. The
+endpoint, the confirmatory seeds and the arm list are unchanged.
+
+**Reportable finding either way.** That `book_laplacian`'s turnover is nearly `c`-independent
+over two decades is a property of the Chapter-6 rule on this system and is reported with the
+Q1 result, whichever direction the comparison goes. If no rung matches the target, the arm is
+reported as **unmatchable at fixed `score_clip`** rather than silently compared at 5.5×
+turnover.
+
+**Refinement, same day, before the confirmatory launched.** The extended ladder matched
+`book_laplacian` at `c = 0.01` → 360 replacements, **0.79× target**: 21 % *under*-driven,
+because turnover triples across the single rung `0.01 → 0.03` (360 → 1088). Three intermediate
+rungs `(0.012, 0.015, 0.02)` were added. This can only move a baseline *closer* to mFR's
+turnover — it strengthens the arm mFR is being compared against, never mFR — so it is
+conservative with respect to the hypothesis under test.
+
+Final matched intensities, on held-out seeds 500–501:
+
+| arm | `c` | replacements | × target (457) |
+|---|---|---|---|
+| `book_laplacian` | 0.012 | 440 | **0.96** |
+| `count_balancing` | 1.0 | 529 | **1.16** |
+
+Both within 16 % of `fr_estimated`'s own turnover, so no arm in the confirmatory can win by
+selecting harder. The saturation finding in (b) stands and is reported with Q1: `book_laplacian`
+needs `c ≈ 0.012` to reach mFR's turnover, and is already fully clipped by `c = 0.1`.
+
+---
+
+### Amendment 12 — the genealogy gate was being read off the wrong statistic, and a reproducibility limit (2026-08-12)
+
+Two findings surfaced while wiring the §4.3 checks into the Q1 analyzer. Both were found
+*before* the confirmatory block was scored, and the first one applies retrospectively to a
+already-reported result, so both are recorded here rather than in a results note.
+
+#### (a) `ESS_anc / N >= 0.30` was never checked on WCA, and the obvious way to check it is wrong
+
+`scripts/analyze_caseix_hp.py` verified four of §4.3's six primary conditions. It omitted **both**
+genealogy gates. The earlier report that Case IX passed "all four preregistered checks" was
+accurate as to the four it tested and **incomplete** as to §4.3, which lists six.
+
+Applying the gate naively to the statistic the WCA runs already stored gives:
+
+| arm | run-long `ESS_anc/N` | `w_max` |
+|---|---|---|
+| `fr_estimated` | 0.166 | 0.0195 |
+| `fr_oracle` | 0.183 | 0.0195 |
+| `sham_practical` | **0.191** | 0.0190 |
+
+Read literally, Case IX fails at 0.166 < 0.30. But that reading cannot be right, and the sham row
+is what proves it: `sham_practical` is **matched-turnover random-direction** selection, which is
+not pathological by construction, and it sits at 0.191 — no better. A gate that fails its own
+null control is measuring the wrong thing.
+
+The cause is a definitional mismatch. `wca_abffr_core.py` initialises `ancestors` once and never
+resets it, so `ancestor_ess` traces lineage from `t = 0` over the whole 120 000-step run; it
+starts at exactly `N` and decays monotonically (1024 → 183). Run-long ancestral ESS decays toward
+zero for **any** birth–death process, healthy or not, so a fixed floor on it is a cap on run
+length, not a health check.
+
+The gateway confirmatory that set the 0.30 floor recorded `ess_window_steps: 4000` and measured
+`min_ess_frac` in the range **0.37–0.73**. It is a **windowed** statistic — coalescence over a
+fixed horizon.
+
+`SimConfig.ess_window_steps = 4000` and `min_ancestor_ess_window` are therefore added, reset on
+that window and updated from the death/birth indices the birth–death routines already return.
+It consumes **no RNG** and touches no dynamics, so it cannot perturb any arm; `abf` has no
+genealogy and records `NaN`. Both statistics are stored side by side so they are never conflated
+again, and §4.3's gate is evaluated on the windowed one.
+
+**Retrospective obligation.** Case IX's stored artifacts predate this diagnostic, so its windowed
+ESS is not recoverable without re-running. It is reported as **not evaluated** for that gate
+rather than as passing. Its `w_max = 0.0195` — the gate that actually detects a lineage takeover,
+and the one the gateway also passed at 0.0127 — does pass. The Q1 confirmatory, run on the same
+system and the same frozen FR configuration, does record the windowed statistic, and is the
+evidence for whether this configuration meets the gate.
+
+#### (b) Runs are deterministic within a process, not across processes
+
+Three `abf` runs at seed 400, identical spec hash `8df2be8349fc` and **zero** birth–death events,
+returned integrated `L2(F)` of **37.63**, **47.93** and **39.15**. `torch.manual_seed` is set, so
+the random stream is identical; the divergence enters through GPU kernel selection, which is
+fixed within a process and varies between them, and is then amplified chaotically over 120 000
+steps by `forces.scatter_add_`.
+
+Consequences, stated plainly:
+
+* **Within a process the sampler is deterministic** — the existing bit-identity test passes on
+  back-to-back `abf` runs, which is also why the cause cannot be atomics.
+* Every confirmatory block runs its arms and seeds **in one process**, so all arms share one
+  kernel selection and the paired contrasts are internally consistent. The paired *differences*
+  are far more stable than the levels: −11.88 % and −11.4 % from two independent processes whose
+  `abf` levels differ by 4 %.
+* **Absolute `I_F` levels are not reproducible across processes and must not be quoted as
+  reproducible.** Only within-block contrasts are.
+
+No result is retracted on this basis. It is a limitation on what may be claimed, and it is the
+reason arms are never compared across separate invocations.

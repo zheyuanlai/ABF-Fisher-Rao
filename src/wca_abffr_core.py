@@ -131,6 +131,11 @@ class SimConfig:
     #: Selection intensity `c` for the prior-art arms (book_laplacian, count_balancing).
     #: Read only by those methods; every other arm is unaffected, so v1 stays bit-identical.
     prior_c: float = 1.0
+    # Ancestry window for the genealogy-health gate, matching the gateway confirmatory
+    # (`ess_window_steps: 4000`). The run-long ancestral ESS this file already records
+    # decays monotonically toward zero for ANY birth-death process, so a fixed 0.30 floor
+    # on it is really a cap on run length; the windowed statistic is the one the gate means.
+    ess_window_steps: int = 4000
 
     # Region boundaries (compact / transition / stretched) for diagnostics.
     transition_lo: float = 0.25
@@ -981,6 +986,27 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
     total_replacement_events = 0
     F_target_ema = None
     ancestors = (torch.arange(sim.n_replicas, device=engine.device, dtype=torch.long) if is_fr else None)
+    # Windowed ancestry: same labels, but reset every `ess_window_steps` so the ESS measures
+    # coalescence over a FIXED horizon instead of over the whole run. Updated from the death /
+    # birth indices the birth-death routines already return, so it consumes no RNG and cannot
+    # perturb the dynamics -- purely a read-off. `min_ancestor_ess_window` is the quantity the
+    # §3.3 gate `ESS_anc/N >= 0.30` was calibrated against.
+    anc_win = (ancestors.clone() if is_fr else None)
+    min_ess_window = float(sim.n_replicas)
+    _win = max(int(getattr(sim, "ess_window_steps", 4000)), 1)
+
+    def _track_window(stats, step_now):
+        """Apply the realised replacement permutation to the windowed labels, then reset."""
+        nonlocal anc_win, min_ess_window
+        if anc_win is None:
+            return
+        di, bs = stats.get("death_idx"), stats.get("birth_src")
+        if di is not None and int(di.numel()) > 0:
+            anc_win[di] = anc_win.index_select(0, bs)
+            e, _ = ancestor_ess(anc_win, sim.n_replicas)
+            min_ess_window = min(min_ess_window, e)
+        if step_now % _win == 0:
+            anc_win = torch.arange(sim.n_replicas, device=engine.device, dtype=torch.long)
 
     # birth/death z-location histograms accumulated over the run
     birth_hist = np.zeros(sim.n_grid, dtype=np.float64)
@@ -1132,6 +1158,7 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                     sham_event_idx += 1
                     q, ancestors, stats = uniform_birth_death_torch(q, K,
                                                                     ancestors=ancestors)
+                    _track_window(stats, next_step)
                     total_replacement_events += stats["replacement"]
                     last_event_fraction = stats["replacement"] / float(sim.n_replicas)
                     fr_event_counts.append(int(stats["replacement"]))
@@ -1194,6 +1221,7 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                     q, ancestors, stats = fixed_population_birth_death_torch(
                         q, score, sim, ancestors=ancestors, fr_interval=sim.fr_every,
                         fr_rate_override=rate_override)
+                    _track_window(stats, next_step)
                     total_replacement_events += stats["replacement"]
                     last_event_fraction = stats["replacement"] / float(sim.n_replicas)
                     # Recorded per FR opportunity so a matched sham can replay this exact
@@ -1274,6 +1302,9 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                 "pq_l2", "kl_pq", "frac_compact", "frac_transition", "frac_stretched",
                 "ancestor_ess", "n_unique_ancestor", "max_ancestor_frac", "repl_cumulative"]:
         diag[key] = np.asarray(diag[key])
+    # The §3.3 gate statistic. NaN for `abf`, which has no genealogy at all.
+    diag["min_ancestor_ess_window"] = (float(min_ess_window) if is_fr else float("nan"))
+    diag["ess_window_steps"] = int(_win)
     if verbose:
         extra = f", replacements {total_replacement_events}" if is_fr else ""
         print(f"{method:13s}: {diag['runtime_seconds']:.1f}s{extra}")

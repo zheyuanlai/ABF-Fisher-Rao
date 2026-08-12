@@ -338,6 +338,13 @@ def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase",
         "final_n_unique_ancestor": int(diag["n_unique_ancestor"][-1]),
         "final_max_ancestor_frac": final_max_anc, "max_ancestor_frac_over_time": max_anc_over_time,
         "min_ancestor_ess": min_ess,
+        # The §3.3 gate statistic, measured over a fixed ancestry window rather than over the
+        # whole run. `min_ancestor_ess` above traces lineage from t=0, so it decays
+        # monotonically with run length for any birth-death process and cannot be compared to
+        # a fixed 0.30 floor; the gateway confirmatory that set that floor used a 4000-step
+        # window. Both are stored so the two are never conflated again.
+        "min_ancestor_ess_window": float(diag.get("min_ancestor_ess_window", float("nan"))),
+        "ess_window_steps": int(diag.get("ess_window_steps", 0)),
         # grid + reference (small; duplicated per run for self-containment)
         "grid": ref["grid"], "ref_free_energy": ref["free_energy"], "ref_mean_force": ref["mean_force"],
         "ref_p_boltzmann": pref,
