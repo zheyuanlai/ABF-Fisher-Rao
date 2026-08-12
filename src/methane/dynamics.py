@@ -135,6 +135,93 @@ class RigidWaterConstraints:
         return float(((rc * rc).sum(-1).sqrt() - self.d2.sqrt()).abs().max())
 
 
+class PairConstraint:
+    """A single rigid distance between two sites -- the constrained-TI holder for ``xi``.
+
+    One constraint means SHAKE is a scalar, not a solve: with ``r = x_j - x_i`` and reference
+    direction ``rr`` from the pre-move configuration,
+
+        lambda = (|r|^2 - d^2) / (2 (r . rr) (w_i + w_j))
+
+    applied as ``x_j -= w_j lambda rr``, ``x_i += w_i lambda rr``.  Iterated to convergence, which
+    takes two passes.
+
+    Used to hold the methane pair at fixed separation for the TI reference.  Because
+    ``|grad xi|^2 = 2`` is constant for this CV there is no Fixman/metric correction, so the
+    conditional average of the physical local mean force is ``F'(r)`` exactly -- and the
+    constraint force never appears in the accumulated forces, exactly as in OpenMM.
+    """
+
+    def __init__(self, i, j, distance_nm, mass, device=None, dtype=torch.float64,
+                 tol_nm=1.0e-10, max_iter=6):
+        self.i, self.j = int(i), int(j)
+        self.d = torch.as_tensor(np.asarray(distance_nm), device=device, dtype=dtype)
+        inv = 1.0 / torch.as_tensor(np.asarray(mass), device=device, dtype=dtype)
+        self.wi, self.wj = inv[self.i], inv[self.j]
+        self.tol = float(tol_nm)
+        self.max_iter = int(max_iter)
+        self.n_constraints = 1
+
+    def _d2(self):
+        return self.d * self.d
+
+    def apply_positions(self, x, x_ref):
+        rr = x_ref[:, self.j, :] - x_ref[:, self.i, :]
+        for _ in range(self.max_iter):
+            rc = x[:, self.j, :] - x[:, self.i, :]
+            g = (rc * rc).sum(-1) - self._d2()
+            if float(g.abs().max()) < self.tol:
+                break
+            denom = 2.0 * (rc * rr).sum(-1) * (self.wi + self.wj)
+            lam = g / torch.where(denom.abs() < 1e-30, torch.full_like(denom, 1e-30), denom)
+            x[:, self.j, :] -= self.wj * lam[:, None] * rr
+            x[:, self.i, :] += self.wi * lam[:, None] * rr
+        rc = x[:, self.j, :] - x[:, self.i, :]
+        return float((rc.norm(dim=-1) - self.d).abs().max())
+
+    def apply_velocities(self, x, v):
+        rc = x[:, self.j, :] - x[:, self.i, :]
+        dv = v[:, self.j, :] - v[:, self.i, :]
+        denom = (rc * rc).sum(-1) * (self.wi + self.wj)
+        lam = (rc * dv).sum(-1) / denom.clamp_min(1e-30)
+        v[:, self.j, :] -= self.wj * lam[:, None] * rc
+        v[:, self.i, :] += self.wi * lam[:, None] * rc
+        return float((rc * dv).sum(-1).abs().max())
+
+    def max_violation(self, x):
+        rc = x[:, self.j, :] - x[:, self.i, :]
+        return float((rc.norm(dim=-1) - self.d).abs().max())
+
+
+class CompositeConstraints:
+    """Apply several independent constraint sets in sequence.
+
+    Exact when the sets share no atoms -- the methane pair and the waters are disjoint, so the
+    two projections commute and one pass of each suffices.  A shared atom would need the sets
+    solved jointly, so the disjointness is asserted rather than assumed.
+    """
+
+    def __init__(self, parts, atom_sets=None):
+        self.parts = list(parts)
+        self.n_constraints = sum(p.n_constraints for p in self.parts)
+        if atom_sets is not None:
+            seen = set()
+            for s in atom_sets:
+                s = set(int(a) for a in np.asarray(s).reshape(-1))
+                if seen & s:
+                    raise ValueError("constraint sets share atoms; they must be solved jointly")
+                seen |= s
+
+    def apply_positions(self, x, x_ref):
+        return max(p.apply_positions(x, x_ref) for p in self.parts)
+
+    def apply_velocities(self, x, v):
+        return max(p.apply_velocities(x, v) for p in self.parts)
+
+    def max_violation(self, x):
+        return max(p.max_violation(x) for p in self.parts)
+
+
 class BAOAB:
     """Constrained BAOAB Langevin, batched over walkers.
 

@@ -246,11 +246,11 @@ def main():
     with open(os.path.join(args.out, "metadata.json"), "w") as fh:
         json.dump(meta, fh, indent=2)
 
-    os.makedirs("cache/phase_hp_v2", exist_ok=True)
-    np.savez("cache/phase_hp_v2/wca_ti_b1_h2_w2_n10_a1.5_g160.npz",
+    os.makedirs("cache/phase_hp_v3", exist_ok=True)
+    np.savez("cache/phase_hp_v3/wca_ti_b1_h2_w2_n10_a1.5_g160.npz",
              label="HP reference v2 (v2 campaign; unsmoothed, nonuniform acquisition)",
              grid=z_eval, mean_force=mf_eval, free_energy=fe_eval, z_ti=z_acq)
-    print(f"\nwrote {args.out} and cache/phase_hp_v2/ (drop-in, {args.n_grid}-point uniform grid)")
+    print(f"\nwrote {args.out} and cache/phase_hp_v3/ (drop-in, {args.n_grid}-point uniform grid)")
 
 
 if __name__ == "__main__":
