@@ -1,0 +1,101 @@
+{
+  "n_seeds": 16,
+  "arms": [
+    "abf",
+    "fr_estimated",
+    "fr_oracle",
+    "sham_practical",
+    "sham_oracle"
+  ],
+  "contrasts": {
+    "integrated::mFR vs ABF": {
+      "median_pct": -17.965452636136916,
+      "ci95": [
+        -22.72893911419442,
+        -17.162669280306876
+      ],
+      "wins": 16,
+      "n": 16,
+      "v1_cached": -22.83
+    },
+    "integrated::mFR vs its own sham": {
+      "median_pct": -20.95583719205247,
+      "ci95": [
+        -25.035526686156086,
+        -11.536715827018327
+      ],
+      "wins": 15,
+      "n": 16,
+      "v1_cached": -26.38
+    },
+    "integrated::sham vs ABF": {
+      "median_pct": -3.1857640993269687,
+      "ci95": [
+        -6.202381813486369,
+        2.8853680156140933
+      ],
+      "wins": 9,
+      "n": 16,
+      "v1_cached": 2.6
+    },
+    "integrated::mFR-oracle vs ABF": {
+      "median_pct": -19.53605805713068,
+      "ci95": [
+        -25.448654537413358,
+        -15.976949207832957
+      ],
+      "wins": 16,
+      "n": 16,
+      "v1_cached": null
+    },
+    "final::mFR vs ABF": {
+      "median_pct": -45.34891457222118,
+      "ci95": [
+        -47.116266806567786,
+        -40.466865290740884
+      ],
+      "wins": 16,
+      "n": 16,
+      "v1_cached": -22.83
+    },
+    "final::mFR vs its own sham": {
+      "median_pct": -40.29242341113135,
+      "ci95": [
+        -44.795063509112715,
+        -36.87805520001091
+      ],
+      "wins": 16,
+      "n": 16,
+      "v1_cached": -26.38
+    },
+    "final::sham vs ABF": {
+      "median_pct": -3.3594345065920046,
+      "ci95": [
+        -7.983313787459806,
+        -0.03471434168606913
+      ],
+      "wins": 12,
+      "n": 16,
+      "v1_cached": 2.6
+    },
+    "final::mFR-oracle vs ABF": {
+      "median_pct": -44.70914422668351,
+      "ci95": [
+        -47.06011516112715,
+        -41.921550046282995
+      ],
+      "wins": 16,
+      "n": 16,
+      "v1_cached": null
+    }
+  },
+  "checks": {
+    "median <= -10%": true,
+    "CI95 upper < 0": true,
+    "wins >= 12/16 (75 %)": true,
+    "attribution: mFR-vs-sham CI95 upper < 0": true
+  },
+  "passed": true,
+  "reference": "cache/phase_hp_v3 (unsmoothed, 4 preparations, acquisition == eval grid)",
+  "endpoint": "time-integrated L2(F), the -22.83% headline endpoint"
+}

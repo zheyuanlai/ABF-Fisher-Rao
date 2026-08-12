@@ -1,0 +1,47 @@
+{
+  "script": "run_wca_sham.py",
+  "git_rev": "97b562698a113a23ca315be687ed5d6610ac3f1a",
+  "host": "atlas",
+  "cuda_visible_devices": "2",
+  "config": "configs/wca_phase_diagram_production.yaml",
+  "stage": "sham",
+  "cell": {
+    "beta": 1.0,
+    "h": 2.0,
+    "w": 2.0,
+    "n_dim": 10,
+    "a": 1.5,
+    "sigma": 1.0,
+    "epsilon": 1.0
+  },
+  "fr_knobs": {
+    "fr_rate": 0.1,
+    "target_ema_rate": 0.005,
+    "max_event_fraction": 0.02,
+    "fr_every": 5,
+    "fr_start_steps": 20000,
+    "score_clip": 2.0
+  },
+  "n_steps": 120000,
+  "n_replicas": 1024,
+  "save_every": 2500,
+  "seeds": [
+    404,
+    405,
+    406,
+    407
+  ],
+  "arms": [
+    "abf",
+    "fr_estimated",
+    "fr_oracle",
+    "sham_practical",
+    "sham_oracle"
+  ],
+  "sham_partners": {
+    "sham_practical": "fr_estimated",
+    "sham_oracle": "fr_oracle"
+  },
+  "wall_seconds": 14442.710085868835,
+  "n_runs": 20
+}
