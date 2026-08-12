@@ -1432,3 +1432,58 @@ outcome where it ties or reverses and the novelty claim of §0 dies. A tie is te
 
 If methane is null, the three-arm design has saved the two extra arms and Q1 remains open for
 NaCl, which is where it was always going to be answered if methane fails.
+
+#### 12.8 Correction to 12.4: the engine split is right, its stated reason was wrong
+
+**Written the same day as 12.4, after building the engine and measuring it, and before any
+methane box, reference, trajectory or physical result existed.** Only throughput and parity
+numbers were in hand.
+
+§12.4 justified the batched torch engine by asserting that serving `N` walkers with serial
+OpenMM contexts is "days per seed". **That reasoning is wrong and is withdrawn.** Measured on an
+idle H200, `M` OpenMM CUDA contexts stepped in a shared-estimator pattern (100 steps per round,
+positions and forces read each round) give:
+
+| `M` contexts | setup | aggregate |
+|---|---|---|
+| 16 | 7.9 s | 390 ns/day |
+| 64 | 55.2 s | 385 ns/day |
+| **128** | — | **fails: "No compatible CUDA device is available"** |
+| **256** | — | **fails** |
+
+390 ns/day is *faster* than the batched torch engine was at the time of writing §12.4, so cost
+was never the discriminator.
+
+**The real disqualifier is capability, and it is decisive.** OpenMM multi-context cannot create
+more than ~64–127 contexts of this system on one device. Amendment 12.5 starts the screen at
+**`N = 512`**, and §6.3 of the spec requires 128 as its smallest rung. A sampler that cannot hold
+the population cannot run the preregistered design at any speed. The batched torch engine is
+therefore required — but *because it is the only thing that reaches `N = 512`*, not because
+OpenMM is slow.
+
+**Measured engine throughput**, frozen 1538-site system, idle GPU 3, B = 512:
+
+| engine | reaches `N = 512`? | aggregate ns/day |
+|---|---|---|
+| OpenMM CUDA, one context | no (single walker) | 462 |
+| OpenMM CUDA, multi-context | **no** (fails ≥ 128) | 385–390 |
+| torch batched, float64, eager | yes | 43 |
+| torch batched, float64, compiled | yes | 34 |
+| **torch batched, float32, compiled** | **yes** | **332** |
+
+`torch.compile` is worth **8.1×** on this engine (float32, B = 256: 40 → 328 ns/day), consistent
+with the 6.6× §1 records for deca, and it is mandatory here for the same reason.
+
+**Precision, declared.** The parity gate of SPEC §3.2 is run in **float64**, where the engine
+agrees with OpenMM to `2.9e-13` in energy and `1.4e-15` in force over 14 configurations spanning
+−2 598 to +45 223 kJ/mol. **Production runs in float32**, which is what makes `N = 512` affordable
+(float64 is ~10× slower and needs 63 GiB at B = 512). float32 is a **performance-only change and
+is gated as one**, on the deca model
+(`test_compiled_forces_are_numerically_indistinguishable_from_eager`): it must be shown
+statistically indistinguishable from float64 on energy conservation, on the conditional mean
+force, and on the PMF, before any production. If it is not, production reverts to float64 and the
+budget is re-costed — the precision is not lowered to fit the budget.
+
+**Cost implied.** The `N = 512` screen is `8 seeds x 512 walkers x 200 ps = 819 ns`; at 332 ns/day
+that is **~2.5 days**. A neighbour list is the obvious next optimisation (the cutoff sphere is
+~27 % of the box, so all-pairs wastes ~3.7×) and is a performance change gated the same way.
