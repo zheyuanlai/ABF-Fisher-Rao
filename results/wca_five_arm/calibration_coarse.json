@@ -1,0 +1,129 @@
+{
+  "target_turnover": 457.0,
+  "cal_seeds": [
+    500,
+    501
+  ],
+  "c_ladder": [
+    0.001,
+    0.003,
+    0.01,
+    0.03,
+    0.1,
+    0.3,
+    1.0,
+    3.0
+  ],
+  "chosen": {
+    "book_laplacian": 0.01,
+    "count_balancing": 1.0
+  },
+  "table": {
+    "book_laplacian": [
+      {
+        "c": 0.001,
+        "replacements": 36.5,
+        "active": false,
+        "rel_to_target": 0.07986870897155361
+      },
+      {
+        "c": 0.003,
+        "replacements": 123.0,
+        "active": false,
+        "rel_to_target": 0.26914660831509846
+      },
+      {
+        "c": 0.01,
+        "replacements": 360.0,
+        "active": true,
+        "rel_to_target": 0.787746170678337
+      },
+      {
+        "c": 0.03,
+        "replacements": 1087.5,
+        "active": true,
+        "rel_to_target": 2.3796498905908097
+      },
+      {
+        "c": 0.1,
+        "replacements": 2498.0,
+        "active": true,
+        "rel_to_target": 5.466083150984683
+      },
+      {
+        "c": 0.3,
+        "replacements": 3282.0,
+        "active": true,
+        "rel_to_target": 7.181619256017505
+      },
+      {
+        "c": 1.0,
+        "replacements": 3531.5,
+        "active": true,
+        "rel_to_target": 7.727571115973742
+      },
+      {
+        "c": 3.0,
+        "replacements": 3592.5,
+        "active": true,
+        "rel_to_target": 7.861050328227571
+      }
+    ],
+    "count_balancing": [
+      {
+        "c": 0.001,
+        "replacements": 0.0,
+        "active": false,
+        "rel_to_target": 0.0
+      },
+      {
+        "c": 0.003,
+        "replacements": 1.5,
+        "active": false,
+        "rel_to_target": 0.0032822757111597373
+      },
+      {
+        "c": 0.01,
+        "replacements": 8.5,
+        "active": false,
+        "rel_to_target": 0.018599562363238512
+      },
+      {
+        "c": 0.03,
+        "replacements": 21.5,
+        "active": false,
+        "rel_to_target": 0.047045951859956234
+      },
+      {
+        "c": 0.1,
+        "replacements": 73.0,
+        "active": false,
+        "rel_to_target": 0.15973741794310722
+      },
+      {
+        "c": 0.3,
+        "replacements": 168.0,
+        "active": false,
+        "rel_to_target": 0.3676148796498906
+      },
+      {
+        "c": 1.0,
+        "replacements": 529.0,
+        "active": true,
+        "rel_to_target": 1.1575492341356675
+      },
+      {
+        "c": 3.0,
+        "replacements": 1090.0,
+        "active": true,
+        "rel_to_target": 2.385120350109409
+      }
+    ]
+  },
+  "activity_rule": "median replacements >= 0.5 * target turnover (Amendment 11; NOT 0.5 N, which mFR itself fails)",
+  "matched": {
+    "book_laplacian": 0.787746170678337,
+    "count_balancing": 1.1575492341356675
+  },
+  "note": "mFR is NOT retuned; only the prior-art intensities are chosen"
+}

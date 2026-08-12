@@ -172,15 +172,29 @@ def main():
 
     novelty = all(q1[m]["superior"] for m in PRIOR)
     all_tie = all(q1[m]["equivalent_tost"] for m in PRIOR)
+    # "superior vs one arm, equivalent vs the other" is a DECIDED outcome, not an inconclusive
+    # one: both per-arm verdicts are positive statements, and TOST equivalence is a positive
+    # demonstration rather than a failure to reject. Only a genuinely undecided arm -- one that
+    # is neither superior, nor worse, nor equivalent within the margin -- is inconclusive.
+    decided = all(q1[m]["verdict"] != "INCONCLUSIVE" for m in PRIOR)
     if novelty:
         claim = ("FR direction BEATS prior directed selection on both arms "
                  "at matched turnover")
     elif all_tie:
-        claim = ("TIE. The claim becomes: a principled selection rule consistent with the "
-                 "establishment mechanism -- NOT a performance win over prior art")
+        claim = ("TIE on both arms. The claim becomes: a principled selection rule consistent "
+                 "with the establishment mechanism -- NOT a performance win over prior art")
+    elif decided:
+        beat = [m for m in PRIOR if q1[m]["superior"]]
+        tied = [m for m in PRIOR if q1[m]["equivalent_tost"]]
+        lost = [m for m in PRIOR if q1[m]["worse"]]
+        claim = ("SPLIT, and decided on every arm: mFR beats " + ", ".join(beat or ["none"])
+                 + "; ties (TOST) " + ", ".join(tied or ["none"])
+                 + ("; loses to " + ", ".join(lost) if lost else "")
+                 + ". §4.3 requires BOTH to license novelty, so the novelty claim FAILS and "
+                   "the claim becomes: a principled selection rule consistent with the "
+                   "establishment mechanism, matched but not beaten by a simpler rule")
     else:
-        claim = ("MIXED / INCONCLUSIVE -- see per-arm verdicts; no novelty claim is "
-                 "licensed by §4.3")
+        claim = ("INCONCLUSIVE on at least one arm -- no novelty claim is licensed by §4.3")
     print(f"\n  PRIMARY (mFR vs ABF) PASSES: {all(checks.values())}")
     print(f"  Q1 NOVELTY CLAIM LICENSED:   {novelty}")
     print(f"  -> {claim}")

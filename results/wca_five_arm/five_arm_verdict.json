@@ -1,0 +1,175 @@
+{
+  "n_seeds": 16,
+  "seeds": [
+    400,
+    401,
+    402,
+    403,
+    404,
+    405,
+    406,
+    407,
+    408,
+    409,
+    410,
+    411,
+    412,
+    413,
+    414,
+    415
+  ],
+  "arms": [
+    "abf",
+    "fr_estimated",
+    "sham_practical",
+    "book_laplacian",
+    "count_balancing"
+  ],
+  "endpoint": "integrated_l2_f",
+  "reference": "cache/phase_hp_v3",
+  "target_turnover": 2173.0,
+  "turnover_matched": {
+    "book_laplacian": true,
+    "count_balancing": true
+  },
+  "contrasts": {
+    "mFR vs ABF": {
+      "median_pct": -17.617868777972586,
+      "ci95": [
+        -23.60017822593349,
+        -11.608261814122397
+      ],
+      "ci90": [
+        -21.367784503628464,
+        -13.960585800974687
+      ],
+      "wins": 15,
+      "n": 16
+    },
+    "mFR vs its own sham": {
+      "median_pct": -17.88773319760685,
+      "ci95": [
+        -21.224607220517303,
+        -12.12751508296991
+      ],
+      "ci90": [
+        -20.958501835278298,
+        -13.004200373071033
+      ],
+      "wins": 16,
+      "n": 16
+    },
+    "sham vs ABF": {
+      "median_pct": -1.59154016083838,
+      "ci95": [
+        -7.228971815933316,
+        7.368114569344728
+      ],
+      "ci90": [
+        -6.9500277696325385,
+        7.229572275566693
+      ],
+      "wins": 9,
+      "n": 16
+    },
+    "mFR vs book_laplacian": {
+      "median_pct": -21.659863541178623,
+      "ci95": [
+        -25.37631368096235,
+        -15.144535406292867
+      ],
+      "ci90": [
+        -24.97887497247494,
+        -15.949846875922916
+      ],
+      "wins": 15,
+      "n": 16
+    },
+    "mFR vs count_balancing": {
+      "median_pct": 0.6595078161993949,
+      "ci95": [
+        -5.175831879507821,
+        4.356769096130685
+      ],
+      "ci90": [
+        -3.955713787429217,
+        2.5502044969581243
+      ],
+      "wins": 8,
+      "n": 16
+    },
+    "book_laplacian vs ABF": {
+      "median_pct": 0.7299914747156552,
+      "ci95": [
+        -1.8529438590776,
+        8.217639726159613
+      ],
+      "ci90": [
+        -0.5473125905944519,
+        7.6972779607376625
+      ],
+      "wins": 7,
+      "n": 16
+    },
+    "count_balancing vs ABF": {
+      "median_pct": -18.225764719720978,
+      "ci95": [
+        -21.937702732423705,
+        -12.901750039811674
+      ],
+      "ci90": [
+        -21.222358694910902,
+        -15.27487313096253
+      ],
+      "wins": 15,
+      "n": 16
+    }
+  },
+  "primary_checks": {
+    "primary: median <= -10 %": true,
+    "primary: 95 % CI upper < -5 %": true,
+    "primary: wins >= 12/16": true,
+    "attribution: mFR-vs-sham 95 % CI upper < 0": true,
+    "genealogy: windowed ESS_anc/N >= 0.30": true,
+    "genealogy: w_max <= 0.05": true
+  },
+  "primary_passed": true,
+  "q1": {
+    "book_laplacian": {
+      "verdict": "mFR SUPERIOR",
+      "superior": true,
+      "equivalent_tost": false,
+      "worse": false,
+      "median_pct": -21.659863541178623,
+      "ci95": [
+        -25.37631368096235,
+        -15.144535406292867
+      ],
+      "ci90": [
+        -24.97887497247494,
+        -15.949846875922916
+      ],
+      "tost_margin": 5.0,
+      "turnover_matched": true
+    },
+    "count_balancing": {
+      "verdict": "EQUIVALENT (TOST)",
+      "superior": false,
+      "equivalent_tost": true,
+      "worse": false,
+      "median_pct": 0.6595078161993949,
+      "ci95": [
+        -5.175831879507821,
+        4.356769096130685
+      ],
+      "ci90": [
+        -3.955713787429217,
+        2.5502044969581243
+      ],
+      "tost_margin": 5.0,
+      "turnover_matched": true
+    }
+  },
+  "novelty_claim_licensed": false,
+  "claim": "MIXED / INCONCLUSIVE -- see per-arm verdicts; no novelty claim is licensed by \u00a74.3"
+}

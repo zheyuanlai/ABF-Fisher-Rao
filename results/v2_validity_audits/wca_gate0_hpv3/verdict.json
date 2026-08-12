@@ -1,0 +1,81 @@
+{
+  "cell": {
+    "n_dim": 10,
+    "a": 1.5,
+    "sigma": 1.0,
+    "epsilon": 1.0,
+    "h": 2.0,
+    "w": 2.0,
+    "beta": 1.0
+  },
+  "z_values": [
+    0.0,
+    0.25,
+    0.4,
+    0.55,
+    0.75,
+    1.0
+  ],
+  "pools": [
+    "lattice",
+    "from_lo",
+    "from_hi",
+    "hot"
+  ],
+  "mf_per_pool": {
+    "lattice": [
+      5.535703484131023,
+      0.8462979445196688,
+      3.0542542407214643,
+      -2.846838991843164,
+      -6.521429324187339,
+      -0.5210281884633005
+    ],
+    "from_lo": [
+      5.513136176671833,
+      0.8652819077149033,
+      3.1933678521886466,
+      -2.8907673418819906,
+      -6.424881978929043,
+      -0.6193840579912067
+    ],
+    "from_hi": [
+      5.473249416925013,
+      0.8831086214706302,
+      3.145287495747209,
+      -2.9407002978958188,
+      -6.398930267386138,
+      -0.5514685479030013
+    ],
+    "hot": [
+      5.511388803847134,
+      1.0283216142244638,
+      3.1574466972500086,
+      -2.9512220032289624,
+      -6.303381520070135,
+      -0.554282462514937
+    ]
+  },
+  "ref_mean_force": [
+    5.442418984004431,
+    0.9031286133187157,
+    3.1112214837755463,
+    -2.922570501055042,
+    -6.421030827930995,
+    -0.4972617711339678
+  ],
+  "rel_spread_all": 0.04168273215362409,
+  "rel_spread_transition": 0.04817865226088975,
+  "pool_mean_vs_reference": 0.00949776748502954,
+  "benchmarks": {
+    "deca": 0.61,
+    "r15_b2": [
+      0.564,
+      0.593
+    ],
+    "gateway_global": 0.036,
+    "gateway_constriction": 0.189
+  },
+  "gate0_pass": true,
+  "verdict": "GATE 0 PASSES: the solvent cage equilibrates at fixed z -- pools prepared from compact, stretched, lattice and randomised cages agree. The WCA establishment-limited classification, and the -22.83 % Case IX positive resting on it, survive the backfill."
+}
