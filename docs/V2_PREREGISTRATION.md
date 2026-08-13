@@ -1505,6 +1505,29 @@ away.
 > almost entirely to the latter. Every defect here was silent, none raised an error, and each
 > would have been read as physics.
 
+**A fourth class, from the tooling rather than the analysis.** Two paths to one resource, one of
+which silently wins. Found once in each session within the same hour, with unrelated-looking
+consequences drawn entirely from what the resource was: here, seeds 5005–5007 belonged only to a
+process scheduled for termination and would simply never have run, surfacing as a 5-of-8 screen
+against a 6-of-8 Gate B; in the NaCl session, two writers to one config file would have set the
+study's production timestep by last-writer. The review question is the same for both — *can this
+be triggered from two paths, and what happens if both fire?*
+
+**And a testing lesson that is more general than the bug that produced it.** A guard written to
+prevent the above was `pgrep -f "<script path>"`. Checked from an interactive shell it appeared
+to self-match, which is this project's documented `pgrep` footgun; that appearance was **false**,
+caused by the checking shell's own argv containing the pattern. Re-checked from inside a script
+file — the way the code actually runs — the self-match vanished **and a real defect appeared that
+the false one had concealed**: `pgrep -f` also matches the harness wrapper shells, one of which
+outlives the python process it launched, so the guard would have aborted forever and blocked the
+very work it was protecting. Both sessions had this, independently, in guards written that hour.
+
+> **A contaminated test can report a false positive that conceals a true one — and the false
+> positive is the more comfortable finding, so it ends the investigation.** "Self-match, as
+> documented" felt like a confirmed diagnosis and stopped the search. The fix in both cases was
+> to require the matched process's `comm` to start with `python`, and to verify it from inside a
+> script file rather than from a shell whose command line contains the pattern.
+
 **Where the retracted claim actually went wrong**, in a form worth reusing: the per-defect
 statements were exact; the failure entered at the moment of summarising *across* defects. A
 sentence whose subject is a **set** ("all of them", "none of them", "the pattern is") is no
