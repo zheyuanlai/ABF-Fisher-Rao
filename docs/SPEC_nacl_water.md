@@ -233,7 +233,19 @@ Rational switch `s(x; R0) = (1 − (x/R0)⁶) / (1 − (x/R0)¹²)` — the proj
 ```
 
 plus a hard-count oxygen bridge (`|Na−O_j| < R0_NaO` and `|Cl−O_j| < R0_ClO`) as a robustness
-diagnostic. `Y` is what Gate A distinguishability, Gate D twin decorrelation, `tau_perp` and
+diagnostic.
+
+> **The `(6,12)` switch has a long tail, and that is inherited deliberately.** `s` decays only
+> as `(R0/x)^6`, so with 821 waters at bulk density the untruncated sum sits several units above
+> the hard first-shell count — `n_NaO` reads ~9–10 where the hard count is ~5–6. This is the
+> published PLUMED convention (no `D_MAX`), it is the same switch the methane study uses, and it
+> is harmless here because every use of `Y` is a *comparison* of distributions computed with the
+> identical descriptor (Gate A, conditional fidelity, `tau_perp`). The absolute value is not a
+> coordination number and is never reported as one.
+>
+> The switch is evaluated as `1/(1 + (x/R0)^6)`, algebraically identical and free of the `0/0`
+> the literal quotient has at `x = R0`, where the true value is `1/2`. Written literally, waters
+> sitting exactly on the shell edge contribute ~0 instead of ~1/2. `Y` is what Gate A distinguishability, Gate D twin decorrelation, `tau_perp` and
 conditional fidelity `TV[p_method(Y|r), p_ref(Y|r)]` are all computed on. `R0` values are never
 retuned after the freeze.
 

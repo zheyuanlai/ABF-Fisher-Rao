@@ -28,8 +28,15 @@ FREEZE_PATH = nsys.STAGE0 / "descriptor_freeze.json"
 
 
 def rational_switch(x, r0):
-    t6 = (x / r0) ** 6
-    return (1.0 - t6) / (1.0 - t6 * t6 + 1e-12)
+    """``(1 - (x/r0)^6) / (1 - (x/r0)^12)``, the standard rational coordination switch.
+
+    Evaluated as ``1 / (1 + (x/r0)^6)``, which is algebraically identical -- with ``a = (x/r0)^6``,
+    ``(1-a)/(1-a^2) = 1/(1+a)`` -- and free of the ``0/0`` the literal form has at ``x = r0``,
+    where the true value is ``1/2``.  Written naively, every water sitting near the shell edge
+    contributes ~0 instead of ~1/2 and the coordination number is quietly wrong in exactly the
+    region the descriptor exists to resolve.  (Same evaluation as ``methane.observables._switch``.)
+    """
+    return 1.0 / (1.0 + (x / r0) ** 6)
 
 
 def _min_image(d, L):
