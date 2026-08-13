@@ -51,6 +51,13 @@ def main():
     ap.add_argument("--equil-ps", type=float, default=50.0)
     ap.add_argument("--sample-ps", type=float, default=0.1)
     ap.add_argument("--tol-frac", type=float, default=0.08)
+    ap.add_argument("--r-stride", type=int, default=1,
+                    help="split the r-grid across processes: this process takes "
+                         "r_grid[offset::stride]. Splitting by r-POINT is safe because the "
+                         "retirement criterion is joint over builds/families WITHIN a point "
+                         "and independent BETWEEN points; splitting by build would make the "
+                         "build-spread clause vacuous (see --builds guard).")
+    ap.add_argument("--r-offset", type=int, default=0)
     ap.add_argument("--no-retire", action="store_true",
                     help="disable early retirement: every point runs the full schedule. SPEC "
                          "§5 requires >= 250 ps production per replica; retirement is an "
@@ -81,7 +88,11 @@ def main():
     box = json.load(open(nsys.REPO / "results/nacl/box/box_manifest.json"))
     L = float(box["L_nm"])
     r_hi = float(box["finite_size_gate"]["R_hi_nm"])
-    r_grid = np.round(np.arange(nsys.R_LO_NM, r_hi + 1e-9, 0.02), 4)
+    r_grid_full = np.round(np.arange(nsys.R_LO_NM, r_hi + 1e-9, 0.02), 4)
+    r_grid = r_grid_full[args.r_offset::args.r_stride]
+    if args.r_stride > 1:
+        print(f"[split] this process takes {len(r_grid)}/{len(r_grid_full)} r-points "
+              f"(offset {args.r_offset}, stride {args.r_stride})", flush=True)
     if args.dt is not None:
         dt = float(args.dt)
         print(f"[WARNING] timestep overridden to {dt} ps -- smoke-test path, not a reference",
@@ -197,12 +208,23 @@ def main():
     stage = "start"
     if args.resume and os.path.exists(state_path):
         z = np.load(state_path)
-        if z["recs"].shape != recs.shape or not np.allclose(z["r_grid"], r_grid):
+        zr = z["r_grid"]
+        if z["recs"].shape == recs.shape and np.allclose(zr, r_grid):
+            sel = slice(None); rsel = slice(None)          # same plan, whole state
+        elif args.r_stride > 1 and np.all(np.isin(r_grid, zr)):
+            # a full-grid state being split across processes: take only our rows
+            sel = np.isin(z["recs"][:, 0], r_grid)
+            rsel = np.isin(zr, r_grid)
+            if int(sel.sum()) != len(recs):
+                raise SystemExit(f"subset selected {int(sel.sum())} rows, plan wants {len(recs)}")
+            print(f"[split] resuming {int(sel.sum())} of {len(z['recs'])} trajectories "
+                  "from the shared state", flush=True)
+        else:
             raise SystemExit("run_state.npz was written for a different plan; refusing to resume")
-        x_state = z["x_state"]
-        fsum, fcnt = z["fsum"], z["fcnt"]
-        ysum, ycnt = z["ysum"], z["ycnt"]
-        active, retired_at = z["active"], z["retired_at"]
+        x_state = z["x_state"][sel]
+        fsum, fcnt = z["fsum"][sel], z["fcnt"][sel]
+        ysum, ycnt = z["ysum"][sel], z["ycnt"][sel]
+        active, retired_at = z["active"][sel], z["retired_at"][rsel]
         done_ps = float(z["done_ps"]); stage = str(z["stage"])
         if args.no_retire and not active.all():
             # --no-retire must UN-retire on resume, or a state saved by a run whose retirement
