@@ -16,12 +16,19 @@ Runs concurrently with the methane study, which owns the shared periodic engine.
 | 0A model extraction | **DONE** — `results/nacl/stage0/` (manifest, site params, published restart) |
 | 0C OpenMM parity target | **DONE** — built from the published PSF/par files, parameters read back out |
 | I engine equivalence | **PASSED 11/11** at `< 1e-6` — `tests/test_nacl_engine.py` |
-| 1.3 NPT box | running / see `results/nacl/box/box_manifest.json` |
-| 3.2 RDF + descriptor freeze | pending (needs the box) |
-| 1.2 dt gate (2 vs 1 fs) | pending (needs the box) |
-| II TI reference + Gate 0 + Gate A | pending (needs baths + dt) |
+| sampler/descriptor units | **PASSED 13/13** — `tests/test_nacl_core.py` |
+| 1.3 NPT box | **DONE** — `L = 2.892700 nm`; finite-size gate passes *marginally*, domain kept |
+| 3.2 RDF + descriptor freeze | **DONE** — R0_ClH 0.285, R0_ClO 0.375 nm; peaks at literature positions |
+| baths (4 families, per-r starts) | running on GPU 3 |
+| 1.2 dt gate (2 vs 1 fs) | queued behind the GPU-2 handover |
+| II TI reference + Gate 0 + Gate A | queued (auto-launches after the dt gate) |
 | III ABF-only regime map | pending (needs the reference to be interpreted) |
 | IV mFR production | **not licensed** — requires every gate to pass first |
+
+Stages after the handover fire automatically: `scripts/nacl_launch_when_free.sh 2` polls GPU 2's
+compute-app list, requires it empty twice 45 s apart, then runs the Triton correctness check and
+throughput benchmark on the verified-idle device, the dt gate, and the TI reference (with
+`--triton` only if correctness passed).
 
 ## The question, and what would end the study early
 
