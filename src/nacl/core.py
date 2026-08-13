@@ -1,6 +1,12 @@
-"""Multiple-walker ABF for NaCl in water -- the fixed-compute screen sampler (SPEC §7).
+"""Frozen configuration and shared helpers for the NaCl ABF screen (SPEC §7).
 
-Structure follows ``methane.core`` deliberately; the differences are NaCl-frozen and listed:
+**This module deliberately contains no sampler loop.**  ``scripts/nacl_screen.py`` owns the one
+loop, because the screen packs all four fixed-compute cells into a single batch and a
+single-cell version would be a second implementation of the same physics -- the exact shape
+that lets a fix land in one copy and silently miss the other.  An earlier ``run_screen_cell``
+lived here, was called by nothing, and was removed for that reason.
+
+The frozen choices these helpers encode:
 
 * **All 8 ensemble seeds of a cell run as ONE batch in ONE process** (`(S, N)` walkers flat as
   ``B = S*N``), each ensemble with its own ABF estimator and bias.  A cell at ``N = 8`` walkers
@@ -105,118 +111,3 @@ def assert_distinct_solvent(init_positions, ion_index=(0, 1), tol_nm=1e-3):
         raise RuntimeError("initial population contains cloned solvent environments "
                            f"(min max-deviation {float(spread[1:].min()):.2e} nm)")
     return float(spread[1:].min())
-
-
-def run_screen_cell(engine, sim: NaClSimConfig, init_positions, device="cuda",
-                    dtype=torch.float32, verbose=True, progress_every=20_000):
-    """One fixed-compute cell: ``sim.n_ensembles`` independent ABF ensembles, one batch.
-
-    ``init_positions`` is ``(S, N, n_sites, 3)`` with independently equilibrated solvent.
-    Returns per-ensemble profiles and traces.
-    """
-    S, N = sim.n_ensembles, sim.n_walkers
-    B = S * N
-    beta = sim.beta
-    grid, dz = iv.interval_grid(sim.n_grid, sim.R_lo, sim.R_hi, device=device, dtype=dtype)
-    K_abf = iv.gaussian_kernel_matrix(grid, sim.abf_bandwidth)
-    K_kde = iv.reflected_kernel_matrix(grid, sim.kde_bandwidth, sim.R_lo, sim.R_hi)
-
-    cv = PeriodicDistanceCV(0, 1, sim.box_nm)
-    hyd = HydrationDescriptors(engine.params["waters"], sim.box_nm, device=device)
-    cons = RigidWaterConstraints(engine.params["waters"], nsys.rigid_water_lengths(),
-                                 engine.params["mass"], device=device, dtype=dtype)
-    integ = BAOAB(lambda q: engine.energy_forces(q, chunk=sim.chunk), engine.params["mass"],
-                  cons, sim.dt, sim.temperature, sim.gamma, device=device, dtype=dtype)
-
-    gen = torch.Generator(device=device).manual_seed(int(sim.rng_seed))
-    q = torch.as_tensor(np.asarray(init_positions), device=device,
-                        dtype=dtype).reshape(B, -1, 3).clone()
-    v = integ.maxwell_velocities(q, generator=gen)
-    _, f = engine.energy_forces(q, chunk=sim.chunk)
-
-    fsum = torch.zeros(S, sim.n_grid, device=device, dtype=dtype)
-    csum = torch.zeros(S, sim.n_grid, device=device, dtype=dtype)
-
-    diag = {k: [] for k in ("steps", "times", "mean_force", "pmf", "p_hat", "eff_counts",
-                            "occupancy", "out_of_domain", "temperature")}
-    xi_trace, xi_steps = [], []
-    y_trace, y_xi, y_steps = [], [], []
-
-    t0 = time.perf_counter()
-    for step in range(sim.n_steps + 1):
-        f_loc, r_flat, grad_full = cv.local_mean_force(q, f, beta)
-        f_loc = torch.clamp(f_loc, -8.0 * sim.abf_force_clip, 8.0 * sim.abf_force_clip)
-        r = r_flat.view(S, N)
-
-        in_dom = ((r >= sim.R_lo) & (r <= sim.R_hi)).to(dtype)
-        fsum += masked_bin_sum(r, f_loc.view(S, N), in_dom, sim.n_grid, sim.R_lo, sim.R_hi)
-        csum += masked_bin_sum(r, torch.ones_like(r), in_dom, sim.n_grid, sim.R_lo, sim.R_hi)
-
-        mf_profile = iv.mean_force_profile(fsum, csum, K_abf)          # (S, n_grid)
-        eff = iv.effective_counts(csum, K_abf)
-        mf_bias_profile = mf_profile * colvars_trust(eff, sim.full_samples)
-
-        if step % sim.xi_trace_every == 0:
-            xi_trace.append(r.to(torch.float32).cpu().numpy())
-            xi_steps.append(step)
-        if step % sim.y_trace_every == 0:
-            y_trace.append(hyd.Y(q).to(torch.float32).cpu().numpy())
-            y_xi.append(r_flat.to(torch.float32).cpu().numpy())
-            y_steps.append(step)
-        if step % sim.save_every == 0 or step == sim.n_steps:
-            if not bool((r_flat < 0.995 * 0.5 * sim.box_nm).all()):
-                raise RuntimeError("an ion pair reached 99.5% of L/2; xi is degenerate there "
-                                   f"(r_max = {float(r_flat.max()):.4f} nm)")
-            A_hat = iv.free_energy_from_mean_force(mf_bias_profile, grid, dz)
-            p_grid = iv.kde_marginal(r, K_kde, sim.n_grid, dz, sim.R_lo, sim.R_hi)
-            diag["steps"].append(step)
-            diag["times"].append(step * sim.dt)
-            diag["mean_force"].append(mf_profile.detach().cpu().numpy())
-            diag["pmf"].append(A_hat.detach().cpu().numpy())
-            diag["p_hat"].append(p_grid.detach().cpu().numpy())
-            diag["eff_counts"].append(eff.detach().cpu().numpy())
-            diag["occupancy"].append(
-                masked_bin_sum(r, torch.ones_like(r), in_dom,
-                               sim.n_grid, sim.R_lo, sim.R_hi).detach().cpu().numpy())
-            diag["out_of_domain"].append(float((1.0 - in_dom).mean()))
-            diag["temperature"].append(float(integ.temperature(v).mean()))
-            if verbose and step % progress_every == 0:
-                el = time.perf_counter() - t0
-                print(f"  step {step:8d}/{sim.n_steps}  t = {step*sim.dt:9.2f} ps  "
-                      f"T = {diag['temperature'][-1]:6.1f} K  "
-                      f"r in [{float(r.min()):.3f}, {float(r.max()):.3f}]  "
-                      f"({el:7.0f}s)", flush=True)
-
-        if step == sim.n_steps:
-            break
-
-        def _bias_at(q_new, _prof=mf_bias_profile, _S=S, _N=N):
-            r_new, grad_new, _ = cv.geometry(q_new)
-            mf_new = iv.interval_interp(_prof, grid, r_new.view(_S, _N)) \
-                .clamp(-sim.abf_force_clip, sim.abf_force_clip)
-            g_tot = sim.abf_bias_scale * mf_new.reshape(-1) + wall_force(r_new, sim)
-            return cv.bias_force(grad_new, g_tot)
-
-        _, f = integ.step(q, v, f, bias_fn=_bias_at, generator=gen)
-
-    mf_profile = iv.mean_force_profile(fsum, csum, K_abf)
-    eff = iv.effective_counts(csum, K_abf)
-    A_hat = iv.free_energy_from_mean_force(mf_profile * colvars_trust(eff, sim.full_samples),
-                                           grid, dz)
-    grid64 = grid.to(torch.float64)
-    out = dict(
-        grid=grid.cpu().numpy(), dz=dz,
-        seed_labels=np.asarray(sim.seed_labels[:S]),
-        mean_force=mf_profile.detach().cpu().numpy(),
-        pmf=A_hat.detach().cpu().numpy(),
-        W_pmf=W_from_F(A_hat.to(torch.float64), grid64, beta).cpu().numpy(),
-        W_mean_force=Wprime_from_Fprime(mf_profile.to(torch.float64), grid64, beta)
-        .cpu().numpy(),
-        eff_counts=eff.detach().cpu().numpy(),
-        xi_trace=np.asarray(xi_trace), xi_steps=np.asarray(xi_steps),
-        y_trace=np.asarray(y_trace), y_xi=np.asarray(y_xi), y_steps=np.asarray(y_steps),
-        wall_seconds=time.perf_counter() - t0,
-    )
-    for k, val in diag.items():
-        out[f"diag_{k}"] = np.asarray(val)
-    return out

@@ -239,10 +239,13 @@ def test_occupancy_and_target_share_a_support_when_walkers_leave_the_domain():
     Q = [float(w[masks[b["label"]]].sum() / w.sum()) for b in basins]
     assert sum(Q) == pytest.approx(1.0), "the bias-aware target must be normalised on that same support"
 
-    # and the screen must be the thing that supplies a masked histogram
-    core = open(os.path.join(ROOT, "src", "nacl", "core.py")).read()
-    assert "masked_bin_sum(r, torch.ones_like(r), in_dom" in core
-    assert "out_of_domain" in core, "the excursion fraction must be recorded, not silently absorbed"
+    # and the screen must be the thing that supplies a masked histogram.
+    # NOTE: this originally read src/nacl/core.py, which held a second, UNCALLED copy of the
+    # sampler -- so the assertion was verifying dead code while the live driver went unchecked.
+    # That copy is gone; the live loop is the script, and this points at it.
+    driver = open(os.path.join(ROOT, "scripts", "nacl_screen.py")).read()
+    assert "masked_bin_sum(r, torch.ones_like(r), in_dom" in driver
+    assert "out_of_domain" in driver, "the excursion fraction must be recorded, not silently absorbed"
 
 
 def test_incomplete_reference_cannot_be_accepted():
