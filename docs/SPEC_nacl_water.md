@@ -96,6 +96,12 @@ Collected here in advance, none silent:
    under a declared integrator/ensemble substitution** — the same claim methane makes.
 6. **Dispersion correction off in NVT** (additive constant, zero force); on for NPT only.
    Methane rule, unchanged.
+7. **OpenMM's LJ switching form, not NAMD's.** NAMD switches the LJ energy with the CHARMM
+   `r²`-based polynomial `X(r) = (r_c²−r²)²(r_c²+2r²−3r_s²)/(r_c²−r_s²)³`; OpenMM (and this
+   engine, methane §3.1) uses `S(x) = 1−10x³+15x⁴−6x⁵` in `x = (r−r_s)/(r_c−r_s)`. Same
+   window (1.00→1.20 nm), same endpoints and smoothness; the difference is confined to the LJ
+   tail inside the switching window. The parity target is OpenMM, and this is declared rather
+   than discovered.
 
 ### 1.2 Timestep gate
 

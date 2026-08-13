@@ -105,10 +105,12 @@ class PairTerms:
         self.lj_self = torch.eye(li.numel(), dtype=torch.bool, device=device)
         self.q_qq = self.qq_ij[qi][:, qi].contiguous()
         self.q_excluded = excl[qi][:, qi].contiguous()
-        # every intramolecular exclusion is O-H or H-H, and hydrogens carry no LJ, so the LJ set
-        # can only ever exclude the self-pair.  Asserted, not assumed.
-        if bool(excl[li][:, li].fill_diagonal_(False).any()):
-            raise RuntimeError("LJ site set carries a non-self exclusion; split path invalid")
+        # every intramolecular exclusion is O-H or H-H, and for SPC/E hydrogens carry no LJ, so
+        # the LJ set can only ever exclude the self-pair.  CHARMM TIP3P hydrogens DO carry LJ
+        # (the NaCl system, Amendment 14.1), which puts intramolecular pairs inside the LJ set;
+        # the main energy_forces path handles exclusions exactly, so only the split path -- a
+        # recorded performance negative that nothing calls in production -- becomes invalid.
+        self.split_path_valid = not bool(excl[li][:, li].fill_diagonal_(False).any())
 
     def _min_image(self, d):
         return d - self.L * torch.round(d / self.L)
@@ -186,6 +188,9 @@ class PairTerms:
         exclusion is O-H or H-H, and hydrogens are not in the LJ set, so only the self-pair has
         to be dropped.  The Coulomb set keeps the full mask.
         """
+        if not self.split_path_valid:
+            raise RuntimeError("LJ site set carries a non-self exclusion (LJ-bearing hydrogens); "
+                               "the split path is invalid for this system -- use energy_forces")
         B, N, _ = x.shape
         energy = x.new_zeros(B)
         forces = x.new_zeros(B, N, 3)
