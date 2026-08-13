@@ -11,8 +11,13 @@ LAST COMPLETED GATE:    engine equivalence 11/11 <1e-6; box frozen L=2.892700 nm
                         descriptors frozen; baths verified (9 baths, 549 starts)
 VERDICT:                dt UNDECIDED — first gate run RETRACTED (bad error bars, 2.5σ);
                         rerun governed by the frozen Amendment 15.1 rule
-NEXT PERMITTED ACTION:  run scripts/nacl_launch_ladder.sh 2 from the pinned worktree
-                        (/home/zheyuanlai/ABF-Fisher-Rao-nacl-run) when GPU 2 is idle
+NEXT PERMITTED ACTION:  (ladder RUNNING from the pinned worktree, waiting on GPU 2 behind
+                        methane seed 5004) -> after ladder review: launch the TI reference on
+                        GPU 2 ALONE. GPU 3 is methane's until ~20:30-22:30 UTC Thu (six more
+                        seeds + their benchmark); explicit "GPU 3 released" signal agreed.
+                        Split-build parallelism is NOT decided: the per-point retirement rule
+                        is a JOINT criterion over builds, so a split requires retirement-off
+                        flat 250 ps -- decide from the ladder's measured throughput, record here
 FORBIDDEN ACTIONS:      launching the TI reference (separate reviewed action after the ladder);
                         any screen cell before Gate 0/A; any mFR before Gates 0-D; editing the
                         SPEC except by numbered amendment; retuning anything against a result;
