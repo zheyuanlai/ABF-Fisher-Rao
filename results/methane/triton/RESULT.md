@@ -69,3 +69,27 @@ This sweep is clean, on three independent checks:
 
 `torch._dynamo.reset()` now runs per configuration regardless, so a larger sweep cannot hit the
 limit silently.
+
+## Caveat on the absolute numbers, and why the verdict survives it
+
+The NaCl session found its own sweep under-reporting by **1.41x** against the in-situ rate of a
+real stage — 30 timed steps after 5 warmup does not amortise per-call overhead, while a
+25 000-step production block does. This sweep used **fewer** (15 timed after 3 warmup), so the
+same bias is present here.
+
+**It is bounded, from data already in hand.** The benchmark measures `energy_forces` alone at
+29.85 ms/step for `B = 512`; the in-situ full step, including the constraint solver and
+integrator, is 38.6 ms/step (seed 5003). Forces cannot exceed the full step, so any under-report
+factor `f` satisfies `f × 29.85 ≤ 38.6`, i.e. **`f ≤ 1.29x`** — and less than that by whatever
+the constraints actually cost. At NaCl's 1.41x the forces alone would be 42.1 ms, exceeding the
+entire measured step, which is impossible.
+
+**The verdict does not depend on the absolute numbers.** Both paths were timed identically in the
+same process, so the 0.90x ratio at `B = 512` is insensitive to a common under-report factor. What
+the absolute figures may not be used for is planning — and they are not: the screen ETA is derived
+by `methane_status.py` from per-seed wall times parsed from production logs, which is in-situ by
+construction.
+
+Adopted as a standing rule, from the NaCl session: **the authority for planning is the in-situ
+rate of a real stage; a sweep exists only to rank configurations against each other.** Warmup and
+timed counts raised to 25/200 so future sweeps are closer to in-situ anyway.

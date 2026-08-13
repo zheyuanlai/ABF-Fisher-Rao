@@ -142,11 +142,14 @@ def main():
             try:
                 x = torch.tensor(base, device=dev, dtype=torch.float32).unsqueeze(0).repeat(B, 1, 1)
                 x = x + 0.001 * torch.randn_like(x)
-                for _ in range(3):
+                # 3 warmup / 15 timed under-amortises per-call overhead: the NaCl session
+                # measured its own sweep reporting 168.9 us/traj-step against an in-situ 119.8
+                # for the same work, a 1.41x under-report, and traced it to exactly this.
+                for _ in range(25):
                     ff.energy_forces(x, chunk=args.chunk)
                 torch.cuda.synchronize()
                 t0 = time.time()
-                n = 15
+                n = 200
                 for _ in range(n):
                     ff.energy_forces(x, chunk=args.chunk)
                 torch.cuda.synchronize()
