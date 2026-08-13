@@ -1697,3 +1697,56 @@ Consequences, stated plainly:
 
 No result is retracted on this basis. It is a limitation on what may be claimed, and it is the
 reason arms are never compared across separate invocations.
+
+---
+
+### Amendment 14 — NaCl opens as a concurrent branch on the published Talmazan model (2026-08-13)
+
+**What had been seen when this was written:** the methane branch had a parity-passed engine, an
+accepted reference and a running ABF-only screen with **no screen verdict yet**. For NaCl, the
+Supporting-Information archive of Talmazan et al. 2025 had been downloaded and hashed, the
+published model had been loaded into OpenMM and one single-point energy computed
+(`results/nacl/stage0/`). **No NaCl trajectory, reference, screen, gate verdict or mFR result of
+any kind existed.** No methane result influenced any NaCl clause, and nothing below changes any
+methane clause.
+
+#### 14.1 Concurrency and ownership
+
+§0 (as amended by 11.2) ordered methane ahead of NaCl. NaCl development is now **concurrent**:
+the methane session owns the generic periodic engine (`src/methane/{nonbonded,pme,dynamics,cv}`),
+and the NaCl session **consumes** it — model layer, hydration observables and drivers only, in
+`src/nacl/`. One narrow engine generalisation is authorised: making the `PairTerms` split-path
+LJ-exclusion assertion graceful (CHARMM TIP3P hydrogens carry LJ; the assertion is
+SPC/E-specific), with the methane execution path untouched.
+
+#### 14.2 The physical model is the published tutorial system, extracted verbatim
+
+`docs/SPEC_nacl_water.md`, committed with this amendment and frozen, fixes: the exact SI files
+(hashed), parameters read back out of the OpenMM `System` (never transcribed), the published
+protocol (300 K, 12→10 Å switched cutoff, PME, rigid TIP3P, `fullSamples 500`, colvar domain
+[2, 14] Å at 0.1 Å bins, walls as published, 100 ns ABF budget), and the declared deviations
+(NVT at frozen volume; BAOAB/M-SHAKE; no MTS; order-5 pinned PME; frozen-angle removal; no
+local NAMD — the shipped tutorial outputs are the literature anchor).
+
+#### 14.3 Everything already frozen stays frozen
+
+Seeds 4000–4007 / 4100–4103 / 4200–4215 (§5), the fixed-compute map `N·T = 100 ns` over
+`N ∈ {8,16,32,64}` (§8.2), the gate order 0→A→B→C→D and all thresholds (Amendments 7–10), the
+§4.3 success and novelty criteria, and the §4.5 reference rule apply unchanged. NaCl runs **all
+five production arms** if licensed (§3 primary arm set): after WCA's Q1 tie, the prior-art arms
+are mandatory for the molecular Q1 answer. Amendment 12.7's three-arm reduction was and remains
+methane-specific.
+
+#### 14.4 Compute
+
+Amendment 13.1 gave methane GPUs 2 and 3. From the first NaCl GPU stage onward the split is
+**one device per study**: methane on GPU 2, NaCl on GPU 3 (or the reverse, recorded per stage),
+each pinned with `CUDA_VISIBLE_DEVICES`, one process per GPU, idleness re-checked and recorded.
+Until NaCl needs a device, methane may keep both. GPUs 0 and 1 remain untouched. This is
+scheduling; no physics, seed, budget, gate or endpoint changes.
+
+#### 14.5 Numbering note
+
+Two later WCA amendments were appended with duplicate numbers 11 and 12 (2026-08-12, lines
+following Amendment 13). They are left as committed; this amendment is numbered 14 as the next
+in true sequence, and any citation of "Amendment 11/12" states which of the two it means.

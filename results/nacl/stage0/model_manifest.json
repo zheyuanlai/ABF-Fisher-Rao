@@ -1,0 +1,96 @@
+{
+  "source": {
+    "paper": "Talmazan, Fu, Zhou, Henin, Gumbart, Chipot, J. Phys. Chem. B 129, 9913-9928 (2025), doi 10.1021/acs.jpcb.5c04333",
+    "archive": "NIHMS2186658-supplement-tutorial_files.zip (PMC13284794)",
+    "archive_sha256": "f33a8fce86bc9fb7c85afd1647a81bb66d5bd9118de2bde721796ca988a5d94c",
+    "file_hashes": "cache/talmazan2025/nacl_file_hashes.sha256"
+  },
+  "published_protocol": {
+    "temperature_K": 300.0,
+    "langevin_damping_ps": 1.0,
+    "timestep_fs": 2.0,
+    "cutoff_A": 12.0,
+    "switch_A": 10.0,
+    "pme_tolerance": 1e-05,
+    "pme_interp_order": 4,
+    "pme_grid_spacing_A": 1.0,
+    "exclude": "scaled1-4",
+    "one_four_scaling": 1.0,
+    "rigidbonds": "all",
+    "ensemble": "NPT (Langevin piston, 1 atm)",
+    "run_steps": 50000000,
+    "colvar_lower_A": 2.0,
+    "colvar_upper_A": 14.0,
+    "colvar_width_A": 0.1,
+    "full_samples": 500,
+    "wall_force_kcal": 1.0,
+    "hide_jacobian": false
+  },
+  "system": {
+    "n_particles": 2465,
+    "n_waters": 821,
+    "ion_indices": [
+      0,
+      1
+    ],
+    "ion_names": [
+      "SOD",
+      "CLA"
+    ],
+    "water_model": "CHARMM TIP3P (H carries LJ)",
+    "total_charge_e": 1.1102230246251565e-16,
+    "n_constraints": 2463,
+    "n_exclusions": 2463,
+    "r_OH_nm": 0.09572000000000001,
+    "r_HH_nm": 0.15139006545273226,
+    "nbfix": "none (asserted: no CustomNonbondedForce)"
+  },
+  "ions": {
+    "Na": {
+      "charge_e": 1.0,
+      "sigma_nm": 0.24299262537277755,
+      "epsilon_kJ": 0.1962296,
+      "mass_amu": 22.9898
+    },
+    "Cl": {
+      "charge_e": -1.0,
+      "sigma_nm": 0.4044680180357141,
+      "epsilon_kJ": 0.6276,
+      "mass_amu": 35.45
+    }
+  },
+  "water_sites": {
+    "O": {
+      "charge_e": -0.834,
+      "sigma_nm": 0.3150574226831496,
+      "epsilon_kJ": 0.6363864000000001,
+      "mass_amu": 15.9994
+    },
+    "H": {
+      "charge_e": 0.417,
+      "sigma_nm": 0.04000135244450124,
+      "epsilon_kJ": 0.192464,
+      "mass_amu": 1.008
+    }
+  },
+  "equilibrated_state": {
+    "box_A": [
+      28.9876,
+      28.9876,
+      28.9876
+    ],
+    "xsc_step": 5500,
+    "ion_separation_A": 3.0,
+    "reference_energy_kJ": -34620.862928422386
+  },
+  "pme_in_context": {
+    "alpha_per_nm": 2.1902174040653883,
+    "grid": [
+      20,
+      20,
+      20
+    ],
+    "note": "OpenMM default at ewaldErrorTolerance 5e-4; frozen values are pinned by src/nacl/system.py after this measurement"
+  },
+  "openmm_version": "8.5.2.dev-36a30cb"
+}
