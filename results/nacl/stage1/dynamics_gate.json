@@ -1,0 +1,57 @@
+{
+  "L_nm": 2.8926999370885578,
+  "gpu": "3",
+  "warm_ps": 5.0,
+  "measure_ps": 20.0,
+  "verdicts": {
+    "2fs": {
+      "torch_float64": {
+        "T_mean": 301.2870695282075,
+        "T_sem": 0.21225810072693382,
+        "max_violation_nm": 1.887379141862766e-15,
+        "ns_per_day_aggregate": 14.689341862203456,
+        "wall_s": 588.181559190969
+      },
+      "torch_float32": {
+        "T_mean": 300.04908615112305,
+        "T_sem": 0.10144474319573438,
+        "max_violation_nm": 1.0281801223754883e-06,
+        "ns_per_day_aggregate": 36.57687847635421,
+        "wall_s": 944.8591962909559
+      },
+      "openmm": {
+        "T_mean": 298.61464600087874,
+        "T_sem": 0.3788060448655315
+      },
+      "dT_vs_openmm_K": 2.6724235273287604,
+      "constraint_gate": true,
+      "equipartition_gate": false,
+      "PASS": false
+    },
+    "1fs": {
+      "torch_float64": {
+        "T_mean": 299.4634143166414,
+        "T_sem": 0.1420821346547866,
+        "max_violation_nm": 2.0539125955565396e-15,
+        "ns_per_day_aggregate": 7.378837555933704,
+        "wall_s": 1170.9161415339913
+      },
+      "torch_float32": {
+        "T_mean": 300.4195398712158,
+        "T_sem": 0.08742118422817226,
+        "max_violation_nm": 1.2069940567016602e-06,
+        "ns_per_day_aggregate": 18.946123565827094,
+        "wall_s": 1824.1198459370062
+      },
+      "openmm": {
+        "T_mean": 300.8376896806612,
+        "T_sem": 0.27785585344109986
+      },
+      "dT_vs_openmm_K": 1.3742753640198089,
+      "constraint_gate": true,
+      "equipartition_gate": true,
+      "PASS": true
+    }
+  },
+  "dt_chosen_ps": 0.001
+}
