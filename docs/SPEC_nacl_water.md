@@ -157,6 +157,27 @@ zeroed at 14 Å). Both `F` and `W` are emitted by every build and every arm, and
 implements the ramp and a unit test fails if the configured value is not applied (Amendment 5
 Defect 2 precedent).
 
+### 2.1 The endpoint window, frozen before any free-energy datum exists
+
+The published domain starts at 2 Å, where the shipped 100 ns PMF sits **~113 kT** above the
+dissociated plateau. An unmasked `L2` over the full domain would therefore be dominated by a
+region no method samples and no chemistry depends on, and the primary endpoint would measure
+wall-region noise. The window is fixed **now**, before any reference or arm exists:
+
+```
+  Omega_thermal = the largest contiguous interval containing argmin F_ref
+                  on which  F_ref(r) - min F_ref  <=  15 kT
+```
+
+evaluated on the **accepted** reference (§5), frozen with it, and used for: the primary `I_F`
+and `e_F`, the mean-force endpoints, the bandwidth-selection rule of §7, and reference
+acceptance. `I_F` over the **full** domain is reported alongside as a secondary; the two must
+agree in sign, and a disagreement stops interpretation rather than being chosen between.
+
+`15 kT` is a judgement fixed in advance. Basins, walls and the ABF/mFR dynamics are **not**
+restricted by this window — it is a scoring mask only, and the sampler still runs the published
+domain end to end.
+
 ---
 
 ## 3. Stage I — engine: consumed, not forked

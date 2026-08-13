@@ -15,7 +15,11 @@ import json
 from pathlib import Path
 
 import numpy as np
-import torch
+
+try:
+    import torch                      # HydrationDescriptors only; freeze_descriptors is
+except ImportError:                   # numpy-only so the OpenMM-side env can run the freeze
+    torch = None
 
 from . import system as nsys
 
