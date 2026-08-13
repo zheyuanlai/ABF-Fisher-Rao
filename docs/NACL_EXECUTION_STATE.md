@@ -43,3 +43,19 @@ EXPECTED OUTPUT FILES:  results/nacl/stage1/{launch_manifest.json, benchmark.jso
 | Gate 0 / Gate A | — | from the accepted reference |
 | screen N=64 (alone first) | — | only if 0 and A pass; analyze B/C before any other cell |
 | Gate D / calibration / mFR | — | only if licensed, in order |
+
+## Provenance audit of pre-pin artifacts (2026-08-13 06:28, prompted by the methane session)
+
+Everything before the pinned worktree ran from the working tree, so each input artifact was
+audited against its producing script's commit time. Finding: **three artifacts were produced by
+code launched minutes before (or between) the commits that captured it** — stage0 npz (run
+01:43, script committed 01:48), the NPT box (launched ~02:01, committed 02:12), and the baths
+(launched 02:22 from a tree state between 7667d48 and 7550390; the running interpreter is
+immune to the later 03:09 edits). In every case the committed content is believed identical to
+what ran, and in no case can that be *proven* — the same class of assurance as "I checked it
+carefully", which this campaign has stopped accepting. None of these manifests recorded a git
+commit, so no manifest points at a wrong commit (the methane session's sharper version of this
+defect). Disposition: accepted as-is and recorded — the artifacts are inputs whose own
+*content* is hashed in the launch manifest, and everything from the ladder onward runs from a
+pinned worktree, which answers "what produced this input, and is that thing pinned?"
+structurally rather than by care.
