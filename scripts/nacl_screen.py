@@ -92,6 +92,13 @@ def main():
                     help="wall-clock minutes between full-state checkpoints")
     ap.add_argument("--resume", action="store_true",
                     help="continue from <out>/run_state.pt if present")
+    # --- verification affordances; defaults leave production behaviour untouched ------------
+    ap.add_argument("--max-steps", type=int, default=None,
+                    help="TESTING: cap every cell's step count (not a physics setting)")
+    ap.add_argument("--stop-after", type=int, default=None,
+                    help="TESTING: checkpoint at this step and exit, to verify resume")
+    ap.add_argument("--checkpoint-every-steps", type=int, default=None,
+                    help="TESTING: checkpoint on a step cadence instead of wall-clock")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
 
@@ -124,7 +131,10 @@ def main():
     plan = []
     for N in cells:
         T_ns = B_MD_NS / N
-        plan.append(dict(N=N, T_ns=T_ns, n_steps=int(round(T_ns * 1000.0 / dt))))
+        n_steps = int(round(T_ns * 1000.0 / dt))
+        if args.max_steps is not None:
+            n_steps = min(n_steps, args.max_steps)
+        plan.append(dict(N=N, T_ns=T_ns, n_steps=n_steps))
     plan.sort(key=lambda c: c["n_steps"])          # shortest first: retire early, shrink batch
     total_walkers = sum(S * c["N"] for c in plan)
     total_ns = sum(S * c["N"] * c["T_ns"] for c in plan)
@@ -248,10 +258,18 @@ def main():
         # periodic work), the accumulators already carry this step while the positions do
         # not, so resuming at step+1 skips one step's dynamics AND double-counts its samples:
         # a slightly wrong PMF with nothing in the output to indicate it.
-        if step % sim0.save_every == 0 and time.time() - last_ckpt >= args.checkpoint_min * 60.0:
+        due = (step % sim0.save_every == 0
+               and time.time() - last_ckpt >= args.checkpoint_min * 60.0)
+        if args.checkpoint_every_steps:
+            due = step > 0 and step % args.checkpoint_every_steps == 0
+        if due or (args.stop_after is not None and step == args.stop_after):
             save_state(step)
             last_ckpt = time.time()
             print(f"[checkpoint] step {step} ({step*dt/1000:.3f} ns) -> {state_path}", flush=True)
+        if args.stop_after is not None and step == args.stop_after:
+            print(f"[stop-after] checkpointed at step {step} and exiting for a resume test",
+                  flush=True)
+            return
 
         f_loc, r_flat, _ = cv.local_mean_force(q, f, beta)
         f_loc = torch.clamp(f_loc, -8.0 * sim0.abf_force_clip, 8.0 * sim0.abf_force_clip)
