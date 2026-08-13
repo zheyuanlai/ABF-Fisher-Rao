@@ -6,18 +6,21 @@ an earlier one failed; never search for a way around a STOP.
 
 ```
 CURRENT FROZEN COMMIT:  see results/nacl/PINNED_COMMIT (written when the worktree is cut)
-CURRENT STAGE:          launch ladder PENDING (waiting for GPU 2 handover ~06:30 UTC)
+CURRENT STAGE:          launch ladder COMPLETE 08:38 UTC (all 5 stages passed)
 LAST COMPLETED GATE:    engine equivalence 11/11 <1e-6; box frozen L=2.892700 nm;
                         descriptors frozen; baths verified (9 baths, 549 starts)
-VERDICT:                dt UNDECIDED — first gate run RETRACTED (bad error bars, 2.5σ);
-                        rerun governed by the frozen Amendment 15.1 rule
-NEXT PERMITTED ACTION:  (ladder RUNNING from the pinned worktree, waiting on GPU 2 behind
-                        methane seed 5004) -> after ladder review: launch the TI reference on
-                        GPU 2 ALONE. GPU 3 is methane's until ~20:30-22:30 UTC Thu (six more
-                        seeds + their benchmark); explicit "GPU 3 released" signal agreed.
-                        Split-build parallelism is NOT decided: the per-point retirement rule
-                        is a JOINT criterion over builds, so a split requires retirement-off
-                        flat 250 ps -- decide from the ladder's measured throughput, record here
+VERDICT:                dt = 2 fs DECIDED (Amendment 15.1, one run, never revisited):
+                        2fs dT 0.74+-0.32 K PASS / 1fs dT 0.22+-0.30 K PASS; constraints
+                        2.1e-15 nm. Triton PASSES both gates but is NOT adopted: measured
+                        918 ns/day vs tensor 1020 at its best config, so the reference runs
+                        the already parity-gated tensor path at max-batch 256.
+NEXT PERMITTED ACTION:  TI reference RUNNING on GPU 2 (launched 08:40 UTC, pin 9e90a34,
+                        tensor path, --max-batch 256, ETA ~17 h -> Fri ~01:00-02:00 UTC).
+                        On completion: run nacl_ti_analyze.py -> reference acceptance ->
+                        Gate 0 + Gate A. Both can END the study; report either way.
+                        GPU 3 is methane's until its explicit release (Thu evening). If a
+                        second device becomes available, split by r-POINT not by build --
+                        the retirement criterion is joint over builds, per-point over r.
 FORBIDDEN ACTIONS:      launching the TI reference (separate reviewed action after the ladder);
                         any screen cell before Gate 0/A; any mFR before Gates 0-D; editing the
                         SPEC except by numbered amendment; retuning anything against a result;

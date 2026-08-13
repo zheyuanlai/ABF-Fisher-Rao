@@ -1,0 +1,198 @@
+{
+  "L_nm": 2.8926999370885578,
+  "gpu": "2",
+  "device_idle": true,
+  "device_used_mib": [],
+  "correctness": {
+    "e_triton_vs_f64": 1.241550060356832e-06,
+    "f_triton_vs_f64": 3.869173020347061e-05,
+    "e_torch32_vs_f64": 5.071838947210496e-07,
+    "f_torch32_vs_f64": 3.552848272386098e-05,
+    "f_triton_vs_torch32": 9.345626494905446e-06,
+    "batched_consistency": 0.0,
+    "engine_e_rel": 4.928145358462643e-07,
+    "engine_f_rel": 9.38529319682857e-06,
+    "float32_floor_vs_f64": 3.552848272386098e-05,
+    "criterion": "triton-vs-tensor and engine-vs-engine <= 0.5 * float32 floor; batch exact"
+  },
+  "triton_correctness_pass": true,
+  "dt_ps": 0.002,
+  "timing": [
+    {
+      "kernel": "tensor",
+      "B": 64,
+      "chunk": 64,
+      "ms_per_step": 14.171723567415029,
+      "ns_per_day": 780.3708523801835,
+      "peak_mem_GB": 2.301048832
+    },
+    {
+      "kernel": "tensor",
+      "B": 64,
+      "chunk": 128,
+      "ms_per_step": 14.813076231318217,
+      "ns_per_day": 746.5836148617351,
+      "peak_mem_GB": 3.143540736
+    },
+    {
+      "kernel": "tensor",
+      "B": 64,
+      "chunk": 256,
+      "ms_per_step": 11.708260335338613,
+      "ns_per_day": 944.5638961939053,
+      "peak_mem_GB": 4.374181376
+    },
+    {
+      "kernel": "tensor",
+      "B": 256,
+      "chunk": 64,
+      "ms_per_step": 53.22776206691439,
+      "ns_per_day": 831.0851007485238,
+      "peak_mem_GB": 8.813380608
+    },
+    {
+      "kernel": "tensor",
+      "B": 256,
+      "chunk": 128,
+      "ms_per_step": 55.17185633070767,
+      "ns_per_day": 801.8001013929739,
+      "peak_mem_GB": 11.260785152
+    },
+    {
+      "kernel": "tensor",
+      "B": 256,
+      "chunk": 256,
+      "ms_per_step": 43.24128203637277,
+      "ns_per_day": 1023.0223970415549,
+      "peak_mem_GB": 15.677600768
+    },
+    {
+      "kernel": "tensor",
+      "B": 512,
+      "chunk": 64,
+      "ms_per_step": 134.40115333457166,
+      "ns_per_day": 658.2800653485327,
+      "peak_mem_GB": 25.342821888
+    },
+    {
+      "kernel": "tensor",
+      "B": 512,
+      "chunk": 128,
+      "ms_per_step": 188.62639269791543,
+      "ns_per_day": 469.04146728655405,
+      "peak_mem_GB": 25.526139904
+    },
+    {
+      "kernel": "tensor",
+      "B": 512,
+      "chunk": 256,
+      "ms_per_step": 713.8619953999296,
+      "ns_per_day": 123.93655996553521,
+      "peak_mem_GB": 41.207390208
+    },
+    {
+      "kernel": "tensor",
+      "B": 1024,
+      "chunk": 64,
+      "ms_per_step": 1431.8617639985555,
+      "ns_per_day": 123.57840990590101,
+      "peak_mem_GB": 21.286245888
+    },
+    {
+      "kernel": "tensor",
+      "B": 1024,
+      "chunk": 128,
+      "ms_per_step": 1426.1231121335488,
+      "ns_per_day": 124.07568357494638,
+      "peak_mem_GB": 41.648008704
+    },
+    {
+      "kernel": "tensor",
+      "B": 1024,
+      "chunk": 256,
+      "ms_per_step": 1425.9319545002654,
+      "ns_per_day": 124.09231691705318,
+      "peak_mem_GB": 82.214585856
+    },
+    {
+      "kernel": "tensor",
+      "B": 2048,
+      "chunk": 64,
+      "ms_per_step": 2850.770699065955,
+      "ns_per_day": 124.13990368146843,
+      "peak_mem_GB": 42.189144064
+    },
+    {
+      "kernel": "tensor",
+      "B": 2048,
+      "chunk": 128,
+      "ms_per_step": 2849.555515067186,
+      "ns_per_day": 124.19284275346219,
+      "peak_mem_GB": 82.756057088
+    },
+    {
+      "kernel": "triton",
+      "B": 64,
+      "chunk": 0,
+      "ms_per_step": 13.297811266966164,
+      "ns_per_day": 831.6556595650277,
+      "peak_mem_GB": 2.268460544
+    },
+    {
+      "kernel": "triton",
+      "B": 256,
+      "chunk": 0,
+      "ms_per_step": 48.5815378682067,
+      "ns_per_day": 910.5681281643816,
+      "peak_mem_GB": 3.420878848
+    },
+    {
+      "kernel": "triton",
+      "B": 512,
+      "chunk": 0,
+      "ms_per_step": 95.87568313193819,
+      "ns_per_day": 922.7949894056882,
+      "peak_mem_GB": 4.973756416
+    },
+    {
+      "kernel": "triton",
+      "B": 1024,
+      "chunk": 0,
+      "ms_per_step": 190.92479096725583,
+      "ns_per_day": 926.7900679820411,
+      "peak_mem_GB": 7.915640832
+    },
+    {
+      "kernel": "triton",
+      "B": 2048,
+      "chunk": 0,
+      "ms_per_step": 380.0173003342934,
+      "ns_per_day": 931.2586550367217,
+      "peak_mem_GB": 13.631311872
+    }
+  ],
+  "best": {
+    "kernel": "tensor",
+    "B": 256,
+    "chunk": 256,
+    "ms_per_step": 43.24128203637277,
+    "ns_per_day": 1023.0223970415549,
+    "peak_mem_GB": 15.677600768
+  },
+  "trajectory_gate": {
+    "tensor": {
+      "T_mean": 302.42622833251954,
+      "T_sem": 1.6425412069606362,
+      "max_violation_nm": 9.685754776000977e-07
+    },
+    "triton": {
+      "T_mean": 301.65772285461424,
+      "T_sem": 1.138193033548874,
+      "max_violation_nm": 9.685754776000977e-07
+    },
+    "dT_K": 0.7685054779053075,
+    "sigma_K": 1.9983555735111036,
+    "viol_ratio": 1.0,
+    "PASS": true
+  }
+}
