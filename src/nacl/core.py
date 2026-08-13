@@ -138,7 +138,7 @@ def run_screen_cell(engine, sim: NaClSimConfig, init_positions, device="cuda",
     csum = torch.zeros(S, sim.n_grid, device=device, dtype=dtype)
 
     diag = {k: [] for k in ("steps", "times", "mean_force", "pmf", "p_hat", "eff_counts",
-                            "occupancy", "temperature")}
+                            "occupancy", "out_of_domain", "temperature")}
     xi_trace, xi_steps = [], []
     y_trace, y_xi, y_steps = [], [], []
 
@@ -175,8 +175,10 @@ def run_screen_cell(engine, sim: NaClSimConfig, init_positions, device="cuda",
             diag["pmf"].append(A_hat.detach().cpu().numpy())
             diag["p_hat"].append(p_grid.detach().cpu().numpy())
             diag["eff_counts"].append(eff.detach().cpu().numpy())
-            diag["occupancy"].append(iv.bin_counts(r, sim.n_grid, sim.R_lo, sim.R_hi)
-                                     .detach().cpu().numpy())
+            diag["occupancy"].append(
+                masked_bin_sum(r, torch.ones_like(r), in_dom,
+                               sim.n_grid, sim.R_lo, sim.R_hi).detach().cpu().numpy())
+            diag["out_of_domain"].append(float((1.0 - in_dom).mean()))
             diag["temperature"].append(float(integ.temperature(v).mean()))
             if verbose and step % progress_every == 0:
                 el = time.perf_counter() - t0

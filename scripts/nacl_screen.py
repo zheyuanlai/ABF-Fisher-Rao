@@ -175,7 +175,7 @@ def main():
                        fsum=torch.zeros(S, nsys.N_GRID, device=dev, dtype=torch.float32),
                        csum=torch.zeros(S, nsys.N_GRID, device=dev, dtype=torch.float32),
                        diag={k: [] for k in ("steps", "times", "mean_force", "pmf", "p_hat",
-                                             "eff_counts", "occupancy")},
+                                             "eff_counts", "occupancy", "out_of_domain")},
                        xi_trace=[], xi_steps=[], y_trace=[], y_steps=[], done=False))
 
     q = torch.cat([s["x"] for s in st], dim=0)
@@ -229,8 +229,13 @@ def main():
                     s["diag"]["pmf"].append(A.cpu().numpy())
                     s["diag"]["p_hat"].append(p.cpu().numpy())
                     s["diag"]["eff_counts"].append(eff.cpu().numpy())
+                    # masked, not clamped: a walker outside the domain is not evidence for the
+                    # edge bin, and Gate C reads basin occupancy off this array
                     s["diag"]["occupancy"].append(
-                        iv.bin_counts(r, nsys.N_GRID, nsys.R_LO_NM, R_hi).cpu().numpy())
+                        masked_bin_sum(r, torch.ones_like(r), in_dom,
+                                       nsys.N_GRID, nsys.R_LO_NM, R_hi).cpu().numpy())
+                    s["diag"]["out_of_domain"].append(
+                        float((1.0 - in_dom).mean()))
 
         if step % sim0.save_every == 0:
             if not bool((r_flat < 0.995 * 0.5 * L).all()):
