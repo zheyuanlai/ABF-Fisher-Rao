@@ -168,6 +168,83 @@ def test_basin_masks_partition_the_grid():
     assert sum(Q) == pytest.approx(1.0, abs=1e-12)
 
 
+def test_partition_holds_on_sampled_walker_values_not_only_on_the_grid():
+    """The grid and the walkers are different populations.
+
+    Grid points sit inside the domain by construction; walkers reach past the soft walls.  A
+    partition assertion that only ever sees the grid can pass while the same masks are wrong on
+    real trajectories one line away -- so the assertion runs on the sampled values.
+    """
+    g = _load("nacl_gates")
+    basins = [dict(label="CIP", r_lo_nm=0.20, r_hi_nm=0.35),
+              dict(label="SSIP", r_lo_nm=0.35, r_hi_nm=0.60),
+              dict(label="outer", r_lo_nm=0.60, r_hi_nm=1.40)]
+
+    # exactly-on-boundary values are the ones a closed-everywhere mask double counts
+    on_edges = np.array([0.20, 0.35, 0.60, 1.40])
+    assert g.assert_partition(on_edges, basins, "edges") == 0.0
+
+    # walkers past the soft walls belong to no basin, and that fraction is REPORTED
+    with_excursions = np.array([0.18, 0.25, 0.42, 0.95, 1.44])
+    outside = g.assert_partition(with_excursions, basins, "excursions")
+    assert outside == pytest.approx(2 / 5)
+
+    # a genuinely overlapping definition must raise rather than double count
+    overlapping = [dict(label="A", r_lo_nm=0.20, r_hi_nm=0.60),
+                   dict(label="B", r_lo_nm=0.40, r_hi_nm=1.40)]
+    with pytest.raises(RuntimeError, match="not a partition"):
+        g.assert_partition(np.array([0.5]), overlapping, "overlap")
+
+
+def test_gate_b_does_not_credit_a_boundary_walker_to_two_states():
+    g = _load("nacl_gates")
+    n_frames, S, N = 30, 8, 2
+    basins = [dict(label="CIP", r_lo_nm=0.20, r_hi_nm=0.40),
+              dict(label="SSIP", r_lo_nm=0.40, r_hi_nm=1.40)]
+    xi = np.full((n_frames, S, N), 0.40)          # every walker exactly on the shared boundary
+    steps = np.arange(n_frames) * 250
+    out = g.gate_b(xi, steps, 0.002, basins, T_ps=1000.0)
+    assert out["CIP"]["PASS"] is False            # 0.40 belongs to SSIP alone, half-open [lo,hi)
+    assert out["SSIP"]["PASS"] is True
+    assert out["_diagnostics"]["fraction_outside_all_basins"] == 0.0
+
+
+def test_occupancy_and_target_share_a_support_when_walkers_leave_the_domain():
+    """The methane session's Gate C bug: walkers outside the domain were dropped from every
+    basin while Q* stayed normalised over the whole grid, so occupancy was compared against a
+    full-weight target, `P < 0.5 Q` fired too easily, and the verdict was biased toward
+    **establishment-limited** -- the one direction that licenses an mFR arm.
+
+    Here the screen's occupancy histogram already excludes out-of-domain samples (they are
+    masked, not clamped), and `P` renormalises by the in-domain total, so both sides are
+    conditional on the same support.  Pinned, because the safe behaviour is an accident of two
+    separate choices agreeing.
+    """
+    g = _load("nacl_gates")
+    n_grid, n_cp, S = 61, 3, 2
+    grid = np.linspace(0.2, 1.4, n_grid)
+    basins = [dict(label="CIP", r_lo_nm=0.20, r_hi_nm=0.50),
+              dict(label="SSIP", r_lo_nm=0.50, r_hi_nm=1.40)]
+    masks = g.basin_masks(grid, basins)
+
+    # 100 walkers, of which 20 sat outside the domain and were masked out of the histogram
+    counts = np.zeros(n_grid)
+    counts[5] = 50.0
+    counts[40] = 30.0                                   # 80 in-domain, 20 dropped
+    P = [float(counts[masks[b["label"]]].sum() / counts.sum()) for b in basins]
+    assert sum(P) == pytest.approx(1.0), "occupancy must be conditional on the domain"
+
+    F_ref = np.linspace(0.0, 8.0, n_grid)
+    w = np.exp(-0.40091 * (F_ref - F_ref.min()))
+    Q = [float(w[masks[b["label"]]].sum() / w.sum()) for b in basins]
+    assert sum(Q) == pytest.approx(1.0), "the bias-aware target must be normalised on that same support"
+
+    # and the screen must be the thing that supplies a masked histogram
+    core = open(os.path.join(ROOT, "src", "nacl", "core.py")).read()
+    assert "masked_bin_sum(r, torch.ones_like(r), in_dom" in core
+    assert "out_of_domain" in core, "the excursion fraction must be recorded, not silently absorbed"
+
+
 def test_incomplete_reference_cannot_be_accepted():
     src = open(os.path.join(ROOT, "scripts", "nacl_ti_analyze.py")).read()
     assert "ACCEPTED=bool(accepted and complete)" in src

@@ -58,16 +58,45 @@ def basin_masks(grid, basins):
     return masks
 
 
+def assert_partition(values, basins, name, allow_outside=True):
+    """Every value falls in **at most one** basin; returns the fraction in none.
+
+    **Tested on the sampled values, not only on the grid the basins were defined over.**  The
+    two are not the same population: grid points sit inside the domain by construction, while
+    walkers reach past the soft walls, so a partition assertion that only ever sees the grid can
+    pass while the same masks are badly wrong one line away on real trajectories.
+    """
+    v = np.asarray(values).reshape(-1)
+    hits = np.zeros(v.shape, dtype=int)
+    for k, b in enumerate(basins):
+        last = (k == len(basins) - 1)
+        hits += ((v >= b["r_lo_nm"]) & ((v <= b["r_hi_nm"]) if last
+                                        else (v < b["r_hi_nm"]))).astype(int)
+    if (hits > 1).any():
+        raise RuntimeError(f"{name}: {int((hits > 1).sum())} values fall in more than one basin; "
+                           "the basins are not a partition")
+    outside = float((hits == 0).mean())
+    if outside > 0 and not allow_outside:
+        raise RuntimeError(f"{name}: {outside:.3%} of values fall in no basin")
+    return outside
+
+
 def gate_b(xi_trace, xi_steps, dt, basins, T_ps):
     """Per-seed, per-state first persistent entry time."""
     n_frames, S, N = xi_trace.shape
     frame_ps = float((xi_steps[1] - xi_steps[0]) * dt) if len(xi_steps) > 1 else dt
     need = max(1, int(round(PERSIST_PS / frame_ps)))
-    out = {}
-    for b in basins:
+    # walkers, not grid points: a walker exactly on a shared boundary must not count as having
+    # discovered both adjacent states
+    outside = assert_partition(xi_trace, basins, "gate_b walker positions")
+    out = {"_diagnostics": dict(fraction_outside_all_basins=outside)}
+    for k, b in enumerate(basins):
         lab = b["label"]
+        last = (k == len(basins) - 1)
         t_hit = np.full(S, np.nan)
-        occ = ((xi_trace >= b["r_lo_nm"]) & (xi_trace <= b["r_hi_nm"])).any(axis=2)  # (F, S)
+        occ = ((xi_trace >= b["r_lo_nm"])
+               & ((xi_trace <= b["r_hi_nm"]) if last
+                  else (xi_trace < b["r_hi_nm"]))).any(axis=2)          # (F, S)
         for s in range(S):
             run = 0
             for i in range(n_frames):
@@ -183,7 +212,8 @@ def main():
         b = gate_b(d["xi_trace"], d["xi_steps"], float(d["dt_ps"]), basins, T_ps)
         c = gate_c(d["diag_occupancy"], d["diag_pmf"], d["diag_times"], grid,
                    F_ref_on_grid, basins, beta, T_ps)
-        discovered = all(v["PASS"] for k, v in b.items() if k != "CIP")
+        discovered = all(v["PASS"] for k, v in b.items()
+                         if k not in ("CIP", "_diagnostics"))
         deficit = any(v["UNDER_ESTABLISHED"] for k, v in c.items())
         if not discovered:
             verdict = "discovery-limited (Gate B FAIL) -- STOP"
@@ -195,6 +225,8 @@ def main():
                                 eligible=bool(discovered and deficit))
         print(f"\n[N = {N:3d}, T = {T_ps:.1f} ps] {verdict}")
         for lab, v in b.items():
+            if lab == "_diagnostics":
+                continue
             print(f"   Gate B {lab:6s}: {v['n_seeds_within']}/8 seeds hit within "
                   f"{v['threshold_ps']:.1f} ps -> {'PASS' if v['PASS'] else 'FAIL'}")
         for lab, v in c.items():
