@@ -53,6 +53,7 @@ def main():
     ap.add_argument("--tol-frac", type=float, default=0.08)
     ap.add_argument("--chunk", type=int, default=256)
     ap.add_argument("--max-batch", type=int, default=2048)
+    ap.add_argument("--triton", action="store_true", help="fused pair kernel (gated)")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
 
@@ -71,11 +72,14 @@ def main():
         raise SystemExit(f"baths built at L = {bman['box_L_nm']}, box is {L}")
 
     ff = NaClNonbonded(L, device=dev, dtype=torch.float32)
+    if args.triton:
+        ff.enable_triton()
     ff.pair.energy_forces = torch.compile(ff.pair.energy_forces, dynamic=False)
     ff.recip.energy = torch.compile(ff.recip.energy, dynamic=False)
     hyd = HydrationDescriptors(ff.params["waters"], L, device=dev)
     cv = PeriodicDistanceCV(0, 1, L)
-    print(f"[engine] torch on {dev}, float32, compiled, dt = {dt} ps", flush=True)
+    print(f"[engine] torch on {dev}, float32, compiled"
+          f"{' +triton' if args.triton else ''}, dt = {dt} ps", flush=True)
 
     # ---- replica set: (r, build, family, replica) ------------------------------------------
     recs, starts = [], []
