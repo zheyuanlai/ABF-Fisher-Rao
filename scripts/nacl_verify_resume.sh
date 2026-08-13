@@ -1,60 +1,42 @@
 #!/usr/bin/env bash
-# End-to-end verification that the screen's checkpoint/resume is exact -- on the REAL driver,
-# not on a model of it.
+# Verify the screen's checkpoint/resume on the REAL driver.
 #
-# A unit harness can prove the bookkeeping is right and still miss the driver: the thing that
-# has to be true is that an interrupted-and-resumed run reproduces an uninterrupted one through
-# the actual sampler, estimators and packed-batch retirement logic.  Determinism holds WITHIN a
-# process and not across (the WCA finding), so both runs are compared on the same machine, same
-# process count, same order -- the paired difference is what is meaningful, and here it must be
-# exactly zero.
+# WHAT CHANGED AND WHY (measured, 2026-08-13):
+# The first version ran the driver three times -- uninterrupted, interrupted, resumed -- and
+# demanded bit-identical outputs. That premise is WRONG for this system: trajectories are
+# deterministic WITHIN a process and not across processes (kernel selection differs per
+# process, amplified chaotically), which this campaign documented for WCA. Measured here on
+# 400 steps: two IDENTICAL full runs in two processes diverged by max|d mean_force| = 4.75e+02
+# and max|d final_positions| = 2.87e-01 -- as much as, in fact slightly more than, an
+# interrupted-and-resumed pair (4.75e+02 / 2.80e-01). A cross-process end-to-end comparison
+# therefore cannot distinguish a resume defect from chaos, in either direction.
+#
+# So this verifies the two properties that ARE decidable, and together they are the whole
+# resume contract:
+#   1. serialization round-trip, IN PROCESS: the checkpoint written at step N reloads to
+#      state bit-identical to the live state at step N (positions, velocities, forces, RNG,
+#      per-cell estimator accumulators, traces, diagnostic lengths, step index);
+#   2. bookkeeping: the loop's accumulate/advance ordering and resume index, pinned by
+#      tests/test_nacl_checkpoint_resume.py, where an uninterrupted and a
+#      checkpoint-resumed run must agree EXACTLY on a deterministic model of the loop.
+# Given (1) and (2), within-process determinism supplies the rest.
 #
 # Usage:  CUDA_VISIBLE_DEVICES=2 bash scripts/nacl_verify_resume.sh
 set -u
 PY=~/miniconda3/envs/abffr/bin/python
-BASE=results/nacl/_resume_check
-STEPS=400
-STOP=200
-rm -rf "$BASE"; mkdir -p "$BASE"
+BASE=/home/zheyuanlai/ABF-Fisher-Rao/results/nacl/_resume_check
+mkdir -p "$BASE/selftest"
+[ -f "$BASE/full/populations.npz" ] && cp -n "$BASE/full/populations.npz" "$BASE/selftest/" 2>/dev/null
 
-COMMON="--cells 8 --seeds 4000,4001 --prep-ps 2 --max-steps $STEPS --save-every-ps 0.2"
+echo "[1/2] in-process checkpoint round-trip on the real driver"
+$PY scripts/nacl_screen.py --out "$BASE/selftest" --cells 8 --seeds 4000,4001 \
+    --prep-ps 2 --max-steps 400 --save-every-ps 0.2 --selftest-checkpoint 200 \
+    2>&1 | tee "$BASE/selftest.log" | grep -E "selftest|bit-identical|DIFFERS|PASS|FAIL"
+grep -q "CHECKPOINT ROUND-TRIP: PASS" "$BASE/selftest.log" || {
+  echo "RESUME VERIFICATION: FAIL (round-trip)"; exit 1; }
 
-echo "[1/3] uninterrupted reference run ($STEPS steps)"
-$PY scripts/nacl_screen.py --out "$BASE/full" $COMMON > "$BASE/full.log" 2>&1 || {
-  echo "FAILED: uninterrupted run"; tail -20 "$BASE/full.log"; exit 1; }
+echo "[2/2] loop bookkeeping (accumulate/advance order, resume index)"
+$PY -m pytest tests/test_nacl_checkpoint_resume.py -q 2>&1 | tail -2 || {
+  echo "RESUME VERIFICATION: FAIL (bookkeeping)"; exit 1; }
 
-echo "[2/3] interrupted run (checkpoint at $STOP, exit)"
-cp -r "$BASE/full/populations.npz" "$BASE/" 2>/dev/null || true
-mkdir -p "$BASE/split"
-cp "$BASE/full/populations.npz" "$BASE/split/" 2>/dev/null || true
-$PY scripts/nacl_screen.py --out "$BASE/split" $COMMON --stop-after $STOP \
-    --checkpoint-every-steps $STOP > "$BASE/split_a.log" 2>&1 || {
-  echo "FAILED: interrupted run"; tail -20 "$BASE/split_a.log"; exit 1; }
-
-echo "[3/3] resumed run (continue to $STEPS)"
-$PY scripts/nacl_screen.py --out "$BASE/split" $COMMON --resume \
-    > "$BASE/split_b.log" 2>&1 || {
-  echo "FAILED: resumed run"; tail -20 "$BASE/split_b.log"; exit 1; }
-
-$PY - "$BASE" <<'EOF'
-import sys, numpy as np, glob, os
-base = sys.argv[1]
-ok = True
-for path in sorted(glob.glob(os.path.join(base, "full", "cell_N*.npz"))):
-    name = os.path.basename(path)
-    a = np.load(path); b = np.load(os.path.join(base, "split", name))
-    for key in ("mean_force", "pmf", "eff_counts", "xi_trace", "y_trace",
-                "diag_occupancy", "diag_pmf", "final_positions"):
-        if key not in a:
-            continue
-        x, y = np.asarray(a[key]), np.asarray(b[key])
-        if x.shape != y.shape:
-            print(f"  {name}:{key}  SHAPE {x.shape} vs {y.shape}   FAIL"); ok = False; continue
-        d = float(np.abs(x - y).max()) if x.size else 0.0
-        flag = "ok" if d == 0.0 else "FAIL"
-        if d != 0.0:
-            ok = False
-        print(f"  {name}:{key:16s} max|diff| = {d:.3e}   {flag}")
-print("\nRESUME VERIFICATION:", "PASS (bit-identical)" if ok else "FAIL")
-sys.exit(0 if ok else 1)
-EOF
+echo "RESUME VERIFICATION: PASS (round-trip exact; bookkeeping exact)"

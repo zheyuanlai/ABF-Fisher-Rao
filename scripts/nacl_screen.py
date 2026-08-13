@@ -99,6 +99,15 @@ def main():
                     help="TESTING: checkpoint at this step and exit, to verify resume")
     ap.add_argument("--checkpoint-every-steps", type=int, default=None,
                     help="TESTING: checkpoint on a step cadence instead of wall-clock")
+    ap.add_argument("--selftest-checkpoint", type=int, default=None,
+                    help="TESTING: at this step, write the checkpoint and immediately reload it "
+                         "IN THE SAME PROCESS, asserting every restored tensor is bit-identical "
+                         "to the live one. This is the resume property that is actually "
+                         "verifiable: trajectories are deterministic within a process and NOT "
+                         "across processes (the WCA finding), so an end-to-end cross-process "
+                         "comparison cannot distinguish a resume bug from kernel-selection "
+                         "chaos -- measured: two identical runs in two processes diverge as "
+                         "much as an interrupted-and-resumed pair.")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
 
@@ -262,6 +271,38 @@ def main():
                and time.time() - last_ckpt >= args.checkpoint_min * 60.0)
         if args.checkpoint_every_steps:
             due = step > 0 and step % args.checkpoint_every_steps == 0
+        if args.selftest_checkpoint is not None and step == args.selftest_checkpoint:
+            save_state(step)
+            z = torch.load(state_path, weights_only=False)
+            bad = []
+            def cmp(name, live, restored):
+                live = live.cpu() if hasattr(live, "cpu") else live
+                same = bool(torch.equal(torch.as_tensor(live), torch.as_tensor(restored)))
+                if not same:
+                    bad.append(name)
+                print(f"   {name:28s} {'bit-identical' if same else 'DIFFERS'}")
+            print(f"[selftest] checkpoint round-trip at step {step}")
+            cmp("positions q", q, z["q"]); cmp("velocities v", v, z["v"])
+            cmp("forces f", f, z["f"]); cmp("rng state", gen.get_state(), z["gen_state"])
+            assert int(z["step"]) == step, "step index not round-tripped"
+            for s_, zc in zip(st, z["cells"]):
+                n = s_["cell"]["N"]
+                cmp(f"N{n} fsum", s_["fsum"], zc["fsum"])
+                cmp(f"N{n} csum", s_["csum"], zc["csum"])
+                for key in ("xi_trace", "y_trace"):
+                    same = len(s_[key]) == len(zc[key]) and all(
+                        np.array_equal(x, y) for x, y in zip(s_[key], zc[key]))
+                    print(f"   {'N%d %s' % (n, key):28s} "
+                          f"{'bit-identical' if same else 'DIFFERS'}")
+                    if not same:
+                        bad.append(f"N{n} {key}")
+                for dk in s_["diag"]:
+                    same = len(s_["diag"][dk]) == len(zc["diag"][dk])
+                    if not same:
+                        bad.append(f"N{n} diag[{dk}] length")
+            print(f"[selftest] CHECKPOINT ROUND-TRIP: {'PASS' if not bad else 'FAIL ' + str(bad)}")
+            return 0 if not bad else 1
+
         if due or (args.stop_after is not None and step == args.stop_after):
             save_state(step)
             last_ckpt = time.time()
