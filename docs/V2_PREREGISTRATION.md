@@ -1505,6 +1505,15 @@ away.
 > almost entirely to the latter. Every defect here was silent, none raised an error, and each
 > would have been read as physics.
 
+**Where the retracted claim actually went wrong**, in a form worth reusing: the per-defect
+statements were exact; the failure entered at the moment of summarising *across* defects. A
+sentence whose subject is a **set** ("all of them", "none of them", "the pattern is") is no
+longer checkable against anything in front of the writer, while a sentence about an item still
+is. That is the altitude at which to demand a re-derivation — not at the point a claim becomes
+quotable, but at the point its subject stops being a thing you can look at. Both of this
+campaign's retracted claims (this one and the density cross-check of §12.2's discussion) were
+set-level sentences resting on item-level evidence that had never been enumerated.
+
 Pinned by `tests/test_methane_gates.py` (14 gates) and the NaCl session's equivalents, so each
 is a regression test rather than a fact someone would have to re-derive.
 
