@@ -71,6 +71,20 @@ must run in the **`methane-cuda`** environment (`abffr`'s OpenMM has no CUDA pla
 torch stages run in `abffr`. Nothing may import torch in an OpenMM-CUDA process — the two
 runtimes deadlock on context creation on the same device, measured.
 
+## Physical checks that passed
+
+* **Box against the paper.** Our 1 ns NPT mean is `24.2053 ± 0.0072 nm³` against the published
+  equilibrated cell `24.3577 nm³` (28.9876 Å cube) — **0.63 % denser**. The published file is an
+  11 ps snapshot (step 5500), not a converged mean, so a sub-1 % offset in that direction is
+  what an independent implementation should give.
+* **Ion hydration structure.** First RDF peaks at Na–O 0.233 nm, Cl–O 0.315 nm, Cl–H 0.221 nm —
+  the expected CHARMM TIP3P values, and the sanity gate on the potential.
+* **Box density is 1.0187 g/cm³** (1.0147 counting water alone). This is *not* the same as the
+  methane study's 0.9946 g/cm³ SPC/E box and should not be quoted as agreeing with it: CHARMM
+  TIP3P with LJ-bearing hydrogens at a 12 Å potential-switched cutoff simply runs denser than
+  SPC/E. The shared-engine claim worth making is structural — one `PairTerms`/`PMEReciprocal`
+  path reproduces both solvation structures at `<1e-6` parity against OpenMM — not thermodynamic.
+
 ## Things that would otherwise have to be rediscovered
 
 * **The SI archive is behind a proof-of-work cookie.** `cache/talmazan2025/solve_pow.py` solves
