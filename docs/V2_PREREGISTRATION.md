@@ -1433,19 +1433,44 @@ outcome where it ties or reverses and the novelty claim of §0 dies. A tie is te
 If methane is null, the three-arm design has saved the two extra arms and Q1 remains open for
 NaCl, which is where it was always going to be answered if methane fails.
 
-#### 12.9 Analysis-code failure classes, and their direction (2026-08-13)
+#### 12.9 Analysis-code failure classes (2026-08-13)
 
 **Written before any screen verdict existed.** A cross-audit between the methane and NaCl
-sessions found **six live defects in shipped analysis code** in about an hour, none of which
-raised an error and all of which would have been read as physics. They fall into three classes,
-recorded here because the classes generalise beyond either study and because the **direction**
-of the asymmetric ones is the finding.
+sessions found live defects in shipped analysis code in both, none of which raised an error and
+all of which would have been read as physics. They fall into three classes, recorded here
+because the classes generalise beyond either study.
 
-| class | rule | instances |
-|---|---|---|
-| 1 | **"No data" must never take the branch a PASS would take.** | 4 |
-| 2 | **"No data" must never read as a *smaller* number** where that loosens a bound. | 1 |
-| 3 | **A quantity defined as a partition must be tested as one** — on the sampled values, not only on the grid. | 3 |
+> **CORRECTED SAME DAY.** The first version of this section claimed that the asymmetric defects
+> "all leaned toward the positive result — none toward a null", and drew a structural argument
+> from it. **That claim is false, and my own defect table below falsifies it.** The Gate C
+> defect leans toward the *null*: a nan `Q*` makes `occupancy < 0.5 Q*` return False, which
+> silences the detector, which is `ABF-sufficient — STOP`. I had written exactly that sentence
+> one paragraph earlier and still asserted the opposite generalisation, because it had a
+> satisfying shape and I did not check it against the table. The NaCl session enumerated its own
+> six and refused to mirror the paragraph; its two class-1 defects also produced stops. This is
+> the second claim in this campaign that I liked the shape of and did not check — the first was
+> a density cross-check, corrected the same way. The retraction is kept in place of a quiet edit
+> because the failure mode is the point.
+
+| class | rule |
+|---|---|
+| 1 | **"No data" must never take the branch a PASS would take.** |
+| 2 | **"No data" must never read as a *smaller* number** where that loosens a bound. |
+| 3 | **A quantity defined as a partition must be tested as one** — on the sampled values, not only on the grid. |
+
+**This study's defects, with the verdict each pushes**, derived per defect rather than assumed.
+No combined count across the two studies is stated: each session can audit its own code and not
+the other's, so a shared tally would be a number neither of us verified.
+
+| # | defect | what the comparison does | verdict pushed |
+|---|---|---|---|
+| 1 | Gate A uncomputable, skipped by an `isfinite` guard | avoids the Gate A stop, falls through to Gate B | mislabels one stop as another — **neutral in pass/fail, wrong in classification** |
+| 2 | Gate C non-finite `Q*` | `occ < 0.5·nan` → False, detector **silenced** | ABF-sufficient — STOP → **NULL** |
+| 3 | grid partition drops `grid[-1]` | `Q*` understated by 0.1 %, deficit fires *less* | toward null, **second order / negligible** |
+| 4 | out-of-domain walkers dropped from every basin | occupancy under-counted ~20 %, deficit fires *more* | establishment-limited → **POSITIVE** |
+
+One toward the null, one toward the positive, two neutral. The same balance the NaCl session
+measured independently.
 
 Class 1 examples: an uncomputable Gate A skipped by an `isfinite` guard and falling through as
 though it had passed; a non-finite `Q*` making `occupancy < 0.5 Q*` False at every checkpoint, so
@@ -1468,12 +1493,17 @@ every basin while `Q*` stayed normalised over the whole grid, and occupancies su
 A partition assertion that only ever sees the grid passes while the real defect sits one line
 away.
 
-> **The direction is the finding.** Of the six defects, those with an asymmetric effect **all
-> leaned toward the positive result** — toward crediting discovery, or toward declaring an
-> establishment deficit, i.e. toward licensing an mFR arm. None of them leaned toward a null.
-> That is the direction a benchmark preregistered as a likely null must be most suspicious of,
-> and it is an argument for auditing analysis code with the same discipline as the sampler, which
-> this campaign had been applying almost entirely to the latter.
+> **The direction must be derived, not assumed.** Missing or degraded data does not push a
+> verdict in a consistent scientific direction. It lands in whichever branch the comparison
+> operator defaults to — a `nan` *silences* a `<` test, an under-counted numerator *fires* one —
+> and that default is a property of how the test was written, not of what the study hoped to
+> find. Defects 2 and 4 above are the same class and point opposite ways, because the missing
+> value landed on opposite sides of the comparison.
+>
+> What survives without qualification is the weaker and more useful statement: **analysis code
+> deserves the same auditing discipline as the sampler**, which this campaign had been applying
+> almost entirely to the latter. Every defect here was silent, none raised an error, and each
+> would have been read as physics.
 
 Pinned by `tests/test_methane_gates.py` (14 gates) and the NaCl session's equivalents, so each
 is a regression test rather than a fact someone would have to re-derive.

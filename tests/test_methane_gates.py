@@ -4,11 +4,14 @@ Every test here pins a defect that was **live in shipped analysis code**, found 
 cross-audit between this study and the NaCl study.  They are not hypotheticals, and three of
 them would have changed a physics verdict rather than raising an error.
 
-The severity pattern is the reason this file exists: of the defects that were not symmetric in
-their effect, **all leaned toward the positive result** — toward crediting discovery, or toward
-declaring an establishment deficit, i.e. toward licensing an mFR arm.  For a benchmark whose
-preregistered expectation is a null, that is the direction to be most suspicious of, so each of
-these is asserted rather than reasoned about.
+These defects do **not** share a direction, and an early version of this docstring wrongly
+claimed they did (see Amendment 12.9's retraction).  Derived per defect: the Gate C nan leans
+toward the **null** (a nan silences a `<` test, so no deficit is ever flagged and the verdict is
+ABF-sufficient), while the dropped out-of-domain walkers lean toward the **positive** (an
+under-counted numerator fires the same test too easily, declaring an establishment deficit).
+Same failure class, opposite directions, because the missing value landed on opposite sides of
+the comparison.  The direction is a property of how each test was written, not of what the study
+hoped to find -- which is exactly why each is asserted here rather than reasoned about.
 
 Run: python -m pytest tests/test_methane_gates.py -q
 """
