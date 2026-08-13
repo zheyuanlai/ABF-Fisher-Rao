@@ -20,18 +20,19 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import sys
 import time
 
 import numpy as np
-import torch
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
-from methane.dynamics import BAOAB, RigidWaterConstraints, KB_KJ_PER_MOL_K  # noqa: E402
 from nacl import system as nsys                                  # noqa: E402
-from nacl.nonbonded import NaClNonbonded                         # noqa: E402
+# NaClNonbonded imports torch, which would poison the --openmm-only process (OpenMM CUDA
+# context creation hangs after torch loads), so it is imported inside run_torch instead.
 
+KB_KJ_PER_MOL_K = 8.31446261815324e-3   # torch is imported lazily; no methane import here
 OUT = nsys.REPO / "results/nacl/stage1"
 
 WARM_PS = 5.0
@@ -41,6 +42,10 @@ B32 = 16                    #: float32 walkers (production dtype, recorded)
 
 
 def run_torch(L, x0, dt_ps, dtype, n_walkers, device="cuda", seed=1):
+    import torch
+    from methane.dynamics import BAOAB, RigidWaterConstraints
+    from nacl.nonbonded import NaClNonbonded
+    dtype = getattr(torch, dtype) if isinstance(dtype, str) else dtype
     ff = NaClNonbonded(L, device=device, dtype=dtype)
     cons = RigidWaterConstraints(ff.params["waters"], nsys.rigid_water_lengths(),
                                  ff.params["mass"], device=device, dtype=dtype)
@@ -67,8 +72,16 @@ def run_torch(L, x0, dt_ps, dtype, n_walkers, device="cuda", seed=1):
 
 
 def run_openmm(L, x0, dt_ps, seed=1):
+    """The OpenMM equipartition oracle.  **Runs only in a torch-free process** -- see
+    ``openmm_subprocess``; calling it after ``import torch`` hangs at Context creation."""
     import openmm as mm
     import openmm.unit as u
+
+    if "torch" in sys.modules:
+        raise RuntimeError(
+            "torch is imported in this process: creating an OpenMM CUDA context here hangs "
+            "indefinitely rather than raising (measured, methane_baths.py). Use "
+            "openmm_subprocess() instead.")
 
     system, topology, _ = nsys.build_openmm_system(L)
     integ = mm.LangevinMiddleIntegrator(nsys.TEMPERATURE_K * u.kelvin,
@@ -94,7 +107,34 @@ def run_openmm(L, x0, dt_ps, seed=1):
     return dict(T_mean=float(np.mean(temps)), T_sem=float(np.std(temps) / np.sqrt(len(temps))))
 
 
+OPENMM_PYTHON = os.path.expanduser("~/miniconda3/envs/methane-cuda/bin/python")
+
+
+def openmm_subprocess(L, dt_list):
+    """Run the OpenMM oracle in a torch-free process and return {dt_fs: result}.
+
+    Two constraints force this: importing torch kills OpenMM's CUDA platform in-process, and
+    the `abffr` environment's OpenMM has no CUDA platform at all -- so the oracle runs under
+    `methane-cuda`, which has CUDA OpenMM and no torch.
+    """
+    args = [OPENMM_PYTHON, os.path.abspath(__file__), "--openmm-only",
+            ",".join(f"{d:g}" for d in dt_list)]
+    r = subprocess.run(args, capture_output=True, text=True, cwd=nsys.REPO,
+                       env={**os.environ, "PYTHONPATH": str(nsys.REPO / "src")})
+    if r.returncode != 0:
+        raise RuntimeError(f"OpenMM oracle failed:\n{r.stdout}\n{r.stderr}")
+    return json.loads(r.stdout.strip().splitlines()[-1])
+
+
 def main():
+    if "--openmm-only" in sys.argv:
+        dts = [float(x) for x in sys.argv[sys.argv.index("--openmm-only") + 1].split(",")]
+        box = json.load(open(nsys.REPO / "results/nacl/box/box_manifest.json"))
+        L = float(box["L_nm"])
+        x0 = dict(np.load(nsys.REPO / "results/nacl/box/npt_final_state.npz"))["positions_nm"]
+        out = {f"{d:g}": run_openmm(L, x0, d * 1e-3, seed=int(10 * d)) for d in dts}
+        print(json.dumps(out))
+        return
     OUT.mkdir(parents=True, exist_ok=True)
     box = json.loads((nsys.REPO / "results/nacl/box/box_manifest.json").read_text())
     L = float(box["L_nm"])
@@ -104,13 +144,14 @@ def main():
                   warm_ps=WARM_PS, measure_ps=MEASURE_PS)
     # ALL OpenMM contexts run and die before torch touches CUDA -- interleaving the two
     # runtimes' context creation on one device hangs indefinitely (methane_ti_torch.py, measured)
-    omm_by_dt = {dt_fs: run_openmm(L, x0, dt_fs * 1e-3, seed=int(10 * dt_fs))
-                 for dt_fs in (2.0, 1.0)}
+    print("[oracle] OpenMM equipartition in a torch-free subprocess ...", flush=True)
+    omm_raw = openmm_subprocess(L, (2.0, 1.0))
+    omm_by_dt = {2.0: omm_raw["2"], 1.0: omm_raw["1"]}
     verdicts = {}
     for dt_fs in (2.0, 1.0):
         dt = dt_fs * 1e-3
-        t64 = run_torch(L, x0, dt, torch.float64, B64, seed=int(10 * dt_fs))
-        t32 = run_torch(L, x0, dt, torch.float32, B32, seed=int(10 * dt_fs) + 1)
+        t64 = run_torch(L, x0, dt, "float64", B64, seed=int(10 * dt_fs))
+        t32 = run_torch(L, x0, dt, "float32", B32, seed=int(10 * dt_fs) + 1)
         omm = omm_by_dt[dt_fs]
         dT = abs(t64["T_mean"] - omm["T_mean"])
         ok = (t64["max_violation_nm"] <= 1e-8) and (dT <= 2.0)
