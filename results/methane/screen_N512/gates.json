@@ -1,0 +1,59 @@
+{
+  "verdict": "ABF-sufficient (Gate C: no persistent deficit) -- STOP",
+  "n_seeds": 1,
+  "T_ps": 200.0,
+  "gate0_max_pinned": 0.498046875,
+  "gate0_pin_ok": true,
+  "gateA_max_TV": 0.9862572710368079,
+  "gateA_pairs": {
+    "0-1": 0.7802629174513376,
+    "0-2": 0.9862572710368079,
+    "1-2": 0.5973587265755439
+  },
+  "gateA_threshold": 0.3,
+  "gateA_computable": true,
+  "gateA_empty_states": [],
+  "gateB_hits": {
+    "0": 1,
+    "1": 1,
+    "2": 1
+  },
+  "gateB_threshold_ps": 20.0,
+  "gateB_ok": true,
+  "gateC_persistent": {
+    "0": 0,
+    "1": 0,
+    "2": 0
+  },
+  "gateC_span_threshold_ps": 40.0,
+  "gateC_deficit": false,
+  "per_seed": [
+    {
+      "seed": 5000,
+      "T_ps": 200.0,
+      "t_hit": {
+        "0": 0.0,
+        "1": 0.25,
+        "2": 0.75
+      },
+      "deficit_span": {
+        "0": 0.0,
+        "1": 0.0,
+        "2": 0.0
+      },
+      "occ_final": [
+        0.283203125,
+        0.283203125,
+        0.43359375
+      ],
+      "qstar_final": [
+        0.260338708210239,
+        0.29181732729824783,
+        0.44784396449151326
+      ],
+      "max_pinned": 0.498046875
+    }
+  ],
+  "reference": "results/methane/ref/reference.json",
+  "git_commit": "65bb74c6e1a1ab7e8fe9cd4fdf4cfcea5a31abdd"
+}

@@ -101,3 +101,46 @@ def test_uniform_bias_leaves_the_target_unchanged():
     a = bias_aware_target(F, np.zeros(115), GRID, EDGES, BETA)
     b = bias_aware_target(F, np.full(115, 1234.5), GRID, EDGES, BETA)
     assert np.allclose(a, b, atol=1e-12)
+
+
+# ------------------------------------------------------------------ ordering-dependent branches
+def _two_wells(r, depths, centers, width):
+    W = np.full_like(r, 3.0)
+    for d, c in zip(depths, centers):
+        W = np.minimum(W, d + (r - c) ** 2 / width ** 2)
+    return W
+
+
+@pytest.mark.parametrize("deeper_first", [True, False])
+@pytest.mark.parametrize("merging", [True, False])
+def test_basin_merge_is_correct_in_both_minimum_orderings(deeper_first, merging):
+    """The 2 kT merge rule must keep the DEEPER minimum regardless of which comes first in r.
+
+    Found by the NaCl session in its own analyzer: the merge popped by *grid index* where a
+    *list position* is required, in the branch taken only when the first minimum is the higher
+    one.  That branch raises on some inputs and, when the grid index happens to fall inside the
+    list, silently deletes an unrelated basin and keeps the *shallower* minimum -- which then
+    defines the states for Gate A, Gate C's bias-aware targets and every physical secondary.
+
+    Their synthetic landscape had its deeper minimum first, so eight passing tests sat one
+    untaken branch away from it.  This study's accepted reference is single-basin, so neither
+    ordering is exercised by real data at all -- the branch would first be taken on a rebuild or
+    a force-field change, which is the worst moment to discover it.
+    """
+    from methane_reference import find_basins
+
+    kT = 2.4777
+    r = np.linspace(0.33, 0.90, 115)
+    deep, shallow = -3.0 * kT, (-2.6 * kT if merging else -1.0 * kT)
+    depths = (deep, shallow) if deeper_first else (shallow, deep)
+    centers, width = ((0.50, 0.60), 0.09) if merging else ((0.45, 0.75), 0.05)
+    W = _two_wells(r, depths, centers, width)
+
+    mins, maxima = find_basins(W, r, kT)
+    kept = [float(r[i]) for i in mins]
+    global_min = float(r[int(np.argmin(W))])
+
+    assert len(mins) == (1 if merging else 2)
+    assert any(abs(k - global_min) < 1e-9 for k in kept), \
+        "the merge kept the shallower minimum"
+    assert len(maxima) == len(mins) - 1
