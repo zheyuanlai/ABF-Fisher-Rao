@@ -83,6 +83,9 @@ def main():
     ap.add_argument("--r-contact", type=float, default=0.38)
     ap.add_argument("--seeds", default=",".join(str(s) for s in SEEDS))
     ap.add_argument("--chunk", type=int, default=128)
+    ap.add_argument("--triton", action="store_true",
+                    help="route the pair term through the fused Triton kernel "
+                         "(performance-only; must have passed its trajectory gate)")
     ap.add_argument("--checkpoint-every", type=int, default=20_000,
                     help="steps between full-state checkpoints (10 ps at dt=0.5 fs)")
     args = ap.parse_args()
@@ -106,9 +109,14 @@ def main():
     start = bz[key].astype(np.float64)
 
     ff = MethaneNonbonded(system, mod.topology, L, device=dev, dtype=torch.float32)
-    ff.pair.energy_forces = torch.compile(ff.pair.energy_forces, dynamic=False)
+    if args.triton:
+        ff.enable_triton()
+    else:
+        ff.pair.energy_forces = torch.compile(ff.pair.energy_forces, dynamic=False)
     ff.recip.energy = torch.compile(ff.recip.energy, dynamic=False)
-    print(f"[engine] torch on {dev}, float32, compiled; L = {L:.6f} nm", flush=True)
+    print(f"[engine] torch on {dev}, float32, "
+          f"{'TRITON pair kernel' if args.triton else 'compiled tensor pair'}; "
+          f"L = {L:.6f} nm", flush=True)
 
     n_steps = int(round(args.run_ps / msys.DT_PS))
     t_start = time.time()
@@ -139,6 +147,7 @@ def main():
 
     with open(os.path.join(args.out, "manifest.json"), "w") as fh:
         json.dump(dict(stage="abf_screen", amendment="Amendment 12.5 (N=512 first)",
+                       pair_kernel="triton" if args.triton else "compiled_tensor",
                        n_walkers=args.n_walkers, run_ps=args.run_ps, prep_ps=args.prep_ps,
                        r_contact_nm=args.r_contact, seeds=seeds, box_L_nm=L,
                        wall_hours=(time.time() - t_start) / 3600.0,
