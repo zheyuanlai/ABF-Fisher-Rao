@@ -51,6 +51,10 @@ def main():
     ap.add_argument("--equil-ps", type=float, default=50.0)
     ap.add_argument("--sample-ps", type=float, default=0.1)
     ap.add_argument("--tol-frac", type=float, default=0.08)
+    ap.add_argument("--no-retire", action="store_true",
+                    help="disable early retirement: every point runs the full schedule. SPEC "
+                         "§5 requires >= 250 ps production per replica; retirement is an "
+                         "efficiency exception to that, so disabling it is always spec-safe.")
     ap.add_argument("--chunk", type=int, default=256)
     ap.add_argument("--max-batch", type=int, default=2048)
     ap.add_argument("--triton", action="store_true", help="fused pair kernel (gated)")
@@ -230,9 +234,15 @@ def main():
         run_block(idx, block, equilibrate=False, seed_salt=int(cp))
         done_ps = cp
         fbar = np.where(fcnt > 0, fsum / np.maximum(fcnt, 1), np.nan)
-        denom = np.nanmean(np.abs(fbar))
+        # PER-POINT scale, not a global mean.  The global mean |f| is dominated by the
+        # repulsive wall (-24353 kJ/mol/nm at r = 0.20 against ~5-250 in the physical region),
+        # so a global tolerance is ~45 kJ/mol/nm everywhere -- looser than every local spread,
+        # and every point retires at the first checkpoint with the stopping rule never binding.
+        # Measured: 61/61 retired at 50 ps.  The tolerance now scales with the point's own
+        # |f|, with a floor so a near-zero-force point cannot demand impossible precision.
+        denom_global = np.nanmean(np.abs(fbar))
 
-        print(f"{'r':>7} {'fbar':>9} {'build sp':>9} {'fam sp':>9} {'state':>10}")
+        print(f"{'r':>7} {'fbar':>9} {'build sp':>9} {'fam sp':>9} {'tol':>9} {'state':>10}")
         for ri, r_nm in enumerate(r_grid):
             m = recs[:, 0] == r_nm
             if not np.isnan(retired_at[ri]):
@@ -241,12 +251,15 @@ def main():
             bsp = float(np.max(bmeans) - np.min(bmeans))
             fmeans = [fbar[m & (recs[:, 2] == f_)].mean() for f_ in range(N_FAMILIES)]
             fsp = float(np.max(fmeans) - np.min(fmeans))
-            ok = (bsp <= args.tol_frac * denom) and (fsp <= args.tol_frac * denom)
+            local = max(abs(float(np.nanmean(fbar[m]))), 0.02 * denom_global)
+            ok = ((bsp <= args.tol_frac * local) and (fsp <= args.tol_frac * local)
+                  and not args.no_retire)
             if ok:
                 retired_at[ri] = cp
                 active[m] = False
             print(f"{r_nm:7.3f} {fbar[m].mean():9.2f} {bsp:9.2f} {fsp:9.2f} "
-                  f"{'RETIRED' if ok else 'extend':>10}", flush=True)
+                  f"{args.tol_frac * local:9.2f} {'RETIRED' if ok else 'extend':>10}",
+                  flush=True)
         np.savez_compressed(os.path.join(args.out, f"checkpoint_{cp:.0f}ps.npz"),
                             recs=recs, fbar=fbar, fcnt=fcnt, ysum=ysum, ycnt=ycnt,
                             retired_at=retired_at, active=active)
@@ -264,7 +277,7 @@ def main():
                        replicas_per_family=args.replicas_per_family, families=N_FAMILIES,
                        equil_ps=args.equil_ps, extra_equil_f3_ps=extra_f3,
                        smoke=bool(args.smoke),
-                       checkpoints_ps=list(checkpoints), tol_frac=args.tol_frac,
+                       checkpoints_ps=list(checkpoints), tol_frac=args.tol_frac, no_retire=bool(args.no_retire),
                        retired_at_ps=retired_at.tolist(), box_L_nm=L,
                        gpu=os.environ.get("CUDA_VISIBLE_DEVICES", "unset"),
                        wall_hours=(time.time() - t_start) / 3600.0,
