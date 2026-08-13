@@ -164,7 +164,7 @@ def trajectory_gate(L, x0, dt, walkers=8, warm_ps=2.0, measure_ps=8.0):
     return res, ok
 
 
-def timing(L, x0, batches, chunks, dt, steps=30):
+def timing(L, x0, batches, chunks, dt, steps=200):
     dev = "cuda"
     rows = []
     for use_triton in (False, True):
@@ -195,7 +195,13 @@ def timing(L, x0, batches, chunks, dt, steps=30):
                     gen = torch.Generator(device=dev).manual_seed(1)
                     v = integ.maxwell_velocities(x, generator=gen)
                     _, f = ff.energy_forces(x, chunk=max(chunk, 1))
-                    for _ in range(5):                      # warm / compile
+                    # 30 timed steps after 5 warmup UNDER-reports: reconciled against the
+                    # reference's own production rate, the bench read 168.9 us/traj-step where
+                    # the reference achieved 119.8 on the same work -- 1.41x, because per-run
+                    # overhead amortises over a 25000-step block and not over 30 steps. Longer
+                    # warmup and 200 timed steps; and the authority for planning is always the
+                    # in-situ rate of a real stage, never this sweep.
+                    for _ in range(25):                     # warm / compile / settle
                         _, f = integ.step(x, v, f, generator=gen)
                     torch.cuda.synchronize()
                     t0 = time.perf_counter()
