@@ -171,6 +171,14 @@ def timing(L, x0, batches, chunks, dt, steps=30):
         for B in batches:
             for chunk in (chunks if not use_triton else [0]):
                 try:
+                    # Each (B, chunk) is a new shape and triggers a torch.compile
+                    # recompilation. Dynamo's cache_size_limit (default 8) is exhausted part
+                    # way through a sweep, after which it falls back to EAGER for every
+                    # remaining config -- measured: configs 9+ all reported an identical
+                    # 1392 us/traj-step across four batch sizes, an 8x "collapse" that is the
+                    # compiler giving up, not the engine. Reset per config so each is measured
+                    # compiled, as production runs it.
+                    torch._dynamo.reset()
                     ff = NaClNonbonded(L, device=dev, dtype=torch.float32)
                     if use_triton:
                         ff.enable_triton()
@@ -199,9 +207,11 @@ def timing(L, x0, batches, chunks, dt, steps=30):
                     ns_day = B * steps * dt * 1e-3 / el * 86400.0
                     rows.append(dict(kernel="triton" if use_triton else "tensor", B=B,
                                      chunk=chunk, ms_per_step=ms, ns_per_day=ns_day,
+                                     us_per_traj_step=ms * 1000.0 / B,
                                      peak_mem_GB=torch.cuda.max_memory_allocated() / 1e9))
                     print(f"  {'triton' if use_triton else 'tensor':6s} B={B:5d} "
                           f"chunk={chunk:4d}  {ms:8.2f} ms/step  {ns_day:9.0f} ns/day  "
+                          f"{ms*1000.0/B:8.1f} us/traj-step  "
                           f"{rows[-1]['peak_mem_GB']:5.1f} GB", flush=True)
                 except torch.cuda.OutOfMemoryError:
                     print(f"  {'triton' if use_triton else 'tensor':6s} B={B:5d} "

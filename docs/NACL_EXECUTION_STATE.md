@@ -20,12 +20,19 @@ NEXT PERMITTED ACTION:  on extension completion (~02:35 UTC Fri) -> nacl_ti_anal
                         verdict; report and STOP.
                         If both pass -> screen cell N=64, layout HALF-AND-HALF (option C,
                         chosen by measurement 2026-08-13 18:30):
-                          * seeds 4000-4003 on GPU 2 immediately (B=256, tensor, 1023 ns/day)
+                          * seeds 4000-4003 on GPU 2 immediately (B=256, tensor)
                           * seeds 4004-4007 on GPU 3 when methane releases it (06:00-12:35 Fri)
-                        Finishes 19:08 Fri (best) / 01:44 Sat (worst) -- against 07:42 Sat for
-                        all 8 seeds on GPU 2 alone, because the tensor path is 1023 ns/day at
-                        B=256 and collapses to 124 at B=512, so two half-batches beat one
-                        whole one by more than 2x. Starting half NOW also hedges: if GPU 3
+                        DECISION UNCHANGED, REASON CORRECTED: the "B=512 collapse to 124
+                        ns/day" that originally justified this was a BENCHMARK ARTIFACT --
+                        torch.compile recompiled per (B, chunk), dynamo's cache_size_limit
+                        was exhausted at config 9, and every later config ran EAGER (identical
+                        1392 us/traj-step across four batch sizes). The engine has no cliff.
+                        The split still wins, but only for the ordinary reason -- two devices,
+                        ~2x -- not >2x. Re-measure with the fixed benchmark (dynamo reset per
+                        config) on the idle GPU 2 AFTER the reference and BEFORE the screen;
+                        if B=512 is flat, one 8-seed process on one GPU is also viable and
+                        keeps the whole block in one process. Starting half NOW also hedges:
+                        if GPU 3
                         never frees, 4 seeds still exist and the shortfall is explicit
                         (Gate B needs 6 of 8 -- a 4-seed screen yields NO verdict, only
                         PRELIMINARY values, per the methane session's 9367682 correction).
