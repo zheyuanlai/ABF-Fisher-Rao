@@ -42,6 +42,20 @@ $PY scripts/nacl_benchmark.py --correctness --timing > "$LOG_DIR/benchmark.log" 
 echo "[stage] benchmark exit=$? ($(date -u))"
 tail -20 "$LOG_DIR/benchmark.log"
 
+# The TI driver has compiled but never executed.  Prove it end to end on 2 r-points before the
+# real reference commits hours to it -- the expensive failure is a broken driver discovered
+# with an idle GPU waiting on it.  --dt is a declared override; this run is not a reference.
+echo "[stage] TI driver smoke run (2 r-points, 1 replica, ps blocks)"
+$PY scripts/nacl_ti_torch.py --smoke --dt 0.002 --out results/nacl/ti_smoke \
+    > "$LOG_DIR/ti_smoke.log" 2>&1
+SMOKE=$?
+echo "[stage] smoke exit=$SMOKE ($(date -u))"
+tail -15 "$LOG_DIR/ti_smoke.log"
+if [ "$SMOKE" -ne 0 ]; then
+  echo "[stop] TI driver failed its smoke run; not starting the reference"
+  exit 1
+fi
+
 echo "[stage] dynamics gate (constraints + equipartition, 2 fs vs 1 fs)"
 $PY scripts/nacl_dynamics_gate.py > "$LOG_DIR/dynamics_gate.log" 2>&1
 echo "[stage] dynamics gate exit=$? ($(date -u))"
