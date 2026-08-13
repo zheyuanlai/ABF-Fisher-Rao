@@ -144,3 +144,22 @@ def test_basin_merge_is_correct_in_both_minimum_orderings(deeper_first, merging)
     assert any(abs(k - global_min) < 1e-9 for k in kept), \
         "the merge kept the shallower minimum"
     assert len(maxima) == len(mins) - 1
+
+
+# ------------------------------------------------------------------ preregistered thresholds
+def test_gate_b_threshold_is_not_scaled_to_the_seeds_present():
+    """Gate B is "6 of 8" and must stay 6 regardless of how many seeds exist.
+
+    The original code used ``min(GATE_B_MIN_SEEDS, len(per_seed))``, which at 1 seed becomes
+    1/1 and at 5 becomes 5/5 -- silently relaxing a preregistered threshold and issuing a full
+    verdict on a partial screen.  What a short screen changes is that no verdict is issued, not
+    what the threshold is.  Same family as the NaCl session's ``--builds`` finding: a knob that
+    changes the population a joint statistic is computed over needs a guard.
+    """
+    import methane_gates as mg
+    assert mg.GATE_B_MIN_SEEDS == 6
+    assert mg.N_SEEDS_REQUIRED == 8
+    src = open(mg.__file__).read()
+    assert "min(GATE_B_MIN_SEEDS" not in src, \
+        "Gate B's threshold is being scaled to the number of seeds present"
+    assert "complete = len(per_seed) >= N_SEEDS_REQUIRED" in src

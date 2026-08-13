@@ -44,6 +44,7 @@ GATE_B_MIN_SEEDS = 6       #: of 8
 DEFICIT_FRAC = 0.50        #: Gate C: occupancy below 0.5 Q*
 DEFICIT_SPAN = 0.20        #: for a contiguous 0.20 T, in the second half
 GATE_A_TV = 0.30           #: Gate A: max pairwise TV(p(n_gap | state)) must reach this
+N_SEEDS_REQUIRED = 8       #: §5 seed block 5000-5007; Gate B's "6 of 8" is meaningless below it
 
 # ---------------------------------------------------------------------------------------------
 # MISSING-DATA POLICY.  Two distinct failure classes, both of which have already bitten this
@@ -272,7 +273,12 @@ def main():
     # ---- Gate B ---------------------------------------------------------------------------
     thr = T_HIT_FRAC * T
     hits = {k: sum(1 for s in per_seed if s["t_hit"][k] < thr) for k in range(3)}
-    gate_b_ok = all(h >= min(GATE_B_MIN_SEEDS, len(per_seed)) for h in hits.values())
+    # Gate B is "6 of 8".  Scaling the requirement down to the seeds that happen to be present
+    # silently relaxes a preregistered threshold -- at 1 seed it becomes 1/1, at 5 it becomes
+    # 5/5 -- and would have issued a full verdict on a partial screen.  The threshold is fixed;
+    # what changes with a short screen is that no verdict is issued at all.
+    complete = len(per_seed) >= N_SEEDS_REQUIRED
+    gate_b_ok = all(h >= GATE_B_MIN_SEEDS for h in hits.values())
 
     # ---- Gate C ---------------------------------------------------------------------------
     span_thr = DEFICIT_SPAN * T
@@ -291,12 +297,16 @@ def main():
               f"(never visited). Deferring to Gate B; this is not a Gate A pass.")
     print(f"[gate B] T_hit < {thr:.1f} ps on: "
           + ", ".join(f"state {k}: {hits[k]}/{len(per_seed)}" for k in range(3))
-          + f"   (need >= {min(GATE_B_MIN_SEEDS, len(per_seed))})  "
+          + f"   (need >= {GATE_B_MIN_SEEDS} of {N_SEEDS_REQUIRED})  "
           + ("OK" if gate_b_ok else "FAIL -> discovery-limited"))
     print(f"[gate C] persistent deficit (>= {span_thr:.1f} ps below 0.5 Q*) on: "
           + ", ".join(f"state {k}: {persistent[k]}/{len(per_seed)}" for k in range(3)))
 
-    if not gate0_pin_ok:
+    if not complete:
+        verdict = (f"PRELIMINARY -- {len(per_seed)} of {N_SEEDS_REQUIRED} seeds present. "
+                   "No verdict is issued on a partial screen; the gate values above are "
+                   "reported for monitoring only.")
+    elif not gate0_pin_ok:
         verdict = "ABF-baseline-invalid (Gate 0 pinning clause) -- STOP"
     elif gate_a_computable and gate_a < GATE_A_TV:
         verdict = "CV-visibility negative (Gate A) -- STOP, a stop for the CV, not for mFR"
@@ -308,7 +318,8 @@ def main():
         verdict = "establishment-limited -- CONTINUE to Gate D"
     print(f"\n[VERDICT] {verdict}")
 
-    res = dict(verdict=verdict, n_seeds=len(per_seed), T_ps=T,
+    res = dict(verdict=verdict, n_seeds=len(per_seed),
+               n_seeds_required=N_SEEDS_REQUIRED, complete=bool(complete), T_ps=T,
                gate0_max_pinned=pinned, gate0_pin_ok=bool(gate0_pin_ok),
                gateA_max_TV=float(gate_a), gateA_pairs=tvs, gateA_threshold=GATE_A_TV,
                gateA_computable=bool(gate_a_computable), gateA_empty_states=empty_states,
