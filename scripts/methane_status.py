@@ -83,7 +83,13 @@ def main():
     pending_file = os.path.join(args.screen, "pending_seeds.json")
     pending = []
     if os.path.exists(pending_file):
-        pending = sorted(set(json.load(open(pending_file)).get("pending", [])) - set(done))
+        # MUST subtract `queued` too: once a watcher hands its seeds to a live process they are
+        # both declared and running, and adding the two sets double-counts them.  This tool
+        # produced a 32 h ETA instead of 16 h on its second use for exactly that reason -- the
+        # anti-stale-ETA tool getting the population wrong, in the union rather than in the
+        # arithmetic.  A population assembled from two sources needs the union, not the sum.
+        pending = sorted(set(json.load(open(pending_file)).get("pending", []))
+                         - set(done) - set(queued))
     orphaned = sorted(set(SEED_BLOCK) - set(done) - set(queued) - set(pending))
 
     per_seed = min(h for _, h in times) if times else float("nan")
