@@ -54,6 +54,12 @@ def main():
     ap.add_argument("--chunk", type=int, default=256)
     ap.add_argument("--max-batch", type=int, default=2048)
     ap.add_argument("--triton", action="store_true", help="fused pair kernel (gated)")
+    ap.add_argument("--dt", type=float, default=None,
+                    help="override the timestep; ONLY for smoke tests, the production dt comes "
+                         "from the dynamics gate")
+    ap.add_argument("--smoke", action="store_true",
+                    help="2 r-points, 1 build, 1 replica, ps-scale blocks: validates the driver "
+                         "end to end without producing a reference")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
 
@@ -61,8 +67,24 @@ def main():
     L = float(box["L_nm"])
     r_hi = float(box["finite_size_gate"]["R_hi_nm"])
     r_grid = np.round(np.arange(nsys.R_LO_NM, r_hi + 1e-9, 0.02), 4)
-    gate = json.load(open(nsys.REPO / "results/nacl/stage1/dynamics_gate.json"))
-    dt = float(gate["dt_chosen_ps"])
+    if args.dt is not None:
+        dt = float(args.dt)
+        print(f"[WARNING] timestep overridden to {dt} ps -- smoke-test path, not a reference",
+              flush=True)
+    else:
+        gate = json.load(open(nsys.REPO / "results/nacl/stage1/dynamics_gate.json"))
+        dt = float(gate["dt_chosen_ps"])
+    checkpoints = CHECKPOINTS_PS
+    extra_f3 = EXTRA_EQUIL_F3_PS
+    if args.smoke:
+        r_grid = np.array([r_grid[4], r_grid[len(r_grid) // 2]])
+        args.builds = 1
+        args.replicas_per_family = 1
+        args.equil_ps = 1.0
+        extra_f3 = 1.0
+        checkpoints = (2.0,)
+        print(f"[SMOKE] r = {r_grid.tolist()}, 1 build, 1 replica, "
+              f"{args.equil_ps} ps equil, checkpoints {checkpoints}", flush=True)
     beta = nsys.beta_per_kJ()
     dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -147,8 +169,8 @@ def main():
 
     # ---- equilibration: everyone 50 ps; f3 gets its extra 100 ps first ---------------------
     idx_f3 = np.flatnonzero(recs[:, 2] == 3)
-    print(f"[equil] f3 extra {EXTRA_EQUIL_F3_PS} ps on {idx_f3.size} trajectories", flush=True)
-    run_block(idx_f3, EXTRA_EQUIL_F3_PS, equilibrate=True, seed_salt=1)
+    print(f"[equil] f3 extra {extra_f3} ps on {idx_f3.size} trajectories", flush=True)
+    run_block(idx_f3, extra_f3, equilibrate=True, seed_salt=1)
     idx_all = np.flatnonzero(active)
     print(f"[equil] {args.equil_ps} ps on {idx_all.size} trajectories", flush=True)
     t0 = time.time()
@@ -156,7 +178,7 @@ def main():
     print(f"[equil] done in {(time.time()-t0)/60:.1f} min", flush=True)
 
     done_ps = 0.0
-    for cp in CHECKPOINTS_PS:
+    for cp in checkpoints:
         block = cp - done_ps
         idx = np.flatnonzero(active)
         if idx.size == 0:
@@ -197,8 +219,9 @@ def main():
         json.dump(dict(stage="nacl_ti_torch", engine="batched torch float32 compiled",
                        dt_ps=dt, r_grid_nm=r_grid.tolist(), builds=args.builds,
                        replicas_per_family=args.replicas_per_family, families=N_FAMILIES,
-                       equil_ps=args.equil_ps, extra_equil_f3_ps=EXTRA_EQUIL_F3_PS,
-                       checkpoints_ps=list(CHECKPOINTS_PS), tol_frac=args.tol_frac,
+                       equil_ps=args.equil_ps, extra_equil_f3_ps=extra_f3,
+                       smoke=bool(args.smoke),
+                       checkpoints_ps=list(checkpoints), tol_frac=args.tol_frac,
                        retired_at_ps=retired_at.tolist(), box_L_nm=L,
                        gpu=os.environ.get("CUDA_VISIBLE_DEVICES", "unset"),
                        wall_hours=(time.time() - t_start) / 3600.0,
