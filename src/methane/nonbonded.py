@@ -415,9 +415,26 @@ class MethaneNonbonded:
                                    device=device, dtype=dtype)
         self.e_self = self.pair.self_energy()
 
+    def enable_triton(self, block_i=64, block_j=64):
+        """Route the pair term through the fused Triton kernel (performance-only, gated).
+
+        Builds the molecule-id table and hard-asserts its equal-id mask against the
+        OpenMM-derived exclusion mask before anything can run (see ``triton_pair``).
+        """
+        from .triton_pair import build_mol_id
+        self._mol_id = build_mol_id(self.pair)
+        self._triton_blocks = (int(block_i), int(block_j))
+        return self
+
     def energy_forces(self, x, chunk=256):
         """``(E (B,), F (B, N, 3))`` in kJ/mol and kJ/mol/nm."""
-        e_r, f_r = self.pair.energy_forces(x, chunk=chunk)
+        if getattr(self, "_mol_id", None) is not None and x.is_cuda:
+            from .triton_pair import pair_energy_forces_triton
+            bi, bj = self._triton_blocks
+            e_r, f_r = pair_energy_forces_triton(self.pair, x, self._mol_id,
+                                                 block_i=bi, block_j=bj)
+        else:
+            e_r, f_r = self.pair.energy_forces(x, chunk=chunk)
         e_x, f_x = self.pair.exclusion_correction(x)
         e_k, f_k = self.recip.energy_forces(x)
         return e_r + e_x + e_k + self.e_self, f_r + f_x + f_k
