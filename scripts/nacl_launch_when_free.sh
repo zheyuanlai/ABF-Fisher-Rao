@@ -56,10 +56,21 @@ if [ "$SMOKE" -ne 0 ]; then
   exit 1
 fi
 
-echo "[stage] dynamics gate (constraints + equipartition, 2 fs vs 1 fs)"
-$PY scripts/nacl_dynamics_gate.py > "$LOG_DIR/dynamics_gate.log" 2>&1
-echo "[stage] dynamics gate exit=$? ($(date -u))"
-tail -12 "$LOG_DIR/dynamics_gate.log"
+# The gate may already be running on the other device (started by hand while waiting).  Wait
+# for it rather than starting a second one: two processes writing dynamics_gate.json would
+# race, and whichever finished last would silently define the production timestep.
+if pgrep -f "nacl_dynamics_gate.py" > /dev/null; then
+  echo "[stage] a dynamics gate is already running elsewhere; waiting for it ($(date -u))"
+  while pgrep -f "nacl_dynamics_gate.py" > /dev/null; do sleep 30; done
+fi
+if [ -s "$LOG_DIR/dynamics_gate.json" ]; then
+  echo "[stage] dynamics gate already complete, reusing it ($(date -u))"
+else
+  echo "[stage] dynamics gate (constraints + equipartition, 2 fs vs 1 fs)"
+  $PY scripts/nacl_dynamics_gate.py > "$LOG_DIR/dynamics_gate.log" 2>&1
+  echo "[stage] dynamics gate exit=$? ($(date -u))"
+  tail -12 "$LOG_DIR/dynamics_gate.log"
+fi
 
 if ! grep -qE "\"dt_chosen_ps\": 0\.[0-9]" "$LOG_DIR/dynamics_gate.json" 2>/dev/null; then
   echo "[stop] no timestep passed the gate -- NaCl does not run; see dynamics_gate.json"
