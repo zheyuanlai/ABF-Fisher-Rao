@@ -106,8 +106,12 @@ def main():
         nonlocal x_state
         n_steps = int(round(ps / dt))
         sample_every = max(1, int(round(args.sample_ps / dt)))
-        for lo in range(0, len(idx), args.max_batch):
-            sub = idx[lo:lo + args.max_batch]
+        y_every = 10 * sample_every                 # Y is cheap but not free; 1 ps cadence
+        # even split: 2196 into 2048 + 148 would run the tail chunk at ~7 % occupancy
+        n_chunks = max(1, int(np.ceil(len(idx) / args.max_batch)))
+        step_size = int(np.ceil(len(idx) / n_chunks))
+        for lo in range(0, len(idx), step_size):
+            sub = idx[lo:lo + step_size]
             x = torch.tensor(x_state[sub], device=dev, dtype=torch.float32)
             cons = CompositeConstraints(
                 [RigidWaterConstraints(ff.params["waters"], nsys.rigid_water_lengths(),
@@ -130,9 +134,9 @@ def main():
                     fl, _, _ = cv.local_mean_force(x, f, beta)
                     fsum[sub] += fl.double().cpu().numpy()
                     fcnt[sub] += 1
-            if not equilibrate:
-                ysum[sub] += hyd.Y(x).double().cpu().numpy()
-                ycnt[sub] += 1
+                if not equilibrate and (s + 1) % y_every == 0:
+                    ysum[sub] += hyd.Y(x).double().cpu().numpy()
+                    ycnt[sub] += 1
             x_state[sub] = x.cpu().numpy()
             del x, v, f, integ, cons
             torch.cuda.empty_cache()

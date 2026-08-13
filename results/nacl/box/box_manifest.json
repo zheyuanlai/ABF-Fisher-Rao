@@ -1,0 +1,24 @@
+{
+  "protocol": {
+    "discard_ns": 0.5,
+    "average_ns": 1.0,
+    "dt_ps": 0.002,
+    "barostat": "MonteCarloBarostat 1 bar / 300 K / 25",
+    "dispersion_correction": true,
+    "start": "published equilibrate state",
+    "seed": 20260813,
+    "platform": "CUDA mixed",
+    "gpu": "3",
+    "contended": "methane screen running on this device (recorded, affects wall-clock only)"
+  },
+  "V_mean_nm3": 24.205282654708306,
+  "V_sem_nm3": 0.0071644673305060825,
+  "L_nm": 2.8926999370885578,
+  "T_mean_K": 300.62541078420577,
+  "finite_size_gate": {
+    "R_lo_nm": 0.2,
+    "R_hi_nm": 1.4,
+    "truncated": false
+  },
+  "frozen": "all reference/screen/production NVT at this L"
+}
