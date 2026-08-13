@@ -182,23 +182,46 @@ def main():
         print(f"  r = {r_nm:.3f} nm: family tau = {max(f_taus) if f_taus else '>track'} ps, "
               f"clone tau = {max(c_taus) if c_taus else '>track'} ps", flush=True)
 
-    all_fam = [v["tau_ps"] for r in results.values() for v in r["family"].values()
-               if v["tau_ps"] is not None]
-    all_clone = [v["tau_ps"] for r in results.values() for v in r["clone"].values()
-                 if v["tau_ps"] is not None]
-    tau_family = max(all_fam) if all_fam else None
-    tau_clone_max = max(all_clone) if all_clone else None
+    # A descriptor that never crosses its threshold inside the tracking window has
+    # tau > TRACK_PS -- it is CENSORED, not missing.  Dropping it and maxing over the rest
+    # biases tau_perp DOWN, which raises the Gate D ceiling 0.1/tau_perp and would license a
+    # faster selection rate than the physics justifies.  Censored points therefore enter the
+    # max at their lower bound, and the censoring is reported.
+    def collect(kind):
+        vals, censored = [], []
+        for rkey, r in results.items():
+            for name, v in r[kind].items():
+                if v["tau_ps"] is None:
+                    vals.append(TRACK_PS)
+                    censored.append(f"{rkey}:{name}")
+                else:
+                    vals.append(v["tau_ps"])
+        return (max(vals) if vals else None), censored
+
+    tau_family, cens_family = collect("family")
+    tau_clone_max, cens_clone = collect("clone")
+    censored = bool(cens_family or cens_clone)
     disagree = (tau_family and tau_clone_max
                 and max(tau_family, tau_clone_max) / min(tau_family, tau_clone_max) > 2.0)
+    tau_gate = max(t for t in (tau_family, tau_clone_max) if t is not None) \
+        if (tau_family or tau_clone_max) else None
+    if censored:
+        note = (f"CENSORED: {len(cens_family) + len(cens_clone)} descriptor/point combinations "
+                f"never decorrelated within the {TRACK_PS} ps window, so tau_perp is a LOWER "
+                f"bound and the Gate D ceiling below is conservative (an upper bound on the "
+                f"admissible rate). Censored: {cens_family + cens_clone}")
+    elif disagree:
+        note = ("family and clone estimates disagree by >2x -- reported as an open finding, "
+                "NOT resolved by choosing one (Amendment 10)")
+    else:
+        note = "family and clone estimates agree within 2x; neither is censored"
     summary = dict(r_points=r_points, per_point=results,
                    tau_perp_family_ps=tau_family, tau_perp_clone_ps=tau_clone_max,
+                   censored=censored, censored_family=cens_family, censored_clone=cens_clone,
                    track_ps=TRACK_PS, tv_threshold=TV_THRESHOLD,
-                   disagreement_over_2x=bool(disagree),
-                   note=("family and clone estimates disagree by >2x -- reported as an open "
-                         "finding, NOT resolved by choosing one (Amendment 10)")
-                   if disagree else "family and clone estimates agree within 2x",
-                   gate_D_lambda_rep_ceiling_per_ps=(0.1 / max(tau_family or 0, tau_clone_max or 0)
-                                                     if (tau_family or tau_clone_max) else None),
+                   disagreement_over_2x=bool(disagree), note=note,
+                   gate_D_lambda_rep_ceiling_per_ps=(0.1 / tau_gate if tau_gate else None),
+                   gate_D_ceiling_is_conservative_bound=censored,
                    gpu=os.environ.get("CUDA_VISIBLE_DEVICES", "unset"))
     with open(os.path.join(args.out, "tau_perp.json"), "w") as fh:
         json.dump(summary, fh, indent=2)

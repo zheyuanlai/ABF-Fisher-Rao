@@ -66,7 +66,21 @@ def gate_b(xi_trace, xi_steps, dt, basins, T_ps):
 
 
 def gate_c(diag_occ, diag_pmf, diag_times, grid, F_ref_on_grid, basins, beta, T_ps):
-    """Bias-aware establishment deficit per seed per state."""
+    """Bias-aware establishment deficit per seed per state.
+
+    **A non-finite reference or bias must not read as "no deficit".**  With a nan anywhere in
+    ``F_ref`` the bias-aware target ``Q`` is nan, ``P < 0.5 Q`` is False, no deficit is ever
+    flagged, and the cell would be classified **ABF-sufficient** -- a physics verdict that ends
+    the study, manufactured out of missing data.  Non-finite input therefore raises here.
+    """
+    if not np.isfinite(F_ref_on_grid).all():
+        bad = int((~np.isfinite(F_ref_on_grid)).sum())
+        raise RuntimeError(
+            f"F_ref is non-finite in {bad} of {F_ref_on_grid.size} grid points; Gate C is NOT "
+            "COMPUTABLE. Refusing to evaluate -- a nan target silently reports 'established'.")
+    if not np.isfinite(diag_pmf).all():
+        raise RuntimeError("the learned bias trace carries non-finite values; Gate C is NOT "
+                           "COMPUTABLE (see the screen's diagnostics)")
     n_cp, S, n_grid = diag_occ.shape
     times = np.asarray(diag_times, dtype=float)
     dz = float(grid[1] - grid[0])
@@ -117,15 +131,26 @@ def main():
     ref_report = json.load(open(os.path.join(args.ref, "reference_report.json")))
     if not ref_report["acceptance"]["ACCEPTED"]:
         raise SystemExit("reference NOT accepted (§4.5): no screen result may be interpreted")
-    g0 = ref_report["gate0"]
-    if not ref_report["gateA"]["PASS"]:
-        raise SystemExit(f"Gate A FAILED (max TV {ref_report['gateA']['max_TV']:.3f} < 0.30): "
+    g0, gA = ref_report["gate0"], ref_report["gateA"]
+    # NOT COMPUTABLE is not a pass and is not a failure -- it is a missing measurement, and
+    # neither downstream branch may be taken on it.
+    if not g0.get("COMPUTABLE", True):
+        raise SystemExit(f"Gate 0 is NOT COMPUTABLE (coverage {g0.get('coverage')}): the "
+                         "reference has no point where all four hydration families reported. "
+                         "Rebuild the reference; do not proceed to B/C.")
+    if gA.get("COMPUTABLE") is False:
+        raise SystemExit(f"Gate A is NOT COMPUTABLE (basin sample counts "
+                         f"{gA.get('basin_sample_counts')}): too few descriptor samples in at "
+                         "least one basin. This is a data gap, NOT a CV-visibility failure -- "
+                         "extend the reference rather than reporting a Gate A stop.")
+    if not gA["PASS"]:
+        raise SystemExit(f"Gate A FAILED (max TV {gA['max_TV']:.3f} < 0.30): "
                          "hydration states are not distinguishable through r -- STOP. "
                          "This is a stop for the CV, never a licence to tune mFR.")
     print(f"[upstream] reference accepted (ratio {ref_report['acceptance']['ratio']:.3f}); "
           f"Gate 0 spread global {g0['global_spread_ratio']:.3f} / barrier "
           f"{g0['barrier_region_ratio']:.3f} (ladder verdict argued in RESULT.md); "
-          f"Gate A max TV {ref_report['gateA']['max_TV']:.3f} PASS", flush=True)
+          f"Gate A max TV {gA['max_TV']:.3f} PASS", flush=True)
 
     ref = np.load(os.path.join(args.ref, "reference.npz"))
     basins = ref_report["basins"]
@@ -175,7 +200,7 @@ def main():
             note="calibration must find an ACTIVE rate under this ceiling or it is a C3 STOP")
 
     report = dict(cells=results, selection=selection,
-                  upstream=dict(gate0=g0, gateA=ref_report["gateA"],
+                  upstream=dict(gate0=g0, gateA=gA,
                                 acceptance=ref_report["acceptance"]))
     with open(os.path.join(out_dir, "gates_report.json"), "w") as fh:
         json.dump(report, fh, indent=2, default=float)

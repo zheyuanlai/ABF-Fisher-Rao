@@ -87,18 +87,39 @@ def main():
     beta = nsys.beta_per_kJ()
 
     # ---- per-build and consensus mean force ------------------------------------------------
-    f_build = np.zeros((len(builds), len(r_grid)))
-    f_fam = np.zeros((len(fams), len(r_grid)))
-    f_cons = np.zeros(len(r_grid))
-    f_sem = np.zeros(len(r_grid))
+    # Completeness is tracked explicitly.  `nanmean` over a partly-empty group silently reports
+    # a statistic computed on whatever survived, which turns "this build/family produced no
+    # data here" into a number indistinguishable from a measurement.
+    f_build = np.full((len(builds), len(r_grid)), np.nan)
+    f_fam = np.full((len(fams), len(r_grid)), np.nan)
+    f_cons = np.full(len(r_grid), np.nan)
+    f_sem = np.full(len(r_grid), np.nan)
+    missing = []
     for i, r in enumerate(r_grid):
         m = recs[:, 0] == r
+        if np.isfinite(fbar[m]).sum() == 0:
+            missing.append(dict(r_nm=float(r), what="all trajectories"))
+            continue
         f_cons[i] = np.nanmean(fbar[m])
-        f_sem[i] = np.nanstd(fbar[m], ddof=1) / np.sqrt(max(m.sum(), 1))
+        f_sem[i] = np.nanstd(fbar[m], ddof=1) / np.sqrt(max(np.isfinite(fbar[m]).sum(), 1))
         for bi, b in enumerate(builds):
-            f_build[bi, i] = np.nanmean(fbar[m & (recs[:, 1] == b)])
+            sel = m & (recs[:, 1] == b)
+            if np.isfinite(fbar[sel]).sum() == 0:
+                missing.append(dict(r_nm=float(r), what=f"build {b}"))
+            else:
+                f_build[bi, i] = np.nanmean(fbar[sel])
         for fi, fam in enumerate(fams):
-            f_fam[fi, i] = np.nanmean(fbar[m & (recs[:, 2] == fam)])
+            sel = m & (recs[:, 2] == fam)
+            if np.isfinite(fbar[sel]).sum() == 0:
+                missing.append(dict(r_nm=float(r), what=f"family {fam}"))
+            else:
+                f_fam[fi, i] = np.nanmean(fbar[sel])
+    complete = not missing
+    if missing:
+        print(f"[INCOMPLETE] {len(missing)} build/family/point groups produced no usable "
+              f"samples; Gate 0 and acceptance are reported as NOT COMPLETE:", flush=True)
+        for entry in missing[:20]:
+            print(f"    r = {entry['r_nm']:.3f} nm: {entry['what']}", flush=True)
 
     F_cons = integrate(r_grid, f_cons)
     F_builds = np.stack([integrate(r_grid, f_build[bi]) for bi in range(len(builds))])
@@ -142,35 +163,58 @@ def main():
         b_["label"] = lab
 
     # ---- Gate 0: cross-family spread -------------------------------------------------------
-    fam_spread = np.nanmax(f_fam, axis=0) - np.nanmin(f_fam, axis=0)
-    denom_global = float(np.nanmean(np.abs(f_cons)))
-    gate0_global = float(np.nanmean(fam_spread) / denom_global)
+    # Only points where EVERY family reported are usable; a spread taken across a subset of the
+    # families is not the cross-family spread, and averaging over such points with `nanmean`
+    # would report a Gate 0 statistic that quietly omits the points most likely to be broken.
+    fam_ok = np.isfinite(f_fam).all(axis=0) & np.isfinite(f_cons)
+    fam_spread = np.where(fam_ok, np.nanmax(f_fam, axis=0) - np.nanmin(f_fam, axis=0), np.nan)
+    denom_global = float(np.mean(np.abs(f_cons[fam_ok]))) if fam_ok.any() else np.nan
+    gate0_global = (float(np.mean(fam_spread[fam_ok]) / denom_global)
+                    if fam_ok.any() and np.isfinite(denom_global) else None)
     # the error-carrying region: the barrier neighbourhood (+-0.05 nm around each basin bound)
     region = np.zeros(len(r_grid), dtype=bool)
     for bi in bounds:
         region |= np.abs(r_grid - r_grid[bi]) <= 0.05
-    gate0_local = (float(np.nanmean(fam_spread[region]) /
-                         np.nanmean(np.abs(f_cons[region]))) if region.any() else np.nan)
+    reg_ok = region & fam_ok
+    gate0_local = (float(np.mean(fam_spread[reg_ok]) / np.mean(np.abs(f_cons[reg_ok])))
+                   if reg_ok.any() else None)
+    gate0_coverage = dict(points_used=int(fam_ok.sum()), points_total=int(len(r_grid)),
+                          barrier_points_used=int(reg_ok.sum()),
+                          barrier_points_total=int(region.sum()))
+    if gate0_global is None or gate0_local is None:
+        print("[NOT COMPUTABLE] Gate 0 has no point where all four families reported"
+              + ("" if gate0_global is None else " in the barrier region"), flush=True)
 
     # ---- Gate A: hydration distinguishability across basins --------------------------------
-    ybar = ysum / np.maximum(ycnt, 1)[:, None]
-    gateA = {}
-    for comp, name in enumerate(("n_NaO", "n_ClH", "n_bridge")):
-        per_basin = []
-        for b_ in basins:
-            m = (recs[:, 0] >= b_["r_lo_nm"]) & (recs[:, 0] <= b_["r_hi_nm"])
-            per_basin.append(ybar[m, comp])
-        tv_max = 0.0
-        lo = min(float(np.min(v)) for v in per_basin if len(v))
-        hi = max(float(np.max(v)) for v in per_basin if len(v))
-        edges = np.linspace(lo, hi + 1e-9, 21)
-        hists = [np.histogram(v, bins=edges, density=False)[0].astype(float) for v in per_basin]
-        hists = [h / max(h.sum(), 1) for h in hists]
-        for a in range(len(hists)):
-            for b in range(a + 1, len(hists)):
-                tv_max = max(tv_max, 0.5 * float(np.abs(hists[a] - hists[b]).sum()))
-        gateA[name] = tv_max
-    gateA_max = max(gateA.values())
+    # A basin with no descriptor samples gives an all-zero histogram, hence TV = 0 against
+    # everything -- which reads as "hydration states are indistinguishable through r", a Gate A
+    # FAIL that STOPS the study.  That verdict must never be manufactured by absent data, so
+    # under-sampled basins make Gate A NOT COMPUTABLE instead.
+    MIN_SAMPLES_PER_BASIN = 12
+    ybar = np.where(ycnt[:, None] > 0, ysum / np.maximum(ycnt, 1)[:, None], np.nan)
+    basin_masks = [((recs[:, 0] >= b_["r_lo_nm"]) & (recs[:, 0] <= b_["r_hi_nm"]))
+                   for b_ in basins]
+    basin_counts = [int(np.isfinite(ybar[m, 0]).sum()) for m in basin_masks]
+    gateA_computable = all(c >= MIN_SAMPLES_PER_BASIN for c in basin_counts) and len(basins) > 1
+    gateA, gateA_max = {}, None
+    if gateA_computable:
+        for comp, name in enumerate(("n_NaO", "n_ClH", "n_bridge")):
+            per_basin = [ybar[m, comp][np.isfinite(ybar[m, comp])] for m in basin_masks]
+            lo = min(float(np.min(v)) for v in per_basin)
+            hi = max(float(np.max(v)) for v in per_basin)
+            edges = np.linspace(lo, hi + 1e-9, 21)
+            hists = [np.histogram(v, bins=edges)[0].astype(float) for v in per_basin]
+            hists = [h / h.sum() for h in hists]
+            tv_max = 0.0
+            for a in range(len(hists)):
+                for b in range(a + 1, len(hists)):
+                    tv_max = max(tv_max, 0.5 * float(np.abs(hists[a] - hists[b]).sum()))
+            gateA[name] = tv_max
+        gateA_max = max(gateA.values())
+    else:
+        print(f"[NOT COMPUTABLE] Gate A: basin sample counts {basin_counts} against a floor of "
+              f"{MIN_SAMPLES_PER_BASIN} (and {len(basins)} basins). Reporting NOT COMPUTABLE "
+              "rather than TV = 0, which would read as a Gate A FAIL.", flush=True)
 
     # ---- external literature check ---------------------------------------------------------
     pub = np.loadtxt(nsys.SRC_TUTORIAL / "output/abf.pmf")
@@ -195,15 +239,22 @@ def main():
         endpoint_window=dict(r_lo_nm=float(r_grid[lo_i]), r_hi_nm=float(r_grid[hi_i]),
                              n_points=int(window.sum()), rule="F_ref - min <= 15 kT, "
                              "largest contiguous interval containing argmin (SPEC §2.1)"),
+        completeness=dict(COMPLETE=complete, missing_groups=missing[:50],
+                          n_missing=len(missing)),
         acceptance=dict(pairwise_L2=pair_l2, F_span_kJ=span, ratio=ratio,
-                        ACCEPTED=accepted,
-                        rule="ratio <= 0.5 on the frozen window (Amendment 12.2 / §4.5)"),
+                        ACCEPTED=bool(accepted and complete),
+                        complete=complete,
+                        rule="ratio <= 0.5 on the frozen window (Amendment 12.2 / §4.5), and "
+                             "every build/family/point group must have reported"),
         basins=basins,
         gate0=dict(global_spread_ratio=gate0_global, barrier_region_ratio=gate0_local,
-                   ladder=LADDER,
+                   COMPUTABLE=bool(gate0_global is not None and gate0_local is not None),
+                   coverage=gate0_coverage, ladder=LADDER,
                    note="no numerical threshold (Amendment 9); argued against the ladder"),
         gateA=dict(per_descriptor_TV=gateA, max_TV=gateA_max, threshold=0.30,
-                   PASS=bool(gateA_max >= 0.30)),
+                   COMPUTABLE=bool(gateA_computable), basin_sample_counts=basin_counts,
+                   min_samples_per_basin=MIN_SAMPLES_PER_BASIN,
+                   PASS=(bool(gateA_max >= 0.30) if gateA_computable else None)),
         external_check=dict(source="Talmazan 2025 output/abf.pmf (100 ns ABF)",
                             rms_kJ=ext_rms, max_kJ=ext_max, aligned_at="dissociated tail",
                             note="reported, never a gate; arms score against our reference"),
