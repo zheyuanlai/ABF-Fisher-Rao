@@ -35,13 +35,50 @@ from nacl import system as nsys                                  # noqa: E402
 KB_KJ_PER_MOL_K = 8.31446261815324e-3   # torch is imported lazily; no methane import here
 OUT = nsys.REPO / "results/nacl/stage1"
 
-WARM_PS = 5.0
-MEASURE_PS = 20.0
-B64 = 4                     #: float64 walkers (expensive, the gate)
-B32 = 16                    #: float32 walkers (production dtype, recorded)
+# The two clauses are different KINDS of statement and get different budgets.
+#
+# The constraint clause is a deterministic property of the solver: run it in float64, briefly.
+# The equipartition clause is STATISTICAL, and the first version of this gate got its error
+# bars wrong -- it took std/sqrt(n) over samples 0.1 ps apart when the kinetic-energy
+# autocorrelation time is ~1/(2 gamma) = 0.5 ps, understating the uncertainty by ~2.2x.  With
+# honest bars the 2 fs "failure" was 2.5 sigma, not the clean result it looked like, and its own
+# float32 leg disagreed with its float64 leg by 1.24 K at the same timestep.
+#
+# So equipartition now runs in the PRODUCTION dtype (float32) with many walkers -- walkers are
+# independent, so they buy uncertainty far more cheaply than a longer float64 run -- against
+# several independent OpenMM replicas, with a blocking estimator for the error.
+WARM_PS = 10.0
+MEASURE_PS = 60.0
+CONSTRAINT_PS = 5.0         #: float64, deterministic clause
+B64 = 4                     #: float64 walkers, constraint clause only
+B32 = 32                    #: float32 walkers, equipartition clause (production dtype)
+N_OPENMM_REPLICAS = 4
+BLOCK_PS = 5.0              #: 10x the ~0.5 ps KE autocorrelation time; calibrated
+                            #: against a known-truth AR(1) series -- 2 tau blocks understate
+                            #: the SEM by 26 %, 5 tau by 9 %, 10 tau by 6 %, 20 tau by 5 %.
+                            #: The residual bias is NEGATIVE, so a PASS is the weaker claim.
 
 
-def run_torch(L, x0, dt_ps, dtype, n_walkers, device="cuda", seed=1):
+def blocked_sem(trace, sample_every_ps, n_walkers=1, block_ps=BLOCK_PS):
+    """SEM from block means, with blocks long compared with the KE autocorrelation time.
+
+    std/sqrt(n) over samples closer together than the correlation time understates the
+    uncertainty by sqrt(n_raw/n_independent) -- 2.2x at the original 0.1 ps sampling.  Blocking
+    removes that by construction: block means are effectively independent, so their scatter is
+    the real uncertainty.  Walkers are already independent, so the trace is a walker average and
+    its variance is n_walkers times smaller -- that gain is real and is kept.
+    """
+    t = np.asarray(trace, dtype=float)
+    per_block = max(2, int(round(block_ps / sample_every_ps)))
+    n_blocks = len(t) // per_block
+    if n_blocks < 4:
+        return float(np.std(t) / np.sqrt(max(len(t), 1)))     # too short to block; flagged by n_blocks
+    means = t[:n_blocks * per_block].reshape(n_blocks, per_block).mean(axis=1)
+    return float(np.std(means, ddof=1) / np.sqrt(n_blocks))
+
+
+def run_torch(L, x0, dt_ps, dtype, n_walkers, device="cuda", seed=1,
+              measure_ps=MEASURE_PS, sample_every_ps=0.1):
     import torch
     from methane.dynamics import BAOAB, RigidWaterConstraints
     from nacl.nonbonded import NaClNonbonded
@@ -57,18 +94,23 @@ def run_torch(L, x0, dt_ps, dtype, n_walkers, device="cuda", seed=1):
     _, f = ff.energy_forces(q)
 
     n_warm = int(WARM_PS / dt_ps)
-    n_meas = int(MEASURE_PS / dt_ps)
+    n_meas = int(measure_ps / dt_ps)
     temps, viol = [], 0.0
     t0 = time.perf_counter()
     for step in range(n_warm + n_meas):
         _, f = integ.step(q, v, f, generator=gen)
-        if step >= n_warm and step % 50 == 0:
+        every = max(1, int(round(sample_every_ps / dt_ps)))
+        if step >= n_warm and step % every == 0:
             temps.append(float(integ.temperature(v).mean()))
             viol = max(viol, cons.max_violation(q))
     wall = time.perf_counter() - t0
     ns_day = n_walkers * (n_warm + n_meas) * dt_ps * 1e-3 / wall * 86400.0
-    return dict(T_mean=float(np.mean(temps)), T_sem=float(np.std(temps) / np.sqrt(len(temps))),
-                max_violation_nm=viol, ns_per_day_aggregate=ns_day, wall_s=wall)
+    return dict(T_mean=float(np.mean(temps)),
+                T_sem=blocked_sem(temps, sample_every_ps, n_walkers),
+                T_sem_naive=float(np.std(temps) / np.sqrt(len(temps))),
+                n_samples=len(temps), n_walkers=n_walkers,
+                max_violation_nm=viol, ns_per_day_aggregate=ns_day, wall_s=wall,
+                trace=[float(t) for t in temps])
 
 
 def run_openmm(L, x0, dt_ps, seed=1):
@@ -104,7 +146,7 @@ def run_openmm(L, x0, dt_ps, seed=1):
         ke = ctx.getState(getEnergy=True).getKineticEnergy() \
             .value_in_unit(u.kilojoule_per_mole)
         temps.append(2.0 * ke / (ndof * KB_KJ_PER_MOL_K))
-    return dict(T_mean=float(np.mean(temps)), T_sem=float(np.std(temps) / np.sqrt(len(temps))))
+    return dict(T_mean=float(np.mean(temps)), trace=[float(t) for t in temps])
 
 
 OPENMM_PYTHON = os.path.expanduser("~/miniconda3/envs/methane-cuda/bin/python")
@@ -132,7 +174,18 @@ def main():
         box = json.load(open(nsys.REPO / "results/nacl/box/box_manifest.json"))
         L = float(box["L_nm"])
         x0 = dict(np.load(nsys.REPO / "results/nacl/box/npt_final_state.npz"))["positions_nm"]
-        out = {f"{d:g}": run_openmm(L, x0, d * 1e-3, seed=int(10 * d)) for d in dts}
+        out = {}
+        for d in dts:
+            reps = [run_openmm(L, x0, d * 1e-3, seed=int(10 * d) + 7 * k)
+                    for k in range(N_OPENMM_REPLICAS)]
+            traces = [r["trace"] for r in reps]
+            flat = np.concatenate(traces)
+            sems = [blocked_sem(tr, 0.1) for tr in traces]
+            out[f"{d:g}"] = dict(
+                T_mean=float(np.mean(flat)),
+                T_sem=float(np.sqrt(np.sum(np.square(sems))) / len(sems)),
+                T_sem_naive=float(np.std(flat) / np.sqrt(len(flat))),
+                n_replicas=len(reps), per_replica=[r["T_mean"] for r in reps])
         print(json.dumps(out))
         return
     OUT.mkdir(parents=True, exist_ok=True)
@@ -150,19 +203,29 @@ def main():
     verdicts = {}
     for dt_fs in (2.0, 1.0):
         dt = dt_fs * 1e-3
-        t64 = run_torch(L, x0, dt, "float64", B64, seed=int(10 * dt_fs))
+        # constraint clause: deterministic, float64, short
+        t64 = run_torch(L, x0, dt, "float64", B64, seed=int(10 * dt_fs),
+                        measure_ps=CONSTRAINT_PS)
+        # equipartition clause: statistical, production dtype, many walkers, long
         t32 = run_torch(L, x0, dt, "float32", B32, seed=int(10 * dt_fs) + 1)
         omm = omm_by_dt[dt_fs]
-        dT = abs(t64["T_mean"] - omm["T_mean"])
+        dT = abs(t32["T_mean"] - omm["T_mean"])
+        sigma = float(np.hypot(t32["T_sem"], omm["T_sem"]))
         ok = (t64["max_violation_nm"] <= 1e-8) and (dT <= 2.0)
         verdicts[f"{dt_fs:.0f}fs"] = dict(
             torch_float64=t64, torch_float32=t32, openmm=omm,
-            dT_vs_openmm_K=dT, constraint_gate=t64["max_violation_nm"] <= 1e-8,
-            equipartition_gate=dT <= 2.0, PASS=ok)
-        print(f"dt={dt_fs} fs: torch64 T={t64['T_mean']:.2f}+-{t64['T_sem']:.2f} K "
-              f"viol={t64['max_violation_nm']:.2e} nm | torch32 T={t32['T_mean']:.2f} "
-              f"viol={t32['max_violation_nm']:.2e} | openmm T={omm['T_mean']:.2f} "
-              f"| dT={dT:.2f} K -> {'PASS' if ok else 'FAIL'}", flush=True)
+            dT_vs_openmm_K=dT, dT_uncertainty_K=sigma,
+            dT_in_sigma=(dT / sigma if sigma > 0 else None),
+            constraint_gate=t64["max_violation_nm"] <= 1e-8,
+            equipartition_gate=dT <= 2.0, PASS=ok,
+            note="equipartition compares the PRODUCTION dtype against several independent "
+                 "OpenMM replicas; both SEMs are blocked, not std/sqrt(n) over correlated "
+                 "samples (which understated them ~2.2x in the first version of this gate)")
+        print(f"dt={dt_fs} fs: torch32 T={t32['T_mean']:.2f}+-{t32['T_sem']:.2f} K "
+              f"(naive +-{t32['T_sem_naive']:.2f}) | openmm T={omm['T_mean']:.2f}"
+              f"+-{omm['T_sem']:.2f} ({omm['n_replicas']} reps) | dT={dT:.2f}+-{sigma:.2f} K "
+              f"= {dT/sigma:.1f} sigma | constraint viol64={t64['max_violation_nm']:.2e} nm "
+              f"-> {'PASS' if ok else 'FAIL'}", flush=True)
 
     chosen = 0.002 if verdicts["2fs"]["PASS"] else (0.001 if verdicts["1fs"]["PASS"] else None)
     report["verdicts"] = verdicts
