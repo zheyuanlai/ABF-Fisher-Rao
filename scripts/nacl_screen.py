@@ -219,7 +219,7 @@ def main():
         z = torch.load(state_path, weights_only=False)
         if [c["N"] for c in z["cells"]] != [s["cell"]["N"] for s in st]:
             raise SystemExit("run_state.pt was written for a different cell plan")
-        start_step = int(z["step"]) + 1
+        start_step = int(z["step"])   # the state IS this step's entry state
         q = z["q"].to(dev); v = z["v"].to(dev); f = z["f"].to(dev)
         gen.set_state(z["gen_state"])
         for s, zc in zip(st, z["cells"]):
@@ -241,6 +241,18 @@ def main():
           f"checkpointing every ~{args.checkpoint_min:.0f} min", flush=True)
 
     for step in range(start_step, max_steps + 1):
+        # ---- checkpoint at the TOP, and resume at exactly this step ------------------------
+        # Placement is the whole correctness argument.  Here, `(q, v, f)` are the state
+        # entering step `step` and the accumulators hold steps < step -- the two agree.
+        # Saved *after* the accumulation instead (the obvious place, next to the other
+        # periodic work), the accumulators already carry this step while the positions do
+        # not, so resuming at step+1 skips one step's dynamics AND double-counts its samples:
+        # a slightly wrong PMF with nothing in the output to indicate it.
+        if step % sim0.save_every == 0 and time.time() - last_ckpt >= args.checkpoint_min * 60.0:
+            save_state(step)
+            last_ckpt = time.time()
+            print(f"[checkpoint] step {step} ({step*dt/1000:.3f} ns) -> {state_path}", flush=True)
+
         f_loc, r_flat, _ = cv.local_mean_force(q, f, beta)
         f_loc = torch.clamp(f_loc, -8.0 * sim0.abf_force_clip, 8.0 * sim0.abf_force_clip)
 
@@ -284,11 +296,6 @@ def main():
                         float((1.0 - in_dom).mean()))
 
         if step % sim0.save_every == 0:
-            if time.time() - last_ckpt >= args.checkpoint_min * 60.0:
-                save_state(step)
-                last_ckpt = time.time()
-                print(f"[checkpoint] step {step} ({step*dt/1000:.3f} ns) -> {state_path}",
-                      flush=True)
             if not bool((r_flat < 0.995 * 0.5 * L).all()):
                 raise RuntimeError(f"an ion pair reached 99.5% of L/2 "
                                    f"(r_max = {float(r_flat.max()):.4f} nm); xi degenerate")
