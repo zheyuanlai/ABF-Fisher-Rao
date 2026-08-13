@@ -101,16 +101,36 @@ def main():
     pos = dict(np.load(nsys.REPO / "results/nacl/box/npt_final_state.npz"))["positions_nm"]
     print(f"[platform] {_platform()[0].getName()}   L = {L:.6f} nm", flush=True)
 
+    # ---- solvent baths, checkpointed as soon as they exist ---------------------------------
+    # Written in one shot at the very end, ~26 min of bath MD could only be preserved by
+    # finishing the whole job -- so stopping early to free a shared device meant redoing all of
+    # it.  The cost of an all-or-nothing write only appears on the day you need to stop, which
+    # is the day you can least afford it.
+    ckpt = os.path.join(args.out, "baths_only.npz")
     out, meta, baths = {}, [], {}
-    for b in range(args.builds):
-        for fam, r_prep in R_PREP_NM.items():
-            seed = 9000 + 100 * fam + b
-            x = make_bath(L, pos, r_prep, args.ps, seed)
-            out[f"b{b}_f{fam}"] = x.astype(np.float32)
-            baths[(b, fam)] = x
-            meta.append(dict(build=b, family=fam, name=FAMILY_NAMES[fam],
-                             r_prep_nm=r_prep, seed=seed))
-            print(f"  build {b} {FAMILY_NAMES[fam]:6s} (r_prep = {r_prep}) done", flush=True)
+    if os.path.exists(ckpt):
+        z = np.load(ckpt, allow_pickle=True)
+        meta = list(z["meta"])
+        for b in range(args.builds):
+            for fam in R_PREP_NM:
+                key = f"b{b}_f{fam}"
+                if key not in z:
+                    raise SystemExit(f"bath checkpoint lacks {key}; delete {ckpt} and rerun")
+                out[key] = z[key]
+                baths[(b, fam)] = z[key].astype(np.float64)
+        print(f"[baths] reloaded {len(baths)} cached baths from {ckpt}", flush=True)
+    else:
+        for b in range(args.builds):
+            for fam, r_prep in R_PREP_NM.items():
+                seed = 9000 + 100 * fam + b
+                x = make_bath(L, pos, r_prep, args.ps, seed)
+                out[f"b{b}_f{fam}"] = x.astype(np.float32)
+                baths[(b, fam)] = x
+                meta.append(dict(build=b, family=fam, name=FAMILY_NAMES[fam],
+                                 r_prep_nm=r_prep, seed=seed))
+                print(f"  build {b} {FAMILY_NAMES[fam]:6s} (r_prep = {r_prep}) done", flush=True)
+        np.savez_compressed(ckpt, meta=np.array(meta, dtype=object), **out)
+        print(f"[baths] checkpointed {len(baths)} baths -> {ckpt}", flush=True)
 
     if args.per_r:
         # ONE context per (build, family), reused across every r.  The ions are frozen by
@@ -123,8 +143,17 @@ def main():
               f"({len(r_grid) * args.builds * 3} configurations, 9 contexts) ...", flush=True)
         worst = 0.0
         water_idx = None
+        part = os.path.join(args.out, "starts_partial.npz")
+        if os.path.exists(part):
+            z = np.load(part)
+            for k in z.files:
+                out[k] = z[k]
+            print(f"[per-r] resuming: {len(z.files)} starts already on disk", flush=True)
         for b in range(args.builds):
             for fam in (0, 1, 2):
+                if all(f"start_b{b}_f{fam}_r{r:.4f}" in out for r in r_grid):
+                    print(f"  build {b} family {fam} already complete, skipping", flush=True)
+                    continue
                 system, topology, _ = nsys.build_openmm_system(L)
                 for i in (0, 1):
                     system.setParticleMass(i, 0.0 * u.dalton)
@@ -148,7 +177,11 @@ def main():
                     worst = max(worst, float(fmax))
                     out[f"start_b{b}_f{fam}_r{r_nm:.4f}"] = xr.astype(np.float32)
                 del ctx
-            print(f"  build {b} done (worst water |F| so far {worst:.3e})", flush=True)
+                np.savez_compressed(part, **{k: v for k, v in out.items()
+                                             if k.startswith("start_")})
+            print(f"  build {b} done (worst water |F| so far {worst:.3e}); "
+                  f"{sum(1 for k in out if k.startswith('start_'))} starts checkpointed",
+                  flush=True)
         if worst > 1e5:
             raise RuntimeError(f"minimisation left max|F| = {worst:.3e}; dynamics would explode")
         print(f"[per-r] worst residual water max|F| = {worst:.3e} kJ/mol/nm", flush=True)
