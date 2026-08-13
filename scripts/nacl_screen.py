@@ -88,6 +88,10 @@ def main():
     ap.add_argument("--chunk", type=int, default=256)
     ap.add_argument("--triton", action="store_true", help="fused pair kernel (gated)")
     ap.add_argument("--save-every-ps", type=float, default=10.0)
+    ap.add_argument("--checkpoint-min", type=float, default=20.0,
+                    help="wall-clock minutes between full-state checkpoints")
+    ap.add_argument("--resume", action="store_true",
+                    help="continue from <out>/run_state.pt if present")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
 
@@ -191,10 +195,52 @@ def main():
     max_steps = max(c["n_steps"] for c in plan)
     xi_every = max(1, int(round(0.5 / dt)))
     y_every = max(1, int(round(1.0 / dt)))
-    t0 = time.time()
-    print(f"\n[run] {max_steps} steps max, packed batch {q.shape[0]}", flush=True)
 
-    for step in range(max_steps + 1):
+    # ---- resumable state -------------------------------------------------------------------
+    # A cell is written only when it retires, and the N=8 cell retires after 12.5 ns -- so a
+    # crash at hour twenty would cost every hour before it, for all four cells at once, since
+    # they share one process.  The full sampler state is checkpointed periodically instead.
+    # (Written before the run it protects; a resume added afterwards protects nothing.)
+    state_path = os.path.join(args.out, "run_state.pt")
+    start_step = 0
+
+    def save_state(step):
+        tmp = state_path + ".tmp"                     # atomic: never truncate a good checkpoint
+        torch.save(dict(step=step, q=q.cpu(), v=v.cpu(), f=f.cpu(),
+                        gen_state=gen.get_state(),
+                        cells=[dict(N=s["cell"]["N"], n=s["n"], done=s["done"],
+                                    fsum=s["fsum"].cpu(), csum=s["csum"].cpu(),
+                                    diag=s["diag"], xi_trace=s["xi_trace"],
+                                    xi_steps=s["xi_steps"], y_trace=s["y_trace"],
+                                    y_steps=s["y_steps"]) for s in st]), tmp)
+        os.replace(tmp, state_path)
+
+    if args.resume and os.path.exists(state_path):
+        z = torch.load(state_path, weights_only=False)
+        if [c["N"] for c in z["cells"]] != [s["cell"]["N"] for s in st]:
+            raise SystemExit("run_state.pt was written for a different cell plan")
+        start_step = int(z["step"]) + 1
+        q = z["q"].to(dev); v = z["v"].to(dev); f = z["f"].to(dev)
+        gen.set_state(z["gen_state"])
+        for s, zc in zip(st, z["cells"]):
+            s.update(fsum=zc["fsum"].to(dev), csum=zc["csum"].to(dev), done=zc["done"],
+                     diag=zc["diag"], xi_trace=zc["xi_trace"], xi_steps=zc["xi_steps"],
+                     y_trace=zc["y_trace"], y_steps=zc["y_steps"])
+        # rebuild the packed bounds for whatever is still running
+        st = [s for s in st if not s["done"]]
+        bounds, off = [], 0
+        for s in st:
+            bounds.append((off, off + s["n"]))
+            off += s["n"]
+        print(f"[resume] step {start_step} ({start_step * dt:.1f} ps), batch {q.shape[0]}, "
+              f"{len(st)} cells still running", flush=True)
+
+    t0 = time.time()
+    last_ckpt = t0
+    print(f"\n[run] {max_steps} steps max, packed batch {q.shape[0]}, "
+          f"checkpointing every ~{args.checkpoint_min:.0f} min", flush=True)
+
+    for step in range(start_step, max_steps + 1):
         f_loc, r_flat, _ = cv.local_mean_force(q, f, beta)
         f_loc = torch.clamp(f_loc, -8.0 * sim0.abf_force_clip, 8.0 * sim0.abf_force_clip)
 
@@ -238,6 +284,11 @@ def main():
                         float((1.0 - in_dom).mean()))
 
         if step % sim0.save_every == 0:
+            if time.time() - last_ckpt >= args.checkpoint_min * 60.0:
+                save_state(step)
+                last_ckpt = time.time()
+                print(f"[checkpoint] step {step} ({step*dt/1000:.3f} ns) -> {state_path}",
+                      flush=True)
             if not bool((r_flat < 0.995 * 0.5 * L).all()):
                 raise RuntimeError(f"an ion pair reached 99.5% of L/2 "
                                    f"(r_max = {float(r_flat.max()):.4f} nm); xi degenerate")

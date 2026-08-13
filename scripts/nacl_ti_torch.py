@@ -57,6 +57,8 @@ def main():
     ap.add_argument("--dt", type=float, default=None,
                     help="override the timestep; ONLY for smoke tests, the production dt comes "
                          "from the dynamics gate")
+    ap.add_argument("--resume", action="store_true",
+                    help="continue from results/<out>/run_state.npz if present")
     ap.add_argument("--smoke", action="store_true",
                     help="2 r-points, 1 build, 1 replica, ps-scale blocks: validates the driver "
                          "end to end without producing a reference")
@@ -167,18 +169,49 @@ def main():
             del x, v, f, integ, cons
             torch.cuda.empty_cache()
 
-    # ---- equilibration: everyone 50 ps; f3 gets its extra 100 ps first ---------------------
-    idx_f3 = np.flatnonzero(recs[:, 2] == 3)
-    print(f"[equil] f3 extra {extra_f3} ps on {idx_f3.size} trajectories", flush=True)
-    run_block(idx_f3, extra_f3, equilibrate=True, seed_salt=1)
-    idx_all = np.flatnonzero(active)
-    print(f"[equil] {args.equil_ps} ps on {idx_all.size} trajectories", flush=True)
-    t0 = time.time()
-    run_block(idx_all, args.equil_ps, equilibrate=True, seed_salt=2)
-    print(f"[equil] done in {(time.time()-t0)/60:.1f} min", flush=True)
+    # ---- resumable state -------------------------------------------------------------------
+    # The checkpoints used to record RESULTS but not the state needed to continue, so a crash
+    # at hour four cost every hour before it.  `x_state` is what makes a checkpoint a resume
+    # point rather than a record of progress lost.
+    state_path = os.path.join(args.out, "run_state.npz")
+
+    def save_state(stage, done_ps_):
+        np.savez(state_path, stage=stage, done_ps=done_ps_, x_state=x_state,
+                 fsum=fsum, fcnt=fcnt, ysum=ysum, ycnt=ycnt,
+                 active=active, retired_at=retired_at, recs=recs, r_grid=r_grid)
 
     done_ps = 0.0
+    stage = "start"
+    if args.resume and os.path.exists(state_path):
+        z = np.load(state_path)
+        if z["recs"].shape != recs.shape or not np.allclose(z["r_grid"], r_grid):
+            raise SystemExit("run_state.npz was written for a different plan; refusing to resume")
+        x_state = z["x_state"]
+        fsum, fcnt = z["fsum"], z["fcnt"]
+        ysum, ycnt = z["ysum"], z["ycnt"]
+        active, retired_at = z["active"], z["retired_at"]
+        done_ps = float(z["done_ps"]); stage = str(z["stage"])
+        print(f"[resume] stage '{stage}', {done_ps} ps done, {int(active.sum())} active",
+              flush=True)
+
+    # ---- equilibration: everyone 50 ps; f3 gets its extra 100 ps first ---------------------
+    if stage == "start":
+        idx_f3 = np.flatnonzero(recs[:, 2] == 3)
+        print(f"[equil] f3 extra {extra_f3} ps on {idx_f3.size} trajectories", flush=True)
+        run_block(idx_f3, extra_f3, equilibrate=True, seed_salt=1)
+        idx_all = np.flatnonzero(active)
+        print(f"[equil] {args.equil_ps} ps on {idx_all.size} trajectories", flush=True)
+        t0 = time.time()
+        run_block(idx_all, args.equil_ps, equilibrate=True, seed_salt=2)
+        print(f"[equil] done in {(time.time()-t0)/60:.1f} min", flush=True)
+        stage = "equilibrated"
+        save_state(stage, 0.0)
+        print(f"[checkpoint] equilibration saved -> {state_path}", flush=True)
+
     for cp in checkpoints:
+        if cp <= done_ps:
+            print(f"[resume] checkpoint {cp:.0f} ps already complete, skipping", flush=True)
+            continue
         block = cp - done_ps
         idx = np.flatnonzero(active)
         if idx.size == 0:
@@ -208,6 +241,7 @@ def main():
         np.savez_compressed(os.path.join(args.out, f"checkpoint_{cp:.0f}ps.npz"),
                             recs=recs, fbar=fbar, fcnt=fcnt, ysum=ysum, ycnt=ycnt,
                             retired_at=retired_at, active=active)
+        save_state("production", cp)
         print(f"[prod] checkpoint {cp:.0f} ps in {(time.time()-t0)/60:.1f} min; "
               f"{int(active.sum())} active", flush=True)
 
