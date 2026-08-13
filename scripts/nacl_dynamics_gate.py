@@ -211,13 +211,22 @@ def main():
         omm = omm_by_dt[dt_fs]
         dT = abs(t32["T_mean"] - omm["T_mean"])
         sigma = float(np.hypot(t32["T_sem"], omm["T_sem"]))
-        ok = (t64["max_violation_nm"] <= 1e-8) and (dT <= 2.0)
+        # Amendment 15.1: tri-state, one preregistered run, no extensions
+        if t64["max_violation_nm"] > 1e-8:
+            verdict = "FAIL"
+        elif dT + sigma <= 2.0:
+            verdict = "PASS"
+        elif dT - sigma > 2.0:
+            verdict = "FAIL"
+        else:
+            verdict = "INDETERMINATE"
+        ok = verdict == "PASS"
         verdicts[f"{dt_fs:.0f}fs"] = dict(
             torch_float64=t64, torch_float32=t32, openmm=omm,
             dT_vs_openmm_K=dT, dT_uncertainty_K=sigma,
             dT_in_sigma=(dT / sigma if sigma > 0 else None),
             constraint_gate=t64["max_violation_nm"] <= 1e-8,
-            equipartition_gate=dT <= 2.0, PASS=ok,
+            verdict=verdict, PASS=ok,
             note="equipartition compares the PRODUCTION dtype against several independent "
                  "OpenMM replicas; both SEMs are blocked, not std/sqrt(n) over correlated "
                  "samples (which understated them ~2.2x in the first version of this gate)")
@@ -225,13 +234,21 @@ def main():
               f"(naive +-{t32['T_sem_naive']:.2f}) | openmm T={omm['T_mean']:.2f}"
               f"+-{omm['T_sem']:.2f} ({omm['n_replicas']} reps) | dT={dT:.2f}+-{sigma:.2f} K "
               f"= {dT/sigma:.1f} sigma | constraint viol64={t64['max_violation_nm']:.2e} nm "
-              f"-> {'PASS' if ok else 'FAIL'}", flush=True)
+              f"-> {verdict}", flush=True)
 
-    chosen = 0.002 if verdicts["2fs"]["PASS"] else (0.001 if verdicts["1fs"]["PASS"] else None)
+    # Amendment 15.1 decision: 2fs PASS -> 2fs; FAIL or INDETERMINATE -> 1fs;
+    # 1fs confident FAIL -> STOP; 1fs INDETERMINATE -> 1fs (conservative endpoint).
+    if verdicts["2fs"]["verdict"] == "PASS":
+        chosen = 0.002
+    elif verdicts["1fs"]["verdict"] in ("PASS", "INDETERMINATE"):
+        chosen = 0.001
+    else:
+        chosen = None
     report["verdicts"] = verdicts
     report["dt_chosen_ps"] = chosen
+    report["rule"] = "Amendment 15.1 (frozen before this run; no extensions, never revisited)"
     if chosen is None:
-        report["verdict"] = "BOTH TIMESTEPS FAIL -- engine defect, NaCl does not run"
+        report["verdict"] = "1 fs confidently FAILS -- engine defect, NaCl does not run"
     (OUT / "dynamics_gate.json").write_text(json.dumps(report, indent=2))
     print(f"dt chosen: {chosen} ps; wrote {OUT}/dynamics_gate.json")
 

@@ -35,11 +35,26 @@ from nacl.nonbonded import NaClNonbonded                                    # no
 
 
 def device_is_idle(threshold_mib=500):
+    """Idle check for THIS device only.
+
+    The first version summed compute-app memory across the whole node, so any process on any
+    GPU -- the methane screen on GPU 3, other groups on 0/1 -- read as contention here and the
+    timing path could never run. Scope to the UUID of the device this process is pinned to.
+    """
     try:
-        out = subprocess.run(["nvidia-smi", "--query-compute-apps=used_memory",
+        visible = os.environ.get("CUDA_VISIBLE_DEVICES", "").split(",")[0].strip()
+        rows = subprocess.run(["nvidia-smi", "--query-gpu=index,uuid",
+                               "--format=csv,noheader"],
+                              capture_output=True, text=True).stdout.strip().splitlines()
+        uuid = next(u.strip() for r in rows
+                    for i, u in [r.split(",", 1)] if i.strip() == visible)
+        out = subprocess.run(["nvidia-smi", "--query-compute-apps=gpu_uuid,pid,used_memory",
                               "--format=csv,noheader,nounits"],
                              capture_output=True, text=True).stdout.strip()
-        used = [int(v) for v in out.splitlines() if v.strip()]
+        me = os.getpid()
+        used = [int(m) for line in out.splitlines() if line.strip()
+                for g, pid, m in [[x.strip() for x in line.split(",")]]
+                if g == uuid and int(pid) != me]
         return (sum(used) < threshold_mib), used
     except Exception as exc:                                  # pragma: no cover
         return False, [str(exc)]

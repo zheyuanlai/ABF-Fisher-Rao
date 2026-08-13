@@ -1857,3 +1857,74 @@ scheduling; no physics, seed, budget, gate or endpoint changes.
 Two later WCA amendments were appended with duplicate numbers 11 and 12 (2026-08-12, lines
 following Amendment 13). They are left as committed; this amendment is numbered 14 as the next
 in true sequence, and any citation of "Amendment 11/12" states which of the two it means.
+
+---
+
+### Amendment 15 — NaCl execution discipline: the dt decision rule, the window ordering, gated launches, and two GPUs (2026-08-13)
+
+**What had been seen when this was written, stated because it matters here:** the first NaCl
+dt-gate run and its retraction. That run printed `2 fs: dT = 2.67 K FAIL` with error bars later
+shown to be ~2.2× too small (honest reading: 2.67 ± 1.07 K, 2.5σ); `1 fs: dT = 1.37 K PASS`.
+The convention hypothesis was tested and refuted (`getKineticEnergy` ≡ explicit `Σ½mv²`, gap
++0.000 K). **No NaCl free-energy, reference, screen or mFR datum existed.** The rule in 15.1 is
+frozen with the borderline 2 fs number already known, and is deliberately conservative so that
+knowledge cannot be exploited in either direction.
+
+#### 15.1 The timestep decision rule, frozen before the rerun
+
+One preregistered run of the rebuilt gate; no extensions, no reruns on the same question:
+
+* constraint clause (deterministic): float64, 4 walkers × 5 ps; `max violation <= 1e-8 nm`;
+* equipartition clause (statistical): **production dtype** (float32), 32 walkers × 60 ps
+  (10 ps warm) against 4 independent OpenMM replicas × 60 ps; both SEMs by **blocking** with
+  10τ ≈ 5 ps blocks (calibrated on a known-truth AR(1) series: 2τ blocks understate by 26 %,
+  10τ by 6 %; the residual bias is negative, so PASS is the weaker claim);
+* with `σ = sqrt(sem_torch² + sem_openmm²)`:
+  `PASS` iff `dT + σ <= 2.0 K`; `FAIL` iff `dT − σ > 2.0 K`; else `INDETERMINATE`.
+
+Decision: **2 fs PASS → 2 fs. 2 fs FAIL or INDETERMINATE → 1 fs.** At 1 fs, `FAIL` of either
+clause (confident, same definitions) → **STOP, engine defect**; `INDETERMINATE` at 1 fs → 1 fs
+(the conservative endpoint of the preregistered ladder). The decision is written once to
+`results/nacl/stage1/dynamics_gate.json` and never revisited because later free-energy results
+look better or worse.
+
+#### 15.2 `Omega_thermal` and reference acceptance: the ordering is one-way
+
+SPEC §2.1 defines the window from "the accepted reference" while §5 uses the window inside
+acceptance — a circularity if read as iterative. It is not iterative, and the operational order
+is frozen: three raw builds → candidate consensus `F` → window from the fixed 15 kT rule on
+that candidate → acceptance evaluated on that fixed mask → **PASS accepts reference and window
+jointly; FAIL is a STOP.** There is no path on which the mask is adjusted and acceptance
+re-evaluated. (This is what `nacl_ti_analyze.py` already computes; the amendment removes the
+ambiguity in the spec text, not the behaviour.)
+
+#### 15.3 Launch discipline: no autolaunch, pinned code, mechanical ladder
+
+The GPU-idle autolaunch watcher is **retired** (nine defects were found in already-tested code
+in one night; "GPU idle" is no longer a sufficient launch condition, and the shared tree is
+edited concurrently by the methane session). Every expensive NaCl run now requires:
+
+* a **pinned worktree**: NaCl production processes run from a detached worktree at the commit
+  recorded in `results/nacl/PINNED_COMMIT`; the methane session's edits to the shared engine
+  cannot reach it. Untracked data inputs/outputs are shared with the main tree by symlink;
+  the cleanliness requirement applies to **code paths** (`src scripts tests docs`);
+* the **launch ladder** (`scripts/nacl_launch_ladder.sh`): preflight (pinned commit matches,
+  code tree clean, NaCl test suite passes, target GPU idle, launch manifest written) →
+  Triton correctness → idle-device throughput → TI smoke run → the 15.1 dt gate →
+  checkpoint-resume verification on the real driver → **STOP**. The ladder never launches the
+  reference; that is a separate, reviewed action recorded in `docs/NACL_EXECUTION_STATE.md`;
+* a failed step stops the ladder. A defect found mid-ladder is patched → tested → committed →
+  **new pinned commit** → ladder restarted from the top. No opportunistic patch-and-continue.
+
+`docs/NACL_EXECUTION_STATE.md` is the execution state machine: current pinned commit, stage,
+last gate verdict, the single next permitted action, and forbidden actions. It is updated after
+every stage and read at the start of every session.
+
+#### 15.4 Compute: two GPUs for NaCl once methane concludes on GPU 3
+
+By explicit user directive (2026-08-13): the campaign runs concurrently on GPUs 2 and 3 —
+methane on GPU 3 until its screen and benchmark complete, NaCl on GPU 2 from the seed-5004
+handover. **Once methane vacates GPU 3, NaCl may use both devices**, one process per GPU,
+pinned with `CUDA_VISIBLE_DEVICES`, idle state recorded per stage. First use: the TI
+reference's three independent builds split across the two devices. This is scheduling; no
+physics, seed, budget, gate or endpoint changes.
