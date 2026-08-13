@@ -77,6 +77,19 @@ def main():
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
 
+    # The retirement rule is a JOINT criterion: build-to-build spread AND wet-dry family spread
+    # must both fall below tolerance.  With a single build the build spread is 0 by construction,
+    # so the criterion degenerates and EVERY r-point retires at the first checkpoint -- producing
+    # a reference that looks converged because it was never given the chance to disagree with
+    # itself.  This also forbids the obvious parallelisation (one build per process/GPU): the
+    # stopping rule couples the builds, so the efficiency device is a correctness constraint on
+    # how the work may be split.  Identified by the NaCl session in its own TI; latent here.
+    if args.builds < 2:
+        raise SystemExit(
+            f"--builds {args.builds} degenerates the retirement rule: build-to-build spread is "
+            "0 by construction with one build, so every r-point would retire at the first "
+            "checkpoint. Use >= 2 builds, or split by r-point rather than by build.")
+
     man = json.load(open(os.path.join(args.box, "manifest.json")))
     L = float(man["box_L_nm"])
     pos_box = np.load(os.path.join(args.box, "box.npz"))["positions_nm"]
@@ -137,13 +150,15 @@ def main():
         for b in range(args.builds):
             for k in range(args.replicas):
                 fam = 1 if k >= n_half else 0
-                p = baths[(b, fam)].copy()
-                i, j = int(mi[0]), int(mi[1])
-                d = p[j] - p[i]; d -= L * np.round(d / L)
-                e = d / np.linalg.norm(d); mid = p[i] + 0.5 * d
-                p[i], p[j] = mid - 0.5 * r_nm * e, mid + 0.5 * r_nm * e
+                key = f"start_b{b}_f{fam}_r{r_nm:.4f}"
+                if key not in bz:
+                    raise SystemExit(
+                        f"cached starts lack {key}. Placing a methane at a new separation can "
+                        "drop it on a water (forces ~1e10 kJ/mol/nm), which destroys the walker "
+                        "on the first step and surfaces as a singular M-SHAKE matrix. Rerun "
+                        "scripts/methane_baths.py --per-r to generate minimised starts.")
                 recs.append((float(r_nm), b, fam))
-                starts.append(p)
+                starts.append(bz[key].astype(np.float64))
     recs = np.asarray(recs)
     starts = np.asarray(starts, dtype=np.float32)
     print(f"[plan] {len(recs)} trajectories assembled", flush=True)
