@@ -89,7 +89,11 @@ $PY scripts/nacl_ti_torch.py --smoke --dt 0.002 --out "$MAIN/results/nacl/ti_smo
 
 # ---------------- 3: dt gate under the frozen 15.1 rule ---------------------------------
 step "dt gate (Amendment 15.1)"
-$PY scripts/nacl_dynamics_gate.py || fail "dt gate crashed"
+if grep -qE '"dt_chosen_ps": 0\.[0-9]+' "$LOG/dynamics_gate.json" 2>/dev/null; then
+  echo "dt gate already DECIDED -- Amendment 15.1 permits exactly one run, ever; reusing it."
+else
+  $PY scripts/nacl_dynamics_gate.py || fail "dt gate crashed"
+fi
 grep -qE '"dt_chosen_ps": 0\.[0-9]+' "$LOG/dynamics_gate.json" \
   || fail "no timestep chosen -- engine defect; NaCl does not run"
 echo "dt decision:"; grep -E '"dt_chosen_ps"|"verdict"' "$LOG/dynamics_gate.json"

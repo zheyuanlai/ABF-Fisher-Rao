@@ -98,10 +98,70 @@ def correctness(L, x0):
     out["engine_e_rel"] = float((e_b - e_a).abs().max() / e_a.abs().max())
     out["engine_f_rel"] = rel(f_b, f_a)
     print(json.dumps(out, indent=2))
-    ok = (out["f_triton_vs_f64"] < 2e-5 and out["engine_f_rel"] < 2e-5
+    # The criterion is RELATIVE to this system's measured float32 floor, not an absolute
+    # transplanted from methane: the first version required f_triton_vs_f64 < 2e-5, but NaCl's
+    # gated tensor float32 path itself sits ~3.6e-5 from float64 (every site charged and
+    # LJ-active), so the absolute threshold failed BOTH kernels' shared representation, not the
+    # Triton kernel. Triton is accepted when its disagreement with the tensor path is well
+    # under the float32-vs-float64 floor -- i.e. pure reassociation -- on the same system.
+    floor = out["f_torch32_vs_f64"]
+    ok = (out["f_triton_vs_torch32"] <= 0.5 * floor
+          and out["engine_f_rel"] <= 0.5 * floor
           and out["batched_consistency"] < 1e-3)
-    print("TRITON CORRECTNESS:", "PASS" if ok else "FAIL")
+    out["float32_floor_vs_f64"] = floor
+    out["criterion"] = "triton-vs-tensor and engine-vs-engine <= 0.5 * float32 floor; batch exact"
+    print(f"TRITON STATIC: {'PASS' if ok else 'FAIL'} "
+          f"(triton-vs-tensor {out['f_triton_vs_torch32']:.2e} vs floor {floor:.2e})")
     return out, ok
+
+
+def trajectory_gate(L, x0, dt, walkers=8, warm_ps=2.0, measure_ps=8.0):
+    """The methane session's standard: a kernel can be right on forces and wrong in dynamics.
+
+    Same starts, same seed streams, tensor vs Triton path, 8 ps of BAOAB: kinetic temperatures
+    must agree within 3 sigma (blocked SEMs) and constraint violations must be same-order.
+    """
+    import torch
+    from methane.dynamics import BAOAB, RigidWaterConstraints
+    dev = "cuda"
+    res = {}
+    for use_triton in (False, True):
+        ff = NaClNonbonded(L, device=dev, dtype=torch.float32)
+        if use_triton:
+            ff.enable_triton()
+        cons = RigidWaterConstraints(ff.params["waters"], nsys.rigid_water_lengths(),
+                                     ff.params["mass"], device=dev, dtype=torch.float32)
+        integ = BAOAB(lambda q: ff.energy_forces(q), ff.params["mass"], cons, dt,
+                      nsys.TEMPERATURE_K, nsys.GAMMA_PS, device=dev, dtype=torch.float32)
+        gen = torch.Generator(device=dev).manual_seed(881)
+        x = torch.tensor(np.repeat(x0[None], walkers, 0), device=dev, dtype=torch.float32)
+        v = integ.maxwell_velocities(x, generator=gen)
+        _, f = ff.energy_forces(x)
+        temps, viol = [], 0.0
+        n_warm, n_meas = int(warm_ps / dt), int(measure_ps / dt)
+        for step_i in range(n_warm + n_meas):
+            _, f = integ.step(x, v, f, generator=gen)
+            if step_i >= n_warm and step_i % max(1, int(0.1 / dt)) == 0:
+                temps.append(float(integ.temperature(v).mean()))
+                viol = max(viol, cons.max_violation(x))
+        t = np.asarray(temps)
+        per = max(2, int(round(2.5 / 0.1)))
+        nb = len(t) // per
+        sem = (float(np.std(t[:nb * per].reshape(nb, per).mean(1), ddof=1) / np.sqrt(nb))
+               if nb >= 3 else float(np.std(t) / np.sqrt(len(t))))
+        res["triton" if use_triton else "tensor"] = dict(
+            T_mean=float(t.mean()), T_sem=sem, max_violation_nm=viol)
+        del ff
+        torch.cuda.empty_cache()
+    dT = abs(res["triton"]["T_mean"] - res["tensor"]["T_mean"])
+    sigma = float(np.hypot(res["triton"]["T_sem"], res["tensor"]["T_sem"]))
+    viol_ratio = res["triton"]["max_violation_nm"] / max(res["tensor"]["max_violation_nm"], 1e-12)
+    ok = (dT <= 3.0 * sigma) and (0.1 <= viol_ratio <= 10.0)
+    res.update(dT_K=dT, sigma_K=sigma, viol_ratio=viol_ratio, PASS=bool(ok))
+    print(f"TRITON TRAJECTORY: {'PASS' if ok else 'FAIL'} "
+          f"(dT {dT:.2f} +- {sigma:.2f} K = {dT/max(sigma,1e-9):.1f} sigma, "
+          f"viol ratio {viol_ratio:.2f})")
+    return res, ok
 
 
 def timing(L, x0, batches, chunks, dt, steps=30):
@@ -171,8 +231,15 @@ def main():
     report = dict(L_nm=L, gpu=os.environ.get("CUDA_VISIBLE_DEVICES", "unset"),
                   device_idle=idle, device_used_mib=used)
     if args.correctness:
-        report["correctness"], ok = correctness(L, x0)
-        report["triton_correctness_pass"] = ok
+        report["correctness"], ok_static = correctness(L, x0)
+        ok_traj, res_traj = True, None
+        if ok_static:
+            gate_path = nsys.REPO / "results/nacl/stage1/dynamics_gate.json"
+            dtq = (json.load(open(gate_path))["dt_chosen_ps"] if gate_path.exists()
+                   else nsys.DT_PS)
+            res_traj, ok_traj = trajectory_gate(L, x0, dtq)
+        report["trajectory_gate"] = res_traj
+        report["triton_correctness_pass"] = bool(ok_static and ok_traj)
     if args.timing:
         if not idle and not args.allow_contended:
             raise SystemExit("device is NOT idle; timing numbers here are worthless "
