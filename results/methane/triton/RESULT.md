@@ -44,3 +44,28 @@ The 8 ps equipartition trajectory gate was **not run** — it exists (`scripts/m
 and would have gated deployment, but the benchmark decided deployment first and spending 15 min of
 GPU on a gate for a kernel that will not ship is not a good trade. Recorded as not-run rather than
 implied to have passed.
+
+## Was this table itself a dynamo artifact? Checked, no.
+
+The NaCl session lost a scheduling decision to `torch.compile` silently falling back to eager:
+every `(B, chunk)` is a new shape, dynamo's `cache_size_limit` is 8, and past that it stops
+recompiling — producing an apparent 8x throughput cliff that is the compiler giving up rather
+than the hardware. Their tell was an identical `us/traj-step` across four different batch sizes.
+
+This sweep is clean, on three independent checks:
+
+1. **Shape count.** Each tag builds a fresh engine, so at most 4 distinct shapes reach any one
+   compiled function, against a limit of 8. The tensor tag compiles `pair.energy_forces` and
+   `recip.energy`; the triton tag compiles only `recip.energy`, since the kernel is not a dynamo
+   function at all.
+2. **The tell is absent.** Tensor `us/traj-step` spreads 13.72 (57.96–71.68) — a real memory-bound
+   degradation, not a step change. The triton path *is* nearly flat (0.87 spread), but it is a raw
+   kernel with no dynamo involvement, so flatness there is the expected result rather than a
+   fallback signature.
+3. **Independent cross-check.** The benchmark measures `energy_forces` alone at 29.85 ms/step for
+   `B = 512`; the production seed 5003 log shows 38.6 ms/step for the full step. The 8.75 ms
+   difference is the M-SHAKE/RATTLE solver and the integrator, which is the right order. A benched
+   number running eager would not reconcile with the production rate this way.
+
+`torch._dynamo.reset()` now runs per configuration regardless, so a larger sweep cannot hit the
+limit silently.

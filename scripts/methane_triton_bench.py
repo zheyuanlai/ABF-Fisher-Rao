@@ -29,6 +29,7 @@ import time
 
 import numpy as np
 import torch
+import torch._dynamo
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
@@ -129,6 +130,15 @@ def main():
         ff.recip.energy = torch.compile(ff.recip.energy, dynamic=False)
         row = {}
         for B in [int(b) for b in args.batches.split(",")]:
+            # Every (B, chunk) is a new shape to dynamo, and its cache_size_limit is 8: past
+            # that it stops recompiling and silently runs EAGER, which reads as a throughput
+            # cliff that looks like physics. The NaCl session lost a scheduling decision to
+            # exactly this -- an 8x "collapse" that was the compiler giving up, with the tell
+            # sitting in its own table as an identical us/traj-step across four batch sizes.
+            # This sweep uses 4 shapes per compiled function so it never reached the limit
+            # (verified: tensor spread 13.72 us, not a 20x step), but the reset makes the
+            # benchmark correct for any larger sweep someone runs later.
+            torch._dynamo.reset()
             try:
                 x = torch.tensor(base, device=dev, dtype=torch.float32).unsqueeze(0).repeat(B, 1, 1)
                 x = x + 0.001 * torch.randn_like(x)
