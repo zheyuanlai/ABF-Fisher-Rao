@@ -195,3 +195,57 @@ def test_a_missing_family_makes_the_reference_incomplete():
         assert rep["completeness"]["COMPLETE"] is False
         assert rep["acceptance"]["ACCEPTED"] is False, "an incomplete reference was accepted"
         assert "INCOMPLETE" in stdout
+
+
+def test_gate0_numerator_and_denominator_share_one_population():
+    """Gate 0 is a RATIO, and ratios have this campaign's worst record.
+
+    The failure mode is a numerator over one population and a denominator over another: here,
+    a spread averaged only over points where every family reported, divided by a |f| averaged
+    over ALL points including ones the numerator skipped. The wall points make that difference
+    enormous (|f| ~ 24000 there against ~50 in the physical region), so an incommensurable
+    Gate 0 would read ~500x too small and pass anything.
+
+    Constructed so the two answers differ by orders of magnitude, and the commensurable one
+    is required.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        ti, out = os.path.join(tmp, "ti"), os.path.join(tmp, "ref")
+        # family 1 missing at the two wall points, where |f| is ~1000x the physical region
+        build_synthetic(ti, family_spread=0.30, drop_family_at=0.20)
+        rep, _ = run_analyzer(ti, out)
+        g0 = rep["gate0"]
+        assert g0["COMPUTABLE"] is True
+        # the wall points are excluded from BOTH arguments -> coverage says so
+        assert g0["coverage"]["points_used"] < g0["coverage"]["points_total"]
+        # and the reported ratio must reflect the planted 0.30 spread, not be diluted by the
+        # wall's huge |f| sitting only in the denominator
+        assert g0["global_spread_ratio"] > 0.10, (
+            f"Gate 0 read {g0['global_spread_ratio']:.4f} for a planted 0.30 spread -- the "
+            "denominator is averaging over points the numerator excluded")
+
+
+def test_acceptance_ratio_uses_the_window_for_both_arguments():
+    """max pairwise L2 / (0.10 * span): both must be the FROZEN WINDOW, not the full grid.
+
+    The full grid includes the repulsive wall, whose span is ~25x the window's. An acceptance
+    ratio with a window-restricted L2 over a full-grid span would be ~25x too small and would
+    accept a reference that disagrees badly with itself.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        ti, out = os.path.join(tmp, "ti"), os.path.join(tmp, "ref")
+        r_grid, F, kT = build_synthetic(ti, family_spread=0.0)
+        rep, _ = run_analyzer(ti, out)
+        w, acc = rep["endpoint_window"], rep["acceptance"]
+        # Compare against the analyzer's OWN F_ref, not against the true F: the difference
+        # between those two is reconstruction noise, which is a different question. What is
+        # under test is whether the span and the L2 come from the same masked array.
+        d = np.load(os.path.join(out, "reference.npz"))
+        F_ref, mask = d["F_ref"], d["endpoint_window"].astype(bool)
+        full_span = float(F_ref.max() - F_ref.min())
+        assert acc["F_span_kJ"] < 0.5 * full_span, (
+            "the reported span is not the window's -- window "
+            f"{acc['F_span_kJ']:.1f} vs full grid {full_span:.1f} kJ")
+        assert acc["F_span_kJ"] == pytest.approx(
+            float(F_ref[mask].max() - F_ref[mask].min()), rel=1e-9), \
+            "span and window disagree: the ratio's two arguments are not commensurable"
