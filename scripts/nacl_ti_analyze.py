@@ -59,7 +59,11 @@ def find_basins(r, F, kT):
             a, b = mins[k], mins[k + 1]
             barrier = F[a:b + 1].max() - max(F[a], F[b])
             if barrier < 2.0 * kT:
-                mins.pop(a if F[a] > F[b] else b if False else (k if F[a] > F[b] else k + 1))
+                # drop the SHALLOWER of the pair, by LIST POSITION.  `a` and `b` are grid
+                # indices; popping one of those removes an unrelated basin when it happens to
+                # be a valid position and raises IndexError when it does not -- and the silent
+                # case keeps the higher minimum and discards the deeper one.
+                mins.pop(k if F[a] > F[b] else k + 1)
                 changed = True
                 break
     bounds = []
