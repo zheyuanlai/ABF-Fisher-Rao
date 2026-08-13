@@ -192,8 +192,12 @@ def main():
     # under-sampled basins make Gate A NOT COMPUTABLE instead.
     MIN_SAMPLES_PER_BASIN = 12
     ybar = np.where(ycnt[:, None] > 0, ysum / np.maximum(ycnt, 1)[:, None], np.nan)
-    basin_masks = [((recs[:, 0] >= b_["r_lo_nm"]) & (recs[:, 0] <= b_["r_hi_nm"]))
-                   for b_ in basins]
+    # half-open, so adjacent basins partition the r-grid instead of sharing their boundary
+    # point (see `basin_masks` in nacl_gates.py)
+    basin_masks = [((recs[:, 0] >= b_["r_lo_nm"]) &
+                    ((recs[:, 0] <= b_["r_hi_nm"]) if k == len(basins) - 1
+                     else (recs[:, 0] < b_["r_hi_nm"])))
+                   for k, b_ in enumerate(basins)]
     basin_counts = [int(np.isfinite(ybar[m, 0]).sum()) for m in basin_masks]
     gateA_computable = all(c >= MIN_SAMPLES_PER_BASIN for c in basin_counts) and len(basins) > 1
     gateA, gateA_max = {}, None

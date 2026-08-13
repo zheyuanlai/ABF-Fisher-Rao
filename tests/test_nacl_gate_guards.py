@@ -121,6 +121,53 @@ def test_gate_a_not_computable_is_not_a_failure():
     assert 'gA.get("COMPUTABLE") is False' in consumer, "the consumer must branch on it"
 
 
+# ---------------------------------------------------------------- numerical robustness of Q*
+@pytest.mark.parametrize("bias_kind", ["zero", "plus2000", "minus2000", "ramp5000", "equal_F"])
+def test_bias_aware_target_survives_extreme_biases(bias_kind):
+    """The nan can also arrive through arithmetic from perfectly finite inputs: an unstabilised
+    exp(-beta (F_ref - B_t)) overflows or underflows to all-zeros and the 0/0 reproduces exactly
+    the silent 'no deficit' this suite exists to prevent.  The exponent is stabilised by
+    subtracting its minimum, and this pins that it stays so."""
+    g = _load("nacl_gates")
+    n_grid, n_cp, S = 41, 4, 2
+    grid = np.linspace(0.2, 1.4, n_grid)
+    F_ref = 50.0 * np.sin(np.linspace(0, 3, n_grid))
+    bias = {"zero": np.zeros(n_grid),
+            "plus2000": np.full(n_grid, 2000.0),
+            "minus2000": np.full(n_grid, -2000.0),
+            "ramp5000": np.linspace(-5000.0, 5000.0, n_grid),
+            "equal_F": F_ref.copy()}[bias_kind]
+    basins = [dict(label="CIP", r_lo_nm=0.2, r_hi_nm=0.5),
+              dict(label="SSIP", r_lo_nm=0.5, r_hi_nm=1.4)]
+    pmf = np.broadcast_to(bias, (n_cp, S, n_grid)).copy()
+    out = g.gate_c(np.ones((n_cp, S, n_grid)), pmf, np.linspace(0, 1000, n_cp), grid,
+                   F_ref, basins, 0.40091, 1000.0)
+    assert set(out) == {"CIP", "SSIP"}
+    for v in out.values():
+        assert all(np.isfinite(v["longest_deficit_ps"]))
+
+    x = F_ref - bias
+    w = np.exp(-0.40091 * (x - x.min()))
+    assert np.isfinite(w).all() and w.sum() >= 1.0        # at least the argmin contributes 1
+
+
+def test_basin_masks_partition_the_grid():
+    """Closed-on-both-ends masks double-count the shared boundary bin; the targets then sum to
+    more than one (measured 1.024 on a 41-point grid before the fix)."""
+    g = _load("nacl_gates")
+    grid = np.linspace(0.2, 1.4, 41)
+    basins = [dict(label="CIP", r_lo_nm=0.2, r_hi_nm=0.5),
+              dict(label="SSIP", r_lo_nm=0.5, r_hi_nm=0.9),
+              dict(label="outer", r_lo_nm=0.9, r_hi_nm=1.4)]
+    masks = g.basin_masks(grid, basins)
+    stacked = np.stack([masks[b["label"]] for b in basins])
+    assert (stacked.sum(axis=0) == 1).all(), "masks must partition: no bin in two basins, none lost"
+
+    w = np.ones(len(grid))
+    Q = [float(w[masks[b["label"]]].sum() / w.sum()) for b in basins]
+    assert sum(Q) == pytest.approx(1.0, abs=1e-12)
+
+
 def test_incomplete_reference_cannot_be_accepted():
     src = open(os.path.join(ROOT, "scripts", "nacl_ti_analyze.py")).read()
     assert "ACCEPTED=bool(accepted and complete)" in src

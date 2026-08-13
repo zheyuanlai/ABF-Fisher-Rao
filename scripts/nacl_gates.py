@@ -40,6 +40,24 @@ DEFICIT_RATIO = 0.5     #: Gate C: occupancy below half the bias-aware target
 DEFICIT_FRACTION = 0.20  #: for a contiguous 0.20 T in the second half
 
 
+def basin_masks(grid, basins):
+    """Half-open basin masks that PARTITION the grid: ``[lo, hi)`` except the last, ``[lo, hi]``.
+
+    Written closed on both ends, adjacent basins share their boundary bin, so that bin is
+    counted twice -- the bias-aware targets then sum to more than one (measured: 1.024 on a
+    41-point grid) and every basin occupancy is inflated by its own edges.  The error is
+    largely common to ``P`` and ``Q`` so it does not swamp Gate C, but a partition is what the
+    definition asks for and it costs nothing to be exact.
+    """
+    masks = {}
+    for k, b in enumerate(basins):
+        last = (k == len(basins) - 1)
+        m = (grid >= b["r_lo_nm"]) & ((grid <= b["r_hi_nm"]) if last
+                                      else (grid < b["r_hi_nm"]))
+        masks[b["label"]] = m
+    return masks
+
+
 def gate_b(xi_trace, xi_steps, dt, basins, T_ps):
     """Per-seed, per-state first persistent entry time."""
     n_frames, S, N = xi_trace.shape
@@ -85,7 +103,7 @@ def gate_c(diag_occ, diag_pmf, diag_times, grid, F_ref_on_grid, basins, beta, T_
     times = np.asarray(diag_times, dtype=float)
     dz = float(grid[1] - grid[0])
     out = {}
-    masks = {b["label"]: (grid >= b["r_lo_nm"]) & (grid <= b["r_hi_nm"]) for b in basins}
+    masks = basin_masks(grid, basins)
     second_half = times >= 0.5 * T_ps
     need_ps = DEFICIT_FRACTION * T_ps
 
