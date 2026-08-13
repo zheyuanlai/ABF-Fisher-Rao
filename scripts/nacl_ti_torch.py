@@ -204,6 +204,14 @@ def main():
         ysum, ycnt = z["ysum"], z["ycnt"]
         active, retired_at = z["active"], z["retired_at"]
         done_ps = float(z["done_ps"]); stage = str(z["stage"])
+        if args.no_retire and not active.all():
+            # --no-retire must UN-retire on resume, or a state saved by a run whose retirement
+            # rule fired leaves nothing to extend and the resume is a silent no-op (measured).
+            n_re = int((~active).sum())
+            active[:] = True
+            retired_at[:] = np.nan
+            print(f"[resume] --no-retire: reactivated {n_re} trajectories retired by the "
+                  "previous run's rule", flush=True)
         print(f"[resume] stage '{stage}', {done_ps} ps done, {int(active.sum())} active",
               flush=True)
 
