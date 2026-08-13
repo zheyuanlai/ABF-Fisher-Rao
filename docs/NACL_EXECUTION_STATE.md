@@ -15,16 +15,21 @@ VERDICT:                dt = 2 fs DECIDED (Amendment 15.1, one run, never revisi
                         2.1e-15 nm. Triton PASSES both gates but is NOT adopted: measured
                         918 ns/day vs tensor 1020 at its best config, so the reference runs
                         the already parity-gated tensor path at max-batch 256.
-NEXT PERMITTED ACTION:  on extension completion -> nacl_ti_analyze.py -> FINAL reference
-                        acceptance + Gate 0 + Gate A. If either fails: STOP and report.
-                        If both pass -> screen cell N=64 ONLY, then Gates B/C before any
-                        other cell. Screen layout decided from measured throughput:
-                        SPLIT the 8 seeds 4+4 across GPUs 2 and 3 at B=256 each (tensor
-                        path, 1023 ns/day) = 9.4 h, against 21.1 h for one B=512 process
-                        on Triton and 29.2 h on tensor. Seeds are independent ensembles and
-                        Gate B/C statistics are per-seed counts, so a seed split is safe;
-                        an ARM split would not be (the WCA one-process rule). Requires
-                        methane's explicit GPU 3 release. Meanwhile GPU 3 idle -> nothing.
+NEXT PERMITTED ACTION:  on extension completion (~02:35 UTC Fri) -> nacl_ti_analyze.py ->
+                        FINAL acceptance + Gate 0 + Gate A. Either failing = the study's
+                        verdict; report and STOP.
+                        If both pass -> screen cell N=64, layout HALF-AND-HALF (option C,
+                        chosen by measurement 2026-08-13 18:30):
+                          * seeds 4000-4003 on GPU 2 immediately (B=256, tensor, 1023 ns/day)
+                          * seeds 4004-4007 on GPU 3 when methane releases it (06:00-12:35 Fri)
+                        Finishes 19:08 Fri (best) / 01:44 Sat (worst) -- against 07:42 Sat for
+                        all 8 seeds on GPU 2 alone, because the tensor path is 1023 ns/day at
+                        B=256 and collapses to 124 at B=512, so two half-batches beat one
+                        whole one by more than 2x. Starting half NOW also hedges: if GPU 3
+                        never frees, 4 seeds still exist and the shortfall is explicit
+                        (Gate B needs 6 of 8 -- a 4-seed screen yields NO verdict, only
+                        PRELIMINARY values, per the methane session's 9367682 correction).
+                        Gate B/C analysis runs ONLY when all 8 seeds are present.
 FORBIDDEN ACTIONS:      launching the TI reference (separate reviewed action after the ladder);
                         any screen cell before Gate 0/A; any mFR before Gates 0-D; editing the
                         SPEC except by numbered amendment; retuning anything against a result;
