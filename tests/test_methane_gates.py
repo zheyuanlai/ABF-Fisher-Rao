@@ -1,0 +1,100 @@
+"""Regression gates for the gate analysis itself (scripts/methane_gates.py).
+
+Every test here pins a defect that was **live in shipped analysis code**, found during a
+cross-audit between this study and the NaCl study.  They are not hypotheticals, and three of
+them would have changed a physics verdict rather than raising an error.
+
+The severity pattern is the reason this file exists: of the defects that were not symmetric in
+their effect, **all leaned toward the positive result** — toward crediting discovery, or toward
+declaring an establishment deficit, i.e. toward licensing an mFR arm.  For a benchmark whose
+preregistered expectation is a null, that is the direction to be most suspicious of, so each of
+these is asserted rather than reasoned about.
+
+Run: python -m pytest tests/test_methane_gates.py -q
+"""
+import os
+import sys
+
+import numpy as np
+import pytest
+
+ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+sys.path.insert(0, os.path.join(ROOT, "src"))
+sys.path.insert(0, os.path.join(ROOT, "scripts"))
+
+from methane_gates import (assert_partition, bias_aware_target,  # noqa: E402
+                           in_basin, state_of, tercile_edges)
+
+GRID = np.linspace(0.33, 0.90, 115)
+EDGES = tercile_edges(float(GRID[0]), float(GRID[-1]))
+BETA = 0.4036
+
+
+# ------------------------------------------------------------------ class 3: partitions
+def test_grid_is_an_exact_partition():
+    """Half-open everywhere silently drops grid[-1]; closed everywhere double-counts edges."""
+    counts = np.sum([in_basin(GRID, EDGES, k) for k in range(3)], axis=0)
+    assert np.all(counts == 1)
+    assert_partition(GRID, EDGES, "grid")
+
+
+def test_bias_aware_target_sums_to_one():
+    q = bias_aware_target(np.linspace(0, 8, 115), np.zeros(115), GRID, EDGES, BETA)
+    assert q.sum() == pytest.approx(1.0, abs=1e-12)
+
+
+def test_out_of_domain_walkers_are_not_dropped():
+    """THE UNSAFE ONE.  Walkers leave the domain through the soft walls; the screen's measured
+    range is [0.322, 0.922] against a domain of [0.33, 0.90].  Dropping them under-counts
+    occupancy against a full-weight target, so `occupancy < 0.5 Q*` fires too easily and the
+    verdict is biased toward establishment-limited -- the direction that licenses an mFR arm.
+    Measured before the fix: occupancies summing to 0.8.
+    """
+    xi = np.array([0.322, 0.35, 0.60, 0.88, 0.922])
+    st = state_of(xi, EDGES)
+    assert np.all(st >= 0), "an out-of-domain walker was assigned to no basin"
+    assert sum(np.mean(st == k) for k in range(3)) == pytest.approx(1.0)
+    # clamped to the nearest basin, not silently binned somewhere else
+    assert st[0] == 0 and st[-1] == 2
+
+
+def test_partition_assertion_is_live():
+    bad = [(0.33, 0.60), (0.50, 0.75), (0.75, 0.90)]        # overlapping, as in the NaCl defect
+    with pytest.raises(ValueError, match="not a partition"):
+        assert_partition(GRID, bad, "overlapping")
+
+
+# ------------------------------------------------------------------ class 1: no-data-as-pass
+@pytest.mark.parametrize("bad", [np.nan, np.inf, -np.inf])
+def test_non_finite_bias_raises_rather_than_returning_nan(bad):
+    """A nan Q* makes `occupancy < 0.5 Q*` False everywhere -> no deficit -> ABF-sufficient.
+    A study-ending verdict manufactured by missing data."""
+    B = np.zeros(115)
+    B[7] = bad
+    with pytest.raises(ValueError, match="non-finite"):
+        bias_aware_target(np.linspace(0, 8, 115), B, GRID, EDGES, BETA)
+
+
+def test_nan_target_would_have_read_as_no_deficit():
+    """Demonstrates the consequence the guard prevents, so the guard's purpose cannot be
+    mistaken for fussiness."""
+    occ = np.array([0.1, 0.2, 0.7])
+    q_nan = np.full(3, np.nan)
+    assert not (occ < 0.5 * q_nan).any(), "premise of the guard no longer holds"
+
+
+@pytest.mark.parametrize("bias", [-5000.0, -2000.0, 0.0, 2000.0, 5000.0])
+def test_target_is_stable_under_large_bias(bias):
+    """Overflow/underflow of exp(-beta (F - B)) produced the same silent nan from complete,
+    finite inputs -- reachable in a normal run once the applied bias grows."""
+    q = bias_aware_target(np.linspace(0, 8, 115), np.full(115, bias), GRID, EDGES, BETA)
+    assert np.all(np.isfinite(q))
+    assert q.sum() == pytest.approx(1.0, abs=1e-12)
+
+
+def test_uniform_bias_leaves_the_target_unchanged():
+    """A constant added to the bias is a gauge choice and must not move Q* at all."""
+    F = np.linspace(0, 8, 115)
+    a = bias_aware_target(F, np.zeros(115), GRID, EDGES, BETA)
+    b = bias_aware_target(F, np.full(115, 1234.5), GRID, EDGES, BETA)
+    assert np.allclose(a, b, atol=1e-12)

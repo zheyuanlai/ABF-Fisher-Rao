@@ -1433,6 +1433,51 @@ outcome where it ties or reverses and the novelty claim of §0 dies. A tie is te
 If methane is null, the three-arm design has saved the two extra arms and Q1 remains open for
 NaCl, which is where it was always going to be answered if methane fails.
 
+#### 12.9 Analysis-code failure classes, and their direction (2026-08-13)
+
+**Written before any screen verdict existed.** A cross-audit between the methane and NaCl
+sessions found **six live defects in shipped analysis code** in about an hour, none of which
+raised an error and all of which would have been read as physics. They fall into three classes,
+recorded here because the classes generalise beyond either study and because the **direction**
+of the asymmetric ones is the finding.
+
+| class | rule | instances |
+|---|---|---|
+| 1 | **"No data" must never take the branch a PASS would take.** | 4 |
+| 2 | **"No data" must never read as a *smaller* number** where that loosens a bound. | 1 |
+| 3 | **A quantity defined as a partition must be tested as one** — on the sampled values, not only on the grid. | 3 |
+
+Class 1 examples: an uncomputable Gate A skipped by an `isfinite` guard and falling through as
+though it had passed; a non-finite `Q*` making `occupancy < 0.5 Q*` False at every checkpoint, so
+no deficit is ever flagged and the cell classifies **ABF-sufficient — STOP** on the strength of
+one missing reference point. The same nan is also reachable from *complete* inputs, because
+`exp(-beta [F_ref - B_t])` overflows or underflows once the applied bias grows; the exponent is
+now stabilised by subtracting its maximum.
+
+Class 2 example: `tau_perp` estimated as a max over descriptors, with never-decorrelating ones
+dropped rather than censored. That biases `tau_perp` **down** and the Gate D ceiling
+`0.1 / tau_perp` **up**, licensing a faster selection rate than the physics justifies. Censored
+points must enter at their lower bound and the ceiling reported as conservative.
+
+Class 3 example, and the one that generalises furthest: basin masks closed on both ends
+double-count shared boundaries (targets summing to 1.024); half-open everywhere drops the top
+edge (`Q*` summing to 0.9988). Both are benign on a grid. The **same masks applied to walker
+positions were not benign** — walkers leave the domain through the soft walls (measured range
+`[0.322, 0.922]` against a domain of `[0.33, 0.90]`), so out-of-domain walkers were dropped from
+every basin while `Q*` stayed normalised over the whole grid, and occupancies summed to **0.8**.
+A partition assertion that only ever sees the grid passes while the real defect sits one line
+away.
+
+> **The direction is the finding.** Of the six defects, those with an asymmetric effect **all
+> leaned toward the positive result** — toward crediting discovery, or toward declaring an
+> establishment deficit, i.e. toward licensing an mFR arm. None of them leaned toward a null.
+> That is the direction a benchmark preregistered as a likely null must be most suspicious of,
+> and it is an argument for auditing analysis code with the same discipline as the sampler, which
+> this campaign had been applying almost entirely to the latter.
+
+Pinned by `tests/test_methane_gates.py` (14 gates) and the NaCl session's equivalents, so each
+is a regression test rather than a fact someone would have to re-derive.
+
 #### 12.8 Correction to 12.4: the engine split is right, its stated reason was wrong
 
 **Written the same day as 12.4, after building the engine and measuring it, and before any
