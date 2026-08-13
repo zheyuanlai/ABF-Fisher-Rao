@@ -143,3 +143,39 @@ def test_equipartition_matches_openmm(minimised):
     ours, ref = float(np.mean(t_ours[10:])), float(np.mean(t_mm[10:]))
     assert abs(ours - msys.TEMPERATURE_K) < 15, f"ours settled at {ours:.1f} K"
     assert abs(ours - ref) < 8, f"ours {ours:.1f} K vs OpenMM {ref:.1f} K"
+
+
+def test_screen_resume_is_bit_identical(minimised, tmp_path):
+    """A resumed seed must equal an uninterrupted one exactly.
+
+    A seed is 512 walkers x 200 ps -- hours -- and was written only on completion, so any crash
+    lost the whole thing.  Checkpointing is only worth having if resuming actually reproduces
+    the run, which is a claim to *verify by resuming*, not to infer from the file existing.
+
+    Two off-by-one defects were found by exactly this test and would both have been silent:
+    writing the checkpoint before ``integ.step`` and resuming at ``step + 1`` skips one step's
+    dynamics (measured: max|d mean_force| = 0.75 on a 40-step run); and once the checkpoint
+    stores the resume step directly, adding 1 again on load drops a trace frame.
+    """
+    mod, system, pos, L, _, _ = minimised
+    ff, _, _ = _integrator(mod, system, L)
+    from methane.core import MethaneSimConfig, run_screen
+
+    rng = np.random.default_rng(0)
+    init = np.stack([pos + rng.normal(0, 0.004, pos.shape) for _ in range(3)])
+    cfg = dict(n_walkers=3, n_steps=40, box_nm=L, save_every=10, xi_trace_every=10,
+               ngap_every=20, abf_warmup_steps=10, dtype="float64")
+    kw = dict(device="cpu", dtype=torch.float64, verbose=False)
+
+    full = run_screen(ff, MethaneSimConfig(**cfg), init, mod.topology, **kw)
+    ck = str(tmp_path / "s.ckpt")
+    run_screen(ff, MethaneSimConfig(**{**cfg, "n_steps": 20}), init, mod.topology,
+               checkpoint_path=ck, checkpoint_every=10, **kw)
+    assert os.path.exists(ck), "no checkpoint was written"
+    resumed = run_screen(ff, MethaneSimConfig(**cfg), init, mod.topology,
+                         checkpoint_path=ck, checkpoint_every=10, **kw)
+
+    assert np.asarray(full["xi_trace"]).shape == np.asarray(resumed["xi_trace"]).shape
+    assert np.abs(full["mean_force"] - resumed["mean_force"]).max() == 0.0
+    assert np.abs(full["pmf"] - resumed["pmf"]).max() == 0.0
+    assert np.abs(np.asarray(full["xi_trace"]) - np.asarray(resumed["xi_trace"])).max() == 0.0

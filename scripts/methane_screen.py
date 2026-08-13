@@ -83,6 +83,8 @@ def main():
     ap.add_argument("--r-contact", type=float, default=0.38)
     ap.add_argument("--seeds", default=",".join(str(s) for s in SEEDS))
     ap.add_argument("--chunk", type=int, default=128)
+    ap.add_argument("--checkpoint-every", type=int, default=20_000,
+                    help="steps between full-state checkpoints (10 ps at dt=0.5 fs)")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
     seeds = [int(s) for s in args.seeds.split(",")]
@@ -126,9 +128,13 @@ def main():
 
         sim = MethaneSimConfig(n_walkers=args.n_walkers, n_steps=n_steps, box_nm=L,
                                rng_seed=seed, chunk=args.chunk)
+        ckpt = os.path.join(args.out, f"seed{seed}.ckpt")
         out = run_screen(ff, sim, init, mod.topology, device=dev, dtype=torch.float32,
-                         verbose=True, progress_every=20_000)
+                         verbose=True, progress_every=20_000,
+                         checkpoint_path=ckpt, checkpoint_every=args.checkpoint_every)
         np.savez_compressed(cell, seed=seed, **out)
+        if os.path.exists(ckpt):        # seed is complete; the resume state is now dead weight
+            os.remove(ckpt)
         print(f"[seed {seed}] done in {(time.time()-t0)/60:.1f} min -> {cell}", flush=True)
 
     with open(os.path.join(args.out, "manifest.json"), "w") as fh:

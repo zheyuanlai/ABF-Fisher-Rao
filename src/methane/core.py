@@ -22,6 +22,7 @@ Two guards carried over because the campaign paid for them
 """
 from __future__ import annotations
 
+import os
 import time
 from dataclasses import dataclass, field
 
@@ -108,12 +109,26 @@ def assert_distinct_solvent(init_positions, methane_index, tol_nm=1e-3):
 
 
 def run_screen(engine, sim: MethaneSimConfig, init_positions, topology, device="cuda",
-               dtype=torch.float32, verbose=True, progress_every=20_000):
+               dtype=torch.float32, verbose=True, progress_every=20_000,
+               checkpoint_path=None, checkpoint_every=20_000):
     """One ABF-only ensemble of ``sim.n_walkers`` walkers.
 
     ``engine`` is a :class:`methane.nonbonded.MethaneNonbonded`; ``init_positions`` is
     ``(n_walkers, n_sites, 3)`` in nm with independently equilibrated solvent.
     Returns profiles, traces and the diagnostics the gate analysis consumes.
+
+    Crash resumption
+    ----------------
+    A seed is 512 walkers x 200 ps, three to five hours.  Writing only on completion means any
+    crash, OOM or preemption at hour four costs the whole seed -- an exposure that is invisible
+    while everything succeeds and total on the one day it does not.  If ``checkpoint_path`` is
+    given, the **full** integrator state is written every ``checkpoint_every`` steps: positions,
+    velocities, forces, both estimator accumulators, the RNG state and every trace.  Restarting
+    with the same path resumes from the last checkpoint instead of from zero.
+
+    The RNG state is part of the checkpoint, not re-seeded, so a resumed run continues the same
+    noise realisation rather than starting a statistically different trajectory that happens to
+    share a seed label.
     """
     from .observables import n_gap_batch
 
@@ -149,9 +164,41 @@ def run_screen(engine, sim: MethaneSimConfig, init_positions, topology, device="
     xi_trace, xi_steps = [], []
     ngap_trace, ngap_xi, ngap_steps = [], [], []
     wrap_checked = False
+    start_step = 0
+
+    if checkpoint_path is not None and os.path.exists(checkpoint_path):
+        ck = torch.load(checkpoint_path, map_location=device, weights_only=False)
+        if int(ck["n_walkers"]) != N or int(ck["n_grid"]) != sim.n_grid:
+            raise RuntimeError(f"checkpoint {checkpoint_path} has "
+                               f"{ck['n_walkers']} walkers / {ck['n_grid']} bins, config says "
+                               f"{N} / {sim.n_grid}; refusing to resume a different run")
+        q = ck["q"].to(device=device, dtype=dtype)
+        v = ck["v"].to(device=device, dtype=dtype)
+        f = ck["f"].to(device=device, dtype=dtype)
+        fsum = ck["fsum"].to(device=device, dtype=dtype)
+        csum = ck["csum"].to(device=device, dtype=dtype)
+        gen.set_state(ck["rng"].cpu())
+        diag = {k: list(vals) for k, vals in ck["diag"].items()}
+        xi_trace, xi_steps = list(ck["xi_trace"]), list(ck["xi_steps"])
+        ngap_trace = list(ck["ngap_trace"])
+        ngap_xi, ngap_steps = list(ck["ngap_xi"]), list(ck["ngap_steps"])
+        # the checkpoint stores the step to RESUME AT, not the last step done
+        start_step = int(ck["step"])
+        if verbose:
+            print(f"  [resume] from {checkpoint_path} at step {start_step}/{sim.n_steps} "
+                  f"({start_step * sim.dt:.1f} ps)", flush=True)
+
+    def _write_checkpoint(step):
+        tmp = checkpoint_path + ".tmp"
+        torch.save(dict(step=step, q=q, v=v, f=f, fsum=fsum, csum=csum,
+                        rng=gen.get_state(), diag=diag, xi_trace=xi_trace, xi_steps=xi_steps,
+                        ngap_trace=ngap_trace, ngap_xi=ngap_xi, ngap_steps=ngap_steps,
+                        n_walkers=N, n_grid=sim.n_grid, seed=sim.rng_seed), tmp)
+        # atomic replace: a crash *during* the write must not destroy the previous checkpoint
+        os.replace(tmp, checkpoint_path)
 
     t0 = time.perf_counter()
-    for step in range(sim.n_steps + 1):
+    for step in range(start_step, sim.n_steps + 1):
         f_loc, r, grad_full = cv.local_mean_force(q, f, beta)
         if not wrap_checked:
             if not cv.separation_is_unambiguous(q):
@@ -216,6 +263,15 @@ def run_screen(engine, sim: MethaneSimConfig, init_positions, topology, device="
             return cv.bias_force(grad_new, _scale * mf_new + wall_force(r_new, sim))
 
         _, f = integ.step(q, v, f, bias_fn=_bias_at, generator=gen)
+
+        # Checkpoint AFTER the dynamics, recording the step to RESUME AT.  Writing it before
+        # `integ.step` and resuming at `step + 1` silently skips one step's dynamics: at that
+        # point (q, v, f) are the state at the *start* of the step while fsum/csum already hold
+        # its contribution, so the two disagree by exactly one integration.  Measured on the
+        # resume-equivalence test as max|d mean_force| = 0.75 -- large, silent, and it would have
+        # produced a slightly wrong PMF on any resumed seed with nothing to indicate it.
+        if checkpoint_path is not None and (step + 1) % checkpoint_every == 0:
+            _write_checkpoint(step + 1)
 
     mf_profile = iv.mean_force_profile(fsum, csum, K_abf)
     eff = iv.effective_counts(csum, K_abf)
