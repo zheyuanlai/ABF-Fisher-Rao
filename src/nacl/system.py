@@ -186,12 +186,19 @@ def apply_constraints(system, positions_nm, tol=1e-10):
     return out
 
 
-def manifest(box_nm=None):
-    """Frozen numbers for run manifests."""
+def manifest(box_nm=None, dt_ps=None):
+    """Frozen numbers for run manifests, so a result file describes the model it came from.
+
+    ``dt_ps`` records the timestep actually used (the dynamics gate's choice); omitted, the
+    published default is reported and labelled as such.
+    """
     return dict(
         spec="docs/SPEC_nacl_water.md", amendment="V2_PREREGISTRATION.md Amendment 14",
         n_sites=N_SITES, n_waters=N_WATERS, ion_index=list(ION_INDEX),
-        temperature_K=TEMPERATURE_K, gamma_ps=GAMMA_PS, dt_ps=DT_PS,
+        temperature_K=TEMPERATURE_K, gamma_ps=GAMMA_PS,
+        dt_ps=(DT_PS if dt_ps is None else float(dt_ps)),
+        dt_source=("published default (gate not applied)" if dt_ps is None
+                   else "chosen by the dynamics gate"),
         kT_kJ=kT_kJ(), cutoff_nm=CUTOFF_NM, switch_nm=SWITCH_NM,
         pme_tolerance=PME_TOLERANCE, pme_alpha_per_nm=PME_ALPHA_PER_NM,
         pme_grid=list(PME_GRID), pme_spline_order=PME_SPLINE_ORDER,

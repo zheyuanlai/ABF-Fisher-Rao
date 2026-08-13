@@ -385,7 +385,7 @@ def main():
         _, f = integ.step(q, v, f, bias_fn=_bias_at, generator=gen)
 
     with open(os.path.join(args.out, "manifest.json"), "w") as fh:
-        json.dump(dict(stage="nacl_abf_screen", spec="docs/SPEC_nacl_water.md §7",
+        json.dump(dict(model=nsys.manifest(box_nm=L, dt_ps=dt), stage="nacl_abf_screen", spec="docs/SPEC_nacl_water.md §7",
                        amendment="V2_PREREGISTRATION.md Amendment 14",
                        cells=cells, seeds=seeds, B_MD_ns=B_MD_NS, dt_ps=dt,
                        prep_ps=args.prep_ps, r_cip_nm=R_CIP_NM, box_L_nm=L, R_hi_nm=R_hi,

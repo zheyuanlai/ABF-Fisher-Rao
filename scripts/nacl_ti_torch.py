@@ -250,7 +250,7 @@ def main():
                         recs=recs, fbar=fbar, fcnt=fcnt, ysum=ysum, ycnt=ycnt,
                         retired_at=retired_at)
     with open(os.path.join(args.out, "manifest.json"), "w") as fh:
-        json.dump(dict(stage="nacl_ti_torch", engine="batched torch float32 compiled",
+        json.dump(dict(model=nsys.manifest(box_nm=L, dt_ps=dt), stage="nacl_ti_torch", engine="batched torch float32 compiled",
                        dt_ps=dt, r_grid_nm=r_grid.tolist(), builds=args.builds,
                        replicas_per_family=args.replicas_per_family, families=N_FAMILIES,
                        equil_ps=args.equil_ps, extra_equil_f3_ps=extra_f3,
