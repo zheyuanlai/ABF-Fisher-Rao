@@ -163,3 +163,34 @@ def test_gate_b_threshold_is_not_scaled_to_the_seeds_present():
     assert "min(GATE_B_MIN_SEEDS" not in src, \
         "Gate B's threshold is being scaled to the number of seeds present"
     assert "complete = len(per_seed) >= N_SEEDS_REQUIRED" in src
+
+
+# ------------------------------------------------------------------ ratio provenance
+def test_gate_c_ratio_arguments_share_a_support():
+    """P/Q is only meaningful if occupancy and target are normalised over the same support.
+
+    This is the campaign's most consequential ratio failure and it was live: out-of-domain
+    walkers were dropped from every tercile while Q* stayed normalised over the whole grid, so
+    occupancies summed to 0.8 against a target summing to 1 and the deficit test fired too
+    easily -- biasing toward establishment-limited, the verdict that licenses an mFR arm.
+
+    A ratio presents as one clean number and hides the provenance of both its arguments, which
+    is exactly what makes it quotable and unauditable. Asserted here so it cannot regress.
+    """
+    xi = np.array([0.322, 0.35, 0.45, 0.60, 0.75, 0.88, 0.922])   # includes out-of-domain
+    occ = np.array([np.mean(state_of(xi, EDGES) == k) for k in range(3)])
+    q = bias_aware_target(np.linspace(0, 8, 115), np.zeros(115), GRID, EDGES, BETA)
+    assert occ.sum() == pytest.approx(1.0, abs=1e-12)
+    assert q.sum() == pytest.approx(1.0, abs=1e-12)
+
+
+def test_gate_a_tv_uses_shared_bins():
+    """TV between two histograms requires a common binning; per-pool bins would be meaningless."""
+    from methane_gates import tv_from_samples
+    a = np.array([0.1, 0.2, 3.0])
+    b = np.array([2.0, 2.5])
+    bins = np.linspace(0.0, 3.0, 21)
+    tv = tv_from_samples(a, b, bins)
+    assert 0.0 <= tv <= 1.0
+    # identical samples must give TV = 0 on the shared grid
+    assert tv_from_samples(a, a, bins) == pytest.approx(0.0, abs=1e-12)
