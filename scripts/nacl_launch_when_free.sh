@@ -59,9 +59,23 @@ fi
 # The gate may already be running on the other device (started by hand while waiting).  Wait
 # for it rather than starting a second one: two processes writing dynamics_gate.json would
 # race, and whichever finished last would silently define the production timestep.
-if pgrep -f "nacl_dynamics_gate.py" > /dev/null; then
+#
+# `pgrep -f` alone is WRONG here and the failure is silent-and-terminal: it also matches every
+# harness wrapper shell whose argv contains the launch command -- measured, 2 bash wrappers
+# against 1 real python -- and any wrapper outliving its child leaves this loop waiting
+# forever, so the reference never launches and nothing reports why.  Match the interpreter.
+gate_running () {
+  local pid comm
+  for pid in $(pgrep -f "nacl_dynamics_gate.py" 2>/dev/null); do
+    comm="$(ps -o comm= -p "$pid" 2>/dev/null)"
+    case "$comm" in python*) return 0 ;; esac
+  done
+  return 1
+}
+if gate_running; then
   echo "[stage] a dynamics gate is already running elsewhere; waiting for it ($(date -u))"
-  while pgrep -f "nacl_dynamics_gate.py" > /dev/null; do sleep 30; done
+  while gate_running; do sleep 30; done
+  echo "[stage] the other gate finished ($(date -u))"
 fi
 if [ -s "$LOG_DIR/dynamics_gate.json" ]; then
   echo "[stage] dynamics gate already complete, reusing it ($(date -u))"
