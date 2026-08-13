@@ -251,3 +251,15 @@ def test_occupancy_and_target_share_a_support_when_walkers_leave_the_domain():
 def test_incomplete_reference_cannot_be_accepted():
     src = open(os.path.join(ROOT, "scripts", "nacl_ti_analyze.py")).read()
     assert "ACCEPTED=bool(accepted and complete)" in src
+
+
+def test_single_build_reference_is_refused():
+    """The retirement criterion is joint over builds; at --builds 1 its build-spread clause is
+    vacuous and every point retires early, producing output shaped like a good reference.  The
+    driver must refuse, except on the --smoke path (which never claims to be a reference)."""
+    import subprocess
+    r = subprocess.run([sys.executable, os.path.join(ROOT, "scripts", "nacl_ti_torch.py"),
+                        "--builds", "1", "--out", "/tmp/nacl_builds1_refusal_test"],
+                       capture_output=True, text=True, cwd=ROOT)
+    assert r.returncode != 0
+    assert "vacuous" in (r.stdout + r.stderr)

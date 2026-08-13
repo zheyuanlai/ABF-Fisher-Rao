@@ -63,6 +63,15 @@ def main():
                     help="2 r-points, 1 build, 1 replica, ps-scale blocks: validates the driver "
                          "end to end without producing a reference")
     args = ap.parse_args()
+    # The retirement criterion is JOINT over builds: at --builds 1 the build-to-build spread is
+    # zero by construction, half the stopping rule is vacuous, and points retire early with no
+    # error and output shaped exactly like a good reference (the methane session hit this,
+    # commit 22ea25b). A single-build invocation is only legitimate in the smoke path, which
+    # never claims to be a reference and runs one fixed checkpoint anyway.
+    if args.builds < 2 and not args.smoke:
+        raise SystemExit(f"--builds {args.builds} < 2: the build-spread retirement clause is "
+                         "vacuous with fewer than two builds; a single-build run cannot be a "
+                         "reference (use --smoke for driver validation)")
     os.makedirs(args.out, exist_ok=True)
 
     box = json.load(open(nsys.REPO / "results/nacl/box/box_manifest.json"))
