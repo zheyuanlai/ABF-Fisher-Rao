@@ -78,12 +78,46 @@ def tercile_edges(lo, hi):
     return [(lo, lo + w), (lo + w, lo + 2 * w), (lo + 2 * w, hi)]
 
 
+def in_basin(values, edges, k):
+    """Half-open ``[lo, hi)`` membership, with the LAST basin closed at ``hi``.
+
+    The masks must **partition** the values: every one in exactly one basin.  Closed-on-both-ends
+    masks double-count shared boundaries (the NaCl session measured targets summing to 1.024);
+    the mirror error, half-open everywhere, silently drops the top edge -- which is what this
+    file did, leaving ``grid[-1]`` in no basin and ``Q*`` summing to 0.9988.
+    """
+    lo, hi = edges[k]
+    last = (k == len(edges) - 1)
+    return (values >= lo) & ((values <= hi) if last else (values < hi))
+
+
 def state_of(xi, edges):
-    out = np.full(xi.shape, -1, dtype=np.int64)
-    for k, (a, b) in enumerate(edges):
-        out[(xi >= a) & (xi < b)] = k
-    out[xi >= edges[-1][1]] = len(edges) - 1
+    """Basin index for each value, with out-of-domain values assigned to the nearest edge.
+
+    Walkers are pushed past the soft walls into ``r`` slightly outside the evaluation domain
+    (the screen's measured range is [0.322, 0.922] against a domain of [0.33, 0.90]).  Leaving
+    them unassigned drops them from every occupancy while ``Q*`` stays normalised over the whole
+    grid, so ``occupancy < 0.5 Q*`` fires **too easily** -- biasing the verdict toward
+    establishment-limited, the direction that licenses an mFR arm.  That is the unsafe failure,
+    so out-of-domain walkers are clamped to the nearest basin rather than discarded.
+    """
+    clipped = np.clip(xi, edges[0][0], edges[-1][1])
+    out = np.full(np.shape(xi), -1, dtype=np.int64)
+    for k in range(len(edges)):
+        out[in_basin(clipped, edges, k)] = k
+    if np.any(out < 0):                       # cannot happen after clipping; assert, don't hope
+        raise ValueError("state_of left values unassigned; the basins are not a partition")
     return out
+
+
+def assert_partition(values, edges, what):
+    """Every value in exactly one basin.  One line, and it catches a whole error class."""
+    counts = np.sum([in_basin(np.clip(values, edges[0][0], edges[-1][1]), edges, k)
+                     for k in range(len(edges))], axis=0)
+    if not np.all(counts == 1):
+        bad = np.flatnonzero(counts != 1)
+        raise ValueError(f"{what}: basins are not a partition -- {len(bad)} value(s) claimed "
+                         f"{sorted(set(counts[bad].tolist()))} times")
 
 
 def bias_aware_target(F_ref_grid, B_t, grid, edges, beta):
@@ -108,7 +142,9 @@ def bias_aware_target(F_ref_grid, B_t, grid, edges, beta):
     tot = w.sum()
     if not np.isfinite(tot) or tot <= 0:
         raise ValueError(f"bias-aware target failed to normalise (sum = {tot})")
-    return np.asarray([w[(grid >= a) & (grid < b)].sum() / tot for a, b in edges])
+    assert_partition(grid, edges, "bias-aware target grid")
+    return np.asarray([w[in_basin(grid, edges, k)].sum() / tot
+                       for k in range(len(edges))])
 
 
 def longest_run(mask):
@@ -162,6 +198,7 @@ def main():
         F_on_grid = np.interp(grid, r_ref, F_ref)
 
         # ---- Gate B: first persistent arrival in each state --------------------------------
+        assert_partition(grid, edges, f"{os.path.basename(path)} grid")
         st = state_of(xi, edges)
         t_hit = {}
         for k in range(3):
