@@ -6,7 +6,8 @@ an earlier one failed; never search for a way around a STOP.
 
 ```
 CURRENT FROZEN COMMIT:  see results/nacl/PINNED_COMMIT (written when the worktree is cut)
-CURRENT STAGE:          launch ladder COMPLETE 08:38 UTC (all 5 stages passed)
+CURRENT STAGE:          TI reference EXTENDING to the SPEC 250 ps (resumed 15:39 UTC,
+                        --no-retire, ETA ~23:00 UTC). 50 ps preliminary gates all PASS.
 LAST COMPLETED GATE:    engine equivalence 11/11 <1e-6; box frozen L=2.892700 nm;
                         descriptors frozen; baths verified (9 baths, 549 starts)
 VERDICT:                dt = 2 fs DECIDED (Amendment 15.1, one run, never revisited):
@@ -14,13 +15,16 @@ VERDICT:                dt = 2 fs DECIDED (Amendment 15.1, one run, never revisi
                         2.1e-15 nm. Triton PASSES both gates but is NOT adopted: measured
                         918 ns/day vs tensor 1020 at its best config, so the reference runs
                         the already parity-gated tensor path at max-batch 256.
-NEXT PERMITTED ACTION:  TI reference RUNNING on GPU 2 (launched 08:40 UTC, pin 9e90a34,
-                        tensor path, --max-batch 256, ETA ~17 h -> Fri ~01:00-02:00 UTC).
-                        On completion: run nacl_ti_analyze.py -> reference acceptance ->
-                        Gate 0 + Gate A. Both can END the study; report either way.
-                        GPU 3 is methane's until its explicit release (Thu evening). If a
-                        second device becomes available, split by r-POINT not by build --
-                        the retirement criterion is joint over builds, per-point over r.
+NEXT PERMITTED ACTION:  on extension completion -> nacl_ti_analyze.py -> FINAL reference
+                        acceptance + Gate 0 + Gate A. If either fails: STOP and report.
+                        If both pass -> screen cell N=64 ONLY, then Gates B/C before any
+                        other cell. Screen layout decided from measured throughput:
+                        SPLIT the 8 seeds 4+4 across GPUs 2 and 3 at B=256 each (tensor
+                        path, 1023 ns/day) = 9.4 h, against 21.1 h for one B=512 process
+                        on Triton and 29.2 h on tensor. Seeds are independent ensembles and
+                        Gate B/C statistics are per-seed counts, so a seed split is safe;
+                        an ARM split would not be (the WCA one-process rule). Requires
+                        methane's explicit GPU 3 release. Meanwhile GPU 3 idle -> nothing.
 FORBIDDEN ACTIONS:      launching the TI reference (separate reviewed action after the ladder);
                         any screen cell before Gate 0/A; any mFR before Gates 0-D; editing the
                         SPEC except by numbered amendment; retuning anything against a result;
