@@ -1,0 +1,32 @@
+% Q1 five-arm comparison. Source: results/wca_five_arm/five_arm_verdict.json
+\begin{table}[t]\centering
+\small
+\caption{Q1 --- the Fisher--Rao direction against the directed selection rules already in use,
+at matched turnover on \QoneSeeds{} paired seeds. Endpoint is the time-integrated $L^2$
+free-energy error, scored against the corrected reference; negative favours the first arm.
+The two rows below the rule state why the novelty claim fails: count balancing recovers the
+whole gain on its own, and the Chapter~6 rule recovers none of it.}
+\label{tab:wca_q1}
+\begin{tabular}{llrcr}
+\toprule
+Arm & Comparator & Median (\%) & 95\% CI & Wins \\
+\midrule
+practical mFR & ABF & $\QoneEstGain$ & $[\QoneEstCIlo, \QoneEstCIhi]$ & \QoneEstWins \\
+practical mFR & its own matched sham & $\QoneDirect$ & $[\QoneDirectCIlo, \QoneDirectCIhi]$ & \QoneDirectWins \\
+\midrule
+practical mFR & \texttt{book\_laplacian} & $\QoneBookGain$ & $[\QoneBookCIlo, \QoneBookCIhi]$ & \QoneBookWins \\
+practical mFR & \texttt{count\_balancing} & $\QoneCountGain$ & $[\QoneCountCIlo, \QoneCountCIhi]$ & \QoneCountWins \\
+\midrule
+\multicolumn{5}{l}{\emph{Context: what each prior-art rule is worth on its own}}\\
+\texttt{book\_laplacian} & ABF & $\QoneBookVsAbf$ & $[-1.85, +8.22]$ & \QoneBookVsAbfWins \\
+\texttt{count\_balancing} & ABF & $\QoneCountVsAbf$ & $[\QoneCountVsAbfCIlo, \QoneCountVsAbfCIhi]$ & \QoneCountVsAbfWins \\
+\bottomrule
+\end{tabular}
+
+\vspace{2pt}
+{\footnotesize Equivalence against \texttt{count\_balancing} is established by TOST: the
+$90\%$ interval $[\QoneCountTostLo, \QoneCountTostHi]$ lies strictly inside the
+$\pm\QoneTostMargin\%$ margin. Selection intensities were matched on held-out seeds to
+$\QoneBookTurnover\times$ and $\QoneCountTurnover\times$ of mFR's own turnover; the mFR
+configuration was not retuned.}
+\end{table}

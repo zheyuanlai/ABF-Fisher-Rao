@@ -1,0 +1,73 @@
+% v2 closure numbers. Hand-maintained; sources named per block.
+% These SUPERSEDE the corresponding v1 macros where the v1 value was scored against the
+% cached TI reference that the parallel audit found wrong at z ~ 0.26 (up to 67 sigma).
+% The v1 macros are left in place because the v1 inventory is a record of what was run.
+
+% --- Case IX rescored against the corrected high-precision reference (cache/phase_hp_v3) ---
+% Source: results/wca_caseix_hp/caseix_hp_verdict.json
+\def\WcvEstGain{-17.97}
+\def\WcvEstCIlo{-22.73}
+\def\WcvEstCIhi{-17.16}
+\def\WcvEstWins{16/16}
+\def\WcvDirect{-20.96}
+\def\WcvDirectCIlo{-25.04}
+\def\WcvDirectCIhi{-11.54}
+\def\WcvDirectWins{15/16}
+\def\WcvShamGain{-3.19}
+\def\WcvShamCIlo{-6.20}
+\def\WcvShamCIhi{+2.89}
+\def\WcvOracleGain{-19.54}
+
+% --- Q1: the five-arm turnover-matched comparison against prior directed selection ---
+% Source: results/wca_five_arm/five_arm_verdict.json
+\def\QoneSeeds{16}
+\def\QoneEstGain{-17.62}
+\def\QoneEstCIlo{-23.60}
+\def\QoneEstCIhi{-11.61}
+\def\QoneEstWins{15/16}
+\def\QoneDirect{-17.89}
+\def\QoneDirectCIlo{-21.22}
+\def\QoneDirectCIhi{-12.13}
+\def\QoneDirectWins{16/16}
+\def\QoneShamGain{-1.59}
+\def\QoneBookGain{-21.66}
+\def\QoneBookCIlo{-25.38}
+\def\QoneBookCIhi{-15.14}
+\def\QoneBookWins{15/16}
+\def\QoneCountGain{+0.66}
+\def\QoneCountCIlo{-5.18}
+\def\QoneCountCIhi{+4.36}
+\def\QoneCountWins{8/16}
+\def\QoneCountTostLo{-3.96}
+\def\QoneCountTostHi{+2.55}
+\def\QoneTostMargin{5}
+\def\QoneBookVsAbf{+0.73}
+\def\QoneBookVsAbfWins{7/16}
+\def\QoneCountVsAbf{-18.23}
+\def\QoneCountVsAbfCIlo{-21.94}
+\def\QoneCountVsAbfCIhi{-12.90}
+\def\QoneCountVsAbfWins{15/16}
+\def\QoneBookC{0.012}
+\def\QoneCountC{1.0}
+\def\QoneBookTurnover{0.96}
+\def\QoneCountTurnover{1.16}
+
+% --- Genealogy gate, measured on the windowed statistic the gate was calibrated against ---
+\def\QoneEssWindow{0.807}
+\def\QoneEssRunLong{0.178}
+\def\QoneEssRunLongSham{0.192}
+\def\QoneWmax{0.0176}
+\def\EssWindowSteps{4000}
+
+% --- Gate 0: does the ABF baseline itself have an equilibrated conditional ensemble? ---
+% Relative disagreement in <f_loc> across independently prepared orthogonal pools, normalised
+% by |F'_ref|. Sources: results/v2_validity_audits/{wca_gate0_hpv3,gateway_gate0}/verdict.json
+\def\GzWca{0.042}
+\def\GzWcaTransition{0.048}
+\def\GzGateway{0.036}
+\def\GzGatewayLocal{0.189}
+\def\GzDeca{0.61}
+\def\GzRfifteenLo{0.564}
+\def\GzRfifteenHi{0.593}
+\def\GzDecaSpan{67}
+\def\GzDecaRelErr{0.084}

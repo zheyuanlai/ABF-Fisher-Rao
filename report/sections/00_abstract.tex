@@ -64,10 +64,13 @@ than the side-chain rotamer it was chosen for --- its $11$--$18\,k_BT$ $\chi_1$ 
 backbone-\emph{clamped} conditional barrier, worth $1.1$--$7.4\,k_BT$ once the backbone is
 free --- and in both peptides ABF discovers \emph{and} establishes every state on its own, so
 reallocation has no deficit to repair. Reading these together with the alkane results gives
-three regimes rather than a spectrum: \emph{ABF-sufficient} (found early, populated early;
+regimes rather than a spectrum: \emph{ABF-sufficient} (found early, populated early;
 mFR neutral), \emph{discovery-limited} (never found; mFR cannot act), and
 \emph{establishment-limited} (found early, populated slowly), which is the only regime mFR
-serves and the one that never arose on its own. A two-state reduction explains why: discovery
+serves and the one that never arose on its own --- together with the
+\emph{conditional-equilibration-limited} regime described below, which is checked first
+because it decides whether the other three verdicts mean anything. A two-state reduction
+explains the separation among the last three: discovery
 is a first-passage event among $N$ walkers and takes $\sim 1/(N k_{01})$, whereas
 establishment is a relaxation at rate $k_{01}+k_{10}$ with no factor of $N$, so more walkers
 buy the first and not the second and the gap between them widens with $N$. We therefore build
@@ -86,22 +89,48 @@ discards the online accumulators entirely, agrees at $\GwcFrozen\%$.
 
 The same control is then carried to the many-body system. At the accepted WCA-dimer
 configuration, on \WcsSeeds{} fresh seeds with no hyperparameter reopened, practical mFR
-improves the integrated error by \WcsEstGain\% $[\WcsEstCIlo, \WcsEstCIhi]$ on
-\WcsEstWins{} seeds and beats its own matched sham by \WcsDirect\%
-$[\WcsDirectCIlo, \WcsDirectCIhi]$, while the sham itself is \emph{not} better than ABF
-($\WcsShamGain\%$). Paired on the same seeds, round trips move by
+improves the integrated error by \WcvEstGain\% $[\WcvEstCIlo, \WcvEstCIhi]$ on
+\WcvEstWins{} seeds and beats its own matched sham by \WcvDirect\%
+$[\WcvDirectCIlo, \WcvDirectCIhi]$, while the sham itself is \emph{not} better than ABF
+($\WcvShamGain\%$). These are scored against a corrected high-precision reference; the
+cached reference used in the first pass was later found wrong by up to $\GzDecaSpan\sigma$
+inside the transition region, which moved this headline from \WcsEstGain\% to
+\WcvEstGain\% without changing any preregistered verdict. Paired on the same seeds, round trips move by
 $\ClosureWcaRoundTripPct\%$ $[\ClosureWcaRoundTripCIlo, \ClosureWcaRoundTripCIhi]$ while the
-error moves by \WcsEstGain\%, so in this setup the mechanism is consistent with
+error moves by \WcvEstGain\%, so in this setup the mechanism is consistent with
 redistributing population among replicas already crossing rather than with buying barrier
 crossings --- which is what a two-state reduction of the kinetics predicts. These are the first controls in
 the study that separate Fisher--Rao steering from resampling of the same intensity and timing,
 and they attribute the gain to the steering in both a designed model and a condensed-phase
 molecular system.
 
+Attribution to \emph{directed} selection is not the same as attribution to \emph{this}
+direction, and the final experiment separates them. Run against the two directed rules already
+in use --- the Chapter~6 Laplacian rule and simple count balancing --- at matched turnover on
+$\QoneSeeds$ paired seeds with nothing retuned, mFR is \textbf{tied} by count balancing
+($\QoneCountGain\%$, TOST interval $[\QoneCountTostLo, \QoneCountTostHi]$ inside a
+$\pm\QoneTostMargin\%$ margin), which recovers the entire gain on its own
+($\QoneCountVsAbf\%$ against ABF), while the Laplacian rule is inert ($\QoneBookVsAbf\%$).
+The establishment-limited gain is therefore real, replicated and attributable to direction
+rather than turnover, but the Fisher--Rao geometry is not what delivers it, and this report
+claims a principled rule consistent with the mechanism rather than a win over prior art.
+
+A structural result explains why a tie was the likely outcome and reorganises the map. For
+\emph{any} score depending on the reaction coordinate alone --- which includes all three rules
+above --- the mean-field selection flow satisfies $\partial_t\,p_t(y\mid\xi)=0$: it rescales
+the marginal and leaves every conditional exactly invariant. Selection therefore cannot repair
+a conditional that has not equilibrated, which is a fourth regime rather than a tuning
+failure, and the map accordingly leads with a validity gate on the ABF baseline itself.
+Deca-alanine is the cautionary instance: its discovery and establishment gates both pass, yet
+independently prepared orthogonal ensembles disagree on the local mean force by $\GzDeca$ of
+$|F'|$ (against $\GzWca$ for WCA and $\GzGateway$ for the gateway), so the classification that
+would have made it a target for the method is inadmissible.
+
 Across all cases, FR is best understood as a
 marginal-reallocation mechanism whose value depends on how starved the ABF estimator is
 \emph{along the biased coordinate}, whether that starvation is a support deficit reallocation
-can fill or a dynamical bottleneck it cannot, how quickly cloned orthogonal degrees of freedom
+can fill or a dynamical bottleneck it cannot, whether the conditional ensemble has equilibrated
+at all, how quickly cloned orthogonal degrees of freedom
 re-equilibrate, and how aggressively birth--death erodes ancestor diversity. The oracle target is
 therefore a diagnostic control, not a deployable method and not a universal upper
 bound.

@@ -72,8 +72,21 @@ shape at all --- recovers almost the entire gain ($\EBuniGain\%$), while the
 ($\EBoracleGain\%$). This is the opposite of the metastability ranking
 (\cref{sec:q1}): here a target that over-commits to a fixed shape fights the ABF
 bias instead of merely equalising coverage. The signature points to
-\emph{balanced resampling / variance reduction across the reaction coordinate}, not
-free-energy-shape steering, as the source of the gain.
+\emph{coverage equalisation along the reaction coordinate}, not
+free-energy-shape steering, as the source of the gain --- which is the only kind of
+mechanism \cref{prop:sel_invariance} leaves available, since selection rescales the marginal
+and provably does nothing else.
+
+Earlier drafts of this report called that mechanism ``balanced resampling / variance
+reduction''. The first half is right and the second is not, and the distinction matters
+enough to state once here and use throughout. What reallocation buys in a starved bin is
+not primarily a smaller error bar on an estimate that was already centred: it is samples in
+a bin whose ABF accumulator had barely been updated, and whose bias was therefore held near
+zero by the trust ramp. The deficit being repaired is systematic, not stochastic. The
+audit discussed in \cref{sec:discussion} makes the same point from the data side on WCA,
+where estimator variance is about $1\%$ of the error budget and \emph{rises} under directed
+balancing --- a mechanism cannot be variance reduction if variance is neither the bulk of
+the error nor decreasing.
 
 \begin{figure}[t]
   \centering
@@ -93,8 +106,8 @@ Varying the inverse temperature $\beta$ at fixed $\omega_{\mathrm{in}}=25$
 (its error is $\sim0.05$), and FR's birth--death merely injects resampling noise
 --- it is mildly harmful and loses most seeds ($\EBwarmGainBetaFour\%$ at
 $\beta=4$). At low temperature ($\beta=8,12$) crossings are rare, ABF is starved
-on the far side of the barrier (error $0.2$--$0.4$), and FR's balanced resampling
-substantially repairs the coverage, winning every seed. The cross-over sits
+on the far side of the barrier (error $0.2$--$0.4$), and FR's coverage equalisation
+substantially repairs the deficit, winning every seed. The cross-over sits
 between $\beta=4$ and $\beta=8$.
 
 \input{tables/eb_beta.tex}
@@ -204,7 +217,7 @@ $\EDBestSlope\%$ per unit $\phi$, correlation $r=\EDBestCorr$) and is mildly
 where the smooth entropic free-energy bump is hardest to estimate online from the
 high-variance instantaneous force $\omega(x)\omega'(x)\Norm{\mathbf y}^2$. The
 uniform target behaves almost identically, reaffirming that the practical
-mechanism is balanced resampling rather than free-energy-shape steering. The
+mechanism is coverage equalisation rather than free-energy-shape steering. The
 \emph{oracle} target tells the opposite story: handed the analytic $\Fref$, its
 gain rises steeply with the entropic share (slope $\EDBoracleSlope\%$ per unit
 $\phi$, $r=\EDBoracleCorr$), from harmful at $\phi=0$ to $+\EDBoraclePeak\%$ at
@@ -388,8 +401,8 @@ and the hard WCA dimer. Estimated-target FR robustly and substantially reduces t
 free-energy error in the cold, sample-starved regime ($\sim\EBgainStrong\%$,
 $\EBcoldWin/20$ seeds), but the gain is governed by \emph{temperature} (FR helps
 when ABF is starved, mildly hurts when it is not), not by the bottleneck width.
-The mechanism is balanced resampling / variance reduction, not shape steering:
-the uniform target nearly matches the estimated one and the oracle target is
+The mechanism is coverage equalisation, not shape steering and not variance
+reduction: the uniform target nearly matches the estimated one and the oracle target is
 \emph{worse} than ABF --- the reverse of the metastability ranking. The safe FR
 regime is wide (no failure boundary up to $\gamma=50$), and the analytic
 conditional diagnostic shows that the gain is obtained without a systematic

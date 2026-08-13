@@ -9,29 +9,61 @@ starved regimes, diversity control in the many-body regime, and --- in the molec
 torsions --- whether the sample starvation lives on the \emph{biased} coordinate at
 all.
 
-\subsection{Three regimes, and only one of them is mFR's}
+\subsection{Four regimes, and only one of them is mFR's}
 \label{sec:three_regimes}
-Taking the study as a whole, a system is characterised by \emph{two} timescales relative to
-the run: how long a relevant state takes to be \textbf{found}, and how long it then takes to
-be \textbf{populated}. That gives three regimes, and every system here falls into one of
-them.
+Taking the study as a whole, a system is characterised by \emph{three} timescales relative to
+the run: how long a relevant state takes to be \textbf{found} ($T_{\mathrm{hit}}$), how long
+the orthogonal degrees of freedom take to \textbf{equilibrate} at fixed reaction coordinate
+($\tau_\perp$), and how long the state then takes to be \textbf{populated}
+($T_{\mathrm{est}}$). The middle one was missing from the first version of this map, and
+adding it costs a regime.
+
+The reason it cannot be omitted is \cref{prop:sel_invariance}: marginal selection leaves
+every conditional exactly invariant, so if the binding difficulty lives in the conditional,
+the method is structurally unable to address it. Worse, if $\tau_\perp$ is long compared with
+the run then the ABF mean force is itself an average over a non-equilibrium conditional
+ensemble --- so the \emph{baseline} is wrong, the bias built from it is wrong, and the
+occupancy targets used to test for an establishment deficit are wrong too. A discovery or
+establishment verdict computed on top of an invalid baseline is not a weak verdict; it is not
+a verdict. The map therefore leads with a validity gate and classifies each system by the
+\textbf{first} gate it fails.
 
 \begin{itemize}
-  \item \textbf{ABF-sufficient} --- found early, populated early. Butane and pentane's
-  $\varphi_1$, the two-dimensional torus CV, and both dipeptides of \cref{sec:neutrality}.
-  The slow coordinate is inside the collective variable, ABF flattens it, no support deficit
-  ever forms, and mFR is \emph{practically equivalent} to ABF in every matched-seed
-  comparison. This is the largest group, and it is why the study reports far more nulls than
-  positives.
-  \item \textbf{Discovery-limited} --- never found. Pentane's $R_{15}$ end-to-end distance
-  (\cref{sec:cv_harder_1d}), the only genuinely starved coordinate in the study. mFR cannot
-  act: reallocation amplifies walkers that exist and cannot create one in a state nothing has
-  reached. Pushed harder it converts a support deficit into a \emph{diversity} deficit and
-  makes the estimate worse.
-  \item \textbf{Establishment-limited} --- found early, populated slowly. The constructed
-  entropic gateway (\cref{sec:gateway}) and the condensed-phase WCA dimer
-  (\cref{sec:case_wca}). Here mFR helps, and in both systems it beats a matched sham.
+  \item \textbf{Conditional-equilibration-limited} --- the orthogonal ensemble has not
+  equilibrated, $\tau_\perp \gtrsim T_{\mathrm{run}}$. Deca-alanine, and the $\beta=2$ cells
+  of the $R_{15}$ study. Diagnosed \emph{before} any selection arm is run, by preparing
+  independent orthogonal ensembles at fixed reaction coordinate and asking whether they agree
+  on the local mean force: deca-alanine disagrees by $\GzDeca$ of $|F'|$ and the $R_{15}$
+  $\beta=2$ cells by $\GzRfifteenLo$--$\GzRfifteenHi$, against $\GzWca$ for the WCA dimer and
+  $\GzGateway$ for the gateway. No marginal selection rule can help here, by
+  \cref{prop:sel_invariance}, and no discovery or establishment classification is admissible
+  either. Deca-alanine is the cautionary case: its discovery and establishment gates both
+  \emph{pass}, so on the three-regime map it would have been filed as establishment-limited
+  and counted as a target for the method --- a verdict the validity gate voids.
+  \item \textbf{ABF-sufficient} --- baseline valid; found early, populated early. Butane and
+  pentane's $\varphi_1$, the two-dimensional torus CV, and both dipeptides of
+  \cref{sec:neutrality}. The slow coordinate is inside the collective variable, ABF flattens
+  it, no support deficit ever forms, and mFR is \emph{practically equivalent} to ABF in every
+  matched-seed comparison. This is the largest group, and it is why the study reports far more
+  nulls than positives.
+  \item \textbf{Discovery-limited} --- baseline valid; never found. Pentane's $R_{15}$
+  end-to-end distance at $\beta=1$ (\cref{sec:cv_harder_1d}), the only genuinely starved
+  coordinate in the study. mFR cannot act: reallocation amplifies walkers that exist and
+  cannot create one in a state nothing has reached. Pushed harder it converts a support
+  deficit into a \emph{diversity} deficit and makes the estimate worse.
+  \item \textbf{Establishment-limited} --- baseline valid; found early, populated slowly. The
+  constructed entropic gateway (\cref{sec:gateway}) and the condensed-phase WCA dimer
+  (\cref{sec:case_wca}). Here mFR helps, and in both systems it beats a matched sham. Both
+  systems were re-examined against the validity gate after the fact and both pass, so the two
+  positives in this report do not rest on an unchecked baseline.
 \end{itemize}
+
+The operative condition for the method to have anything to do is therefore not
+``$T_{\mathrm{hit}}$ small'' but the ordering $T_{\mathrm{hit}} \ll \tau_\perp \ll
+T_{\mathrm{est}}$: the state must be reached, its orthogonal ensemble must relax faster than
+the run, and its population must nonetheless lag. That is a narrow window, which is
+consistent with how rarely it arose here --- it had to be constructed on purpose
+(\cref{sec:gateway}) and was found unlooked-for in exactly one physical system.
 
 \Cref{tab:regime_map} states this benchmark by benchmark, and \cref{fig:regime_map} places
 every system on the same two axes. The column order there is deliberate: the discovery and
@@ -63,7 +95,7 @@ regenerated from artifacts into \texttt{results/closure/v1\_results\_inventory.c
 
 \input{tables/closure_inventory.tex}
 
-\Cref{sec:gw_twostate} gives the reason these are three regimes and not a continuum. Coarse-%
+\Cref{sec:gw_twostate} gives the reason the last three are regimes and not a continuum. Coarse-%
 grained to two states, discovery is a first-passage event among $N$ walkers and so takes
 $T_{\mathrm{hit}}\sim 1/(N k_{01})$, whereas establishment is a relaxation at rate
 $k_{01}+k_{10}$ and carries \emph{no factor of $N$}. Adding walkers buys discovery and not
@@ -98,6 +130,38 @@ $[\WcsDirectCIlo, \WcsDirectCIhi]$ on \WcsDirectWins{} seeds. The directional me
 therefore transfers to a many-body molecular system, and the regime table above states it
 without qualification.
 \end{remark}
+
+\subsection{The direction is attributable, but it is not the Fisher--Rao direction}
+\label{sec:q1_synthesis}
+The sham controls establish that the gain comes from \emph{directed} selection rather than
+from turnover. They do not establish that it comes from \emph{this} direction, because until
+\cref{sec:wca_q1} every comparator either was ABF or shared the Fisher--Rao score. Run against
+the two directed rules already in the literature, at matched turnover and with nothing
+retuned, mFR ties one of them and beats the other only because the other does not work.
+
+\begin{itemize}
+  \item Against count balancing, $S\propto 1-\hat p/\bar p$: \textbf{tied}, $\QoneCountGain\%$
+  with a TOST interval $[\QoneCountTostLo, \QoneCountTostHi]$ strictly inside
+  $\pm\QoneTostMargin\%$. That rule reaches $\QoneCountVsAbf\%$ against ABF on its own
+  --- the whole effect.
+  \item Against the Chapter~6 rule $S\propto\partial_z^2 p/p$: mFR wins by $\QoneBookGain\%$,
+  but that rule is worth $\QoneBookVsAbf\%$ against ABF, i.e.\ nothing. Beating an inert
+  comparator is not evidence of beating prior art.
+\end{itemize}
+
+\Cref{prop:sel_invariance} explains why a tie was the likely outcome. Every rule here is a
+function of the collective variable alone, so all of them leave conditionals untouched and
+differ only in the marginal they steer toward. Two rules whose targets are close --- mFR's
+bias-aware target and count balancing's flat one --- have little room to separate on an
+endpoint that integrates the free-energy error.
+
+The consequence for how this work should be described is direct, and it is a
+\emph{narrowing}. What survives is the diagnostic content: a map that says when selection can
+help at all, a validity gate that says when the question is even well posed, a constructed
+regime where the effect is real and attributable to direction rather than turnover, and a
+theorem that bounds what any such rule can do. What does not survive is a performance claim
+over prior art. On the one system where a positive was found unlooked-for, a one-line rule
+that has been shipping in multiple-walker codes for years does just as well.
 
 \begin{remark}[Three ways of saying ``ABF is starved'', only one of which mFR repairs]
 \label{rem:starvation_kinds}

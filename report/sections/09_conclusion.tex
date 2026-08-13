@@ -48,8 +48,11 @@ and the genuinely slow coordinate is the backbone $\varphi$ --- which is in the 
 peptides therefore fail the same necessary condition, and for the same reason as the alkanes:
 ABF discovers and populates every state by itself.
 
-Read together, the systems sort into three regimes rather than along one axis
-(\cref{sec:three_regimes}): \emph{ABF-sufficient} (found early, populated early --- the
+Read together, the systems sort into regimes rather than along one axis
+(\cref{sec:three_regimes}), checked in order: \emph{conditional-equilibration-limited} (the
+orthogonal ensemble has not equilibrated, so the ABF baseline is invalid and no other verdict
+is admissible --- deca-alanine, at $\GzDeca$ of $|F'|$ against $\GzWca$ for WCA),
+\emph{ABF-sufficient} (found early, populated early --- the
 alkanes, the two-dimensional torus CV, both dipeptides; mFR neutral), \emph{discovery-limited}
 (never found --- $R_{15}$; mFR cannot act), and \emph{establishment-limited} (found early,
 populated slowly), which is the only regime mFR serves and the only one that never arose on
@@ -70,8 +73,8 @@ scored by a fresh population with no adaptation and no birth--death ($\GwcFrozen
 
 The control that matters most is the one this study previously lacked entirely. Every
 Fisher--Rao arm anywhere in this work derives its replacement direction from the same score
-and differs only in how the target is built, so ``the gain comes from balanced resampling''
-had never been tested. A \textbf{matched sham} --- the same number of clone and delete events
+and differs only in how the target is built, so ``the gain comes from turnover rather than
+direction'' had never been tested. A \textbf{matched sham} --- the same number of clone and delete events
 at the same times, with which walkers they act on randomised --- never improves on ABF in
 either pass ($\GwcShamGain\%$ and $\GwrShamGain\%$), and mFR beats it \emph{directly}, on
 the same seeds and the same event schedule, by $\GwcDirect\%$
@@ -87,9 +90,10 @@ share of the benefit, so the split is quantified rather than presented as a clea
 
 The attribution then transfers to the many-body system. At the accepted WCA-dimer cell, on
 \WcsSeeds{} fresh seeds with nothing retuned, practical mFR improves the integrated error by
-\WcsEstGain\% $[\WcsEstCIlo, \WcsEstCIhi]$ on \WcsEstWins{} seeds and beats its own matched
-sham by \WcsDirect\% $[\WcsDirectCIlo, \WcsDirectCIhi]$, while matched random turnover is
-itself \emph{not} an improvement on ABF ($\WcsShamGain\%$). Round trips differ by under
+\WcvEstGain\% $[\WcvEstCIlo, \WcvEstCIhi]$ on \WcvEstWins{} seeds and beats its own matched
+sham by \WcvDirect\% $[\WcvDirectCIlo, \WcvDirectCIhi]$, while matched random turnover is
+itself \emph{not} an improvement on ABF ($\WcvShamGain\%$), all against a corrected
+high-precision reference. Round trips differ by under
 $1\%$ across arms, so the mechanism redistributes population rather than creating crossings ---
 the behaviour the two-state reduction predicts, confirmed on a system it was not built from.
 
@@ -113,7 +117,22 @@ returns where ABF alone lacks reaction-coordinate support.
 
 Stated as a falsifiable claim: \emph{marginal Fisher--Rao reallocation does not accelerate
 barrier discovery, and does not improve a free energy ABF already resolves. Its useful regime
-is narrower and more specific --- a relevant state must already have been discovered, remain
+is narrower and more specific --- a relevant state must already have been discovered, have an
+equilibrated conditional ensemble, remain
 distinguishable in the selected marginal, and be receiving population too slowly under
-ordinary ABF.} Each of the three conditions is independently falsified somewhere in this
-study, and all three hold together only where the method is shown to work.
+ordinary ABF.} Each of the four conditions is independently falsified somewhere in this
+study, and all four hold together only where the method is shown to work.
+
+One further condition is not about the systems but about the method's standing, and it is the
+one this study fails. Inside that narrow regime, at matched turnover and with nothing retuned,
+the Fisher--Rao direction is \emph{indistinguishable} from simple count balancing
+($\QoneCountGain\%$, TOST interval $[\QoneCountTostLo, \QoneCountTostHi]$ inside
+$\pm\QoneTostMargin\%$; \cref{sec:wca_q1}), a rule that has shipped in multiple-walker codes
+for years and that recovers the whole gain by itself. \Cref{prop:sel_invariance} says why this
+was the likely outcome: any score built on the reaction coordinate alone leaves every
+conditional exactly invariant, so competing rules can differ only in the marginal they steer
+toward, and two sensible targets leave little room to separate. What this work contributes is
+therefore the diagnosis rather than the algorithm --- the regime map, the validity gate that
+decides when the question is well posed, the sham controls that separate direction from
+turnover, and the structural bound on what any marginal selection rule can achieve. It does
+not contribute a method that outperforms what was already available.

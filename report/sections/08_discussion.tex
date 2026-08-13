@@ -29,6 +29,7 @@ conditional degrades. The configuration-resolved conditional diagnostics, which 
 2D and WCA cases could only infer from structure, make this measurable directly.
 
 \subsection{Limitations}
+\label{sec:limits}
 
 \begin{remark}[An unreconciled parallel audit, and what it puts in doubt]
 \label{rem:audit_line}
@@ -50,11 +51,27 @@ What that line measures is not what \cref{sec:wca_sham} measures: a different en
 (final $L^2(F')$ rather than integrated $L^2(F)$), different arms, and a different run tree.
 Its table covers WCA, the entropic bottleneck and $R_{15}$ only --- it predates the gateway,
 the matched sham, the alkane torsions and both dipeptides, and so refutes no number reported
-here. But it means two things in this report should be read as provisional: the
+here. Earlier versions of this remark therefore flagged two things as provisional: the
 variance-reduction language of \cref{sec:case_eb,sec:case_wca}, and the fact that the Case IX
-headline rests on the cached TI reference whose inflation for \emph{that} endpoint and cell
-has not been measured. Reconciling the two lines is outstanding work, and we flag it rather
-than quietly choosing the more favourable of the two readings.
+headline rested on a cached TI reference whose inflation for \emph{that} endpoint and cell
+had not been measured.
+
+\textbf{Both have since been checked directly, and the audit was right on both counts.} The
+cached reference was rebuilt at high precision from four independently prepared solvent
+pools and found wrong near $z\approx0.26$ by up to $\GzDecaSpan\sigma$; rescoring Case IX
+against the corrected reference moves the headline from $\WcsEstGain\%$ to $\WcvEstGain\%$
+(\cref{rem:wca_reference_correction}), an inflation of the same order the audit reported for
+its own endpoint. And the count-balancing claim now has a preregistered turnover-matched test
+behind it: mFR and count balancing are \emph{equivalent} by TOST
+(\cref{sec:wca_q1}), with count balancing recovering the whole gain on its own. The
+variance-reduction language has been withdrawn from \cref{sec:case_eb,sec:case_wca} in favour
+of coverage equalisation, for the reason the audit gave --- variance is neither the bulk of
+the WCA error budget nor decreasing under balancing --- and now also for a structural one,
+\cref{prop:sel_invariance}.
+
+What remains genuinely unreconciled is narrower than before: the two lines still use
+different endpoints and run trees, so their effect \emph{sizes} are not directly comparable.
+The disagreement of substance is gone.
 \end{remark}
 
 We remain deliberately conservative about scope.

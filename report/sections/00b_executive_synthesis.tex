@@ -15,13 +15,21 @@ between regions of the biased coordinate. It does not change the potential, the 
 the dynamics between events, and it cannot put a walker anywhere that no walker has already
 reached.
 
-\paragraph{Three finite-time regimes.}
-Which of those properties binds is decided by two timescales measured against the run length:
-how long a relevant state takes to be \textbf{found}, and how long it then takes to be
-adequately \textbf{populated}. That gives three regimes, and every benchmark in this report
-falls into one of them (\cref{tab:regime_map}).
+\paragraph{Four finite-time regimes.}
+Which of those properties binds is decided by three timescales measured against the run length:
+how long a relevant state takes to be \textbf{found}, how long its orthogonal degrees of
+freedom take to \textbf{equilibrate} at fixed reaction coordinate, and how long it then takes
+to be adequately \textbf{populated}. Every benchmark in this report falls into one of the
+resulting regimes (\cref{tab:regime_map}), classified by the \emph{first} gate it fails.
 
 \begin{itemize}
+  \item \textbf{Conditional-equilibration-limited} --- the orthogonal ensemble has not
+  equilibrated, so the ABF mean force is an average over a non-equilibrium conditional and the
+  baseline itself is invalid. Deca-alanine and the $\beta=2$ cells of $R_{15}$. By
+  \cref{prop:sel_invariance} no marginal selection rule can help; more importantly, no
+  discovery or establishment verdict computed on such a baseline is admissible. Deca-alanine
+  passes both of those gates and would have been filed as a target for the method, which is
+  why this check now runs first.
   \item \textbf{ABF-sufficient} --- found early, populated early. Butane and pentane on
   $\varphi_1$, pentane on the torsion torus $(\varphi_1,\varphi_2)$, both dipeptides, the
   metastability model, and the entropic bottleneck at $\beta\le4$. There is no marginal
@@ -62,12 +70,22 @@ written, practical mFR improves the time-integrated free-energy error by
 $\ClosureGwTwoGain\%$ on $\ClosureGwTwoWins$ fresh seeds in the quoted replicate
 ($\ClosureGwOneGain\%$ on $\ClosureGwOneWins$ in the first pass), and beats its own sham
 directly in both. On the WCA dimer, with no hyperparameter reopened and $16$ fresh seeds, it
-improves the same endpoint by $\ClosureWcaGain\%$ on $\ClosureWcaWins$ seeds and beats its own
-sham by $\ClosureWcaDirect\%$ on $\ClosureWcaDirectWins$. The sham itself is not better than
-ABF in either system.
+improves the same endpoint by $\WcvEstGain\%$ on $\WcvEstWins$ seeds and beats its own
+sham by $\WcvDirect\%$ on $\WcvDirectWins$. The sham itself is not better than
+ABF in either system. (The WCA figures are scored against a corrected high-precision
+reference; the cached one used first was wrong inside the transition region and had put this
+headline at $\ClosureWcaGain\%$.)
+
+That gain is attributable to \emph{directed} selection, but not to \emph{this} direction. At
+matched turnover against the two directed rules already in use, mFR is tied by simple count
+balancing ($\QoneCountGain\%$, TOST interval $[\QoneCountTostLo, \QoneCountTostHi]$ inside
+$\pm\QoneTostMargin\%$), which reaches $\QoneCountVsAbf\%$ against ABF on its own, while the
+Chapter~6 Laplacian rule is inert ($\QoneBookVsAbf\%$). The claim this report can support is a
+principled rule consistent with the establishment mechanism, not a performance win over prior
+art.
 
 Barrier round trips in the WCA test differ by $\ClosureWcaRoundTripPct\%$ between mFR and ABF
-while the free-energy error differs by $\ClosureWcaGain\%$ --- roughly an eighteen-fold
+while the free-energy error differs by $\WcvEstGain\%$ --- roughly a fourteen-fold
 separation between the transport change and the accuracy change. In this setup the mechanism
 is therefore consistent with redistributing population among replicas that were already
 crossing, rather than with buying additional crossings.
@@ -99,7 +117,10 @@ is conditioned on the specific model, coordinate, budget, and implementation tes
 Finally, a parallel audit line in this repository --- forked from the same commit, closed
 separately, and \emph{not} merged --- reaches more conservative conclusions on the WCA system:
 it finds the cached thermodynamic-integration reference inflates the measured improvement by
-about $2\times$ on a related endpoint, and it rejects variance reduction as the mechanism.
-It does not cover the gateway, the matched sham, the alkanes or the dipeptides, so it refutes
-no number reported here, but it is unreconciled and \cref{rem:audit_line} states exactly what
-it puts in doubt.
+about $2\times$ on a related endpoint, it rejects variance reduction as the mechanism, and it
+reports the Fisher--Rao score as no better than plain count balancing. All three have since
+been checked directly and all three hold: the reference was rebuilt and corrected, the
+variance-reduction language has been withdrawn in favour of coverage equalisation, and the
+count-balancing claim now has a preregistered turnover-matched test behind it. What remains
+unreconciled is only that the two lines use different endpoints, so their effect sizes are not
+directly comparable; \cref{rem:audit_line} states the current position.

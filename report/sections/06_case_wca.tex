@@ -533,7 +533,7 @@ low ABF floor (matching parallel ABF) and sits nearly an order of magnitude \emp
 exactly as the thesis predicts. In all three cells the one-walker curve has plateaued by the
 $1/4$ cutoff, so the plateau, not a still-descending transient, is what the comparison reads. So even granting ordinary ABF the most favourable single-long-trajectory
 form of the same force-evaluation budget, it does not recover the starved-regime birth--death
-variance reduction: the mFR advantage there is the correction, not raw compute. We do not
+reallocation: the mFR advantage there is the correction, not raw compute. We do not
 overclaim the exact $N\!\cdot\!T$ endpoint (the cells are run to the $1/4$ cutoff, a resumable
 extension), but the $\sim\!1.8\times$ gap and its flat trend give no indication that a further
 $4\times$ budget would close it. Either way the central WCA thesis stays conditional: mFR helps
@@ -646,7 +646,7 @@ conclusion about the size of the mFR advantage over OPES.
 \input{tables/opes_wca_table.tex}
 
 The reading is that OPES's strength --- rapid, well-tempered flattening of the bias
---- buys sampling throughput, not estimator variance reduction along the mean force.
+--- buys sampling throughput, not directed reallocation along the mean force.
 Where ABF is starved, the residual error is dominated by how the local mean force is
 \emph{estimated} from a finite ensemble, and it is exactly there that mFR's
 birth--death reallocation helps and OPES does not. The mFR advantage documented in
@@ -691,8 +691,8 @@ At the original condensed-phase WCA anchor, ABF+FR with an online estimated targ
 reliably and substantially improves free-energy accuracy: $+\WCAtunedGainPct\%$ in
 median final $\Ltwo(F)$ at the tuned operating point, winning
 $\WCAtunedWin/10$ seeds, with the gain concentrated in the free energy (not the
-mean force). The mechanism is balanced-resampling variance reduction after
-warm-up; at the anchor, target shape matters little
+mean force). The mechanism is directed coverage equalisation after
+warm-up --- marginal reallocation, which is all \cref{prop:sel_invariance} permits it to be; at the anchor, target shape matters little
 ($\text{uniform}\approx\text{estimated}\approx\text{oracle}$, and the estimated
 target already reaches the oracle's accuracy). The method has a clear safe regime,
 \texttt{fr\_rate}$\approx0.1$--$0.2$, and a real failure boundary: too-aggressive
@@ -705,7 +705,7 @@ sampling: at equal force-evaluation budget mFR still beats every parallel-ABF sh
 starved cell (\cref{sec:wca_equal_compute}), and a serial one-walker ABF control run at the
 exact $N\!\cdot\!T$ force-evaluation budget (\cref{sec:wca_serial}) tests whether a lone ABF
 walker catches up; on the evidence available the starved-regime advantage tracks the
-birth--death variance reduction rather than raw compute.
+directed reallocation rather than raw compute.
 Thus the practical recommendation is conditional, not automatic: use gentle,
 diversity-preserving mFR in starved WCA regimes, and monitor ABF error,
 transition support, FR event fractions, and genealogy before increasing the
@@ -784,4 +784,111 @@ population among replicas that were already crossing. That is exactly what the t
 reduction of \cref{sec:gw_twostate} predicts --- the reallocation term changes the relaxation
 rate toward the target without touching the physical crossing rate $k_{01}$ --- and it is an
 independent confirmation of that model on a system it was not built from.
+\end{remark}
+
+\begin{remark}[The reference this subsection was first scored against was wrong]
+\label{rem:wca_reference_correction}
+The numbers quoted above were originally computed against a cached thermodynamic-integration
+reference. A parallel audit later found that reference to be wrong near $z\approx0.26$ --- by
+up to $67\sigma$ against a high-precision consensus built from four independently prepared
+solvent pools --- which is inside the transition region where the arms differ most. Rescoring
+the \emph{same} stored trajectories against the corrected reference
+(\texttt{cache/phase\_hp\_v3}) moves the headline from $\WcsEstGain\%$ to
+$\WcvEstGain\%$ $[\WcvEstCIlo, \WcvEstCIhi]$ on $\WcvEstWins$ seeds, the direct
+arm-versus-sham contrast to $\WcvDirect\%$ $[\WcvDirectCIlo, \WcvDirectCIhi]$, and the sham
+itself from $\WcsShamGain\%$ to $\WcvShamGain\%$ $[\WcvShamCIlo, \WcvShamCIhi]$.
+
+Two things are worth separating. The conclusion is unchanged: every preregistered criterion
+that passed against the cached reference still passes against the corrected one, and the sham
+moving from $\WcsShamGain\%$ to $\WcvShamGain\%$ actually \emph{removes}
+\cref{rem:wca_sham_harmful}'s awkwardness, since the corrected sham is no longer resolvably on
+the harmful side. But the magnitude moved by about five percentage points, which is
+comparable to the effects this report elsewhere treats as meaningful. \Cref{sec:wca_q1}
+therefore quotes the corrected value, and the general rule stated in \cref{sec:limits} ---
+that no arm-level effect is trustworthy unless the reference uncertainty is much smaller than
+the effect --- was adopted because of this episode rather than in anticipation of it.
+\end{remark}
+
+\subsection{Is the Fisher--Rao direction better than the directed selection ABF already had?}
+\label{sec:wca_q1}
+Every control so far contrasts mFR with ABF or with \emph{undirected} turnover. Neither asks
+the question a reader of the birth--death literature would ask first: selection along a
+reaction coordinate is not new, so is the Fisher--Rao \emph{direction} better than the
+directions already in use? \Cref{prop:sel_invariance} sharpens what is at stake. All three
+rules below are functions of the collective variable alone, so all three leave every
+conditional exactly invariant and can differ \emph{only} in how they redistribute the
+marginal. The question is whether that difference is worth anything.
+
+Five arms are run at the accepted cell on \QoneSeeds{} fresh paired seeds: \texttt{abf};
+\texttt{fr\_estimated}, frozen exactly as \cref{sec:wca_sham} ran it; its matched sham; the
+Chapter~6 rule $S=c\,\partial_z^2 p/p$ (\texttt{book\_laplacian}); and the count-balancing
+rule $S=c\,(1-\hat p/\bar p)$ (\texttt{count\_balancing}), the simple alternative that
+multiple-walker implementations actually ship.
+
+\paragraph{Turnover is matched, and matching it was the hard part.}
+An arm must not win by selecting harder, so each prior-art intensity $c$ was chosen on
+\emph{held-out} seeds to bring its replacement count closest to \texttt{fr\_estimated}'s on
+the same cell; the mFR configuration was not retuned. This is not a formality.
+\texttt{book\_laplacian}'s score is pinned at the clip $S_{\max}$ over the whole intensity
+range one would naturally search: a $30\times$ change in $c$ moved its turnover by
+$1.44\times$, so the obvious ladder bottomed out at $5.5\times$ the target and would have
+handed that arm a five-fold turnover advantage. Matching it requires $c=\QoneBookC$, two
+decades below where the search started. The final intensities sit at $\QoneBookTurnover\times$
+and $\QoneCountTurnover\times$ of mFR's own turnover.
+
+\paragraph{The primary result replicates.}
+Against the corrected reference and with the arms freshly run rather than rescored, mFR
+improves the integrated error by $\QoneEstGain\%$ $[\QoneEstCIlo, \QoneEstCIhi]$ on
+$\QoneEstWins$ seeds and beats its own sham by $\QoneDirect\%$
+$[\QoneDirectCIlo, \QoneDirectCIhi]$ on $\QoneDirectWins$, while the sham is not better than
+ABF ($\QoneShamGain\%$). This agrees with the rescored \cref{sec:wca_sham} value of
+$\WcvEstGain\%$ to within a fraction of a point, from independent trajectories.
+
+\paragraph{The novelty claim does not survive.}
+\input{tables/wca_q1.tex}
+Against \texttt{book\_laplacian} mFR is clearly better, $\QoneBookGain\%$
+$[\QoneBookCIlo, \QoneBookCIhi]$ on $\QoneBookWins$ seeds. But the context row is what decides
+the question: \texttt{book\_laplacian} does not beat plain ABF either
+($\QoneBookVsAbf\%$, $\QoneBookVsAbfWins$), so mFR's margin over it is not evidence of beating
+\emph{directed} selection --- that rule simply does not function on this system, and beating an
+inert arm is not a novelty result.
+
+Against \texttt{count\_balancing} mFR is \textbf{tied}: $\QoneCountGain\%$ with a TOST interval
+of $[\QoneCountTostLo, \QoneCountTostHi]$, strictly inside the $\pm\QoneTostMargin\%$
+equivalence margin, on $\QoneCountWins$ seeds. Equivalence here is \emph{demonstrated},
+not inferred from an interval that happens to contain zero. And count balancing recovers the
+whole effect on its own: $\QoneCountVsAbf\%$
+$[\QoneCountVsAbfCIlo, \QoneCountVsAbfCIhi]$ against ABF on $\QoneCountVsAbfWins$ seeds,
+statistically indistinguishable from mFR's $\QoneEstGain\%$.
+
+The honest reading is that the establishment-limited gain is real, replicated and attributable
+--- it beats its own sham $\QoneDirectWins$ --- but that the Fisher--Rao geometry is not what
+delivers it. A one-line count-balancing rule gets the same gain at matched turnover. What this
+report can claim is a principled selection rule consistent with the establishment mechanism
+and a diagnosis of when selection helps at all; it cannot claim a performance win over prior
+art, and \cref{sec:discussion} states the consequence for how the method should be positioned.
+
+This outcome is what \cref{prop:sel_invariance} would lead one to expect. The three rules are
+in one equivalence class as far as conditionals are concerned, and they can be separated only
+by the marginal they steer toward. Two of them --- mFR's bias-aware target and count
+balancing's flat one --- evidently steer toward marginals that are close enough to make no
+measurable difference at this budget, while the Laplacian rule does not steer usefully at all.
+
+\begin{remark}[The genealogy gate was being read off the wrong statistic]
+\label{rem:ess_window}
+The preregistered health gate $\mathrm{ESS}_{\mathrm{anc}}/N\ge0.30$ had never been evaluated
+on this system, and evaluating it exposed a measurement error worth recording. Read off the
+ancestry the sampler already tracked, mFR scores $\QoneEssRunLong$ --- an apparent failure.
+But the matched-turnover \emph{random} sham scores $\QoneEssRunLongSham$, no better, and a
+sham is non-pathological by construction. A gate its own null control fails is not measuring
+what it claims.
+
+The cause is definitional. That ancestry is traced from $t=0$ and never reset, so its ESS
+decays monotonically for \emph{any} birth--death process, healthy or not, and a fixed floor on
+it is a cap on run length rather than a health criterion. The gateway confirmatory that set
+the $0.30$ floor measured ESS over a rolling $\EssWindowSteps$-step window and read
+$0.37$--$0.73$. On the windowed statistic mFR reads $\QoneEssWindow$, and the takeover gate
+$w_{\max}\le0.05$ passes at $\QoneWmax$. Both statistics are now recorded so they cannot be
+conflated again. The general lesson --- check what the null control scores before believing a
+gate failure --- is the same one \cref{rem:wca_sham_harmful} arrived at from the other side.
 \end{remark}
