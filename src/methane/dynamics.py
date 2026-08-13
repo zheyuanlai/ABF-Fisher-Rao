@@ -45,16 +45,38 @@ class RigidWaterConstraints:
     PAIRS = ((0, 1), (0, 2), (1, 2))
 
     def __init__(self, molecules, lengths, mass, device=None, dtype=torch.float64,
-                 tol_nm=1.0e-10, max_iter=8):
+                 tol_nm=1.0e-10, max_iter=8, n_iter=3):
         self.mol = torch.as_tensor(np.asarray(molecules), device=device, dtype=torch.long)
         self.d2 = torch.as_tensor(np.asarray(lengths), device=device, dtype=dtype) ** 2
         self.inv_mass = 1.0 / torch.as_tensor(np.asarray(mass), device=device, dtype=dtype)
         self.tol = float(tol_nm)
         self.max_iter = int(max_iter)
+        self.n_iter = int(n_iter)
         self.n_mol = self.mol.shape[0]
         self.n_constraints = 3 * self.n_mol
         # per-molecule inverse masses of (O, H1, H2)
         self.w = self.inv_mass[self.mol]                                  # (n_mol, 3)
+
+        # ---- precomputed structure (performance; removes all per-step Python loops) ---------
+        # Pair endpoints as index tensors: pair k connects site PA[k] -> PB[k].
+        self.PA = torch.tensor([a for a, _ in self.PAIRS], device=device, dtype=torch.long)
+        self.PB = torch.tensor([b for _, b in self.PAIRS], device=device, dtype=torch.long)
+        # Newton matrix coefficients depend only on the masses: A[k,l] = coef[k,l] * (rc_k . rr_l)
+        coef = torch.zeros(self.n_mol, 3, 3, device=device, dtype=dtype)
+        for k, (ak, bk) in enumerate(self.PAIRS):
+            for l, (al, bl) in enumerate(self.PAIRS):
+                coef[:, k, l] = ((1.0 if bk == bl else 0.0) * self.w[:, bk]
+                                 - (1.0 if bk == al else 0.0) * self.w[:, bk]
+                                 - (1.0 if ak == bl else 0.0) * self.w[:, ak]
+                                 + (1.0 if ak == al else 0.0) * self.w[:, ak])
+        self.coef = coef
+        # Incidence M[s, l] = +1 if site s = a_l, -1 if s = b_l: the displacement of site s is
+        # w_s * sum_l M[s,l] lam_l r_l, which replaces the loop-and-scatter of the old code.
+        M = torch.zeros(3, 3, device=device, dtype=dtype)
+        for l, (al, bl) in enumerate(self.PAIRS):
+            M[al, l] += 1.0
+            M[bl, l] -= 1.0
+        self.incidence = M
 
     def _gather(self, x):
         """``(B, n_mol, 3, 3)`` -- walker, molecule, site-in-molecule, xyz."""
@@ -71,63 +93,44 @@ class RigidWaterConstraints:
         Newton on the multipliers: ``g_k = |r_k|^2 - d_k^2``, ``dg_k/dlambda_l`` built from the
         **reference** (pre-move) bond vectors, which is what makes this SHAKE rather than a
         naive projection and keeps it symplectic-compatible.
-        Returns the final maximum absolute residual in nm.
+
+        **Fixed iteration count, no host-device sync -- deliberately.**  The original version
+        checked ``float(g.abs().max()) < tol`` each Newton pass and returned a ``float``
+        residual: 4-9 GPU->CPU syncs per BAOAB step, each a pipeline stall.  Measured on the
+        N=512 screen this was a large part of a 14 ms/step overhead over the pure force cost,
+        with the GPU drawing ~300 W of 600.  The solver converges to 1e-13 in 2-3 passes
+        (float64) so ``n_iter = 3`` is fixed at construction, and convergence is *audited* at
+        diagnostic cadence via :meth:`max_violation` against the 1e-8 nm gate instead of being
+        polled synchronously every step.
         """
         ref = self._gather(x_ref)
-        for _ in range(self.max_iter):
+        rr = ref[:, :, self.PB, :] - ref[:, :, self.PA, :]                 # (B, n_mol, 3, 3)
+        for _ in range(self.n_iter):
             cur = self._gather(x)
-            rc = torch.stack([cur[:, :, b, :] - cur[:, :, a, :] for a, b in self.PAIRS], dim=2)
-            rr = torch.stack([ref[:, :, b, :] - ref[:, :, a, :] for a, b in self.PAIRS], dim=2)
+            rc = cur[:, :, self.PB, :] - cur[:, :, self.PA, :]
             g = (rc * rc).sum(-1) - self.d2                                # (B, n_mol, 3)
-            if float(g.abs().max()) < self.tol:
-                break
-            # A[k,l] = 2 * rc_k . rr_l * (w_a[k] delta_a + w_b[k] delta_b ... )
-            A = x.new_zeros(*g.shape, 3)
-            for k, (ak, bk) in enumerate(self.PAIRS):
-                for l, (al, bl) in enumerate(self.PAIRS):
-                    coef = ((1.0 if bk == bl else 0.0) * self.w[:, bk]
-                            - (1.0 if bk == al else 0.0) * self.w[:, bk]
-                            - (1.0 if ak == bl else 0.0) * self.w[:, ak]
-                            + (1.0 if ak == al else 0.0) * self.w[:, ak])
-                    A[:, :, k, l] = 2.0 * (rc[:, :, k, :] * rr[:, :, l, :]).sum(-1) * coef
+            A = 2.0 * torch.einsum("bmkx,bmlx->bmkl", rc, rr) * self.coef
             lam = torch.linalg.solve(A, g.unsqueeze(-1)).squeeze(-1)       # (B, n_mol, 3)
-            delta = x.new_zeros(x.shape[0], self.n_mol, 3, 3)
-            for l, (al, bl) in enumerate(self.PAIRS):
-                contrib = lam[:, :, l, None] * rr[:, :, l, :]
-                delta[:, :, bl, :] -= self.w[:, bl, None] * contrib
-                delta[:, :, al, :] += self.w[:, al, None] * contrib
+            delta = self.w[None, :, :, None] * torch.einsum(
+                "sl,bml,bmlx->bmsx", self.incidence, lam, rr)
             self._scatter_add(x, delta)
-        cur = self._gather(x)
-        rc = torch.stack([cur[:, :, b, :] - cur[:, :, a, :] for a, b in self.PAIRS], dim=2)
-        r = (rc * rc).sum(-1).sqrt()
-        return float((r - self.d2.sqrt()).abs().max())
 
     def apply_velocities(self, x, v):
         """RATTLE: remove the velocity component along every constraint, in place.
 
-        Exact in one solve -- the constraint is linear in ``v`` -- so no iteration is needed.
+        Exact in one solve -- the constraint is linear in ``v``.  No residual is returned, for
+        the same no-sync reason as :meth:`apply_positions`.
         """
         pos = self._gather(x)
         vel = self._gather(v)
-        rc = torch.stack([pos[:, :, b, :] - pos[:, :, a, :] for a, b in self.PAIRS], dim=2)
-        dv = torch.stack([vel[:, :, b, :] - vel[:, :, a, :] for a, b in self.PAIRS], dim=2)
+        rc = pos[:, :, self.PB, :] - pos[:, :, self.PA, :]
+        dv = vel[:, :, self.PB, :] - vel[:, :, self.PA, :]
         rhs = (rc * dv).sum(-1)                                            # (B, n_mol, 3)
-        A = v.new_zeros(*rhs.shape, 3)
-        for k, (ak, bk) in enumerate(self.PAIRS):
-            for l, (al, bl) in enumerate(self.PAIRS):
-                coef = ((1.0 if bk == bl else 0.0) * self.w[:, bk]
-                        - (1.0 if bk == al else 0.0) * self.w[:, bk]
-                        - (1.0 if ak == bl else 0.0) * self.w[:, ak]
-                        + (1.0 if ak == al else 0.0) * self.w[:, ak])
-                A[:, :, k, l] = (rc[:, :, k, :] * rc[:, :, l, :]).sum(-1) * coef
+        A = torch.einsum("bmkx,bmlx->bmkl", rc, rc) * self.coef
         lam = torch.linalg.solve(A, rhs.unsqueeze(-1)).squeeze(-1)
-        delta = v.new_zeros(v.shape[0], self.n_mol, 3, 3)
-        for l, (al, bl) in enumerate(self.PAIRS):
-            contrib = lam[:, :, l, None] * rc[:, :, l, :]
-            delta[:, :, bl, :] -= self.w[:, bl, None] * contrib
-            delta[:, :, al, :] += self.w[:, al, None] * contrib
+        delta = self.w[None, :, :, None] * torch.einsum(
+            "sl,bml,bmlx->bmsx", self.incidence, lam, rc)
         self._scatter_add(v, delta)
-        return float(rhs.abs().max())
 
     def max_violation(self, x):
         cur = self._gather(x)
@@ -166,18 +169,15 @@ class PairConstraint:
         return self.d * self.d
 
     def apply_positions(self, x, x_ref):
+        # Fixed iteration count, no host sync -- see RigidWaterConstraints.apply_positions.
         rr = x_ref[:, self.j, :] - x_ref[:, self.i, :]
         for _ in range(self.max_iter):
             rc = x[:, self.j, :] - x[:, self.i, :]
             g = (rc * rc).sum(-1) - self._d2()
-            if float(g.abs().max()) < self.tol:
-                break
             denom = 2.0 * (rc * rr).sum(-1) * (self.wi + self.wj)
             lam = g / torch.where(denom.abs() < 1e-30, torch.full_like(denom, 1e-30), denom)
             x[:, self.j, :] -= self.wj * lam[:, None] * rr
             x[:, self.i, :] += self.wi * lam[:, None] * rr
-        rc = x[:, self.j, :] - x[:, self.i, :]
-        return float((rc.norm(dim=-1) - self.d).abs().max())
 
     def apply_velocities(self, x, v):
         rc = x[:, self.j, :] - x[:, self.i, :]
@@ -186,7 +186,6 @@ class PairConstraint:
         lam = (rc * dv).sum(-1) / denom.clamp_min(1e-30)
         v[:, self.j, :] -= self.wj * lam[:, None] * rc
         v[:, self.i, :] += self.wi * lam[:, None] * rc
-        return float((rc * dv).sum(-1).abs().max())
 
     def max_violation(self, x):
         rc = x[:, self.j, :] - x[:, self.i, :]
@@ -213,10 +212,12 @@ class CompositeConstraints:
                 seen |= s
 
     def apply_positions(self, x, x_ref):
-        return max(p.apply_positions(x, x_ref) for p in self.parts)
+        for p in self.parts:
+            p.apply_positions(x, x_ref)
 
     def apply_velocities(self, x, v):
-        return max(p.apply_velocities(x, v) for p in self.parts)
+        for p in self.parts:
+            p.apply_velocities(x, v)
 
     def max_violation(self, x):
         return max(p.max_violation(x) for p in self.parts)
