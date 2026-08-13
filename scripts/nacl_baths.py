@@ -113,28 +113,45 @@ def main():
             print(f"  build {b} {FAMILY_NAMES[fam]:6s} (r_prep = {r_prep}) done", flush=True)
 
     if args.per_r:
+        # ONE context per (build, family), reused across every r.  The ions are frozen by
+        # setting their masses to zero -- OpenMM's minimiser then holds them exactly at the
+        # target separation while the waters relax around them, so no constraint has to be
+        # baked into the System and 549 context creations collapse to 9.  (Context creation,
+        # not minimisation, dominates the naive loop.)
         r_grid = r_grid_from_box(L)
-        print(f"[per-r] minimising {len(r_grid)} x {args.builds} x 3 families ...", flush=True)
+        print(f"[per-r] minimising {len(r_grid)} x {args.builds} x 3 families "
+              f"({len(r_grid) * args.builds * 3} configurations, 9 contexts) ...", flush=True)
         worst = 0.0
+        water_idx = None
         for b in range(args.builds):
             for fam in (0, 1, 2):
+                system, topology, _ = nsys.build_openmm_system(L)
+                for i in (0, 1):
+                    system.setParticleMass(i, 0.0 * u.dalton)
+                plat, props = _platform()
+                ctx = mm.Context(system, mm.VerletIntegrator(1e-6), plat, props)
                 for r_nm in r_grid:
-                    system = _held_system(L, float(r_nm))
-                    plat, props = _platform()
-                    ctx = mm.Context(system, mm.VerletIntegrator(1e-6), plat, props)
-                    ctx.setPositions(place(baths[(b, fam)], float(r_nm), L) * u.nanometer)
+                    target = place(baths[(b, fam)], float(r_nm), L)
+                    ctx.setPositions(target * u.nanometer)
                     mm.LocalEnergyMinimizer.minimize(ctx, 5.0, 2000)
                     st = ctx.getState(getPositions=True, getForces=True)
                     xr = np.asarray(st.getPositions().value_in_unit(u.nanometer))
+                    d = xr[1] - xr[0]
+                    d -= L * np.round(d / L)
+                    if abs(float(np.linalg.norm(d)) - float(r_nm)) > 1e-6:
+                        raise RuntimeError(f"frozen ions moved: r = {np.linalg.norm(d):.6f} "
+                                           f"vs {r_nm}")
+                    if water_idx is None:
+                        water_idx = np.setdiff1d(np.arange(xr.shape[0]), [0, 1])
                     fmax = np.abs(np.asarray(st.getForces().value_in_unit(
-                        u.kilojoule_per_mole / u.nanometer))).max()
+                        u.kilojoule_per_mole / u.nanometer))[water_idx]).max()
                     worst = max(worst, float(fmax))
                     out[f"start_b{b}_f{fam}_r{r_nm:.4f}"] = xr.astype(np.float32)
-                    del ctx
-            print(f"  build {b} done (worst |F| so far {worst:.3e})", flush=True)
+                del ctx
+            print(f"  build {b} done (worst water |F| so far {worst:.3e})", flush=True)
         if worst > 1e5:
             raise RuntimeError(f"minimisation left max|F| = {worst:.3e}; dynamics would explode")
-        print(f"[per-r] worst residual max|F| = {worst:.3e} kJ/mol/nm", flush=True)
+        print(f"[per-r] worst residual water max|F| = {worst:.3e} kJ/mol/nm", flush=True)
 
     np.savez_compressed(os.path.join(args.out, "baths.npz"), **out)
     with open(os.path.join(args.out, "manifest.json"), "w") as fh:
