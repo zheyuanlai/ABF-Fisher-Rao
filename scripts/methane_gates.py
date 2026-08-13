@@ -45,6 +45,33 @@ DEFICIT_FRAC = 0.50        #: Gate C: occupancy below 0.5 Q*
 DEFICIT_SPAN = 0.20        #: for a contiguous 0.20 T, in the second half
 GATE_A_TV = 0.30           #: Gate A: max pairwise TV(p(n_gap | state)) must reach this
 
+# ---------------------------------------------------------------------------------------------
+# MISSING-DATA POLICY.  Two distinct failure classes, both of which have already bitten this
+# campaign, and which need opposite handling:
+#
+#   (1) "no data reads as PASS".  A statistic that cannot be computed must never take the branch
+#       a passing value would take.  Gate A returns NOT COMPUTABLE and defers; Gate C raises on
+#       a non-finite Q* rather than reporting "no deficit", because `occupancy < 0.5 * nan` is
+#       False everywhere and would have manufactured an ABF-sufficient verdict from one missing
+#       reference point.
+#
+#   (2) "no data reads as a SMALLER number".  Harmless for most statistics, dangerous whenever
+#       the quantity sits in a denominator or sets a permissive threshold.  **This is the rule
+#       Gate D must follow when it is written**, and it is recorded here in advance:
+#
+#         Gate D is  lambda_rep * tau_perp <= 0.1,  i.e. the admissible selection rate is
+#         0.1 / tau_perp.  A descriptor that never decorrelates within the tracking window is
+#         *censored*, not missing.  Dropping it and taking the max over survivors biases
+#         tau_perp DOWN and the rate ceiling UP -- licensing a faster selection rate than the
+#         physics justifies, which is the unsafe direction.  Censored points MUST enter the max
+#         at their lower bound (the full tracking window) and the resulting ceiling MUST be
+#         reported as conservative.
+#
+#       Same rule applies to ESS_anc and to anything else feeding a rate ceiling.
+#       (Failure class (2) was identified by the NaCl session; class (1) here. Neither is
+#       hypothetical -- both were live defects in shipped analysis code.)
+# ---------------------------------------------------------------------------------------------
+
 
 def tercile_edges(lo, hi):
     w = (hi - lo) / 3.0
@@ -60,12 +87,27 @@ def state_of(xi, edges):
 
 
 def bias_aware_target(F_ref_grid, B_t, grid, edges, beta):
-    """`Q*_k(t)` from the reference and the bias ABF has applied at time `t`."""
-    w = np.exp(-beta * (F_ref_grid - B_t))
-    w = np.where(np.isfinite(w), w, 0.0)
+    """`Q*_k(t)` from the reference and the bias ABF has applied at time `t`.
+
+    **Raises on non-finite input rather than returning nan.**  A nan ``Q*`` makes the Gate C
+    test ``occupancy < 0.5 Q*`` evaluate False at every checkpoint, so no deficit is ever
+    flagged and the cell classifies **ABF-sufficient — STOP**: a study-ending physics verdict
+    manufactured by one missing reference point.  The NaCl session hit this same shape
+    independently; it is the "no data reads as pass" class, and it must fail loudly.
+
+    The exponent is stabilised by subtracting its maximum.  Without that, a large applied bias
+    sends ``exp(-beta (F_ref - B_t))`` to ``inf`` (overflow) or to all-zeros (underflow, then
+    ``0/0``) — both of which produce exactly the silent nan above, and the underflow branch is
+    reachable in a normal run once ``B_t`` grows.
+    """
+    if not (np.all(np.isfinite(F_ref_grid)) and np.all(np.isfinite(B_t))):
+        raise ValueError("non-finite reference or applied bias in the bias-aware target; "
+                         "refusing to return a nan Q* that would silently read as 'no deficit'")
+    ex = -beta * (np.asarray(F_ref_grid, dtype=np.float64) - np.asarray(B_t, dtype=np.float64))
+    w = np.exp(ex - ex.max())
     tot = w.sum()
-    if tot <= 0:
-        return np.full(len(edges), np.nan)
+    if not np.isfinite(tot) or tot <= 0:
+        raise ValueError(f"bias-aware target failed to normalise (sum = {tot})")
     return np.asarray([w[(grid >= a) & (grid < b)].sum() / tot for a, b in edges])
 
 
@@ -139,6 +181,9 @@ def main():
             qstar[i] = bias_aware_target(F_on_grid, pmf_t[j], grid, edges, beta)
 
         half = times >= 0.5 * T
+        if not np.all(np.isfinite(qstar[half])):
+            raise ValueError(f"{path}: non-finite Q* in the second half; Gate C is undecidable "
+                             "here and must not be reported as 'no deficit'")
         deficit_span = {}
         for k in range(3):
             below = (occ[half, k] < DEFICIT_FRAC * qstar[half, k])
