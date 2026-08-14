@@ -1,0 +1,61 @@
+{
+  "model": {
+    "spec": "docs/SPEC_nacl_water.md",
+    "amendment": "V2_PREREGISTRATION.md Amendment 14",
+    "n_sites": 2465,
+    "n_waters": 821,
+    "ion_index": [
+      0,
+      1
+    ],
+    "temperature_K": 300.0,
+    "gamma_ps": 1.0,
+    "dt_ps": 0.002,
+    "dt_source": "chosen by the dynamics gate",
+    "kT_kJ": 2.494338785445972,
+    "cutoff_nm": 1.2,
+    "switch_nm": 1.0,
+    "pme_tolerance": 1e-05,
+    "pme_alpha_per_nm": 2.741119282287687,
+    "pme_grid": [
+      30,
+      30,
+      30
+    ],
+    "pme_spline_order": 5,
+    "R_lo_nm": 0.2,
+    "R_hi_nm": 1.4,
+    "n_grid": 121,
+    "wall_lo_nm": 0.2,
+    "wall_hi_nm": 1.4,
+    "k_wall_kJ_nm2": 41840.0,
+    "full_samples": 500,
+    "box_nm": 2.8926999370885578,
+    "site_params": "results/nacl/stage0/site_params.npz",
+    "model_manifest": "results/nacl/stage0/model_manifest.json"
+  },
+  "stage": "nacl_abf_screen",
+  "spec": "docs/SPEC_nacl_water.md \u00a77",
+  "amendment": "V2_PREREGISTRATION.md Amendment 14",
+  "cells": [
+    64
+  ],
+  "seeds": [
+    4004,
+    4005,
+    4006,
+    4007
+  ],
+  "B_MD_ns": 100.0,
+  "dt_ps": 0.002,
+  "prep_ps": 50.0,
+  "r_cip_nm": 0.3,
+  "box_L_nm": 2.8926999370885578,
+  "R_hi_nm": 1.4,
+  "packed": true,
+  "triton": false,
+  "aggregate_ns": 400.0,
+  "gpu": "2",
+  "wall_hours": 9.725095496111447,
+  "git_commit": "53dfb30fc782e7f6281eef35aea2d42adf0ee725"
+}

@@ -10,7 +10,8 @@ reference    ACCEPTED   ratio 0.0907 <= 0.5, complete, 250 ps x 61 r x 3 builds 
 Gate 0       PASS       0.0075 global / 0.0483 barrier   (WCA passes at 0.040; deca FAILED 0.61)
 Gate A       PASS       max TV 1.000 (preregistered p(xi|Y) direction) vs 0.30
 Gate B       PASS       8/8 seeds, both states           -- NON-BINDING, see below
-Gate C       NO DEFICIT 0/8 seeds, both states
+Gate C       NO DEFICIT 0/8 seeds -- on SSIP, the only state with the power to say so
+             CIP is NON-BINDING (lambda = 1.72 expected walkers; needs >= 16)
 -> N = 64 is ABF-sufficient. No mFR arm is licensed for this cell.
 ```
 
@@ -23,6 +24,13 @@ half, 79 checkpoints × 8 seeds:
 |---|---|---|---|---|
 | CIP | 0.000 | 1.176 | 12.8 % | 10–70 ps (required: 312.5 ps) |
 | SSIP | 0.866 | 0.995 | 0.0 % | 0 ps |
+
+**Gate C at CIP has no power, and the CIP claim rests on the MEAN, not on the gate.** With
+`lambda = Q*_CIP x N = 1.72` expected walkers, "occupancy < 0.5 Q*" is arithmetically identical
+to "the state is empty right now", and the smallest deficit resolvable at 2 sigma is **152 %** --
+i.e. none. The gate is reported NON-BINDING at CIP and excluded from the verdict; **SSIP
+(lambda = 62.3) is the state that carries it.** What clears CIP is the time-averaged occupancy,
+which averages 79 checkpoints x 8 seeds and is well estimated:
 
 **The CIP zeros are counting noise, not a deficit.** CIP's mean target is 0.0311 of 64 walkers —
 **1.99 walkers expected** — so `P(zero) = e^−1.99 = 13.7 %` against 12.8 % observed. Mean
@@ -64,6 +72,16 @@ methane's** and must not be reported as a second independent null of equal stren
 1.000 is a statement about NaCl's physics, not a strong gate.
 
 ## Status of the study
+
+**The N ladder is exposed and the guard now runs before classification.** `lambda = Q* N` falls
+with `N`, so Gate C loses power as the ladder descends -- CIP at 1.72 / 0.86 / 0.43 / 0.22 and
+SSIP at 62.3 / 31.1 / 15.6 / 7.8 for N = 64 / 32 / 16 / 8. **At N = 16 and N = 8 no state reaches
+lambda >= 16, so Gate C is NOT COMPUTABLE there and those cells cannot be classified at all.**
+Without the guard, §8.2's "smallest N passing every gate" rule searches directly into the cells
+where P(empty) reaches 0.78 and would license an mFR arm on counting noise -- which is exactly
+the defect this repository already retracted once
+(`results/deca/screen_RETRACTED_no_min_count_guard/`: a state that could not hold walkers, on
+which "Gate C fired", `licenses_mfr: true`).
 
 `N = 64` is decided. §8.2 requires the **entire** map, so `N = 8, 16, 32` are running and the
 study is not closed until they report: the frozen rule is the *smallest* `N` passing every gate,
