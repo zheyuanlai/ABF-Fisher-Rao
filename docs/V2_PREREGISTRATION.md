@@ -1528,6 +1528,36 @@ very work it was protecting. Both sessions had this, independently, in guards wr
 > to require the matched process's `comm` to start with `python`, and to verify it from inside a
 > script file rather than from a shell whose command line contains the pattern.
 
+**Ratios, fully specified.** A ratio presents as one clean number while hiding the provenance of
+both arguments, which is what makes it quotable and unauditable. Checking that numerator and
+denominator come from the same **population** is necessary and is only the first of three
+independent axes. Working out a single quantity — *how fast could the fastest of `n` walkers
+be* — took the two sessions four passes to get right, and each error passed a commensurability
+check:
+
+| axis | the error made | effect |
+|---|---|---|
+| — | rms speed of **one** walker, not an extreme value at all | floor ~3x too slow |
+| **statistic** | `E[max]`, the *mean* fastest walker, where a floor wants a *quantile* | half of runs beat the floor |
+| **sampling** | `max abs(v)` two-sided, admitting the fastest **inbound** walker as a candidate for an **outbound** arrival | wrong population sampled |
+| approximation | `sqrt(2 ln n)`, the leading extreme-value term without its correction | +23 % on `E[max]`, inflating the diffusive claim |
+
+> **Identity, statistic and sampling are three independent ways to get a denominator wrong, and
+> commensurability tests only the first.** *Commensurable and wrong are independent failures.*
+
+The estimator was then removed rather than improved: `P(max of n <= x) = Phi(x)^n`, so the
+`q`-quantile is exactly `Phi^-1(q^(1/n))`. Verified here against 400 k-trial Monte Carlo to
+**7e-4 sigma at n = 64** and **4e-5 at n = 512**. A closed form ends the argument that successive
+approximations were extending.
+
+**And the rule that supersedes the altitude formulation above.** The extreme-value *statistic*
+argument was the hard half and was correct; the arithmetic that followed it — that a higher
+quantile gives a *larger* ratio, not a smaller one — was the easy half and was inverted.
+
+> **The step you found easy is the step you did not verify.** Difficulty is a poor proxy for error
+> rate. This explains the altitude cases too: a summary feels easy after the item-level work, which
+> is exactly why it goes unchecked.
+
 **Where the retracted claim actually went wrong**, in a form worth reusing: the per-defect
 statements were exact; the failure entered at the moment of summarising *across* defects. A
 sentence whose subject is a **set** ("all of them", "none of them", "the pattern is") is no
