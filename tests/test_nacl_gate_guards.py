@@ -129,7 +129,7 @@ def test_bias_aware_target_survives_extreme_biases(bias_kind):
     the silent 'no deficit' this suite exists to prevent.  The exponent is stabilised by
     subtracting its minimum, and this pins that it stays so."""
     g = _load("nacl_gates")
-    n_grid, n_cp, S = 41, 4, 2
+    n_grid, n_cp, S = 41, 4, 8      # full preregistered block: gate_c now refuses fewer
     grid = np.linspace(0.2, 1.4, n_grid)
     F_ref = 50.0 * np.sin(np.linspace(0, 3, n_grid))
     bias = {"zero": np.zeros(n_grid),
