@@ -194,6 +194,13 @@ def main():
     # everything -- which reads as "hydration states are indistinguishable through r", a Gate A
     # FAIL that STOPS the study.  That verdict must never be manufactured by absent data, so
     # under-sampled basins make Gate A NOT COMPUTABLE instead.
+    # Gate A is TV[ p(xi | Y=a), p(xi | Y=b) ] -- the PREREGISTERED direction (§2.2: "compare
+    # the conditional densities p(xi | Y = a) against p(xi | Y = b)"). SPEC_nacl §6 wrote the
+    # transpose, TV[p(Y|state)], and this code implemented the spec: that asks whether the
+    # descriptor differs between states, which is partly TAUTOLOGICAL because the states ARE
+    # xi-intervals and hydration varies with separation by construction. Both are computed;
+    # the preregistered one is the verdict. (The methane session found the identical transpose
+    # in its own implementation.)
     MIN_SAMPLES_PER_BASIN = 12
     ybar = np.where(ycnt[:, None] > 0, ysum / np.maximum(ycnt, 1)[:, None], np.nan)
     # half-open, so adjacent basins partition the r-grid instead of sharing their boundary
@@ -219,6 +226,28 @@ def main():
                     tv_max = max(tv_max, 0.5 * float(np.abs(hists[a] - hists[b]).sum()))
             gateA[name] = tv_max
         gateA_max = max(gateA.values())
+    # --- the preregistered direction: xi-distribution conditioned on hydration label --------
+    gateA_prereg, r_edges = {}, np.concatenate([r_grid - 0.5 * dz, [r_grid[-1] + 0.5 * dz]])
+    for comp, name in enumerate(("n_NaO", "n_ClH", "n_bridge")):
+        col = ybar[:, comp]
+        ok = np.isfinite(col)
+        if ok.sum() < 3 * MIN_SAMPLES_PER_BASIN:
+            continue
+        lo_t, hi_t = np.quantile(col[ok], [1 / 3, 2 / 3])
+        ha = np.histogram(recs[ok & (col <= lo_t), 0], bins=r_edges)[0].astype(float)
+        hb = np.histogram(recs[ok & (col >= hi_t), 0], bins=r_edges)[0].astype(float)
+        if ha.sum() == 0 or hb.sum() == 0:
+            continue
+        gateA_prereg[name] = 0.5 * float(np.abs(ha / ha.sum() - hb / hb.sum()).sum())
+    # how much structure is ORTHOGONAL to xi: if hydration varies far more across r than at
+    # fixed r, the label is nearly a function of r and Gate A passes because there is little
+    # hidden structure -- the same fact Gate 0 reports as a small family spread
+    orth = {}
+    for comp, name in enumerate(("n_NaO", "n_ClH", "n_bridge")):
+        within = float(np.mean([np.nanstd(ybar[recs[:, 0] == g, comp]) for g in r_grid]))
+        across = float(np.nanstd([np.nanmean(ybar[recs[:, 0] == g, comp]) for g in r_grid]))
+        orth[name] = dict(within_r_sd=within, across_r_sd=across,
+                          across_over_within=(across / within) if within > 0 else None)
     else:
         print(f"[NOT COMPUTABLE] Gate A: basin sample counts {basin_counts} against a floor of "
               f"{MIN_SAMPLES_PER_BASIN} (and {len(basins)} basins). Reporting NOT COMPUTABLE "
@@ -259,7 +288,12 @@ def main():
                    COMPUTABLE=bool(gate0_global is not None and gate0_local is not None),
                    coverage=gate0_coverage, ladder=LADDER,
                    note="no numerical threshold (Amendment 9); argued against the ladder"),
-        gateA=dict(per_descriptor_TV=gateA, max_TV=gateA_max, threshold=0.30,
+        gateA=dict(preregistered_TV_xi_given_Y=gateA_prereg,
+                   preregistered_max_TV=(max(gateA_prereg.values()) if gateA_prereg else None),
+                   preregistered_PASS=(bool(max(gateA_prereg.values()) >= 0.30)
+                                       if gateA_prereg else None),
+                   orthogonality=orth,
+                   spec_transpose_TV_Y_given_state=gateA, max_TV=gateA_max, threshold=0.30,
                    COMPUTABLE=bool(gateA_computable), basin_sample_counts=basin_counts,
                    min_samples_per_basin=MIN_SAMPLES_PER_BASIN,
                    PASS=(bool(gateA_max >= 0.30) if gateA_computable else None)),
