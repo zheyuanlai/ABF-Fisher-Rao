@@ -42,9 +42,36 @@ tercile boundary, not a barrier-crossing rate** — the first `xi` trace frame a
 
 With a single-basin reference the states are the Amendment 3 **tercile fallback**, declared as a
 partition of the coordinate rather than as metastable states — so a contact start sits 0.14 nm
-from the first boundary and Gate B could not have failed. That is a property of the partition,
+from the first boundary and Gate B could not have failed.
+
+One thing that *does* hold, and was checked rather than assumed after the NaCl session found the
+opposite in its own run: **the start is exactly at the reference minimum** — `r = 0.380 nm`,
+`W = -1.108 kT`, `0.000 kT` above the global minimum of `W`. SPEC §6.1's declared bias ("a contact
+start makes discovery harder, so it can only push toward discovery-limited") therefore holds here
+as written. Their start sat 2.64 kT above their CIP minimum, giving every walker two thirds of the
+barrier for free — the same clause, written by them, invalidated by a configuration nobody had
+checked against it. That is a property of the partition,
 and it is why the verdict below rests on **Gate C**, which is not vacuous: occupancy tracks the
 bias-aware target across the whole domain for the entire second half.
+
+**The far-threshold check the NaCl session used, applied here, goes further: methane's discovery
+is not measurable as a rate anywhere in the domain.** First arrival at thresholds well past the
+tercile boundary, against the correct ballistic floor — the *fastest of 512* walkers, which is
+3.1 sigma of the relative-velocity distribution (1.72 nm/ps), not the rms 0.556:
+
+| threshold | distance from start | fastest-of-512 ballistic | observed median |
+|---|---|---|---|
+| 0.60 nm | 0.220 nm | 0.13 ps | 0.25 ps |
+| 0.70 nm | 0.320 nm | 0.19 ps | 0.50 ps |
+| 0.80 nm | 0.420 nm | 0.24 ps | 0.88 ps |
+| 0.89 nm | 0.510 nm | 0.30 ps | 1.75 ps |
+
+Arrivals are **1.9–5.8x** the extreme-value ballistic floor and reach the far wall of a 0.51 nm
+domain in under 2 ps. For contrast the NaCl session, which has a real 5.34 kT barrier, measures
+4–6x its floor at far thresholds and calls that genuinely diffusive. Methane is in the same
+band — but its whole domain is only ~3 ballistic steps wide for the leading walker, so there is
+no separation between "crossed a barrier" and "flew across the box". **There is no transition to
+time.** That is not a defect in the measurement; it is what a 0.67 kT barrier means.
 
 Raw per-seed numbers: all three states reached within 0.8 ps on every seed.
 
