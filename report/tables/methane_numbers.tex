@@ -1,0 +1,72 @@
+% Methane pair in explicit SPC/E water -- v2 System 4, CLOSED 2026-08-14 as ABF-sufficient.
+% Hand-maintained; every macro names its source file. No mFR arm was ever run.
+% Preregistration: docs/V2_PREREGISTRATION.md Amendments 11-13; spec docs/SPEC_methane_water.md.
+
+% --- physical model (frozen before any dynamics) -------------------------------------------
+\def\MeNwater{512}
+\def\MeNsites{1538}
+\def\MeSigmaM{3.73}                 % Angstrom, united-atom methane
+\def\MeEpsM{0.294}                  % kcal/mol
+\def\MeTemp{298}
+\def\MeDt{0.5}                      % fs
+\def\MeCut{1.05}                    % nm
+% Source: results/methane/box/manifest.json
+\def\MeBoxL{2.490832}
+\def\MeBoxLerr{0.000497}
+\def\MeDensity{0.9946}              % g/cm^3; SPC/E at 298 K is ~0.998
+\def\MeBoxTemp{298.28}
+
+% --- engine equivalence gate (SPEC 3.2), OpenMM Reference, float64 --------------------------
+% Source: tests/test_methane_engine.py, 14 configurations spanning -2598..+45223 kJ/mol
+\def\MeParityE{2.9\times10^{-13}}
+\def\MeParityF{1.4\times10^{-15}}
+\def\MeThermoDelta{0.51}            % K, constrained BAOAB vs OpenMM LangevinMiddleIntegrator
+\def\MeConstraint{9.3\times10^{-15}} % nm over 8 ps, float64 (gate 1e-8)
+
+% --- constrained-TI reference (Amendment 12.2) ---------------------------------------------
+% Source: results/methane/ref/reference.json ; 29 r x 16 replicas (8 wet/8 dry) x 3 builds
+\def\MeRefBuilds{3}
+\def\MeRefRatio{0.1198}             % max pairwise L2 / (0.10 x span); accepted at <= 0.5
+\def\MeRefL2{0.092}                 % kJ/mol
+\def\MeRefSpan{3.11}                % kT
+\def\MeRefHours{13.78}
+% Literature-comparable structure, from OUR reference (positions, not depths, are the claim)
+\def\MeContactR{0.38}               % nm  (lit. ~3.9 A)
+\def\MeBarrierR{0.56}               % nm  (lit. ~5.5-6.0 A)
+\def\MeSSMR{0.72}                   % nm  (lit. ~7.0-7.5 A)
+\def\MeContactW{-1.11}              % kT
+\def\MeBarrierW{+0.40}              % kT
+\def\MeSSMW{-0.27}                  % kT
+\def\MeBarrierHeight{0.67}          % kT, measured from the HIGHER of the two minima
+
+% --- Gate 0 (conditional equilibration), cross-family wet/dry spread over mean|F'| ----------
+% Source: results/methane/ref/reference.json
+\def\MeGateZeroGlobal{0.048}
+\def\MeGateZeroCore{0.081}
+\def\MeGateZeroWorst{0.158}         % at r = 0.90 nm
+% campaign calibration ladder for the same statistic
+\def\MeGateZeroWCA{0.040}
+\def\MeGateZeroGateway{0.036}
+\def\MeGateZeroDeca{0.61}
+
+% --- screen and gates (8 seeds, N = 512, 200 ps) -------------------------------------------
+% Source: results/methane/screen_N512/gates.json and RESULT.md
+\def\MeNwalk{512}
+\def\MeRunPs{200}
+\def\MeSeeds{8}
+\def\MeGateAPre{0.935}              % TV(p(xi|Y)) AS PREREGISTERED (Sec 2.2)
+\def\MeGateATransposed{0.987}       % TV(p(n_gap|tercile)) -- the transpose; do NOT quote
+\def\MeGateBhits{8/8}
+\def\MeGateCdeficit{0/8}
+\def\MePinned{0.516}                % max tercile occupancy, second half, any seed (clause 0.90)
+\def\MeOccRatioWorst{0.83}          % occupancy / Q*, worst over 8 seeds x 3 states (thresh 0.5)
+\def\MeOccRatioBest{1.09}
+\def\MeScreenHours{28.6}
+
+% --- Gate B vacuity: ballistic floor, exact extreme-value quantile --------------------------
+\def\MeDomainWidth{0.51}            % nm
+\def\MeBallisticSteps{3}            % domain width in leading-walker ballistic steps
+\def\MeFarRatioLo{1.9}
+\def\MeFarRatioHi{5.8}
+\def\MeNaClFarLo{6.9}               % NaCl, same gate, 1.20 nm domain
+\def\MeNaClFarHi{20.7}

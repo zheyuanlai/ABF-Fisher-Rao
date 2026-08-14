@@ -1,0 +1,124 @@
+\section{A literature-anchored negative: methane association in water}
+\label{sec:methane}
+
+The gateway of \cref{sec:gateway} was constructed to contain the regime marginal reallocation
+is supposed to serve. That construction is its strength as a mechanism test and its weakness as
+evidence: a regime built to order says little about how often it occurs. The obvious complement
+is a molecular system chosen for the opposite reason --- one where the literature already
+describes the physics, where nothing about the setup was arranged by us, and where the honest
+expectation is that mFR has no room to act.
+
+Methane--methane association in explicit water is that system. Its potential of mean force is a
+textbook case of hydrophobic association, with a contact pair, a desolvation barrier and a
+solvent-separated pair; the reaction coordinate is a single interparticle distance, so nothing
+is hidden by a poor choice of collective variable; and the orthogonal degrees of freedom are
+real water molecules that must rearrange for the pair to separate. It was entered in the
+preregistration as a \emph{likely-null falsification benchmark} before any methane code existed,
+with the stop condition written in advance: if ABF is sufficient, report that as the result and
+do not extend the budget until it stops being true.
+
+\subsection{Model, engine and reference}
+
+The physical model follows Asthagiri, Merchant and Pratt: united-atom methane
+($\sigma_{\mathrm M} = \MeSigmaM\,\text{\AA}$, $\epsilon_{\mathrm M} = \MeEpsM$~kcal/mol) in
+$\MeNwater$ rigid SPC/E waters at $\MeTemp$~K, particle-mesh Ewald, a
+$\MeCut$~nm cutoff, and a $\MeDt$~fs BAOAB timestep. The methane--oxygen unlike-pair rule is
+Lorentz--Berthelot and is declared as our implementation choice rather than as a value read from
+that paper. NPT equilibration fixes the production box at $L = \MeBoxL \pm \MeBoxLerr$~nm, giving
+a density of $\MeDensity$~g/cm$^3$ against SPC/E's accepted $\sim 0.998$; all production is NVT
+at that volume, so the target measure is exactly the canonical measure of \cref{sec:background}.
+
+The sampler is a batched periodic engine written for this study, since no existing code runs a
+population of walkers sharing one live ABF estimator. It agrees with OpenMM to
+$\MeParityE$ in energy and $\MeParityF$ in force over configurations spanning
+$-2598$ to $+45\,223$~kJ/mol, its constrained BAOAB reproduces OpenMM's thermostat to
+$\MeThermoDelta$~K, and rigid-water constraints hold to $\MeConstraint$~nm.
+
+The reference is constrained thermodynamic integration --- the same local mean force
+$f = \tfrac12(\mathcal F_1 - \mathcal F_2)\cdot e - 2/(\beta r)$ that ABF itself estimates ---
+over $\MeRefBuilds$ independent builds, each $r$ sampled from deliberately opposed \emph{wet} and
+\emph{dry} solvent preparations. Builds agree to $\MeRefL2$~kJ/mol against a $\MeRefSpan$~kT span,
+a ratio of $\MeRefRatio$ against an acceptance threshold of $0.5$.
+
+\subsection{The landscape is real, and it is sub-$k_BT$}
+
+Our reference reproduces the literature structure at the expected positions: a contact minimum at
+$\MeContactR$~nm, a desolvation barrier at $\MeBarrierR$~nm and a solvent-separated minimum at
+$\MeSSMR$~nm. The depths are the finding. Measured on $W(r)$ they are $\MeContactW$,
+$\MeBarrierW$ and $\MeSSMW$~$k_BT$, so the barrier from the higher of the two minima is
+$\MeBarrierHeight$~$k_BT$ --- below the $2\,k_BT$ merge threshold, which collapses the landscape
+to a \emph{single basin} and fires the preregistered tercile fallback for state definitions.
+
+This was recorded before the screen ran. There is no metastability in $\xi$ for ABF to be slow
+about, and the prediction that follows --- that methane will be ABF-sufficient --- was written
+down at the reference stage precisely so that it could not afterwards be presented as a
+confirmed hypothesis.
+
+\subsection{Gate 0: the baseline is sound}
+
+Before asking what limits ABF, ask whether its conditional mean force can be trusted at all. The
+instrument is the controlled experiment of \cref{sec:synthesis}: independently prepared solvent
+families held at the same $r$, either agreeing or not. Methane's cross-family spread is
+$\MeGateZeroGlobal$ of $\overline{|F'|}$ globally and $\MeGateZeroCore$ through the desolvation
+region, against WCA's $\MeGateZeroWCA$ and deca-alanine's failing $\MeGateZeroDeca$. The spread
+also \emph{collapsed} roughly threefold between the 50~ps and 200~ps checkpoints, which is the
+signature of a conditional ensemble that mixes; deca's error persisted at up to $2\times10^{6}$
+effective counts per bin.
+
+Methane is therefore not conditional-equilibration-limited. Whatever the screen finds is a
+statement about the free-energy landscape rather than about a broken baseline.
+
+\subsection{The screen, and what each gate can and cannot support}
+
+Eight independent ensembles of $\MeNwalk$ walkers ran $\MeRunPs$~ps of ABF with no Fisher--Rao
+arm of any kind. All four gates pass and the classification is \emph{ABF-sufficient} on
+$\MeSeeds$ of $\MeSeeds$ seeds, unanimously.
+
+The result rests on Gate C, and the reasons the other gates carry less weight are worth stating
+rather than hiding. Occupancy of every tercile tracks the bias-aware target
+$Q^*_k(t) \propto \int \exp[-\beta(F_{\mathrm{ref}} - B_t)]$ throughout the second half of every
+run: the worst ratio over $8$ seeds and $3$ states is $\MeOccRatioWorst$ and the best is
+$\MeOccRatioBest$, against a deficit threshold of $0.5$. No partition choice can manufacture
+that. Walkers never pin, with a maximum single-tercile occupancy of $\MePinned$ against a $0.90$
+clause and against deca's $0.951$--$0.9996$.
+
+Gate B, by contrast, is \emph{vacuous here, and that is a property of the physics}. First
+arrivals at thresholds well beyond the tercile boundary run only $\MeFarRatioLo$--$\MeFarRatioHi
+\times$ the exact ballistic floor for the fastest of $\MeNwalk$ walkers, and the whole
+evaluation domain is $\MeDomainWidth$~nm --- about $\MeBallisticSteps$ ballistic steps for the
+leading walker. There is no separation between crossing a barrier and flying across the box, so
+no discovery \emph{rate} is resolvable at any budget. The companion NaCl study runs the identical
+gate on a $1.20$~nm domain and measures $\MeNaClFarLo$--$\MeNaClFarHi\times$ its floor: a
+resolvable, unambiguously diffusive rate. The same gate, run the same way, is informative in one
+system and vacuous in the other, and the discriminator is domain width in ballistic steps rather
+than anything about the method.
+
+Gate A passes at $\MeGateAPre$ against a $0.30$ threshold on the preregistered quantity,
+$\mathrm{TV}(p(\xi \mid Y=a), p(\xi \mid Y=b))$ with $Y$ the inter-methane water count. The
+collective variable does see the solvent physics. We note for the record that our first
+implementation computed the transpose, $\mathrm{TV}(p(Y \mid \xi))$, which reads $
+\MeGateATransposed$; that is a weaker and partly tautological statement, since the gap volume
+grows with $r$ by construction, and it is not the number that licenses a marginal method to act.
+
+\subsection{What this system contributes}
+
+Methane fails to need mFR on the \emph{state}, not on the \emph{coordinate} and not on the
+\emph{baseline}. The collective variable resolves the solvent structure, the conditional mean
+force is trustworthy, discovery is immediate and establishment is immediate. Every gate passes
+and marginal reallocation is still unnecessary, because there is nothing in the landscape for it
+to repair.
+
+That is a different and cleaner boundary than the campaign's earlier negatives. Deca-alanine
+fails because the conditional ensemble never equilibrates; the $R_{15}$ distance CV fails because
+the state is never found; pentane's $\varphi_1$ fails because the coordinate cannot see the
+states. Methane fails because the physics is easy --- which is the case a method paper most needs
+and most rarely reports, since a system on which nothing happens produces no figure.
+
+Its second contribution is calibration for the regime map. A $\MeBarrierHeight\,k_BT$ barrier
+with a $\MeRefSpan\,k_BT$ total span is what \emph{ABF-sufficient} looks like in a real solvated
+system, measured rather than asserted, and any future claim that a molecular benchmark is
+establishment-limited can be read against it.
+
+Following the preregistration, no mFR arm was run, no rate calibration was performed, and the
+$\MeRunPs$~ps budget was \textbf{not} extended in search of a deficit. Had we raised it until one
+appeared, the result would have been a statement about the budget rather than about methane.
