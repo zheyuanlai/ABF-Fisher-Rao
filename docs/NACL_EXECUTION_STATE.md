@@ -119,3 +119,33 @@ Discovery really is fast; the Gate B *number* is not what shows it.
 **Consequence: the regime verdict rests on Gate C.** Gate B is reported as passing and
 non-binding, with these validity conditions attached in `gates_report.json` automatically
 (`_diagnostics.T_hit_is_resolution_limited`) so no consumer can quote T_hit without them.
+
+## Pre-committed caveat on the NaCl verdict, recorded BEFORE Gate C is read (2026-08-14 19:0x)
+
+The methane session asked my orthogonality question of its own descriptor, and the contrast
+constrains what a NaCl null can claim:
+
+```
+                     across-r sd / within-r sd     Gate A (preregistered)
+  methane  n_gap                5.4x                    0.935
+  NaCl     hydration        14 - 83x                    1.000
+```
+
+`n_gap` retains an sd of 0.37 at fixed r across a 0.21-2.73 range, so methane keeps genuine
+solvent structure ORTHOGONAL to the coordinate -- there was something for marginal reallocation
+to act on, and ABF still did not need it. NaCl's hydration is nearly a function of r.
+
+**Therefore, committed in advance of reading Gate C:**
+
+* if NaCl returns **ABF-sufficient**, the verdict carries the caveat that NaCl has little
+  structure orthogonal to `r` (14-83x), so "mFR had nothing to work with" is a live alternative
+  to "mFR was not needed", and the null is correspondingly WEAKER than methane's at 5.4x. It
+  must not be reported as a second independent null of equal strength.
+* if NaCl returns **establishment-limited**, the same fact makes the licence STRONGER: a
+  population deficit in a system whose hydration is nearly determined by `r` is a deficit an
+  r-marginal method can in principle reach, which is exactly the regime Amendment 8's theorem
+  leaves open.
+* Gate A at 1.000 is a statement about NaCl's physics, not a strong gate, and is reported as
+  such either way.
+
+This is recorded now so it cannot be attached selectively to whichever verdict arrives.
