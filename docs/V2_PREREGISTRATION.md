@@ -333,6 +333,7 @@ Fixed here so calibration and production cannot overlap.
 | deca-alanine | 3000–3007 (8) | 3100–3103 (4) | 3200–3215 (16) |
 | NaCl / water | 4000–4007 (8) | 4100–4103 (4) | 4200–4215 (16) |
 | methane / water | 5000–5007 (8) | — | — |
+| C60 / water | 7000–7007 (8) | 7100–7103 (4) | 7200–7215 (16) |
 | WCA Case IX re-run | — | — | reuses v1 seeds 400–415 |
 
 ---
@@ -1994,3 +1995,69 @@ handover. **Once methane vacates GPU 3, NaCl may use both devices**, one process
 pinned with `CUDA_VISIBLE_DEVICES`, idle state recorded per stage. First use: the TI
 reference's three independent builds split across the two devices. This is scheduling; no
 physics, seed, budget, gate or endpoint changes.
+
+### Amendment 16 — C60/water opens as a concurrent branch on the published Zangi model (2026-08-14)
+
+**What had been seen when this was written:** methane was CLOSED (ABF-sufficient, 8/8 seeds,
+Gate C worst ratio ~0.83, no establishment window). NaCl had a parity-passed engine, an
+accepted TI reference, Gate 0 and Gate A passes, and the N = 64 screen mid-flight (seeds
+4004–4007 in progress on GPU 2) with **no Gate B/C verdict**. For C60, the primary source —
+Zangi, *J. Phys. Chem. B* 118, 12263 (2014), `10.1021/jp508174a` — had been downloaded and read
+(`cache/zangi2014/zangi2014_jpcb.pdf`), and `src/c60/geometry.py` existed with its cage-geometry
+unit checks. **No C60 trajectory, box, engine parity result, reference, screen, gate verdict or
+mFR result of any kind existed.** No NaCl screen outcome influenced any clause below, and
+nothing below changes any methane or NaCl clause except the 15.4 scheduling row noted in 16.4.
+
+#### 16.1 Why C60, and why now
+
+Methane closed as ABF-sufficient because its solvent response is local and fast: the null was
+attributed, not merely observed. The literature contrast to that null is the large-solute side
+of the hydrophobic length-scale crossover (Remsing & Weeks; Lum–Chandler–Weeks), and Zangi 2014
+provides a published, unusually simple C60 pair system in explicit water whose contact state
+hosts a distinct confined-interfacial-water population (I2) that methane is explicitly too
+small to form. Whether that produces `T_hit << T_est` is **unknown and is the question**. C60
+is opened as a blinded ABF eligibility study under the universal gates: the ABF-only screen
+runs first, and an mFR arm exists **only if Gate 0 → A → B → C → D all pass**, on exactly the
+terms deca-alanine, methane and NaCl were held to.
+
+#### 16.2 The frozen specification
+
+`docs/SPEC_c60_water.md`, **committed with this amendment and frozen**, fixes: the Zangi model
+(2 rigid C60 + 1282 TIP4P-Ew, `sigma_CO = 0.319 nm`, `epsilon_CO = 0.392 kJ/mol`, geometric
+C–C rule, intra-cage exclusions, pentagon-facing out-of-registry orientation, 1.0 nm cutoffs,
+300 K), parameters read back out of the OpenMM `System` (never transcribed), the axial COM
+separation CV on `[0.908, 2.428] nm` with its exact linear geometry, the 68-window constrained
+reference with 4-family pools and 3-build acceptance, the Gate 0/A/B/C/D definitions by
+reference to Amendments 7–10 with Gate A in the corrected `TV[p(xi|Y)]` orientation from the
+start, the fixed-compute screen map `N·T = 128 ns` over `N ∈ {8, 16, 32, 64}` run N = 64
+first with the methane 12.5 stopping rule, and the §4.3 success and §4.5 reference rules
+unchanged. The declared deviations from the paper are collected in its §14.
+
+#### 16.3 Seeds and gates
+
+Seeds **7000–7007 / 7100–7103 / 7200–7215** join the §5 table (row added with this amendment);
+disjoint from every other block by construction. **The gate order 0→A→B→C→D, every Amendment
+7–10 threshold, the §4.3 success criteria and the §4.5 reference-quality rule apply
+unchanged.** One C60-specific interpretability safeguard is frozen in advance (SPEC §8): a
+Gate C deficit is headline-reportable only where `N Q*_k >= 3` over the deficit span — a
+guard against small-`N` discreteness masquerading as establishment limitation, adopted before
+any screen datum exists.
+
+#### 16.4 Compute: GPU 3 reassigned from the NaCl option to C60 (scheduling only)
+
+By explicit user directive (2026-08-14, "we have H200 on GPU 3"): **C60 takes GPU 3; NaCl
+keeps GPU 2.** This supersedes the Amendment 15.4 clause that let NaCl expand onto GPU 3 once
+methane vacated it — NaCl's remaining ladder (N = 32/16/8 map, ~2.4 GPU-days) continues on
+GPU 2 sequentially after its N = 64 half-B block completes there. One process per GPU, pinned
+`CUDA_VISIBLE_DEVICES`, idle state recorded per stage, whole seed blocks in one process. The
+15.3 launch discipline (pinned worktree via `results/c60/PINNED_COMMIT`, mechanical ladder,
+no autolaunch) applies to every expensive C60 run. This is scheduling; no physics, seed,
+budget, gate or endpoint changes for any study.
+
+#### 16.5 Engine ownership
+
+The C60 session owns `src/c60/` and `scripts/c60_*`. `src/methane/` and `src/nacl/` are not
+modified; stateless functions may be imported, structural adaptations (rectangular cell,
+4-site water with virtual-site force redistribution, unswitched LJ, fixed-cage solute with a
+single `xi` degree of freedom) are copied and owned by `src/c60/` so the methane and NaCl
+execution paths are untouched (the Amendment 14.1 discipline).
