@@ -86,3 +86,36 @@ defect). Disposition: accepted as-is and recorded — the artifacts are inputs w
 *content* is hashed in the launch manifest, and everything from the ladder onward runs from a
 pinned worktree, which answers "what produced this input, and is that thing pinned?"
 structurally rather than by care.
+
+## Gate B is NON-BINDING for NaCl, established before it was read (2026-08-14, prompted by
+## the methane session finding the same vacuity in its own)
+
+`T_hit` is evidence about discovery only if the boundary is out of ballistic reach and above
+the trace resolution. Measured for this study:
+
+```
+start (published equilibrate.coor)  r = 0.30 nm   F = 3.47 kT   <- NOT the CIP minimum (0.26)
+first state boundary                r = 0.34 nm   F = 5.63 kT
+distance                            0.040 nm
+thermal speed sqrt(kT/mu)           0.423 nm/ps   (mu = 13.95 amu)
+ballistic transit                   0.095 ps
+xi trace interval                   0.500 ps      <- FIRST recordable frame
+observed T_hit                      0.500 ps, every seed
+effective climb from start          2.16 kT, NOT the 5.34 kT CIP->top barrier
+```
+
+So Gate B **cannot fail** with this initial condition: the boundary is 4.4x inside one
+ballistic step and 5x below the trace resolution, and the published start already sits 2.64 kT
+up the barrier. The SPEC §7 declared bias ("a contact start makes discovery harder, so it can
+only push toward discovery-limited") assumed the start was AT the contact minimum; it is not.
+
+**The conclusion survives on independent evidence, which is why this is a caveat and not a
+retraction.** Far-threshold arrivals, where neither the ballistic floor nor the resolution can
+manufacture the answer: SSIP minimum (0.52 nm) at 1.0-1.5 ps, outer region (0.70 nm) at
+2.5-3.0 ps, well dissociated (1.00 nm) at 6.5-9.5 ps against a ballistic floor of 1.65 ps --
+4-6x above ballistic, so genuinely diffusive, and all far under the 156.2 ps threshold.
+Discovery really is fast; the Gate B *number* is not what shows it.
+
+**Consequence: the regime verdict rests on Gate C.** Gate B is reported as passing and
+non-binding, with these validity conditions attached in `gates_report.json` automatically
+(`_diagnostics.T_hit_is_resolution_limited`) so no consumer can quote T_hit without them.

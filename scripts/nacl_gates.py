@@ -108,7 +108,28 @@ def gate_b(xi_trace, xi_steps, dt, basins, T_ps):
     # walkers, not grid points: a walker exactly on a shared boundary must not count as having
     # discovered both adjacent states
     outside = assert_partition(xi_trace, basins, "gate_b walker positions")
-    out = {"_diagnostics": dict(fraction_outside_all_basins=outside)}
+    # T_hit is only evidence about DISCOVERY if the boundary is out of ballistic reach and
+    # above the trace resolution. Both can silently fail: the published start sits partway up
+    # the barrier, the first basin boundary is the barrier TOP by construction (Amendment 3),
+    # and a 0.5 ps trace cannot resolve a 0.095 ps transit. Measured here so no consumer can
+    # read T_hit without its validity conditions attached.
+    KT = nsys.kT_kJ()
+    MU = (22.9898 * 35.45) / (22.9898 + 35.45)          # Na-Cl reduced mass, amu
+    v_therm = float(np.sqrt(KT * 1000.0 / (MU * 1e-3)) * 1e-3)      # nm/ps
+    r_start = float(np.median(xi_trace[0]))
+    first_bnd = float(basins[0]["r_hi_nm"])
+    ballistic = abs(first_bnd - r_start) / v_therm
+    out = {"_diagnostics": dict(
+        fraction_outside_all_basins=outside,
+        r_start_nm=r_start, first_boundary_nm=first_bnd,
+        distance_nm=abs(first_bnd - r_start),
+        thermal_speed_nm_per_ps=v_therm,
+        ballistic_transit_ps=ballistic,
+        trace_resolution_ps=frame_ps,
+        T_hit_is_resolution_limited=bool(ballistic < frame_ps),
+        note=("T_hit at the trace floor with a boundary inside ballistic reach measures "
+              "RESOLUTION, not a discovery rate: Gate B then cannot fail and its value is "
+              "not evidence about the barrier. Use the supplementary far-threshold arrivals."))}
     for k, b in enumerate(basins):
         lab = b["label"]
         last = (k == len(basins) - 1)
@@ -128,6 +149,22 @@ def gate_b(xi_trace, xi_steps, dt, basins, T_ps):
                         n_seeds_within=int(np.sum(np.nan_to_num(t_hit, nan=np.inf) < thresh)),
                         threshold_ps=float(thresh),
                         PASS=bool(np.sum(np.nan_to_num(t_hit, nan=np.inf) < thresh) >= HIT_SEEDS))
+    # supplementary: first arrival at thresholds well past the barrier, where neither the
+    # ballistic floor nor the trace resolution can manufacture the answer
+    supp = {}
+    for thr in (0.45, 0.52, 0.70, 1.00):
+        if thr <= first_bnd:
+            continue
+        t = []
+        for s_ in range(S):
+            idx = np.flatnonzero((xi_trace[:, s_, :] >= thr).any(axis=1))
+            t.append(float(xi_steps[idx[0]] * dt) if idx.size else float("nan"))
+        supp[f"r>={thr:.2f}nm"] = dict(
+            first_arrival_ps=t,
+            ballistic_floor_ps=abs(thr - r_start) / v_therm,
+            above_ballistic=bool(np.nanmin(t) > 3.0 * abs(thr - r_start) / v_therm)
+            if np.isfinite(np.nanmin(t)) else None)
+    out["_supplementary_far_thresholds"] = supp
     return out
 
 
@@ -233,7 +270,7 @@ def main():
         c = gate_c(d["diag_occupancy"], d["diag_pmf"], d["diag_times"], grid,
                    F_ref_on_grid, basins, beta, T_ps)
         discovered = all(v["PASS"] for k, v in b.items()
-                         if k not in ("CIP", "_diagnostics"))
+                         if not k.startswith("_") and k != "CIP")
         deficit = any(v["UNDER_ESTABLISHED"] for k, v in c.items())
         if not discovered:
             verdict = "discovery-limited (Gate B FAIL) -- STOP"
@@ -245,7 +282,7 @@ def main():
                                 eligible=bool(discovered and deficit))
         print(f"\n[N = {N:3d}, T = {T_ps:.1f} ps] {verdict}")
         for lab, v in b.items():
-            if lab == "_diagnostics":
+            if lab.startswith("_"):
                 continue
             print(f"   Gate B {lab:6s}: {v['n_seeds_within']}/{EXPECTED_SEEDS} seeds hit within "
                   f"{v['threshold_ps']:.1f} ps -> {'PASS' if v['PASS'] else 'FAIL'}")
