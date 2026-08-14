@@ -67,11 +67,23 @@ tercile boundary, against the correct ballistic floor — the *fastest of 512* w
 | 0.89 nm | 0.510 nm | 0.30 ps | 1.75 ps |
 
 Arrivals are **1.9–5.8x** the extreme-value ballistic floor and reach the far wall of a 0.51 nm
-domain in under 2 ps. For contrast the NaCl session, which has a real 5.34 kT barrier, measures
-4–6x its floor at far thresholds and calls that genuinely diffusive. Methane is in the same
-band — but its whole domain is only ~3 ballistic steps wide for the leading walker, so there is
-no separation between "crossed a barrier" and "flew across the box". **There is no transition to
-time.** That is not a defect in the measurement; it is what a 0.67 kT barrier means.
+domain in under 2 ps. Methane's whole domain is only ~3 ballistic steps wide for the leading
+walker, so there is no separation between "crossed a barrier" and "flew across the box".
+**There is no transition to time.** That is not a defect in the measurement; it is what a 0.67 kT
+barrier means.
+
+**The discriminator is domain width in ballistic steps, not anything about the method.** The NaCl
+study ran the identical gate on a **1.20 nm** domain — about 2 trace frames of free flight for its
+leading walker — and measured **6.9–20.7x** its floor at far thresholds against an exact
+extreme-value quantile: a resolvable, unambiguously diffusive rate. No budget would give methane
+that separation. So the same gate, run the same way, is informative in one system and vacuous in
+the other, and **Gate B's vacuity here is a property of the physics rather than a defect in the
+gate.**
+
+(The floor itself took four passes across both studies to get right — rms of one walker, then the
+mean rather than a quantile, then two-sided rather than outward-only, then a leading-term
+approximation — before being replaced by the exact `Phi^-1(q^(1/n))`. Recorded in Amendment 12.9;
+none of it moves the verdict, which rests on Gate C.)
 
 Raw per-seed numbers: all three states reached within 0.8 ps on every seed.
 
