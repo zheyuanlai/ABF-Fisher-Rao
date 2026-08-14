@@ -210,9 +210,15 @@ def build_system(topology, box_vectors=None, dispersion_correction=False,
             raise RuntimeError(f"rigid water expected, found {force.getNumBonds()} bonds")
         if isinstance(force, mm.HarmonicAngleForce) and force.getNumAngles():
             raise RuntimeError(f"rigid water expected, found {force.getNumAngles()} angles")
-    expected_constraints = 3 * N_WATERS if rigid_water else 0
+    # Three constraints per water **in this topology**, not three times the frozen N_WATERS.
+    # The production system has 512 waters, but SPEC §1.3's finite-size gate builds a 1024-water
+    # box with the same builder, and a guard keyed to the module constant rejected it -- the same
+    # number-versus-population confusion this campaign kept finding in its analysis code, here in
+    # a validity check. The invariant that actually matters is "every water is rigid".
+    n_waters = sum(1 for r in topology.residues() if r.name in ("HOH", "WAT"))
+    expected_constraints = 3 * n_waters if rigid_water else 0
     if system.getNumConstraints() != expected_constraints:
-        raise RuntimeError(f"{system.getNumConstraints()} constraints, "
+        raise RuntimeError(f"{system.getNumConstraints()} constraints for {n_waters} waters, "
                            f"expected {expected_constraints}")
     return system
 
