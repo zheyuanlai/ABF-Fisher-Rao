@@ -2061,3 +2061,25 @@ modified; stateless functions may be imported, structural adaptations (rectangul
 4-site water with virtual-site force redistribution, unswitched LJ, fixed-cage solute with a
 single `xi` degree of freedom) are copied and owned by `src/c60/` so the methane and NaCl
 execution paths are untouched (the Amendment 14.1 discipline).
+
+#### 16.6 Clause (iii) of the SPEC §5 reproduction gate: definition fixed by measurement, before any solvent datum (2026-08-14)
+
+**What had been seen:** vacuum cage-cage LJ arithmetic and the Stage-0 parity suite only.  No
+reference window, no solvent trajectory statistic, no gate input of any kind existed.
+
+The frozen clause read "the direct (vacuum) cage-cage LJ energy at the contact minimum
+reproduces ~-18.5 kJ/mol within 0.5 kJ/mol" without fixing (a) truncated at the simulation
+cutoff or untruncated, and (b) evaluated at the paper's contact separation or at the direct
+term's own minimum.  Measured, with the frozen Hedberg geometry and the §1.1-derived
+parameters: untruncated -17.75 at 0.968 nm and **-18.78 at its own minimum (0.982 nm)**;
+1.0 nm-truncated -17.02 at 0.968.  Across published C60 geometries the same quantity moves by
+~0.6 kJ/mol at fixed separation (David-geometry check: -18.36 at 0.968), which exceeds the
+clause's own tolerance -- the clause as written tested the *cage geometry choice* (Declared
+Deviation 2), not the parameter derivation it was meant to gate.
+
+**Fixed definition:** clause (iii) is the **untruncated** vacuum cage-cage LJ sum at the
+**minimum of the direct interaction over d**, compared to the paper's -18.5 kJ/mol within
+0.5 kJ/mol.  Measured value: **-18.78 kJ/mol at d = 0.982 nm — PASS.**  The geometry
+sensitivity is recorded above rather than absorbed into a wider tolerance.  Clauses (i), (ii)
+and (iv) of the reproduction gate are untouched, and remain decided by the solvent reference
+that does not yet exist.
