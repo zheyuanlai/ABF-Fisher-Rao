@@ -4,6 +4,11 @@ Read this, the SPEC, and the amendments before doing anything. This is an execut
 campaign, not a design session. Update this file after every stage. Never run a later gate if
 an earlier one failed; never search for a way around a STOP.
 
+> **GPU 3 IS NO LONGER NaCl's (Amendment 16.4, 2026-08-14, user directive).** The 15.4
+> "both devices once methane vacates" clause is superseded: the C60 study (Amendment 16)
+> owns GPU 3; NaCl stays on GPU 2 — the N = 32/16/8 map restart runs there sequentially
+> after half-B. Scheduling only; no physics, seed, budget, gate or endpoint changes.
+
 ```
 CURRENT FROZEN COMMIT:  see results/nacl/PINNED_COMMIT (written when the worktree is cut)
 CURRENT STAGE:          REFERENCE ACCEPTED (250 ps, 12.0 h). Gate 0 and Gate A PASS.
@@ -23,28 +28,12 @@ VERDICT:                GATE 0 PASS (0.0075 global / 0.0483 barrier -- the campa
                         2.1e-15 nm. Triton PASSES both gates but is NOT adopted: measured
                         918 ns/day vs tensor 1020 at its best config, so the reference runs
                         the already parity-gated tensor path at max-batch 256.
-NEXT PERMITTED ACTION:  on extension completion (~02:35 UTC Fri) -> nacl_ti_analyze.py ->
-                        FINAL acceptance + Gate 0 + Gate A. Either failing = the study's
-                        verdict; report and STOP.
-                        If both pass -> screen cell N=64, layout HALF-AND-HALF (option C,
-                        chosen by measurement 2026-08-13 18:30):
-                          * seeds 4000-4003 on GPU 2 immediately (B=256, tensor)
-                          * seeds 4004-4007 on GPU 3 when methane releases it (06:00-12:35 Fri)
-                        DECISION UNCHANGED, REASON CORRECTED: the "B=512 collapse to 124
-                        ns/day" that originally justified this was a BENCHMARK ARTIFACT --
-                        torch.compile recompiled per (B, chunk), dynamo's cache_size_limit
-                        was exhausted at config 9, and every later config ran EAGER (identical
-                        1392 us/traj-step across four batch sizes). The engine has no cliff.
-                        The split still wins, but only for the ordinary reason -- two devices,
-                        ~2x -- not >2x. Re-measure with the fixed benchmark (dynamo reset per
-                        config) on the idle GPU 2 AFTER the reference and BEFORE the screen;
-                        if B=512 is flat, one 8-seed process on one GPU is also viable and
-                        keeps the whole block in one process. Starting half NOW also hedges:
-                        if GPU 3
-                        never frees, 4 seeds still exist and the shortfall is explicit
-                        (Gate B needs 6 of 8 -- a 4-seed screen yields NO verdict, only
-                        PRELIMINARY values, per the methane session's 9367682 correction).
-                        Gate B/C analysis runs ONLY when all 8 seeds are present.
+NEXT PERMITTED ACTION:  wait for the N=8/16/32 map cells, then run nacl_gates.py over ALL
+                        four cells. The frozen rule is the SMALLEST N passing every gate, so a
+                        smaller cell could still be establishment-limited and the study is NOT
+                        closed on N=64 alone. If no cell is eligible: NaCl is not an mFR
+                        candidate under the preregistered budget -- write the closure with the
+                        pre-committed weak-null caveat (commit addfbed) attached.
 FORBIDDEN ACTIONS:      launching the TI reference (separate reviewed action after the ladder);
                         any screen cell before Gate 0/A; any mFR before Gates 0-D; editing the
                         SPEC except by numbered amendment; retuning anything against a result;

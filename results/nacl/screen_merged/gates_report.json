@@ -1,0 +1,228 @@
+{
+  "cells": {
+    "N64": {
+      "N": 64,
+      "T_ps": 1562.5,
+      "gate_B": {
+        "_diagnostics": {
+          "fraction_outside_all_basins": 0.013186405350287908,
+          "r_start_nm": 0.30000001192092896,
+          "first_boundary_nm": 0.34,
+          "distance_nm": 0.03999998807907107,
+          "sigma_v_one_walker_nm_per_ps": 0.42291818921801416,
+          "v_fastest_of_N_nm_per_ps": 1.5239550461774998,
+          "n_walkers": 64,
+          "ballistic_transit_ps": 0.02624748556684929,
+          "trace_resolution_ps": 0.5,
+          "T_hit_is_resolution_limited": true,
+          "note": "T_hit at the trace floor with a boundary inside ballistic reach measures RESOLUTION, not a discovery rate: Gate B then cannot fail and its value is not evidence about the barrier. Use the supplementary far-threshold arrivals."
+        },
+        "CIP": {
+          "T_hit_ps": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "n_seeds_within": 8,
+          "threshold_ps": 156.25,
+          "PASS": true
+        },
+        "SSIP": {
+          "T_hit_ps": [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          "n_seeds_within": 8,
+          "threshold_ps": 156.25,
+          "PASS": true
+        },
+        "_supplementary_far_thresholds": {
+          "r>=0.45nm": {
+            "first_arrival_ps": [
+              1.0,
+              0.5,
+              0.5,
+              0.5,
+              1.0,
+              1.0,
+              1.0,
+              0.5
+            ],
+            "ballistic_floor_ps": 0.09842809238718193,
+            "x_ballistic_floor": 5.0798505576352495,
+            "above_ballistic": true
+          },
+          "r>=0.52nm": {
+            "first_arrival_ps": [
+              1.5,
+              1.5,
+              1.5,
+              1.0,
+              1.0,
+              1.5,
+              1.0,
+              1.5
+            ],
+            "ballistic_floor_ps": 0.14436120581830272,
+            "x_ballistic_floor": 6.927068767066337,
+            "above_ballistic": true
+          },
+          "r>=0.70nm": {
+            "first_arrival_ps": [
+              3.0,
+              3.0,
+              2.5,
+              3.0,
+              4.0,
+              2.0,
+              4.0,
+              4.0
+            ],
+            "ballistic_floor_ps": 0.2624749260697561,
+            "x_ballistic_floor": 7.619775457974505,
+            "above_ballistic": true
+          },
+          "r>=1.00nm": {
+            "first_arrival_ps": [
+              6.5,
+              9.5,
+              7.5,
+              8.5,
+              8.5,
+              9.0,
+              11.0,
+              7.5
+            ],
+            "ballistic_floor_ps": 0.45933112648884517,
+            "x_ballistic_floor": 14.151011384067072,
+            "above_ballistic": true
+          }
+        }
+      },
+      "gate_C": {
+        "CIP": {
+          "longest_deficit_ps": [
+            40.0,
+            20.0,
+            10.0,
+            30.0,
+            50.0,
+            30.0,
+            70.0,
+            80.0
+          ],
+          "required_ps": 312.5,
+          "n_seeds_deficient": 0,
+          "UNDER_ESTABLISHED": false
+        },
+        "SSIP": {
+          "longest_deficit_ps": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "required_ps": 312.5,
+          "n_seeds_deficient": 0,
+          "UNDER_ESTABLISHED": false
+        }
+      },
+      "verdict": "ABF-sufficient (Gate B pass, no persistent deficit) -- STOP",
+      "eligible": false
+    }
+  },
+  "selection": {
+    "eligible_cells": [],
+    "chosen_N": null,
+    "rule": "smallest N passing every gate (mechanical, never by error size)",
+    "verdict": "no cell is both discovered and under-established: NaCl is not an mFR candidate under the preregistered budget. STOP."
+  },
+  "upstream": {
+    "gate0": {
+      "global_spread_ratio": 0.007468767949993461,
+      "barrier_region_ratio": 0.04833347821927411,
+      "COMPUTABLE": true,
+      "coverage": {
+        "points_used": 61,
+        "points_total": 61,
+        "barrier_points_used": 5,
+        "barrier_points_total": 5
+      },
+      "ladder": {
+        "WCA (pass)": 0.04,
+        "gateway global (pass)": 0.036,
+        "gateway constriction (pass, marginal)": 0.189,
+        "deca (FAIL)": 0.61,
+        "R15 beta=2 (FAIL)": 0.564
+      },
+      "note": "no numerical threshold (Amendment 9); argued against the ladder"
+    },
+    "gateA": {
+      "preregistered_TV_xi_given_Y": {
+        "n_NaO": 0.8633879781420766,
+        "n_ClH": 0.7377049180327867,
+        "n_bridge": 1.0
+      },
+      "preregistered_max_TV": 1.0,
+      "preregistered_PASS": true,
+      "orthogonality": {
+        "n_NaO": {
+          "within_r_sd": 0.02832336305705592,
+          "across_r_sd": 0.4004630553273425,
+          "across_over_within": 14.138965578368317
+        },
+        "n_ClH": {
+          "within_r_sd": 0.03914513414136384,
+          "across_r_sd": 0.5285534614360262,
+          "across_over_within": 13.502405165537928
+        },
+        "n_bridge": {
+          "within_r_sd": 0.006909361342532611,
+          "across_r_sd": 0.5729177815431032,
+          "across_over_within": 82.91906489480279
+        }
+      },
+      "spec_transpose_TV_Y_given_state": {
+        "n_NaO": 0.9897119341563785,
+        "n_ClH": 0.9958847736625513,
+        "n_bridge": 0.9470164609053499
+      },
+      "max_TV": 0.9958847736625513,
+      "threshold": 0.3,
+      "COMPUTABLE": true,
+      "basin_sample_counts": [
+        252,
+        1944
+      ],
+      "min_samples_per_basin": 12,
+      "PASS": true
+    },
+    "acceptance": {
+      "pairwise_L2": [
+        0.13351523645221353,
+        0.07763464306662454,
+        0.09290207563332778
+      ],
+      "F_span_kJ": 14.727579072630874,
+      "ratio": 0.09065660811852827,
+      "ACCEPTED": true,
+      "complete": true,
+      "rule": "ratio <= 0.5 on the frozen window (Amendment 12.2 / \u00a74.5), and every build/family/point group must have reported"
+    }
+  }
+}
