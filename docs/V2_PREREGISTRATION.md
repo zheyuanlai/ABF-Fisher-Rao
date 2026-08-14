@@ -1744,6 +1744,48 @@ rather than hard-coded. Anchored to the domain the statistic is flat at 0.9347 a
 bins; anchored to the **data range** it wanders 0.931–0.936, because a data-anchored edge moves
 with the most extreme walker. Asserted in `test_gate_a_reports_the_preregistered_direction_not_its_transpose`.
 
+#### 12.12 Failure class 8: a reported action is not a performed action (2026-08-14)
+
+Classes 1–7 are errors of **analysis**: a wrong statistic, a wrong quantity, a gate without
+power, a spec faithfully implemented. Every one of them is in principle reachable by auditing
+the artifacts, which is how the cross-audit found them. Class 8 is not.
+
+**The class.** *A claim about an action, made in the same breath as the decision to take it,
+with nothing checking that the decision became the action.* The NaCl session reported to this
+one that its `N`-ladder map was "resuming from its 16:49 checkpoint" at the moment GPU 3 was
+handed back. It had killed the map at 16:56 and did not start it until **23:34** — GPU 3 sat
+idle for **5 h 14 m** while both sessions believed it was working. Self-reported, unprompted.
+
+**Why it is categorically different.** No amount of auditing on the receiving side can catch it.
+The receiver has the report and no independent channel to the machine state; the sender has the
+machine state and no reason to re-check a claim it believes it already made true. Every other
+class this week was caught by someone recomputing something. This one was caught only because
+the session that made the claim went back and looked.
+
+**The rule.** *A statement about the state of a running job is a measurement, not a memory.*
+Before reporting that a run is live, resumed, queued, or killed, the reporting session must
+observe it — `nvidia-smi`, the process table, a checkpoint mtime — **in the same turn as the
+report**. This is not a counsel of perfection: it is one command, and its absence cost five
+GPU-hours on a two-day run.
+
+**Corollary, symmetric.** The receiving session must not launder an unverified claim onward.
+When this session wrote that "both GPUs were returned to the NaCl session," it had not looked
+either; the claim happened to be true, which is not the same as having been checked.
+
+**Verified on writing this** (2026-08-14 23:43 UTC), and it immediately found something else:
+GPUs 0 and 1 are running another user's five-day jobs, and **this group has two GPUs in use at
+once** — `nacl_screen` (map, GPU 3, started 23:34) and `nacl_tau_perp` (GPU 2, started 23:38) —
+against the standing one-at-a-time constraint. Neither session had looked. That is the class
+demonstrating itself twice within one message.
+
+**Also fixed by the same exchange.** The `lambda` guard of §12.10 was computing a **mean** over
+**all** checkpoints rather than the minimum over the judged window — both optimistic in the same
+direction. A state must be powered *throughout* the window it is judged on, not on average
+across it, because the checkpoints producing the longest sub-threshold run are precisely the
+ones the gate reads. NaCl CIP `1.72 -> 1.57` (smallest resolvable deficit `152 % -> 160 %`),
+SSIP `62.3 -> 61.4`, verdicts unchanged; `scripts/methane_gates.py` already used the minimum.
+Found because a number moved between two messages — **the tell that has worked all week.**
+
 ### Amendment 13 — two GPUs for methane, and the optimisation order (2026-08-12)
 
 **Written before any methane box, trajectory, reference or gate result existed.** Only engine
