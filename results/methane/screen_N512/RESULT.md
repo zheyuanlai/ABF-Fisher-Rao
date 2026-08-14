@@ -44,15 +44,16 @@ With a single-basin reference the states are the Amendment 3 **tercile fallback*
 partition of the coordinate rather than as metastable states — so a contact start sits 0.14 nm
 from the first boundary and Gate B could not have failed.
 
+That is a property of the partition, and it is why the verdict rests on **Gate C**, which is not
+vacuous: occupancy tracks the bias-aware target across the whole domain for the entire second half.
+
 One thing that *does* hold, and was checked rather than assumed after the NaCl session found the
 opposite in its own run: **the start is exactly at the reference minimum** — `r = 0.380 nm`,
 `W = -1.108 kT`, `0.000 kT` above the global minimum of `W`. SPEC §6.1's declared bias ("a contact
 start makes discovery harder, so it can only push toward discovery-limited") therefore holds here
 as written. Their start sat 2.64 kT above their CIP minimum, giving every walker two thirds of the
 barrier for free — the same clause, written by them, invalidated by a configuration nobody had
-checked against it. That is a property of the partition,
-and it is why the verdict below rests on **Gate C**, which is not vacuous: occupancy tracks the
-bias-aware target across the whole domain for the entire second half.
+checked against it.
 
 **The far-threshold check the NaCl session used, applied here, goes further: methane's discovery
 is not measurable as a rate anywhere in the domain.** First arrival at thresholds well past the
