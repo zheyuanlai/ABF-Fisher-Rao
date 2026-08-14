@@ -34,13 +34,17 @@ R_LO, R_HI = 0.20, 1.40
 CIP_HI, SSIP_HI = 0.36, 0.70
 
 
-def write_reference(path):
+def write_reference(path, cip_depth=3.0, ssip_depth=3.0):
     """A two-basin reference with the analysis report the classifier requires."""
     os.makedirs(path, exist_ok=True)
     kT = nsys.kT_kJ()
     r = np.round(np.linspace(R_LO, R_HI, N_GRID), 6)
-    F = (-6.0 * kT * np.exp(-((r - 0.28) / 0.03) ** 2)
-         - 3.0 * kT * np.exp(-((r - 0.50) / 0.04) ** 2))
+    # Depths chosen so the SSIP target is RESOLVABLE: Q*_SSIP = 0.704, lambda = 45 at N = 64,
+    # comfortably past the >= 16 the deficit test needs. The original -6/-3 kT pair gave
+    # Q* = 0.159 and lambda = 10.2, so the planted "establishment-limited" world was itself
+    # underpowered -- the guard caught the test, which is the guard working.
+    F = (-cip_depth * kT * np.exp(-((r - 0.28) / 0.03) ** 2)
+         - ssip_depth * kT * np.exp(-((r - 0.50) / 0.04) ** 2))
     np.savez(os.path.join(path, "reference.npz"), r_nm=r, F_ref=F, W_ref=F, f_cons=np.gradient(F, r),
              endpoint_window=np.ones(N_GRID, dtype=bool))
     basins = [dict(index=0, label="CIP", r_lo_nm=R_LO, r_hi_nm=CIP_HI, r_min_nm=0.28),
@@ -70,16 +74,19 @@ def write_cell(path, N, world, r_ref, F_ref, n_seeds=8, T_ps=1000.0, n_cp=21):
     occ = np.zeros((n_cp, n_seeds, len(grid)))
     cip_bin = int(np.argmin(np.abs(grid - 0.28)))
     ssip_bin = int(np.argmin(np.abs(grid - 0.50)))
+    # Counts must sum to N: the gate reads the walker count off the histogram, so occupancies
+    # summing to 100 in an N = 64 cell make lambda = Q* N wrong by 1.6x and the power guard
+    # fires or does not for the wrong reason.
     for c in range(n_cp):
         for s in range(n_seeds):
             if world == "ABF-sufficient":
-                occ[c, s, cip_bin] = 55.0
-                occ[c, s, ssip_bin] = 45.0                        # near the target split
+                occ[c, s, cip_bin] = round(0.30 * N)
+                occ[c, s, ssip_bin] = N - round(0.30 * N)         # ~0.70, near the target
             elif world == "discovery-limited":
-                occ[c, s, cip_bin] = 100.0
+                occ[c, s, cip_bin] = N
             else:                                                 # establishment-limited
-                occ[c, s, cip_bin] = 97.0
-                occ[c, s, ssip_bin] = 3.0                         # present but far under target
+                occ[c, s, ssip_bin] = round(0.20 * N)             # 0.20 vs a 0.704 target
+                occ[c, s, cip_bin] = N - round(0.20 * N)
     pmf = np.zeros((n_cp, n_seeds, len(grid)))                    # no learned bias yet
     np.savez(os.path.join(path, f"cell_N{N}.npz"),
              N=N, T_ns=T_ps / 1000.0, n_steps=int(T_ps / dt), dt_ps=dt,
@@ -113,17 +120,21 @@ def test_the_planted_worlds_are_unambiguously_in_their_regimes():
     beta = nsys.beta_per_kJ()
     kT = nsys.kT_kJ()
     r = np.round(np.linspace(R_LO, R_HI, N_GRID), 6)
-    F = (-6.0 * kT * np.exp(-((r - 0.28) / 0.03) ** 2)
+    F = (-3.0 * kT * np.exp(-((r - 0.28) / 0.03) ** 2)
          - 3.0 * kT * np.exp(-((r - 0.50) / 0.04) ** 2))
     w = np.exp(-beta * (F - F.min()))
     ssip = (r >= CIP_HI) & (r <= R_HI)
     Q_ssip = float(w[ssip].sum() / w.sum())
     thresh = 0.5 * Q_ssip
 
-    P_sufficient = 45.0 / 100.0
-    P_deficient = 3.0 / 100.0
-    assert P_sufficient > 3.0 * thresh, "the 'ABF-sufficient' world is not clearly established"
-    assert P_deficient < 0.5 * thresh, "the 'establishment-limited' world is not clearly deficient"
+    # expressed as P/Q*, which is what "in the regime" means -- an absolute margin against the
+    # threshold is not achievable when Q* itself is large (0.5*Q* = 0.35 here, so "3x the
+    # threshold" would demand P > 1.06)
+    ratio_sufficient = (70.0 / 100.0) / Q_ssip
+    ratio_deficient = (20.0 / 100.0) / Q_ssip
+    assert ratio_sufficient >= 0.9, "the 'ABF-sufficient' world does not track its target"
+    assert ratio_deficient <= 0.4, "the 'establishment-limited' world is not clearly deficient"
+    assert thresh > 0
 
 
 @pytest.mark.parametrize("world,expect", [
@@ -143,8 +154,16 @@ def test_classifier_recovers_each_planted_world(world, expect):
         assert expect in verdict, f"planted {world}, classifier said: {verdict}"
 
 
-def test_smallest_passing_cell_is_selected_mechanically():
-    """If several cells are eligible the rule is the SMALLEST N, never the largest error."""
+def test_smallest_passing_cell_is_selected_but_never_an_UNPOWERED_one():
+    """The smallest-N rule must not search into cells where the gate cannot fire.
+
+    lambda = Q* N falls with N, so the smallest cells are exactly where the deficit test loses
+    power -- and SPEC §8.2's "smallest N passing every gate" walks straight toward them. Here
+    Q*_SSIP = 0.704, so lambda = 45 / 23 / 11 at N = 64 / 32 / 16: the N = 16 cell cannot
+    resolve a 50 % deficit and must be excluded as UNCLASSIFIABLE rather than selected as the
+    smallest passer. Without this, an mFR arm gets licensed on counting noise -- the defect
+    this repository already retracted once (deca, screen_RETRACTED_no_min_count_guard).
+    """
     with tempfile.TemporaryDirectory() as tmp:
         ref, screen = os.path.join(tmp, "ref"), os.path.join(tmp, "screen")
         r, F, _ = write_reference(ref)
@@ -152,8 +171,12 @@ def test_smallest_passing_cell_is_selected_mechanically():
             write_cell(screen, N, "establishment-limited", r, F)
         proc, rep = run_gates(screen, ref)
         assert proc.returncode == 0, f"{proc.stdout}\n{proc.stderr}"
-        assert rep["selection"]["eligible_cells"] == [16, 32, 64]
-        assert rep["selection"]["chosen_N"] == 16
+        assert rep["selection"]["eligible_cells"] == [32, 64], "an unpowered cell was selected"
+        assert rep["selection"]["chosen_N"] == 32
+        assert rep["cells"]["N16"]["classifiable"] is False
+        assert "NOT COMPUTABLE" in rep["cells"]["N16"]["verdict"]
+        # and the exclusion is for lack of power, not for failing the test
+        assert rep["cells"]["N16"]["gate_C"]["SSIP"]["power"]["POWERED"] is False
 
 
 def test_refuses_to_run_when_gate_A_is_not_computable():
@@ -180,3 +203,29 @@ def test_refuses_an_unaccepted_reference():
         proc, _ = run_gates(screen, ref)
         assert proc.returncode != 0
         assert "NOT accepted" in proc.stdout + proc.stderr
+
+
+def test_an_underpowered_state_is_reported_non_binding_not_read():
+    """The deca retraction, prevented: a state too thin to hold walkers cannot show a deficit.
+
+    With lambda = Q* N expected walkers, "occupancy < 0.5 Q*" is a 2-sigma test only if
+    lambda >= 16; below 0.5*lambda < 1 it is arithmetically "the state is empty right now", so
+    its output is a function of N through counting noise with the physics held fixed. NaCl's
+    CIP has lambda = 1.72 at N = 64 and 0.22 at N = 8, where P(empty) = 0.78.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        ref, screen = os.path.join(tmp, "ref"), os.path.join(tmp, "screen")
+        # a deliberately thin CIP -- Q* = 0.025, lambda = 1.62 at N = 64, close to NaCl's
+        # real 1.72 -- so the deficit test there is arithmetically "is the state empty"
+        r, F, _ = write_reference(ref, cip_depth=0.0, ssip_depth=5.0)
+        write_cell(screen, 64, "establishment-limited", r, F)
+        proc, rep = run_gates(screen, ref)
+        assert proc.returncode == 0, f"{proc.stdout}\n{proc.stderr}"
+        gc = rep["cells"]["N64"]["gate_C"]
+        cip = gc["CIP"]
+        assert cip["BINDING"] is False, "a 1.7-walker state was read as a binding deficit test"
+        assert cip["UNDER_ESTABLISHED"] is None, "an unpowered state must not return a verdict"
+        assert cip["power"]["threshold_is_emptiness"] is True
+        assert rep["cells"]["N64"]["unpowered_states"] == ["CIP"]
+        # and the powered state still decides the cell
+        assert gc["SSIP"]["BINDING"] is True
