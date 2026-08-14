@@ -1,4 +1,6 @@
-% Auto-generated numbers via tables/wca_sham_numbers.tex; layout maintained by hand.
+% Numbers via tables/wca_sham_numbers.tex (v1, cached reference, auto-generated) and
+% tables/v2_numbers.tex (v2, corrected reference, hand-maintained from
+% results/wca_caseix_hp/caseix_hp_verdict.json). Layout maintained by hand.
 \begin{table}[t]\centering
 \caption{Matched-sham control at the accepted WCA-positive cell (\WcsCell, $M=100$ particles,
 \WcsSteps{} steps, $N=\WcsReplicas$, FR rate \WcsRate) on \WcsSeeds{} fresh seeds, with no
@@ -6,32 +8,42 @@ hyperparameter reopened. Percentages are paired differences in the integrated fr
 error against ABF on the same seed; \textbf{negative is better}. Each sham replays its own
 partner's per-event replacement counts on that seed and differs only in randomising which
 replicas die and which are copied (\WcsMismatch{} count mismatches across all seeds and both
-partners). The \emph{direct} rows are the preregistered attribution test.}
+partners). The \emph{direct} rows are the preregistered attribution test. \textbf{Quote the
+corrected-reference column}: the cached reference the v1 column was scored against is wrong
+near $z\approx0.26$ (\cref{rem:wca_reference_correction}). The v1 column is retained because
+the run happened and its criteria were assessed against it, not because it is still current.}
 \label{tab:wca_sham}
 \small
 \begin{tabular}{lrrrr}
 \toprule
-comparison & $\Delta I_F$ & 95\% CI & seeds won & round trips \\
+& \multicolumn{3}{c}{corrected reference (\texttt{phase\_hp\_v3})}
+& \multicolumn{1}{c}{cached ref.} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-5}
+comparison & $\Delta I_F$ & 95\% CI & seeds won & $\Delta I_F$ (v1) \\
 \midrule
 \multicolumn{5}{l}{\emph{against ABF}}\\
-practical mFR & \textbf{\WcsEstGain\%} & $[\WcsEstCIlo, \WcsEstCIhi]$ & \WcsEstWins &
-  \WcsEstRoundTrips \\
-sham (practical) & $\WcsShamGain\%$ & $[\WcsShamCIlo, \WcsShamCIhi]$ & --- &
-  \WcsShamRoundTrips \\
-oracle mFR & \WcsOracleGain\% & $[\WcsOracleCIlo, \WcsOracleCIhi]$ & --- & --- \\
+practical mFR & \textbf{\WcvEstGain\%} & $[\WcvEstCIlo, \WcvEstCIhi]$ & \WcvEstWins &
+  \WcsEstGain\% \\
+sham (practical) & $\WcvShamGain\%$ & $[\WcvShamCIlo, \WcvShamCIhi]$ & --- &
+  $\WcsShamGain\%$ \\
+oracle mFR & \WcvOracleGain\% & $[\WcvOracleCIlo, \WcvOracleCIhi]$ & --- &
+  \WcsOracleGain\% \\
 \midrule
 \multicolumn{5}{l}{\emph{direct: each arm against its own sham --- the attribution test}}\\
-practical mFR vs its sham & \textbf{\WcsDirect\%} & $[\WcsDirectCIlo, \WcsDirectCIhi]$ &
-  \WcsDirectWins & --- \\
-oracle mFR vs its sham & \WcsOracleDirect\% &
-  $[\WcsOracleDirectCIlo, \WcsOracleDirectCIhi]$ & --- & --- \\
+practical mFR vs its sham & \textbf{\WcvDirect\%} & $[\WcvDirectCIlo, \WcvDirectCIhi]$ &
+  \WcvDirectWins & \WcsDirect\% \\
+oracle mFR vs its sham & --- & --- & --- & \WcsOracleDirect\% \\
 \bottomrule
 \end{tabular}
 
 \vspace{2pt}
-{\footnotesize Health at the practical arm: min ancestor $\mathrm{ESS}/N = \WcsEstEss$ and max
-ancestor fraction $\WcsEstAnc$, against preregistered floors of $0.10$ and $0.05$. The looser
-ESS floor than the gateway's $0.30$ was declared in advance, because the accepted WCA
-configuration already runs at $\mathrm{ESS}/N \approx 0.17$ and the gateway's floor would have
-failed the configuration under test rather than tested it.}
+{\footnotesize Median integrated $L^2(F)$ against the corrected reference: ABF \WcvAbfMedian,
+practical mFR \WcvEstMedian, oracle mFR \WcvOracleMedian, sham \WcvShamMedian. Health at the
+practical arm: min ancestor $\mathrm{ESS}/N = \WcsEstEss$ and max ancestor fraction
+\WcsEstAnc, against preregistered floors of $0.10$ and $0.05$. The looser ESS floor than the
+gateway's $0.30$ was declared in advance, because the accepted WCA configuration already runs
+at $\mathrm{ESS}/N \approx 0.17$ and the gateway's floor would have failed the configuration
+under test rather than tested it. The oracle-versus-its-own-sham contrast was not recomputed
+against the corrected reference: the practical arm carries the preregistered attribution
+claim, and the oracle is not a deployable method.}
 \end{table}

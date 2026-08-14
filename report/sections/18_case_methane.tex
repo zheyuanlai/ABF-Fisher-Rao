@@ -100,6 +100,38 @@ implementation computed the transpose, $\mathrm{TV}(p(Y \mid \xi))$, which reads
 \MeGateATransposed$; that is a weaker and partly tautological statement, since the gap volume
 grows with $r$ by construction, and it is not the number that licenses a marginal method to act.
 
+\subsection{Finite size: a check that cannot resolve what it tests}
+
+The preregistration required a finite-size check --- the constrained-TI mean force at
+$r = 0.70, 0.80, 0.90$~nm recomputed in a $1024$-water box, with the evaluation domain to be
+truncated if any point moved by more than $\MeFsTol\,k_BT/\text{nm}$. It was specified to run
+\emph{before} the reference was built and was in fact run after it, so it can no longer gate the
+domain; it can only report whether the outer points of an accepted reference are trustworthy.
+Retrospectively performing a preregistered check is a weaker thing than fulfilling it, and we say
+which one happened.
+
+In the larger box ($L = \MeFsLbig$~nm, $\rho = \MeFsRhoBig$~g/cm$^3$, where $r = 0.90$ sits at
+$\MeFsHalfBox$\% of the minimum-image half-box rather than $72$\%) the differences are
+$+\MeFsDiffSeven$, $+\MeFsDiffEight$ and $+\MeFsDiffNine\,k_BT/\text{nm}$. Read literally the
+gate fails at the outer two points. Read with the uncertainties --- $\pm\MeFsSemSeven$,
+$\pm\MeFsSemEight$, $\pm\MeFsSemNine$ --- \emph{nothing is resolved}: the nominal failure at
+$0.80$ is $0.21\sigma$ and the one at $0.90$ is $\MeFsSigNine\sigma$.
+
+The tolerance is five to seven times finer than the uncertainty of the measurement it gates, and
+closing that gap needs two orders of magnitude more sampling than the check itself cost. The
+criterion was fixed in advance without asking whether it was measurable --- a check whose outcome
+cannot entail the thing it is relied on to establish. We record the gate as \textbf{inconclusive}
+rather than failed, treat $r = 0.90$ as suspect, and confirm the interior: at $r = 0.70$ the two
+box sizes agree to $\MeFsDiffSeven\,k_BT/\text{nm}$, and every state boundary and essentially all
+of the sampled population lie below that separation.
+
+Whether the verdict depends on this was tested rather than argued. Perturbing the reference by
+the \emph{full} measured difference at $0.80$ and $0.90$, re-integrating, and re-running Gate C
+against the perturbed target over all $\MeSeeds$ seeds and the whole second half of every run
+distorts $F$ by $\MeFsWorstDistort\,k_BT$ and leaves a minimum occupancy ratio of
+$\MeFsWorstRatio$ against the $0.5$ deficit threshold. The classification is unchanged under the
+most adverse reading of the data.
+
 \subsection{What this system contributes}
 
 Methane fails to need mFR on the \emph{state}, not on the \emph{coordinate} and not on the

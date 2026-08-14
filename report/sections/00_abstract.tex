@@ -91,12 +91,12 @@ The same control is then carried to the many-body system. At the accepted WCA-di
 configuration, on \WcsSeeds{} fresh seeds with no hyperparameter reopened, practical mFR
 improves the integrated error by \WcvEstGain\% $[\WcvEstCIlo, \WcvEstCIhi]$ on
 \WcvEstWins{} seeds and beats its own matched sham by \WcvDirect\%
-$[\WcvDirectCIlo, \WcvDirectCIhi]$, while the sham itself is \emph{not} better than ABF
-($\WcvShamGain\%$). These are scored against a corrected high-precision reference; the
+$[\WcvDirectCIlo, \WcvDirectCIhi]$, while the sham itself is \emph{not resolvably} better
+than ABF ($\WcvShamGain\%$, interval spanning zero on $\WcvShamWins$ seeds). These are scored against a corrected high-precision reference; the
 cached reference used in the first pass was later found wrong by up to $\GzDecaSpan\sigma$
 inside the transition region, which moved this headline from \WcsEstGain\% to
 \WcvEstGain\% without changing any preregistered verdict. Paired on the same seeds, round trips move by
-$\ClosureWcaRoundTripPct\%$ $[\ClosureWcaRoundTripCIlo, \ClosureWcaRoundTripCIhi]$ while the
+$\WcvRoundTripPct\%$ $[\WcvRoundTripCIlo, \WcvRoundTripCIhi]$ while the
 error moves by \WcvEstGain\%, so in this setup the mechanism is consistent with
 redistributing population among replicas already crossing rather than with buying barrier
 crossings --- which is what a two-state reduction of the kinetics predicts. These are the first controls in

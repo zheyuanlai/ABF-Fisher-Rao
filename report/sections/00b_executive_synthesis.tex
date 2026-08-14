@@ -71,10 +71,11 @@ $\ClosureGwTwoGain\%$ on $\ClosureGwTwoWins$ fresh seeds in the quoted replicate
 ($\ClosureGwOneGain\%$ on $\ClosureGwOneWins$ in the first pass), and beats its own sham
 directly in both. On the WCA dimer, with no hyperparameter reopened and $16$ fresh seeds, it
 improves the same endpoint by $\WcvEstGain\%$ on $\WcvEstWins$ seeds and beats its own
-sham by $\WcvDirect\%$ on $\WcvDirectWins$. The sham itself is not better than
-ABF in either system. (The WCA figures are scored against a corrected high-precision
-reference; the cached one used first was wrong inside the transition region and had put this
-headline at $\ClosureWcaGain\%$.)
+sham by $\WcvDirect\%$ on $\WcvDirectWins$. Neither sham is resolvably better than ABF: the
+gateway's lands on the adverse side of zero and WCA's spans it
+($\WcvShamGain\%$ on $\WcvShamWins$ seeds). (The WCA figures are scored against a corrected
+high-precision reference; the cached one used first was wrong inside the transition region
+and had put this headline at $\ClosureWcaGain\%$.)
 
 That gain is attributable to \emph{directed} selection, but not to \emph{this} direction. At
 matched turnover against the two directed rules already in use, mFR is tied by simple count
@@ -84,9 +85,10 @@ Chapter~6 Laplacian rule is inert ($\QoneBookVsAbf\%$). The claim this report ca
 principled rule consistent with the establishment mechanism, not a performance win over prior
 art.
 
-Barrier round trips in the WCA test differ by $\ClosureWcaRoundTripPct\%$ between mFR and ABF
-while the free-energy error differs by $\WcvEstGain\%$ --- roughly a fourteen-fold
-separation between the transport change and the accuracy change. In this setup the mechanism
+Barrier round trips in the WCA test differ by $\WcvRoundTripPct\%$ between mFR and ABF
+while the free-energy error differs by $\WcvEstGain\%$ --- roughly a
+\WcvRoundTripSeparation-fold separation between the transport change and the accuracy change,
+both measured on the same runs against the same reference. In this setup the mechanism
 is therefore consistent with redistributing population among replicas that were already
 crossing, rather than with buying additional crossings.
 

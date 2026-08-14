@@ -733,12 +733,17 @@ realised totals matched with \WcsMismatch{} discrepancies.
 \input{tables/wca_sham.tex}
 
 \Cref{tab:wca_sham} gives the result, and both preregistered criteria pass. Practical mFR
-improves the integrated free-energy error by \WcsEstGain\% $[\WcsEstCIlo, \WcsEstCIhi]$ on
-\WcsEstWins{} matched seeds. The attribution criterion --- the \emph{direct} contrast of each
+improves the integrated free-energy error by \WcvEstGain\% $[\WcvEstCIlo, \WcvEstCIhi]$ on
+\WcvEstWins{} matched seeds. The attribution criterion --- the \emph{direct} contrast of each
 arm against its own sham, which holds the event schedule and the replacement count fixed so
-that only the selection direction differs --- gives \WcsDirect\%
-$[\WcsDirectCIlo, \WcsDirectCIhi]$ on \WcsDirectWins{} seeds, with the interval excluding zero.
+that only the selection direction differs --- gives \WcvDirect\%
+$[\WcvDirectCIlo, \WcvDirectCIhi]$ on \WcvDirectWins{} seeds, with the interval excluding zero.
 Verdict: \textbf{\WcsVerdict} (\cref{fig_wca_07_sham}).
+
+These are the corrected-reference figures. The experiment was first scored against a cached
+thermodynamic-integration reference and read \WcsEstGain\% and \WcsDirect\%; that reference
+was later found wrong inside the transition region, and \cref{rem:wca_reference_correction}
+gives the correction and what it did and did not change.
 
 \begin{figure}[t]\centering
   \includegraphics[width=\linewidth]{fig_wca_07_sham.png}
@@ -747,37 +752,52 @@ Verdict: \textbf{\WcsVerdict} (\cref{fig_wca_07_sham}).
   the same seed; bars are medians. Both mFR arms sit below zero, both shams above it.
   \textbf{(b)} The attribution test: each arm against \emph{its own} sham, which fired the same
   number of clone and delete events at the same times and differs only in which replicas it
-  acted on. \textbf{(c)} Round trips per run differ by under $1\%$ across arms while the free
-  energy differs by more than twenty --- the mechanism redistributes population rather than
-  creating barrier crossings.}\label{fig_wca_07_sham}
+  acted on. \textbf{(c)} Round trips per run differ by about $1\%$ across arms while the free
+  energy differs by more than seventeen --- the mechanism redistributes population rather than
+  creating barrier crossings. Panel values are the cached-reference scoring the figure was
+  drawn from; the corrected-reference numbers are \cref{tab:wca_sham}'s and move the accuracy
+  bars without changing any sign.}\label{fig_wca_07_sham}
 \end{figure}
 
-\begin{remark}[The sham is not equivalent to ABF --- it is slightly worse]
+\begin{remark}[The sham is not shown equivalent to ABF, and the side it misses on changed]
 \label{rem:wca_sham_harmful}
-The equivalence test was written expecting the sham to land \emph{on} ABF, and it does not:
-matched random turnover reads $\WcsShamGain\%$, and its interval sits far enough to the
-positive side that it is \WcsShamTost{} within a $\pm5\%$ margin. That is a failure of the
-equivalence criterion, and it is reported as one --- but it fails in the direction that
-strengthens rather than weakens the attribution. A control that makes the estimate
-\emph{worse} cannot be the explanation for an arm that makes it \WcsEstGain\% better. The
-entire gain, and a little more, is attributable to the direction in which mass is moved.
+The equivalence test was written expecting the sham to land \emph{on} ABF, and against the
+corrected reference it still does not, though only just: matched random turnover reads
+$\WcvShamGain\%$ $[\WcvShamCIlo, \WcvShamCIhi]$ on $\WcvShamWins$ seeds, so it is not
+resolvably different from ABF, but its TOST interval
+$[\WcvShamTostLo, \WcvShamTostHi]$ runs past the $\pm5\%$ margin and it is therefore
+\WcvShamTost.
 
-The preregistration's outcome table did not anticipate this polarity: it enumerated the case
-where a sham fails equivalence \emph{in the improving direction} (where the gain would be
-partly generic turnover) but not the case where it fails on the harmful side. That is a gap in
-the rule as written, and the reading above is therefore an interpretation rather than a
-predeclared outcome. The predeclared attribution criterion --- the direct contrast --- is
-unaffected and passes on its own terms.
+The side it misses on is worth stating plainly, because it reversed under the reference
+correction and the two sides support opposite readings. Against the cached reference the sham
+read $\WcsShamGain\%$ --- resolvably \emph{harmful} --- and that failure strengthened
+attribution, since a control that makes the estimate worse cannot explain an arm that makes
+it better. Against the corrected reference the miss is on the \emph{beneficial} side, which
+is the case the preregistration did anticipate and the less comfortable one: it leaves open
+that a small part of the gain is generic turnover rather than direction. What closes that gap
+is not this test but the direct one. The preregistered attribution statistic contrasts each
+arm against its \emph{own} sham at an identical event schedule, and it gives \WcvDirect\%
+$[\WcvDirectCIlo, \WcvDirectCIhi]$ with the interval excluding zero --- larger in magnitude
+than the arm-versus-ABF gain itself, so the direction of the mass movement, not the fact of
+it, is what carries the effect.
+
+Two cautions apply to reading this remark at all. The equivalence criterion is failed in
+both scorings, so neither polarity is a predeclared outcome; and the sham's shift from
+$\WcsShamGain\%$ to $\WcvShamGain\%$ is itself evidence that a control this small is
+sensitive to reference error at the scale the audit found.
 \end{remark}
 
 \begin{remark}[mFR is not buying barrier crossings]
 \label{rem:wca_roundtrips}
-Round trips per run are nearly identical across the arms: \WcsAbfRoundTrips{} for ABF,
-\WcsEstRoundTrips{} for practical mFR and \WcsShamRoundTrips{} for its sham. Paired on the
-same seeds, practical mFR changes barrier crossings by $\ClosureWcaRoundTripPct\%$
-$[\ClosureWcaRoundTripCIlo, \ClosureWcaRoundTripCIhi]$ while changing the integrated
-free-energy error by \WcsEstGain\% --- a separation of roughly eighteen-fold between the
-transport change and the accuracy change. The crossing change is small but resolvably
+Round trips per run are nearly identical across the arms: \WcvAbfRoundTrips{} for ABF against
+\WcvEstRoundTrips{} for practical mFR. Paired on the same seeds, practical mFR changes barrier
+crossings by $\WcvRoundTripPct\%$
+$[\WcvRoundTripCIlo, \WcvRoundTripCIhi]$ while changing the integrated
+free-energy error by \WcvEstGain\% --- a separation of roughly
+\WcvRoundTripSeparation-fold between the transport change and the accuracy change. Both
+figures are measured on the same runs against the same corrected reference, which matters
+here: pairing a transport number from one run tree with an accuracy number from another would
+make the ratio an artifact of the pairing. The crossing change is small but resolvably
 nonzero, so the claim is that transport is nearly unchanged, not that it is untouched. So
 the mechanism is not acting by increasing transport across the barrier; it is redistributing
 population among replicas that were already crossing. That is exactly what the two-state
@@ -788,25 +808,40 @@ independent confirmation of that model on a system it was not built from.
 
 \begin{remark}[The reference this subsection was first scored against was wrong]
 \label{rem:wca_reference_correction}
-The numbers quoted above were originally computed against a cached thermodynamic-integration
-reference. A parallel audit later found that reference to be wrong near $z\approx0.26$ --- by
-up to $67\sigma$ against a high-precision consensus built from four independently prepared
-solvent pools --- which is inside the transition region where the arms differ most. Rescoring
-the \emph{same} stored trajectories against the corrected reference
-(\texttt{cache/phase\_hp\_v3}) moves the headline from $\WcsEstGain\%$ to
-$\WcvEstGain\%$ $[\WcvEstCIlo, \WcvEstCIhi]$ on $\WcvEstWins$ seeds, the direct
-arm-versus-sham contrast to $\WcvDirect\%$ $[\WcvDirectCIlo, \WcvDirectCIhi]$, and the sham
-itself from $\WcsShamGain\%$ to $\WcvShamGain\%$ $[\WcvShamCIlo, \WcvShamCIhi]$.
+This subsection was first scored against a cached thermodynamic-integration reference. A
+parallel audit later found that reference wrong near $z\approx0.26$ --- by up to $67\sigma$
+against a high-precision consensus built from four independently prepared solvent pools ---
+which is inside the transition region where the arms differ most. The cached acquisition grid
+($\Delta z = 0.028$) is too coarse to represent a feature with structure at $0.010$, and the
+smoothing kernel took its width in \emph{grid cells} rather than in the physical coordinate,
+so the two errors compounded: the feature was first unresolved and then smoothed away.
 
-Two things are worth separating. The conclusion is unchanged: every preregistered criterion
-that passed against the cached reference still passes against the corrected one, and the sham
-moving from $\WcsShamGain\%$ to $\WcvShamGain\%$ actually \emph{removes}
-\cref{rem:wca_sham_harmful}'s awkwardness, since the corrected sham is no longer resolvably on
-the harmful side. But the magnitude moved by about five percentage points, which is
-comparable to the effects this report elsewhere treats as meaningful. \Cref{sec:wca_q1}
-therefore quotes the corrected value, and the general rule stated in \cref{sec:limits} ---
-that no arm-level effect is trustworthy unless the reference uncertainty is much smaller than
-the effect --- was adopted because of this episode rather than in anticipation of it.
+Correcting it required \textbf{fresh dynamics, not a rescore.} The original Case~IX runs
+retained the scored scalars and the final profile but never the time-resolved
+$\hat F_t(z)$, so the integrated endpoint could not be recomputed from what was stored. The
+cell was therefore re-run in full at the frozen configuration with nothing retuned and
+\WcsSeeds{} paired seeds, scored online against the corrected reference
+(\texttt{cache/phase\_hp\_v3}: unsmoothed, four preparations, acquisition grid equal to the
+evaluation grid so interpolation is the identity). That moves the headline from
+$\WcsEstGain\%$ to $\WcvEstGain\%$ $[\WcvEstCIlo, \WcvEstCIhi]$, the direct arm-versus-sham
+contrast from $\WcsDirect\%$ to $\WcvDirect\%$ $[\WcvDirectCIlo, \WcvDirectCIhi]$, and the
+sham from $\WcsShamGain\%$ to $\WcvShamGain\%$ $[\WcvShamCIlo, \WcvShamCIhi]$. Because the
+seeds are new, the comparison between the two columns of \cref{tab:wca_sham} carries seed
+noise as well as the reference change, and the split between them is not identified.
+
+Three things are worth separating. The verdict is unchanged: every preregistered criterion
+that passed against the cached reference passes against the corrected one, at $16/16$ seeds
+with the attribution interval still excluding zero. The magnitude moved by about five
+percentage points, which is comparable to effects this report elsewhere treats as meaningful,
+so the corrected value is the one quoted everywhere and the cached one is retained only as a
+record. And the sham's move is not the unambiguous improvement it first appears: it removes
+the harmful-side reading of \cref{rem:wca_sham_harmful}, but replaces it with a
+beneficial-side one, which is the direction that would dilute rather than reinforce
+attribution. The general rule in \cref{sec:limits} --- that no arm-level effect is trustworthy
+unless the reference uncertainty is much smaller than the effect --- was adopted because of
+this episode rather than in anticipation of it. The concrete repair is that every run now
+stores $\hat F_t(z)$ alongside the reference it was scored against, so a future reference
+change costs an analysis pass rather than a GPU campaign.
 \end{remark}
 
 \subsection{Is the Fisher--Rao direction better than the directed selection ABF already had?}

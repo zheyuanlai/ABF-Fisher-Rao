@@ -166,6 +166,22 @@ Per §9 and Amendment 11.1, **binding**:
 Q1 (Fisher–Rao versus prior directed selection) remains open and passes to NaCl, which was always
 where it would be answered if methane failed.
 
+## Finite-size gate: run after the fact, and inconclusive
+
+SPEC §1.3's check was never run before the reference; it was run afterwards, on a 1024-water box.
+Differences at `r = 0.70 / 0.80 / 0.90` are `+0.0013 / +0.1060 / +1.1563` kT/nm against a 0.1
+tolerance — a literal FAIL at the outer two. **Nothing is resolved**: the combined SEMs are
+±0.670 / ±0.500 / ±0.671, so the nominal failure at 0.80 is 0.21σ and the one at 0.90 is 1.72σ.
+The tolerance is 5–7× finer than the uncertainty of the measurement it gates.
+
+**The verdict was tested against the worst case rather than argued.** Perturbing the reference by
+the *full* measured difference, re-integrating, and re-running Gate C over all 8 seeds and the
+entire second half distorts `F` by 0.062 kT and leaves a minimum occupancy ratio of **0.733**
+against the 0.5 threshold. **No deficit appears. The classification is unchanged.**
+
+Interior (`r ≤ 0.70`) is confirmed at 0.0013 kT/nm, and every state boundary lies below it.
+Outer points are provisional. Full detail: `../finite_size/RESULT.md`.
+
 ## Cost
 
 | stage | wall |
