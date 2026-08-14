@@ -246,17 +246,26 @@ def gate_c(diag_occ, diag_pmf, diag_times, grid, F_ref_on_grid, basins, beta, T_
     # "Gate C fired", licenses_mfr: true). A state that cannot hold walkers is not a state
     # with a deficit. Unpowered states are reported NON-BINDING and excluded from the verdict.
     LAMBDA_MIN = 16.0
+    second_half = times >= 0.5 * T_ps
     n_walkers = int(diag_occ[0, 0].sum()) if diag_occ.size else 0
     power = {}
     for lab, msk in masks.items():
+        # MINIMUM over the JUDGED window, not the mean over all checkpoints. Q*_k(t) moves as
+        # the bias grows, and the gate reads a per-checkpoint threshold -- so a state must be
+        # powered throughout the window it is judged on, not on average across it. A mean can
+        # sit above the floor while the checkpoints that actually produce the longest
+        # sub-threshold run are below it, which is precisely the window the gate reads.
         lams = []
-        for c in range(n_cp):
+        for c in np.flatnonzero(second_half):
             for s in range(S):
                 B_t = diag_pmf[c, s]
                 w = np.exp(-beta * (F_ref_on_grid - B_t - (F_ref_on_grid - B_t).min()))
                 lams.append(float(w[msk].sum() / w.sum()) * n_walkers)
-        lam = float(np.mean(lams))
-        power[lab] = dict(lambda_expected_walkers=lam, lambda_min=LAMBDA_MIN,
+        lam = float(np.min(lams))
+        lam_mean = float(np.mean(lams))
+        power[lab] = dict(lambda_expected_walkers=lam, lambda_mean_over_window=lam_mean,
+                          lambda_statistic="minimum of Q*(t)*N over the judged window",
+                          lambda_min=LAMBDA_MIN,
                           POWERED=bool(lam >= LAMBDA_MIN),
                           threshold_is_emptiness=bool(0.5 * lam < 1.0),
                           p_empty_by_counting=float(np.exp(-lam)),
