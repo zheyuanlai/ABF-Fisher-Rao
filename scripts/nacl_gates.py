@@ -41,6 +41,17 @@ DEFICIT_RATIO = 0.5     #: Gate C: occupancy below half the bias-aware target
 DEFICIT_FRACTION = 0.20  #: for a contiguous 0.20 T in the second half
 
 
+def _fastest_of_n_p99(n, quantile=0.99, trials=40000, seed=0):
+    """p99 of max over ``n`` standard normals (one-sided), by Monte Carlo.
+
+    Closed forms were tried and rejected: ``sqrt(2 ln n)`` overstates E[max] by ~23 % at
+    n = 64, and E[max] is the wrong statistic for a floor regardless.
+    """
+    rng = np.random.default_rng(seed)
+    return float(np.quantile(rng.standard_normal((trials, max(int(n), 2))).max(axis=1),
+                             quantile))
+
+
 def basin_masks(grid, basins):
     """Half-open basin masks that PARTITION the grid: ``[lo, hi)`` except the last, ``[lo, hi]``.
 
@@ -116,11 +127,19 @@ def gate_b(xi_trace, xi_steps, dt, basins, T_ps):
     KT = nsys.kT_kJ()
     MU = (22.9898 * 35.45) / (22.9898 + 35.45)          # Na-Cl reduced mass, amu
     sigma_v = float(np.sqrt(KT * 1000.0 / (MU * 1e-3)) * 1e-3)      # one walker, rms, nm/ps
-    # T_hit is the FIRST ARRIVAL of N walkers, so the relevant speed is the fastest of N,
-    # ~sigma*sqrt(2 ln N), not the rms of one. Using the rms overstates the floor by 2.9x at
-    # N = 64 and can make a genuinely ballistic arrival look diffusive (the methane session
-    # measured exactly that error in its own floor, at 3x).
-    v_therm = sigma_v * float(np.sqrt(2.0 * np.log(max(N, 2))))
+    # T_hit is the FIRST ARRIVAL of N walkers, so the floor needs the fastest of N -- and
+    # three refinements, each measured rather than assumed:
+    #   (a) not the rms of ONE walker (that overstates the floor time 2.9x at N=64);
+    #   (b) not sqrt(2 ln N) either -- that is the leading extreme-value term without its
+    #       -(ln ln N + ln 4pi)/(2 sqrt(2 ln N)) correction, and overstates E[max] by ~23 %
+    #       at N=64 (2.884 against a Monte-Carlo 2.346);
+    #   (c) ONE-SIDED, because only outward-moving walkers reach a larger threshold, and a
+    #       high QUANTILE rather than the mean -- a floor is a claim that arrival could not
+    #       have been faster, so it wants the fastest plausible flight, not the average
+    #       fastest. MC p99 of max(v) over N=64 is 3.604 sigma.
+    # A faster floor speed means a SHORTER floor time and therefore a LARGER observed/floor
+    # ratio, so this is the conservative direction for a diffusive claim.
+    v_therm = sigma_v * _fastest_of_n_p99(int(N))
     r_start = float(np.median(xi_trace[0]))
     first_bnd = float(basins[0]["r_hi_nm"])
     ballistic = abs(first_bnd - r_start) / v_therm
