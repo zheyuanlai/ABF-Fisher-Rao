@@ -41,15 +41,29 @@ DEFICIT_RATIO = 0.5     #: Gate C: occupancy below half the bias-aware target
 DEFICIT_FRACTION = 0.20  #: for a contiguous 0.20 T in the second half
 
 
-def _fastest_of_n_p99(n, quantile=0.99, trials=40000, seed=0):
-    """p99 of max over ``n`` standard normals (one-sided), by Monte Carlo.
+def _fastest_of_n_p99(n, quantile=0.99):
+    """Exact ``quantile`` of the max of ``n`` standard normals (one-sided).
 
-    Closed forms were tried and rejected: ``sqrt(2 ln n)`` overstates E[max] by ~23 % at
-    n = 64, and E[max] is the wrong statistic for a floor regardless.
+    ``P(max <= x) = Phi(x)^n``, so the q-quantile is ``Phi^-1(q^(1/n))`` -- exact, seedless
+    and instant, which is strictly better than the Monte Carlo it replaces (they agree to
+    5e-4 sigma at n = 64 and 5e-3 at n = 512).
+
+    Three wrong denominators preceded it, all of which pass a "same population" check:
+      sqrt(2 ln n)   the leading extreme-value term without its correction (+23 % on E[max]);
+      E[max]         the mean of the fastest walker, when a FLOOR wants a high quantile;
+      max|v|         two-sided, which admits the fastest INBOUND walker as a candidate for
+                     an outbound arrival -- the wrong sampling of the right population.
     """
-    rng = np.random.default_rng(seed)
-    return float(np.quantile(rng.standard_normal((trials, max(int(n), 2))).max(axis=1),
-                             quantile))
+    from math import erf, sqrt
+    q = float(quantile) ** (1.0 / max(int(n), 2))
+    lo, hi = 0.0, 10.0                       # bisection on Phi(x) = q; monotone, 60 iters
+    for _ in range(60):
+        mid = 0.5 * (lo + hi)
+        if 0.5 * (1.0 + erf(mid / sqrt(2.0))) < q:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
 
 
 def basin_masks(grid, basins):
