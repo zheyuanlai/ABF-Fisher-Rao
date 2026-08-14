@@ -13,7 +13,7 @@ methane code existed. It is a null. That is the preregistered outcome, reported 
 ```
 Gate 0   pinning clause: max tercile occupancy, 2nd half, any seed = 0.516   (<= 0.90)   OK
          conditional mean force (reference stage) = 0.048 global / 0.081 core            PASS
-Gate A   max pairwise TV(p(n_gap | tercile)) = 0.987                         (>= 0.30)   PASS
+Gate A   max pairwise TV(p(xi | Y)) = 0.935  [as preregistered]              (>= 0.30)   PASS
 Gate B   T_hit < 20 ps on 8/8 seeds, for all three states                    (>= 6/8)    PASS
 Gate C   persistent deficit on 0/8 seeds, for all three states                           NO DEFICIT
 
@@ -114,9 +114,27 @@ not be presented afterwards as a confirmed prediction.
 
 ## Why this is a good negative, not a wasted one
 
-**Gate A = 0.987 is the strongest CV-visibility number in the campaign.** `n_gap` separates the
-terciles almost perfectly, so the collective variable sees the solvent physics clearly. Methane
-therefore fails on the *state*, not on the *coordinate*:
+**Gate A passes, and the number to quote is 0.935, not 0.987.** The two differ because the
+implementation computed the *transpose* of the preregistered quantity, found by asking the NaCl
+session's question — *does passing this gate entail the claim it is cited for?*
+
+§2.2 specifies `TV( p(xi | Y=a), p(xi | Y=b) )`: whether the **marginal in `xi`** can see the
+difference between structural states, which is what licenses a marginal method to act on them.
+`methane_gates.py` computed `TV( p(n_gap | tercile_a), p(n_gap | tercile_b) )` — whether the
+descriptor differs between `xi`-terciles. That is a weaker and partly tautological statement,
+since the gap volume grows with `r` by construction.
+
+Recomputed as specified, over 823 296 paired samples with `Y` bucketed dry / mid / wet:
+
+| pair | TV( p(xi \| Y) ) |
+|---|---|
+| dry (`n_gap` < 1) vs mid (1–2) | 0.805 |
+| **dry vs wet (> 2)** | **0.935** |
+| mid vs wet | 0.474 |
+
+**0.935 against a 0.30 threshold — Gate A passes as preregistered**, and passes on the quantity
+that actually supports the claim. The verdict is unchanged; the number and its meaning are
+corrected. The transposed 0.987 should not be quoted.
 
 > The CV is excellent. Establishment is immediate. There is simply nothing for population
 > reallocation to repair.
