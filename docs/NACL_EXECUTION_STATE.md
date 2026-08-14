@@ -6,11 +6,19 @@ an earlier one failed; never search for a way around a STOP.
 
 ```
 CURRENT FROZEN COMMIT:  see results/nacl/PINNED_COMMIT (written when the worktree is cut)
-CURRENT STAGE:          TI reference EXTENDING to the SPEC 250 ps (resumed 15:39 UTC,
-                        --no-retire, ETA ~23:00 UTC). 50 ps preliminary gates all PASS.
+CURRENT STAGE:          REFERENCE ACCEPTED (250 ps, 12.0 h). Gate 0 and Gate A PASS.
+                        Screen N=64 launching: seeds 4000-4003 on GPU 2 now, 4004-4007
+                        on GPU 3 when methane releases it (6/8 seeds done).
 LAST COMPLETED GATE:    engine equivalence 11/11 <1e-6; box frozen L=2.892700 nm;
                         descriptors frozen; baths verified (9 baths, 549 starts)
-VERDICT:                dt = 2 fs DECIDED (Amendment 15.1, one run, never revisited):
+VERDICT:                GATE 0 PASS (0.0075 global / 0.0483 barrier -- the campaign's
+                        best; WCA passes at 0.040, deca FAILED at 0.61).
+                        GATE A PASS (max TV 0.9959 vs 0.30; n_NaO 0.990, n_ClH 0.996,
+                        n_bridge 0.947). Reference ACCEPTED, ratio 0.0907 <= 0.5, complete,
+                        3 builds x 4 families x 3 replicas x 250 ps.
+                        Basins: CIP [0.20,0.34] min 0.26; merged outer [0.34,1.40].
+                        dW_CIP->outer 2.54 kT; barrier 5.34 kT.
+                        dt = 2 fs DECIDED (Amendment 15.1, one run, never revisited):
                         2fs dT 0.74+-0.32 K PASS / 1fs dT 0.22+-0.30 K PASS; constraints
                         2.1e-15 nm. Triton PASSES both gates but is NOT adopted: measured
                         918 ns/day vs tensor 1020 at its best config, so the reference runs
