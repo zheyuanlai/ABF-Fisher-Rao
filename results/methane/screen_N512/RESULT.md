@@ -25,8 +25,28 @@ deficit, which is the ABF-sufficient branch.
 
 ## The numbers behind it
 
-**Discovery is instant.** All three states are reached within **0.8 ps** of a 200 ps run — 25×
-faster than the 20 ps threshold, on every seed:
+**Discovery is instant — but Gate B is nearly vacuous here, and that is a caveat on the gate,
+not on the verdict.** Prompted by the NaCl session reporting the same sub-ps `T_hit` in a system
+with a **5.34 kT** barrier, the numbers were checked against a ballistic estimate:
+
+| | state 1 (0.520 nm) | state 2 (0.710 nm) |
+|---|---|---|
+| distance from the contact start (0.38 nm) | 0.140 nm | 0.330 nm |
+| ballistic transit at `sqrt(2 kT/m)` = 0.556 nm/ps | **0.252 ps** | **0.594 ps** |
+| observed `T_hit` | 0.25 ps | 0.5–0.8 ps |
+
+The agreement is essentially exact. **`T_hit` here is measuring free-flight transit across a
+tercile boundary, not a barrier-crossing rate** — the first `xi` trace frame after `t = 0` is at
+0.25 ps, so state 1 is entered on the first frame it *could* be. Diffusive transit of the same
+0.33 nm would be ~36 ps for a typical walker; the fastest of 512 arrives ballistically.
+
+With a single-basin reference the states are the Amendment 3 **tercile fallback**, declared as a
+partition of the coordinate rather than as metastable states — so a contact start sits 0.14 nm
+from the first boundary and Gate B could not have failed. That is a property of the partition,
+and it is why the verdict below rests on **Gate C**, which is not vacuous: occupancy tracks the
+bias-aware target across the whole domain for the entire second half.
+
+Raw per-seed numbers: all three states reached within 0.8 ps on every seed.
 
 | seed | T_hit state 0 / 1 / 2 (ps) | worst deficit span | max tercile occupancy |
 |---|---|---|---|
@@ -59,8 +79,12 @@ not be presented afterwards as a confirmed prediction.
 terciles almost perfectly, so the collective variable sees the solvent physics clearly. Methane
 therefore fails on the *state*, not on the *coordinate*:
 
-> The CV is excellent. Discovery is instant. Establishment is immediate. There is simply nothing
-> for population reallocation to repair.
+> The CV is excellent. Establishment is immediate. There is simply nothing for population
+> reallocation to repair.
+
+(Deliberately no longer citing "discovery is instant" as evidence: with a tercile partition and a
+contact start, Gate B measures ballistic transit and could not have failed. The substantive
+finding is Gate C.)
 
 That is a cleaner negative control than one where a bad coordinate obscures the answer, and it is
 what §9 asked methane to provide: a literature-anchored benchmark where selection-enhanced ABF has
