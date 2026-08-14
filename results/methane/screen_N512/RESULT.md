@@ -133,6 +133,24 @@ Recomputed as specified, over 823 296 paired samples with `Y` bucketed dry / mid
 | **dry vs wet (> 2)** | **0.935** |
 | mid vs wet | 0.474 |
 
+**Is 0.935 near-tautological?** The NaCl session found its own corrected Gate A reading exactly
+1.000 and, rather than report it, measured why: its hydration descriptors vary 14–83× more across
+`r` than at fixed `r`, so the label is nearly a function of the coordinate and the test nearly
+cannot fail. The same question here, measured the same way over 0.01 nm bins:
+
+```
+n_gap variance BETWEEN r-bins   0.7363
+n_gap variance WITHIN  r-bins   0.1373
+orthogonality ratio             5.36x     (NaCl: 14-83x)
+```
+
+`n_gap` spans 0.21 → 2.73 across the domain but retains an sd of 0.37 at fixed `r`. At 5.4× the
+descriptor is **substantially but not wholly determined by the coordinate**, so Gate A's 0.935 is
+a real measurement rather than a restatement of the geometry — considerably more informative here
+than NaCl's 1.000, which its own session correctly reports as physics rather than as a strong
+gate. That difference is itself the point: methane has genuine solvent structure orthogonal to
+`r`, which is why it is a meaningful test of whether ABF needs help, and it still does not.
+
 **0.935 against a 0.30 threshold — Gate A passes as preregistered**, and passes on the quantity
 that actually supports the claim. The verdict is unchanged; the number and its meaning are
 corrected. The transposed 0.987 should not be quoted.
