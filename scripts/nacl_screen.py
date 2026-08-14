@@ -165,6 +165,29 @@ def main():
         allpop = build_population(ff, L, start, total_walkers, R_CIP_NM, args.prep_ps, dt,
                                   args.chunk, 740000, dev)
         spread = assert_distinct_solvent(allpop)
+        # A DECLARED BIAS IS AN ASSUMPTION ABOUT THE INITIAL CONDITION, and nothing checked it.
+        # SPEC §7 declares "a contact start makes discovery harder, so it can only push toward
+        # discovery-limited" -- which is true of a start AT the contact minimum and false of
+        # one partway up the barrier. The published equilibrate.coor is at 0.30 nm while the
+        # reference's CIP minimum is at 0.26 nm, so every walker begins 2.64 kT up and 2.16 kT
+        # below the top. Measured and recorded here so the declaration is checked against the
+        # configuration rather than assumed to describe it.
+        ref_path = nsys.REPO / "results/nacl/reference/reference.npz"
+        if ref_path.exists():
+            rr = np.load(ref_path)
+            kT = nsys.kT_kJ()
+            F_at = lambda x: float(np.interp(x, rr["r_nm"], rr["F_ref"]))
+            r_min = float(rr["r_nm"][int(np.argmin(np.where(rr["r_nm"] < 0.34,
+                                                            rr["F_ref"], np.inf)))])
+            start_kT = (F_at(R_CIP_NM) - F_at(r_min)) / kT
+            print(f"[init] start r = {R_CIP_NM:.3f} nm sits {start_kT:.2f} kT above the CIP "
+                  f"minimum at {r_min:.3f} nm -- SPEC §7's declared bias assumes a start AT "
+                  f"the minimum; this start is {start_kT:.2f} kT up the barrier", flush=True)
+            init_check = dict(start_nm=R_CIP_NM, cip_minimum_nm=r_min,
+                              start_above_minimum_kT=start_kT,
+                              declared_bias_holds=bool(start_kT < 0.5))
+        else:
+            init_check = dict(note="no reference yet; declaration unchecked")
         pops, off = {}, 0
         for c in plan:
             n = S * c["N"]
@@ -426,7 +449,9 @@ def main():
         _, f = integ.step(q, v, f, bias_fn=_bias_at, generator=gen)
 
     with open(os.path.join(args.out, "manifest.json"), "w") as fh:
-        json.dump(dict(model=nsys.manifest(box_nm=L, dt_ps=dt), stage="nacl_abf_screen", spec="docs/SPEC_nacl_water.md §7",
+        json.dump(dict(model=nsys.manifest(box_nm=L, dt_ps=dt),
+                       initial_condition_check=locals().get("init_check"),
+                       stage="nacl_abf_screen", spec="docs/SPEC_nacl_water.md §7",
                        amendment="V2_PREREGISTRATION.md Amendment 14",
                        cells=cells, seeds=seeds, B_MD_ns=B_MD_NS, dt_ps=dt,
                        prep_ps=args.prep_ps, r_cip_nm=R_CIP_NM, box_L_nm=L, R_hi_nm=R_hi,

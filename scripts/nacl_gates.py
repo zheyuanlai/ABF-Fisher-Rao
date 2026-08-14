@@ -115,7 +115,12 @@ def gate_b(xi_trace, xi_steps, dt, basins, T_ps):
     # read T_hit without its validity conditions attached.
     KT = nsys.kT_kJ()
     MU = (22.9898 * 35.45) / (22.9898 + 35.45)          # Na-Cl reduced mass, amu
-    v_therm = float(np.sqrt(KT * 1000.0 / (MU * 1e-3)) * 1e-3)      # nm/ps
+    sigma_v = float(np.sqrt(KT * 1000.0 / (MU * 1e-3)) * 1e-3)      # one walker, rms, nm/ps
+    # T_hit is the FIRST ARRIVAL of N walkers, so the relevant speed is the fastest of N,
+    # ~sigma*sqrt(2 ln N), not the rms of one. Using the rms overstates the floor by 2.9x at
+    # N = 64 and can make a genuinely ballistic arrival look diffusive (the methane session
+    # measured exactly that error in its own floor, at 3x).
+    v_therm = sigma_v * float(np.sqrt(2.0 * np.log(max(N, 2))))
     r_start = float(np.median(xi_trace[0]))
     first_bnd = float(basins[0]["r_hi_nm"])
     ballistic = abs(first_bnd - r_start) / v_therm
@@ -123,7 +128,8 @@ def gate_b(xi_trace, xi_steps, dt, basins, T_ps):
         fraction_outside_all_basins=outside,
         r_start_nm=r_start, first_boundary_nm=first_bnd,
         distance_nm=abs(first_bnd - r_start),
-        thermal_speed_nm_per_ps=v_therm,
+        sigma_v_one_walker_nm_per_ps=sigma_v,
+        v_fastest_of_N_nm_per_ps=v_therm, n_walkers=int(N),
         ballistic_transit_ps=ballistic,
         trace_resolution_ps=frame_ps,
         T_hit_is_resolution_limited=bool(ballistic < frame_ps),
@@ -162,6 +168,8 @@ def gate_b(xi_trace, xi_steps, dt, basins, T_ps):
         supp[f"r>={thr:.2f}nm"] = dict(
             first_arrival_ps=t,
             ballistic_floor_ps=abs(thr - r_start) / v_therm,
+            x_ballistic_floor=(float(np.nanmin(t) / (abs(thr - r_start) / v_therm))
+                               if np.isfinite(np.nanmin(t)) else None),
             above_ballistic=bool(np.nanmin(t) > 3.0 * abs(thr - r_start) / v_therm)
             if np.isfinite(np.nanmin(t)) else None)
     out["_supplementary_far_thresholds"] = supp
