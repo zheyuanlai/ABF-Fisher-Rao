@@ -82,6 +82,25 @@ $\MeOccRatioBest$, against a deficit threshold of $0.5$. No partition choice can
 that. Walkers never pin, with a maximum single-tercile occupancy of $\MePinned$ against a $0.90$
 clause and against deca's $0.951$--$0.9996$.
 
+Because the verdict rests on this gate, it is worth asking what deficit the gate could have
+detected. Gate C compares an \emph{integer walker count} against $0.5\,Q^*_k$, so its power is
+set by the expected count $\lambda_k = Q^*_k N$ and not by the run length or the number of
+checkpoints. Once $0.5\lambda < 1$ the only integer satisfying the test is zero, and the gate
+silently stops measuring a shortfall and starts measuring whether the state happens to be empty
+at that instant --- an event with frequency $e^{-\lambda}$ on the physics alone, rising as $N$
+falls. We therefore require $\lambda_k \geq \MeGateCLamMin$, the value at which a $50\,\%$
+deficit is a two-sigma effect on a single checkpoint, and report any state below it as
+non-binding with its detectable effect size rather than reading its output. Methane's three
+terciles hold $\lambda = \MeGateCLamOne$, $\MeGateCLamTwo$ and $\MeGateCLamThree$ at the worst
+checkpoint of the judged window, resolving $\MeGateCMdeLo$--$\MeGateCMdeHi\,\%$ deficits against
+the $50\,\%$ the gate tests for, so the requirement is inert here by measurement rather than by
+assumption. It is not inert in general: in the companion NaCl study the contact-pair state holds
+$\lambda = 1.72$ at $N = 64$, where the smallest resolvable deficit is $152\,\%$, and at $N = 16$
+and $N = 8$ no state clears the bar at all. Since the preregistered rule selects the
+\emph{smallest} $N$ passing every gate, the search runs directly toward the cells in which the
+gate cannot fail --- and this project has already retracted one screen in which Gate C fired on a
+state that could never hold a walker and reported that a Fisher--Rao arm was licensed.
+
 Gate B, by contrast, is \emph{vacuous here, and that is a property of the physics}. First
 arrivals at thresholds well beyond the tercile boundary run only $\MeFarRatioLo$--$\MeFarRatioHi
 \times$ the exact ballistic floor for the fastest of $\MeNwalk$ walkers, and the whole

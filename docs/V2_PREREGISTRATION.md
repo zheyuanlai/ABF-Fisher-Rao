@@ -1666,6 +1666,84 @@ that is **~2.5 days**. A neighbour list is the obvious next optimisation (the cu
 > throughput is **744 ns/day** (the 332 figure measured a path the engine does not take), and the
 > neighbour list was implemented, measured **slower**, and rejected.
 
+#### 12.10 Gate C has a minimum population, and it is now enforced (2026-08-14)
+
+Class 6 of §12.9 — *a check whose result cannot entail the claim it is cited for* — applies to
+**Gate C itself**, and the campaign had not noticed. Found by the NaCl session on 2026-08-14
+when its `N = 64` cell reported a CIP deficit on 12.8 % of checkpoints; raised as a general
+defect from this session; verified, implemented and extended by NaCl within the hour.
+
+**The arithmetic.** Gate C fires on `occupancy < 0.5 Q*_k(t)`, applied to an **integer count of
+walkers**. Its power is therefore set by `lambda_k = Q*_k N`, the expected count — not by the
+number of checkpoints, and not by the run length. Once `0.5 lambda < 1`, the only integer
+satisfying the test is **zero**, so the gate stops measuring a 50 % shortfall and starts
+measuring *"is this state empty right now"*, whose frequency is `e^-lambda` **on physics alone**
+and rises as `N` falls:
+
+| | N = 64 | N = 32 | N = 16 | N = 8 |
+|---|---|---|---|---|
+| NaCl CIP `lambda` | 1.72 | 0.86 | 0.43 | 0.22 |
+| NaCl SSIP `lambda` | 62.3 | 31.1 | 15.6 | 7.8 |
+| `P(empty)` at CIP | 0.14 | 0.42 | 0.65 | 0.80 |
+
+**The rule, binding on every system.** A state is judged by Gate C only where
+`lambda_k = Q*_k N >= 16`, the value at which a 50 % deficit is a 2σ effect on one checkpoint
+(`0.5 lambda >= 2 sqrt(lambda)`). Below it the state is reported **NON-BINDING with its
+detectable effect size** and excluded from the verdict **in both directions** — it may neither
+contribute a deficit (that would be counting noise) nor contribute a pass (that would be
+arithmetic silence). If **no** state binds, the cell is **UNCLASSIFIABLE**, which is explicitly
+*not* ABF-sufficient; raise `N` or coarsen the partition and re-run.
+
+**Why the fall-through direction matters more than it looks.** §8.2's selection rule is *the
+smallest `N` passing every gate*, so the search runs **down** the ladder — directly toward the
+cells where the gate has no power. NaCl's `N = 16` and `N = 8` have **no state at all** reaching
+the bar. Without the guard, "smallest N passing every gate" would have selected a cell whose
+gate cannot fail, and reported it as a result.
+
+**This repo has already paid for the mirror of this once.**
+`results/deca/screen_RETRACTED_no_min_count_guard/RETRACTED.md`: edge clamping carved off a
+0.056 nm "state" below the soft wall that could never hold a walker, *"Gate C fired on it"*, and
+the run reported `licenses_mfr: true`. Retracted. **A state that cannot hold walkers is not a
+state with a deficit** — and the quieter mirror, an unpopulatable state that happens *not* to
+fire and so contributes a free pass, is equally fatal.
+
+**Methane is unaffected, and that is a measurement, not an assumption.** Re-running all 8 seeds
+through the guard gives `lambda = 127.6 / 147.0 / 224.2` on the three terciles, every state
+BINDING, resolving 13–18 % deficits against the 50 % it tests for. Verdict unchanged:
+**ABF-sufficient**. NaCl's `N = 64` verdict is also unchanged but its *support* is corrected —
+SSIP (`lambda = 62.3`) carries it, and the CIP claim rests on the time-averaged 1.34× over-
+population rather than on the gate, whose smallest resolvable deficit at `lambda = 1.72` is
+**152 %**.
+
+**Two general lessons, both already in §12.9 and both sharpened here.** (a) The question *does
+this check's result entail the claim?* must be asked of the gate that **carries the verdict**,
+not only of the gates that look weak — NaCl asked it of Gate B, declared Gate B non-binding, and
+stopped one gate short. (b) When the guard was added, **four of NaCl's tests broke and every one
+was the test's fault**, including a planted "establishment-limited" world at `lambda = 10.2`
+asserting that the classifier must detect a world it correctly cannot, and a smallest-N test
+that encoded the very search this amendment forbids. *A guard that breaks tests is evidence
+about the tests.*
+
+Implemented: `scripts/methane_gates.py` (`GATE_C_MIN_LAMBDA`), NaCl at `282e481`. Asserted:
+`tests/test_methane_gates.py`, four tests including the deca retraction as an executable claim.
+
+#### 12.11 Gate A's reported direction is now the preregistered one (2026-08-14)
+
+The §12.9 class-6 correction to Gate A had been made **in prose only**. `methane_gates.py` still
+computed the transpose and wrote `gateA_max_TV: 0.987` into `gates.json`, so the retracted number
+was what the code emitted and what any re-run would report. Corrected: the script now computes
+**`TV(p(xi | Y))` as §2.2 specifies** over 823 296 paired samples (dry / mid / wet by `n_gap`),
+reporting **0.935** (pairs 0.805 / 0.935 / 0.474), and carries the transpose alongside it
+explicitly labelled *diagnostic only, not the gate, do not quote*.
+
+**A correction that lives only in a results file is not a correction.** The prose said 0.935 for
+a day while every machine-readable artifact said 0.987.
+
+`xi` bins are anchored to the **evaluation domain**, recovered from the grid's half-bin edges
+rather than hard-coded. Anchored to the domain the statistic is flat at 0.9347 across 21–201
+bins; anchored to the **data range** it wanders 0.931–0.936, because a data-anchored edge moves
+with the most extreme walker. Asserted in `test_gate_a_reports_the_preregistered_direction_not_its_transpose`.
+
 ### Amendment 13 — two GPUs for methane, and the optimisation order (2026-08-12)
 
 **Written before any methane box, trajectory, reference or gate result existed.** Only engine

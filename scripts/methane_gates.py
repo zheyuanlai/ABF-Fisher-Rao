@@ -29,6 +29,7 @@ from __future__ import annotations
 import argparse
 import glob
 import json
+import math
 import os
 import subprocess
 import sys
@@ -42,6 +43,21 @@ from methane import system as msys                               # noqa: E402
 T_HIT_FRAC = 0.10          #: Gate B: T_hit < 0.1 T
 GATE_B_MIN_SEEDS = 6       #: of 8
 DEFICIT_FRAC = 0.50        #: Gate C: occupancy below 0.5 Q*
+#: Gate C: minimum expected walker count ``lambda = Q*_k N`` for a state to be BINDING.
+#: The test is ``count < DEFICIT_FRAC * lambda`` on an integer count, so its power is set by
+#: ``lambda``, not by the number of checkpoints.  For a 50 % deficit to be a 2-sigma effect on
+#: one checkpoint needs ``0.5 lambda >= 2 sqrt(lambda)``, i.e. ``lambda >= 16``.  Below that the
+#: gate reports on counting noise: at ``lambda < 2`` the threshold ``0.5 lambda < 1`` makes
+#: "deficit" arithmetically identical to "the state is empty right now", whose frequency is
+#: ``e^-lambda`` on physics alone and rises as N falls.
+#:
+#: This is not hypothetical.  ``results/deca/screen_RETRACTED_no_min_count_guard/RETRACTED.md``:
+#: edge clamping carved off a 0.056 nm "state" below the soft wall that could never hold a
+#: walker, "Gate C fired on it", and the run reported ``licenses_mfr: true``.  Retracted.  A
+#: state that cannot hold walkers is not a state with a deficit.  Found by the NaCl session
+#: 2026-08-14 in its own N ladder, where at N = 16 and N = 8 *no* state clears the bar and the
+#: "smallest N passing every gate" rule searches straight toward cells the gate cannot judge.
+GATE_C_MIN_LAMBDA = 16.0
 DEFICIT_SPAN = 0.20        #: for a contiguous 0.20 T, in the second half
 GATE_A_TV = 0.30           #: Gate A: max pairwise TV(p(n_gap | state)) must reach this
 N_SEEDS_REQUIRED = 8       #: §5 seed block 5000-5007; Gate B's "6 of 8" is meaningless below it
@@ -187,10 +203,18 @@ def main():
 
     per_seed = []
     ngap_pool = {0: [], 1: [], 2: []}
+    paired_ngap, paired_xi = [], []
     for path in files:
         d = np.load(path)
         grid = d["grid"].astype(np.float64)
         edges = tercile_edges(float(grid[0]), float(grid[-1]))
+        # Gate A's xi bins are anchored to the EVALUATION DOMAIN, not to the grid (whose entries
+        # are bin CENTRES) and not to the data range.  TV is flat at 0.9347 across 21-201 bins
+        # when anchored to the domain and wanders 0.931-0.936 when anchored to the data, because
+        # a data-anchored edge moves with the most extreme walker.  Recovered from the grid
+        # rather than hard-coded so the two cannot drift apart.
+        _dx = float(grid[1] - grid[0])
+        domain_ref = (float(grid[0]) - 0.5 * _dx, float(grid[-1]) + 0.5 * _dx)
         xi = d["xi_trace"].astype(np.float64)            # (n_frames, n_walkers)
         steps = d["xi_steps"]
         dt = msys.DT_PS
@@ -222,6 +246,14 @@ def main():
         if not np.all(np.isfinite(qstar[half])):
             raise ValueError(f"{path}: non-finite Q* in the second half; Gate C is undecidable "
                              "here and must not be reported as 'no deficit'")
+        # Power of the gate, per state.  `lambda` is the EXPECTED walker count the threshold is
+        # applied to; it is a property of Q* and N, not of the sampling, so it is computed on
+        # every seed and the worst checkpoint of the judged window governs.
+        n_walk = int(xi.shape[1])
+        lam = qstar[half] * n_walk
+        lam_min = {k: float(lam[:, k].min()) for k in range(3)}
+        powered = {k: lam_min[k] >= GATE_C_MIN_LAMBDA for k in range(3)}
+
         deficit_span = {}
         for k in range(3):
             below = (occ[half, k] < DEFICIT_FRAC * qstar[half, k])
@@ -229,15 +261,21 @@ def main():
             span = frames * float(times[1] - times[0])
             deficit_span[k] = span
 
-        # ---- Gate A material: n_gap by state ------------------------------------------------
+        # ---- Gate A material ------------------------------------------------------------------
+        # PAIRED samples.  Sec 2.2 asks for TV(p(xi | Y)), so xi must be kept alongside n_gap;
+        # pooling n_gap by tercile discards exactly the pairing the preregistered direction needs.
         ng = d["ngap_trace"].astype(np.float64)
         ngx = d["ngap_xi"].astype(np.float64)
         ngs = state_of(ngx, edges)
         for k in range(3):
             ngap_pool[k].append(ng[ngs == k])
+        paired_ngap.append(ng.ravel())
+        paired_xi.append(ngx.ravel())
 
         per_seed.append(dict(seed=int(d["seed"]), T_ps=T, t_hit=t_hit,
                              deficit_span=deficit_span,
+                             n_walkers=n_walk, gateC_lambda_min=lam_min,
+                             gateC_powered=powered,
                              occ_final=occ[-1].tolist(), qstar_final=qstar[-1].tolist(),
                              max_pinned=float(occ[half].max())))
         print(f"  seed {int(d['seed'])}: T_hit = "
@@ -261,7 +299,29 @@ def main():
         for b in range(a + 1, 3):
             if pools[a].size and pools[b].size:
                 tvs[f"{a}-{b}"] = tv_from_samples(pools[a], pools[b], bins)
-    finite = [v for v in tvs.values() if np.isfinite(v)]
+    finite_t = [v for v in tvs.values() if np.isfinite(v)]
+    gate_a_transposed = max(finite_t) if finite_t else float("nan")
+
+    # THE PREREGISTERED DIRECTION.  Sec 2.2 is TV( p(xi | Y=a), p(xi | Y=b) ) -- whether the
+    # MARGINAL IN xi can see the difference between structural states, which is what licenses a
+    # marginal method to act on them.  The quantity above is its transpose,
+    # TV( p(n_gap | tercile) ): whether the descriptor differs between xi-terciles.  That is a
+    # weaker and partly tautological statement, since the gap volume grows with r by construction.
+    # Both are reported; only this one is the gate.  (The transpose read 0.987 and was quoted as
+    # the result until 2026-08-14; it must not be quoted again.)
+    ng_all = np.concatenate(paired_ngap) if paired_ngap else np.array([])
+    xi_all = np.concatenate(paired_xi) if paired_xi else np.array([])
+    y_buckets = {"dry": ng_all < 1.0,
+                 "mid": (ng_all >= 1.0) & (ng_all <= 2.0),
+                 "wet": ng_all > 2.0}
+    xi_bins = np.linspace(domain_ref[0], domain_ref[1], 61)
+    tvs_pre, names = {}, list(y_buckets)
+    for i, a in enumerate(names):
+        for b in names[i + 1:]:
+            ma, mb = y_buckets[a], y_buckets[b]
+            if ma.sum() and mb.sum():
+                tvs_pre[f"{a}-{b}"] = tv_from_samples(xi_all[ma], xi_all[mb], xi_bins)
+    finite = [v for v in tvs_pre.values() if np.isfinite(v)]
     gate_a = max(finite) if finite else float("nan")
     # An UNCOMPUTABLE Gate A is not a passed Gate A.  It happens when a state is never visited
     # and so has no n_gap samples -- which is a Gate B statement, not a CV-visibility statement,
@@ -284,14 +344,27 @@ def main():
     span_thr = DEFICIT_SPAN * T
     persistent = {k: sum(1 for s in per_seed if s["deficit_span"][k] >= span_thr)
                   for k in range(3)}
-    gate_c_deficit = any(v > 0 for v in persistent.values())
+    # A state is judged only where the gate has the power to judge it.  An unpowered state
+    # must not contribute a "no deficit" pass (its silence is arithmetic, not physics) and must
+    # not contribute a deficit either (its firing is counting noise).  It is excluded, and its
+    # detectable effect size is reported so the exclusion is a number rather than a claim.
+    lam_min_all = {k: min(s["gateC_lambda_min"][k] for s in per_seed) for k in range(3)}
+    powered = {k: lam_min_all[k] >= GATE_C_MIN_LAMBDA for k in range(3)}
+    # smallest relative deficit resolvable at 2 sigma on one checkpoint: 2/sqrt(lambda)
+    mde = {k: (2.0 / math.sqrt(lam_min_all[k]) if lam_min_all[k] > 0 else float("inf"))
+           for k in range(3)}
+    binding = [k for k in range(3) if powered[k]]
+    gate_c_computable = bool(binding)
+    gate_c_deficit = any(persistent[k] > 0 for k in binding)
 
     print(f"\n[gate 0] max tercile occupancy over any seed, second half = {pinned:.3f} "
           f"(pinning clause: <= 0.90)  {'OK' if gate0_pin_ok else 'FAIL'}")
     if gate_a_computable:
-        print(f"[gate A] max pairwise TV(p(n_gap | tercile)) = {gate_a:.3f}  "
-              f"(threshold {GATE_A_TV})  pairs: "
-              + ", ".join(f"{k}={v:.3f}" for k, v in tvs.items()))
+        print(f"[gate A] max pairwise TV(p(xi | Y)) = {gate_a:.3f}  [AS PREREGISTERED, Sec 2.2]  "
+              f"(threshold {GATE_A_TV})  n = {ng_all.size} paired samples, pairs: "
+              + ", ".join(f"{k}={v:.3f}" for k, v in tvs_pre.items()))
+        print(f"[gate A] transpose TV(p(n_gap | tercile)) = {gate_a_transposed:.3f} "
+              f"-- DIAGNOSTIC ONLY, not the gate, do not quote")
     else:
         print(f"[gate A] NOT COMPUTABLE -- states {empty_states} have no n_gap samples "
               f"(never visited). Deferring to Gate B; this is not a Gate A pass.")
@@ -301,6 +374,14 @@ def main():
           + ("OK" if gate_b_ok else "FAIL -> discovery-limited"))
     print(f"[gate C] persistent deficit (>= {span_thr:.1f} ps below 0.5 Q*) on: "
           + ", ".join(f"state {k}: {persistent[k]}/{len(per_seed)}" for k in range(3)))
+    print(f"[gate C] power, worst checkpoint of the judged window "
+          f"(lambda = Q* N, binding at >= {GATE_C_MIN_LAMBDA:.0f}): "
+          + ", ".join(f"state {k}: lambda={lam_min_all[k]:.1f} "
+                      f"({'BINDING' if powered[k] else 'NON-BINDING'}, "
+                      f"resolves >= {100 * mde[k]:.0f}% deficit)" for k in range(3)))
+    if not gate_c_computable:
+        print("[gate C] NOT COMPUTABLE -- no state has the power to be judged. This cell "
+              "cannot be classified; it is not an ABF-sufficient cell.")
 
     if not complete:
         verdict = (f"PRELIMINARY -- {len(per_seed)} of {N_SEEDS_REQUIRED} seeds present. "
@@ -312,6 +393,10 @@ def main():
         verdict = "CV-visibility negative (Gate A) -- STOP, a stop for the CV, not for mFR"
     elif not gate_b_ok:
         verdict = "discovery-limited (Gate B) -- STOP"
+    elif not gate_c_computable:
+        verdict = ("UNCLASSIFIABLE -- Gate C has no power on any state "
+                   f"(all lambda = Q* N below {GATE_C_MIN_LAMBDA:.0f}). NOT ABF-sufficient; "
+                   "raise N or coarsen the partition and re-run.")
     elif not gate_c_deficit:
         verdict = "ABF-sufficient (Gate C: no persistent deficit) -- STOP"
     else:
@@ -321,11 +406,18 @@ def main():
     res = dict(verdict=verdict, n_seeds=len(per_seed),
                n_seeds_required=N_SEEDS_REQUIRED, complete=bool(complete), T_ps=T,
                gate0_max_pinned=pinned, gate0_pin_ok=bool(gate0_pin_ok),
-               gateA_max_TV=float(gate_a), gateA_pairs=tvs, gateA_threshold=GATE_A_TV,
+               gateA_max_TV=float(gate_a), gateA_pairs=tvs_pre, gateA_threshold=GATE_A_TV,
+               gateA_direction="TV(p(xi|Y)) as preregistered, Sec 2.2",
+               gateA_transposed_max_TV=float(gate_a_transposed), gateA_transposed_pairs=tvs,
+               gateA_n_paired=int(ng_all.size),
                gateA_computable=bool(gate_a_computable), gateA_empty_states=empty_states,
                gateB_hits=hits, gateB_threshold_ps=thr, gateB_ok=bool(gate_b_ok),
                gateC_persistent=persistent, gateC_span_threshold_ps=span_thr,
-               gateC_deficit=bool(gate_c_deficit), per_seed=per_seed,
+               gateC_deficit=bool(gate_c_deficit),
+               gateC_min_lambda=GATE_C_MIN_LAMBDA, gateC_lambda_min=lam_min_all,
+               gateC_powered={k: bool(v) for k, v in powered.items()},
+               gateC_min_detectable_deficit=mde,
+               gateC_computable=bool(gate_c_computable), per_seed=per_seed,
                reference=os.path.join(args.ref, "reference.json"),
                git_commit=subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
                                          text=True).stdout.strip())

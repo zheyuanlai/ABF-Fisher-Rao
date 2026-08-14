@@ -15,10 +15,18 @@ Gate 0   pinning clause: max tercile occupancy, 2nd half, any seed = 0.516   (<=
          conditional mean force (reference stage) = 0.048 global / 0.081 core            PASS
 Gate A   max pairwise TV(p(xi | Y)) = 0.935  [as preregistered]              (>= 0.30)   PASS
 Gate B   T_hit < 20 ps on 8/8 seeds, for all three states                    (>= 6/8)    PASS
-Gate C   persistent deficit on 0/8 seeds, for all three states                           NO DEFICIT
+Gate C   power: lambda = Q* N = 127.6 / 147.0 / 224.2   all three BINDING    (>= 16)     OK
+         persistent deficit on 0/8 seeds, for all three states                           NO DEFICIT
 
 VERDICT: ABF-sufficient -- STOP.
 ```
+
+Gate C's power line was added 2026-08-14 (Amendment 12.10) and the numbers above are the re-run
+through it. It is not decoration: Gate C tests an **integer walker count**, so at
+`lambda = Q* N < 2` the threshold `occupancy < 0.5 Q*` becomes arithmetically identical to
+*"the state is empty right now"*. Methane clears the bar by 8-14x on every state and resolves
+**13-18 %** deficits against the 50 % it tests for, so the guard is inert here **by measurement**.
+It is not inert everywhere: NaCl's `N = 16` and `N = 8` cells have no state reaching it at all.
 
 Classification is by the first failing gate (Amendment 10). Nothing failed; Gate C found no
 deficit, which is the ABF-sufficient branch.
@@ -154,6 +162,13 @@ gate. That difference is itself the point: methane has genuine solvent structure
 **0.935 against a 0.30 threshold — Gate A passes as preregistered**, and passes on the quantity
 that actually supports the claim. The verdict is unchanged; the number and its meaning are
 corrected. The transposed 0.987 should not be quoted.
+
+For a day that correction lived **in this file only**. `methane_gates.py` still computed the
+transpose and wrote `gateA_max_TV: 0.987` into `gates.json`, so the retracted number was what the
+code emitted and what any re-run would have reported. Fixed 2026-08-14 (Amendment 12.11): the
+script now computes `TV(p(xi | Y))` over the 823 296 paired samples directly, reproducing
+0.805 / 0.935 / 0.474 exactly, and keeps the transpose labelled *diagnostic only, do not quote*.
+**A correction that lives only in a results file is not a correction.**
 
 > The CV is excellent. Establishment is immediate. There is simply nothing for population
 > reallocation to repair.

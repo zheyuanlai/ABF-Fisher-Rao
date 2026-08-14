@@ -6,13 +6,21 @@
   "T_ps": 200.0,
   "gate0_max_pinned": 0.515625,
   "gate0_pin_ok": true,
-  "gateA_max_TV": 0.9865116369157709,
+  "gateA_max_TV": 0.9347347036539213,
   "gateA_pairs": {
+    "dry-mid": 0.8049112559681411,
+    "dry-wet": 0.9347347036539213,
+    "mid-wet": 0.4735089673599935
+  },
+  "gateA_threshold": 0.3,
+  "gateA_direction": "TV(p(xi|Y)) as preregistered, Sec 2.2",
+  "gateA_transposed_max_TV": 0.9865116369157709,
+  "gateA_transposed_pairs": {
     "0-1": 0.7824760706952634,
     "0-2": 0.9865116369157709,
     "1-2": 0.5980567024848599
   },
-  "gateA_threshold": 0.3,
+  "gateA_n_paired": 823296,
   "gateA_computable": true,
   "gateA_empty_states": [],
   "gateB_hits": {
@@ -29,6 +37,23 @@
   },
   "gateC_span_threshold_ps": 40.0,
   "gateC_deficit": false,
+  "gateC_min_lambda": 16.0,
+  "gateC_lambda_min": {
+    "0": 127.64562593573613,
+    "1": 147.03503540084859,
+    "2": 224.2222398714381
+  },
+  "gateC_powered": {
+    "0": true,
+    "1": true,
+    "2": true
+  },
+  "gateC_min_detectable_deficit": {
+    "0": 0.17702191191268055,
+    "1": 0.16493756565467765,
+    "2": 0.13356437994782708
+  },
+  "gateC_computable": true,
   "per_seed": [
     {
       "seed": 5000,
@@ -42,6 +67,17 @@
         "0": 0.0,
         "1": 0.0,
         "2": 0.0
+      },
+      "n_walkers": 512,
+      "gateC_lambda_min": {
+        "0": 133.20560077669862,
+        "1": 148.57346994346793,
+        "2": 226.1304929845362
+      },
+      "gateC_powered": {
+        "0": true,
+        "1": true,
+        "2": true
       },
       "occ_final": [
         0.283203125,
@@ -68,6 +104,17 @@
         "1": 0.0,
         "2": 0.0
       },
+      "n_walkers": 512,
+      "gateC_lambda_min": {
+        "0": 132.24196990397846,
+        "1": 148.5983467646086,
+        "2": 228.3713938144282
+      },
+      "gateC_powered": {
+        "0": true,
+        "1": true,
+        "2": true
+      },
       "occ_final": [
         0.27734375,
         0.283203125,
@@ -92,6 +139,17 @@
         "0": 0.0,
         "1": 0.0,
         "2": 0.0
+      },
+      "n_walkers": 512,
+      "gateC_lambda_min": {
+        "0": 134.03102652181204,
+        "1": 147.69213490853056,
+        "2": 225.01414913827676
+      },
+      "gateC_powered": {
+        "0": true,
+        "1": true,
+        "2": true
       },
       "occ_final": [
         0.2890625,
@@ -118,6 +176,17 @@
         "1": 0.0,
         "2": 0.0
       },
+      "n_walkers": 512,
+      "gateC_lambda_min": {
+        "0": 129.23339865680788,
+        "1": 147.7724385535382,
+        "2": 228.87372891037737
+      },
+      "gateC_powered": {
+        "0": true,
+        "1": true,
+        "2": true
+      },
       "occ_final": [
         0.2578125,
         0.283203125,
@@ -142,6 +211,17 @@
         "0": 0.0,
         "1": 0.0,
         "2": 0.0
+      },
+      "n_walkers": 512,
+      "gateC_lambda_min": {
+        "0": 132.43383236713606,
+        "1": 148.95185682751216,
+        "2": 224.2222398714381
+      },
+      "gateC_powered": {
+        "0": true,
+        "1": true,
+        "2": true
       },
       "occ_final": [
         0.265625,
@@ -168,6 +248,17 @@
         "1": 0.0,
         "2": 0.0
       },
+      "n_walkers": 512,
+      "gateC_lambda_min": {
+        "0": 127.64562593573613,
+        "1": 147.58744346955257,
+        "2": 230.30589615160292
+      },
+      "gateC_powered": {
+        "0": true,
+        "1": true,
+        "2": true
+      },
       "occ_final": [
         0.255859375,
         0.298828125,
@@ -192,6 +283,17 @@
         "0": 0.0,
         "1": 0.0,
         "2": 0.0
+      },
+      "n_walkers": 512,
+      "gateC_lambda_min": {
+        "0": 134.58058913815995,
+        "1": 147.03503540084859,
+        "2": 227.02666452739433
+      },
+      "gateC_powered": {
+        "0": true,
+        "1": true,
+        "2": true
       },
       "occ_final": [
         0.21875,
@@ -218,6 +320,17 @@
         "1": 0.0,
         "2": 0.0
       },
+      "n_walkers": 512,
+      "gateC_lambda_min": {
+        "0": 132.5619663605993,
+        "1": 148.5128228414621,
+        "2": 227.76326745146883
+      },
+      "gateC_powered": {
+        "0": true,
+        "1": true,
+        "2": true
+      },
       "occ_final": [
         0.25,
         0.275390625,
@@ -232,5 +345,5 @@
     }
   ],
   "reference": "results/methane/ref/reference.json",
-  "git_commit": "ba7aedd8090f35358bd6a58bfd2be1f4f83ae4cb"
+  "git_commit": "282e4818a04220a4063f7c0d025b9683993286aa"
 }

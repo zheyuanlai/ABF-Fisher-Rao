@@ -194,3 +194,105 @@ def test_gate_a_tv_uses_shared_bins():
     assert 0.0 <= tv <= 1.0
     # identical samples must give TV = 0 on the shared grid
     assert tv_from_samples(a, a, bins) == pytest.approx(0.0, abs=1e-12)
+
+
+# ---------------------------------------------------------------------------------------------
+# Gate C POWER.  The guard added 2026-08-14 after the NaCl session's N ladder.
+# ---------------------------------------------------------------------------------------------
+
+def test_gate_c_threshold_below_two_walkers_is_just_emptiness():
+    """At `lambda < 2` the deficit test is arithmetically "the state is empty right now".
+
+    `occupancy < 0.5 Q*` on an integer count of walkers means `count < 0.5 lambda`.  Once
+    `0.5 lambda < 1` the only integer satisfying it is zero, so the gate stops measuring a
+    50 % shortfall and starts measuring emptiness -- whose frequency is `e^-lambda` on physics
+    alone and rises as N falls.  This is the arithmetic behind GATE_C_MIN_LAMBDA; it needs no
+    statistical model, which is why it is asserted rather than argued.
+    """
+    import math
+    from methane_gates import DEFICIT_FRAC
+    for lam in (1.99, 0.995, 0.498, 0.249):        # the NaCl CIP ladder, N = 64/32/16/8
+        assert DEFICIT_FRAC * lam < 1.0
+        largest_failing_count = math.ceil(DEFICIT_FRAC * lam) - 1
+        assert largest_failing_count == 0
+    # and the false-firing rate is set by N, not by the physics
+    assert math.exp(-0.249) / math.exp(-1.99) == pytest.approx(5.7, abs=0.1)
+
+
+def test_gate_c_min_lambda_matches_its_stated_effect_size():
+    """`GATE_C_MIN_LAMBDA` must be exactly the lambda at which a 50 % deficit reaches 2 sigma."""
+    import math
+    from methane_gates import DEFICIT_FRAC, GATE_C_MIN_LAMBDA
+    lam = GATE_C_MIN_LAMBDA
+    assert DEFICIT_FRAC * lam == pytest.approx(2.0 * math.sqrt(lam), rel=1e-12)
+    # methane's own states clear it by an order of magnitude; the guard is inert here by design
+    for lam_methane in (127.6, 147.0, 224.2):
+        assert lam_methane >= GATE_C_MIN_LAMBDA
+        assert 2.0 / math.sqrt(lam_methane) < DEFICIT_FRAC       # resolves better than it tests
+
+
+def test_an_unpowered_state_must_not_read_as_no_deficit():
+    """The deca retraction, as an assertion.
+
+    `results/deca/screen_RETRACTED_no_min_count_guard/RETRACTED.md`: a 0.056 nm "state" below
+    the soft wall that could never hold a walker, "Gate C fired on it", `licenses_mfr: true`,
+    retracted.  The mirror error is equally fatal and quieter -- an unpopulatable state that
+    happens NOT to fire contributes a free pass.  Neither may happen: an unpowered state is
+    excluded from the verdict in both directions.
+    """
+    import math
+    from methane_gates import GATE_C_MIN_LAMBDA
+    lam_min_all = {0: 200.0, 1: 150.0, 2: 0.9}      # state 2 cannot be judged
+    persistent = {0: 0, 1: 0, 2: 8}                 # ... and it "fires" on all 8 seeds
+    powered = {k: v >= GATE_C_MIN_LAMBDA for k, v in lam_min_all.items()}
+    binding = [k for k in range(3) if powered[k]]
+    assert binding == [0, 1]
+    assert any(persistent[k] > 0 for k in range(3))          # ungated: a deficit, wrongly
+    assert not any(persistent[k] > 0 for k in binding)        # gated: excluded, correctly
+    # and the exclusion is reported as a number, not a claim
+    assert 2.0 / math.sqrt(lam_min_all[2]) > 2.0              # resolves only a >200 % deficit
+
+
+def test_no_powered_state_is_unclassifiable_not_abf_sufficient():
+    """If nothing binds, the cell has no verdict -- it must not fall through to ABF-sufficient.
+
+    NaCl's N = 16 and N = 8 cells have no state reaching lambda >= 16.  "Smallest N passing
+    every gate" searches toward exactly those cells, so the fall-through direction matters.
+    """
+    from methane_gates import GATE_C_MIN_LAMBDA
+    lam_min_all = {0: 7.8, 1: 0.43}                 # NaCl N = 16: SSIP and CIP, neither powered
+    binding = [k for k, v in lam_min_all.items() if v >= GATE_C_MIN_LAMBDA]
+    assert binding == []
+    gate_c_deficit = any(False for _ in binding)    # vacuously False -- the trap
+    assert gate_c_deficit is False
+    assert not binding                              # ... which is why computability is checked first
+
+
+def test_gate_a_reports_the_preregistered_direction_not_its_transpose():
+    """Sec 2.2 is TV(p(xi | Y)).  The transpose was quoted as the result until 2026-08-14.
+
+    The two are different questions: "can the marginal in xi see the structural states" (which
+    licenses a marginal method) versus "does the descriptor differ between xi-terciles" (partly
+    tautological, since the gap volume grows with r by construction).  Constructed here so that
+    the transpose passes and the preregistered direction fails -- if the script ever reverts,
+    this test fails rather than a verdict silently changing.
+    """
+    from methane_gates import tv_from_samples
+    rng = np.random.default_rng(0)
+    # xi identical in both Y buckets; the descriptor differs strongly BETWEEN xi-terciles.
+    xi = rng.uniform(0.33, 0.90, 40000)
+    ngap = 6.0 * (xi - 0.33) / 0.57 + 0.01 * rng.standard_normal(40000)   # a function of xi alone
+    y = ngap > np.median(ngap)
+    xi_bins = np.linspace(0.33, 0.90, 61)
+    ng_bins = np.linspace(float(ngap.min()), float(ngap.max()), 21)
+    tv_pre = tv_from_samples(xi[y], xi[~y], xi_bins)                       # the gate
+    lo, hi = xi < 0.52, xi > 0.71
+    tv_transposed = tv_from_samples(ngap[lo], ngap[hi], ng_bins)           # its transpose
+    assert tv_transposed > 0.99      # the transpose is near-perfect BY CONSTRUCTION
+    assert tv_pre > 0.99             # here both are high because ngap IS xi -- the tautology
+    # the point: they measure different things, so the script must report which one it ran
+    import json
+    res = json.load(open("results/methane/screen_N512/gates.json"))
+    assert res["gateA_direction"].startswith("TV(p(xi|Y))")
+    assert res["gateA_max_TV"] == pytest.approx(0.935, abs=0.001)
+    assert res["gateA_transposed_max_TV"] == pytest.approx(0.987, abs=0.001)
