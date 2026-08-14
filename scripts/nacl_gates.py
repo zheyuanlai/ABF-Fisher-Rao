@@ -35,6 +35,7 @@ from nacl import system as nsys                                  # noqa: E402
 
 PERSIST_PS = 2.0        #: a state counts as discovered only if occupied this long (anti-flicker)
 HIT_FRACTION = 0.1      #: Gate B: T_hit < 0.1 T
+EXPECTED_SEEDS = 8      #: the preregistered block 4000-4007; thresholds are defined OVER it
 HIT_SEEDS = 6           #: of 8
 DEFICIT_RATIO = 0.5     #: Gate C: occupancy below half the bias-aware target
 DEFICIT_FRACTION = 0.20  #: for a contiguous 0.20 T in the second half
@@ -81,9 +82,27 @@ def assert_partition(values, basins, name, allow_outside=True):
     return outside
 
 
+def require_full_block(n_seeds, what):
+    """A threshold of "6 of 8" is meaningless on fewer than 8 seeds, and fails UNSAFELY.
+
+    With 4 seeds present nothing can reach 6, so Gate B reports not-discovered and -- worse --
+    Gate C reports no-deficit, which is the ABF-sufficient verdict that ENDS the study. The
+    methane session hit the mirror of this by scaling the threshold down to the seeds present
+    (commit 9367682); keeping it fixed is right but is not sufficient on its own. So: no
+    verdict at all below the full block.
+    """
+    if n_seeds < EXPECTED_SEEDS:
+        raise SystemExit(
+            f"{what}: {n_seeds} of {EXPECTED_SEEDS} seeds present. The Gate B/C thresholds are "
+            f"defined over the full preregistered block (4000-4007); on a partial block a "
+            f"'no deficit' reading is an artifact of the missing seeds, not a physics result. "
+            f"Refusing to issue a verdict. Merge the halves first (nacl_screen_merge.py).")
+
+
 def gate_b(xi_trace, xi_steps, dt, basins, T_ps):
     """Per-seed, per-state first persistent entry time."""
     n_frames, S, N = xi_trace.shape
+    require_full_block(S, "Gate B")
     frame_ps = float((xi_steps[1] - xi_steps[0]) * dt) if len(xi_steps) > 1 else dt
     need = max(1, int(round(PERSIST_PS / frame_ps)))
     # walkers, not grid points: a walker exactly on a shared boundary must not count as having
@@ -129,6 +148,7 @@ def gate_c(diag_occ, diag_pmf, diag_times, grid, F_ref_on_grid, basins, beta, T_
         raise RuntimeError("the learned bias trace carries non-finite values; Gate C is NOT "
                            "COMPUTABLE (see the screen's diagnostics)")
     n_cp, S, n_grid = diag_occ.shape
+    require_full_block(S, "Gate C")
     times = np.asarray(diag_times, dtype=float)
     dz = float(grid[1] - grid[0])
     out = {}
@@ -227,10 +247,10 @@ def main():
         for lab, v in b.items():
             if lab == "_diagnostics":
                 continue
-            print(f"   Gate B {lab:6s}: {v['n_seeds_within']}/8 seeds hit within "
+            print(f"   Gate B {lab:6s}: {v['n_seeds_within']}/{EXPECTED_SEEDS} seeds hit within "
                   f"{v['threshold_ps']:.1f} ps -> {'PASS' if v['PASS'] else 'FAIL'}")
         for lab, v in c.items():
-            print(f"   Gate C {lab:6s}: {v['n_seeds_deficient']}/8 seeds deficient for "
+            print(f"   Gate C {lab:6s}: {v['n_seeds_deficient']}/{EXPECTED_SEEDS} seeds deficient for "
                   f">= {v['required_ps']:.1f} ps -> "
                   f"{'UNDER-ESTABLISHED' if v['UNDER_ESTABLISHED'] else 'established'}")
 
