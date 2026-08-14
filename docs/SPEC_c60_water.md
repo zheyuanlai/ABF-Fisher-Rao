@@ -303,8 +303,10 @@ any gate decision** (the WCA lesson).
 (i) the contact minimum lies in `[0.94, 1.00] nm` (paper: 0.968–0.97); (ii)
 `F(contact) - F(2.428)` lies within `± 3 kJ/mol` of the paper's ~`-16 kJ/mol` total at 300 K
 (read from Fig. 1a: `Delta G ~ -14.5 kJ/mol` plus anchor conventions; tolerance covers
-digitisation and our declared deviations); (iii) the direct (vacuum) cage–cage LJ energy at the
-contact minimum reproduces ~`-18.5 kJ/mol` within `0.5 kJ/mol` (pure code check of §1.1);
+digitisation and our declared deviations); (iii) the direct (vacuum) cage–cage LJ energy
+reproduces the paper's ~`-18.5 kJ/mol` within `0.5 kJ/mol` — **definition fixed by Amendment
+16.6 before any solvent datum existed: the untruncated sum at the direct term's own minimum
+over `d`** (measured `-18.78 kJ/mol` at `0.982 nm`: PASS);
 (iv) a solvent-induced repulsive barrier exists between contact and 1.4 nm (paper Fig. 1d:
 peak ~+6 kJ/mol at 300 K). Failing (i), (ii) or (iv) is a **model-reproduction failure: STOP**,
 reported, no screen. (iii) failing is an implementation bug.
