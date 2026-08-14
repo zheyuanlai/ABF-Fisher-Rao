@@ -11,9 +11,10 @@ an earlier one failed; never search for a way around a STOP.
 
 ```
 CURRENT FROZEN COMMIT:  see results/nacl/PINNED_COMMIT (written when the worktree is cut)
-CURRENT STAGE:          REFERENCE ACCEPTED (250 ps, 12.0 h). Gate 0 and Gate A PASS.
-                        Screen N=64 launching: seeds 4000-4003 on GPU 2 now, 4004-4007
-                        on GPU 3 when methane releases it (6/8 seeds done).
+CURRENT STAGE:          N=64 CELL VERDICT: ABF-SUFFICIENT (2026-08-14 23:26 UTC, 8/8 seeds).
+                        Gate B 8/8 both states (non-binding, validity attached); Gate C 0/8
+                        deficient either state. Map cells N=8/16/32 still running on GPU 3
+                        (~Sun); the study-level "no cell at any N" verdict waits for them.
 LAST COMPLETED GATE:    engine equivalence 11/11 <1e-6; box frozen L=2.892700 nm;
                         descriptors frozen; baths verified (9 baths, 549 starts)
 VERDICT:                GATE 0 PASS (0.0075 global / 0.0483 barrier -- the campaign's

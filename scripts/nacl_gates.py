@@ -234,6 +234,35 @@ def gate_c(diag_occ, diag_pmf, diag_times, grid, F_ref_on_grid, basins, beta, T_
     second_half = times >= 0.5 * T_ps
     need_ps = DEFICIT_FRACTION * T_ps
 
+    # --- POWER GUARD (added 2026-08-14, before the N ladder was read) --------------------
+    # "occupancy < 0.5 Q*" is a claim about a COUNT. With lambda = Q* N expected walkers, a
+    # 50 % deficit is a 2-sigma effect only if 0.5*lambda >= 2*sqrt(lambda), i.e.
+    # lambda >= 16. Below that the test has no power, and below 0.5*lambda < 1 it is
+    # arithmetically identical to "the state is empty right now" -- so its output is a
+    # function of N through counting noise with the physics held fixed. Measured for NaCl:
+    # CIP has lambda = 1.99 at N=64 and 0.25 at N=8, where P(empty) = 0.14 and 0.78.
+    # This repo has already retracted a screen for exactly this (deca,
+    # screen_RETRACTED_no_min_count_guard: a state that could not hold walkers, on which
+    # "Gate C fired", licenses_mfr: true). A state that cannot hold walkers is not a state
+    # with a deficit. Unpowered states are reported NON-BINDING and excluded from the verdict.
+    LAMBDA_MIN = 16.0
+    n_walkers = int(diag_occ[0, 0].sum()) if diag_occ.size else 0
+    power = {}
+    for lab, msk in masks.items():
+        lams = []
+        for c in range(n_cp):
+            for s in range(S):
+                B_t = diag_pmf[c, s]
+                w = np.exp(-beta * (F_ref_on_grid - B_t - (F_ref_on_grid - B_t).min()))
+                lams.append(float(w[msk].sum() / w.sum()) * n_walkers)
+        lam = float(np.mean(lams))
+        power[lab] = dict(lambda_expected_walkers=lam, lambda_min=LAMBDA_MIN,
+                          POWERED=bool(lam >= LAMBDA_MIN),
+                          threshold_is_emptiness=bool(0.5 * lam < 1.0),
+                          p_empty_by_counting=float(np.exp(-lam)),
+                          detectable_deficit_frac=(float(2.0 / np.sqrt(lam))
+                                                   if lam > 0 else None))
+
     for lab, msk in masks.items():
         deficits = []
         for s in range(S):
@@ -256,10 +285,19 @@ def gate_c(diag_occ, diag_pmf, diag_times, grid, F_ref_on_grid, basins, beta, T_
                     run = 0.0
             deficits.append(best)
         deficits = np.asarray(deficits)
+        pw = power[lab]
         out[lab] = dict(longest_deficit_ps=deficits.tolist(),
                         required_ps=float(need_ps),
                         n_seeds_deficient=int((deficits >= need_ps).sum()),
-                        UNDER_ESTABLISHED=bool((deficits >= need_ps).sum() >= HIT_SEEDS))
+                        power=pw,
+                        UNDER_ESTABLISHED=(bool((deficits >= need_ps).sum() >= HIT_SEEDS)
+                                           if pw["POWERED"] else None),
+                        BINDING=pw["POWERED"],
+                        note=None if pw["POWERED"] else
+                        (f"NON-BINDING: lambda = {pw['lambda_expected_walkers']:.2f} expected "
+                         f"walkers < {LAMBDA_MIN}; a 50 % deficit is not a 2-sigma effect here"
+                         + (", and the threshold is arithmetically 'the state is empty'"
+                            if pw["threshold_is_emptiness"] else "")))
     return out
 
 
@@ -312,7 +350,19 @@ def main():
                    F_ref_on_grid, basins, beta, T_ps)
         discovered = all(v["PASS"] for k, v in b.items()
                          if not k.startswith("_") and k != "CIP")
-        deficit = any(v["UNDER_ESTABLISHED"] for k, v in c.items())
+        binding = {k: v for k, v in c.items() if v.get("BINDING")}
+        unpowered = [k for k, v in c.items() if not v.get("BINDING")]
+        deficit = any(v["UNDER_ESTABLISHED"] for v in binding.values())
+        if not binding:
+            verdict = ("Gate C NOT COMPUTABLE -- no state has the counting power to resolve a "
+                       "50 % deficit (lambda < 16 everywhere); the cell CANNOT be classified")
+            results[f"N{N}"] = dict(N=N, T_ps=T_ps, gate_B=b, gate_C=c, verdict=verdict,
+                                    eligible=False, classifiable=False,
+                                    unpowered_states=unpowered)
+            print(f"\n[N = {N:3d}, T = {T_ps:.1f} ps] {verdict}")
+            for lab, v in c.items():
+                print(f"   Gate C {lab:6s}: {v['note']}")
+            continue
         if not discovered:
             verdict = "discovery-limited (Gate B FAIL) -- STOP"
         elif deficit:
@@ -320,7 +370,8 @@ def main():
         else:
             verdict = "ABF-sufficient (Gate B pass, no persistent deficit) -- STOP"
         results[f"N{N}"] = dict(N=N, T_ps=T_ps, gate_B=b, gate_C=c, verdict=verdict,
-                                eligible=bool(discovered and deficit))
+                                eligible=bool(discovered and deficit), classifiable=True,
+                                binding_states=list(binding), unpowered_states=unpowered)
         print(f"\n[N = {N:3d}, T = {T_ps:.1f} ps] {verdict}")
         for lab, v in b.items():
             if lab.startswith("_"):
@@ -328,9 +379,19 @@ def main():
             print(f"   Gate B {lab:6s}: {v['n_seeds_within']}/{EXPECTED_SEEDS} seeds hit within "
                   f"{v['threshold_ps']:.1f} ps -> {'PASS' if v['PASS'] else 'FAIL'}")
         for lab, v in c.items():
-            print(f"   Gate C {lab:6s}: {v['n_seeds_deficient']}/{EXPECTED_SEEDS} seeds deficient for "
-                  f">= {v['required_ps']:.1f} ps -> "
-                  f"{'UNDER-ESTABLISHED' if v['UNDER_ESTABLISHED'] else 'established'}")
+            if not v.get("BINDING"):
+                pw = v["power"]
+                print(f"   Gate C {lab:6s}: NON-BINDING -- lambda = "
+                      f"{pw['lambda_expected_walkers']:.2f} expected walkers (need >= "
+                      f"{pw['lambda_min']:.0f}); smallest resolvable deficit is "
+                      f"{100*pw['detectable_deficit_frac']:.0f} %"
+                      + (", and 'below 0.5 Q*' here means 'the state is empty'"
+                         if pw['threshold_is_emptiness'] else ""))
+                continue
+            print(f"   Gate C {lab:6s}: {v['n_seeds_deficient']}/{EXPECTED_SEEDS} seeds deficient "
+                  f"for >= {v['required_ps']:.1f} ps -> "
+                  f"{'UNDER-ESTABLISHED' if v['UNDER_ESTABLISHED'] else 'established'}"
+                  f"  (lambda = {v['power']['lambda_expected_walkers']:.1f})")
 
     eligible = sorted([r["N"] for r in results.values() if r["eligible"]])
     selection = dict(eligible_cells=eligible,

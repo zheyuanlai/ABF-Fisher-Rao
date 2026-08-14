@@ -124,7 +124,17 @@
           ],
           "required_ps": 312.5,
           "n_seeds_deficient": 0,
-          "UNDER_ESTABLISHED": false
+          "power": {
+            "lambda_expected_walkers": 1.7245610467689076,
+            "lambda_min": 16.0,
+            "POWERED": false,
+            "threshold_is_emptiness": true,
+            "p_empty_by_counting": 0.17825127857736595,
+            "detectable_deficit_frac": 1.5229677590660555
+          },
+          "UNDER_ESTABLISHED": null,
+          "BINDING": false,
+          "note": "NON-BINDING: lambda = 1.72 expected walkers < 16.0; a 50 % deficit is not a 2-sigma effect here, and the threshold is arithmetically 'the state is empty'"
         },
         "SSIP": {
           "longest_deficit_ps": [
@@ -139,11 +149,28 @@
           ],
           "required_ps": 312.5,
           "n_seeds_deficient": 0,
-          "UNDER_ESTABLISHED": false
+          "power": {
+            "lambda_expected_walkers": 62.275438953231095,
+            "lambda_min": 16.0,
+            "POWERED": true,
+            "threshold_is_emptiness": false,
+            "p_empty_by_counting": 8.99747201449966e-28,
+            "detectable_deficit_frac": 0.2534379207971455
+          },
+          "UNDER_ESTABLISHED": false,
+          "BINDING": true,
+          "note": null
         }
       },
       "verdict": "ABF-sufficient (Gate B pass, no persistent deficit) -- STOP",
-      "eligible": false
+      "eligible": false,
+      "classifiable": true,
+      "binding_states": [
+        "SSIP"
+      ],
+      "unpowered_states": [
+        "CIP"
+      ]
     }
   },
   "selection": {
