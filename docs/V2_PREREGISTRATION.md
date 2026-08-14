@@ -1768,15 +1768,36 @@ observe it — `nvidia-smi`, the process table, a checkpoint mtime — **in the 
 report**. This is not a counsel of perfection: it is one command, and its absence cost five
 GPU-hours on a two-day run.
 
-**Corollary, symmetric.** The receiving session must not launder an unverified claim onward.
-When this session wrote that "both GPUs were returned to the NaCl session," it had not looked
-either; the claim happened to be true, which is not the same as having been checked.
+**Corollary, and it is the load-bearing half.** An unverified claim that turns out **correct**
+is not a checked claim, **and the distinction is invisible from the outcome.** When this session
+wrote that "both GPUs were returned to the NaCl session," it had not looked either; that claim
+was true and the NaCl session's was false, but they were the *same act* with different luck.
+This is why the rule cannot be "be careful when it matters" — whether it mattered is only
+knowable afterwards. The receiving session must not launder an unverified claim onward.
+
+**Second form: verifying the fact does not verify the rule.** Challenged on the GPU count, the
+NaCl session measured the machine before answering — correct — and cited Amendment 15.4 as its
+authority. 15.4 is quoted verbatim and **superseded**: 16.4 (2026-08-14) reassigns GPU 3 to C60
+and directs NaCl's ladder to GPU 2 sequentially, and 16.2 flags the supersession explicitly. A
+frozen amendment is only evidence if it is the current one, and a superseding clause seven pages
+later is exactly as invisible as an idle device. **Cite the rule, then check nothing above it
+moved.**
 
 **Verified on writing this** (2026-08-14 23:43 UTC), and it immediately found something else:
 GPUs 0 and 1 are running another user's five-day jobs, and **this group has two GPUs in use at
 once** — `nacl_screen` (map, GPU 3, started 23:34) and `nacl_tau_perp` (GPU 2, started 23:38) —
 against the standing one-at-a-time constraint. Neither session had looked. That is the class
 demonstrating itself twice within one message.
+
+**A threshold this catches, in a study that had not started.** Amendment 16.3 froze a C60 Gate C
+guard before any C60 datum — the right instinct, adopted in advance — at `N Q*_k >= 3`. By
+§12.10's arithmetic the smallest deficit resolvable at 2σ is `2/sqrt(lambda)`: **115 % at
+`lambda = 3`, which exceeds 100 %, so no physically possible deficit is detectable there.**
+`lambda >= 4` is the floor at which a *total* wipeout is marginally 2σ; `lambda >= 16` is where
+the 50 % the gate tests for becomes a 2σ effect. The guard as frozen admits exactly the states
+it was written to exclude, and `N Q*_k` must be the **minimum over the deficit span**, not its
+mean. Raised to the C60 branch 2026-08-14; C60's threshold is C60's to set, and this clause
+records the arithmetic, not a decision taken on its behalf.
 
 **Also fixed by the same exchange.** The `lambda` guard of §12.10 was computing a **mean** over
 **all** checkpoints rather than the minimum over the judged window — both optimistic in the same
