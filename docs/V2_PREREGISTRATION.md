@@ -1528,6 +1528,42 @@ very work it was protecting. Both sessions had this, independently, in guards wr
 > to require the matched process's `comm` to start with `python`, and to verify it from inside a
 > script file rather than from a shell whose command line contains the pattern.
 
+**Two further classes, both about the *choice* of test rather than its execution.**
+
+**A check whose result cannot entail the claim it is cited for.** Two forms appeared, and both
+produce a PASS that means nothing:
+
+* *wrong quantity.* The NaCl study's `R_hi <= 0.97 L/2` is a **geometric** criterion standing in
+  for a **thermodynamic** one; passing it by 0.003 nm is not weak evidence about box-size
+  convergence, it is none. Gate A in both studies was computed as `TV(p(Y | xi))` where §2.2
+  specifies `TV(p(xi | Y))` — the transpose, and partly tautological since the descriptor grows
+  with the coordinate by construction.
+* *right quantity, unattainable precision.* Methane's finite-size gate specifies a
+  `0.1 kT/nm` tolerance on a measurement whose combined SEM is `0.5-0.67 kT/nm`. Resolving it
+  needs 100-170x more sampling than the check itself costs. Neither outcome entails anything.
+
+> **A gate that cannot fire reads as reassurance**, which is worse than no gate.
+> Every gate should be asked: *does passing this entail the claim it is cited for, or merely fail
+> to contradict it?* — and, separately, *can this fire at all, given the precision available?*
+> Set a tolerance from the achievable uncertainty, and state the detectable effect size.
+
+**An error in the specification, faithfully implemented.** The NaCl study's Gate A transpose was
+written into `SPEC_nacl` §6 and the code implemented that spec correctly. Every check operating
+*within* the study therefore passes: the code matches its spec, the tests match the code, review
+finds nothing. Only auditing a document against the document above it reaches this, and nothing
+does that routinely — it was found because a peer with a different specification noticed the same
+transpose in their own *code*. Distinct from every other class, which are all defects in
+execution.
+
+**A corollary about what a null is worth.** A clean statistic is a reason for suspicion, not
+satisfaction: NaCl's Gate A of exactly 1.000 turned out to reflect hydration being nearly a
+function of `r` (across-`r` variation 14-83x the within-`r` variation), so the gate nearly could
+not fail. Methane's ratio is **5.4x** — the descriptor retains an sd of 0.37 at fixed `r`. This
+**inverts the natural intuition**: a system with *more* orthogonal structure is not a harder case
+for a null, it is the only case where a null means anything, because the null only says something
+if there was something for reallocation to act on. Methane is therefore the load-bearing null and
+a system with little orthogonal structure can corroborate at best.
+
 **Ratios, fully specified.** A ratio presents as one clean number while hiding the provenance of
 both arguments, which is what makes it quotable and unauditable. Checking that numerator and
 denominator come from the same **population** is necessary and is only the first of three
