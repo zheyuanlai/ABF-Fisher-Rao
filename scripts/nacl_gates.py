@@ -112,6 +112,38 @@ def assert_partition(values, basins, name, allow_outside=True):
     return outside
 
 
+#: Guards this analysis tree carries. The SAMPLER is pinned to a worktree (53dfb30) so the
+#: data-generating process is identical across the N ladder; the ANALYSIS must NOT be, because
+#: tonight's fixes postdate that pin. 53dfb30 is not an ancestor of f88e434, so the worktree's
+#: copy of this file runs Gate C with no power guard, no cell-map guard, and Gate A transposed --
+#: and its report would look exactly like a correct one. Practice already separated the two; this
+#: makes a report from the superseded tree DETECTABLE (fields absent) instead of silently wrong.
+ANALYSIS_GUARDS = ("gate_c_power_guard_lambda_min_16", "cell_map_completeness_guard",
+                   "gate_a_preregistered_direction", "basin_masks_half_open_partition",
+                   "require_full_seed_block", "non_finite_reference_refuses")
+
+
+def analysis_provenance():
+    """Which analysis tree produced this report, and which guards it carried."""
+    import subprocess
+    here = os.path.dirname(os.path.abspath(__file__))
+    def _git(*a):
+        try:
+            return subprocess.run(("git", "-C", here) + a, capture_output=True,
+                                  text=True).stdout.strip() or None
+        except Exception:
+            return None
+    return dict(
+        analysis_commit=_git("rev-parse", "HEAD"),
+        analysis_tree=os.path.dirname(here),
+        analysis_dirty=bool(_git("status", "--porcelain", "scripts", "src")),
+        guards=list(ANALYSIS_GUARDS),
+        note="A gates_report.json WITHOUT this block was produced by a SUPERSEDED analysis tree "
+             "(e.g. the pinned sampler worktree at 53dfb30, which predates the Gate C power "
+             "guard, the cell-map guard and the Gate A transpose fix). Absence of this block is "
+             "the detection; do not read such a report as a verdict.")
+
+
 def map_completeness(expect, present, n_basins, lambda_min=LAMBDA_MIN):
     """Is the preregistered N ladder complete enough to support a STUDY-level verdict?
 
@@ -482,6 +514,7 @@ def main():
             note="calibration must find an ACTIVE rate under this ceiling or it is a C3 STOP")
 
     report = dict(cells=results, selection=selection,
+                  analysis_provenance=analysis_provenance(),
                   upstream=dict(gate0=g0, gateA=gA,
                                 acceptance=ref_report["acceptance"]))
     with open(os.path.join(out_dir, "gates_report.json"), "w") as fh:

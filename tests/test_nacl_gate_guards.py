@@ -295,3 +295,14 @@ def test_boundary_cell_is_excluded_only_because_the_inequality_is_strict():
 def test_complete_ladder_is_complete():
     m = _ng.map_completeness([8, 16, 32, 64], {8, 16, 32, 64}, n_basins=2)
     assert m["COMPLETE"] and not m["structurally_unclassifiable"]
+
+
+def test_report_carries_analysis_provenance_so_a_superseded_tree_is_detectable():
+    """The SAMPLER is pinned to a worktree that predates tonight's gate fixes. A report built by
+    that tree's nacl_gates.py would look identical to a correct one; absence of this block is
+    what makes it detectable."""
+    p = _ng.analysis_provenance()
+    assert p["analysis_commit"] and len(p["analysis_commit"]) >= 7
+    for g in ("gate_c_power_guard_lambda_min_16", "cell_map_completeness_guard",
+              "gate_a_preregistered_direction"):
+        assert g in p["guards"], f"{g} missing from the guards manifest"
