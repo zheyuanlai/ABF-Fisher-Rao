@@ -188,8 +188,7 @@ def phase_torch():
             drag_cages(eng, dyn, x,
                        torch.full((16,), csys.D_REF_NM, device="cuda", dtype=torch.float32),
                        torch.full((16,), d, device="cuda", dtype=torch.float32),
-                       center_t, torch.Generator(device="cuda").manual_seed(14),
-                       rate_nm_ps=0.08)
+                       center_t, torch.Generator(device="cuda").manual_seed(14))
             gen = torch.Generator(device="cuda").manual_seed(13)
             v = dyn.maxwell_velocities(x, generator=gen)
             _, f_raw = eng.energy_forces(x)
@@ -197,6 +196,13 @@ def phase_torch():
             # 10 ps settle + 30 ps production
             for _ in range(int(round(10.0 / dt))):
                 _, f = dyn.step(x, v, f, generator=gen)
+            # jam guard: a wedged water sits at 2-5e4 per-site force, far above the ~2.5e3
+            # thermal ceiling but far below the 1e6 explosion guard -- catch it here
+            _, f_chk = eng.energy_forces(x)
+            worst = float(f_chk.abs().max())
+            if worst > 1.0e4:
+                raise RuntimeError(f"jammed water at spot d={d}, dt={dt}: max |F| "
+                                   f"{worst:.3e} kJ/mol/nm after settle; prep defect")
             fs = []
             for k in range(int(round(SPOT_PS / 0.5))):
                 for _ in range(int(round(0.5 / dt))):

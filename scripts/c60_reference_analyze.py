@@ -45,25 +45,40 @@ def load_build(k):
     return np.load(path)
 
 
+JAM_FORCE = 1.0e4       #: per-site force above this at production start = wedged water
+
+
 def window_stats(bz):
-    """Per-window pooled mean force, block SEM, and family means/spread."""
+    """Per-window pooled mean force, block SEM, and family means/spread.
+
+    Replicas with a jammed water (per-site force > JAM_FORCE at the equilibration boundary,
+    recorded by the driver) are EXCLUDED and counted -- a wedged water biases f by its full
+    ~1e4 kJ/mol/nm cage-separating force and no amount of averaging dilutes it."""
     d_grid = bz["d_grid"]
     fam = bz["family"]
-    fb = bz["f_block_means"]                      # (816, n_blocks)
+    fb = np.array(bz["f_block_means"], dtype=np.float64)      # (816, n_blocks)
+    if "max_force_post_equil" in bz.files:
+        jammed = np.asarray(bz["max_force_post_equil"]) > JAM_FORCE
+        fb[jammed] = np.nan
     n_w = len(d_grid)
     mean = np.zeros(n_w); sem = np.zeros(n_w)
     fam_means = np.zeros((n_w, 4)); fam_spread = np.zeros(n_w)
+    n_jammed = 0
     for w in range(n_w):
         rows = slice(w * 12, (w + 1) * 12)
         blocks = fb[rows]                          # (12, n_blocks)
-        mean[w] = blocks.mean()
-        # replica means are the independent units; SEM over 12 replicas
-        rep_means = blocks.mean(axis=1)
-        sem[w] = rep_means.std(ddof=1) / np.sqrt(len(rep_means))
+        rep_means = np.nanmean(blocks, axis=1)
+        ok = np.isfinite(rep_means)
+        n_jammed += int((~ok).sum())
+        mean[w] = np.nanmean(rep_means)
+        sem[w] = (np.nanstd(rep_means[ok], ddof=1) / np.sqrt(max(1, ok.sum()))
+                  if ok.sum() > 1 else np.nan)
         for f in range(4):
             fam_rows = fb[w * 12 + f * 3: w * 12 + (f + 1) * 3]
-            fam_means[w, f] = fam_rows.mean()
-        fam_spread[w] = fam_means[w].max() - fam_means[w].min()
+            fam_means[w, f] = np.nanmean(fam_rows)
+        fam_spread[w] = np.nanmax(fam_means[w]) - np.nanmin(fam_means[w])
+    if n_jammed:
+        print(f"[window_stats] excluded {n_jammed} jammed replicas (> {JAM_FORCE:.0e})")
     return d_grid, mean, sem, fam_means, fam_spread
 
 

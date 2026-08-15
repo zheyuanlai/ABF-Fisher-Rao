@@ -354,9 +354,20 @@ def main():
 
     total_steps = n_equil + n_prod
     ckpt_every = max(2000, int(round(10.0 / dt)))
+    max_f_post_equil = None
     for step in range(start_step, total_steps):
         _, f = dyn.step(x, v, f, generator=gen)
         s_prod = step - n_equil
+        if s_prod == 0:
+            # per-walker jam census at the equilibration/production boundary: a wedged water
+            # reads 2-5e4 per-site force (thermal ceiling ~2.5e3); recorded, not raised --
+            # the analysis excludes jammed replicas with the count reported (a raise would
+            # kill an 816-replica build for a couple of walkers)
+            _, f_raw_chk = ef_compiled(x, chunk=CHUNK)
+            max_f_post_equil = f_raw_chk.abs().amax(dim=(1, 2)).detach().cpu().numpy()
+            n_jam = int((max_f_post_equil > 1.0e4).sum())
+            print(f"  [jam census] {n_jam}/{B_TOTAL} replicas above 1e4 kJ/mol/nm "
+                  f"at production start", flush=True)
         if s_prod >= 0:
             b = min(s_prod // block_steps, n_blocks - 1)
             # the estimator wants cage z-forces, which redistribution does not touch --
@@ -384,6 +395,8 @@ def main():
     np.savez(os.path.join(out_dir, "windows.npz"),
              d_grid=D_GRID, d_values=d_values, family=fam_idx, replica=rep_idx,
              f_block_means=f_blocks, block_ps=BLOCK_PS * scale,
+             max_force_post_equil=(max_f_post_equil if max_f_post_equil is not None
+                                   else np.full(B_TOTAL, np.nan)),
              ngap=np.asarray(ngap_rows), ngap_steps=np.asarray(ngap_steps_l),
              equil_ps=equil_ps, prod_ps=prod_ps, dt_ps=dt)
     manifest = dict(csys.manifest(), stage=f"reference_build{a.build}",
