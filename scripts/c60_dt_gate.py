@@ -196,26 +196,33 @@ def phase_torch():
             # 10 ps settle + 30 ps production
             for _ in range(int(round(10.0 / dt))):
                 _, f = dyn.step(x, v, f, generator=gen)
-            # jam guard: a wedged water sits at 2-5e4 per-site force, far above the ~2.5e3
-            # thermal ceiling but far below the 1e6 explosion guard -- catch it here
+            # jam census: a wedged water sits at 2-5e4 per-site force (thermal ceiling
+            # ~2.5e3, explosion guard 1e6).  Trapping is STOCHASTIC (measured 1/16 at the
+            # uniform production rate), so jammed replicas are EXCLUDED and counted, not
+            # raised on -- a trapped water is a prep artifact ~50 kT above equilibrium,
+            # never an equilibrium state.  A majority jammed is still a prep defect.
             _, f_chk = eng.energy_forces(x)
-            worst = float(f_chk.abs().max())
-            if worst > 1.0e4:
-                raise RuntimeError(f"jammed water at spot d={d}, dt={dt}: max |F| "
-                                   f"{worst:.3e} kJ/mol/nm after settle; prep defect")
+            per_rep = f_chk.abs().amax(dim=(1, 2))
+            clean = per_rep < 1.0e4
+            n_clean = int(clean.sum())
+            if n_clean < 10:
+                raise RuntimeError(f"only {n_clean}/16 clean replicas at spot d={d}, "
+                                   f"dt={dt}; prep defect")
+            clean_idx = torch.nonzero(clean, as_tuple=True)[0]
             fs = []
             for k in range(int(round(SPOT_PS / 0.5))):
                 for _ in range(int(round(0.5 / dt))):
                     _, f = dyn.step(x, v, f, generator=gen)
                 _, f_raw2 = eng.energy_forces(x)
-                fs.append(float(eng.local_mean_force(f_raw2).mean()))
+                fs.append(float(eng.local_mean_force(f_raw2)[clean_idx].mean()))
             fs = np.asarray(fs)
             if not np.isfinite(fs).all():
                 # an exploded trajectory must raise, never become a NaN in a verdict file
                 # (the first read's NaN spots silently forced the 1 fs fallback)
                 raise RuntimeError(f"non-finite mean-force samples at spot d={d}, dt={dt}")
             spots[str(d)] = dict(mean=float(fs.mean()),
-                                 sem=_blocked_sem(fs, int(BLOCK_PS / 0.5)))
+                                 sem=_blocked_sem(fs, int(BLOCK_PS / 0.5)),
+                                 n_clean=n_clean, n_jammed=16 - n_clean)
             del eng, dyn, x, v, f
             torch.cuda.empty_cache()
         res["spots"] = spots

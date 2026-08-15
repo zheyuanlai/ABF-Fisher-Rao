@@ -80,18 +80,27 @@ def drag_cages(eng, dyn, x, xi_from, xi_to, center, gen,
     what sets the ensemble.  Ends with the force guard: an unintegrable state raises.
     """
     dt = dyn.dt
+    # two-phase schedule: full rate until 0.1 nm remain, then rate/4 for the final approach.
+    # Jamming happens in the last stretch of a CLOSING drag, where the remaining waters must
+    # escape through a narrowing annulus (measured: 1/16 replicas trapped at the uniform
+    # production rate; max|F| 2.98e4 after settle).  Slowing only the approach costs ~15 ps.
     dist = (xi_to - xi_from).abs()
-    n_steps = max(1, int(torch.ceil(dist.max() / (rate_nm_ps * dt)).item()))
+    d_final = torch.minimum(dist, torch.full_like(dist, 0.1))
+    n_main = int(torch.ceil((dist - d_final).max() / (rate_nm_ps * dt)).item())
+    n_final = int(torch.ceil(d_final.max() / (0.25 * rate_nm_ps * dt)).item())
     v = dyn.maxwell_velocities(x, generator=gen)
     _, f_raw = eng.energy_forces(x, chunk=chunk)
     f = eng.redistribute(f_raw).clamp(-clamp, clamp)
-    for k in range(1, n_steps + 1):
-        frac = min(1.0, k / n_steps)
-        xi_k = xi_from + (xi_to - xi_from) * frac
-        dyn.place_cages(x, xi_k, center)
-        eng.compute_vsites(x)
-        _, f = dyn.step(x, v, f, generator=gen)
-        f = f.clamp(-clamp, clamp)
+    sgn = torch.sign(xi_to - xi_from)
+    xi_break = xi_to - sgn * d_final
+    for phase_steps, a, b in ((n_main, xi_from, xi_break), (n_final, xi_break, xi_to)):
+        for k in range(1, max(1, phase_steps) + 1):
+            frac = min(1.0, k / max(1, phase_steps))
+            xi_k = a + (b - a) * frac
+            dyn.place_cages(x, xi_k, center)
+            eng.compute_vsites(x)
+            _, f = dyn.step(x, v, f, generator=gen)
+            f = f.clamp(-clamp, clamp)
     dyn.place_cages(x, xi_to, center)
     eng.compute_vsites(x)
     assert_relaxed(eng, x, chunk=chunk)

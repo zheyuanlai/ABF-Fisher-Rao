@@ -204,23 +204,39 @@ def main():
 
     # ------------------------------------------------------------------ phase A: anchors
     anchors_path = os.path.join(out_dir, "anchors.npz")
+    anchors_ok = False
     if os.path.exists(anchors_path):
+        # cache hits skip build-branch checks (the NaCl lesson): re-assert on load, at the
+        # JAM threshold (1e4), not the explosion threshold -- a cached jammed snapshot from
+        # an earlier code state must invalidate the cache, not resume as poisoned prep
         anc = np.load(anchors_path)
         snaps_wet = anc["wet"]
         snaps_dry = anc["dry"]
-        # cache hits skip build-branch checks (the NaCl lesson): re-assert on load
+        anchors_ok = True
         for name, arr, d_a in (("wet", snaps_wet, ANCHOR_WET_NM),
                                ("dry", snaps_dry, ANCHOR_DRY_NM)):
-            assert np.isfinite(arr).all(), f"{name} anchors non-finite"
+            if not np.isfinite(arr).all():
+                anchors_ok = False
+                break
             xa = torch.as_tensor(arr, device="cuda", dtype=dtype)
-            xi_err = float((eng.xi(xa) - d_a).abs().max())
-            assert xi_err < 1e-4, f"{name} anchor xi off by {xi_err:.2e}"
-            from c60.prep import assert_relaxed as _ar
-            _ar(eng, xa, chunk=CHUNK)
-            del xa
-        print(f"[phase A] loaded anchors ({snaps_wet.shape[0]} wet, "
-              f"{snaps_dry.shape[0]} dry snapshots), revalidated", flush=True)
-    else:
+            if float((eng.xi(xa) - d_a).abs().max()) > 1e-4:
+                anchors_ok = False
+                del xa
+                break
+            _, f_chk = eng.energy_forces(xa, chunk=CHUNK)
+            if float(f_chk.abs().amax()) > 1.0e4:
+                anchors_ok = False
+                del xa, f_chk
+                break
+            del xa, f_chk
+        if anchors_ok:
+            print(f"[phase A] loaded anchors ({snaps_wet.shape[0]} wet, "
+                  f"{snaps_dry.shape[0]} dry snapshots), revalidated at jam threshold",
+                  flush=True)
+        else:
+            print("[phase A] cached anchors FAILED revalidation; rebuilding", flush=True)
+            os.remove(anchors_path)
+    if not anchors_ok:
         snaps = {}
         center_t = torch.tensor([0.5 * lx, 0.5 * lx, 0.5 * lz], device="cuda", dtype=dtype)
         for name, d_anchor in (("wet", ANCHOR_WET_NM), ("dry", ANCHOR_DRY_NM)):
@@ -254,7 +270,21 @@ def main():
                 _, f = dyn.step(x, v, f, generator=gen)
                 if step in snap_steps:
                     store.append(x.detach().cpu().numpy().astype(np.float32))
-            snaps[name] = np.concatenate(store, axis=0)      # (12*3, N, 3)
+            # anchor jam census: a jammed stream would poison every descendant window start.
+            # Snapshots are taken only from clean streams; >= 2/3 must survive.
+            _, f_chk = ef_compiled(x, chunk=CHUNK)
+            per_stream = f_chk.abs().amax(dim=(1, 2))
+            clean = (per_stream < 1.0e4).cpu().numpy()
+            n_clean = int(clean.sum())
+            if n_clean < (2 * N_ANCHOR_STREAMS) // 3:
+                raise RuntimeError(f"{name} anchors: only {n_clean}/{N_ANCHOR_STREAMS} "
+                                   "clean streams; prep defect")
+            arr = np.concatenate(store, axis=0)              # (12*n_snap, N, 3)
+            keep = np.tile(clean, len(store))
+            snaps[name] = arr[keep]
+            if n_clean < N_ANCHOR_STREAMS:
+                print(f"[phase A] {name}: excluded {N_ANCHOR_STREAMS - n_clean} jammed "
+                      f"streams", flush=True)
             print(f"[phase A] {name} anchors done: {snaps[name].shape[0]} snapshots "
                   f"({time.perf_counter()-t0:.0f}s)", flush=True)
         np.savez(anchors_path + ".tmp.npz", wet=snaps["wet"], dry=snaps["dry"])
@@ -303,17 +333,24 @@ def main():
             else:                                            # wet, bulk, hot from wet pool
                 starts[i] = snaps_wet[(w * 3 + rep + 7 * fam) % n_wet]
                 src_xi[i] = ANCHOR_WET_NM
+        starts_ok = False
         if os.path.exists(starts_path):
+            # load-path revalidation at the JAM threshold; a poisoned cache invalidates
             x = torch.as_tensor(np.load(starts_path)["x"], device="cuda", dtype=dtype)
-            # re-assert the build-branch invariants on the load path (the NaCl lesson)
-            assert torch.isfinite(x).all(), "cached starts non-finite"
             xi_err = float((eng.xi(x) - torch.as_tensor(d_values, device="cuda",
                                                         dtype=dtype)).abs().max())
-            assert xi_err < 1e-4, f"cached starts xi off by {xi_err:.2e}"
-            assert_relaxed(eng, x, chunk=CHUNK)
-            print("[phase B] loaded dragged starts (post-drag resume), revalidated",
-                  flush=True)
-        else:
+            _, f_chk = eng.energy_forces(x, chunk=CHUNK)
+            n_jam = int((f_chk.abs().amax(dim=(1, 2)) > 1.0e4).sum())
+            if torch.isfinite(x).all() and xi_err < 1e-4 and n_jam == 0:
+                starts_ok = True
+                print("[phase B] loaded dragged starts, revalidated at jam threshold",
+                      flush=True)
+            else:
+                print(f"[phase B] cached starts FAILED revalidation "
+                      f"(xi_err {xi_err:.1e}, {n_jam} jammed); rebuilding", flush=True)
+                os.remove(starts_path)
+            del f_chk
+        if not starts_ok:
             x = torch.as_tensor(starts, device="cuda", dtype=dtype)
             c = torch.tensor([0.5 * lx, 0.5 * lx, 0.5 * lz], device="cuda", dtype=dtype)
             d_t = torch.as_tensor(d_values, device="cuda", dtype=dtype)
