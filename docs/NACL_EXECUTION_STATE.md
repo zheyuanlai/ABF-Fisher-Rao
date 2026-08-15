@@ -32,14 +32,17 @@ CURRENT STAGE:          N=64 CELL VERDICT: ABF-SUFFICIENT (2026-08-14 23:26 UTC,
                         nacl_gates.map_completeness() rather than argued in prose, and is strict:
                         Q*_k < 1 whenever a second basin carries positive target, so lambda < N,
                         so N=16 cannot reach 16 either -- it is struck, not merely doubted.
-                        N=32 therefore runs UNPACKED (256 walkers) rather than packed with 8/16
-                        (448): measured 1394 steps/min = 1028 ns/day at 256 against an inferred
-                        400-500 steps/min = 516-645 ns/day at 448, so packing looked 1.6-2.0x
-                        WORSE in aggregate. Treat the 448 figure as INDICATIVE, not a clean A/B
-                        -- inferred from checkpoint spacing under a >=20 min rule on a run whose
-                        exclusive GPU access cannot now be confirmed. The decision it supports is
-                        safe either way, since the packed run also spent 2/3 of its budget on
-                        cells that cannot be classified.
+                        N=32 therefore runs UNPACKED (256 walkers) rather than packed with 8/16.
+                        THE THROUGHPUT JUSTIFICATION FOR THAT CHOICE IS WITHDRAWN (2026-08-15):
+                        I claimed packing cost 1.6-2.0x from an inferred 400-500 steps/min at 448
+                        against a measured 1394 at 256. The 448 number is a BOUND from checkpoint
+                        spacing, not a measurement, taken on a run whose co-tenancy cannot be
+                        reconstructed, on a box now known to carry TWO outside users -- and a
+                        measured 1.24-1.32x contention factor accounts for most of the gap.
+                        Whether 448 is genuinely worse than 256 here is UNRESOLVED; do not cite a
+                        packing penalty as measured. The DECISION still stands on grounds that do
+                        not depend on it: the packed run spent 2/3 of its budget on cells that
+                        cannot be classified at all.
 LAST COMPLETED GATE:    engine equivalence 11/11 <1e-6; box frozen L=2.892700 nm;
                         descriptors frozen; baths verified (9 baths, 549 starts)
 VERDICT:                GATE 0 PASS (0.0075 global / 0.0483 barrier -- the campaign's
@@ -84,9 +87,9 @@ RUNNING NOW:            N=32, PID 3835641 on GPU 2 since 2026-08-15 01:14 UTC, l
                         has no power guard, no cell-map guard and Gate A transposed. A
                         gates_report.json without an `analysis_provenance` block came from that
                         superseded tree and is not a verdict.
-                        IN-SITU RATE 1394 steps/min = 1028 ns/day aggregate ON A VERIFIED-IDLE GPU 2
-                        (steps 30000->90000
-                        over 43 min; seven consecutive 100k intervals at 4358-4360 s).
+                        IN-SITU RATE 1394 steps/min = 1028 ns/day aggregate, ON A VERIFIED-IDLE
+                        GPU 2 (steps 30000->90000 over 43 min; seven consecutive 100k-step
+                        intervals at 4358-4360 s). The occupancy state belongs WITH the number.
                         2026-08-15 10:04 UTC: a THIRD USER (juntingwu, gmmvi.benchmark) landed on
                         GPU 2. The interval went to 5406 s -- a 24 % slowdown, clocks pinned at
                         max with no throttle flags, so contention not thermal. ETA moves ~19:56
