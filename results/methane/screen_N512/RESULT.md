@@ -100,6 +100,53 @@ Raw per-seed numbers: all three states reached within 0.8 ps on every seed.
 |---|---|---|---|
 | 5000–5007 | 0.0 / 0.2 / 0.5–0.8 | **0.0 ps** on every seed | 0.498–0.516 |
 
+## Gate C was shown to FIRE, and it needs 60 % — not the 13–18 % the power argument implied
+
+Every methane state cleared Gate C, so nothing in this study had ever demonstrated the gate
+*firing*. The power argument (`lambda = 127.6/147.0/224.2`, so `2/sqrt(lambda)` = 13–18 %)
+characterises **counting noise and nothing else** — it is a single-checkpoint statement, while
+the gate requires a **contiguous 40 ps run** below `0.5 Q*`. Contiguity suppresses false firing,
+which is intended, and suppresses true firing, which was never accounted for.
+
+Prompted by the NaCl session noting the same gap in its own CIP statistic — where it cannot be
+closed, because no NaCl state had a real deficit either — this was closed here by **planting
+walker-conserving deficits in the real traces** (scale one state's occupancy by `f`, redistribute
+the removed population over the others so the partition still sums to 1) and running the
+unmodified gate. Real traces, not synthetic: the correlation structure is the entire quantity in
+question. Walkers are subsampled to read the threshold at the `lambda` a smaller cell would see.
+
+| `lambda` | analytic 2σ, one checkpoint | **deficit the gate actually needs** | ratio |
+|---|---|---|---|
+| 224.2 | 13 % | **60 %** | 4.5× |
+| 147.0 | 16 % | **60 %** | 3.6× |
+| 127.6 | 18 % | **60 %** | 3.4× |
+| 28.0 | 38 % | 65 % | 1.7× |
+| 16.0 | 50 % | 65 % | 1.3× |
+| 9.2 | 66 % | 70 % | 1.1× |
+| 7.0 | 76 % | 75 % | 1.0× |
+| 4.0 | 100 % | 75 % | 0.8× |
+
+Firing is 0/8 seeds at a planted 50 % and 8/8 at 60 %, with 55 % partial (2–6 of 8).
+
+**Three consequences, and the first is a correction to this project's own guard.**
+
+1. **`GATE_C_MIN_LAMBDA = 16` does not deliver what its rationale claims.** It was derived from
+   `0.5 lambda >= 2 sqrt(lambda)` — the `lambda` at which a 50 % deficit is a 2σ effect *on one
+   checkpoint*. Measured, the gate at `lambda = 16` needs **65 %**, not 50 %. The threshold is
+   still worth having and 16 is still a reasonable place for it, but **the claim attached to it
+   was the wrong quantity** — failure class 6, in the guard written to fix failure class 6.
+2. **The real detection threshold is 60–75 % across a 50× range in `lambda`.** It is set by the
+   contiguity requirement, not by counting noise; `lambda` governs the gate only below ~9, where
+   the two criteria cross and the analytic figure becomes the conservative one.
+3. **The verdict does not rest on the gate, and this is why that matters.** "Gate C did not fire"
+   licenses only *no deficit ≥ 60 % occurred*. The statement that carries the null is the
+   **direct measurement**: the worst occupancy/`Q*` ratio over 8 seeds × 3 states × the entire
+   second half is **0.83**, i.e. **the largest shortfall that ever occurred anywhere is 17 %**.
+   That is a measured bound, not a gate output, and it is 3.5× tighter than what the gate could
+   have told us.
+
+Full ladder: `gate_c_detection/ladder.json`; script `scripts/methane_gate_c_detection.py`.
+
 **Occupancy sits on the bias-aware target, not near it.** Final-frame occupancy divided by
 `Q*_k(t)`, across all 8 seeds and 3 states: the **worst** ratio is **0.83** and the best is 1.09.
 Gate C's deficit threshold is 0.5. Nothing came close to a deficit; ABF is populating every
