@@ -2372,3 +2372,14 @@ its own terms or it says so; it is never used to rescue an mFR licence — 16.7'
 remains the licensing guard — only to let a sub-floor state say something quantitative
 rather than nothing.  NaCl's realised example (CIP, worst window 1.371 ± 0.106 at N = 32)
 is the calibration precedent.
+
+**16.10 clarifications (2026-08-15, same pre-data window, from the NaCl session's caveat):**
+(i) the cited NaCl precedent calibrates the statistic's **exclusion** side only (a band
+clearing 0.5 from above); its detection side is validated against planted synthetic deficits,
+never against physics that actually failed — if a C60 band lands NEAR 0.5, the INCONCLUSIVE
+branch is doing real work; (ii) whenever the statistic is computed for a sub-floor state, it
+is ALSO computed for the best-powered state of the same cell as a **positive control** — a
+systematic offset must show up as the well-behaved state missing 1.0, not as the interesting
+state looking odd; (iii) the window length is the gate's own contiguity requirement
+(`0.2 T`) and is **never adjusted**; lengthening a window until a band separates is the same
+move as relaxing the 16.7 floor, and is forbidden by the same reasoning.
