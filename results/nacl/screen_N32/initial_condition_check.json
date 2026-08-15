@@ -1,0 +1,10 @@
+{
+  "start_nm": 0.3,
+  "cip_minimum_nm": 0.26,
+  "start_above_minimum_kT": 2.6368250445355117,
+  "declared_bias_holds": false,
+  "cell": "N32",
+  "computed": "standalone",
+  "why_standalone": "the sampler's [init] check runs only inside the population-BUILD branch; this run reused a cached population, so the check was silently skipped and manifest.initial_condition_check will be null. Recomputed here from the same frozen inputs (R_CIP_NM + accepted reference), which are the only things it depends on.",
+  "interpretation": "SPEC 7's declared bias assumes a start AT the CIP minimum; this start is up the barrier, so the bias is NOT the declared one. Same value as the N=64 cell -- the inputs are frozen and identical."
+}

@@ -108,6 +108,25 @@ NEXT PERMITTED ACTION:  when N=32 completes, link cell_N32.npz and cell_N64.npz 
                         ONLY if Gate C fires on a powered state: tau_perp must be re-run (~4 h,
                         GPU 2, no checkpointing) before Gate D. It is DOWNSTREAM of Gate C and
                         must not pre-empt the cell again.
+DEFECT FOUND 2026-08-15, FIX DEFERRED: **caching a prerequisite skips the checks attached to
+                        building it.** nacl_screen.py's `[init]` declared-bias check (commit
+                        c21ef04, added *because* "a declared bias is an assumption about the
+                        initial condition and nothing checked it") lives INSIDE the
+                        population-BUILD branch. The N=32 run reused a cached populations.npz to
+                        save 18 min, so the check never ran and manifest.initial_condition_check
+                        will be null -- a check that did not run, reading as no problem.
+                        NO EFFECT ON THE SCIENCE: the check depends only on R_CIP_NM and the
+                        accepted reference, both frozen, so it was recomputed standalone ->
+                        results/nacl/screen_N32/initial_condition_check.json. Start 0.300 nm sits
+                        **2.64 kT** above the CIP minimum at 0.260 nm, declared_bias_holds FALSE,
+                        identical to N=64 as the frozen inputs require.
+                        FIX DEFERRED ON PURPOSE: hoisting the check out of the build branch is a
+                        one-line diagnostic change, but editing the sampler mid-campaign risks a
+                        launch from HEAD picking up a different sampler than the pinned worktree,
+                        and ladder homogeneity is worth more than an early diagnostic fix. Do it
+                        after closure. The general form is worth carrying: any check attached to
+                        a build step is silently skipped by a cache hit.
+
 OPEN ITEM (NOT ADOPTED): `scripts/nacl_screen_merge.py` carries an UNCOMMITTED change from the
                         session that stood down, replacing the hard-coded seed-axis table with
                         shape inference. Left in the working tree, not adopted, not reverted.
