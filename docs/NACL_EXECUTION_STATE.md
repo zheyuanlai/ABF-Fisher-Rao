@@ -84,8 +84,19 @@ RUNNING NOW:            N=32, PID 3835641 on GPU 2 since 2026-08-15 01:14 UTC, l
                         has no power guard, no cell-map guard and Gate A transposed. A
                         gates_report.json without an `analysis_provenance` block came from that
                         superseded tree and is not a verdict.
-                        IN-SITU RATE 1394 steps/min = 1028 ns/day aggregate (steps 30000->90000
-                        over 43 min). ETA ~19:56 UTC 2026-08-15, ~18.7 h total.
+                        IN-SITU RATE 1394 steps/min = 1028 ns/day aggregate ON A VERIFIED-IDLE GPU 2
+                        (steps 30000->90000
+                        over 43 min; seven consecutive 100k intervals at 4358-4360 s).
+                        2026-08-15 10:04 UTC: a THIRD USER (juntingwu, gmmvi.benchmark) landed on
+                        GPU 2. The interval went to 5406 s -- a 24 % slowdown, clocks pinned at
+                        max with no throttle flags, so contention not thermal. ETA moves ~19:56
+                        -> ~22:40 UTC, and back down if their job departs. PHYSICS UNAFFECTED:
+                        nothing in this cell's science is timing-based, only the wall clock.
+                        A PREFLIGHT IS POINT-IN-TIME. Mine passed on an idle GPU 2 at 01:14 and
+                        cannot see an arrival nine hours later; no launch guard can. Co-tenancy
+                        is therefore SAMPLED every 10 min for the rest of the run ->
+                        results/nacl/screen_N32_cotenancy.log, so any timing number from this
+                        cell can be attributed rather than assumed idle.
 
 NEXT PERMITTED ACTION:  when N=32 completes, link cell_N32.npz and cell_N64.npz into one
                         directory and run nacl_gates.py over BOTH. REHEARSED 2026-08-15 on a
