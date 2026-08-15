@@ -147,6 +147,15 @@ def _configs(built):
         k_old = np.asarray(dz["key"])
         if k_old.shape == key.shape and np.allclose(k_old, key, rtol=0, atol=1e-9):
             out = [dz[f"c{k}"] for k in range(int(dz["n"]))]
+            # a check attached to a build step is silently skipped by a cache hit (the NaCl
+            # lesson, 2026-08-15): re-assert the build-branch invariants on the load path too
+            for k, cfg in enumerate(out):
+                assert np.isfinite(cfg).all(), f"cached config {k} non-finite"
+                d_k = SEPARATIONS[k] if k < len(SEPARATIONS) else (1.005, 1.005, 0.968)[
+                    k - len(SEPARATIONS)]
+                assert abs(csys.xi_of(cfg, built["params"]["cage_a"],
+                                      built["params"]["cage_b"]) - d_k) < 1e-9, \
+                    f"cached config {k} xi drifted"
             _CONFIG_CACHE["configs"] = out
             return out
     p, lx, lz = built["params"], built["lx"], built["lz"]

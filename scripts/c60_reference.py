@@ -208,8 +208,18 @@ def main():
         anc = np.load(anchors_path)
         snaps_wet = anc["wet"]
         snaps_dry = anc["dry"]
+        # cache hits skip build-branch checks (the NaCl lesson): re-assert on load
+        for name, arr, d_a in (("wet", snaps_wet, ANCHOR_WET_NM),
+                               ("dry", snaps_dry, ANCHOR_DRY_NM)):
+            assert np.isfinite(arr).all(), f"{name} anchors non-finite"
+            xa = torch.as_tensor(arr, device="cuda", dtype=dtype)
+            xi_err = float((eng.xi(xa) - d_a).abs().max())
+            assert xi_err < 1e-4, f"{name} anchor xi off by {xi_err:.2e}"
+            from c60.prep import assert_relaxed as _ar
+            _ar(eng, xa, chunk=CHUNK)
+            del xa
         print(f"[phase A] loaded anchors ({snaps_wet.shape[0]} wet, "
-              f"{snaps_dry.shape[0]} dry snapshots)", flush=True)
+              f"{snaps_dry.shape[0]} dry snapshots), revalidated", flush=True)
     else:
         snaps = {}
         center_t = torch.tensor([0.5 * lx, 0.5 * lx, 0.5 * lz], device="cuda", dtype=dtype)
@@ -247,7 +257,8 @@ def main():
             snaps[name] = np.concatenate(store, axis=0)      # (12*3, N, 3)
             print(f"[phase A] {name} anchors done: {snaps[name].shape[0]} snapshots "
                   f"({time.perf_counter()-t0:.0f}s)", flush=True)
-        np.savez(anchors_path, wet=snaps["wet"], dry=snaps["dry"])
+        np.savez(anchors_path + ".tmp.npz", wet=snaps["wet"], dry=snaps["dry"])
+        os.replace(anchors_path + ".tmp.npz", anchors_path)      # atomic: no torn cache
         snaps_wet, snaps_dry = snaps["wet"], snaps["dry"]
 
     # ------------------------------------------------------------------ phase B: windows
@@ -266,6 +277,10 @@ def main():
     if os.path.exists(ckpt_path):
         ck = torch.load(ckpt_path, map_location="cuda", weights_only=False)
         x = ck["x"]; v = ck["v"]; f = ck["f"]
+        if x.shape[0] != B_TOTAL or not (torch.isfinite(x).all() and torch.isfinite(v).all()
+                                         and torch.isfinite(f).all()):
+            raise RuntimeError(f"checkpoint invalid: shape {tuple(x.shape)} vs B={B_TOTAL} "
+                               "or non-finite state; refusing to resume")
         fsum = ck["fsum"]; fcount = ck["fcount"]
         ngap_rows = list(ck["ngap_rows"]); ngap_steps_l = list(ck["ngap_steps"])
         gen.set_state(ck["rng"].cpu())
@@ -290,7 +305,14 @@ def main():
                 src_xi[i] = ANCHOR_WET_NM
         if os.path.exists(starts_path):
             x = torch.as_tensor(np.load(starts_path)["x"], device="cuda", dtype=dtype)
-            print("[phase B] loaded dragged starts (post-drag resume)", flush=True)
+            # re-assert the build-branch invariants on the load path (the NaCl lesson)
+            assert torch.isfinite(x).all(), "cached starts non-finite"
+            xi_err = float((eng.xi(x) - torch.as_tensor(d_values, device="cuda",
+                                                        dtype=dtype)).abs().max())
+            assert xi_err < 1e-4, f"cached starts xi off by {xi_err:.2e}"
+            assert_relaxed(eng, x, chunk=CHUNK)
+            print("[phase B] loaded dragged starts (post-drag resume), revalidated",
+                  flush=True)
         else:
             x = torch.as_tensor(starts, device="cuda", dtype=dtype)
             c = torch.tensor([0.5 * lx, 0.5 * lx, 0.5 * lz], device="cuda", dtype=dtype)
@@ -321,7 +343,9 @@ def main():
             eng.compute_vsites(xh)
             _relax(eng, dyn, xh)
             x[hot] = xh
-            np.savez(starts_path, x=x.detach().cpu().numpy().astype(np.float32))
+            np.savez(starts_path + ".tmp.npz",
+                     x=x.detach().cpu().numpy().astype(np.float32))
+            os.replace(starts_path + ".tmp.npz", starts_path)    # atomic: no torn cache
         v = dyn.maxwell_velocities(x, generator=gen)
         f, _ = force_of(x)
         fsum = torch.zeros(B_TOTAL, n_blocks, device="cuda", dtype=torch.float64)
