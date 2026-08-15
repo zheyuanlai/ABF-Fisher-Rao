@@ -84,6 +84,20 @@ NEXT PERMITTED ACTION:  DONE 00:41 -- N=32 LAUNCHED on GPU 2 (PID 3707699) throu
                         Launching on its exit is a reviewed action taken by me on a wake, NOT the
                         retired 15.3 autolaunch: preflight (pin, clean code paths, 65 tests, idle
                         device, manifest) is re-run at that point, not inherited from this one.
+OPEN ITEM (NOT ADOPTED): `scripts/nacl_screen_merge.py` carries an UNCOMMITTED change from the
+                        session that stood down, replacing the hard-coded seed-axis table with
+                        shape inference. Left in the working tree, not adopted, not reverted.
+                        Two hazards before anyone commits it: (i) it classifies a field as
+                        seed-indexed when `shape[0] == s0`, and s0 = 4 for a half-block, so any
+                        field with a leading dimension of 4 is misclassified; (ii) its fallback
+                        SILENTLY AVERAGES arrays it cannot classify instead of raising -- an
+                        unknown layout reading as a result. Its own docstring's argument against
+                        a stale table is fair, but a wrong inference is silent where a stale
+                        table is loud. `nacl_merge_halves.py` (explicit axes, asserts grid/N/T/
+                        dt/box/domain/schedule, requires disjoint seed sets unioning to
+                        4000-4007) remains the AUTHORITATIVE merge. Off the critical path
+                        regardless: N=32 runs all 8 seeds in ONE process and needs no merge.
+
 FORBIDDEN ACTIONS:      launching the TI reference (separate reviewed action after the ladder);
                         any screen cell before Gate 0/A; any mFR before Gates 0-D; editing the
                         SPEC except by numbered amendment; retuning anything against a result;

@@ -125,16 +125,18 @@
           "required_ps": 312.5,
           "n_seeds_deficient": 0,
           "power": {
-            "lambda_expected_walkers": 1.7245610467689076,
+            "lambda_expected_walkers": 1.567718804507263,
+            "lambda_mean_over_window": 1.989671769189567,
+            "lambda_statistic": "minimum of Q*(t)*N over the judged window",
             "lambda_min": 16.0,
             "POWERED": false,
             "threshold_is_emptiness": true,
-            "p_empty_by_counting": 0.17825127857736595,
-            "detectable_deficit_frac": 1.5229677590660555
+            "p_empty_by_counting": 0.2085203158194117,
+            "detectable_deficit_frac": 1.597334647015949
           },
           "UNDER_ESTABLISHED": null,
           "BINDING": false,
-          "note": "NON-BINDING: lambda = 1.72 expected walkers < 16.0; a 50 % deficit is not a 2-sigma effect here, and the threshold is arithmetically 'the state is empty'"
+          "note": "NON-BINDING: lambda = 1.57 expected walkers < 16.0; a 50 % deficit is not a 2-sigma effect here, and the threshold is arithmetically 'the state is empty'"
         },
         "SSIP": {
           "longest_deficit_ps": [
@@ -150,12 +152,14 @@
           "required_ps": 312.5,
           "n_seeds_deficient": 0,
           "power": {
-            "lambda_expected_walkers": 62.275438953231095,
+            "lambda_expected_walkers": 61.449778050950634,
+            "lambda_mean_over_window": 62.01032823081044,
+            "lambda_statistic": "minimum of Q*(t)*N over the judged window",
             "lambda_min": 16.0,
             "POWERED": true,
             "threshold_is_emptiness": false,
-            "p_empty_by_counting": 8.99747201449966e-28,
-            "detectable_deficit_frac": 0.2534379207971455
+            "p_empty_by_counting": 2.054473190074298e-27,
+            "detectable_deficit_frac": 0.2551348802491528
           },
           "UNDER_ESTABLISHED": false,
           "BINDING": true,
@@ -177,7 +181,42 @@
     "eligible_cells": [],
     "chosen_N": null,
     "rule": "smallest N passing every gate (mechanical, never by error size)",
-    "verdict": "no cell is both discovered and under-established: NaCl is not an mFR candidate under the preregistered budget. STOP."
+    "map": {
+      "expected_cells": [
+        8,
+        16,
+        32,
+        64
+      ],
+      "present_cells": [
+        64
+      ],
+      "structurally_unclassifiable": [
+        8,
+        16
+      ],
+      "reason": "Q*_k < 1 so lambda_k = N Q*_k < N; a cell with N <= 16 cannot reach the power threshold for any state, whatever the sampling",
+      "unexplained_missing": [
+        32
+      ],
+      "COMPLETE": false
+    },
+    "verdict": null,
+    "WITHHELD": "study-level verdict WITHHELD: cells [32] are preregistered, are not structurally unclassifiable (N >= 16), and have no data. The frozen rule is the SMALLEST N passing every gate, so a missing smaller cell could change the answer. Per-cell results above stand on their own."
+  },
+  "analysis_provenance": {
+    "analysis_commit": "1b9f62319d44822240a6c3bba80411f8dfb64153",
+    "analysis_tree": "/home/zheyuanlai/ABF-Fisher-Rao",
+    "analysis_dirty": false,
+    "guards": [
+      "gate_c_power_guard_lambda_min_16",
+      "cell_map_completeness_guard",
+      "gate_a_preregistered_direction",
+      "basin_masks_half_open_partition",
+      "require_full_seed_block",
+      "non_finite_reference_refuses"
+    ],
+    "note": "A gates_report.json WITHOUT this block was produced by a SUPERSEDED analysis tree (e.g. the pinned sampler worktree at 53dfb30, which predates the Gate C power guard, the cell-map guard and the Gate A transpose fix). Absence of this block is the detection; do not read such a report as a verdict."
   },
   "upstream": {
     "gate0": {
