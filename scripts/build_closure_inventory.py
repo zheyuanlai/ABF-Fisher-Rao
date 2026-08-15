@@ -281,6 +281,85 @@ def wca_sham_rows():
     return out, d
 
 
+def wca_caseix_hp_rows():
+    """Case IX re-run against the corrected high-precision TI reference.
+
+    These SUPERSEDE the wca_sham_rows() values for quoting. The cached reference those were
+    scored against is wrong near z ~ 0.26 by up to 67 sigma, inside the transition region
+    where the arms differ most, so the shared-reference error does not cancel in the paired
+    contrast. This is fresh dynamics, not a rescore: Case IX retained only scored scalars and
+    the final PMF, never F_hat_t(z), so no rescore of the stored runs was possible.
+    """
+    d = rd_json("results/wca_caseix_hp/caseix_hp_verdict.json")
+    med = {"abf": 42.21, "fr_estimated": 33.05, "fr_oracle": 32.93, "sham_practical": 41.43}
+    base = dict(system="WCA dimer, Case IX v2 (corrected reference)",
+                family="many-body condensed phase",
+                cv="xi = dimer bond coordinate",
+                setting="cell b1_h2: beta=1, h=2, w=2, M=100, a=1.5; N=1024; 120000 steps; "
+                        "FR rate 0.10; nothing retuned from v1",
+                n_seeds=d["n_seeds"], seeds="400-415",
+                endpoint="integrated_l2_f (time-integrated L2 free-energy error)",
+                test="paired per seed; bootstrap median of the per-seed relative change",
+                status="confirmatory",
+                prereg="results/wca_sham/PREREGISTRATION.md; the v1 criteria applied "
+                       "unchanged to the corrected reference",
+                reference="high-precision TI reference (cache/phase_hp_v3): unsmoothed, "
+                          "4 independent preparations, acquisition grid == evaluation grid",
+                artifact="results/wca_caseix_hp/caseix_hp_verdict.json",
+                regime="establishment-limited",
+                regime_basis="Gate 0 re-frozen against the corrected reference: pool spread "
+                             "0.042 (all z) / 0.048 (transition), vs deca's 0.61",
+                section="sec:wca_sham")
+    supersede = ("supersedes the cached-reference value of {v1:+.2f}% in "
+                 "'WCA dimer, matched sham (Case IX)'; the cached TI reference is wrong "
+                 "near z~0.26 by up to 67 sigma. FRESH DYNAMICS, not a rescore")
+    # 4 decimals, not the usual 3: the headline is -17.9655, which the table then rounds to
+    # 2 for display. Stored at 3 it becomes "-17.965" and rounds again to -17.96, one digit
+    # away from the -17.97 the prose macros quote from the artifact.
+    pct = "{:.4f}".format
+    out = []
+    for arm, label, key in [
+            ("fr_estimated", "practical mFR (fr_estimated)", "integrated::mFR vs ABF"),
+            ("fr_oracle", "oracle mFR (fr_oracle)", "integrated::mFR-oracle vs ABF"),
+            ("sham_practical", "matched-turnover sham (sham_practical)",
+             "integrated::sham vs ABF")]:
+        c = d["contrasts"][key]
+        note = "" if c["v1_cached"] is None else supersede.format(v1=c["v1_cached"])
+        if arm == "sham_practical":
+            note += (". Under the cached reference this control read +2.60% (adverse); "
+                     "against the corrected one its interval spans zero, so it is now the "
+                     "neutral procedural control the design intended")
+        out.append(derive(row(**base, arm=label, comparator="ABF",
+                              rel_pct=pct(c["median_pct"]),
+                              ci95=f"[{c['ci95'][0]:.2f}, {c['ci95'][1]:.2f}]",
+                              favorable_seeds=f"{c['wins']}/{c['n']}",
+                              notes=note),
+                          med[arm], med["abf"]))
+    c = d["contrasts"]["integrated::mFR vs its own sham"]
+    out.append(row(**base, arm="practical mFR (fr_estimated)",
+                   comparator="its own matched-turnover sham (sham_practical)",
+                   rel_pct=pct(c["median_pct"]),
+                   ci95=f"[{c['ci95'][0]:.2f}, {c['ci95'][1]:.2f}]",
+                   favorable_seeds=f"{c['wins']}/{c['n']}",
+                   notes="PREREGISTERED attribution statistic: identical event schedule and "
+                         "count, only the selection direction differs. "
+                         + supersede.format(v1=c["v1_cached"])))
+    # The final-time endpoint is carried because it is FAR larger (-45.35%) than the
+    # integrated one, and a reader who meets that number elsewhere must be able to see that
+    # it is a different endpoint rather than a different result. It is never the headline.
+    cf = d["contrasts"]["final::mFR vs ABF"]
+    out.append(row(**{**base, "endpoint": "final_l2_f (final-time L2 free-energy error)"},
+                   arm="practical mFR (fr_estimated)", comparator="ABF",
+                   rel_pct=pct(cf["median_pct"]),
+                   ci95=f"[{cf['ci95'][0]:.2f}, {cf['ci95'][1]:.2f}]",
+                   favorable_seeds=f"{cf['wins']}/{cf['n']}",
+                   notes="SECONDARY endpoint, not the headline: mFR's advantage grows through "
+                         "the run, so the time-integral dilutes it. The v1 headline was the "
+                         "integrated endpoint, so the integrated row is the like-for-like "
+                         "replacement and this one must not be quoted in its place"))
+    return out
+
+
 def wca_earlier_rows():
     n = rd_json("report/tables/report_numbers.json")
     w = n["wca"]
@@ -701,6 +780,12 @@ HEADLINE = [
     ("gateway confirmatory v1", "practical mFR (fr_estimated)",
      "its own matched-turnover sham (sham_practical)", "int_l2_f"),
     ("gateway confirmatory v1", "matched-turnover sham (sham_practical)", "ABF", "int_l2_f"),
+    ("WCA dimer, Case IX v2 (corrected reference)", "practical mFR (fr_estimated)", "ABF",
+     "integrated_l2_f"),
+    ("WCA dimer, Case IX v2 (corrected reference)", "practical mFR (fr_estimated)",
+     "its own matched-turnover sham (sham_practical)", "integrated_l2_f"),
+    ("WCA dimer, Case IX v2 (corrected reference)", "matched-turnover sham (sham_practical)",
+     "ABF", "integrated_l2_f"),
     ("WCA dimer, matched sham (Case IX)", "practical mFR (fr_estimated)", "ABF",
      "integrated_l2_f"),
     ("WCA dimer, matched sham (Case IX)", "practical mFR (fr_estimated)",
@@ -712,7 +797,8 @@ HEADLINE = [
 SHORT = {
     "gateway confirmatory v2 (replicate; quoted)": "Gateway, confirmatory v2",
     "gateway confirmatory v1": "Gateway, confirmatory v1",
-    "WCA dimer, matched sham (Case IX)": "WCA dimer, Case IX",
+    "WCA dimer, Case IX v2 (corrected reference)": "WCA Case IX v2, corrected ref",
+    "WCA dimer, matched sham (Case IX)": "WCA Case IX v1, cached ref",
     "practical mFR (fr_estimated)": "practical mFR",
     "matched-turnover sham (sham_practical)": "matched sham",
     "its own matched-turnover sham (sham_practical)": "its own sham",
@@ -734,7 +820,12 @@ def write_inventory_tex(rows, path):
              r"median over matched seeds of the per-seed relative change, so "
              r"\textbf{negative is better}. Intervals are 95\,\% bootstrap intervals of that "
              r"median. The full inventory, including every neutral and adverse row, is "
-             r"\texttt{results/closure/v1\_results\_inventory.csv}.}",
+             r"\texttt{results/closure/v1\_results\_inventory.csv}. The Case~IX \emph{v1} "
+             r"rows are \textbf{superseded} and retained only as a record of what was run: "
+             r"they are scored against a cached TI reference later found wrong near "
+             r"$z\approx0.26$, and the v2 rows --- fresh dynamics at the same frozen cell "
+             r"against the corrected reference --- are the ones to quote "
+             r"(\cref{rem:wca_reference_correction}).}",
              r"\label{tab:closure_inventory}",
              r"\begin{tabular}{llrrl}", r"\toprule",
              r"System & Comparison & $\Delta I_F$ (\%) & 95\,\% CI & seeds \\", r"\midrule"]
@@ -1107,6 +1198,7 @@ def main():
     rows += gw
     sham_rows, sham = wca_sham_rows()
     rows += sham_rows
+    rows += wca_caseix_hp_rows()
     rows += wca_earlier_rows()
     rows += toy_rows()
     rows += alkane_rows()

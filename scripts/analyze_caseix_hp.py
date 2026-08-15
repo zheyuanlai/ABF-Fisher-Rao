@@ -94,6 +94,24 @@ def main():
             if finF.get(a) and finF.get(b):
                 res[f"final::{lab}"] = contrast(a, b, lab, finF)
 
+    # Transport diagnostic on THESE runs. The v1 figure (+1.27 %) came from the v1 seed set,
+    # so pairing it against the v2 accuracy number would be a ratio across two run trees.
+    # Same statistic and same independent stream as analyze_wca_sham._round_trip_paired.
+    rt_tab = {a: load(args.dir, a, "n_round_trips") for a in ARMS}
+    rt = None
+    if rt_tab.get("fr_estimated") and rt_tab.get("abf"):
+        v = np.array([float(rt_tab["fr_estimated"][s]) for s in seeds])
+        b = np.array([float(rt_tab["abf"][s]) for s in seeds])
+        med, lo, hi = boot(100.0 * (v - b) / b, n=10_000, seed=20260804)
+        rt = dict(median_pct=med, ci95=[lo, hi], wins_more_crossings=int((v > b).sum()),
+                  n=len(seeds), abf_median=float(np.median(b)),
+                  mfr_median=float(np.median(v)),
+                  note="transport diagnostic, NOT an accuracy endpoint: more crossings is "
+                       "not 'better', so the count is of seeds where mFR crossed MORE")
+        print(f"\n--- transport diagnostic (same runs) ---")
+        print(f"  round trips, mFR vs ABF  {med:+8.2f} %   95% CI [{lo:+.2f}, {hi:+.2f}]   "
+              f"more on {rt['wins_more_crossings']}/{len(seeds)}")
+
     prim = res.get("integrated::mFR vs ABF")
     att = res.get("integrated::mFR vs its own sham")
     checks = {}
@@ -118,7 +136,7 @@ def main():
     os.makedirs(args.out, exist_ok=True)
     with open(os.path.join(args.out, "caseix_hp_verdict.json"), "w") as fh:
         json.dump(dict(n_seeds=len(seeds), arms=list(intF), contrasts=res,
-                       checks=checks, passed=passed,
+                       round_trips=rt, checks=checks, passed=passed,
                        reference="cache/phase_hp_v3 (unsmoothed, 4 preparations, "
                                  "acquisition == eval grid)",
                        endpoint="time-integrated L2(F), the -22.83% headline endpoint"),
