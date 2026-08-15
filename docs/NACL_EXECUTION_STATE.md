@@ -26,11 +26,20 @@ CURRENT STAGE:          N=64 CELL VERDICT: ABF-SUFFICIENT (2026-08-14 23:26 UTC,
                         ACCEPTED reference gives max lambda 15.6 and 7.8, both < 16, for every
                         state. No amount of sampling changes a number that does not depend on
                         the sample. Running them costs ~2.5 GPU-days to produce two cells that
-                        cannot be classified, so they are NOT relaunched pending user decision;
-                        N=32 (SSIP lambda 31.1) is the only cell that can still return a verdict.
-                        N=32 therefore runs UNPACKED (256 walkers, ~33 h) rather than packed
-                        with 8/16 (448 walkers, ~58 h to the same cell): ~450 steps/min measured
-                        in situ at 448, and the cells share nothing but the device.
+                        cannot be classified, so they are struck and NOT relaunched (user
+                        decision 2026-08-15); N=32 (SSIP lambda ~30.7) is the only cell that can
+                        still return a verdict. The exclusion is now DERIVED in code by
+                        nacl_gates.map_completeness() rather than argued in prose, and is strict:
+                        Q*_k < 1 whenever a second basin carries positive target, so lambda < N,
+                        so N=16 cannot reach 16 either -- it is struck, not merely doubted.
+                        N=32 therefore runs UNPACKED (256 walkers) rather than packed with 8/16
+                        (448): measured 1394 steps/min = 1028 ns/day at 256 against an inferred
+                        400-500 steps/min = 516-645 ns/day at 448, so packing looked 1.6-2.0x
+                        WORSE in aggregate. Treat the 448 figure as INDICATIVE, not a clean A/B
+                        -- inferred from checkpoint spacing under a >=20 min rule on a run whose
+                        exclusive GPU access cannot now be confirmed. The decision it supports is
+                        safe either way, since the packed run also spent 2/3 of its budget on
+                        cells that cannot be classified.
 LAST COMPLETED GATE:    engine equivalence 11/11 <1e-6; box frozen L=2.892700 nm;
                         descriptors frozen; baths verified (9 baths, 549 starts)
 VERDICT:                GATE 0 PASS (0.0075 global / 0.0483 barrier -- the campaign's
@@ -63,27 +72,35 @@ VERDICT:                GATE 0 PASS (0.0075 global / 0.0483 barrier -- the campa
                         and require_full_block REFUSES a 4-seed verdict -- so the autolaunch's
                         output could not have been analysed even if it had been permitted.
 
-NEXT PERMITTED ACTION:  DONE 00:41 -- N=32 LAUNCHED on GPU 2 (PID 3707699) through
-                        scripts/nacl_launch_N32.sh: preflight PASSED all five checks including
-                        the re-read of the governing compute clause, 76 tests, GPU 2 verified
+RUNNING NOW:            N=32, PID 3835641 on GPU 2 since 2026-08-15 01:14 UTC, launched by
+                        scripts/nacl_launch_N32.sh -- preflight PASSED all five checks including
+                        the re-read of the governing compute clause; 80 tests; GPU 2 verified
                         idle. 256 walkers, seeds 4000-4007 in ONE process, 1562500 steps.
-                        Then: run nacl_gates.py over N=64 + N=32 and close the study.
-                        Launched from the EXISTING pinned worktree at 53dfb30 -- NOT a new pin.
-                        The sampler delta 53dfb30..HEAD is one diagnostic print plus a manifest
-                        field (src/nacl/ untouched, verified by diff), so keeping the pin holds
-                        the data-generating process identical across N=64 and N=32 while the
-                        analysis runs at HEAD with the power guard. Re-pinning would buy nothing
-                        and cost ladder homogeneity. Then run nacl_gates.py over N=64 + N=32.
-                        The frozen rule is the SMALLEST N passing every gate; with N=16/N=8 not
-                        computable, the smallest classifiable N is 32. If it shows no deficit:
-                        NaCl is not an mFR candidate under the preregistered budget -- write the
-                        closure with the pre-committed weak-null caveat (commit addfbed) attached.
-                        tau_perp (Gate D input) is DOWNSTREAM of Gate C and should not have held
-                        the device ahead of N=32; two attempts to stop it were refused by the
-                        permission classifier, so it runs to completion and N=32 follows it.
-                        Launching on its exit is a reviewed action taken by me on a wake, NOT the
-                        retired 15.3 autolaunch: preflight (pin, clean code paths, 65 tests, idle
-                        device, manifest) is re-run at that point, not inherited from this one.
+                        From the pinned worktree at 53dfb30 -- NOT a new pin: the sampler delta
+                        53dfb30..HEAD is one diagnostic print plus a manifest field (src/nacl/
+                        untouched, verified by diff), so the data-generating process is identical
+                        across N=64 and N=32. ANALYSIS runs at HEAD, which is a DIFFERENT pin --
+                        53dfb30 is not an ancestor of f88e434, so the worktree's nacl_gates.py
+                        has no power guard, no cell-map guard and Gate A transposed. A
+                        gates_report.json without an `analysis_provenance` block came from that
+                        superseded tree and is not a verdict.
+                        IN-SITU RATE 1394 steps/min = 1028 ns/day aggregate (steps 30000->90000
+                        over 43 min). ETA ~19:56 UTC 2026-08-15, ~18.7 h total.
+
+NEXT PERMITTED ACTION:  when N=32 completes, link cell_N32.npz and cell_N64.npz into one
+                        directory and run nacl_gates.py over BOTH. The map is then COMPLETE
+                        (8 and 16 struck a priori) and the study-level verdict is emitted; until
+                        then it is WITHHELD by map_completeness() and correctly so.
+                        Read the outcome against results/nacl/CLOSURE_PRECOMMIT.md, which fixed
+                        all four branches BEFORE the number existed -- including that CIP may
+                        come back INCONCLUSIVE from the windowed audit and must then be reported
+                        UNKNOWN, not folded into the null.
+                        If N=32 shows no deficit on a POWERED state: NaCl is not an mFR candidate
+                        under the preregistered budget -- write the closure with the pre-committed
+                        weak-null caveat (commit addfbed) attached, unchanged.
+                        ONLY if Gate C fires on a powered state: tau_perp must be re-run (~4 h,
+                        GPU 2, no checkpointing) before Gate D. It is DOWNSTREAM of Gate C and
+                        must not pre-empt the cell again.
 OPEN ITEM (NOT ADOPTED): `scripts/nacl_screen_merge.py` carries an UNCOMMITTED change from the
                         session that stood down, replacing the hard-coded seed-axis table with
                         shape inference. Left in the working tree, not adopted, not reverted.
