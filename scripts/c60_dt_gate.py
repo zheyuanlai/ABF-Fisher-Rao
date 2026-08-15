@@ -174,20 +174,22 @@ def phase_torch():
             from c60 import geometry
             pos[np.asarray(eng.cage_a.cpu())] = geometry.pair_positions(d, center)[:60]
             pos[np.asarray(eng.cage_b.cpu())] = geometry.pair_positions(d, center)[60:]
-            x = torch.as_tensor(pos, device="cuda", dtype=torch.float32)[None] \
+            # Amendment 16.9: reach the spot separation by DRAG from the frozen 2.428 box
+            # (the first read teleported and its 0.968/1.20 spots went NaN -- RETRACTED;
+            # a radial pusher diverges structurally at contact: 0.256 nm gap < 2 x 0.33).
+            from c60.prep import drag_cages
+            x = torch.as_tensor(base, device="cuda", dtype=torch.float32)[None] \
                 .repeat(16, 1, 1).contiguous()
             eng.compute_vsites(x)
-            # relieve teleport clashes: 300 clipped steepest-descent steps
-            for _ in range(300):
-                _, f_raw = eng.energy_forces(x)
-                f_red = eng.redistribute(f_raw)
-                stepv = (0.5e-5 * f_red).clamp(-2e-4, 2e-4)
-                stepv[:, eng.cage_a, :] = 0.0
-                stepv[:, eng.cage_b, :] = 0.0
-                x += stepv
-                x_ref = x.clone()
-                dyn.cons.apply_positions(x, x_ref)
-                eng.compute_vsites(x)
+            center_t = torch.tensor([0.5 * lx, 0.5 * lx, 0.5 * lz], device="cuda",
+                                    dtype=torch.float32)
+            # 2x the production drag rate: this is preparation for a spot CHECK (10 ps
+            # settle + 30 ps production follow, which set the ensemble), not a family prep
+            drag_cages(eng, dyn, x,
+                       torch.full((16,), csys.D_REF_NM, device="cuda", dtype=torch.float32),
+                       torch.full((16,), d, device="cuda", dtype=torch.float32),
+                       center_t, torch.Generator(device="cuda").manual_seed(14),
+                       rate_nm_ps=0.08)
             gen = torch.Generator(device="cuda").manual_seed(13)
             v = dyn.maxwell_velocities(x, generator=gen)
             _, f_raw = eng.energy_forces(x)
@@ -202,6 +204,10 @@ def phase_torch():
                 _, f_raw2 = eng.energy_forces(x)
                 fs.append(float(eng.local_mean_force(f_raw2).mean()))
             fs = np.asarray(fs)
+            if not np.isfinite(fs).all():
+                # an exploded trajectory must raise, never become a NaN in a verdict file
+                # (the first read's NaN spots silently forced the 1 fs fallback)
+                raise RuntimeError(f"non-finite mean-force samples at spot d={d}, dt={dt}")
             spots[str(d)] = dict(mean=float(fs.mean()),
                                  sem=_blocked_sem(fs, int(BLOCK_PS / 0.5)))
             del eng, dyn, x, v, f

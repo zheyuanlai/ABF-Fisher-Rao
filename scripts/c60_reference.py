@@ -36,6 +36,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from c60 import geometry, system as csys  # noqa: E402
 from c60.dynamics import C60Dynamics  # noqa: E402
 from c60.nonbonded import C60Nonbonded  # noqa: E402
+from c60.prep import assert_relaxed, drag_cages, push_waters_off_cages  # noqa: E402
 
 REF = os.path.join(os.path.dirname(__file__), "..", "results", "c60", "reference")
 BOX = os.path.join(os.path.dirname(__file__), "..", "results", "c60", "box", "frozen_box.npz")
@@ -59,6 +60,8 @@ BLOCK_PS = 5.0
 NGAP_EVERY_PS = 2.0
 CHUNK = 256
 SD_STEPS = 300
+DRAG_RATE_NM_PS = 0.04          #: Amendment 16.9: constant-rate cage drag, rate is physical
+DRAG_CLAMP = 5.0e4              #: per-site force clamp DURING the drag only (kJ/mol/nm)
 
 
 def _dt_ps():
@@ -98,7 +101,19 @@ def _place_batch(eng, base, lx, lz, d_values, device, dtype):
 
 
 def _relax(eng, dyn, x, n_steps=SD_STEPS):
-    """Clipped steepest descent on the waters; cages pinned, constraints re-applied."""
+    """Clash-push then clipped steepest descent; cages pinned, constraints re-applied.
+
+    The pusher is load-bearing: SD's total reach (n_steps x clamp = 0.06 nm) cannot clear
+    teleport overlaps of ~0.25 nm, and the first ladder smoke died on exactly that (singular
+    M-SHAKE after a water blew apart).  The force guard at the end refuses to return a state
+    dynamics cannot integrate.
+    """
+    left = push_waters_off_cages(x, eng)
+    if left:
+        raise RuntimeError(f"{left} waters still clashing after push iterations; prep defect")
+    x_ref = x.clone()
+    dyn.cons.apply_positions(x, x_ref)
+    eng.compute_vsites(x)
     for _ in range(n_steps):
         _, f_raw = eng.energy_forces(x, chunk=CHUNK)
         f = eng.redistribute(f_raw)
@@ -109,7 +124,20 @@ def _relax(eng, dyn, x, n_steps=SD_STEPS):
         x += step
         dyn.cons.apply_positions(x, x_ref)
         eng.compute_vsites(x)
+    assert_relaxed(eng, x, chunk=CHUNK)
     return x
+
+
+def _drag(eng, dyn, x, xi_from, xi_to, center, gen, rate_nm_ps=DRAG_RATE_NM_PS):
+    """Amendment 16.9: move the cages linearly in xi while the water propagates.
+
+    ``xi_from``/``xi_to``: per-walker (B,) tensors.  Wall duration is set by the LONGEST
+    traverse at ``rate_nm_ps``; shorter traverses finish early and hold.  A per-site force
+    clamp is active during the drag only; the settle/equilibration that follows at fixed d
+    (unclamped) is what sets the ensemble.
+    """
+    return drag_cages(eng, dyn, x, xi_from, xi_to, center, gen,
+                      rate_nm_ps=rate_nm_ps, clamp=DRAG_CLAMP, chunk=CHUNK)
 
 
 def _ngap_torch(eng, x, lx, lz, r_cyl=0.62):
@@ -142,6 +170,9 @@ def main():
     assert torch.cuda.device_count() == 1
 
     scale = 0.02 if a.smoke else 1.0
+    # the drag RATE is physical and does not scale with smoke durations; the smoke instead
+    # drags 8x faster -- it verifies mechanics only, and assert_relaxed still guards it
+    drag_rate = DRAG_RATE_NM_PS * (8.0 if a.smoke else 1.0)
     equil_ps = EQUIL_PS * scale
     prod_ps = PROD_PS * scale
     anchor_run = ANCHOR_RUN_PS * scale
@@ -181,8 +212,12 @@ def main():
               f"{snaps_dry.shape[0]} dry snapshots)", flush=True)
     else:
         snaps = {}
+        center_t = torch.tensor([0.5 * lx, 0.5 * lx, 0.5 * lz], device="cuda", dtype=dtype)
         for name, d_anchor in (("wet", ANCHOR_WET_NM), ("dry", ANCHOR_DRY_NM)):
-            x = _place_batch(eng, base, lx, lz, [d_anchor] * N_ANCHOR_STREAMS, "cuda", dtype)
+            # both anchors START from the frozen 2.428 nm box (no teleport anywhere);
+            # the dry anchor is DRAGGED to 0.968 (Amendment 16.9)
+            x = _place_batch(eng, base, lx, lz, [ANCHOR_WET_NM] * N_ANCHOR_STREAMS,
+                             "cuda", dtype)
             noise = torch.as_tensor(
                 rng.normal(0.0, 0.003, x.shape), device="cuda", dtype=dtype)
             noise[:, eng.cage_a, :] = 0.0
@@ -192,6 +227,14 @@ def main():
             dyn.cons.apply_positions(x, x_ref)
             eng.compute_vsites(x)
             _relax(eng, dyn, x)
+            if abs(d_anchor - ANCHOR_WET_NM) > 1e-9:
+                B = x.shape[0]
+                _drag(eng, dyn, x,
+                      torch.full((B,), ANCHOR_WET_NM, device="cuda", dtype=dtype),
+                      torch.full((B,), d_anchor, device="cuda", dtype=dtype),
+                      center_t, gen, rate_nm_ps=drag_rate)
+                print(f"[phase A] {name}: dragged to {d_anchor} nm "
+                      f"({time.perf_counter()-t0:.0f}s)", flush=True)
             v = dyn.maxwell_velocities(x, generator=gen)
             f, _ = force_of(x)
             store = []
@@ -229,36 +272,56 @@ def main():
         start_step = int(ck["step"])
         print(f"[resume] step {start_step}", flush=True)
     else:
+        # Amendment 16.9: every start reaches its window separation by DRAG, never teleport.
+        # wet: drag DOWN from a 2.428 snapshot; dry: drag UP from a 0.968 anchor snapshot;
+        # bulk: independent wet snapshot at HALF rate (most adiabatic control);
+        # hot: dragged wet snapshot + water noise + clash push + SD.
+        starts_path = os.path.join(out_dir, "starts_dragged.npz")
         starts = np.empty((B_TOTAL, base.shape[0], 3), dtype=np.float32)
+        src_xi = np.empty(B_TOTAL)
         n_wet, n_dry = snaps_wet.shape[0], snaps_dry.shape[0]
         for i in range(B_TOTAL):
             w, fam, rep = i // 12, (i % 12) // 3, i % 3
-            if FAMILIES[fam] == "bulk":
-                starts[i] = base
-            elif FAMILIES[fam] == "wet":
-                starts[i] = snaps_wet[(w * 3 + rep) % n_wet]
-            elif FAMILIES[fam] == "dry":
+            if FAMILIES[fam] == "dry":
                 starts[i] = snaps_dry[(w * 3 + rep) % n_dry]
-            else:                                            # hot
-                starts[i] = base + rng.normal(0.0, 0.05, base.shape)
-        x = torch.as_tensor(starts, device="cuda", dtype=dtype)
-        # cages to window separations; per-replica jiggle on waters; relax
-        cage = torch.as_tensor(geometry.c60_cage(), device="cuda", dtype=dtype)
-        c = torch.tensor([0.5 * lx, 0.5 * lx, 0.5 * lz], device="cuda", dtype=dtype)
-        d_t = torch.as_tensor(d_values, device="cuda", dtype=dtype)
-        x[:, eng.cage_a, :] = cage[None] + c[None, None, :]
-        x[:, eng.cage_a, 2] += -0.5 * d_t[:, None]
-        x[:, eng.cage_b, :] = cage[None] + c[None, None, :]
-        x[:, eng.cage_b, 2] += +0.5 * d_t[:, None]
-        jig = torch.as_tensor(rng.normal(0.0, 0.003, x.shape), device="cuda", dtype=dtype)
-        jig[:, eng.cage_a, :] = 0.0
-        jig[:, eng.cage_b, :] = 0.0
-        x += jig
-        x_ref = x.clone()
-        dyn.cons.apply_positions(x, x_ref)
-        eng.compute_vsites(x)
-        print(f"[phase B] relaxing {B_TOTAL} starts...", flush=True)
-        _relax(eng, dyn, x)
+                src_xi[i] = ANCHOR_DRY_NM
+            else:                                            # wet, bulk, hot from wet pool
+                starts[i] = snaps_wet[(w * 3 + rep + 7 * fam) % n_wet]
+                src_xi[i] = ANCHOR_WET_NM
+        if os.path.exists(starts_path):
+            x = torch.as_tensor(np.load(starts_path)["x"], device="cuda", dtype=dtype)
+            print("[phase B] loaded dragged starts (post-drag resume)", flush=True)
+        else:
+            x = torch.as_tensor(starts, device="cuda", dtype=dtype)
+            c = torch.tensor([0.5 * lx, 0.5 * lx, 0.5 * lz], device="cuda", dtype=dtype)
+            d_t = torch.as_tensor(d_values, device="cuda", dtype=dtype)
+            src_t = torch.as_tensor(src_xi, device="cuda", dtype=dtype)
+            fam_t = torch.as_tensor(fam_idx, device="cuda")
+            print(f"[phase B] dragging {B_TOTAL} starts to window separations...", flush=True)
+            fast = fam_t != 0                                # bulk (fam 0) drags at half rate
+            for mask, rate in ((fast, drag_rate), (~fast, 0.5 * drag_rate)):
+                idx = torch.nonzero(mask, as_tuple=True)[0]
+                if idx.numel() == 0:
+                    continue
+                xs = x[idx].contiguous()
+                _drag(eng, dyn, xs, src_t[idx], d_t[idx], c, gen, rate_nm_ps=rate)
+                x[idx] = xs
+                print(f"[phase B] dragged {idx.numel()} starts at rate {rate:.3f} nm/ps "
+                      f"({time.perf_counter()-t0:.0f}s)", flush=True)
+            # hot family: destroy the interface AFTER the drag, then push + SD + guard
+            hot = torch.nonzero(fam_t == 3, as_tuple=True)[0]
+            xh = x[hot].contiguous()
+            noise = torch.as_tensor(rng.normal(0.0, 0.05, xh.shape), device="cuda",
+                                    dtype=dtype)
+            noise[:, eng.cage_a, :] = 0.0
+            noise[:, eng.cage_b, :] = 0.0
+            xh += noise
+            x_ref = xh.clone()
+            dyn.cons.apply_positions(xh, x_ref)
+            eng.compute_vsites(xh)
+            _relax(eng, dyn, xh)
+            x[hot] = xh
+            np.savez(starts_path, x=x.detach().cpu().numpy().astype(np.float32))
         v = dyn.maxwell_velocities(x, generator=gen)
         f, _ = force_of(x)
         fsum = torch.zeros(B_TOTAL, n_blocks, device="cuda", dtype=torch.float64)

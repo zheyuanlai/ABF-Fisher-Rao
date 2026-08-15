@@ -47,11 +47,15 @@ CUDA_VISIBLE_DEVICES=3 python scripts/c60_reference.py --build 1 --smoke
 
 echo "== [6/6] checkpoint-resume verification (smoke, killed and resumed) =="
 rm -rf "$RESULTS/reference/build1_smoke"
-# generous timeout: torch.compile alone takes minutes; the kill must land mid-dynamics
-CUDA_VISIBLE_DEVICES=3 timeout 480 python scripts/c60_reference.py --build 1 --smoke || true
+# generous timeout: torch.compile alone takes minutes; the kill must land mid-run.
+# Resumable artifacts, any of which proves the resume path: anchors.npz (phase A done),
+# starts_dragged.npz (phase B drags done), checkpoint.pt (main loop), windows.npz (complete).
+CUDA_VISIBLE_DEVICES=3 timeout 900 python scripts/c60_reference.py --build 1 --smoke || true
 if [ ! -f "$RESULTS/reference/build1_smoke/checkpoint.pt" ] && \
+   [ ! -f "$RESULTS/reference/build1_smoke/starts_dragged.npz" ] && \
+   [ ! -f "$RESULTS/reference/build1_smoke/anchors.npz" ] && \
    [ ! -f "$RESULTS/reference/build1_smoke/windows.npz" ]; then
-  echo "FAIL: no checkpoint written before the kill"; exit 1
+  echo "FAIL: no resumable artifact written before the kill"; exit 1
 fi
 CUDA_VISIBLE_DEVICES=3 python scripts/c60_reference.py --build 1 --smoke
 echo "resume completed"

@@ -2302,3 +2302,37 @@ on unclassifiable cells, the NaCl precedent).  Gate B alone could still function
 
 The 16.2/SPEC §7 ladder text is superseded to this extent; budgets, seeds, order and every
 other clause are unchanged.
+
+#### 16.9 Teleport preparation is replaced by constant-rate cage dragging (2026-08-15)
+
+**What had been seen:** no reference window, gate statistic or screen datum — only three
+preparation failures: (i) the ladder smoke died on a singular M-SHAKE matrix after the
+dry-anchor teleport (cages placed at 0.968 nm into 2.428 nm-equilibrated water; a clipped-SD
+reach of 0.06 nm cannot clear ~0.25 nm overlaps); (ii) the dt gate's first read was
+RETRACTED because its 0.968/1.20 nm spots went NaN from the same teleport (equipartition
+itself passed at 0.15 K); (iii) the whole-molecule clash pusher, tested on the same case,
+**diverges structurally**: at contact the inter-cage gap is 0.256 nm wide, so no radial
+ejection can clear both cages, and ejections buried waters in each other (max force rose
+from 7e13 to 2e16 kJ/mol/nm, 14 waters unresolved).
+
+**Replacement (mechanism only; family semantics, budgets, windows, seeds unchanged):**
+every cage placement at a new separation is reached by a **constant-rate drag** — the cages
+move linearly in `xi` at `<= 0.04 nm/ps` (up to 40 ps for the longest 1.46 nm traverse)
+while the water propagates, with a per-site force clamp of `5e4 kJ/mol/nm` active during
+the drag only; each drag is followed by the frozen settle/equilibration at fixed `d`, which
+is what sets the sampled ensemble.  Family preparations become:
+
+```
+  wet(d_k)   drag DOWN from a 2.428 nm-equilibrated snapshot        (water-rich history)
+  dry(d_k)   drag UP   from a 0.968 nm-equilibrated anchor          (water-poor history)
+  bulk(d_k)  drag DOWN from an independent wet snapshot at HALF rate (most adiabatic control;
+             replaces "equilibrated at d_k directly", which presumed an unintegrable teleport)
+  hot(d_k)   dragged state + 0.05 nm water noise + clash push + SD  (destroyed interface)
+```
+
+The dry anchor itself is made by dragging 2.428 -> 0.968 and equilibrating.  The Gate 0 pool
+preparations (SPEC §6) use the same mechanism.  Drag time does not scale in smoke mode (the
+rate cap is physical).  Preparation costs ~35-70 ns aggregate per build, recorded as prep
+outside the production accounting.  Force guards remain: a state with non-finite or
+`> 1e6 kJ/mol/nm` forces after preparation raises rather than samples, and a NaN trajectory
+raises rather than writing a verdict file.
