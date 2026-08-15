@@ -22,12 +22,17 @@ never a spec change.
 
 ## Next permitted action
 
-Run `bash scripts/c60_launch_ladder.sh` at a pinned commit, then (separate, reviewed)
-launch reference builds 1–3 sequentially on GPU 3, one process each:
+Ladder9 running (pin = `results/c60/PINNED_COMMIT`, hot rejection sampling in). On a green
+ladder: launch the reference campaign from the pinned worktree (separate, reviewed action):
 
 ```
-CUDA_VISIBLE_DEVICES=3 python scripts/c60_reference.py --build 1
+cd /home/zheyuanlai/ABF-c60-worktree && setsid nohup bash scripts/c60_reference_campaign.sh > /home/zheyuanlai/ABF-Fisher-Rao/results/c60/reference/campaign.log 2>&1 &
 ```
+
+At dt = 1 fs (DECIDED): ~4.9 idle days for 3 builds + spot-check + analysis. Then review
+acceptance (R_ref <= 0.5) + the Zangi reproduction gate + the 16.8 lambda table, and only
+then write/run the Gate 0 pools and the N = 64 screen (drivers not yet written -- model on
+scripts/nacl_gates.py with the 16.7/16.8 constants).
 
 ## Forbidden actions
 
