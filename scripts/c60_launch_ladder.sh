@@ -26,16 +26,36 @@ if ! git diff --quiet -- src scripts tests docs; then
   echo "FAIL: code tree dirty (src/scripts/tests/docs)"; exit 1
 fi
 USED=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits -i 3)
+SKIP_THROUGHPUT=0
 if [ "$USED" -gt 500 ]; then
-  echo "FAIL: GPU 3 not idle (${USED} MiB)"; exit 1
+  if [ "${ALLOW_COTENANT:-0}" = "1" ]; then
+    # Third-party co-tenancy (2026-08-15: the box is NOT group-exclusive). The dt gate,
+    # smoke and resume stages are ensemble-/mechanics-based and remain valid co-resident;
+    # ONLY the throughput stage requires an idle device, and its characterization already
+    # stands on the twice-replicated idle record (throughput_idle_reference.json) -- so it
+    # is SKIPPED, never measured under contention and frozen as a device number.
+    echo "preflight: GPU 3 CO-TENANTED (${USED} MiB foreign); ALLOW_COTENANT=1 set"
+    nvidia-smi --query-compute-apps=pid,used_memory --format=csv,noheader -i 3 \
+      | tee "$RESULTS/parity/cotenancy_at_ladder.txt"
+    SKIP_THROUGHPUT=1
+  else
+    echo "FAIL: GPU 3 not idle (${USED} MiB); set ALLOW_COTENANT=1 to run the"
+    echo "      co-tenancy-valid stages (throughput will be skipped)"; exit 1
+  fi
+else
+  echo "preflight OK: commit $HEAD, GPU 3 idle (${USED} MiB)"
 fi
-echo "preflight OK: commit $HEAD, GPU 3 idle (${USED} MiB)"
 
 echo "== [2/6] engine gate (test suite) =="
 python -m pytest tests/test_c60_engine.py -q 2>&1 | tail -2
 
 echo "== [3/6] idle-device throughput =="
-CUDA_VISIBLE_DEVICES=3 python scripts/c60_throughput.py
+if [ "$SKIP_THROUGHPUT" = "1" ]; then
+  echo "SKIPPED: co-tenant present; the idle characterization stands on"
+  echo "         results/c60/parity/throughput_idle_reference.json (replicated 2x)"
+else
+  CUDA_VISIBLE_DEVICES=3 python scripts/c60_throughput.py
+fi
 
 echo "== [4/6] dt gate =="
 CUDA_VISIBLE_DEVICES=3 python scripts/c60_dt_gate.py --phase openmm
