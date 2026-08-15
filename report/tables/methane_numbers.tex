@@ -68,6 +68,13 @@
 \def\MeGateCLamMin{16}              % binding threshold: 0.5 lambda >= 2 sqrt(lambda)
 \def\MeGateCMdeLo{13}               % %% deficit resolvable at the strongest state
 \def\MeGateCMdeHi{18}               % %% at the weakest; the gate TESTS for 50 %%
+% Detection calibration, Amendment 12.13: planted walker-conserving deficits, REAL traces
+\def\MeGateCFires{60}               % %% deficit at which the gate fires on 8/8 seeds
+\def\MeGateCSilent{50}              % %% at which it fires on 0/8 -- the deficit it tests for
+\def\MeGateCFlatLo{60}              % %% detection threshold across lambda 14-224 ...
+\def\MeGateCFlatHi{65}
+\def\MeGateCLowLam{70}              % %% needed at lambda = 9.2
+\def\MeShortfallMax{17}             % %% largest shortfall measured anywhere (occ/Q* = 0.83)
 \def\MeScreenHours{28.6}
 
 % --- Gate B vacuity: ballistic floor, exact extreme-value quantile --------------------------

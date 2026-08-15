@@ -94,7 +94,25 @@ non-binding with its detectable effect size rather than reading its output. Meth
 terciles hold $\lambda = \MeGateCLamOne$, $\MeGateCLamTwo$ and $\MeGateCLamThree$ at the worst
 checkpoint of the judged window, resolving $\MeGateCMdeLo$--$\MeGateCMdeHi\,\%$ deficits against
 the $50\,\%$ the gate tests for, so the requirement is inert here by measurement rather than by
-assumption. It is not inert in general: in the companion NaCl study the contact-pair state holds
+assumption. That figure, however, describes counting noise and not the gate. Gate C requires a
+\emph{contiguous} run below $0.5\,Q^*$, and contiguity suppresses true firing as well as false;
+since every methane state cleared the gate, nothing in the study had shown it firing at all. We
+closed that by planting walker-conserving deficits in the real traces --- scaling one state's
+occupancy and redistributing the removed population so the partition still sums to one --- and
+running the unmodified gate. It fires on $0$ of $8$ seeds at a planted $\MeGateCSilent\,\%$
+deficit, the shortfall it nominally tests for, and on $8$ of $8$ at $\MeGateCFires\,\%$.
+Subsampling walkers to read the threshold across $\lambda$ gives
+$\MeGateCFlatLo$--$\MeGateCFlatHi\,\%$ over a fifty-fold range, so above $\lambda \approx 9$
+detection is set by the span requirement and not by $\lambda$ at all. Two things follow. The
+requirement $\lambda \geq \MeGateCLamMin$ marks where counting noise stops dominating rather
+than where a $50\,\%$ deficit becomes detectable, which is not what we first claimed for it; and
+``Gate C did not fire'' licenses only that no deficit of $\MeGateCFires\,\%$ or more occurred.
+The statement that carries the null is the direct one --- the worst occupancy ratio anywhere is
+$\MeOccRatioWorst$, bounding the largest shortfall at $\MeShortfallMax\,\%$, some three and a
+half times tighter than the gate could report. The planted deficit is stationary, so
+$\MeGateCFires\,\%$ is a floor on the detection threshold rather than a characterisation of it.
+
+It is not inert in general: in the companion NaCl study the contact-pair state holds
 $\lambda = 1.72$ at $N = 64$, where the smallest resolvable deficit is $152\,\%$, and at $N = 16$
 and $N = 8$ no state clears the bar at all. Since the preregistered rule selects the
 \emph{smallest} $N$ passing every gate, the search runs directly toward the cells in which the

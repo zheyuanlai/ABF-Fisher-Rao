@@ -296,3 +296,30 @@ def test_gate_a_reports_the_preregistered_direction_not_its_transpose():
     assert res["gateA_direction"].startswith("TV(p(xi|Y))")
     assert res["gateA_max_TV"] == pytest.approx(0.935, abs=0.001)
     assert res["gateA_transposed_max_TV"] == pytest.approx(0.987, abs=0.001)
+
+
+def test_the_guard_rationale_and_the_gate_disagree_and_the_docs_say_so():
+    """`lambda >= 16` is where counting noise stops dominating, NOT where 50 % becomes detectable.
+
+    Measured on the real traces (Amendment 12.13): at `lambda = 16` the gate needs a 65 %
+    planted deficit, and at `lambda = 224` it still needs 60 % -- the span rule, not `lambda`,
+    sets detection above `lambda ~ 9`. Asserted so the analytic figure cannot quietly be
+    re-attached to the gate by a future edit.
+    """
+    import json
+    import math
+    from methane_gates import DEFICIT_FRAC, GATE_C_MIN_LAMBDA
+    lad = json.load(open("results/methane/screen_N512/gate_c_detection/ladder.json"))["rows"]
+    by_lam = sorted(lad, key=lambda r: r["lam"])
+    # the analytic criterion is what GATE_C_MIN_LAMBDA was derived from ...
+    assert 2.0 / math.sqrt(GATE_C_MIN_LAMBDA) == pytest.approx(DEFICIT_FRAC, rel=1e-12)
+    # ... and the gate does not honour it: every measured cell needs MORE than the analytic
+    # figure once lambda is above the crossing, and never less than the 50 % it tests for.
+    for r in by_lam:
+        assert r["empirical"] >= DEFICIT_FRAC, "gate fired below the deficit it tests for"
+        if r["lam"] >= 14.0:
+            assert r["empirical"] > r["analytic"], f"lambda={r['lam']}: analytic was not optimistic"
+    # detection is flat in lambda where counting noise is not binding: a 16x span in lambda
+    # moves the threshold by at most 10 points
+    high = [r["empirical"] for r in by_lam if r["lam"] >= 14.0]
+    assert max(high) - min(high) <= 0.10

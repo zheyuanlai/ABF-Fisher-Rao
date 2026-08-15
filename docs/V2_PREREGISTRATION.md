@@ -1807,6 +1807,51 @@ ones the gate reads. NaCl CIP `1.72 -> 1.57` (smallest resolvable deficit `152 %
 SSIP `62.3 -> 61.4`, verdicts unchanged; `scripts/methane_gates.py` already used the minimum.
 Found because a number moved between two messages — **the tell that has worked all week.**
 
+#### 12.13 The `lambda >= 16` guard keeps its threshold and loses its rationale (2026-08-15)
+
+§12.10 justified `GATE_C_MIN_LAMBDA = 16` as *the `lambda` at which a 50 % deficit is a 2σ
+effect*. Measured, that is false for the gate as implemented — **class 6 inside the guard
+written to fix class 6**, and it survived review because the arithmetic was right about
+something Gate C does not do.
+
+`2/sqrt(lambda)` is a **single-checkpoint** criterion; Gate C requires a **contiguous
+`0.20 T` run** below `0.5 Q*`. Contiguity suppresses false firing (intended) and true firing
+(never accounted for). Closed by planting walker-conserving deficits in methane's **real**
+8-seed traces — synthetic data cannot answer it, because the trace's correlation structure *is*
+the quantity — and subsampling walkers to read the threshold across `lambda`:
+
+| `lambda` | analytic 2σ | gate actually needs | | `lambda` | analytic 2σ | gate actually needs |
+|---|---|---|---|---|---|---|
+| 224.2 | 13 % | **60 %** | | 16.0 | 50 % | **65 %** |
+| 147.0 | 16 % | **60 %** | | 9.2 | 66 % | **70 %** |
+| 28.0 | 38 % | **65 %** | | 4.0 | 100 % | **75 %** |
+
+0/8 seeds fire at a planted 50 %, 8/8 at 60 %.
+
+**Binding changes.**
+
+1. The threshold **stands at 16**; the rationale is corrected. `lambda >= 16` marks where
+   counting noise stops dominating — not where a 50 % deficit becomes detectable.
+2. **Every Gate C "no deficit" must be reported with the detection threshold**, not with the
+   analytic figure. The licensed claim is *no deficit ≥ 60 % occurred*, and it is weaker than
+   the direct occupancy bound that should accompany it.
+3. **Detection is set by contiguity, not by `N`, above `lambda ~ 9`** — 60–75 % across a 50×
+   range. Raising `N` to make Gate C more sensitive does not work; only the span rule moves it.
+4. **A state near `lambda ~ 10` sitting at ratio 0.5 will not fire at any `lambda` on this
+   ladder.** Where that is possible — C60's contact state is the live case — a windowed
+   statistic must be **primary**, not secondary to Gate C.
+
+**Stated limitation:** the planted deficit is *stationary*. A deficit that decays as the bias
+fills in would fire less readily, so **60 % is a floor on the detection threshold, not a
+characterisation of it.** The decaying case was not measured and no claim is made about it.
+
+**The verdicts are unchanged and better supported.** Methane's null rests on the direct
+measurement — worst occupancy/`Q*` = 0.83 over 8 seeds × 3 states × the whole second half, so
+the largest shortfall anywhere is **17 %**, 3.5× tighter than the gate could report. NaCl's
+rests on its windowed band. Neither ever rested on the gate firing, which is the only reason
+this correction costs nothing. Artifacts: `results/methane/screen_N512/gate_c_detection/`,
+`scripts/methane_gate_c_detection.py`.
+
 ### Amendment 13 — two GPUs for methane, and the optimisation order (2026-08-12)
 
 **Written before any methane box, trajectory, reference or gate result existed.** Only engine
