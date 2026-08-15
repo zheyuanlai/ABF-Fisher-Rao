@@ -33,9 +33,10 @@ def push_waters_off_cages(x, eng, n_iter=3, chunk=256):
     L = eng.pair.L                                         # (3,)
     carbons = torch.cat([eng.cage_a, eng.cage_b])
     o, h1, h2, m = (eng.waters[:, k] for k in range(4))
-    last = 0
+    B = x.shape[0]
+    per_rep = torch.zeros(B, dtype=torch.long, device=x.device)
     for _ in range(n_iter):
-        last = 0
+        per_rep.zero_()
         xc = x[:, carbons, :]                              # (B, 120, 3)
         for lo in range(0, o.numel(), chunk):
             hi = min(lo + chunk, o.numel())
@@ -47,7 +48,7 @@ def push_waters_off_cages(x, eng, n_iter=3, chunk=256):
             clash = rmin < MIN_DIST_NM
             if not bool(clash.any()):
                 continue
-            last += int(clash.sum())
+            per_rep += clash.sum(dim=1)
             dnear = torch.gather(d, 2, jmin[:, :, None, None].expand(-1, -1, 1, 3)).squeeze(2)
             unit = dnear / rmin.clamp_min(1e-6)[:, :, None]
             shift = torch.where(clash[:, :, None],
@@ -55,7 +56,7 @@ def push_waters_off_cages(x, eng, n_iter=3, chunk=256):
                                 torch.zeros_like(unit))
             for sites in (o, h1, h2, m):
                 x[:, sites[lo:hi], :] += shift
-    return last
+    return per_rep                                         # (B,) clashes in the LAST pass
 
 
 def assert_relaxed(eng, x, chunk=256, max_force=MAX_SAFE_FORCE):

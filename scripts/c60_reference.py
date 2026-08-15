@@ -109,8 +109,9 @@ def _relax(eng, dyn, x, n_steps=SD_STEPS):
     dynamics cannot integrate.
     """
     left = push_waters_off_cages(x, eng)
-    if left:
-        raise RuntimeError(f"{left} waters still clashing after push iterations; prep defect")
+    if int(left.sum()):
+        raise RuntimeError(f"{int(left.sum())} waters still clashing after push iterations "
+                           f"({int((left > 0).sum())} replicas); prep defect")
     x_ref = x.clone()
     dyn.cons.apply_positions(x, x_ref)
     eng.compute_vsites(x)
@@ -373,18 +374,49 @@ def main():
                 x[idx] = xs
                 print(f"[phase B] dragged {idx.numel()} starts at rate {rate:.3f} nm/ps "
                       f"({time.perf_counter()-t0:.0f}s)", flush=True)
-            # hot family: destroy the interface AFTER the drag, then push + SD + guard
+            # hot family: destroy the interface AFTER the drag (frozen recipe: 0.05 nm
+            # noise + push + SD).  Near contact a draw can bury a water where the pusher
+            # structurally cannot clear both cages (measured: 3 waters unclearable on one
+            # resume draw, while the previous draw cleared) -- so the noise is REJECTION
+            # SAMPLED per replica: failing replicas get a fresh draw from the same frozen
+            # sigma, up to 4 attempts, retries recorded.  sigma is never reduced.
             hot = torch.nonzero(fam_t == 3, as_tuple=True)[0]
-            xh = x[hot].contiguous()
-            noise = torch.as_tensor(rng.normal(0.0, 0.05, xh.shape), device="cuda",
-                                    dtype=dtype)
-            noise[:, eng.cage_a, :] = 0.0
-            noise[:, eng.cage_b, :] = 0.0
-            xh += noise
-            x_ref = xh.clone()
-            dyn.cons.apply_positions(xh, x_ref)
-            eng.compute_vsites(xh)
-            _relax(eng, dyn, xh)
+            xh_src = x[hot].contiguous()                    # dragged clean states
+            xh = xh_src.clone()
+            pending = torch.arange(xh.shape[0], device="cuda")
+            for attempt in range(4):
+                noise = torch.as_tensor(
+                    rng.normal(0.0, 0.05, (pending.numel(),) + xh.shape[1:]),
+                    device="cuda", dtype=dtype)
+                noise[:, eng.cage_a, :] = 0.0
+                noise[:, eng.cage_b, :] = 0.0
+                xh[pending] = xh_src[pending] + noise
+                x_ref = xh.clone()
+                dyn.cons.apply_positions(xh, x_ref)
+                eng.compute_vsites(xh)
+                left = push_waters_off_cages(xh, eng)
+                still = torch.nonzero(left > 0, as_tuple=True)[0]
+                if attempt > 0 or still.numel():
+                    print(f"[phase B] hot attempt {attempt + 1}: "
+                          f"{still.numel()} replicas still clashing", flush=True)
+                if still.numel() == 0:
+                    break
+                pending = still
+            else:
+                raise RuntimeError(f"hot prep: {pending.numel()} replicas unclearable "
+                                   "after 4 noise draws; prep defect")
+            # SD polish + force guard on the whole hot set
+            for _ in range(SD_STEPS):
+                _, f_raw = eng.energy_forces(xh, chunk=CHUNK)
+                fh = eng.redistribute(f_raw)
+                stepv = (0.5e-5 * fh).clamp(-2e-4, 2e-4)
+                stepv[:, eng.cage_a, :] = 0.0
+                stepv[:, eng.cage_b, :] = 0.0
+                x_ref = xh.clone()
+                xh += stepv
+                dyn.cons.apply_positions(xh, x_ref)
+                eng.compute_vsites(xh)
+            assert_relaxed(eng, xh, chunk=CHUNK)
             x[hot] = xh
             np.savez(starts_path + ".tmp.npz",
                      x=x.detach().cpu().numpy().astype(np.float32))
