@@ -248,3 +248,27 @@ Outer points are provisional. Full detail: `../finite_size/RESULT.md`.
 
 Engine: batched periodic LJ + smooth PME at **2.9e-13 / 1.4e-15** parity against OpenMM,
 constrained BAOAB matching OpenMM's thermostat to 0.51 K.
+
+---
+
+## Closed state, verified 2026-08-15
+
+Methane has **no armed automation and no GPU processes**. Verified rather than assumed:
+`ps` shows no `methane_screen`, `methane_ti_torch`, `methane_baths`, `methane_box` or
+`methane_triton` process, and no watcher waiting to launch one. GPUs 0/1 belong to another
+user; GPU 2 is NaCl's `tau_perp`; GPU 3 is C60's `dt_gate` under Amendment 16.4.
+
+This matters because of a failure the NaCl session hit and diagnosed: **a measurement can only
+confirm the state of the world, and a rule is not part of the state of the world.** It launched
+on a device that was genuinely free and genuinely not allocated to it, having consulted
+`nvidia-smi` rather than the amendment that had superseded its allocation. Every watcher this
+study armed had the same shape — they polled for facts (seed files present, compute apps absent,
+process liveness) and none checked whether it was still *permitted* to do what it was armed to do.
+Had the allocation moved overnight, they would have proceeded exactly as that launch did.
+
+For a finished study the correct remedy is not a permission check but **disarmament**: a closed
+study should own no process capable of starting work. That is now the state, and it is recorded
+here so that "methane is closed" is a checkable claim about the machine rather than a statement
+about intent. The NaCl session's `nacl_preflight.py` is the right remedy for a study still
+running, and re-derives its governing clause from the preregistration at launch time rather than
+from a cached copy.
