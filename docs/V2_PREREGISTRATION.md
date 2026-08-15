@@ -2224,3 +2224,44 @@ Deviation 2), not the parameter derivation it was meant to gate.
 sensitivity is recorded above rather than absorbed into a wider tolerance.  Clauses (i), (ii)
 and (iv) of the reproduction gate are untouched, and remain decided by the solvent reference
 that does not yet exist.
+
+#### 16.7 The Gate C small-N safeguard of 16.3 is replaced: N Q* >= 3 has zero discriminating power (2026-08-15)
+
+**What had been seen:** no C60 reference, screen, or Gate C datum of any kind — the Stage-0
+parity suite and the frozen box only.  The defect was pointed out by the NaCl session
+(cross-session message, 2026-08-15 00:1x UTC), which had just applied the same arithmetic to
+its own map and dropped two unclassifiable cells; the derivation is verified here
+independently rather than adopted on authority.
+
+**The defect.** Gate C fires on occupancy `< 0.5 Q*_k(t)` sustained over `>= 0.2 T`.
+Occupancy is a count with expectation `lambda = N Q*_k`; its fluctuation scale is
+`sqrt(lambda)`.  Resolving a 50 % deficit at two sigma requires `0.5 lambda > 2 sqrt(lambda)`,
+i.e. **`lambda > 16`**.  At the frozen guard value `lambda = 3`, even a permanently *empty*
+state sits only `3/sqrt(3) = 1.73` sigma from a healthy one — no deficit of any size is
+resolvable, and a healthy state spends ~20 % of snapshots below the deficit line
+(`P(count <= 1 | lambda = 3) = 0.199`), so persistent-looking spans arise by chance.  The
+guard as frozen *admits precisely the cells in which the gate it guards cannot function*.
+This repository has already retracted one verdict to this failure class
+(`results/deca/screen_RETRACTED_no_min_count_guard/`): a "fired" Gate C licensing mFR on a
+state that could not hold walkers at all.
+
+**The replacement, frozen now:**
+
+```
+  a Gate C deficit is headline-reportable only where  min over the judged span of
+  N Q*_k(t)  >=  16
+```
+
+* the statistic is the **minimum over the judged span, not a mean over checkpoints** — a mean
+  lets a well-populated stretch mask exactly the configuration the guard exists to reject;
+* `16` is the two-sigma working value for the frozen `0.5` deficit ratio, and matches the
+  NaCl convention, keeping the two molecular studies comparable;
+* a cell in which no reference-defined state clears the floor is reported as
+  **UNCLASSIFIABLE at that N** — never silently classified, and never a licence to extend
+  the run until it classifies (the frozen-budget rule is untouched);
+* the persistence requirement is unchanged; its correlated-sample power is deliberately not
+  credited toward a lower floor — leniency here is what the deca retraction bought.
+
+16.3's `N Q* >= 3` clause and the SPEC §8 line implementing it are superseded; nothing else
+in 16.3 changes.  This amendment precedes every Gate C datum by construction and cannot have
+been tuned against one.

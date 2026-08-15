@@ -389,9 +389,13 @@ else 1.30 nm) — four solvent families per point, **>= 32 replicas per family**
   under-established = occupancy `< 0.5 Q*_k(t)` for a contiguous `>= 0.20 T` within the second
   half. Early hit + no deficit ⇒ **ABF-sufficient, STOP** (the methane outcome; entirely
   acceptable). Early hit + persistent deficit ⇒ establishment-limited, continue to Gate D.
-  * **Small-N safeguard (frozen now):** a deficit is headline-reportable only where
-    `N Q*_k(t) >= 3` over the deficit span; deficits failing this are reported as
-    finite-population discreteness, not establishment limitation (ChatGPT-plan §19, adopted).
+  * **Small-N safeguard — SUPERSEDED BY AMENDMENT 16.7 before any Gate C datum:** the
+    originally frozen `N Q*_k >= 3` admits zero-power cells (at `lambda = 3` even an empty
+    state is 1.73 sigma; the deca retraction is this class). The binding guard is
+    **`min over the judged span of N Q*_k(t) >= 16`** (two-sigma floor for the 0.5 ratio,
+    the NaCl convention; minimum not mean, so a healthy stretch cannot mask a starved one).
+    A cell where no state clears the floor is **UNCLASSIFIABLE at that N**, reported as such,
+    never extended until it classifies.
 * **Gate D (clone decorrelation):** `lambda_rep x tau_perp <= 0.1` with activity floor
   `N_repl >= 0.5 N`; no active safe rate ⇒ C3 failure, STOP.
 * **Eligible cell if several pass every gate: the smallest `N`, mechanically** (the campaign
