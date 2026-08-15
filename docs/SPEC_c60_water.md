@@ -359,6 +359,14 @@ else 1.30 nm) — four solvent families per point, **>= 32 replicas per family**
   establishment-limited (the methane Amendment 12.5 rule); a partial map is reported as partial
 ```
 
+> **SUPERSEDED IN PART BY AMENDMENT 16.8 (before any reference datum):** because
+> `Q*_k <= 1`, the 16.7 floor `min-span N Q*_k >= 16` is unsatisfiable at `N = 8` and
+> degenerate at `N = 16` — those cells cannot classify and **are not run**. The executable
+> map is `N = 64`, then `N = 32` only if 64 is establishment-limited. The Amendment 3
+> partition and its `lambda_k(N)` table (unbiased and flat-bias brackets) are recorded from
+> the accepted reference **before any screen cell launches**, and the partition is never
+> revisited after any occupancy is read.
+
 * **Initial condition (frozen):** every walker starts at the **global minimum of `F_ref`**
   (expected contact, ~0.97 nm — verified against our own reference before the screen so the
   NaCl "start was not AT the minimum" caveat cannot recur). Each walker receives an

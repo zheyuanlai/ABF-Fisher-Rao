@@ -164,6 +164,34 @@ def main():
     out["states"] = dict(rule=rule, boundaries=[list(s) for s in states],
                          minima_nm=[float(d_grid[i]) for i in minima_idx])
 
+    # ---- Amendment 16.7/16.8: the lambda table, BEFORE any occupancy exists -----------------
+    # lambda_k(N) = N * Q*_k, bracketed by the unbiased reference weights (B = 0, the screen's
+    # t = 0 target) and the fully flattened bias (width fractions, the late-time target).
+    # Recorded here, at reference acceptance, so the partition and its power are frozen
+    # mechanically before any screen cell can launch.  A state below 16 at some N cannot carry
+    # a headline Gate C deficit there (16.7); N in {8, 16} cannot classify at all (16.8).
+    w_boltz = np.exp(-BETA * (F_cons - F_cons.min()))
+    w_boltz /= w_boltz.sum()
+    lam = {}
+    for k, (a, b) in enumerate(states):
+        m = (d_grid >= a) & (d_grid <= b)
+        q_unbiased = float(w_boltz[m].sum())
+        q_flat = float((b - a) / (d_grid[-1] - d_grid[0]))
+        lam[f"state{k}"] = {
+            "bounds_nm": [float(a), float(b)],
+            "Q_unbiased": q_unbiased, "Q_flat": q_flat,
+            **{f"lambda_N{N}": dict(unbiased=N * q_unbiased, flat=N * q_flat,
+                                    clears_16=bool(min(N * q_unbiased, N * q_flat) >= 16.0))
+               for N in (8, 16, 32, 64)}}
+    out["lambda_table"] = lam
+    out["executable_cells"] = dict(
+        note="Amendment 16.8: N in {8,16} struck (Q*<=1 makes the 16.7 floor unsatisfiable); "
+             "N=32 runs only if N=64 is establishment-limited",
+        N64_classifiable_states=[k for k, v in lam.items()
+                                 if v["lambda_N64"]["clears_16"]],
+        N32_classifiable_states=[k for k, v in lam.items()
+                                 if v["lambda_N32"]["clears_16"]])
+
     # ---- thermal window ---------------------------------------------------------------------
     mask = F_cons - F_cons.min() <= THERMAL_KT * KT
     # largest contiguous interval containing the argmin
@@ -268,6 +296,10 @@ def main():
              f">= {BARRIER_MIN_KJ}: {repro['barrier_ok']} -> "
              f"{'PASS' if repro['passes'] else 'FAIL'}",
              f"* states ({rule}): {out['states']['boundaries']}",
+             f"* lambda table (16.7/16.8, frozen at acceptance): " + "; ".join(
+                 f"{k}: N64 {v['lambda_N64']['unbiased']:.1f}/{v['lambda_N64']['flat']:.1f} "
+                 f"(clears16={v['lambda_N64']['clears_16']})" for k, v in lam.items()),
+             f"* executable cells: {out['executable_cells']}",
              f"* Omega_thermal: {out['omega_thermal_nm']} nm",
              f"* Gate A: tv_max = {tv_max:.3f} (>= {GATE_A_TV_MIN}) -> "
              f"{'PASS' if out['gate_A']['passes'] else 'FAIL'}   R_orth = {R_orth:.2f}",
