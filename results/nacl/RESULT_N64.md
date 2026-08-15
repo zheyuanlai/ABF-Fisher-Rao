@@ -60,6 +60,36 @@ occupancy 0.0417 versus mean target 0.0311 means CIP is on average **1.34× over
 
 SSIP tracks its target essentially perfectly (median 0.995) and never approaches the threshold.
 
+## Within the basin that carries the verdict, not just its integral
+
+Gate C is **basin-integrated**, and SSIP spans 88 % of the domain. Any redistribution *inside*
+SSIP that preserves its integral is invisible to the gate -- walkers jammed against a wall would
+still "hold their target population". Prompted by the C60 session's finding that a relaxation
+guard set at the explosion scale could not fire on a sterically jammed water, whose general form
+is that **a guard at the catastrophic scale cannot protect against the metastable scale**.
+Measured (`scripts/nacl_audit_within_basin.py`, `within_basin_audit.json`):
+
+| basin | integrated P/Q | q1 | q2 | q3 | q4 | shape TV |
+|---|---|---|---|---|---|---|
+| SSIP | 0.9890 | 0.942 | 0.965 | 0.991 | 1.026 | **0.025** |
+| CIP | 1.3424 | *(no target mass)* | 1.773 | 0.800 | 0.724 | 0.215 |
+
+**SSIP is clean**: a gentle monotone gradient, quarter masses matching target to within a point
+or two, and the outermost three grid points holding 4.45 % of walkers against 4.10 % of target.
+No jam. The verdict's load-bearing state is not a coarse-graining artifact.
+
+**CIP's larger TV is real structure, not a wall effect**: 74 % of its walkers sit in
+[0.24, 0.27] nm around the 0.26 nm minimum against a 56 % target, thinning to 0.80 and 0.72
+toward the barrier. **No quarter falls below the 0.5 deficit threshold.** Its inner quarter holds
+0.42 % of walkers against 0.00 % of target, and restricting CIP to SPEC §2.1's frozen 15 kT
+physical window changes its integrated ratio by nothing at all (1.3424 either way).
+
+*The first version of this audit reported `P/Q = 1274` for that inner quarter* -- 0.0175 % of
+walkers divided by a target a thousand times smaller. A ratio needs **both** arguments'
+populations; the tool now carries the masses and suppresses the ratio outright where the target
+has none. The spectacular number was an artifact of the instrument, and the basin ratio it was
+supposedly qualifying never moved.
+
 ## Gate B is non-binding and is reported as such
 
 `T_hit = 0.5 ps` on every seed is the **first recordable frame**: the published start
