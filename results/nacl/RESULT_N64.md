@@ -25,12 +25,33 @@ half, 79 checkpoints × 8 seeds:
 | CIP | 0.000 | 1.176 | 12.8 % | 10–70 ps (required: 312.5 ps) |
 | SSIP | 0.866 | 0.995 | 0.0 % | 0 ps |
 
-**Gate C at CIP has no power, and the CIP claim rests on the MEAN, not on the gate.** With
-`lambda = Q*_CIP x N = 1.72` expected walkers, "occupancy < 0.5 Q*" is arithmetically identical
-to "the state is empty right now", and the smallest deficit resolvable at 2 sigma is **152 %** --
-i.e. none. The gate is reported NON-BINDING at CIP and excluded from the verdict; **SSIP
-(lambda = 62.3) is the state that carries it.** What clears CIP is the time-averaged occupancy,
-which averages 79 checkpoints x 8 seeds and is well estimated:
+**Gate C at CIP has no power, and the CIP claim rests on a different statistic, not on the
+gate.** With `lambda_min = Q*_CIP x N = 1.57` expected walkers, "occupancy < 0.5 Q*" is
+arithmetically identical to "the state is empty right now", and the smallest deficit resolvable
+at 2 sigma is **160 %** -- i.e. none. The gate is reported NON-BINDING at CIP and excluded from
+the verdict; **SSIP (lambda_min = 61.45) is the state that carries it.**
+
+**An unpowered gate cannot support "no deficit" any more than it supports "deficit", so the
+replacement statistic has to be powered on its own terms -- measured, not asserted.** An earlier
+draft of this document cleared CIP with a time average it called "well estimated" and never put
+an error bar on it. Done properly (`scripts/nacl_audit_cip_power.py`): the gate does not ask
+whether CIP is empty at time `t`, it asks for a deficit **sustained 312.5 ps**, so the powered
+form averages occupancy over a 312.5 ps sliding window (33 checkpoints) instead of one
+checkpoint. The error bar needs no Poisson assumption and no autocorrelation model, because the
+**8 seeds are independent ensembles** and their spread is the standard error directly.
+
+| state | worst of 47 windows | ratio P/Q\* | 2-sigma band | worst single seed-window |
+|---|---|---|---|---|
+| CIP | 810-1130 ps | 1.111 +- 0.078 | **[0.954, 1.267]** | 0.765 |
+| SSIP *(positive control)* | 1240-1560 ps | 0.980 +- 0.003 | [0.974, 0.986] | 0.960 |
+
+The worst CIP window sits **1.9x the 0.5 threshold at its lower 2-sigma bound**, and the worst
+single seed-window is 0.765. A sustained deficit of the size Gate C tests is excluded at CIP with
+power, so the cell is ABF-sufficient on both states rather than on SSIP with CIP unknown. SSIP is
+carried as the positive control on purpose: a check exercised only where it passes cannot be
+distinguished from one that always passes.
+
+Supporting counting argument:
 
 **The CIP zeros are counting noise, not a deficit.** CIP's mean target is 0.0311 of 64 walkers —
 **1.99 walkers expected** — so `P(zero) = e^−1.99 = 13.7 %` against 12.8 % observed. Mean
