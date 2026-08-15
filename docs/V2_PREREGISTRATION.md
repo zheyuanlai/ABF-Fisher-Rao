@@ -2336,3 +2336,12 @@ rate cap is physical).  Preparation costs ~35-70 ns aggregate per build, recorde
 outside the production accounting.  Force guards remain: a state with non-finite or
 `> 1e6 kJ/mol/nm` forces after preparation raises rather than samples, and a NaN trajectory
 raises rather than writing a verdict file.
+
+**16.9 addendum (2026-08-15, before any reference datum):** the hot-family noise applies to
+waters **outside the inter-cage gap cylinder** (`|u| < xi/2 + 0.1 nm` and `w < 0.45 nm`
+exempt).  Measured: at near-contact windows one replica was unclearable across four
+independent 0.05 nm draws — noise directed into a sterically closed pocket does not
+"destroy an interface", it inserts a water no preparation can remove (the same 0.256 nm
+geometric limit as the pusher).  The exterior noise, the frozen sigma and the
+rejection-sampling loop are unchanged; the destroyed-interface semantics live in the I1
+band, which is exterior.

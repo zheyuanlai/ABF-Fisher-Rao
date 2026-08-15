@@ -384,12 +384,31 @@ def main():
             xh_src = x[hot].contiguous()                    # dragged clean states
             xh = xh_src.clone()
             pending = torch.arange(xh.shape[0], device="cuda")
+            # 16.9 addendum: gap-cylinder waters are exempt from the noise -- noising a
+            # sterically closed pocket inserts an unclearable water (measured: one replica
+            # failed 4 independent draws at a near-contact window)
+            o_sites = eng.waters[:, 0]
             for attempt in range(4):
                 noise = torch.as_tensor(
                     rng.normal(0.0, 0.05, (pending.numel(),) + xh.shape[1:]),
                     device="cuda", dtype=dtype)
                 noise[:, eng.cage_a, :] = 0.0
                 noise[:, eng.cage_b, :] = 0.0
+                xs = xh_src[pending]
+                com_a = xs[:, eng.cage_a, :].mean(dim=1)
+                com_b = xs[:, eng.cage_b, :].mean(dim=1)
+                xi_p = com_b[:, 2] - com_a[:, 2]
+                ctr = 0.5 * (com_a + com_b)
+                off = xs[:, o_sites, :] - ctr[:, None, :]
+                Lv = torch.tensor([lx, lx, lz], device="cuda", dtype=dtype)
+                off = off - Lv * torch.round(off / Lv)
+                in_gap = ((off[..., 2].abs() < 0.5 * xi_p[:, None] + 0.1)
+                          & (off[..., 0] ** 2 + off[..., 1] ** 2 < 0.45 ** 2))
+                for k in range(4):
+                    sites = eng.waters[:, k]
+                    noise[:, sites, :] = torch.where(in_gap[:, :, None],
+                                                     torch.zeros_like(noise[:, sites, :]),
+                                                     noise[:, sites, :])
                 xh[pending] = xh_src[pending] + noise
                 x_ref = xh.clone()
                 dyn.cons.apply_positions(xh, x_ref)
