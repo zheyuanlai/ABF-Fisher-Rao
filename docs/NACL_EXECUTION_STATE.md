@@ -45,8 +45,30 @@ VERDICT:                GATE 0 PASS (0.0075 global / 0.0483 barrier -- the campa
                         2.1e-15 nm. Triton PASSES both gates but is NOT adopted: measured
                         918 ns/day vs tensor 1020 at its best config, so the reference runs
                         the already parity-gated tensor path at max-batch 256.
-NEXT PERMITTED ACTION:  launch the N=32 cell ALONE on GPU 2 when tau_perp exits (~05:00-07:00
-                        UTC), from the EXISTING pinned worktree at 53dfb30 -- NOT a new pin.
+2026-08-15 00:38 INCIDENT -- A RETIRED AUTOLAUNCH FIRED. tau_perp exited early and a watcher
+                        armed BEFORE Amendment 16.4 launched the pre-16.4 TWO-GPU map split with
+                        the pre-16.4 device assignment baked in: screen_map_A (seeds 4000-03) on
+                        GPU 3 -- C60's device, co-resident with their dt gate -- and screen_map_B
+                        (seeds 4004-07) on GPU 2. Both ran cells 8,16,32; both skipped preflight.
+                        Killed at 00:39 and 00:40. THE GUARD DID NOT FAIL, THE LAUNCH WENT AROUND
+                        IT: a permission check only protects launches that call it. Two remedies,
+                        both needed -- the methane session's DISARMAMENT (a study should own no
+                        process able to start work), and the C60 session's rule that a watcher
+                        must point at the LADDER, never the payload, so a stale firing re-enters
+                        the guard. scripts/nacl_launch_N32.sh complies with the second by
+                        construction. C60's ladder took an unattributed SIGTERM inside the window;
+                        no NaCl script contains any kill (verified by grep), origin undetermined,
+                        they restarted from the top and are unharmed.
+                        Half-block hazard worth keeping: screen_map_B alone was seeds 4004-07,
+                        and require_full_block REFUSES a 4-seed verdict -- so the autolaunch's
+                        output could not have been analysed even if it had been permitted.
+
+NEXT PERMITTED ACTION:  DONE 00:41 -- N=32 LAUNCHED on GPU 2 (PID 3707699) through
+                        scripts/nacl_launch_N32.sh: preflight PASSED all five checks including
+                        the re-read of the governing compute clause, 76 tests, GPU 2 verified
+                        idle. 256 walkers, seeds 4000-4007 in ONE process, 1562500 steps.
+                        Then: run nacl_gates.py over N=64 + N=32 and close the study.
+                        Launched from the EXISTING pinned worktree at 53dfb30 -- NOT a new pin.
                         The sampler delta 53dfb30..HEAD is one diagnostic print plus a manifest
                         field (src/nacl/ untouched, verified by diff), so keeping the pin holds
                         the data-generating process identical across N=64 and N=32 while the
