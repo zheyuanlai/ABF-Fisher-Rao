@@ -1,0 +1,468 @@
+{
+  "cells": {
+    "N32": {
+      "N": 32,
+      "T_ps": 3125.0,
+      "gate_B": {
+        "_diagnostics": {
+          "fraction_outside_all_basins": 0.013199138137897937,
+          "r_start_nm": 0.30000001192092896,
+          "first_boundary_nm": 0.34,
+          "distance_nm": 0.03999998807907107,
+          "sigma_v_one_walker_nm_per_ps": 0.42291818921801416,
+          "v_fastest_of_N_nm_per_ps": 1.4460433553195229,
+          "n_walkers": 32,
+          "ballistic_transit_ps": 0.027661679666743138,
+          "trace_resolution_ps": 0.5,
+          "T_hit_is_resolution_limited": true,
+          "note": "T_hit at the trace floor with a boundary inside ballistic reach measures RESOLUTION, not a discovery rate: Gate B then cannot fail and its value is not evidence about the barrier. Use the supplementary far-threshold arrivals."
+        },
+        "CIP": {
+          "T_hit_ps": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "n_seeds_within": 8,
+          "threshold_ps": 312.5,
+          "PASS": true
+        },
+        "SSIP": {
+          "T_hit_ps": [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          "n_seeds_within": 8,
+          "threshold_ps": 312.5,
+          "PASS": true
+        },
+        "_supplementary_far_thresholds": {
+          "r>=0.45nm": {
+            "first_arrival_ps": [
+              1.0,
+              2.0,
+              1.0,
+              1.0,
+              1.0,
+              1.5,
+              0.5,
+              0.5
+            ],
+            "ballistic_floor_ps": 0.10373132142080659,
+            "x_ballistic_floor": 4.820144900802442,
+            "above_ballistic": true
+          },
+          "r>=0.52nm": {
+            "first_arrival_ps": [
+              1.5,
+              2.0,
+              2.0,
+              1.0,
+              1.5,
+              2.0,
+              1.0,
+              1.5
+            ],
+            "ballistic_floor_ps": 0.15213927526430152,
+            "x_ballistic_floor": 6.5729246985222325,
+            "above_ballistic": true
+          },
+          "r>=0.70nm": {
+            "first_arrival_ps": [
+              4.0,
+              4.5,
+              2.5,
+              3.0,
+              2.5,
+              4.5,
+              4.0,
+              3.5
+            ],
+            "ballistic_floor_ps": 0.2766168708618599,
+            "x_ballistic_floor": 9.03777124009359,
+            "above_ballistic": true
+          },
+          "r>=1.00nm": {
+            "first_arrival_ps": [
+              8.0,
+              9.0,
+              8.0,
+              6.0,
+              7.0,
+              12.5,
+              9.5,
+              8.5
+            ],
+            "ballistic_floor_ps": 0.4840795301911239,
+            "x_ballistic_floor": 12.394657542389956,
+            "above_ballistic": true
+          }
+        }
+      },
+      "gate_C": {
+        "CIP": {
+          "longest_deficit_ps": [
+            120.0,
+            60.0,
+            80.0,
+            120.0,
+            60.0,
+            100.0,
+            50.0,
+            150.0
+          ],
+          "required_ps": 625.0,
+          "n_seeds_deficient": 0,
+          "power": {
+            "lambda_expected_walkers": 0.8055100241402255,
+            "lambda_mean_over_window": 1.0028230259371294,
+            "lambda_statistic": "minimum of Q*(t)*N over the judged window",
+            "lambda_min": 16.0,
+            "POWERED": false,
+            "threshold_is_emptiness": true,
+            "p_empty_by_counting": 0.4468599590634125,
+            "detectable_deficit_frac": 2.2284070357549797
+          },
+          "UNDER_ESTABLISHED": null,
+          "BINDING": false,
+          "note": "NON-BINDING: lambda = 0.81 expected walkers < 16.0; a 50 % deficit is not a 2-sigma effect here, and the threshold is arithmetically 'the state is empty'"
+        },
+        "SSIP": {
+          "longest_deficit_ps": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "required_ps": 625.0,
+          "n_seeds_deficient": 0,
+          "power": {
+            "lambda_expected_walkers": 30.798368637286032,
+            "lambda_mean_over_window": 30.99717697406287,
+            "lambda_statistic": "minimum of Q*(t)*N over the judged window",
+            "lambda_min": 16.0,
+            "POWERED": true,
+            "threshold_is_emptiness": false,
+            "p_empty_by_counting": 4.211515944168311e-14,
+            "detectable_deficit_frac": 0.360384529326097
+          },
+          "UNDER_ESTABLISHED": false,
+          "BINDING": true,
+          "note": null
+        }
+      },
+      "verdict": "ABF-sufficient (Gate B pass, no persistent deficit) -- STOP",
+      "eligible": false,
+      "classifiable": true,
+      "binding_states": [
+        "SSIP"
+      ],
+      "unpowered_states": [
+        "CIP"
+      ]
+    },
+    "N64": {
+      "N": 64,
+      "T_ps": 1562.5,
+      "gate_B": {
+        "_diagnostics": {
+          "fraction_outside_all_basins": 0.013186405350287908,
+          "r_start_nm": 0.30000001192092896,
+          "first_boundary_nm": 0.34,
+          "distance_nm": 0.03999998807907107,
+          "sigma_v_one_walker_nm_per_ps": 0.42291818921801416,
+          "v_fastest_of_N_nm_per_ps": 1.5239550461774998,
+          "n_walkers": 64,
+          "ballistic_transit_ps": 0.02624748556684929,
+          "trace_resolution_ps": 0.5,
+          "T_hit_is_resolution_limited": true,
+          "note": "T_hit at the trace floor with a boundary inside ballistic reach measures RESOLUTION, not a discovery rate: Gate B then cannot fail and its value is not evidence about the barrier. Use the supplementary far-threshold arrivals."
+        },
+        "CIP": {
+          "T_hit_ps": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "n_seeds_within": 8,
+          "threshold_ps": 156.25,
+          "PASS": true
+        },
+        "SSIP": {
+          "T_hit_ps": [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          "n_seeds_within": 8,
+          "threshold_ps": 156.25,
+          "PASS": true
+        },
+        "_supplementary_far_thresholds": {
+          "r>=0.45nm": {
+            "first_arrival_ps": [
+              1.0,
+              0.5,
+              0.5,
+              0.5,
+              1.0,
+              1.0,
+              1.0,
+              0.5
+            ],
+            "ballistic_floor_ps": 0.09842809238718193,
+            "x_ballistic_floor": 5.0798505576352495,
+            "above_ballistic": true
+          },
+          "r>=0.52nm": {
+            "first_arrival_ps": [
+              1.5,
+              1.5,
+              1.5,
+              1.0,
+              1.0,
+              1.5,
+              1.0,
+              1.5
+            ],
+            "ballistic_floor_ps": 0.14436120581830272,
+            "x_ballistic_floor": 6.927068767066337,
+            "above_ballistic": true
+          },
+          "r>=0.70nm": {
+            "first_arrival_ps": [
+              3.0,
+              3.0,
+              2.5,
+              3.0,
+              4.0,
+              2.0,
+              4.0,
+              4.0
+            ],
+            "ballistic_floor_ps": 0.2624749260697561,
+            "x_ballistic_floor": 7.619775457974505,
+            "above_ballistic": true
+          },
+          "r>=1.00nm": {
+            "first_arrival_ps": [
+              6.5,
+              9.5,
+              7.5,
+              8.5,
+              8.5,
+              9.0,
+              11.0,
+              7.5
+            ],
+            "ballistic_floor_ps": 0.45933112648884517,
+            "x_ballistic_floor": 14.151011384067072,
+            "above_ballistic": true
+          }
+        }
+      },
+      "gate_C": {
+        "CIP": {
+          "longest_deficit_ps": [
+            40.0,
+            20.0,
+            10.0,
+            30.0,
+            50.0,
+            30.0,
+            70.0,
+            80.0
+          ],
+          "required_ps": 312.5,
+          "n_seeds_deficient": 0,
+          "power": {
+            "lambda_expected_walkers": 1.567718804507263,
+            "lambda_mean_over_window": 1.989671769189567,
+            "lambda_statistic": "minimum of Q*(t)*N over the judged window",
+            "lambda_min": 16.0,
+            "POWERED": false,
+            "threshold_is_emptiness": true,
+            "p_empty_by_counting": 0.2085203158194117,
+            "detectable_deficit_frac": 1.597334647015949
+          },
+          "UNDER_ESTABLISHED": null,
+          "BINDING": false,
+          "note": "NON-BINDING: lambda = 1.57 expected walkers < 16.0; a 50 % deficit is not a 2-sigma effect here, and the threshold is arithmetically 'the state is empty'"
+        },
+        "SSIP": {
+          "longest_deficit_ps": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "required_ps": 312.5,
+          "n_seeds_deficient": 0,
+          "power": {
+            "lambda_expected_walkers": 61.449778050950634,
+            "lambda_mean_over_window": 62.01032823081044,
+            "lambda_statistic": "minimum of Q*(t)*N over the judged window",
+            "lambda_min": 16.0,
+            "POWERED": true,
+            "threshold_is_emptiness": false,
+            "p_empty_by_counting": 2.054473190074298e-27,
+            "detectable_deficit_frac": 0.2551348802491528
+          },
+          "UNDER_ESTABLISHED": false,
+          "BINDING": true,
+          "note": null
+        }
+      },
+      "verdict": "ABF-sufficient (Gate B pass, no persistent deficit) -- STOP",
+      "eligible": false,
+      "classifiable": true,
+      "binding_states": [
+        "SSIP"
+      ],
+      "unpowered_states": [
+        "CIP"
+      ]
+    }
+  },
+  "selection": {
+    "eligible_cells": [],
+    "chosen_N": null,
+    "rule": "smallest N passing every gate (mechanical, never by error size)",
+    "map": {
+      "expected_cells": [
+        8,
+        16,
+        32,
+        64
+      ],
+      "present_cells": [
+        32,
+        64
+      ],
+      "structurally_unclassifiable": [
+        8,
+        16
+      ],
+      "reason": "Q*_k < 1 so lambda_k = N Q*_k < N; a cell with N <= 16 cannot reach the power threshold for any state, whatever the sampling",
+      "unexplained_missing": [],
+      "COMPLETE": true
+    },
+    "verdict": "no cell is both discovered and under-established: NaCl is not an mFR candidate under the preregistered budget. STOP. (cells [8, 16] excluded a priori: unclassifiable)"
+  },
+  "analysis_provenance": {
+    "analysis_commit": "17208765c21a094e7499417d3300693f2a97d326",
+    "analysis_tree": "/home/zheyuanlai/ABF-Fisher-Rao",
+    "analysis_dirty": false,
+    "guards": [
+      "gate_c_power_guard_lambda_min_16",
+      "cell_map_completeness_guard",
+      "gate_a_preregistered_direction",
+      "basin_masks_half_open_partition",
+      "require_full_seed_block",
+      "non_finite_reference_refuses"
+    ],
+    "note": "A gates_report.json WITHOUT this block was produced by a SUPERSEDED analysis tree (e.g. the pinned sampler worktree at 53dfb30, which predates the Gate C power guard, the cell-map guard and the Gate A transpose fix). Absence of this block is the detection; do not read such a report as a verdict."
+  },
+  "upstream": {
+    "gate0": {
+      "global_spread_ratio": 0.007468767949993461,
+      "barrier_region_ratio": 0.04833347821927411,
+      "COMPUTABLE": true,
+      "coverage": {
+        "points_used": 61,
+        "points_total": 61,
+        "barrier_points_used": 5,
+        "barrier_points_total": 5
+      },
+      "ladder": {
+        "WCA (pass)": 0.04,
+        "gateway global (pass)": 0.036,
+        "gateway constriction (pass, marginal)": 0.189,
+        "deca (FAIL)": 0.61,
+        "R15 beta=2 (FAIL)": 0.564
+      },
+      "note": "no numerical threshold (Amendment 9); argued against the ladder"
+    },
+    "gateA": {
+      "preregistered_TV_xi_given_Y": {
+        "n_NaO": 0.8633879781420766,
+        "n_ClH": 0.7377049180327867,
+        "n_bridge": 1.0
+      },
+      "preregistered_max_TV": 1.0,
+      "preregistered_PASS": true,
+      "orthogonality": {
+        "n_NaO": {
+          "within_r_sd": 0.02832336305705592,
+          "across_r_sd": 0.4004630553273425,
+          "across_over_within": 14.138965578368317
+        },
+        "n_ClH": {
+          "within_r_sd": 0.03914513414136384,
+          "across_r_sd": 0.5285534614360262,
+          "across_over_within": 13.502405165537928
+        },
+        "n_bridge": {
+          "within_r_sd": 0.006909361342532611,
+          "across_r_sd": 0.5729177815431032,
+          "across_over_within": 82.91906489480279
+        }
+      },
+      "spec_transpose_TV_Y_given_state": {
+        "n_NaO": 0.9897119341563785,
+        "n_ClH": 0.9958847736625513,
+        "n_bridge": 0.9470164609053499
+      },
+      "max_TV": 0.9958847736625513,
+      "threshold": 0.3,
+      "COMPUTABLE": true,
+      "basin_sample_counts": [
+        252,
+        1944
+      ],
+      "min_samples_per_basin": 12,
+      "PASS": true
+    },
+    "acceptance": {
+      "pairwise_L2": [
+        0.13351523645221353,
+        0.07763464306662454,
+        0.09290207563332778
+      ],
+      "F_span_kJ": 14.727579072630874,
+      "ratio": 0.09065660811852827,
+      "ACCEPTED": true,
+      "complete": true,
+      "rule": "ratio <= 0.5 on the frozen window (Amendment 12.2 / \u00a74.5), and every build/family/point group must have reported"
+    }
+  }
+}

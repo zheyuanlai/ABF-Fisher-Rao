@@ -75,7 +75,7 @@ VERDICT:                GATE 0 PASS (0.0075 global / 0.0483 barrier -- the campa
                         and require_full_block REFUSES a 4-seed verdict -- so the autolaunch's
                         output could not have been analysed even if it had been permitted.
 
-RUNNING NOW:            N=32, PID 3835641 on GPU 2 since 2026-08-15 01:14 UTC, launched by
+COMPLETED 23:37 UTC:    N=32, PID 3835641 on GPU 2, 2026-08-15 01:14 -> 23:37 (22.36 h), launched by
                         scripts/nacl_launch_N32.sh -- preflight PASSED all five checks including
                         the re-read of the governing compute clause; 80 tests; GPU 2 verified
                         idle. 256 walkers, seeds 4000-4007 in ONE process, 1562500 steps.
@@ -101,7 +101,17 @@ RUNNING NOW:            N=32, PID 3835641 on GPU 2 since 2026-08-15 01:14 UTC, l
                         results/nacl/screen_N32_cotenancy.log, so any timing number from this
                         cell can be attributed rather than assumed idle.
 
-NEXT PERMITTED ACTION:  when N=32 completes, link cell_N32.npz and cell_N64.npz into one
+STUDY CLOSED 2026-08-15 23:40 UTC -- ABF-SUFFICIENT, see results/nacl/RESULT_STUDY.md.
+                        Map COMPLETE: {32, 64} classified ABF-sufficient, {8, 16} struck
+                        a priori. Gate C SSIP 0/8 deficient at both cells (lambda 30.75,
+                        61.45); CIP non-binding at both and cleared by the windowed audit
+                        (worst-window 2-sigma bands [1.160,1.582] and [0.954,1.267] vs a
+                        0.5 threshold). Projection held: SSIP 30.7 predicted / 30.75
+                        realised. Outcome is branch (1) of CLOSURE_PRECOMMIT.md, written
+                        before the number existed. NO mFR arm is licensed; tau_perp is
+                        NOT needed and must not be run. The weak-null caveat (addfbed)
+                        is attached and is not optional.
+SUPERSEDED:             when N=32 completes, link cell_N32.npz and cell_N64.npz into one
                         directory and run nacl_gates.py over BOTH. REHEARSED 2026-08-15 on a
                         SYNTHETIC N=32 cell (scratchpad only, never under results/): the
                         two-cell path runs clean, map flips to COMPLETE, the verdict is emitted,
