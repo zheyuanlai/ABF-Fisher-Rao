@@ -170,15 +170,21 @@ def main():
     assert torch.cuda.device_count() == 1
 
     scale = 0.02 if a.smoke else 1.0
-    # the drag RATE is physical and does not scale with smoke durations; the smoke instead
-    # drags 8x faster -- it verifies mechanics only, and assert_relaxed still guards it
-    drag_rate = DRAG_RATE_NM_PS * (8.0 if a.smoke else 1.0)
+    # RATE SHORTCUTS ARE BANNED (two ladder deaths: the 2x spot shortcut jammed a water,
+    # the 8x smoke shortcut exploded a replica at the B=816 tail).  The smoke shrinks the
+    # WORKLOAD instead: 6 windows spanning the domain, dragged at the production rate, so
+    # the smoke exercises exactly the production code path.
+    drag_rate = DRAG_RATE_NM_PS
     equil_ps = EQUIL_PS * scale
     prod_ps = PROD_PS * scale
     anchor_run = ANCHOR_RUN_PS * scale
     anchor_settle = ANCHOR_SETTLE_PS * scale
     snap_ps = tuple(t * scale for t in ANCHOR_SNAP_PS)
 
+    n_windows = 6 if a.smoke else N_WINDOWS
+    d_grid_run = (D_GRID[np.linspace(0, N_WINDOWS - 1, n_windows).round().astype(int)]
+                  if a.smoke else D_GRID)
+    b_total = n_windows * len(FAMILIES) * N_REP
     out_dir = os.path.join(REF, f"build{a.build}" + ("_smoke" if a.smoke else ""))
     os.makedirs(out_dir, exist_ok=True)
     ckpt_path = os.path.join(out_dir, "checkpoint.pt")
@@ -293,9 +299,9 @@ def main():
 
     # ------------------------------------------------------------------ phase B: windows
     # flat layout: i = w * 12 + fam * 3 + rep
-    d_values = np.repeat(D_GRID, 12)
-    fam_idx = np.tile(np.repeat(np.arange(4), 3), N_WINDOWS)
-    rep_idx = np.tile(np.arange(3), N_WINDOWS * 4)
+    d_values = np.repeat(d_grid_run, 12)
+    fam_idx = np.tile(np.repeat(np.arange(4), 3), n_windows)
+    rep_idx = np.tile(np.arange(3), n_windows * 4)
 
     n_equil = int(round(equil_ps / dt))
     n_prod = int(round(prod_ps / dt))
@@ -307,9 +313,9 @@ def main():
     if os.path.exists(ckpt_path):
         ck = torch.load(ckpt_path, map_location="cuda", weights_only=False)
         x = ck["x"]; v = ck["v"]; f = ck["f"]
-        if x.shape[0] != B_TOTAL or not (torch.isfinite(x).all() and torch.isfinite(v).all()
+        if x.shape[0] != b_total or not (torch.isfinite(x).all() and torch.isfinite(v).all()
                                          and torch.isfinite(f).all()):
-            raise RuntimeError(f"checkpoint invalid: shape {tuple(x.shape)} vs B={B_TOTAL} "
+            raise RuntimeError(f"checkpoint invalid: shape {tuple(x.shape)} vs B={b_total} "
                                "or non-finite state; refusing to resume")
         fsum = ck["fsum"]; fcount = ck["fcount"]
         ngap_rows = list(ck["ngap_rows"]); ngap_steps_l = list(ck["ngap_steps"])
@@ -322,10 +328,10 @@ def main():
         # bulk: independent wet snapshot at HALF rate (most adiabatic control);
         # hot: dragged wet snapshot + water noise + clash push + SD.
         starts_path = os.path.join(out_dir, "starts_dragged.npz")
-        starts = np.empty((B_TOTAL, base.shape[0], 3), dtype=np.float32)
-        src_xi = np.empty(B_TOTAL)
+        starts = np.empty((b_total, base.shape[0], 3), dtype=np.float32)
+        src_xi = np.empty(b_total)
         n_wet, n_dry = snaps_wet.shape[0], snaps_dry.shape[0]
-        for i in range(B_TOTAL):
+        for i in range(b_total):
             w, fam, rep = i // 12, (i % 12) // 3, i % 3
             if FAMILIES[fam] == "dry":
                 starts[i] = snaps_dry[(w * 3 + rep) % n_dry]
@@ -356,7 +362,7 @@ def main():
             d_t = torch.as_tensor(d_values, device="cuda", dtype=dtype)
             src_t = torch.as_tensor(src_xi, device="cuda", dtype=dtype)
             fam_t = torch.as_tensor(fam_idx, device="cuda")
-            print(f"[phase B] dragging {B_TOTAL} starts to window separations...", flush=True)
+            print(f"[phase B] dragging {b_total} starts to window separations...", flush=True)
             fast = fam_t != 0                                # bulk (fam 0) drags at half rate
             for mask, rate in ((fast, drag_rate), (~fast, 0.5 * drag_rate)):
                 idx = torch.nonzero(mask, as_tuple=True)[0]
@@ -385,7 +391,7 @@ def main():
             os.replace(starts_path + ".tmp.npz", starts_path)    # atomic: no torn cache
         v = dyn.maxwell_velocities(x, generator=gen)
         f, _ = force_of(x)
-        fsum = torch.zeros(B_TOTAL, n_blocks, device="cuda", dtype=torch.float64)
+        fsum = torch.zeros(b_total, n_blocks, device="cuda", dtype=torch.float64)
         fcount = torch.zeros(n_blocks, device="cuda", dtype=torch.float64)
         ngap_rows, ngap_steps_l = [], []
 
@@ -403,7 +409,7 @@ def main():
             _, f_raw_chk = ef_compiled(x, chunk=CHUNK)
             max_f_post_equil = f_raw_chk.abs().amax(dim=(1, 2)).detach().cpu().numpy()
             n_jam = int((max_f_post_equil > 1.0e4).sum())
-            print(f"  [jam census] {n_jam}/{B_TOTAL} replicas above 1e4 kJ/mol/nm "
+            print(f"  [jam census] {n_jam}/{b_total} replicas above 1e4 kJ/mol/nm "
                   f"at production start", flush=True)
         if s_prod >= 0:
             b = min(s_prod // block_steps, n_blocks - 1)
@@ -417,7 +423,7 @@ def main():
                 ngap_steps_l.append(step)
         if step % 2000 == 0:
             el = time.perf_counter() - t0
-            agg = (step - start_step + 1) * dt * B_TOTAL / 1000.0
+            agg = (step - start_step + 1) * dt * b_total / 1000.0
             print(f"  step {step:8d}/{total_steps}  t={step*dt:8.2f} ps  "
                   f"T={float(dyn.temperature(v).mean()):6.1f} K  "
                   f"agg {agg:8.2f} ns  ({el:6.0f}s)", flush=True)
@@ -430,15 +436,15 @@ def main():
 
     f_blocks = (fsum / fcount.clamp_min(1.0)[None, :]).cpu().numpy()
     np.savez(os.path.join(out_dir, "windows.npz"),
-             d_grid=D_GRID, d_values=d_values, family=fam_idx, replica=rep_idx,
+             d_grid=d_grid_run, d_values=d_values, family=fam_idx, replica=rep_idx,
              f_block_means=f_blocks, block_ps=BLOCK_PS * scale,
              max_force_post_equil=(max_f_post_equil if max_f_post_equil is not None
-                                   else np.full(B_TOTAL, np.nan)),
+                                   else np.full(b_total, np.nan)),
              ngap=np.asarray(ngap_rows), ngap_steps=np.asarray(ngap_steps_l),
              equil_ps=equil_ps, prod_ps=prod_ps, dt_ps=dt)
     manifest = dict(csys.manifest(), stage=f"reference_build{a.build}",
                     smoke=bool(a.smoke), seed0=seed0, dt_ps=dt,
-                    n_windows=N_WINDOWS, families=FAMILIES, n_rep=N_REP, B=B_TOTAL,
+                    n_windows=n_windows, families=FAMILIES, n_rep=N_REP, B=b_total,
                     equil_ps=equil_ps, prod_ps=prod_ps, block_ps=BLOCK_PS * scale,
                     anchors=dict(wet_nm=ANCHOR_WET_NM, dry_nm=ANCHOR_DRY_NM,
                                  streams=N_ANCHOR_STREAMS, snap_ps=list(snap_ps)),

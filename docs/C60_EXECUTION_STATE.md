@@ -14,7 +14,7 @@ never a spec change.
 | NPT box | **FROZEN: Lx = Ly = 2.651139 nm, Lz = 5.673840 nm** (`results/c60/box/`) |
 | PME | pinned: alpha 2.628260884878466 nm^-1, grid 24 x 24 x 48 (`pme_params.json`) |
 | engine parity | in progress — `tests/test_c60_engine.py` |
-| dt gate | **first read RETRACTED for cause** (2026-08-15): equipartition PASSED both dt (0.15 K / 0.08 K) and constraints 2e-15 nm, but the 0.968/1.20 nm mean-force spots went **NaN** — exploded trajectories from unrelaxed cage-teleport starts (SD reach 0.06 nm vs ~0.25 nm overlaps) silently forced the 1 fs fallback. Fix: whole-molecule clash pusher + force guards + NaN-raises (`src/c60/prep.py`); the rerun inside the next ladder is the decided-once run |
+| dt gate | **DECIDED: dt = 1 fs (2026-08-15, third read, never revisited).** Read 1 RETRACTED (NaN spots from teleport prep); read 2 invalidated (2× drag-rate jam, guard fired). Read 3 procedurally valid: prep clean (0 jammed), equipartition PASS both dt (0.03 K / 0.66 K), constraints ~2e-15 nm, spots at 1.2/2.0 ok — the 0.968 spot missed at 2.17σ vs the frozen 2σ line, so the frozen rule decides 1 fs. A survivor-composition confound (14 vs 10 clean replicas between arms) is RECORDED BUT NOT EXPLOITED: redesigning the clause after seeing the borderline number would be result-directed. Cost is wall-clock only: reference ≈ 4.9 days idle / ~6.4 co-tenant at 175 ns/day-equivalent |
 | reference | not started (3 builds pending) |
 | Gate 0 pools | not started |
 | screen | **prohibited** until reference accepted + Gates 0/A pass |
@@ -75,6 +75,18 @@ CUDA_VISIBLE_DEVICES=3 python scripts/c60_reference.py --build 1
   found no kill in any script. No direct observation of the signal; logged at that strength.
   **Resolution:** by 01:2x both sibling processes were gone (stopped by the sibling or the
   user); GPUs 2 and 3 clear; the stability watcher proceeds.
+
+* **2026-08-15 10:04 UTC: GPUs 0–3 are NOT exclusively this group's.** Third-party users
+  measured resident: `juntingwu` on GPUs 1/2/3 (17.5 GB on 3 from 10:04:19), `yesom` on 0/1.
+  Ladder5's throughput stage ran co-resident and its `throughput.json` under-reports
+  uniformly by ~1.32× — superseded by `throughput_idle_reference.json`, which records the
+  twice-replicated idle numbers from ladders 1/2 (B816_c128: 401.7/401.8 ms/step, 351
+  ns/day agg). The dt gate/smoke/resume stages are ensemble- or mechanics-based and remain
+  valid co-resident (wall clock only). The reference campaign launches co-resident with
+  occupancy recorded in its manifest: ~3.2 days at current contention, 2.44 idle. The
+  preflight idle check (memory-based, any process) would correctly refuse today; it passed
+  at 09:5x because the foreign job landed at 10:04, mid-suite. Do not treat "preflight
+  passed" as "stayed idle".
 
 ## Measured facts worth keeping in view
 

@@ -58,9 +58,13 @@ else
 fi
 
 echo "== [4/6] dt gate =="
-CUDA_VISIBLE_DEVICES=3 python scripts/c60_dt_gate.py --phase openmm
-CUDA_VISIBLE_DEVICES=3 python scripts/c60_dt_gate.py --phase torch
-python scripts/c60_dt_gate.py --phase verdict
+if [ -f "$RESULTS/parity/dt_gate.json" ]; then
+  echo "DECIDED ONCE, never revisited (SPEC 3.4): dt = $(python -c "import json; print(json.load(open('$RESULTS/parity/dt_gate.json'))['decision_dt_ps'])") ps"
+else
+  CUDA_VISIBLE_DEVICES=3 python scripts/c60_dt_gate.py --phase openmm
+  CUDA_VISIBLE_DEVICES=3 python scripts/c60_dt_gate.py --phase torch
+  python scripts/c60_dt_gate.py --phase verdict
+fi
 
 echo "== [5/6] reference smoke (1/50th durations) =="
 CUDA_VISIBLE_DEVICES=3 python scripts/c60_reference.py --build 1 --smoke
