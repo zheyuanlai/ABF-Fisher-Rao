@@ -2265,3 +2265,40 @@ state that could not hold walkers at all.
 16.3's `N Q* >= 3` clause and the SPEC §8 line implementing it are superseded; nothing else
 in 16.3 changes.  This amendment precedes every Gate C datum by construction and cannot have
 been tuned against one.
+
+#### 16.8 Partition-freeze ordering, the lambda table, and the cells that cannot run (2026-08-15)
+
+**What had been seen:** still no C60 reference, screen or Gate C datum — this extends 16.7
+within the same pre-data window, again prompted by the NaCl session's cross-audit and adopted
+after independent verification.
+
+**(a) The partition is frozen before any occupancy is read, explicitly.** The Amendment 3
+state rule (minima, < 2 kT merges from the higher minimum, boundaries at maxima) is evaluated
+on the accepted reference, and the resulting partition **with its per-state lambda table** is
+recorded in `results/c60/reference/RESULT.md` *before any screen cell launches*.  After any
+occupancy has been read, the partition is never revisited: re-merging states because the
+narrow ones came back unpowered would be choosing the partition against the result, turning
+the 16.7 power guard into a licensing search.  "The merged state clears 16 but the contact
+state does not, so C60 is classifiable only at the coarse partition" is an acceptable
+recorded outcome; a post-hoc merge is not.
+
+**(b) The lambda table is computed from the reference, before compute is spent.**
+`lambda_k(N) = N Q*_k` needs no sampling.  It is emitted for every ladder N under both the
+unbiased reference weights (`Q*_k` at `B = 0`, the screen's t = 0 target) and the
+fully-flattened bias (`Q*_k` = width fraction, the late-time target), bracketing the
+realised trajectory of `Q*_k(t)`.
+
+**(c) Cells that cannot classify are not run.**  Because `Q*_k <= 1` identically,
+`min-span N Q*_k >= 16` is unsatisfiable for **every** state at `N = 8` and degenerate at
+`N = 16`: those two cells cannot produce a headline-reportable Gate C deficit under any
+geometry, and — by the same arithmetic — their "no deficit" reading carries no evidential
+weight either (the no-data-reads-as-PASS class).  Under the frozen sequential rule they
+would only ever run after an establishment-limited `N = 64`, for an eligibility question
+they cannot answer.  **They are therefore struck from the executable ladder**: the C60 map
+is `N = 64` first, then `N = 32` only if 64 is establishment-limited; the `N in {8, 16}`
+rows remain in the SPEC as documentation of why they cannot run (~0.75 GPU-days not spent
+on unclassifiable cells, the NaCl precedent).  Gate B alone could still function at small
+`N`, but a cell that can return at most half a verdict is not run on the frozen budget.
+
+The 16.2/SPEC §7 ladder text is superseded to this extent; budgets, seeds, order and every
+other clause are unchanged.
