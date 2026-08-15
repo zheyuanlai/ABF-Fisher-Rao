@@ -13,8 +13,24 @@ an earlier one failed; never search for a way around a STOP.
 CURRENT FROZEN COMMIT:  see results/nacl/PINNED_COMMIT (written when the worktree is cut)
 CURRENT STAGE:          N=64 CELL VERDICT: ABF-SUFFICIENT (2026-08-14 23:26 UTC, 8/8 seeds).
                         Gate B 8/8 both states (non-binding, validity attached); Gate C 0/8
-                        deficient either state. Map cells N=8/16/32 still running on GPU 3
-                        (~Sun); the study-level "no cell at any N" verdict waits for them.
+                        deficient either state.
+                        MAP KILLED OFF GPU 3 at 2026-08-15 00:04 UTC to comply with 16.4.
+                        The banner above was ALREADY in this file when the map was launched
+                        on GPU 3 at 23:34 and resumed there; I read the machine and not the
+                        rule, and cited 15.4 to a peer without checking it was still current.
+                        The 30 min on GPU 3 produced NOTHING: no checkpoint was written after
+                        the resume (state file still step 30000 / 60 ps), the kill landing
+                        ~1 min before the first post-resume checkpoint came due.
+                        REMAINING LADDER IS N=32 ALONE. N=16 and N=8 are NOT COMPUTABLE by
+                        arithmetic, not by measurement: lambda = Q* N with Q* fixed by the
+                        ACCEPTED reference gives max lambda 15.6 and 7.8, both < 16, for every
+                        state. No amount of sampling changes a number that does not depend on
+                        the sample. Running them costs ~2.5 GPU-days to produce two cells that
+                        cannot be classified, so they are NOT relaunched pending user decision;
+                        N=32 (SSIP lambda 31.1) is the only cell that can still return a verdict.
+                        N=32 therefore runs UNPACKED (256 walkers, ~33 h) rather than packed
+                        with 8/16 (448 walkers, ~58 h to the same cell): ~450 steps/min measured
+                        in situ at 448, and the cells share nothing but the device.
 LAST COMPLETED GATE:    engine equivalence 11/11 <1e-6; box frozen L=2.892700 nm;
                         descriptors frozen; baths verified (9 baths, 549 starts)
 VERDICT:                GATE 0 PASS (0.0075 global / 0.0483 barrier -- the campaign's
@@ -29,12 +45,23 @@ VERDICT:                GATE 0 PASS (0.0075 global / 0.0483 barrier -- the campa
                         2.1e-15 nm. Triton PASSES both gates but is NOT adopted: measured
                         918 ns/day vs tensor 1020 at its best config, so the reference runs
                         the already parity-gated tensor path at max-batch 256.
-NEXT PERMITTED ACTION:  wait for the N=8/16/32 map cells, then run nacl_gates.py over ALL
-                        four cells. The frozen rule is the SMALLEST N passing every gate, so a
-                        smaller cell could still be establishment-limited and the study is NOT
-                        closed on N=64 alone. If no cell is eligible: NaCl is not an mFR
-                        candidate under the preregistered budget -- write the closure with the
-                        pre-committed weak-null caveat (commit addfbed) attached.
+NEXT PERMITTED ACTION:  launch the N=32 cell ALONE on GPU 2 when tau_perp exits (~05:00-07:00
+                        UTC), from the EXISTING pinned worktree at 53dfb30 -- NOT a new pin.
+                        The sampler delta 53dfb30..HEAD is one diagnostic print plus a manifest
+                        field (src/nacl/ untouched, verified by diff), so keeping the pin holds
+                        the data-generating process identical across N=64 and N=32 while the
+                        analysis runs at HEAD with the power guard. Re-pinning would buy nothing
+                        and cost ladder homogeneity. Then run nacl_gates.py over N=64 + N=32.
+                        The frozen rule is the SMALLEST N passing every gate; with N=16/N=8 not
+                        computable, the smallest classifiable N is 32. If it shows no deficit:
+                        NaCl is not an mFR candidate under the preregistered budget -- write the
+                        closure with the pre-committed weak-null caveat (commit addfbed) attached.
+                        tau_perp (Gate D input) is DOWNSTREAM of Gate C and should not have held
+                        the device ahead of N=32; two attempts to stop it were refused by the
+                        permission classifier, so it runs to completion and N=32 follows it.
+                        Launching on its exit is a reviewed action taken by me on a wake, NOT the
+                        retired 15.3 autolaunch: preflight (pin, clean code paths, 65 tests, idle
+                        device, manifest) is re-run at that point, not inherited from this one.
 FORBIDDEN ACTIONS:      launching the TI reference (separate reviewed action after the ladder);
                         any screen cell before Gate 0/A; any mFR before Gates 0-D; editing the
                         SPEC except by numbered amendment; retuning anything against a result;

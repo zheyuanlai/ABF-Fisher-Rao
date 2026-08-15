@@ -74,9 +74,23 @@ methane's** and must not be reported as a second independent null of equal stren
 ## Status of the study
 
 **The N ladder is exposed and the guard now runs before classification.** `lambda = Q* N` falls
-with `N`, so Gate C loses power as the ladder descends -- CIP at 1.72 / 0.86 / 0.43 / 0.22 and
-SSIP at 62.3 / 31.1 / 15.6 / 7.8 for N = 64 / 32 / 16 / 8. **At N = 16 and N = 8 no state reaches
-lambda >= 16, so Gate C is NOT COMPUTABLE there and those cells cannot be classified at all.**
+with `N`, so Gate C loses power as the ladder descends. Using the corrected statistic (the
+**minimum** of `Q*(t) N` over the judged window, `lambda_min` = 61.45 at SSIP and 1.57 at CIP --
+the earlier 62.3 / 1.72 were the pre-fix means over all checkpoints), the ladder projects to
+CIP 1.57 / 0.78 / 0.39 / 0.20 and SSIP 61.45 / 30.72 / 15.36 / 7.68 for N = 64 / 32 / 16 / 8.
+
+**N = 16 and N = 8 are structurally unclassifiable, and this is arithmetic rather than a
+projection.** The targets partition, so `Q*_k <= 1` for every state, so `lambda_k = N Q*_k <= N`.
+Any cell with `N <= 16` therefore has `lambda < 16` for *every* state -- with equality only if a
+single basin held the entire target, which CIP's nonzero target forbids. Sampling cannot raise a
+bound that does not depend on the sample. The threshold is not arbitrary either: `lambda = 16` is
+exactly where the resolvable deficit `2/sqrt(lambda)` equals the 50 % deficit the gate tests, so
+below it Gate C is asked to detect an effect smaller than its own resolution.
+
+**Gate C is therefore NOT COMPUTABLE at N = 16 and N = 8, and those cells cannot be classified.**
+Note the shape of the temptation: N = 16 misses by 0.64 walkers, and relaxing the threshold from
+16 to 15.36 would admit it. That is precisely the forbidden move -- retuning a frozen threshold
+against a result -- and the guard is worth having only if it binds when it is inconvenient.
 Without the guard, §8.2's "smallest N passing every gate" rule searches directly into the cells
 where P(empty) reaches 0.78 and would license an mFR arm on counting noise -- which is exactly
 the defect this repository already retracted once
