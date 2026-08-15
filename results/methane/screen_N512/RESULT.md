@@ -105,6 +105,28 @@ Raw per-seed numbers: all three states reached within 0.8 ps on every seed.
 Gate C's deficit threshold is 0.5. Nothing came close to a deficit; ABF is populating every
 region of the coordinate at the rate the applied bias asks for.
 
+**Gate C is powered, checked rather than assumed.** A null from an underpowered test is
+worthless, and the NaCl session found two cells of its own ladder where a 50 % deficit is not
+*computable* at any sampling. Detecting `occ < 0.5 Q*` at 2 sigma against binomial counting noise
+requires `lambda = N Q* >= 16(1 - Q*)`:
+
+| state | `Q*` | `lambda = N Q*` | required | margin |
+|---|---|---|---|---|
+| 0 | 0.260 | 133.3 | 11.8 | **11.3x** |
+| 1 | 0.292 | 149.4 | 11.3 | **13.2x** |
+| 2 | 0.448 | 229.3 | 8.8 | **26.0x** |
+
+At `N = 512` every state is powered by an order of magnitude. **Methane's null is not a
+null-because-underpowered** — the test could have seen a 50 % deficit ten times smaller than the
+one it was looking for. (For contrast, NaCl's remaining `N = 16` and `N = 8` cells give
+`lambda` 15.6 and 7.8, below the threshold: those cells cannot return a verdict at any budget,
+which is a property of the design rather than of the sampling.)
+
+**The deficit test is per-checkpoint, not a mean.** `occ` is the instantaneous walker fraction at
+each trace frame and the criterion is the longest *contiguous* run below `0.5 Q*`, so a
+well-populated stretch cannot average away a stretch where a state fails to hold walkers — the
+configuration the guard exists to catch.
+
 **The walkers are not pinned.** Maximum occupancy of any one tercile over the whole second half
 is 0.516 against a 0.90 clause — the population stays spread across the domain rather than
 collapsing to an end, which is the failure deca-alanine showed at 0.951–0.9996.
