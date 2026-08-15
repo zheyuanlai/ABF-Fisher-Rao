@@ -263,3 +263,35 @@ def test_single_build_reference_is_refused():
                        capture_output=True, text=True, cwd=ROOT)
     assert r.returncode != 0
     assert "vacuous" in (r.stdout + r.stderr)
+
+
+# --- the CELL-axis guard: a study verdict must not come from a partial ladder -------------
+import nacl_gates as _ng
+
+
+def test_study_verdict_withheld_when_a_classifiable_cell_is_missing():
+    """"no cell is eligible" reads the same whether the ladder was complete or whether a cell
+    simply had no data -- and the frozen rule is the SMALLEST N passing, so a missing smaller
+    cell can change the answer."""
+    m = _ng.map_completeness([8, 16, 32, 64], {64}, n_basins=2)
+    assert m["unexplained_missing"] == [32]
+    assert not m["COMPLETE"]
+
+
+def test_cells_below_the_power_floor_are_struck_a_priori_not_flagged_as_holes():
+    m = _ng.map_completeness([8, 16, 32, 64], {32, 64}, n_basins=2)
+    assert m["structurally_unclassifiable"] == [8, 16]
+    assert m["unexplained_missing"] == []
+    assert m["COMPLETE"], "8 and 16 need no data: lambda = N Q* < N <= 16"
+
+
+def test_boundary_cell_is_excluded_only_because_the_inequality_is_strict():
+    """N = 16 needs Q* = 1 -- one basin holding the ENTIRE target. With two basins that is
+    impossible, so N=16 is unclassifiable; with a single basin it is attainable."""
+    assert 16 in _ng.map_completeness([16], set(), n_basins=2)["structurally_unclassifiable"]
+    assert 16 in _ng.map_completeness([16], set(), n_basins=1)["unexplained_missing"]
+
+
+def test_complete_ladder_is_complete():
+    m = _ng.map_completeness([8, 16, 32, 64], {8, 16, 32, 64}, n_basins=2)
+    assert m["COMPLETE"] and not m["structurally_unclassifiable"]

@@ -38,6 +38,11 @@ HIT_FRACTION = 0.1      #: Gate B: T_hit < 0.1 T
 EXPECTED_SEEDS = 8      #: the preregistered block 4000-4007; thresholds are defined OVER it
 HIT_SEEDS = 6           #: of 8
 DEFICIT_RATIO = 0.5     #: Gate C: occupancy below half the bias-aware target
+#: Gate C power floor, in expected walkers. A DEFICIT_RATIO deficit is a 2-sigma effect only if
+#: 0.5*lambda >= 2*sqrt(lambda), i.e. lambda >= 16 -- exactly where the resolvable deficit
+#: 2/sqrt(lambda) equals the deficit the gate tests. Module-level because the CELL-MAP guard in
+#: main() needs it too: Q*_k <= 1 gives lambda_k <= N, so N < LAMBDA_MIN is unclassifiable a priori.
+LAMBDA_MIN = 16.0
 DEFICIT_FRACTION = 0.20  #: for a contiguous 0.20 T in the second half
 
 
@@ -105,6 +110,36 @@ def assert_partition(values, basins, name, allow_outside=True):
     if outside > 0 and not allow_outside:
         raise RuntimeError(f"{name}: {outside:.3%} of values fall in no basin")
     return outside
+
+
+def map_completeness(expect, present, n_basins, lambda_min=LAMBDA_MIN):
+    """Is the preregistered N ladder complete enough to support a STUDY-level verdict?
+
+    ``require_full_block`` guards the SEED axis; this guards the CELL axis, and the failure it
+    prevents is the same shape: "no cell is eligible" reads identically whether the ladder was
+    complete or whether one cell simply had no data, and the frozen rule is the SMALLEST N
+    passing every gate -- so a missing smaller cell can change the answer.
+
+    A cell may be dropped WITHOUT data only when it is structurally unclassifiable, which is
+    DERIVED, not declared: the basin targets partition, so ``Q*_k <= 1`` and
+    ``lambda_k = N Q*_k <= N``. With more than one basin the inequality is STRICT (every other
+    basin carries positive target, so ``Q*_k < 1``), hence a cell at exactly ``N = lambda_min``
+    cannot reach ``lambda_min`` either -- that would need one basin holding the entire target.
+    With a single basin ``Q* = 1`` is attainable and ``N = lambda_min`` is admissible.
+    """
+    strict = n_basins > 1
+    unclassifiable = (lambda N: N <= lambda_min) if strict else (lambda N: N < lambda_min)
+    missing = [N for N in sorted(expect) if N not in set(present)]
+    structural = [N for N in missing if unclassifiable(N)]
+    unexplained = [N for N in missing if not unclassifiable(N)]
+    return dict(expected_cells=sorted(expect), present_cells=sorted(present),
+                structurally_unclassifiable=structural,
+                reason=(f"Q*_k <{'' if strict else '='} 1 so lambda_k = N Q*_k "
+                        f"<{'' if strict else '='} N; a cell with N "
+                        f"{'<=' if strict else '<'} {lambda_min:.0f} cannot reach the power "
+                        f"threshold for any state, whatever the sampling"
+                        if structural else None),
+                unexplained_missing=unexplained, COMPLETE=not unexplained)
 
 
 def require_full_block(n_seeds, what):
@@ -245,7 +280,6 @@ def gate_c(diag_occ, diag_pmf, diag_times, grid, F_ref_on_grid, basins, beta, T_
     # screen_RETRACTED_no_min_count_guard: a state that could not hold walkers, on which
     # "Gate C fired", licenses_mfr: true). A state that cannot hold walkers is not a state
     # with a deficit. Unpowered states are reported NON-BINDING and excluded from the verdict.
-    LAMBDA_MIN = 16.0
     second_half = times >= 0.5 * T_ps
     n_walkers = int(diag_occ[0, 0].sum()) if diag_occ.size else 0
     power = {}
@@ -317,6 +351,9 @@ def main():
     ap.add_argument("--tau-perp-ps", type=float, default=None,
                     help="measured tau_perp; Gate D ceiling is reported only if given")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--expect-cells", default="8,16,32,64",
+                    help="the preregistered N ladder; a study-level verdict is WITHHELD unless "
+                         "every one is present or structurally unclassifiable (N < LAMBDA_MIN)")
     args = ap.parse_args()
     out_dir = args.out or args.screen
 
@@ -406,10 +443,37 @@ def main():
     selection = dict(eligible_cells=eligible,
                      chosen_N=(min(eligible) if eligible else None),
                      rule="smallest N passing every gate (mechanical, never by error size)")
-    if not eligible:
+
+    # ---- THE MAP MUST BE COMPLETE BEFORE A STUDY-LEVEL VERDICT IS EMITTED ----------------
+    # "no cell is eligible" is a claim about the whole preregistered ladder, but `results`
+    # holds whatever cell_N*.npz happened to be in the directory. Run against a single
+    # finished cell this block would print "NaCl is not an mFR candidate" -- a study verdict
+    # manufactured from a partial map, which reads exactly like a complete one.
+    # require_full_block() guards the SEED axis; nothing guarded the CELL axis.
+    #
+    # A cell may be dropped WITHOUT data only when it is structurally unclassifiable, and that
+    # is derivable rather than declared: the basin targets partition, so Q*_k <= 1, so
+    # lambda_k = N Q*_k <= N. Any cell with N < LAMBDA_MIN therefore cannot reach the power
+    # threshold for ANY state no matter how long it samples. Anything else missing is a hole.
+    expect = sorted(int(x) for x in args.expect_cells.split(",") if x.strip())
+    present = {r["N"] for r in results.values()}
+    selection["map"] = map_completeness(expect, present, len(basins))
+    structural = selection["map"]["structurally_unclassifiable"]
+    unexplained = selection["map"]["unexplained_missing"]
+
+    if unexplained:
+        selection["verdict"] = None
+        selection["WITHHELD"] = (
+            f"study-level verdict WITHHELD: cells {unexplained} are preregistered, are not "
+            f"structurally unclassifiable (N >= {LAMBDA_MIN:.0f}), and have no data. The "
+            f"frozen rule is the SMALLEST N passing every gate, so a missing smaller cell "
+            f"could change the answer. Per-cell results above stand on their own.")
+    elif not eligible:
         selection["verdict"] = ("no cell is both discovered and under-established: "
                                 "NaCl is not an mFR candidate under the preregistered budget. "
-                                "STOP.")
+                                "STOP."
+                                + (f" (cells {structural} excluded a priori: unclassifiable)"
+                                   if structural else ""))
     if args.tau_perp_ps and eligible:
         selection["gate_D"] = dict(
             tau_perp_ps=args.tau_perp_ps,
