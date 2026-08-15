@@ -88,7 +88,14 @@ RUNNING NOW:            N=32, PID 3835641 on GPU 2 since 2026-08-15 01:14 UTC, l
                         over 43 min). ETA ~19:56 UTC 2026-08-15, ~18.7 h total.
 
 NEXT PERMITTED ACTION:  when N=32 completes, link cell_N32.npz and cell_N64.npz into one
-                        directory and run nacl_gates.py over BOTH. The map is then COMPLETE
+                        directory and run nacl_gates.py over BOTH. REHEARSED 2026-08-15 on a
+                        SYNTHETIC N=32 cell (scratchpad only, never under results/): the
+                        two-cell path runs clean, map flips to COMPLETE, the verdict is emitted,
+                        Gate B handles a 32-walker xi_trace, and the guard marks CIP non-binding
+                        (lambda 0.78) with SSIP binding (30.72) at N=32. The rehearsal validates
+                        PLUMBING ONLY -- the synthetic cell was built by scaling N=64 occupancy
+                        by 32/64, so its lambda matching the projection is tautological, not
+                        evidence. The real cell has its own bias trajectory and its own Q*(t). The map is then COMPLETE
                         (8 and 16 struck a priori) and the study-level verdict is emitted; until
                         then it is WITHHELD by map_completeness() and correctly so.
                         Read the outcome against results/nacl/CLOSURE_PRECOMMIT.md, which fixed
