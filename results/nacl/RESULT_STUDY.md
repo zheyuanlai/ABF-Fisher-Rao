@@ -39,8 +39,18 @@ study-level verdict while any *classifiable* cell is missing. `N = 16` misses by
 relaxing the threshold to admit it is the forbidden retune-against-a-result, and was refused.
 
 **Projection recorded before the cell ran** (`CLOSURE_PRECOMMIT.md`): SSIP `lambda ~ 30.7`,
-CIP `~ 0.78`. **Realised: 30.75 and 0.81.** No material departure, so the bias-aware target
-behaved as the reference predicted.
+CIP `~ 0.78`; realised 30.75 and 0.81. **This agreement carries less weight than it appears to,
+and is recorded here at its true weight.** `lambda = N Q*`, and the N=64 cell already fixed
+`Q*_SSIP = 61.45/64 = 0.9602` and `Q*_CIP = 1.57/64 = 0.0245`; multiplying by 32 gives 30.73 and
+0.79 as **arithmetic**. The only empirical content is that `Q*` barely moves with `N` — mild,
+worth knowing, and not a validation of anything. A projection that could not have failed is the
+same shape as a gate that could not fire.
+
+**What the pre-commitment actually earned is the other half of that document**: four outcomes
+with their meanings fixed before any datum existed, so the branch was selected by lookup rather
+than chosen after seeing the number. That would have done its work even had the projection
+missed. (Timing, checkable: `CLOSURE_PRECOMMIT.md` committed `5352753` at 01:38 UTC against the
+N=32 launch at 01:14 — after the process started, before anything could be read from it.)
 
 ## Gate C is unpowered at CIP in both cells, and a second statistic carries it
 
