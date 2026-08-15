@@ -2345,3 +2345,30 @@ independent 0.05 nm draws — noise directed into a sterically closed pocket doe
 geometric limit as the pusher).  The exterior noise, the frozen sigma and the
 rejection-sampling loop are unchanged; the destroyed-interface semantics live in the I1
 band, which is exterior.
+
+#### 16.10 A pre-committed secondary statistic for sub-floor states (2026-08-15, before any reference or occupancy datum)
+
+**What had been seen:** no C60 reference window, gate statistic, occupancy or screen datum.
+NaCl had just closed ABF-sufficient, its unpowered CIP state cleared by a sliding-window
+statistic that was a live branch of its pre-commitment; the construction is adopted here on
+the same terms — frozen before the number can exist, with the inconclusive branch explicit.
+
+For any reference-defined state whose 16.7 floor fails (`min-span N Q*_k < 16`) at an
+executable cell, the following **secondary** statistic is computed alongside the
+UNCLASSIFIABLE report, never in place of it:
+
+```
+  W_k(t)  =  occupancy of state k averaged over the sliding window [t, t + 0.2 T]
+  D_k     =  min over t in the second half of  W_k(t) / <Q*_k over the same window>
+  error   =  spread of D_k across the 8 independent seeds (SEM; no Poisson or
+             autocorrelation assumption enters)
+```
+
+Pre-committed outcomes, decided by where the ±2 SEM band of the seed-mean D_k lies against
+the frozen 0.5 ratio: entirely below -> **powered deficit evidence** (reported as secondary,
+Gate C still does not fire on an unpowered state); entirely above -> **powered no-deficit
+evidence**; straddling -> **INCONCLUSIVE, reported as such**.  The statistic is powered on
+its own terms or it says so; it is never used to rescue an mFR licence — 16.7's floor
+remains the licensing guard — only to let a sub-floor state say something quantitative
+rather than nothing.  NaCl's realised example (CIP, worst window 1.371 ± 0.106 at N = 32)
+is the calibration precedent.
