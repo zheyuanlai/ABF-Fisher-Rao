@@ -221,6 +221,19 @@ Per §9 and Amendment 11.1, **binding**:
 Q1 (Fisher–Rao versus prior directed selection) remains open and passes to NaCl, which was always
 where it would be answered if methane failed.
 
+> **Update 2026-08-15: NaCl closed ABF-sufficient too, so Q1 was not answered there either.**
+> Its map is complete — `N = 64` and `N = 32` classified with no SSIP deficit on 8/8 seeds
+> (`lambda` 61.45 and 30.75), `N = 16` and `N = 8` **not computable a priori** because `Q* < 1`
+> forces `lambda = N Q* < N <= 16`. No mFR arm was licensed in either system.
+>
+> **The two nulls are not of equal weight, and the campaign must not present them as two
+> independent negatives.** NaCl's hydration varies 14–83x more across `r` than at fixed `r`
+> against methane's **5.4x**, so for NaCl "mFR had nothing to work with" survives as a live
+> alternative to "mFR was not needed". Methane's margins (Gate C resolving 13–18 % on states
+> holding `lambda = 127.6/147.0/224.2`) are what convert *we saw no deficit* into *a deficit of
+> the size we care about was not there*. **Methane earns that; NaCl earns it for Gate C and not
+> for the study.** The load-bearing null is this one.
+
 ## Finite-size gate: run after the fact, and inconclusive
 
 SPEC §1.3's check was never run before the reference; it was run afterwards, on a 1024-water box.
