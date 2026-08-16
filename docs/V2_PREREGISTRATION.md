@@ -2622,3 +2622,47 @@ executable cell's traces exist, the span sweep is run on the UNMODIFIED traces a
 false-fire count per span is a **mandatory reported diagnostic** (rule-of-three bounds on
 zero counts), explicitly non-decisional — it characterises the instrument on this system's
 autocorrelation, alongside the verdict, never inside it.
+
+#### 16.12 Absolute-time instrument windows; the contiguity statistic loses all verdict weight (2026-08-16, before any C60 occupancy datum)
+
+**What had been seen:** no C60 reference or occupancy datum.  The NaCl session measured
+`tau_occ = 42.2 ps` (median over 32 state-seeds, **N-independent**: 41.6 at N=64, 42.2 at
+N=32) and located the false-fire frontier at **120 ps (N=64) / 160 ps (N=32)** — an
+approximately absolute physical time (2.8-3.8 tau_occ), where a fixed-fraction rule predicts
+1/N scaling (120/240).  Under `N x T = const`, the frozen `0.2 T` span therefore runs from
+7.4 tau_occ (N=64) to 59 tau_occ (N=8): the instrument becomes up to **8x blunter at small
+N, in the direction that hides establishment failure**, precisely where the ladder is most
+informative.  Methane's frontier coefficient (0.7 tau) differs from NaCl's (2.8-3.8 tau), so
+no coefficient transfers; only the parameterisation lesson does.
+
+**Frozen dispositions:**
+
+1. **Every Gate C persistence/window quantity is set in ABSOLUTE time: 400 ps** — the
+   N = 64 anchor cell's `0.2 T`, i.e. the campaign-inherited value at the anchor, applied
+   identically to every executable cell.  Cells are thereby compared on identical instrument
+   terms; the 1/N blunting cannot arise.  The window is never re-chosen, in either
+   direction, for any reason (the 16.10 immutability clause carries over to the absolute
+   form).
+2. **The contiguity statistic loses ALL verdict weight** (supersedes 16.11 clause 3's
+   one-sided evidence): its nominal threshold is unreachable (16.11), its safe span is
+   non-transferable (16.11 second addendum), and its absolute-time behaviour under the
+   budget rule is N-dependent (this amendment).  It is computed and reported for
+   cross-campaign comparability, with any fire arbitrated by the band: band-below ->
+   the band already decides; band-straddle -> INCONCLUSIVE; band-above -> the fire is
+   recorded as an instrument artefact.  **The windowed band is the sole establishment
+   instrument**, and every claim it makes quotes its window explicitly ("no deficit
+   sustained over >= 400 ps" — not "no deficit").
+3. `tau_occ` for C60 is measured from the screen traces by the NaCl recipe (per-state-seed
+   occupancy autocorrelation, median; reading a correlation time reveals no verdict) and
+   **reported** alongside, with the 400 ps window expressed in tau units; the false-fire
+   span sweep of the second addendum remains a mandatory, non-decisional diagnostic.  If
+   400 ps proves to sit below C60's own frontier, that is reported as an instrument
+   characterisation — it cannot corrupt a verdict, because the contiguity statistic no
+   longer carries one.
+4. The 16.8 strike of `N in {8, 16}` stands unchanged, now on budget-and-precedence grounds
+   (the sequential rule reaches N = 32 only on an establishment-limited N = 64); it is not
+   relitigated by the band's self-reporting power.
+
+This is the terminal form of the Gate C instrument for C60: a measured band with an
+absolute-time window and pre-committed branches, a reported-only contiguity statistic, and
+every power and calibration number attached to the object it was measured on.
