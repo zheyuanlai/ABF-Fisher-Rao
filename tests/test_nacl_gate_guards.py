@@ -306,3 +306,40 @@ def test_report_carries_analysis_provenance_so_a_superseded_tree_is_detectable()
     for g in ("gate_c_power_guard_lambda_min_16", "cell_map_completeness_guard",
               "gate_a_preregistered_direction"):
         assert g in p["guards"], f"{g} missing from the guards manifest"
+
+
+def test_gate_a_reads_the_preregistered_direction_not_the_transpose():
+    """The check that can HALT the study was reading `max_TV` -- the superseded spec-transpose --
+    because reference_report.json names the transpose generically and the verdict
+    `preregistered_*`. Both cleared 0.30 so nothing moved, but the wrong quantity was gating."""
+    import subprocess, sys, os, json, tempfile, shutil
+    src = "results/nacl/reference/reference_report.json"
+    rep = json.load(open(src))
+    assert rep["gateA"]["preregistered_max_TV"] != rep["gateA"]["max_TV"], \
+        "fixture assumption: the two directions must differ, else this test proves nothing"
+    with tempfile.TemporaryDirectory() as td:
+        shutil.copy("results/nacl/reference/reference.npz", td)
+        # a report that PASSES on the transpose and FAILS on the preregistered direction:
+        # reading the wrong key would let the study proceed.
+        rep["gateA"]["preregistered_PASS"] = False
+        rep["gateA"]["preregistered_max_TV"] = 0.11
+        json.dump(rep, open(os.path.join(td, "reference_report.json"), "w"))
+        r = subprocess.run([sys.executable, "scripts/nacl_gates.py",
+                            "--screen", "results/nacl/screen_all", "--ref", td,
+                            "--out", td], capture_output=True, text=True)
+    assert r.returncode != 0, "Gate A must FAIL on the preregistered direction"
+    assert "0.110" in r.stdout + r.stderr, "must report the preregistered value, not the transpose"
+
+
+def test_missing_preregistered_field_raises_rather_than_falling_back():
+    """A silent fallback to `max_TV` would restore the exact defect being fixed."""
+    import subprocess, sys, os, json, tempfile, shutil
+    rep = json.load(open("results/nacl/reference/reference_report.json"))
+    with tempfile.TemporaryDirectory() as td:
+        shutil.copy("results/nacl/reference/reference.npz", td)
+        rep["gateA"].pop("preregistered_PASS", None)
+        json.dump(rep, open(os.path.join(td, "reference_report.json"), "w"))
+        r = subprocess.run([sys.executable, "scripts/nacl_gates.py",
+                            "--screen", "results/nacl/screen_all", "--ref", td,
+                            "--out", td], capture_output=True, text=True)
+    assert r.returncode != 0 and "predates the transpose correction" in r.stdout + r.stderr

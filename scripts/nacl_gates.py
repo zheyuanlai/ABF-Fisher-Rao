@@ -329,9 +329,16 @@ def gate_c(diag_occ, diag_pmf, diag_times, grid, F_ref_on_grid, basins, beta, T_
                 lams.append(float(w[msk].sum() / w.sum()) * n_walkers)
         lam = float(np.min(lams))
         lam_mean = float(np.mean(lams))
-        power[lab] = dict(lambda_expected_walkers=lam, lambda_mean_over_window=lam_mean,
+        power[lab] = dict(lambda_min_over_window=lam, lambda_mean_over_window=lam_mean,
+                          # NOT `lambda_min` for the THRESHOLD and `lambda_expected_walkers`
+                          # for the MEASUREMENT: this study's measured statistic IS a minimum, so
+                          # `lambda_min` read naturally as the measured value while holding 16.0,
+                          # and the result pages used the same token for the measurement. Same
+                          # token, two quantities, across artifact and prose. Renamed so the name
+                          # says which is which. (The methane session hit the word-order variant:
+                          # gateC_min_lambda vs gateC_lambda_min.)
                           lambda_statistic="minimum of Q*(t)*N over the judged window",
-                          lambda_min=LAMBDA_MIN,
+                          lambda_threshold=LAMBDA_MIN,
                           POWERED=bool(lam >= LAMBDA_MIN),
                           threshold_is_emptiness=bool(0.5 * lam < 1.0),
                           p_empty_by_counting=float(np.exp(-lam)),
@@ -369,7 +376,7 @@ def gate_c(diag_occ, diag_pmf, diag_times, grid, F_ref_on_grid, basins, beta, T_
                                            if pw["POWERED"] else None),
                         BINDING=pw["POWERED"],
                         note=None if pw["POWERED"] else
-                        (f"NON-BINDING: lambda = {pw['lambda_expected_walkers']:.2f} expected "
+                        (f"NON-BINDING: lambda = {pw['lambda_min_over_window']:.2f} expected "
                          f"walkers < {LAMBDA_MIN}; a 50 % deficit is not a 2-sigma effect here"
                          + (", and the threshold is arithmetically 'the state is empty'"
                             if pw["threshold_is_emptiness"] else "")))
@@ -404,14 +411,26 @@ def main():
                          f"{gA.get('basin_sample_counts')}): too few descriptor samples in at "
                          "least one basin. This is a data gap, NOT a CV-visibility failure -- "
                          "extend the reference rather than reporting a Gate A stop.")
-    if not gA["PASS"]:
-        raise SystemExit(f"Gate A FAILED (max TV {gA['max_TV']:.3f} < 0.30): "
+    # THE PREREGISTERED DIRECTION GATES, NOT THE TRANSPOSE. reference_report.json stores both
+    # and names them backwards: `PASS`/`max_TV` are the SPEC-TRANSPOSE p(Y|state) that commit
+    # 239291e superseded, while the verdict lives under `preregistered_*`. Reading the
+    # generic-looking key meant the check that can halt this study was evaluating the wrong
+    # quantity -- harmless here only because both directions clear 0.30 (1.000 and 0.9959).
+    # Missing key RAISES rather than falling back to the transpose: a silent fallback would
+    # restore exactly the defect being fixed.
+    if "preregistered_PASS" not in gA or "preregistered_max_TV" not in gA:
+        raise SystemExit("reference_report.json has no `preregistered_*` Gate A fields: it "
+                         "predates the transpose correction (239291e). Regenerate it; do NOT "
+                         "fall back to `max_TV`, which is the superseded direction.")
+    gA_pass, gA_tv = gA["preregistered_PASS"], gA["preregistered_max_TV"]
+    if not gA_pass:
+        raise SystemExit(f"Gate A FAILED (preregistered max TV {gA_tv:.3f} < 0.30): "
                          "hydration states are not distinguishable through r -- STOP. "
                          "This is a stop for the CV, never a licence to tune mFR.")
     print(f"[upstream] reference accepted (ratio {ref_report['acceptance']['ratio']:.3f}); "
           f"Gate 0 spread global {g0['global_spread_ratio']:.3f} / barrier "
           f"{g0['barrier_region_ratio']:.3f} (ladder verdict argued in RESULT.md); "
-          f"Gate A max TV {gA['max_TV']:.3f} PASS", flush=True)
+          f"Gate A max TV {gA_tv:.3f} PASS (preregistered direction)", flush=True)
 
     ref = np.load(os.path.join(args.ref, "reference.npz"))
     basins = ref_report["basins"]
@@ -460,8 +479,8 @@ def main():
             if not v.get("BINDING"):
                 pw = v["power"]
                 print(f"   Gate C {lab:6s}: NON-BINDING -- lambda = "
-                      f"{pw['lambda_expected_walkers']:.2f} expected walkers (need >= "
-                      f"{pw['lambda_min']:.0f}); smallest resolvable deficit is "
+                      f"{pw['lambda_min_over_window']:.2f} expected walkers (need >= "
+                      f"{pw['lambda_threshold']:.0f}); smallest resolvable deficit is "
                       f"{100*pw['detectable_deficit_frac']:.0f} %"
                       + (", and 'below 0.5 Q*' here means 'the state is empty'"
                          if pw['threshold_is_emptiness'] else ""))
@@ -469,7 +488,7 @@ def main():
             print(f"   Gate C {lab:6s}: {v['n_seeds_deficient']}/{EXPECTED_SEEDS} seeds deficient "
                   f"for >= {v['required_ps']:.1f} ps -> "
                   f"{'UNDER-ESTABLISHED' if v['UNDER_ESTABLISHED'] else 'established'}"
-                  f"  (lambda = {v['power']['lambda_expected_walkers']:.1f})")
+                  f"  (lambda = {v['power']['lambda_min_over_window']:.1f})")
 
     eligible = sorted([r["N"] for r in results.values() if r["eligible"]])
     selection = dict(eligible_cells=eligible,

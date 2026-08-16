@@ -53,7 +53,14 @@ def write_reference(path, cip_depth=3.0, ssip_depth=3.0):
                    completeness=dict(COMPLETE=True),
                    gate0=dict(COMPUTABLE=True, global_spread_ratio=0.04,
                               barrier_region_ratio=0.06, coverage={}),
-                   gateA=dict(COMPUTABLE=True, PASS=True, max_TV=0.71),
+                   # Both directions, as a current reference_report.json carries them. The
+                   # `preregistered_*` pair is what gates; `PASS`/`max_TV` are the SUPERSEDED
+                   # spec-transpose and are deliberately given a DIFFERENT value here so a
+                   # regression that reads the wrong key changes the reported number visibly
+                   # instead of passing silently on a shared one.
+                   gateA=dict(COMPUTABLE=True,
+                              preregistered_PASS=True, preregistered_max_TV=0.71,
+                              PASS=True, max_TV=0.62),
                    basins=basins),
               open(os.path.join(path, "reference_report.json"), "w"))
     return r, F, basins

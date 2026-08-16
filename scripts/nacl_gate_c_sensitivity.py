@@ -96,7 +96,7 @@ def main():
 
     base = ng.gate_c(d["diag_occupancy"], d["diag_pmf"], d["diag_times"], grid,
                      F_ref, rep["basins"], beta, T_ps)[args.state]
-    lam = base["power"]["lambda_expected_walkers"]
+    lam = base["power"]["lambda_min_over_window"]
     analytic = base["power"]["detectable_deficit_frac"]
     print(f"cell {args.cell}, state {args.state}: lambda = {lam:.2f}, "
           f"analytic 2-sigma detectable deficit = {100*analytic:.0f} %")
