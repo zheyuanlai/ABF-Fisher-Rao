@@ -72,6 +72,44 @@ Every worst-case window sits above the 0.5 threshold by more than 2 sigma, and n
 seed-window in any cell falls below 0.679. A sustained deficit of the size Gate C tests is
 excluded **with power** at both states of both cells.
 
+## What "Gate C did not fire" actually licenses — measured, not assumed
+
+Gate C nominally tests a 50 % deficit. **Measured by planting a stationary deficit in the real
+traces** (`nacl_gate_c_sensitivity.py`; the correlation structure of the trace is the quantity in
+question, so synthetic samples would answer a different question), the gate needs **>= 55 % at
+both cells**, and fires on 0/8 seeds at exactly the 50 % it is written to catch:
+
+| planted deficit | 45 % | 50 % | 55 % | 60 %+ |
+|---|---|---|---|---|
+| seeds firing, N=64 | 0/8 | 0/8 | **8/8** | 8/8 |
+| seeds firing, N=32 | 0/8 | 0/8 | **8/8** | 8/8 |
+
+The cause is that at a 50 % deficit the mean sits exactly *on* the threshold, so noise lifts
+about half the checkpoints above it and the required contiguous run rarely forms. **The
+`lambda >= 16` floor was derived from a single-checkpoint 2-sigma criterion standing in for a
+contiguous-span test** — the arithmetic was right about a quantity the gate does not compute.
+The analytic figures (26 % at N=64, 36 % at N=32) therefore *overstate* the gate's sensitivity.
+Independently found by the methane session on their system, where the threshold is ~60 %.
+
+**So `Gate C: 0/8 deficient` licenses only "no sustained deficit >= 55 % occurred" — and the
+verdict does not rest on it.** What carries the verdict is the direct windowed measurement in
+the table above: SSIP's worst-window band is `[0.974, 0.991]` at N=64 and `[0.974, 0.991]` at
+N=32, which excludes any sustained deficit larger than about **3 %** — roughly 18x tighter than
+the gate could report. A measured band, not a gate output.
+
+*Limitation, stated rather than implied:* the planted deficit is **stationary**. A real
+establishment failure that decays as the bias fills in would fire less readily still, so 55 % is
+a **floor** on the detection threshold, not a characterisation of it. The decaying case is not
+measured here.
+
+*The instrument was wrong first, again.* The initial sensitivity run reported "N=32 never fires
+up to 90 %". Redistributing the removed mass proportionally to the *existing* outside counts has
+nowhere to put it at checkpoints where every walker is inside the basin: the mass was silently
+dropped and the basin's share rose to **1.0** — the opposite of a deficit — and the scattered
+inflated checkpoints broke the contiguous run. Fixed by redistributing over the bias-aware
+target, which is strictly positive, and by asserting the per-checkpoint total the docstring had
+always claimed to preserve. Not asserting that invariant is what let the broken version report.
+
 ## The basins are sampled inside, not merely on aggregate
 
 Gate C is basin-integrated and SSIP spans 88 % of the domain, so a redistribution *within* SSIP
