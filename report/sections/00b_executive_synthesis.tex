@@ -34,7 +34,10 @@ resulting regimes (\cref{tab:regime_map}), classified by the \emph{first} gate i
   why this check now runs first.
   \item \textbf{ABF-sufficient} --- found early, populated early. Butane and pentane on
   $\varphi_1$, pentane on the torsion torus $(\varphi_1,\varphi_2)$, both dipeptides, the
-  metastability model, and the entropic bottleneck at $\beta\le4$. There is no marginal
+  metastability model, the entropic bottleneck at $\beta\le4$, and both solvated
+  literature benchmarks --- methane association (\cref{sec:methane}) and sodium chloride
+  association (\cref{sec:nacl}), the latter carrying a real $\NaBarrierKT\,k_BT$ desolvation
+  barrier and still showing no deficit. There is no marginal
   imbalance left for reallocation to correct.
   \item \textbf{Discovery-limited} --- not found. Pentane's end-to-end distance $R_{15}$ at
   $\beta=2$, the only genuinely starved biased coordinate in the study. Selection amplifies a
@@ -43,6 +46,18 @@ resulting regimes (\cref{tab:regime_map}), classified by the \emph{first} gate i
   entropic gateway, the condensed-phase WCA dimer, and the entropic bottleneck at $\beta=8$.
   This is the regime mFR serves.
 \end{itemize}
+
+Two consequences follow that a reader should have before the case sections. First, the regime
+mFR serves has never yet been found in a system we did not build: the gateway was constructed to
+contain it, and the two solvated literature benchmarks entered to look for it in nature both
+came back ABF-sufficient. Since NaCl was the designated venue for the comparison against prior
+directed selection, that comparison stands unanswered outside the WCA dimer, where it ended in a
+tie. Second, and independently of any one system, a cross-system audit over $\VmRuns$ runs finds
+that \emph{no deployable ABF-only indicator predicts the sign of the mFR gain out of sample}
+(\cref{sec:mechanism_audit}); the preregistered gate scores $\VmGateAuc$, below chance, with a
+sign that flips between held-out systems. Deciding when to switch the mechanism on therefore
+requires the regime diagnosis of this report, which requires a reference free energy --- the
+quantity the method is there to compute.
 
 \begin{figure}[!ht]\centering
   \fbox{\parbox{0.93\textwidth}{\centering\vspace{2pt}

@@ -126,6 +126,30 @@ independently prepared orthogonal ensembles disagree on the local mean force by 
 $|F'|$ (against $\GzWca$ for WCA and $\GzGateway$ for the gateway), so the classification that
 would have made it a target for the method is inadmissible.
 
+Two literature-anchored molecular systems were then entered as falsification benchmarks, both
+preregistered with the stop condition written in advance. Methane association in water is
+ABF-sufficient on $\MeSeeds$ of $\MeSeeds$ seeds, on a landscape whose barrier is
+$\MeBarrierHeight\,k_BT$; sodium chloride association, which carries a genuine
+$\NaBarrierKT\,k_BT$ desolvation barrier, is ABF-sufficient at both cells of its ladder that can
+be classified at all. Neither licensed a Fisher--Rao arm, so the question of whether Fisher--Rao
+directionality beats prior directed selection remains unanswered in a molecular system. The NaCl
+null is the weaker of the two and is reported as such, on a criterion fixed before the data:
+its hydration descriptors vary $\NaOrthoLo$--$\NaOrthoHi\times$ more across the coordinate than
+within it, so ``there was nothing orthogonal for reallocation to act on'' survives as an
+alternative to ``reallocation was not needed'', where methane's $\MeOrthoRatio\times$ leaves
+real structure for the mechanism to have used. The regime the method serves has so far been
+found only where it was built on purpose.
+
+A cross-system audit over $\VmRuns$ runs, $\VmCells$ cells and $\VmSystems$ systems then asks
+whether a practitioner could tell in advance when to switch the mechanism on. Under
+leave-one-system-out validation no deployable ABF-only indicator predicts the sign of the gain:
+the preregistered primary gate scores an out-of-sample AUC of $\VmGateAuc$
+$[\VmGateCIlo, \VmGateCIhi]$ with a sign that flips between folds, and the only reliable
+predictor is the measured ABF error itself, which presupposes the reference free energy the
+method exists to estimate. The same audit shows the error budget is $\VmBiasFracAbf$ bias, so
+marginal reallocation is a bias-reduction mechanism that costs a little variance rather than a
+variance-reduction one.
+
 Across all cases, FR is best understood as a
 marginal-reallocation mechanism whose value depends on how starved the ABF estimator is
 \emph{along the biased coordinate}, whether that starvation is a support deficit reallocation
