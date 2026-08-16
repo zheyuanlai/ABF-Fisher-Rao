@@ -161,10 +161,19 @@ DEFECT FOUND 2026-08-15, FIX DEFERRED: **caching a prerequisite skips the checks
                         after closure. The general form is worth carrying: any check attached to
                         a build step is silently skipped by a cache hit.
 
-OPEN ITEM (NOT ADOPTED): `scripts/nacl_screen_merge.py` carries an UNCOMMITTED change from the
-                        session that stood down, replacing the hard-coded seed-axis table with
-                        shape inference. Left in the working tree, not adopted, not reverted.
-                        Two hazards before anyone commits it: (i) it classifies a field as
+RESOLVED 2026-08-16:    `scripts/nacl_screen_merge.py`'s shape-inference change (from the session
+                        that stood down) IS COMMITTED, not sitting in the working tree as this
+                        entry previously said. It was swept into a846572 -- the methane session's
+                        commit -- as a side effect, so a defect recorded here as "uncommitted and
+                        unadopted" was in fact in HEAD where it would be used. My own note was
+                        wrong for a day; caught by re-checking the tree state rather than
+                        re-reading the note.
+                        Hazard (ii) is now FIXED: the unclassifiable fallthrough averaged the
+                        field across halves silently; averaging now sits behind an explicit
+                        MEANABLE allowlist and anything else raises. Hazard (i) stands and is
+                        documented rather than fixed -- it is a heuristic, not a bug, and
+                        `nacl_merge_halves.py` (explicit axes, full assertions) remains the
+                        AUTHORITATIVE merge. Original hazards: (i) it classifies a field as
                         seed-indexed when `shape[0] == s0`, and s0 = 4 for a half-block, so any
                         field with a leading dimension of 4 is misclassified; (ii) its fallback
                         SILENTLY AVERAGES arrays it cannot classify instead of raising -- an

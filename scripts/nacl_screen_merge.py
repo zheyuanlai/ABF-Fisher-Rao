@@ -25,6 +25,9 @@ import os
 import numpy as np
 
 EXPECTED = list(range(4000, 4008))
+#: Fields that may legitimately be AVERAGED across halves (per-checkpoint scalar diagnostics,
+#: not per-seed data). Everything else must be classifiable; see the refusal below.
+MEANABLE = ("diag_out_of_domain",)
 
 
 def classify(key, arrays, parts, S_total, N):
@@ -82,8 +85,21 @@ def main():
                                       *merged.shape[axis+2:])
         elif kind == "shared":
             out[key] = arrays[0]
-        else:                                    # per-checkpoint scalar diagnostics
+        elif key in MEANABLE:                    # per-checkpoint scalar diagnostics
             out[key] = np.mean(np.stack(arrays), axis=0)
+        else:
+            # AVERAGING AN UNRECOGNISED FIELD IS A SILENT CORRUPTION. classify() infers the
+            # layout from shape, so a field it does not recognise -- a new one the sampler
+            # adds, or one whose leading dimension coincidentally equals the half-block seed
+            # count -- would land here and be averaged across halves, giving a merged cell in
+            # which that field means something neither half meant. Nothing raises, and the
+            # merge reports success. Averaging is therefore allowed only for fields explicitly
+            # declared meanable; anything else stops the merge.
+            raise SystemExit(
+                f"cannot classify field '{key}' (shape {arrays[0].shape}, kind={kind}). "
+                f"Refusing to average it into the merged cell: averaging a field whose layout "
+                f"is unknown corrupts it silently. Add it to MEANABLE if it really is a "
+                f"per-checkpoint scalar, or extend classify() -- do not let it fall through.")
     out["seed_labels"] = seeds[order]
 
     for k, v in sorted(report.items()):

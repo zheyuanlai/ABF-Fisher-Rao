@@ -343,3 +343,22 @@ def test_missing_preregistered_field_raises_rather_than_falling_back():
                             "--screen", "results/nacl/screen_all", "--ref", td,
                             "--out", td], capture_output=True, text=True)
     assert r.returncode != 0 and "predates the transpose correction" in r.stdout + r.stderr
+
+
+def test_merge_refuses_to_average_an_unclassifiable_field():
+    """The merge infers each field's layout from its SHAPE. A field it cannot classify used to
+    fall through to np.mean across halves -- silently producing a merged cell in which that
+    field means something neither half meant, with nothing raised and the merge reporting
+    success. Averaging is now allowed only for explicitly declared per-checkpoint scalars."""
+    import importlib.util, numpy as _np
+    spec = importlib.util.spec_from_file_location(
+        "nsm", os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "..", "scripts", "nacl_screen_merge.py"))
+    nsm = importlib.util.module_from_spec(spec); spec.loader.exec_module(nsm)
+    assert "diag_out_of_domain" in nsm.MEANABLE, "the known per-checkpoint scalar must stay meanable"
+    # a field whose shape matches no seed/walker/shared pattern and is not declared meanable
+    src = open(nsm.__file__).read()
+    assert "raise SystemExit" in src and "silently" in src, \
+        "the unclassifiable branch must refuse, not average"
+    assert "np.mean(np.stack(arrays)" in src.split("elif key in MEANABLE")[1].split("else:")[0], \
+        "averaging must sit behind the MEANABLE allowlist, not in the fallthrough"
