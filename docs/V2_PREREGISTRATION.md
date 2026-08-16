@@ -2521,3 +2521,20 @@ long contiguous runs on perfectly established states (`P(empty) = 21 %` per chec
 
 The contiguity gate is thereby a detector that can only ever say "yes", and only in its
 powered regime — reported alongside for campaign comparability, never decisive alone.
+
+**16.11 second addendum — the contiguity span is a system property; C60 measures its own,
+decides with neither (2026-08-16, still before any C60 occupancy datum):** the methane and
+NaCl sessions measured the span's efficient frontier on their own real traces and disagree by
+5x (methane ~0.02 T, NaCl ~0.10 T; at 0.02 T NaCl shows 9/32 false fires where methane shows
+0/24) — the safe span is set by each system's own occupancy autocorrelation, i.e. by the
+physics under measurement, which makes it exactly the kind of parameter 16.11 already
+declines to let carry a verdict.  Frozen dispositions: (i) the C60 span REMAINS `0.2 T` for
+both instruments — the row where both systems measured zero false fires — so the one-sided
+detector's fire stays safe and the band stays conservative; the span is never re-chosen,
+in either direction, for any reason; (ii) the "realized firing floor >= 55 %" quoted in
+clause 3 is a property of span `0.2 T`, not of any system — the 55/60 % inter-study gap is
+fully accounted for by span and is not carried as a C60 expectation; (iii) once the first
+executable cell's traces exist, the span sweep is run on the UNMODIFIED traces and the
+false-fire count per span is a **mandatory reported diagnostic** (rule-of-three bounds on
+zero counts), explicitly non-decisional — it characterises the instrument on this system's
+autocorrelation, alongside the verdict, never inside it.
