@@ -413,24 +413,28 @@ def main():
                 x_ref = xh.clone()
                 dyn.cons.apply_positions(xh, x_ref)
                 eng.compute_vsites(xh)
-                left = push_waters_off_cages(xh, eng)
-                still = torch.nonzero(left > 0, as_tuple=True)[0]
+                push_waters_off_cages(xh, eng)
+                # FORCE-BASED acceptance (the criterion, not the geometric proxy: a
+                # count-accepted 'shallow' residual measured 2.7e6 -- a ~0.14 nm burial):
+                # a draw is accepted iff its post-push forces are SD-integrable (< 1e5).
+                _, f_chk = eng.energy_forces(xh, chunk=CHUNK)
+                per_rep = f_chk.abs().amax(dim=(1, 2))
+                still = torch.nonzero(per_rep > 1.0e5, as_tuple=True)[0]
                 if attempt > 0 or still.numel():
-                    print(f"[phase B] hot attempt {attempt + 1}: "
-                          f"{still.numel()} replicas still clashing", flush=True)
+                    print(f"[phase B] hot attempt {attempt + 1}: {still.numel()} replicas "
+                          f"above 1e5 kJ/mol/nm", flush=True)
                 if still.numel() == 0:
                     break
                 pending = still
             else:
-                # The 0.30 nm pusher clearance is a GEOMETRIC PROXY, and at the tightest
-                # windows (0.908 nm: 0.196 nm gap) it is unsatisfiable for some source
-                # geometries regardless of the draw (measured: the same 2 replicas failed
-                # 4 independent exempt-noise draws).  A residual ~0.28 nm contact is
-                # integrable (~3e3 kJ/mol/nm); the real criteria are the FORCE guards --
-                # assert_relaxed (1e6) below and the production-start jam census (1e4),
-                # which excludes any replica that wedges instead of relaxing.
-                print(f"[phase B] hot: {pending.numel()} replicas keep shallow residual "
-                      f"clashes after 4 draws; accepted under force guards", flush=True)
+                # Fall back to the un-noised dragged state for the irreducible replicas --
+                # guard-clean by construction (their sources passed the drag guard).  Those
+                # replicas are effectively wet-family duplicates at their window; the count
+                # is recorded and the family-disagreement instrument sees the degeneracy.
+                print(f"[phase B] hot: {pending.numel()} replicas fall back to un-noised "
+                      f"dragged states (recorded; hot~wet there)", flush=True)
+                xh[pending] = xh_src[pending]
+                eng.compute_vsites(xh)
             # SD polish + force guard on the whole hot set
             for _ in range(SD_STEPS):
                 _, f_raw = eng.energy_forces(xh, chunk=CHUNK)
