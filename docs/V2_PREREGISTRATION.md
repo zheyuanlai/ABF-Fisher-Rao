@@ -2479,3 +2479,20 @@ have reported; NaCl: SSIP worst-window band [0.974, 0.991], ~18x tighter than it
 The C60 gates code does not exist yet; it implements this amendment from the start rather
 than being retrofitted.  Nothing here touches Gates 0/A/B, the budgets, seeds, or the mFR
 prohibition.
+
+**16.11 clarification (2026-08-16, same pre-data window, from the NaCl session's cross-read):**
+clause 3's "a FIRE is reliable evidence" does not carry its own precondition and must:
+at low lambda the fire direction degenerates to counting noise — when `0.5 lambda < 1` the
+criterion is arithmetically "the state is empty right now", autocorrelated emptiness produces
+long contiguous runs on perfectly established states (`P(empty) = 21 %` per checkpoint at
+`lambda = 1.57`), and this is precisely the retracted deca verdict
+(`results/deca/screen_RETRACTED_no_min_count_guard/`).  The symmetric statement, frozen:
+
+* a contiguity **FIRE** is reliable establishment evidence **only where the 16.7 floor holds**
+  (`min-span N Q*_k >= 16`); below it a fire is NOT interpretable and contributes nothing —
+  the state's classification rests entirely on the windowed band;
+* a **non-fire** carries no weight anywhere (16.11 clause 2);
+* the **windowed band** is primary in both directions (16.11 clause 1).
+
+The contiguity gate is thereby a detector that can only ever say "yes", and only in its
+powered regime — reported alongside for campaign comparability, never decisive alone.
