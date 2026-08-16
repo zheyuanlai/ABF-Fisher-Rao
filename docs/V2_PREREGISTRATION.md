@@ -1877,6 +1877,46 @@ rests on its windowed band. Neither ever rested on the gate firing, which is the
 this correction costs nothing. Artifacts: `results/methane/screen_N512/gate_c_detection/`,
 `scripts/methane_gate_c_detection.py`.
 
+#### 12.14 The span frontier is a property of the SYSTEM, not of the gate (2026-08-16)
+
+Two studies swept the required contiguous span at fixed system, planting 50 % deficits in real
+traces. The result is not the frontier's location — it is that **the frontier does not transfer.**
+
+| required span | methane FP / detect (24 state-seeds) | NaCl FP / detect (32 state-seeds) |
+|---|---|---|
+| 0.02 T | **0/24** / 21/24 | **9/32** / 31/32 |
+| 0.05 T | 0/24 / 5/24 | 1/32 / 25/32 |
+| 0.10 T | 0/24 / 2/24 | **0/32** / 11/32 |
+| **0.20 T (prereg)** | 0/24 / **0/24** | 0/32 / **0/32** |
+
+**Methane's frontier is at 0.02 T; NaCl's is at 0.10 T, five times tighter.** A study inheriting
+methane's setting would have imported spurious fires on **28 %** of NaCl's state-seeds. The
+false-positive rate is set by the system's own occupancy autocorrelation, so a campaign-level
+recommendation of a *number* would be wrong.
+
+**Binding rule.** Before freezing a span: **measure the frontier on the system's own traces, and
+report the false-positive count beside the detection count.** A detection threshold quoted
+without its false-positive count at the same span is not interpretable. Cheap once traces exist;
+the positive control is the natural place to hang it.
+
+**Both nulls survive a more sensitive gate, and the preregistered span is dominated in both.**
+Methane fires 0/24 at 0.02 T where the gate catches 21/24 planted deficits (10x); NaCl 0/32 at
+0.10 T against 11/32 (2x). In both, `0.20 T` gives identical zero false positives and zero
+detection — it buys nothing. Reported as **post-hoc sensitivity analysis**: the preregistered
+gate is 0.20 T, both verdicts rest on it, and this is what they *survive*. It matters more for
+NaCl, the weaker null: it does not touch the orthogonality caveat, but it does remove *the gate
+was too blunt to see it* as an alternative explanation.
+
+**A candidate predictor, recorded BEFORE the second measurement exists.** Methane's occupancy
+autocorrelation time over the judged window is **6.06 ps** (median of 24 state-seeds, range
+0.84–22.39), and its frontier span of 4.0 ps is **0.7 tau_occ**; the preregistered 40 ps is
+6.6 tau_occ. **Prediction: the frontier sits at order one tau_occ in any system, so NaCl's
+0.10 T frontier should correspond to `tau_occ / T ~ 0.14`.** If it does, the rule becomes *set
+the span near one occupancy autocorrelation time* — predictive rather than per-system
+empirical. If it does not, this paragraph is the falsification and stands as written. The wide
+per-state spread means the median is a crude summary and the prediction is order-of-magnitude,
+not a fit.
+
 ### Amendment 13 — two GPUs for methane, and the optimisation order (2026-08-12)
 
 **Written before any methane box, trajectory, reference or gate result existed.** Only engine
