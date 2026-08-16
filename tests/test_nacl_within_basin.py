@@ -52,3 +52,41 @@ def test_ratio_is_suppressed_where_the_target_carries_no_mass():
     assert not q1["ratio_meaningful"] and q1["ratio"] is None, "must not report a ratio here"
     assert q1["note"] and "division by ~0" in q1["note"]
     assert a["quarters"][-1]["ratio_meaningful"], "quarters WITH target mass must still report"
+
+
+# --- the sensitivity instrument: the guard is STRUCTURAL, not the scheme-agreement ----------
+import nacl_gate_c_sensitivity as sens
+
+
+def test_planting_scales_the_tested_state_by_exactly_f():
+    """The load-bearing property, and the one the broken version violated.
+
+    Gate C reads state k's SHARE, counts_in_k / total. If planting preserves the per-checkpoint
+    total then P_k -> f * P_k exactly and NO redistribution scheme can move the tested state --
+    which is why agreement between schemes is not independent evidence and must not be quoted as
+    corroboration. The original bug dropped mass where no walkers sat outside the basin, so the
+    total shrank, and the basin's share rose to 1.0: the opposite of a deficit.
+    """
+    rng = np.random.default_rng(0)
+    occ = rng.random((12, 8, 121)) * 10.0
+    occ[:, :, ~MSK] *= 0.05                      # most walkers inside, the reachable case
+    occ[3, 2, ~MSK] = 0.0                        # a checkpoint with NOTHING outside at all
+    for f in (0.5, 0.45, 0.1):
+        for wts in (None, np.broadcast_to(np.ones(121) / 121.0, occ.shape)):
+            out = sens.plant(occ, MSK, f, out_weights=wts)
+            p_new = out[:, :, MSK].sum(2) / out.sum(2)
+            p_old = occ[:, :, MSK].sum(2) / occ.sum(2)
+            assert np.abs(p_new - f * p_old).max() < 1e-12, "the tested state must scale by f"
+            assert np.abs(out.sum(2) - occ.sum(2)).max() < 1e-9, "totals must be preserved"
+
+
+def test_planting_refuses_if_it_would_break_the_total():
+    """The assertion that was missing. Without it the broken redistribution shipped a table."""
+    occ = np.ones((4, 8, 121))
+    bad = np.zeros_like(occ)                     # weights that carry no mass anywhere
+    try:
+        sens.plant(occ, MSK, 0.5, out_weights=bad)
+    except RuntimeError as e:
+        assert "total" in str(e)
+    else:
+        raise AssertionError("plant must refuse when the per-checkpoint total is not preserved")
