@@ -2735,3 +2735,16 @@ deadline.  Third measured NL negative in the campaign, each for a different reas
 (box too small to cull), C60 per-site (libration vs skin), and the general lesson is that
 the cull must be keyed to slowly-varying coordinates.  Two development defects the gates
 caught are recorded in the amendment body above.
+
+**16.12 reporting addendum (2026-08-16, final NaCl cross-audit item):** the false-fire
+frontier decomposes as (a physical floor from `tau_occ`, N-invariant at fixed `T` —
+subsampled: 100/80/100 ps across N = 64/32/16) x (weak ~log growth in the judged-window
+length, an extreme-value effect: 2x window moved the frontier 1.4x) + a small-`lambda`
+counting term.  The cross-system coefficient spread is **>= 20x** (methane's quoted 0.7 tau
+was grid-censored at a 4 ps sweep step; re-swept it is <= 0.17 tau), so no coefficient
+transfers between systems, including any previously quoted here.  16.12 rests on the
+absolute-window *structure*, which survives; its *value* is not claimed to sit anywhere
+particular on C60's sensitivity curve.  Because the executable cells differ in `T`, their
+judged windows differ, so the tau-units report carries **both** `window/tau_occ` **and**
+`judged_window/tau_occ` per cell — otherwise identical 400 ps windows would look more
+comparable across cells than they are.  Non-decisional throughout.
