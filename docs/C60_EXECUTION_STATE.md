@@ -15,7 +15,7 @@ never a spec change.
 | PME | pinned: alpha 2.628260884878466 nm^-1, grid 24 x 24 x 48 (`pme_params.json`) |
 | engine parity | in progress — `tests/test_c60_engine.py` |
 | dt gate | **DECIDED: dt = 1 fs (2026-08-15, third read, never revisited).** Read 1 RETRACTED (NaN spots from teleport prep); read 2 invalidated (2× drag-rate jam, guard fired). Read 3 procedurally valid: prep clean (0 jammed), equipartition PASS both dt (0.03 K / 0.66 K), constraints ~2e-15 nm, spots at 1.2/2.0 ok — the 0.968 spot missed at 2.17σ vs the frozen 2σ line, so the frozen rule decides 1 fs. A survivor-composition confound (14 vs 10 clean replicas between arms) is RECORDED BUT NOT EXPLOITED: redesigning the clause after seeing the borderline number would be result-directed. Cost is wall-clock only: reference ≈ 4.9 days idle / ~6.4 co-tenant at 175 ns/day-equivalent |
-| reference | not started (3 builds pending) |
+| reference | **CAMPAIGN RUNNING since 2026-08-16 03:24 UTC** — pin `761a4f7` (includes two peer-session fixes: post-SD hot acceptance, >=8/16 anchor floor + rate/8 approach), collision-proof worktree `/home/zheyuanlai/.c60-run-761a4f7`, PINNED_COMMIT written from the hash (the rev-parse-in-worktree convention was tautological). Build 1 ETA ~+42 h; 3 builds + spot-check + analysis ~4.5 days at 1 fs. Ladder step 6 discharged by demonstration (anchors-resume ran live in ladder14; checkpoint load-drill armed against build 1's first checkpoint) after external worktree removal killed two ladder tails (incident log) |
 | Gate 0 pools | not started |
 | screen | **prohibited** until reference accepted + Gates 0/A pass |
 | mFR | **prohibited** until an establishment-limited cell is frozen |
@@ -92,6 +92,15 @@ scripts/nacl_gates.py with the 16.7/16.8 constants).
   preflight idle check (memory-based, any process) would correctly refuse today; it passed
   at 09:5x because the foreign job landed at 10:04, mid-suite. Do not treat "preflight
   passed" as "stayed idle".
+
+* **2026-08-16 01:1x–03:1x: worktree externally removed/recreated mid-ladder, twice** — the
+  guessable path `/home/zheyuanlai/ABF-c60-worktree` was recreated at the moving branch head
+  by a sibling session's maintenance; ladders 13/14 died on missing files at their tails
+  while their early stages (suite 12/12, smoke build 1.75 h) passed. Remedies: uniquely
+  named dot-prefixed production worktree; pin written from the hash; single-launcher rule
+  declared to peers. A sibling session also landed two genuine C60 fixes on the branch
+  (vacuous pre-SD hot acceptance; binomial anchor floor) — adopted, with the one-owner rule
+  reasserted for execution (fixes by commit+message, never by launch).
 
 ## Measured facts worth keeping in view
 
