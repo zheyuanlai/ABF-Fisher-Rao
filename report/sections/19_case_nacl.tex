@@ -317,7 +317,25 @@ shape total variation of $\NaWbCipTV$ and an integrated ratio of $\NaWbCipRatio$
 real structure rather than a jam: its walkers concentrate around the $\NaCipR$~nm minimum and
 thin toward the barrier, no quarter in either cell falls below the $0.5$ threshold, and
 restricting the basin to the frozen $15\,k_BT$ physical window changes the integrated ratio by
-nothing at all.
+nothing at all. \Cref{fig:nacl_within_basin} shows both basins quarter by quarter.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.99\textwidth]{fig_nacl_03_within_basin.png}
+  \caption{The within-basin audit: occupancy against the bias-aware target one level below the
+  gate, since Gate C is basin-integrated and an internal redistribution preserving the integral
+  would be invisible to it. \emph{Left:} the verdict-carrying outer basin is clean in both cells
+  --- a gentle monotone gradient with every quarter far above the deficit threshold, a shape
+  total variation of $\NaWbSsipTVhi$, and the outermost grid points holding $\NaWbEdgeOcc\,\%$ of
+  walkers against $\NaWbEdgeTarget\,\%$ of target, so there is no wall accumulation.
+  \emph{Right:} the contact basin's larger shape total variation of $\NaWbCipTV$ is real
+  structure rather than a jam --- walkers concentrate at the $\NaCipR$~nm minimum and thin toward
+  the barrier --- and no quarter in either cell falls below the threshold. The hatched bar is
+  drawn rather than omitted: that quarter's target carries $0.0004\,\%$ of the basin, so the
+  ratio is refused instead of reported. An earlier version of this audit divided by it anyway and
+  returned $1274$.}
+  \label{fig:nacl_within_basin}
+\end{figure}
 
 \begin{remark}[The instrument was wrong first, twice]
 Both calibrations shipped a broken version before the reported one, and in both cases the defect
