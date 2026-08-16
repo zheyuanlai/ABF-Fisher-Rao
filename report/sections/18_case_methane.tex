@@ -26,7 +26,7 @@ $\MeCut$~nm cutoff, and a $\MeDt$~fs BAOAB timestep. The methane--oxygen unlike-
 Lorentz--Berthelot and is declared as our implementation choice rather than as a value read from
 that paper. NPT equilibration fixes the production box at $L = \MeBoxL \pm \MeBoxLerr$~nm, giving
 a density of $\MeDensity$~g/cm$^3$ against SPC/E's accepted $\sim 0.998$; all production is NVT
-at that volume, so the target measure is exactly the canonical measure of \cref{sec:background}.
+at that volume, so the target measure is exactly the canonical measure of \cref{sec:abf}.
 
 The sampler is a batched periodic engine written for this study, since no existing code runs a
 population of walkers sharing one live ABF estimator. It agrees with OpenMM to
@@ -60,7 +60,7 @@ Before asking what limits ABF, ask whether its conditional mean force can be tru
 instrument is the controlled experiment of \cref{sec:synthesis}: independently prepared solvent
 families held at the same $r$, either agreeing or not. Methane's cross-family spread is
 $\MeGateZeroGlobal$ of $\overline{|F'|}$ globally and $\MeGateZeroCore$ through the desolvation
-region, against WCA's $\MeGateZeroWCA$ and deca-alanine's failing $\MeGateZeroDeca$. The spread
+region, against WCA's $\GzWca$ and deca-alanine's failing $\MeGateZeroDeca$. The spread
 also \emph{collapsed} roughly threefold between the 50~ps and 200~ps checkpoints, which is the
 signature of a conditional ensemble that mixes; deca's error persisted at up to $2\times10^{6}$
 effective counts per bin.
@@ -113,9 +113,9 @@ $\MeOccRatioWorst$, bounding the largest shortfall at $\MeShortfallMax\,\%$, som
 fifth times tighter than the gate could report. The planted deficit is stationary, so
 $\MeGateCFires\,\%$ is a floor on the detection threshold rather than a characterisation of it.
 
-It is not inert in general: in the companion NaCl study the contact-pair state holds
-$\lambda = 1.72$ at $N = 64$, where the smallest resolvable deficit is $152\,\%$, and at $N = 16$
-and $N = 8$ no state clears the bar at all. Since the preregistered rule selects the
+It is not inert in general: in the companion NaCl study (\cref{sec:nacl}) the contact-pair state
+holds $\lambda = \NaLamCipHi$ at $N = 64$, where the smallest resolvable deficit is
+$\NaMdeCipHi\,\%$, and at $N = 16$ and $N = 8$ no state clears the bar at all. Since the preregistered rule selects the
 \emph{smallest} $N$ passing every gate, the search runs directly toward the cells in which the
 gate cannot fail --- and this project has already retracted one screen in which Gate C fired on a
 state that could never hold a walker and reported that a Fisher--Rao arm was licensed.

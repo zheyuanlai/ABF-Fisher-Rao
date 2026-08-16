@@ -1,0 +1,141 @@
+\section{The baseline itself can be wrong: deca-alanine}
+\label{sec:deca}
+
+Methane (\cref{sec:methane}) and sodium chloride (\cref{sec:nacl}) are negatives of the same
+kind: every gate passes and marginal reallocation is unnecessary because there is no deficit to
+repair. Deca-alanine is a negative of a different and more instructive kind. Its states are
+plainly visible through the collective variable, its screen reports a population deficit, and an
+early version of this study accordingly recorded that a Fisher--Rao arm was licensed. That
+verdict is withheld, because the quantity ABF was estimating is wrong before any question about
+reallocation can be asked.
+
+This is the case that motivated Gate 0 and put it first in the frozen gate order, and it is
+therefore load-bearing for every classification in \cref{sec:validity} rather than merely being
+one more molecular system.
+
+\subsection{Model and reference}
+
+The system is Ace-(Ala)$_{10}$-Nme, $\DcAtoms$ atoms, in vacuum with $\DcForceField$, integrated
+by BAOAB at $\DcTemp$~K with a $\DcDt$~fs timestep; the engine agrees with OpenMM to
+$\DcParityE$ in energy and $\DcParityF$ in force. The collective variable is the distance between
+the terminal carbonyl carbons, evaluated on $[\DcRlo, \DcRhi]$~nm with $\DcGridPts$ grid points
+and soft walls at $\DcWallLo$ and $\DcWallHi$~nm.
+
+One deviation is declared rather than discovered, and it is not small: the deca-alanine
+literature uses CHARMM under NAMD, whereas $\DcForceField$ carries no CMAP correction. This is
+the same molecule, the same coordinate and the same budget under a different modern force field,
+and it is explicitly \emph{not} presented as a reproduction of any published profile.
+
+The reference is umbrella sampling with MBAR over $\DcRefWindows$ windows at
+$k = \DcRefKumb$~kJ/mol/nm$^2$, $\DcRefReplicas$ replicas per window, in $\DcRefBuilds$
+interleaved builds each seeded from a different conformational pool, $\DcRefNsPerRep$~ns per
+replica for $\DcRefAggNs$~ns aggregate --- roughly $144\times$ the literature ABF benchmark
+budget. Builds agree to $\DcRefLtwo$~kJ/mol against a $\DcRefSpanKJ$~kJ/mol span, a ratio of
+$\DcRefRatio$ against the $0.5$ acceptance threshold, in $\DcRefHours$~GPU-hours. The
+time drift between checkpoints is $\DcRefDrift$~kJ/mol, or $\DcRefDriftFrac$ of a resolvable
+effect and about five times the between-build spread, which is the honest limiting uncertainty
+rather than the build agreement. The profile is single-basin and monotone with its minimum at
+$\DcRefArgmin$~nm.
+
+\subsection{Gate A passes, and that is the point}
+
+The states are visible through the coordinate: the maximum pairwise total variation is
+$\DcGateATV$ against a $0.30$ threshold, with $\DcGateALabels$ labels occupied. Deca-alanine is
+the first system in this campaign where Gate A passes and ABF nevertheless fails, and the alkanes
+and dipeptides never produced that combination. A study that stopped at Gate A --- as the
+preregistration originally allowed --- would have read this as a licence.
+
+\subsection{Gate 0 fails: the conditional ensemble never equilibrates}
+
+The screen runs ABF only, $\DcScreenEnsembles$ ensembles of $\DcScreenWalkers$ walkers for
+$\DcScreenNs$~ns each, $\DcScreenAggNs$~ns aggregate, which is the literature benchmark budget.
+Three things go wrong together. The learned free energy spans
+$\DcSpanLo$--$\DcSpanHi\,k_BT$ against the reference's $\DcRefSpanKT\,k_BT$. Between
+$\DcPinLo$ and $\DcPinHi$ of walkers sit above $2.80$~nm through the whole second half, against
+Gate 0's pinning clause of $0.90$; in one seed the population moves from entirely folded at
+$0$~ps to entirely extended by $100$~ps and never returns. And the estimated mean force disagrees
+with the reference derivative by $\DcGateZero$ of $\overline{|F'|}$, an error that persists at up
+to $\DcGateZeroCounts$ effective counts per bin --- that is, it does not decay with sampling,
+which is what distinguishes a wrong conditional ensemble from an undersampled one.
+
+The attribution is not inferred, it is controlled. Running the \emph{same} local mean-force
+estimator inside umbrella windows, where the conditional ensemble is held near equilibrium by the
+restraint, gives a relative error of $\DcCtrlErr$; interior bins agree to better than one per
+cent ($\DcCtrlBinA$ against $\DcCtrlBinAref$, $\DcCtrlBinB$ against $\DcCtrlBinBref$,
+$\DcCtrlBinC$ against $\DcCtrlBinCref$), and integrating the windowed mean force yields
+$\DcCtrlIntegrated\,k_BT$ against the reference's $\DcCtrlReference\,k_BT$ over the same range.
+The estimator, the coordinate geometry, the reference and the integration are mutually
+consistent. What fails is ABF's own conditional sampling.
+
+\begin{remark}[Why this forecloses marginal reallocation]
+\label{rem:deca_forecloses}
+By \cref{prop:sel_invariance}, Fisher--Rao birth--death reallocates mass \emph{along} $\xi$ and
+leaves $p_t(y \mid \xi)$ pointwise invariant. Deca-alanine's defect is precisely that
+$p_t(y \mid \xi)$ is wrong: at a fixed end-to-end distance the backbone has not explored the
+conformations that determine the mean force there. No amount of marginal reallocation can repair
+a conditional it does not move, so the classification
+\emph{conditional-equilibration-limited} is not merely a description of the failure but a
+statement that this system cannot be an mFR candidate at any rate or budget. That is why Gate 0
+is evaluated first and why failing it is a stop rather than a caution.
+\end{remark}
+
+Deliberately not done: the budget was not extended. $\DcScreenAggNs$~ns aggregate is the
+literature benchmark run as the literature runs it, and raising it until the conditional
+equilibrated would have produced a statement about the budget rather than about deca-alanine.
+
+\subsection{A retracted screen, and two defects that both flattered the method}
+\label{sec:deca_retraction}
+
+An earlier screen at the same configuration hash reported \emph{establishment-limited} with a
+Fisher--Rao arm licensed. It is retracted, and the two independent defects behind it are worth
+stating because both made the result look more favourable, not less.
+
+The first is edge clamping in the reference. Umbrella windows were bracketed slightly outside the
+evaluation domain, and the binning routine clamped out-of-range samples into the edge bins rather
+than dropping them. That piled $\DcRetClampFrac\,\%$ of all samples into bin zero and carved an
+artificial $\DcRetFakeWell\,k_BT$ well at the domain edge, against neighbouring values around
+$5.3\,k_BT$. The basin finder read that artifact as a genuine second minimum and split off a
+$\DcRetFakeState$~nm ``state'' below the soft wall --- a region that can never hold a walker.
+\emph{Gate C then fired on it.}
+
+The second is that the minimum-count guard was declared and never applied. The mean-force routine
+guarded only against a zero denominator, so a bin visited once contributed a single instantaneous
+local mean force to the applied bias at full weight. The learned span inflated to
+$\DcRetSpan\,k_BT$, a $42\,\%$ overestimate; $\DcRetPinned\,\%$ of walkers sat above $2.80$~nm in
+the second half; and the folded basin's occupancy fell to $\DcRetOccupancy$. Since the bias-aware
+target $Q^*$ is computed from that bias, Gate C was comparing a wrong occupancy against a wrong
+target.
+
+Both are fixed --- a per-bin trust ramp on the \emph{applied} bias, and dropping rather than
+clamping out-of-domain samples, of which $\DcRefDropped$ were dropped in the accepted reference
+--- and the fix carries a regression test that asserts the ramp actually reaches the applied
+bias. We record that the declared field is NAMD's \texttt{fullSamples} and that the alanine
+sampler in this same repository applied it correctly while the deca-alanine sampler did not, so
+the defect was a divergence between two of our own implementations of one published convention
+rather than a misreading of it.
+
+Retracting that run did not rescue the verdict. The corrected screen fails Gate 0 for the
+different and more fundamental reason above, and the surviving artifact still literally reads
+\texttt{establishment-limited} with \texttt{licenses\_mfr: true}. That verdict is withheld in a
+sibling file and must not be cited; we mention the discrepancy because a reader who greps the
+results tree will find it.
+
+\subsection{What this system contributes}
+
+Deca-alanine supplies the campaign's only Gate 0 failure, and with it the calibration that makes
+Gate 0 readable elsewhere: $\DcGateZero$ is what a broken conditional ensemble looks like on this
+statistic, against $\GzWca$ for WCA, $\GzGateway$ for the gateway, $\NaGateZeroGlobal$ for NaCl
+and $\MeGateZeroGlobal$ for methane. Without a measured failure the gate would be a threshold
+nobody had ever seen fire.
+
+It also supplies the campaign's cleanest demonstration that gate order is not cosmetic. Gate A
+passes, the screen reports a deficit, and both facts are true and both are irrelevant, because
+the object the deficit is measured against was estimated from an ensemble that had not
+equilibrated. Read in the wrong order the same data licenses an mFR arm; read in the frozen order
+it stops the study. The two retracted defects of \cref{sec:deca_retraction} are the same lesson
+at the level of code rather than of protocol.
+
+Finally, we note the asymmetry in how the two Gate A values are recorded: sibling artifacts in
+the accepted reference report $\DcGateATV$ and $\DcGateATValt$ for the same quantity. Both clear
+the threshold and the verdict is unaffected, but two values for one quantity is a defect even
+when both are correct, and we quote the summary file.

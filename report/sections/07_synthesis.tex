@@ -30,12 +30,15 @@ a verdict. The map therefore leads with a validity gate and classifies each syst
 
 \begin{itemize}
   \item \textbf{Conditional-equilibration-limited} --- the orthogonal ensemble has not
-  equilibrated, $\tau_\perp \gtrsim T_{\mathrm{run}}$. Deca-alanine, and the $\beta=2$ cells
-  of the $R_{15}$ study. Diagnosed \emph{before} any selection arm is run, by preparing
+  equilibrated, $\tau_\perp \gtrsim T_{\mathrm{run}}$. Deca-alanine (\cref{sec:deca}) is the
+  only member. Diagnosed \emph{before} any selection arm is run, by preparing
   independent orthogonal ensembles at fixed reaction coordinate and asking whether they agree
-  on the local mean force: deca-alanine disagrees by $\GzDeca$ of $|F'|$ and the $R_{15}$
-  $\beta=2$ cells by $\GzRfifteenLo$--$\GzRfifteenHi$, against $\GzWca$ for the WCA dimer and
-  $\GzGateway$ for the gateway. No marginal selection rule can help here, by
+  on the local mean force: deca-alanine disagrees by $\GzDeca$ of $|F'|$, against $\GzWca$ for
+  the WCA dimer, $\GzGateway$ for the gateway and $\NaGateZeroGlobal$ for NaCl. The $R_{15}$
+  $\beta=2$ cells reach $\GzRfifteenLo$--$\GzRfifteenHi$ on the same statistic but only
+  \emph{locally}, over a band carrying less error than its share of the scoring mask, so they
+  are \textbf{not} filed here; see \cref{sec:r15_audits} for the decomposition that keeps them
+  discovery-limited. No marginal selection rule can help here, by
   \cref{prop:sel_invariance}, and no discovery or establishment classification is admissible
   either. Deca-alanine is the cautionary case: its discovery and establishment gates both
   \emph{pass}, so on the three-regime map it would have been filed as establishment-limited
@@ -47,7 +50,7 @@ a verdict. The map therefore leads with a validity gate and classifies each syst
   matched-seed comparison. This is the largest group, and it is why the study reports far more
   nulls than positives.
   \item \textbf{Discovery-limited} --- baseline valid; never found. Pentane's $R_{15}$
-  end-to-end distance at $\beta=1$ (\cref{sec:cv_harder_1d}), the only genuinely starved
+  end-to-end distance at $\beta=2$ (\cref{sec:cv_harder_1d}), the only genuinely starved
   coordinate in the study. mFR cannot act: reallocation amplifies walkers that exist and
   cannot create one in a state nothing has reached. Pushed harder it converts a support
   deficit into a \emph{diversity} deficit and makes the estimate worse.
@@ -75,6 +78,7 @@ and unfalsifiable; defining it by whether ABF has already resolved the coordinat
 budget does not.
 
 \input{tables/regime_map.tex}
+\input{tables/regime_map_v2.tex}
 
 \begin{figure}[t]\centering
   \includegraphics[width=0.94\textwidth]{fig_regime_map.png}

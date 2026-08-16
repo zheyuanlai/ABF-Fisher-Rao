@@ -1,0 +1,249 @@
+\section{The validity layer: what had to be true before any classification could be read}
+\label{sec:validity}
+
+Every case section above assigns its system to a regime, and every such assignment presupposes
+that the ABF baseline it was measured against is itself sound. That presupposition failed once,
+in deca-alanine (\cref{sec:deca}), and the failure was not visible in any convergence diagnostic
+the study was running at the time. This section collects the machinery built in response: the
+definition of Gate 0, the retrospective application of it to systems classified before it
+existed, the correction of a reference that was wrong by tens of standard deviations, and a
+cross-system audit asking whether any deployable indicator predicts when marginal reallocation
+helps. The answer to that last question is no, and it constrains what the rest of the report can
+claim.
+
+\subsection{Gate 0, and the clause that was retracted}
+\label{sec:gate0}
+
+Gate 0 asks, from ABF-only data plus the accepted reference, whether the conditional mean force
+can be trusted at fixed $\xi$. It was introduced as Amendment~7 and moved to the head of the gate
+order by Amendment~10, so classification proceeds
+\[
+  \text{Gate 0} \;\to\; \text{A} \;\to\; \text{B} \;\to\; \text{C},
+\]
+with the regime assigned by the \emph{first} failing gate. Failing Gate 0 classifies a system as
+\emph{ABF-baseline-invalid}, and the later gates are not evaluated at all --- not merely
+downweighted, but not computed, because their inputs are built from the object under suspicion.
+
+The gate as originally written had two clauses. The first required the learned span to fall
+within $[0.75, 1.25]$ of the reference span; it was \textbf{retracted} by Amendment~9 after the
+$R_{15}$ guard audit showed it firing on all four $R_{15}$ cells at
+$\VrSpanClauseLo$--$\VrSpanClauseHi$, including the two $\beta = 1$ cells that every other
+diagnostic calls easy. The conclusion recorded at the time was that \emph{the clause is wrong,
+not $R_{15}$}, and it was deleted rather than re-tuned. The second clause, retained, requires that
+no seed hold more than $0.90$ of its walkers in one tercile across the whole second half; it
+discriminates cleanly, separating deca-alanine's $\DcPinLo$--$\DcPinHi$ from $R_{15}$'s
+$\VrPinLo$--$\VrPinHi$.
+
+The statistic the gate actually reports --- the relative disagreement in the local mean force
+across independently prepared orthogonal pools held at the same $\xi$ --- deliberately carries
+\textbf{no numerical threshold}. Setting one at the time would have fixed $R_{15}$'s verdict
+after seeing $R_{15}$'s number. The gate is read against a calibration ladder instead:
+
+\begin{center}
+\begin{tabular}{lcl}
+\toprule
+system & spread / $\overline{|F'|}$ & reading \\
+\midrule
+NaCl (\cref{sec:nacl})            & $\NaGateZeroGlobal$   & pass, campaign best \\
+gateway (\cref{sec:gateway})      & $\GzGateway$          & pass globally, $\GzGatewayLocal$ in the constriction \\
+WCA (\cref{sec:case_wca})              & $\GzWca$              & pass, $\GzWcaTransition$ through the transition \\
+methane (\cref{sec:methane})      & $\MeGateZeroGlobal$   & pass \\
+$R_{15}$, $\beta=2$ (\cref{sec:cv_harder_1d}) & $\GzRfifteenLo$--$\GzRfifteenHi$ & fails locally \\
+deca-alanine (\cref{sec:deca})    & $\DcGateZero$         & \textbf{fails} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The ladder is the instrument, and the controlled orthogonal-pool experiment is what it is made
+of; the gate is a screen for when to run that experiment, not a substitute for it.
+
+\subsection{Backfilling the systems classified before the gate existed}
+
+WCA and the entropic gateway were classified establishment-limited --- and the gateway's positive
+result obtained --- before Gate 0 was written. Both classifications were therefore
+\emph{provisional} until the gate was applied retrospectively, and this section reports that
+backfill rather than assuming it.
+
+For WCA the design is $\VgWcaZvals$ values of $z$ $\times$ $\VgWcaPools$ independently prepared
+pools --- a lattice start, starts driven from below and from above the transition, and a
+randomised hot start --- $\times$ $\VgWcaReplicas$ replicas, with $\VgWcaPrepSteps$ steps of
+preparation and equilibration each before production. The pools agree to $\GzWca$ globally and
+$\GzWcaTransition$ through the transition region, so the establishment-limited classification and
+the Case IX positive resting on it survive. The backfill does \emph{not} validate the magnitude
+of that positive, and it was in the course of running it that the second and larger problem
+surfaced.
+
+\begin{remark}[The pools agreed with each other and disagreed with the reference]
+\label{rem:gate0_two_readings}
+At $z = \VgWcaWorstZ$ the four pools agreed among themselves while sitting $\VgWcaWorstGap\,\%$
+away from the cached reference. A statistic normalised by $|F'_{\rm ref}|$ cannot distinguish
+``the pools disagree'' from ``the reference is wrong'', and the first reading is the one the gate
+is written to detect. Against the corrected reference the same comparison falls from
+$\VgWcaPoolVsRefOld$ to $\VgWcaPoolVsRefNew$ --- the pools had been right all along. Gate 0's
+normalised figures are therefore \emph{not} reference-independent, and a large value must be
+resolved into its two possible causes before it is read as a conditional-equilibration failure.
+\end{remark}
+
+For the gateway the global figure is $\GzGateway$ and it passes, but the local figure is the one
+that matters and it is the weakest pass in the campaign. Inside the constriction --- the region
+where the mFR effect is generated --- the pools disagree by $\GzGatewayLocal$, and the
+second-moment version of the same statistic rises from $\VgGwYtwoAll$ to $\VgGwYtwoLocal$. The
+timescale separation $T_{\rm hit} \ll \tau_\perp \ll T_{\rm est}$ that the regime definition
+assumes is also not literally satisfied there: median residence in the constriction is
+$\VgGwResidence$ against $\tau_\perp = \VgGwTauPerp$, a ratio of only $\VgGwResidenceRatio$, and
+the residence distribution is heavy-tailed with a mean $\VgGwTailRatio\times$ its median over
+$\VgGwCrossings$ crossings. We state this plainly because it cuts against our own positive
+result: \emph{the gateway's mFR effect lives exactly where its conditional ensemble is least
+well equilibrated.} Two mitigating facts, neither decisive. The audit used a simplified ABF
+reimplementation rather than the accepted sampler, so it is a conservative instrument. And the
+gateway's attribution rests on the direct arm-versus-sham contrast (\cref{sec:gw_confirm}),
+in which both arms experience the same conditional, so a shared conditional error does not
+manufacture the difference between them --- though it could still distort its magnitude.
+
+\subsection{A reference that was wrong by sixty-seven standard deviations}
+\label{sec:reference_correction}
+
+The WCA free-energy reference used through v1 carried a spurious feature near $z = \VtTroughZ$. A
+dense rescan at spacing $\VtDenseDz$ found $F'$ there to be $\VtTroughNew$ against the cached
+$\VtTroughCached$, a deviation of $\VtTroughSigma$ standard deviations, with ten consecutive
+points tracing a resolved descent and recovery and per-preparation values spanning only $0.171$
+--- so it is a real feature of the physics, not a preparation artifact.
+
+Two independent causes combined. The cached grid used a spacing of $\VtCachedDz$, too coarse to
+resolve the feature at all. And the smoothing routine took its bandwidth in \emph{grid cells}
+rather than in physical units of the collective variable, which converted a raw value of
+$\VtSmoothRaw$ into a smoothed $\VtSmoothed$. Neither is a modelling choice; both are unit
+errors in analysis code that ran without complaint.
+
+The corrected high-precision reference is built on $\VtRefStates$ states --- $41$ values of $z$,
+four preparations, $128$ replicas --- in $\VtRefMinutes$ minutes, and puts $F'$ at $z = 0.25$ at
+$\VtRefNew$ against the cached $\VtRefCached$ with a between-preparation standard error of
+$\VtRefSe$, a $\VtRefSigma\sigma$ discrepancy. A third build removed interpolation from the
+question entirely by acquiring on the evaluation grid itself, so that the interpolant is the
+identity ($\VtVthreeInterp$ maximum difference between two interpolation schemes); it places the
+feature at $z = \VtVthreeZ$ with value $\VtVthreeValue$.
+
+\begin{remark}[Why this had to be a rescore of fresh dynamics, not of stored curves]
+\label{rem:why_fresh}
+The shift in the whole reference profile is $\VtRefShift$ in $L^2$. Case IX's ABF arm has a
+median final error of $\VtAbfError$ and its mFR arm $\VtMfrError$, so the correction is
+$\VtShiftOverAbf$ of ABF's own error and $\VtShiftOverEffect\times$ the effect size being
+claimed. A reference correction larger than the effect cannot be absorbed as a caveat. The v1
+runs stored only the scalar error trace and the final profile, never the time-resolved estimate,
+so rescoring against the corrected reference was impossible from the archive and the confirmatory
+comparison had to be re-run as fresh dynamics. \emph{The uncalibrated effect size was the
+finding}: an improvement quoted to four significant figures against a reference wrong by three
+times that improvement is not a measurement.
+\end{remark}
+
+The direction of the correction was itself checked rather than assumed. Rescoring the paired
+comparison on a final-time endpoint under both references over $\VcSeeds$ seeds moves mFR versus
+ABF from $\VcOldMfr\,\%$ to $\VcNewMfr\,\%$ (CI $[\VcNewCIlo, \VcNewCIhi]$) and the direct
+arm-versus-sham contrast from $\VcOldDirect\,\%$ to $\VcNewDirect\,\%$, while the sham-versus-ABF
+comparison moves from $\VcOldSham\,\%$ to $\VcNewSham\,\%$. Every sign is $\VcSigns$; the
+magnitudes fall by roughly a quarter. The correction changed how large the effect is, not which
+direction it points.
+
+We also record the convention audit run alongside, since a wrong reference invites suspicion of
+the geometry: in float64 the analytic $\nabla \xi$ matches autodiff to $0$, $|\nabla \xi|^2$
+evaluates to $0.125$ exactly, and the divergence, den~Otter and projection terms agree to
+$10^{-9}$ or better. The geometry was never in question; the grid and the smoother were.
+
+\subsection{$R_{15}$: an inconclusive instrument, and a verdict that survived it}
+\label{sec:r15_audits}
+
+The $R_{15}$ distance coordinate of \cref{sec:cv_harder_1d} was classified discovery-limited, and three
+audits tested that.
+
+The first asks whether the minimum-count guard, set at $\VrGuard$, materially changed the
+published numbers. It did not: the worst change in $\|F\|_{L^2}$ is $\VrGuardDeltaL$ and in the
+span ratio $\VrGuardDeltaSpan$, and the v1 figures reproduce exactly. This is the audit that also
+retracted Gate 0's span clause, as above.
+
+The second attempted an independent restrained measurement of the conditional mean force and
+returned \textbf{inconclusive} rather than a verdict. Build-to-build disagreement was
+$\VrRestrainedBuild$ against its own agreement threshold of $\VrRestrainedThresh$, so the
+instrument could not resolve the quantity it was built to measure. The cause is a defect in the
+instrument, not in $R_{15}$: the umbrella constant of $\VrRestrainedKumb$~kJ/mol/nm$^2$ was too
+soft, so a window nominally centred at $1.550$~nm sampled a mean of $1.943$~nm and the region
+below $\VrUncovered$~nm was not covered at all. We report it as inconclusive rather than folding
+it into either direction.
+
+The third measured the conditional directly at six separations, and its per-run scripts printed
+the wrong criterion: they reported the maximum total variation between pools, which reaches
+$1.000$ at $R = 2.90$~nm where the mean-force spread is $0.017$ --- a total variation of one
+between two pools that agree on the quantity of interest. Read on the mean force instead, Gate 0
+fails locally in the band $[\VrBandLo, \VrBandHi]$~nm. That does not overturn the
+discovery-limited classification, and the reason is a decomposition rather than a judgement call:
+the failing band carries $\VrBandError\,\%$ of the total error over $\VrBandMask\,\%$ of the
+scoring mask, which is sub-proportional, while $\VrTailError\,\%$ of the error sits in the
+extended tail where the coordinate is starved. $R_{15}$ remains discovery-limited with a
+documented local caveat.
+
+\subsection{No deployable indicator predicts when marginal reallocation helps}
+\label{sec:mechanism_audit}
+
+The regime map is diagnostic in retrospect. The practical question is whether a practitioner,
+holding only an ABF baseline run and no reference free energy, could decide in advance whether to
+switch on a Fisher--Rao arm. We tested that on $\VmRuns$ runs across $\VmCells$ cells and
+$\VmSystems$ systems, with the practical-equivalence margin of $\pm\VmMargin\,\%$ and the
+candidate indicator list both fixed before any performance number was examined.
+
+The protocol is leave-one-\emph{system}-out. Each candidate indicator's direction and threshold
+are fitted on the training systems, the held-out system's scores are standardised using the
+training statistics alone, and the pooled out-of-sample AUC is bootstrapped within system. The
+unit of observation is one system--cell pair, so a system contributing many cells cannot
+manufacture its own validation.
+
+The preregistered primary gate --- the number of transverse relaxation times available per bin,
+on a log scale --- achieves an out-of-sample AUC of $\VmGateAuc$ with a $95\,\%$ interval of
+$[\VmGateCIlo, \VmGateCIhi]$, a balanced accuracy of $\VmGateBalAcc$, and a fitted \emph{sign}
+that flips between folds. It is below chance, and its in-sample AUC of $\VmGateInSample$ shows
+where the apparent signal came from. The best predictor overall is the measured ABF error itself
+at $\VmIncAAuc$ $[\VmIncACIlo, \VmIncACIhi]$ with a stable sign --- but that quantity requires the
+reference free energy, which is what the method exists to estimate, so it is a retrospective
+diagnostic and not a deployable gate. The best genuinely deployable feature, a support-uniformity
+ratio, reads $\VmSupportAuc$ $[\VmSupportCIlo, \VmSupportCIhi]$; dropping the one system whose
+generating code was never committed collapses it to $\VmSupportNoOrphan$, while the
+non-deployable incumbent only falls to $\VmIncANoOrphan$. Three of the indicators we most wanted
+--- round-trip fractions, median first-passage time over the horizon, and the number of distinct
+crossing lineages --- are recorded as \textbf{unavailable in every system}, because the engines
+never persisted the counters they need.
+
+We state the conclusion at the strength the artifacts support, and no further: on this evidence
+\emph{no deployable ABF-only indicator predicts the sign of the mFR gain out of sample}. The
+$\rho = +0.80$ correlation between ABF error and mFR gain reported for WCA in
+\cref{sec:wca_starvation} is not contradicted --- ABF error is the one thing that does predict ---
+but it is not usable, and \cref{sec:cv_harder_1d} already showed that extrapolating it across systems
+fails outright.
+
+Two further decompositions come from the same audit. First, the error budget is almost entirely
+\emph{bias}: at the WCA representative cell the bias fraction is $\VmBiasFracAbf$ for ABF and
+$\VmBiasFracMfr$ for mFR, and across all $135$ cases it never falls below $\VmBiasFracLo$. On
+matched seeds mFR's variance is $\VmVarRatio\times$ ABF's, with an interval
+$[\VmVarRatioCIlo, \VmVarRatioCIhi]$ that includes one, while its mean squared error is
+$\VmMseRatio\times$ ABF's $[\VmMseRatioCIlo, \VmMseRatioCIhi]$ and its squared bias
+$\VmBiasRatio\times$. Marginal reallocation is a bias-reduction mechanism that costs a little
+variance; describing it as variance reduction, as we did in an earlier draft, was wrong. The
+decomposition's own cross-check reproduces every stored error to $\VmCrossCheck$.
+
+Second, the shape of the Fisher--Rao target mostly cannot be resolved. Over $\VmAblCells$ cells
+and $\VmAblRows$ matched seed pairs, with equivalence assessed by a $\VmAblBoot$-resample paired
+bootstrap against a margin of $5\,\%$ of each cell's own ABF baseline error, $\VmAblU$ cells are
+underpowered or lack an oracle arm, $\VmAblA$ show all three contrasts equivalent, $\VmAblB$ show
+the estimated and uniform targets equivalent with the oracle differing, and $\VmAblC$ show all
+three differing. At the level of individual contrasts the primary metric gives $\VmAblUnderpowered$
+underpowered, $\VmAblDifferent$ different and $\VmAblEquivalent$ equivalent. The honest summary is
+that target shape is first-order in a small identified minority of cells --- the WCA starved cells
+and parts of the entropy-dominant sweep --- indistinguishable in the alkane torsions, and
+\emph{not measurable} in most of the rest at the seed counts we ran.
+
+\begin{remark}[What this audit could not do]
+A split-half decomposition by ancestral family, which would have separated selection noise from
+sampling noise directly, was attempted and recorded as \emph{impossible from existing artifacts}:
+the engines keep ancestor labels only in memory and every system shares one global mean-force
+accumulator across replicas. It needs new instrumented runs, and we did not run them. We also
+note that a second, differently-scoped pass of the mixing-gate analysis exists on a divergent
+branch with numbers that cannot be reconciled with the artifacts reported here; the figures above
+are those of the current tree and the two sets must not be mixed.
+\end{remark}

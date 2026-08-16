@@ -58,7 +58,7 @@ had not been measured.
 
 \textbf{Both have since been checked directly, and the audit was right on both counts.} The
 cached reference was rebuilt at high precision from four independently prepared solvent
-pools and found wrong near $z\approx0.26$ by up to $\GzDecaSpan\sigma$; re-running Case IX
+pools and found wrong near $z\approx0.26$ by up to $\VtTroughSigma\sigma$; re-running Case IX
 against the corrected reference moves the headline from $\WcsEstGain\%$ to $\WcvEstGain\%$
 (\cref{rem:wca_reference_correction}), an inflation of the same order the audit reported for
 its own endpoint. And the count-balancing claim now has a preregistered turnover-matched test
@@ -147,6 +147,17 @@ We remain deliberately conservative about scope.
         stage, whose artifact survives. The raw trajectories are retained and the overwritten
         stage reproduces on recomputation, but a result whose artifact is gone should be
         labelled rather than quietly re-derived.
+  \item \textbf{An unreported pilot, named here rather than left out.} Four pilot runs sweeping
+        the transverse relaxation rate at $\phi = 0.9$, with two additional conditional-refresh
+        arms, exist under
+        \texttt{results/entropy\_dominant\_bottleneck\_slow\_transverse/} and are \emph{not}
+        reported as a result anywhere above. They have no aggregate artifact, only raw arrays;
+        the pilots share overlapping seed identifiers with differing checksums, so they cannot
+        be pooled; the code that generated them was never committed; and the target-shape
+        ablation of \cref{sec:mechanism_audit} classifies all $33$ of their cells as
+        underpowered. They would need re-running at a proper seed count to say anything. We
+        name them because the two refresh arms appear nowhere else in this report, and an
+        unmentioned pilot is indistinguishable from a suppressed one.
 \end{enumerate}
 
 \subsection{Failure modes}

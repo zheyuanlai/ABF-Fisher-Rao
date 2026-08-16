@@ -1,0 +1,216 @@
+% NaCl ion pair in explicit CHARMM TIP3P water -- v2 System 5, CLOSED 2026-08-15 as
+% ABF-sufficient. Hand-maintained; every macro names its source file. No mFR arm was ever run:
+% seed blocks 4100-4103 (rate calibration) and 4200-4215 (five production arms) are unused.
+% Preregistration: docs/V2_PREREGISTRATION.md Amendments 14-16; spec docs/SPEC_nacl_water.md.
+% Sampler pinned 53dfb30; analysis provenance is recorded inside gates_report.json.
+
+% --- provenance of the published system ----------------------------------------------------
+% Source: results/nacl/stage0/model_manifest.json (every constant read back out of the System)
+\def\NaSites{2465}
+\def\NaNwater{821}
+\def\NaTemp{300}
+\def\NaGamma{1}                      % ps^-1, published langevinDamping
+\def\NaDt{2}                         % fs, chosen by the Amendment 15.1 dynamics gate
+\def\NaCut{1.2}                      % nm
+\def\NaSwitch{1.0}                   % nm
+\def\NaPmeAlpha{2.7411}              % nm^-1, PINNED in both engines (not box-derived)
+\def\NaPmeGrid{30^3}
+\def\NaPmeSpline{5}
+% Source: results/nacl/box/box_manifest.json (0.5 ns discard + 1.0 ns average)
+\def\NaBoxL{2.892700}                % nm
+\def\NaBoxV{24.2053}                 % nm^3
+\def\NaBoxVerr{0.0072}               % nm^3, sem
+\def\NaDensity{1.0187}               % g/cm^3
+\def\NaBoxTemp{300.63}
+\def\NaBoxVsPublished{0.63}          % %% denser than the tutorial's 11 ps equilibrate.xsc snapshot
+
+% --- engine equivalence gate (SPEC 3.1), OpenMM, identical pinned PME -----------------------
+% Source: tests/test_nacl_engine.py (11 configurations), tests/test_nacl_core.py
+\def\NaParity{10^{-6}}               % max relative discrepancy on V, grad V, f_loc, bias force
+\def\NaParityConfigs{11}
+\def\NaCoreTests{13}
+\def\NaMinImageMargin{0.995}         % tightened from methane's 0.98; domain top is 97%% of L/2
+
+% --- collective variable and evaluation domain (SPEC 2) ------------------------------------
+\def\NaRlo{0.20}                     % nm
+\def\NaRhi{1.40}                     % nm
+\def\NaGridPts{121}
+\def\NaGridDz{0.01}                  % nm = the published Colvars width 0.1 Angstrom
+\def\NaWallK{41840}                  % kJ/mol/nm^2
+\def\NaFullSamples{500}              % published fullSamples; applied as a trust ramp
+\def\NaOmegaLo{0.24}                 % nm, frozen 15 kT scoring window Omega_thermal
+\def\NaOmegaHi{1.40}
+\def\NaOmegaPts{59}                  % of 61 reference grid points
+
+% --- hydration descriptors, frozen before any ABF datum (SPEC 4) ----------------------------
+% Source: results/nacl/stage0/descriptor_freeze.json, rdf_summary.json
+\def\NaRzeroNaO{0.315}               % nm, PLUMED masterclass 22.11 constant, fixed in advance
+\def\NaRzeroClH{0.285}
+\def\NaRzeroClO{0.375}
+\def\NaRdfNaO{0.233}                 % nm, first RDF peak
+\def\NaRdfClO{0.315}
+\def\NaRdfClH{0.221}
+
+% --- constrained-TI reference (SPEC 5 / Amendment 12.2) ------------------------------------
+% Source: results/nacl/reference/reference_report.json
+\def\NaRefGrid{61}
+\def\NaRefBuilds{3}
+\def\NaRefFamilies{4}
+\def\NaRefReplicas{3}
+\def\NaRefProdPs{250}
+\def\NaRefRatio{0.0907}              % max pairwise L2 / (0.10 x span); accepted at <= 0.5
+\def\NaRefLtwoWorst{0.1335}          % kJ/mol
+\def\NaRefSpanKJ{14.728}             % kJ/mol
+\def\NaRefHours{12.00}
+% External literature check -- REPORTED, never a gate; full domain including the wall region
+\def\NaExtRms{12.95}                 % kJ/mol vs Talmazan 2025 output/abf.pmf (100 ns ABF)
+\def\NaExtMax{109.94}                % kJ/mol
+
+% --- landscape (results/nacl/reference/reference_report.json -> basins, physical) -----------
+\def\NaCipR{0.26}                    % nm, contact ion pair minimum
+\def\NaCipLo{0.20}
+\def\NaCipHi{0.34}
+\def\NaOuterLo{0.34}                 % the MERGED outer basin; its minimum sits at the domain edge
+\def\NaOuterHi{1.40}
+\def\NaSsipR{0.52}                   % nm, physical SSIP minimum -- MERGES under the < 2 kT rule
+\def\NaDeltaW{2.54}                  % kT, CIP -> outer
+\def\NaBarrierKT{5.34}               % kT, desolvation barrier at ~0.35 nm
+\def\NaBarrierR{0.35}                % nm
+\def\NaFlatKT{0.9}                   % kT; beyond the barrier the landscape is flat within this
+
+% --- the N ladder: fixed compute N x T = 100 ns, 8 seeds per cell (4000-4007) ---------------
+\def\NaBudgetNs{100}
+\def\NaNhi{64}
+\def\NaNlo{32}
+\def\NaThi{1.5625}                   % ns per walker at N = 64
+\def\NaTlo{3.125}                    % ns per walker at N = 32
+\def\NaSeeds{8}
+% Why N = 8 and N = 16 were struck a priori: lambda = N Q* and Q* <= 1 identically
+\def\NaLamFloor{16}
+\def\NaNsixteenMiss{0.64}            % walkers by which N = 16 misses the floor (SSIP reaches 15.36)
+\def\NaGpuDaysSaved{2.5}
+% Projected lambda ladder from the accepted reference alone (RESULT_N64.md)
+\def\NaProjCipA{1.57}
+\def\NaProjCipB{0.78}
+\def\NaProjCipC{0.39}
+\def\NaProjCipD{0.20}
+\def\NaProjSsipA{61.45}
+\def\NaProjSsipB{30.72}
+\def\NaProjSsipC{15.36}
+\def\NaProjSsipD{7.68}
+
+% --- Gate 0 (conditional equilibration): cross-family spread over mean|F'| ------------------
+% Source: results/nacl/screen_all/gates_report.json -> upstream.gate0
+\def\NaGateZeroGlobal{0.0075}        % the campaign's BEST
+\def\NaGateZeroBarrier{0.0483}
+\def\NaGateZeroPts{61}               % of 61; barrier 5 of 5
+
+% --- Gate A (are the hydration states visible through r?), threshold 0.30 -------------------
+% Source: gates_report.json -> upstream.gateA. READ preregistered_max_TV, NOT the generic key.
+\def\NaGateAPre{1.000}               % TV(p(xi | Y)) AS PREREGISTERED
+\def\NaGateATransposed{0.9959}       % TV(p(Y | state)) -- the SUPERSEDED transpose; do NOT quote
+\def\NaGateAnNaO{0.863}
+\def\NaGateAnClH{0.738}
+\def\NaGateAnBridge{1.000}
+% Orthogonality: is the descriptor merely a function of r? (this is the weak-null caveat)
+\def\NaOrthoLo{13.5}                 % across-r sd / within-r sd, n_ClH
+\def\NaOrthoHi{82.9}                 % n_bridge
+\def\NaOrthoNaO{14.1}
+\def\NaMethaneOrtho{5.4}             % methane's n_gap, for contrast
+
+% --- Gate B (discovered?), rule: persistent T_hit < 0.1 T on >= 6/8 seeds -------------------
+\def\NaGateBhits{8/8}
+\def\NaThitCip{0.0}                  % ps
+\def\NaThitSsip{0.5}                 % ps -- AT the trace resolution floor
+\def\NaTraceRes{0.5}                 % ps
+\def\NaThresholdHi{156.25}           % ps at N = 64
+\def\NaThresholdLo{312.5}            % ps at N = 32
+% Why the Gate B NUMBER is non-binding (established 2026-08-14, BEFORE the gate was read)
+\def\NaStartR{0.30}                  % nm -- the published equilibrate.coor, NOT the CIP minimum
+\def\NaStartKT{3.47}                 % kT
+\def\NaStartAboveMin{2.64}           % kT up the barrier from the CIP minimum
+\def\NaBoundaryDist{0.040}           % nm to the first state boundary
+\def\NaBallisticPs{0.095}            % ps transit -- 4.4x inside one ballistic step
+\def\NaEffClimb{2.16}                % kT actually climbed, NOT the 5.34 kT CIP->top barrier
+% Supplementary far-threshold arrivals: THIS is what carries "discovery is fast"
+\def\NaFarSsipLo{6.9}                % x the exact fastest-of-N ballistic floor at r >= 0.52 nm
+\def\NaFarSsipHi{10.4}
+\def\NaFarSevenLo{9.5}               % at r >= 0.70 nm
+\def\NaFarSevenHi{11.4}
+\def\NaFarOneLo{14.2}                % at r >= 1.00 nm
+\def\NaFarOneHi{20.7}
+
+% --- Gate C (established?) -- the verdict rests here ----------------------------------------
+% Source: gates_report.json -> per-cell gate_C. 0/8 seeds deficient on the POWERED state.
+\def\NaGateCdeficit{0/8}
+\def\NaLamSsipHi{61.45}              % lambda_min_over_window, N = 64
+\def\NaLamSsipLo{30.80}              % N = 32 (prose elsewhere rounds this to 30.75)
+\def\NaLamCipHi{1.57}                % N = 64 -- NON-BINDING
+\def\NaLamCipLo{0.81}                % N = 32 -- NON-BINDING
+\def\NaMdeSsipHi{26}                 % %% deficit resolvable by counting noise, N = 64 SSIP
+\def\NaMdeSsipLo{36}                 % N = 32 SSIP
+\def\NaMdeCipHi{160}                 % %% -- CIP at N = 64; the state is arithmetically "empty"
+\def\NaMdeCipLo{223}                 % %% -- CIP at N = 32
+\def\NaSpanFrac{0.20}                % preregistered contiguity requirement, as a fraction of T
+% CIP windowed power audit -- the statistic that actually clears CIP
+% Source: results/nacl/screen_all/cip_power_audit_N{64,32}.json
+\def\NaCipWinHi{1.111}               % worst-window mean P/Q*, N = 64
+\def\NaCipWinHiLo{0.954}             % ... its 2-sigma band
+\def\NaCipWinHiHi{1.267}
+\def\NaCipWinLo{1.371}               % N = 32
+\def\NaCipWinLoLo{1.160}
+\def\NaCipWinLoHi{1.582}
+\def\NaCipWorstSeedHi{0.765}         % worst SINGLE seed-window anywhere, N = 64
+\def\NaCipWorstSeedLo{0.679}         % N = 32
+\def\NaSsipWinHi{0.980}              % SSIP carried as an explicit positive control
+\def\NaSsipWinLo{0.982}
+% Direct instantaneous bound over EVERY second-half state-checkpoint (prose-only in RESULT_*.md)
+\def\NaDirectHi{0.866}               % min P/Q* over 632 checkpoints, N = 64 SSIP
+\def\NaDirectLo{0.832}               % over 1256 checkpoints, N = 32 SSIP
+\def\NaDirectMedHi{0.995}
+\def\NaDirectMedLo{0.998}
+\def\NaCheckpointsHi{632}
+\def\NaCheckpointsLo{1\,256}
+\def\NaShortfallMax{16.8}            % %% largest instantaneous shortfall on the verdict state
+\def\NaDirectFinalFrame{0.950}       % the FINAL-FRAME minimum; 0.866 is genuinely all-checkpoint
+% Detection calibration: planted stationary walker-conserving deficits in the REAL traces
+% Source: results/nacl/screen_all/gate_c_sensitivity_N{64,32}_SSIP.json
+\def\NaGateCSilent{50}               % %% at which it fires 0/8 -- the deficit it nominally tests
+\def\NaGateCFires{55}                % %% at which it fires 8/8, both cells
+\def\NaWindowedBound{3}              % %% -- what the windowed band actually excludes
+\def\NaWindowedTighter{18}           % x tighter than the contiguity gate could report
+
+% --- Gate C span frontier (POST-HOC sensitivity; the verdict rests on the prereg 0.20) ------
+% Source: results/nacl/screen_all/gate_c_span_frontier.json, 32 state-seeds, planted 50 %%
+\def\NaFrontierSpan{0.10}
+\def\NaFrontierDetect{11/32}         % detections at span 0.10, with 0 false positives
+\def\NaFrontierPrereg{0/32}          % detections at the preregistered span 0.20
+\def\NaFrontierFalsePos{9/32}        % false positives at span 0.02 (methane showed 0/24)
+% tau_occ and the absolute-time frontier (PROSE ONLY -- no JSON artifact)
+\def\NaTauOcc{42.2}                  % ps, median over 32 state-seeds
+\def\NaTauOccLo{17}
+\def\NaTauOccHi{86}
+\def\NaFrontierPsHi{120}             % ps at N = 64 (2.8 tau_occ)
+\def\NaFrontierPsLo{160}             % ps at N = 32 (3.8 tau_occ)
+\def\NaSpanBluntHi{7.4}              % span / tau_occ at N = 64
+\def\NaSpanBluntLo{14.8}             % at N = 32 -- 2x blunter on the same physics
+
+% --- within-basin audit: are the basins sampled inside, or only right on aggregate? ---------
+% Source: results/nacl/screen_all/within_basin_audit_N{64,32}.json
+\def\NaWbSsipTVhi{0.025}             % shape TV within SSIP, N = 64
+\def\NaWbSsipTVlo{0.025}             % N = 32
+\def\NaWbSsipRatioHi{0.989}          % integrated ratio
+\def\NaWbSsipRatioLo{0.986}
+\def\NaWbSsipQlo{0.942}              % worst quarter ratio, N = 64
+\def\NaWbSsipQhi{1.026}              % best quarter ratio
+\def\NaWbEdgeOcc{4.45}               % %% of walkers in the outermost three grid points
+\def\NaWbEdgeTarget{4.10}            % %% of target -- no wall accumulation
+\def\NaWbCipTV{0.215}                % CIP's shape TV -- real structure, not a jam
+\def\NaWbCipRatio{1.342}             % CIP integrated ratio; unchanged by the 15 kT window
+
+% --- execution ------------------------------------------------------------------------------
+\def\NaRefWallHours{12.00}
+\def\NaScreenHoursHi{19.46}          % N = 64, two half-blocks of 9.73 h each
+\def\NaScreenHoursLo{22.36}          % N = 32, all 8 seeds in ONE process
+\def\NaThroughput{1028}              % ns/day aggregate on a verified-idle H200
+\def\NaContention{24}                % %% slowdown when a third user landed mid-run

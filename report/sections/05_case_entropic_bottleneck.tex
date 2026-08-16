@@ -344,6 +344,20 @@ weights are the analytic} $\chi^2$ \emph{law}, but reduces to plain ABF
 The measured difference is $\OBStwodEmpirical$ (machine precision). The entire
 gain is the injected conditional law, not the stratification.
 
+\begin{remark}[The structural argument, tested empirically]
+\label{rem:edb_ema}
+Everything above is an argument from the form of the estimator, and an argument of that kind
+invites the objection that the deployable target was simply tuned badly. We tested it. Sweeping
+the target's smoothing rate over $\VeRates$ values at each of $\phi \in \{0.5, 0.75, 0.9\}$
+--- $\VeRecords$ records in total --- and taking the \emph{best} rate at each $\phi$ gives
+$\VeBestLoPhi\,\%$, $\VeBestMidPhi\,\%$ and $\VeBestHiPhi\,\%$ against matched oracle gains of
+$\VeOracleLoPhi\,\%$, $\VeOracleMidPhi\,\%$ and $\VeOracleHiPhi\,\%$. At the two lower values of
+$\phi$ the deployable target is negative at \emph{every} rate, and even at $\phi = 0.9$, its most
+favourable setting, it recovers well under half the oracle's headroom. Tuning does not close the
+gap, which is what the telescoping identity predicts: no choice of smoothing constant supplies
+information the estimator does not contain.
+\end{remark}
+
 The same variance logic applies to density- or CZAR-style free-energy targets. If
 a bin of width $h$ has $n_x$ effective visits, a density estimate has relative
 noise of order $n_x^{-1/2}$, so the log-density free energy has

@@ -1,0 +1,429 @@
+\section{A second literature-anchored negative: sodium chloride association in water}
+\label{sec:nacl}
+
+Methane (\cref{sec:methane}) closed as ABF-sufficient on a landscape whose barrier is a fraction
+of $k_BT$, so one reading of that null is simply that the system was too easy. Sodium chloride
+association in explicit water was entered to test that reading. It carries a genuine desolvation
+barrier of several $k_BT$, it is the introductory ABF example of a published
+tutorial~\citep{Talmazan2025} rather than a system we assembled, and it was designated in the
+preregistration as the place where \emph{Q1} --- does Fisher--Rao directionality beat prior
+directed selection --- would receive its molecular answer, because the WCA five-arm test of
+\cref{sec:wca_q1} had left mFR statistically tied by a count-balancing sham.
+
+It did not answer Q1, and the reason is the result: no cell of the preregistered ladder is
+under-established, so no Fisher--Rao arm was ever licensed. What makes the study worth a section
+is not the verdict, which repeats methane's, but everything that had to be measured before the
+verdict could be trusted --- a gate that cannot fire, a projection that could not fail, and a
+null whose weakness was written down a day before the number arrived.
+
+\subsection{Model, engine and reference}
+
+The physical model is the published system extracted verbatim: \ce{Na+}, \ce{Cl-} and
+$\NaNwater$ rigid CHARMM TIP3P waters, $\NaSites$ sites in total, CHARMM22 parameters with
+Lorentz--Berthelot mixing and no \texttt{NBFIX}. Every force-field constant is read back out of
+the assembled OpenMM \texttt{System} rather than transcribed from the paper, which removes an
+entire class of silent transcription error at the cost of a build step. Unlike SPC/E, CHARMM
+TIP3P hydrogens carry real Lennard-Jones parameters, so all $\NaSites$ sites are both charged and
+LJ-active; this forced the single authorised generalisation of the methane engine, in which a
+split-path LJ-exclusion assertion specific to SPC/E became a validity flag rather than a raised
+exception, with the methane path untouched.
+
+Production is NVT at a volume fixed by our own NPT run --- $L = \NaBoxL$~nm from
+$V = \NaBoxV \pm \NaBoxVerr$~nm$^3$, a density of $\NaDensity$~g/cm$^3$ --- so the target measure
+is exactly the canonical measure of \cref{sec:abf}. That box is $\NaBoxVsPublished\,\%$
+denser than the tutorial's shipped cell, which is an $11$~ps snapshot rather than a converged
+mean. Seven deviations from the published protocol are declared rather than discovered, and are
+recorded in full in \cref{sec:nacl_impl}; the substantive ones are NVT-at-fixed-volume in place
+of a Langevin piston, BAOAB with M-SHAKE/RATTLE in place of leapfrog with SETTLE, and no multiple
+timestepping where NAMD evaluates reciprocal PME every second step.
+
+The engine itself is consumed, not forked. Particle-mesh Ewald, Lennard-Jones, constraints and
+the integrator are the methane study's deliverable; \texttt{src/nacl/} adds only a model layer.
+Agreement with OpenMM is better than $\NaParity$ in relative discrepancy on the potential, its
+gradient, the local mean force and the ABF bias force across $\NaParityConfigs$ configurations
+spanning contact, barrier, solvent-separated and dissociated geometries with deliberately
+distinct hydration structures at the same separation, with PME pinned identically in both engines
+so that parity cannot depend on a box-derived default. The minimum-image unambiguity assertion
+runs at a margin of $\NaMinImageMargin$ rather than methane's $0.98$, because the published
+domain reaches $\NaRhi$~nm against a half-box of about $1.45$~nm. That exposure is the published
+setup's own and we inherit it under an explicit gate rather than assume it away.
+
+The reference is constrained thermodynamic integration on the same local mean force ABF
+estimates, over $\NaRefGrid$ grid points $\times$ $\NaRefBuilds$ builds $\times$ $\NaRefFamilies$
+preparation families $\times$ $\NaRefReplicas$ replicas, $\NaRefProdPs$~ps of production each.
+Builds agree to $\NaRefLtwoWorst$~kJ/mol against a $\NaRefSpanKJ$~kJ/mol span, a ratio of
+$\NaRefRatio$ against an acceptance threshold of $0.5$, at a cost of $\NaRefHours$~GPU-hours.
+Against the published $100$~ns ABF profile our reference agrees to $\NaExtRms$~kJ/mol rms over
+the full domain, a comparison dominated by the $0.20$--$0.24$~nm wall region where the published
+profile rises steeply; it is reported and never used as a gate, and because both profiles are
+computed in the same box it validates the implementation while remaining silent on finite-size
+systematics.
+
+\subsection{The landscape, and the state that merges}
+
+The reference reproduces the expected structure: a contact ion pair at $\NaCipR$~nm, a
+desolvation barrier of $\NaBarrierKT\,k_BT$ at about $\NaBarrierR$~nm, and a solvent-separated
+minimum at $\NaSsipR$~nm lying $\NaDeltaW\,k_BT$ above the contact pair. Beyond the barrier the
+landscape is flat to within about $\NaFlatKT\,k_BT$.
+
+The solvent-separated minimum is real but shallow, and it \emph{merges} under the frozen
+$2\,k_BT$ rule that defines states throughout this campaign. What every artifact labels
+\texttt{SSIP} is therefore the merged outer basin $[\NaOuterLo, \NaOuterHi]$, whose nominal
+minimum sits at the domain edge rather than at $\NaSsipR$~nm. We keep the label because it is
+what the machine-readable record says, and we flag it here because a reader who assumes
+\texttt{SSIP} means the physical solvent-separated well will misread every occupancy statement
+that follows. NaCl has one genuine metastable state and one merged outer basin, not two wells.
+
+\subsection{Gate 0: the campaign's soundest baseline}
+
+Gate 0 asks whether the conditional mean force can be trusted at fixed $\xi$ at all, and it leads
+the frozen gate order because a failure there means marginal selection provably cannot help: by
+\cref{prop:sel_invariance} Fisher--Rao reallocation leaves $p_t(y \mid \xi)$ pointwise invariant,
+so a wrong conditional ensemble stays wrong under any amount of it. It is also the cheapest
+honest way to end a study, since it falls out of the reference the study needs regardless.
+
+Independently prepared solvent families held at the same $r$ disagree by $\NaGateZeroGlobal$ of
+$\overline{|F'|}$ globally and $\NaGateZeroBarrier$ through the desolvation region, on
+$\NaGateZeroPts$ of $\NaGateZeroPts$ grid points. This is the best figure in the campaign,
+against WCA's $\GzWca$, the gateway's $\GzGateway$, and deca-alanine's failing $\GzDeca$
+(\cref{sec:deca}). Following Amendment 9 no numerical threshold is attached to the statistic ---
+setting one after seeing $R_{15}$'s value would have fixed $R_{15}$'s verdict retrospectively ---
+so the reading is against that calibration ladder rather than against a number.
+
+\subsection{Gate A, and the caveat written before the verdict}
+
+Gate A asks whether the hydration states are visible through $r$. On the preregistered quantity,
+$\mathrm{TV}(p(\xi \mid Y = a), p(\xi \mid Y = b))$ with $Y$ the frozen hydration triple
+$(n_{\ce{NaO}}, n_{\ce{ClH}}, n_{\rm bridge})$, it passes at $\NaGateAPre$ against a threshold of
+$0.30$, with per-descriptor values $\NaGateAnNaO$, $\NaGateAnClH$ and $\NaGateAnBridge$.
+
+A total variation of exactly one is not a strong gate, and we measured why rather than
+celebrating it. Across $\NaGridDz$~nm bins the descriptors vary between bins by
+$\NaOrthoLo$--$\NaOrthoHi\times$ their variation within a bin. NaCl's hydration is very nearly a
+\emph{function} of the ion separation, so Gate A here reports a fact about ion physics rather
+than a property of the collective variable. Methane's $n_{\rm gap}$ measures
+$\NaMethaneOrtho\times$ on the same statistic and retains a standard deviation of
+$\MeNgapSdFixedR$ at fixed $r$.
+
+That difference is the whole content of the weak-null caveat, and it was committed a day before
+Gate C was read, precisely so it could not be attached selectively:
+
+\begin{quote}
+if NaCl returns ABF-sufficient, the verdict carries the caveat that NaCl has little structure
+orthogonal to $r$, so \emph{``mFR had nothing to work with'' is a live alternative to ``mFR was
+not needed''}, and the null is correspondingly weaker than methane's. It must not be reported as
+a second independent null of equal strength. If NaCl returns establishment-limited, the same fact
+makes the licence \emph{stronger}.
+\end{quote}
+
+We report it as pre-committed. Methane's null is the informative one, because methane keeps real
+solvent structure orthogonal to the coordinate --- there was something for reallocation to act on
+and it was still unnecessary. NaCl's null is real but weaker, and the two do not stack into
+double the evidence.
+
+\subsection{The ladder, and two cells struck before they ran}
+\label{sec:nacl_ladder}
+
+The screen holds total compute fixed at $N \times T = \NaBudgetNs$~ns, the published ABF budget,
+and sweeps the number of walkers sharing one bias over $N \in \{8, 16, 32, 64\}$ with
+$\NaSeeds$ seeds per cell. The preregistered selection rule is mechanical --- the \emph{smallest}
+$N$ passing every gate, never the cell with the largest ABF error --- and the entire map is
+reported rather than the winner.
+
+Two cells were struck before any of them ran, on an argument that needs no data. Gate C compares
+an integer walker count against $0.5\,Q^*_k$, so its power is set by the expected count
+$\lambda_k = N Q^*_k$. Basin targets partition, hence $Q^*_k \leq 1$ identically and
+$\lambda_k < N$ for every state. The floor is $\lambda \geq \NaLamFloor$, and therefore
+\emph{no cell with $N \leq 16$ can reach it for any state, whatever the sampling.} At $N = 16$
+the outer basin misses by $\NaNsixteenMiss$ walkers. Since the selection rule searches
+\emph{down} the ladder, it runs directly toward the cells in which the gate cannot fail, and
+without this guard ``the smallest $N$ passing every gate'' would have returned a cell whose gate
+was arithmetically incapable of firing and reported it as a result. The two cells were dropped,
+saving about $\NaGpuDaysSaved$ GPU-days, and the classifiable ladder is
+$\{\NaNlo, \NaNhi\}$ at $T = \NaTlo$ and $\NaThi$~ns per walker.
+
+We record one withdrawn justification. The decision to run $N = \NaNlo$ unpacked was originally
+also defended on throughput grounds, from an inferred packing penalty that turned out to be a
+bound derived from checkpoint spacing rather than a measurement, on a run whose co-tenancy cannot
+be reconstructed. That argument is withdrawn and the question is unresolved; the decision stands
+on the ground that does not depend on it, namely that a packed run would have spent two thirds of
+its budget on cells that cannot be classified at all.
+
+\subsection{Gate B: informative here, vacuous in methane}
+
+Gate B requires persistent first arrival within $0.1\,T$ on at least six of eight seeds. It
+passes $\NaGateBhits$ on both states in both cells, and the passing \emph{number} is worthless:
+first arrival at the state boundary reads $\NaThitSsip$~ps, which is exactly the trace recording
+interval. The published starting configuration sits at $\NaStartR$~nm, $\NaStartAboveMin\,k_BT$
+up the barrier rather than at the contact minimum, leaving only $\NaBoundaryDist$~nm to the first
+boundary --- a distance crossed ballistically in $\NaBallisticPs$~ps, some four times inside one
+ballistic step and five times below the trace resolution. The gate was therefore measuring
+resolution, not a discovery rate, and could not have failed. This was established on 2026-08-14,
+before the gate was read, and it invalidates SPEC~\S7's declared bias, which had assumed the run
+started \emph{at} the contact minimum.
+
+What actually carries ``discovery is fast'' is the supplementary far-threshold statistic: first
+arrivals at $0.52$, $0.70$ and $1.00$~nm run at $\NaFarSsipLo$--$\NaFarSsipHi$,
+$\NaFarSevenLo$--$\NaFarSevenHi$ and $\NaFarOneLo$--$\NaFarOneHi$ times the exact fastest-of-$N$
+ballistic floor, all far under the $\NaThresholdHi$~ps threshold. Discovery is genuinely
+diffusive and genuinely fast, and the consequence, stated in advance, is that the regime verdict
+rests on Gate C alone.
+
+This is worth setting against methane, where the same gate run the same way is vacuous: methane's
+far-threshold arrivals reach only $\MeFarRatioLo$--$\MeFarRatioHi\times$ their floor over a
+$\MeDomainWidth$~nm domain, about $\MeBallisticSteps$ ballistic steps wide, so no discovery rate
+is resolvable there at any budget. The discriminator is domain width in ballistic steps, not
+anything about the method.
+
+\subsection{Gate C: no deficit, and what that licenses}
+
+Gate C calls a state under-established when its occupancy falls below $0.5\,Q^*_k(t)$ for a
+contiguous stretch of at least $\NaSpanFrac\,T$ in the second half of the run, against the
+bias-aware target $Q^*_k(t) \propto \int_{C_k} \exp[-\beta(F_{\rm ref} - B_t)]$. On the powered
+state it fires on $\NaGateCdeficit$ seeds in both cells.
+
+The contact pair is \emph{non-binding} in both, at $\lambda = \NaLamCipHi$ and $\NaLamCipLo$
+against the floor of $\NaLamFloor$, where the smallest resolvable deficit is $\NaMdeCipHi\,\%$
+and $\NaMdeCipLo\,\%$ --- that is, the test has degenerated into asking whether the state happens
+to be empty. Following Amendment 12.10 such a state is excluded from the verdict in
+\emph{both} directions: it may neither contribute a deficit, which would be counting noise, nor
+contribute a pass, which would be arithmetic silence. The outer basin is powered in both cells,
+at $\lambda = \NaLamSsipHi$ and $\NaLamSsipLo$, and it carries the verdict.
+
+The contact pair is then cleared separately, by a windowed statistic with the power to say
+something: the mean $P/Q^*$ over a sliding window of the required deficit length, with the
+standard error taken across independent seeds. Its worst window sits at $\NaCipWinHi$ with a
+two-sigma band of $[\NaCipWinHiLo, \NaCipWinHiHi]$ at $N = \NaNhi$ and at $\NaCipWinLo$ with
+$[\NaCipWinLoLo, \NaCipWinLoHi]$ at $N = \NaNlo$, both clear of the $0.5$ threshold, and no
+single seed-window in either cell falls below $\NaCipWorstSeedLo$. The outer basin is carried
+through the same audit as an explicit positive control at $\NaSsipWinHi$ and $\NaSsipWinLo$,
+because a check exercised only where it passes cannot be distinguished from one that always
+passes.
+
+\begin{remark}[What ``Gate C did not fire'' is worth]
+\label{rem:nacl_gatec}
+Since no state in the study ever fired the gate, nothing had shown it firing at all. We closed
+that by planting stationary walker-conserving deficits in the \emph{real} occupancy traces ---
+scaling one state's occupancy and redistributing the removed population over the bias-aware
+target so each checkpoint's total is preserved --- and running the unmodified gate. It fires on
+$0$ of $8$ seeds at a planted $\NaGateCSilent\,\%$ deficit, which is the shortfall it nominally
+tests for, and on $8$ of $8$ at $\NaGateCFires\,\%$. The cause is that at a $50\,\%$ deficit the
+mean sits exactly \emph{on} the threshold, so noise lifts about half the checkpoints above it and
+the required contiguous run rarely forms. The $\lambda \geq \NaLamFloor$ floor was derived from a
+single-checkpoint two-sigma criterion standing in for a contiguous-span test: correct arithmetic
+about a quantity the gate does not compute. The analytic figures of
+$\NaMdeSsipHi$--$\NaMdeSsipLo\,\%$ therefore \emph{overstate} the gate's sensitivity, and
+``Gate C found no deficit'' licenses only that no sustained shortfall of $\NaGateCFires\,\%$ or
+more occurred. The methane study found the same effect independently at about $60\,\%$.
+
+The verdict does not rest on that statement. What carries it is the direct bound: over every
+second-half state-checkpoint on the powered state --- $\NaCheckpointsHi$ of them at $N = \NaNhi$
+and $\NaCheckpointsLo$ at $N = \NaNlo$ --- the minimum $P/Q^*$ is $\NaDirectHi$ and $\NaDirectLo$
+with medians $\NaDirectMedHi$ and $\NaDirectMedLo$, bounding the largest \emph{instantaneous}
+shortfall anywhere at $\NaShortfallMax\,\%$. The windowed band excludes any sustained deficit
+larger than about $\NaWindowedBound\,\%$, roughly $\NaWindowedTighter\times$ tighter than the
+contiguity gate could report. We re-measured this against its stated scope rather than carrying
+it forward: the final-frame minimum would have been $\NaDirectFinalFrame$, so $\NaDirectHi$ is
+genuinely the all-checkpoint value and not a bound silently widened in restatement.
+\end{remark}
+
+The planted deficit is stationary, so $\NaGateCFires\,\%$ is a floor on the detection threshold
+rather than a characterisation of it: a real establishment failure that decays as the bias fills
+in would fire less readily still.
+
+\subsection{The instrument, and a defect in the preregistered design}
+\label{sec:nacl_instrument}
+
+Two further calibrations were run after the verdict, and one of them found a design defect that
+does not change this result but is inherited by any study running an $N$ ladder at fixed
+$N \times T$.
+
+The first sweeps the contiguity span itself. At the preregistered $\NaSpanFrac T$ the gate
+detects $\NaFrontierPrereg$ planted $50\,\%$ deficits with zero false positives; at
+$0.10\,T$ it detects $\NaFrontierDetect$, still with zero false positives; at $0.02\,T$ it
+produces $\NaFrontierFalsePos$ false positives. The preregistered span is thus \emph{dominated}
+--- same zero false positives, no detection --- and the efficient frontier sits at
+$\NaFrontierSpan T$. That frontier does not transfer between systems: methane showed no false
+positives at the span where NaCl shows nine, because the frontier is set by each system's own
+occupancy autocorrelation. NaCl's is $\NaTauOcc$~ps in the median, ranging
+$\NaTauOccLo$--$\NaTauOccHi$, and it is independent of $N$.
+
+The defect follows from that. Because $N \times T$ is fixed, a span defined as a fraction of $T$
+scales as $1/N$: it is $\NaSpanBluntHi$ occupancy correlation times at $N = \NaNhi$ but
+$\NaSpanBluntLo$ at $N = \NaNlo$, and would reach roughly $59$ at $N = 8$. The cells of the
+ladder are therefore \emph{not compared on equal instrument terms}, and the blunting is worst at
+small $N$ --- which is the direction the selection rule searches, and the regime the campaign
+exists to find. Measured in absolute time the requirement grows only from about $\NaFrontierPsHi$
+to $\NaFrontierPsLo$~ps across the ladder while the prescription doubles, so the prescription
+overshoots by a factor that reaches roughly twelve by $N = 8$. This changes nothing here --- no
+cell fired at any span, the null is carried by the windowed band, and the two small cells were
+struck a priori --- but it is a defect in the preregistered design rather than in its execution.
+The fix is to set the span in absolute time from a short pilot, adopted for C60 as Amendment
+16.12.
+
+The second calibration asks whether the basins are sampled \emph{inside} or merely correct on
+aggregate, since Gate C is basin-integrated and the outer basin spans $88\,\%$ of the domain, so
+an internal redistribution preserving the integral would be invisible. Splitting each basin into
+quarters, the outer basin is clean in both cells: quarter ratios of $\NaWbSsipQlo$--$\NaWbSsipQhi$,
+an integrated ratio of $\NaWbSsipRatioHi$ and $\NaWbSsipRatioLo$, a shape total variation of
+$\NaWbSsipTVhi$, and the outermost three grid points holding $\NaWbEdgeOcc\,\%$ of walkers
+against $\NaWbEdgeTarget\,\%$ of target --- no wall accumulation. The contact pair shows a larger
+shape total variation of $\NaWbCipTV$ and an integrated ratio of $\NaWbCipRatio$, but that is
+real structure rather than a jam: its walkers concentrate around the $\NaCipR$~nm minimum and
+thin toward the barrier, no quarter in either cell falls below the $0.5$ threshold, and
+restricting the basin to the frozen $15\,k_BT$ physical window changes the integrated ratio by
+nothing at all.
+
+\begin{remark}[The instrument was wrong first, twice]
+Both calibrations shipped a broken version before the reported one, and in both cases the defect
+made the instrument \emph{more} reassuring rather than less. The sensitivity tool first
+redistributed removed mass proportionally to existing outside counts, which has nowhere to put it
+at checkpoints where every walker is inside the basin; the mass was silently dropped, the basin's
+share rose to $1.0$ --- the opposite of a deficit --- and it reported that $N = \NaNlo$ never
+fires up to a $90\,\%$ planted deficit. It was caught by asserting the per-checkpoint invariant
+the docstring had always claimed. The within-basin tool first reported a ratio of $1274$ for a
+quarter carrying $0.0004\,\%$ of the target: a ratio needs both arguments' populations, and it
+now suppresses the ratio outright where the target has none. Neither defect changed the quantity
+it was supposedly qualifying. We also record that the three-scheme agreement later observed on
+the redistribution choice is \emph{not} independent evidence: the per-state test is structurally
+immune to that choice, because planting sets the state's column before touching anything else.
+\end{remark}
+
+\subsection{The pre-committed closure}
+
+Four outcomes were given their meanings in \texttt{CLOSURE\_PRECOMMIT.md}, committed while the
+$N = \NaNlo$ cell was at step zero of its run --- after the process started, so the timing is
+checkable, and before anything could be read from it. They were: (1) powered outer basin with no
+sustained deficit, closing the study as ABF-sufficient with the weak-null caveat attached; (2) a
+sustained deficit on at least six of eight seeds, licensing mFR at $N = \NaNlo$ and requiring
+$\tau_\perp$, rate calibration and all five production arms; (3) the $N = \NaNhi$ shape with an
+inconclusive windowed band, closing more weakly as ``ABF-sufficient on the state that can be
+measured, undetermined on the other''; and (4) no state reaching the floor, making the cell
+unclassifiable and collapsing the ladder to a single cell. The realised outcome is branch (1),
+selected by lookup rather than chosen after seeing the number. The document also fixed what is
+\emph{not} permitted on any branch: extending the cell, adding seeds, lengthening $T$, relaxing
+the $\lambda$ floor to admit $N = 16$ --- which misses by $\NaNsixteenMiss$ walkers, exactly the
+temptation a frozen threshold exists to refuse --- or reporting branch (3) or (4) as if it were
+branch (1).
+
+The same document projected $\lambda \approx \NaProjSsipB$ and $\NaProjCipB$ at $N = \NaNlo$
+against realised values of $\NaLamSsipLo$ and $\NaLamCipLo$, and we record that agreement at its
+true weight, which is very little. Since $\lambda = N Q^*$ and the $N = \NaNhi$ cell had already
+fixed $Q^*$, multiplying by $\NaNlo$ is arithmetic; the only empirical content is that $Q^*$
+barely moves with $N$. \emph{A projection that could not have failed is the same shape as a gate
+that could not fire.} What the pre-commitment earned is the other half of the document: four
+meanings fixed before any datum existed, which would have done its work had the projection
+missed.
+
+\subsection{Implementation notes}
+\label{sec:nacl_impl}
+
+Several of the following cost real time to establish and would otherwise have to be rediscovered.
+
+\paragraph*{The timestep gate was retracted and re-run.} The first dynamics gate reported
+$2$~fs failing on equipartition at $\Delta T = 2.67$~K and selected $1$~fs. Its standard errors
+were computed as $\mathrm{std}/\sqrt{n}$ over correlated samples and were about $2.2\times$ too
+small; read honestly the failure was $2.5\sigma$. The natural hypothesis, that OpenMM's kinetic
+energy used a different degree-of-freedom convention, was tested and \emph{refuted} --- the gap
+between \texttt{getKineticEnergy} and an explicit $\sum \tfrac12 m v^2$ at the same
+degree-of-freedom count is exactly $0.000$~K --- so the retraction is attributed to the error
+bars. The replacement rule was frozen before its rerun with the borderline number already known,
+and separates a deterministic constraint clause in float64 from a statistical equipartition
+clause in the production dtype, with both standard errors obtained by blocking at ten
+correlation times, calibrated on a known-truth AR(1) series where two-correlation-time blocks
+understate by $26\,\%$ and ten by $6\,\%$. At $\NaDt$~fs the rerun gives $\Delta T = 0.739$~K with
+$\sigma = 0.320$~K, and $0.739 + 0.320 \leq 2.0$ passes. Note that this run sits $2.31\sigma$ from
+OpenMM and passes anyway: the criterion is an equivalence test against a $2.0$~K tolerance, not a
+significance test, and it was deliberately written that way so that foreknowledge of the
+borderline value could not be exploited in either direction.
+
+\paragraph*{A performance cliff that was not physics.} An early benchmark reported an eight-fold
+throughput collapse at large batch. It was \texttt{torch.compile} exhausting dynamo's recompile
+limit and falling back to eager for every subsequent configuration, which is why six consecutive
+rows reported an identical rate across four different batch sizes. \emph{A flat identical rate
+across batch sizes is not physics.} The file is quarantined under its defect name; its
+correctness and trajectory gates remain valid, since those run one shape compiled once. A Triton
+kernel passes both correctness gates but was not adopted, being slower than the already
+parity-gated tensor path. We note that the re-measured timing artifact the fix commit called for
+was never produced, so no valid benchmark file exists on disk.
+
+\paragraph*{Resume verification was mis-specified, not the resume.} The original verifier demanded
+cross-process bit-identity of an interrupted-and-resumed run against an uninterrupted one. Two
+\emph{identical} full runs in two processes diverge more than the interrupted pair does, because
+kernel selection differs per process and the difference amplifies chaotically --- a fact this
+campaign had already documented for WCA. The check could not have distinguished a resume defect
+from chaos in either direction, and would equally have passed a broken resume on a quieter
+system. It was replaced by the two properties that are decidable and together are the whole
+contract: an in-process serialization round-trip on the real driver, bit-identical on positions,
+velocities, forces, RNG state, accumulators, traces and step index; and the loop's
+accumulate/advance ordering, pinned by the deterministic bookkeeping harness. Within-process
+determinism supplies the rest.
+
+\paragraph*{Two naming traps, both live.} The reference artifact names both Gate A directions the
+wrong way round: the generic-looking \texttt{max\_TV} key holds the \emph{superseded}
+spec-transpose at $\NaGateATransposed$, while the verdict is \texttt{preregistered\_max\_TV} at
+$\NaGateAPre$. The analysis script read the generic key, so the check that can halt the study
+evaluated the wrong direction --- harmless only because both clear $0.30$. The script now raises
+on a missing field rather than falling back; renaming the key in the artifact is deferred because
+it would mean regenerating an accepted reference on a closed study. Separately, Gate~C's power
+block used one token, \texttt{lambda\_min}, for both the policy constant and a measured minimum;
+they are now \texttt{lambda\_threshold} and \texttt{lambda\_min\_over\_window}. The general form
+is \emph{two correct values for one quantity, where the naming makes the wrong one look
+canonical}, and neither a derivation check nor a scope audit finds it --- only asking which key
+the prose actually read.
+
+\paragraph*{A check that a cache hit skipped.} The declared-bias check at initialisation sits
+inside the population-\emph{build} branch. The $N = \NaNlo$ run reused a cached population to
+save eighteen minutes, so the check never ran and its manifest field is null: a check that did
+not run, reading as no problem. It was recomputed standalone, and it \emph{fails} --- the
+published start sits $\NaStartAboveMin\,k_BT$ above the contact minimum, so SPEC~\S7's declared
+bias, which assumed a start at the minimum, does not hold. The general form is that
+\emph{any check attached to a build step is silently skipped by a cache hit}. The one-line fix
+was deliberately deferred, because editing the sampler mid-campaign risks a launch picking up a
+different sampler than the pinned worktree, and ladder homogeneity is worth more than an early
+diagnostic fix.
+
+\paragraph*{Pins, and what they do not cover.} All four data-generating runs carry the same
+sampler commit, and the $N = \NaNlo$ cell was launched from that same pinned worktree rather than
+a new pin. Analysis runs at a \emph{different} commit, because the pinned sampler tree predates
+the Gate C power guard, the map-completeness guard and the Gate A transpose fix. The detection
+rule is baked into the artifact: a gates report lacking an \texttt{analysis\_provenance} block was
+produced by a superseded tree and is not a verdict. We note two residual disagreements between
+prose and artifact --- the analysis commit and the realised $N = \NaNlo$ value of $\lambda$,
+recorded in prose as $30.75$ against the artifact's $\NaLamSsipLo$ --- and quote the artifact.
+
+\paragraph*{Two incidents worth recording.} A retired autolaunch fired after the amendment that
+would have forbidden it, launching a two-GPU split with the pre-amendment device assignment baked
+in; it was killed within a minute. \emph{The guard did not fail, the launch went around it: a
+permission check only protects launches that call it.} Its output could not have been analysed
+in any case, because a four-seed half-block is refused by the full-block requirement. Separately,
+a third user landed on the device nine hours into the $N = \NaNlo$ run and cost $\NaContention\,\%$
+of wall clock with no effect on the physics, against an in-situ rate of $\NaThroughput$~ns/day
+aggregate measured on a verified-idle device. \emph{A preflight is point-in-time}, and no launch
+guard can see an arrival nine hours later; co-tenancy was sampled every ten minutes thereafter.
+
+\subsection{What this system contributes}
+
+NaCl is a fourth ABF-sufficient system, reached on a landscape with a genuine
+$\NaBarrierKT\,k_BT$ desolvation barrier rather than methane's sub-$k_BT$ one, so the methane null
+cannot be dismissed as an artifact of an unusually flat landscape. The ABF baseline already
+establishes every state the gates can resolve, and marginal reallocation has no deficit to
+repair.
+
+It contributes less than methane does, and the reason was fixed in advance rather than argued
+afterwards: with hydration $\NaOrthoLo$--$\NaOrthoHi\times$ more variable across $r$ than within
+it, NaCl offers marginal reallocation very little to work with, so ``mFR had nothing to act on''
+survives as an alternative to ``mFR was not needed''. It is not a second independent null of
+methane's strength.
+
+Its sharpest contribution is methodological, and it is negative. Two of the four gates could not
+have failed as instrumented --- Gate B because the boundary sat inside one ballistic step of the
+published start, Gate C on the contact pair because $\lambda < 1$ makes the test an emptiness
+check --- and the preregistered contiguity span is dominated by a value twice as sensitive at
+equal false-positive cost. None of this changes the verdict, which rests on a powered state, a
+windowed band and a direct instantaneous bound. All of it changes what a passing gate is worth,
+and the practice it recommends is to measure each gate's detection threshold on planted signal in
+the real traces before quoting the gate's silence as evidence.
+
+Following the preregistration, no rate calibration was performed, no production arm was run, and
+$\tau_\perp$ --- required only downstream of a Gate C deficit --- was stopped and not restarted.

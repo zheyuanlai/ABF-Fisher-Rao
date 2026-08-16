@@ -1,0 +1,157 @@
+% The validity layer: Gate 0 backfills, the reference correction, and the cross-system
+% mechanism audit. Hand-maintained; every macro names its source file.
+% Prefixes: Vg = Gate 0 backfill design; Vt = WCA trough / reference correction;
+%           Vr = R15 audits; Vc = Case IX endpoint sensitivity; Vm = mFR mechanism audit.
+
+% --- Gate 0 backfill design (WCA), results/v2_validity_audits/wca_gate0{,_hpv3}/verdict.json --
+\def\VgWcaZvals{6}                   % z-values at which pools are compared
+\def\VgWcaPools{4}                   % lattice, from-below, from-above, hot-randomised
+\def\VgWcaReplicas{256}
+\def\VgWcaPrepSteps{20\,000}         % prep + equilibration each, then 80 000 production
+\def\VgWcaSpreadOld{0.040}           % rel_spread_all against the CACHED reference
+\def\VgWcaPoolVsRefOld{0.095}        % pool mean vs cached reference -- the reference was wrong
+\def\VgWcaPoolVsRefNew{0.0095}       % ... against the corrected reference: a tenfold drop
+\def\VgWcaWorstZ{0.25}               % where pools agree to 0.179 but sit 56 %% from the cache
+\def\VgWcaWorstGap{56}               % %%
+
+% --- Gate 0 backfill (gateway), results/v2_validity_audits/gateway_gate0/verdict.json ---------
+\def\VgGwTauPerp{0.00098}
+\def\VgGwResidence{0.0012}
+\def\VgGwResidenceRatio{1.23}        % residence / tau_perp -- NOT the clean separation assumed
+\def\VgGwThit{1.40}                  % median
+\def\VgGwTest{17.0}                  % median
+\def\VgGwTotal{40.0}
+\def\VgGwYtwoAll{0.051}              % second-moment version of the same statistic
+\def\VgGwYtwoLocal{0.213}            % ... inside the constriction
+\def\VgGwCrossings{302\,246}
+\def\VgGwTailRatio{12}               % x: residence mean over median -- heavy-tailed
+
+% --- WCA reference correction (the trough), results/v2_validity_audits/wca_{trough_discovery,hp_*} --
+\def\VtTroughZ{0.26}
+\def\VtTroughNew{0.424}              % dense-scan minimum of F'
+\def\VtTroughCached{1.931}           % the cached value at the same z
+\def\VtTroughSigma{67}               % sigma deviation (dense scan)
+\def\VtRefSigma{23.4}                % sigma at the 41-point high-precision stage
+\def\VtRefNew{0.601}                 % F' at z = 0.25, corrected
+\def\VtRefCached{2.094}              % ... cached
+\def\VtRefSe{0.060}                  % between-preparation standard error
+\def\VtRefStates{20\,992}            % 41 z x 4 preps x 128 replicas
+\def\VtRefMinutes{22}
+\def\VtRefShift{0.0608}              % L2 shift of the whole reference profile
+\def\VtAbfError{0.0901}              % Case IX ABF median final L2(F)
+\def\VtMfrError{0.0429}              % ... mFR
+\def\VtEffect{0.0206}                % the effect size the reference shift must be read against
+\def\VtShiftOverAbf{0.675}           % reference shift as a fraction of ABF's OWN error
+\def\VtShiftOverEffect{2.96}         % ... and as a multiple of the effect size
+\def\VtCachedDz{0.028}               % the cached grid spacing that missed the feature
+\def\VtDenseDz{0.010}
+\def\VtSmoothRaw{0.601}              % smoothing took sigma in GRID CELLS, not physical CV:
+\def\VtSmoothed{2.166}               % ... turning this raw value into this smoothed one
+\def\VtVthreeZ{0.258}                % hp_v3 trough location, acquisition grid = evaluation grid
+\def\VtVthreeValue{0.460}
+\def\VtVthreeInterp{0.0}             % pchip-vs-linear max difference: interpolation is identity
+\def\VtVthreeLtwo{0.0701}            % L2 vs cached
+
+% --- R15 audits, results/v2_validity_audits/r15_{abf_guard,mean_force,conditional} ------------
+\def\VrGuard{200}                    % abf_min_count_dist under test
+\def\VrGuardDeltaL{0.0004}           % worst change in normL2(F) -- the guard is non-material
+\def\VrGuardDeltaSpan{0.003}
+\def\VrSpanClauseLo{1.31}            % the RETRACTED span clause fires on ALL four cells ...
+\def\VrSpanClauseHi{1.51}            % ... including the easy beta = 1 ones
+\def\VrPinLo{0.36}                   % max tercile occupancy -- the pinning clause does NOT fire
+\def\VrPinHi{0.71}
+\def\VrMfBetaOneLo{0.264}            % relative mean-force error, beta = 1 cells
+\def\VrMfBetaOneHi{0.265}
+\def\VrRestrainedBuild{0.261}        % build-vs-build disagreement in the restrained test ...
+\def\VrRestrainedThresh{0.15}        % ... against its own agreement threshold: INCONCLUSIVE
+\def\VrRestrainedKumb{400}           % kJ/mol/nm^2 -- too soft; window at 1.550 sampled at 1.943
+\def\VrUncovered{1.9}                % nm: below this the restrained test has no coverage at all
+\def\VrBandLo{2.3}                   % nm, the Gate-0-failing band
+\def\VrBandHi{2.6}
+\def\VrBandError{12.4}               % %% of total error carried by that band ...
+\def\VrBandMask{18.1}                % ... over this %% of the mask: SUB-proportional
+\def\VrTailError{55.7}               % %% of error in [2.9, 3.7) nm -- where the starvation is
+
+% --- Case IX endpoint sensitivity, results/v2_validity_audits/caseix_c0/c0_verdict.json -------
+\def\VcSeeds{16}
+\def\VcOldMfr{-53.78}                % final-time L2(F) endpoint, CACHED reference
+\def\VcOldDirect{-54.60}
+\def\VcOldSham{-1.62}
+\def\VcNewMfr{-40.00}                % ... CORRECTED reference
+\def\VcNewCIlo{-44.66}
+\def\VcNewCIhi{-38.39}
+\def\VcNewDirect{-40.87}
+\def\VcNewSham{-2.14}
+\def\VcSigns{preserved}
+
+% --- Cross-system mFR mechanism audit, results/mfr_mechanism_audit/ --------------------------
+\def\VmRuns{1827}
+\def\VmCells{48}
+\def\VmSystems{8}
+\def\VmMargin{5}                     % %% practical-equivalence margin, predeclared
+\def\VmBoot{4000}
+% Mixing gate: leave-one-SYSTEM-out AUC. The unit of observation is one (system, cell).
+\def\VmGateAuc{0.154}                % log10_n_relax -- the PRIMARY preregistered gate
+\def\VmGateCIlo{0.030}
+\def\VmGateCIhi{0.294}
+\def\VmGateBalAcc{0.50}
+\def\VmGateInSample{0.326}
+\def\VmIncAAuc{0.788}                % measured ABF error -- best predictor, NOT deployable
+\def\VmIncACIlo{0.677}
+\def\VmIncACIhi{0.889}
+\def\VmSupportAuc{0.731}             % best DEPLOYABLE feature ...
+\def\VmSupportCIlo{0.600}
+\def\VmSupportCIhi{0.848}
+\def\VmSupportNoOrphan{0.202}        % ... which collapses to this when the orphan system is dropped
+\def\VmIncANoOrphan{0.689}
+\def\VmUnavailable{3}                % indicators UNAVAILABLE in every system's artifacts
+% Bias/variance decomposition (WCA representative b1_h2, 10 seeds, 10 kT thermal weighting)
+\def\VmBiasFracAbf{0.991}
+\def\VmBiasFracMfr{0.981}
+\def\VmBiasFracLo{0.742}             % the LOWEST bias fraction anywhere in 135 cases
+\def\VmVarRatio{1.324}               % mFR variance / ABF variance, matched seeds
+\def\VmVarRatioCIlo{0.925}
+\def\VmVarRatioCIhi{1.952}
+\def\VmMseRatio{0.659}
+\def\VmMseRatioCIlo{0.615}
+\def\VmMseRatioCIhi{0.707}
+\def\VmBiasRatio{0.653}
+\def\VmCrossCheck{3\times10^{-7}}    % max |recomputed - stored| L2(F') over 1056 rows
+% Target-shape ablation
+\def\VmAblCells{144}
+\def\VmAblRows{6800}
+\def\VmAblBoot{20\,000}
+\def\VmAblU{127}                     % underpowered / no oracle arm
+\def\VmAblA{10}                      % all three contrasts equivalent: target shape does not matter
+\def\VmAblB{2}                       % est ~ uni, oracle differs
+\def\VmAblC{5}                       % all three differ: target direction is first-order
+\def\VmAblUnderpowered{205}          % contrast-level, primary metric
+\def\VmAblDifferent{171}
+\def\VmAblEquivalent{38}
+
+% --- Deployable-target EMA sweep, results/entropy_dominant_bottleneck_ema_tuning/ ------------
+% 960 records: 8 target_ema_rate values x phi in {0.5, 0.75, 0.9}. The EMPIRICAL companion to
+% the structural telescoping argument of sec:eb_obstruction.
+\def\VeRates{8}
+\def\VeRecords{960}
+\def\VeBestLoPhi{-6.86}              % %% gain at the BEST ema for phi = 0.50 (still negative)
+\def\VeBestMidPhi{-9.78}             % ... phi = 0.75
+\def\VeBestHiPhi{+18.02}             % ... phi = 0.90
+\def\VeOracleLoPhi{+11.1}            % matched oracle at the same phi
+\def\VeOracleMidPhi{+37.4}
+\def\VeOracleHiPhi{+41.6}
+
+% --- Poisson/Nyquist projection audit, results/poisson_nyquist_audit/ -----------------------
+% A defect in the FFT Poisson projection used for the 2-D torus CV, found and bounded post hoc.
+\def\VpRuns{17}
+\def\VpWorstL{0.0001}                % %% worst per-arm change in reported L2
+\def\VpWorstRank{0.0003}             % percentage points, worst ranking shift
+\def\VpProxyDiff{3.91}               % %% of max |grad B| -- the proxy field DOES differ
+\def\VpPowerLo{2\times10^{-12}}      % measured Nyquist power fraction of the real potentials
+\def\VpPowerHi{4\times10^{-7}}
+
+% --- OPES on the metastability toy, results/opes_toys/ --------------------------------------
+\def\VoMetaOpes{0.5260}              % final L2(F)
+\def\VoMetaAbf{0.0137}
+\def\VoMetaMfr{0.0134}
+\def\VoMetaNeff{0.702}

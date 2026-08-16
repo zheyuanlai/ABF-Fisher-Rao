@@ -298,6 +298,14 @@ basin-and-barrier region $|x|\lesssim 2$ containing both basins and the saddle.
 No quantitative ranking is claimed here; the decisive comparisons are in
 \cref{sec:eb_opes,sec:wca_opes}, where ABF is starved and all methods diverge.
 
+For completeness, since declining to rank is not the same as declining to report: the final
+errors are $\OPESMetaLtwoF$ for OPES, $\OPESMetaABFLtwoF$ for ABF and $\OPESMetaMFRLtwoF$ for
+mFR, so OPES is nominally $\OPESMetaVsABFpct$ worse than ABF here. That figure is an artifact of
+the reweighting rather than a result: the effective sample fraction is $\OPESMetaNeff$, and on a
+case where ABF sits at its own floor the ratio of two near-floor errors is not a meaningful
+comparison. We give the numbers so that a reader who computes them from the artifacts finds the
+same values and the same reading attached to them.
+
 \subsection{Case finding}
 \label{sec:q1}
 On this easy metastability example the answer to Q1 is \emph{yes, but modestly,

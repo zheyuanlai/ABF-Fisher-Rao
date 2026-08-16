@@ -41,6 +41,20 @@ FEP reference reproduces $V_4\!\oplus V_4$ to \CvTwoDGateExact\ --- the residual
 mean-force-estimator resolution floor (\cref{rem:alk_floor}), not a systematic error.
 \input{tables/cv_2d_validation.tex}
 
+\begin{remark}[A defect in the projection, found afterwards and bounded]
+\label{rem:poisson_nyquist}
+The FFT Poisson projection above mishandled the Nyquist row of the transform. We record it
+because the table opposite would otherwise read as a projection with nothing wrong with it. The
+defect is real in the proxy field --- the corrected and uncorrected gradients differ by
+$\VpProxyDiff\,\%$ of $\max\Norm{\nabla B}$ --- but immaterial in the reported results, because
+the measured Nyquist power fraction of the potentials actually saved lies between $\VpPowerLo$
+and $\VpPowerHi$. Recomputing all $\VpRuns$ affected runs changes the worst per-arm reported
+$L^2$ by $\VpWorstL\,\%$ and the worst arm-ranking position by $\VpWorstRank$ percentage points,
+with every ranking sign preserved. The verdict is that nothing in \cref{sec:cv_2d} moves; the
+reason to state it is that the size of a defect and the size of its consequence are separate
+measurements, and only the second was ever going to be reassuring.
+\end{remark}
+
 \begin{figure}[t]\centering
   \includegraphics[width=0.98\textwidth]{fig_cv_02_2d_reference_gate.png}
   \caption{(a) the joint reference $F(\varphi_1,\varphi_2)$; (b) a representative 2-D ABF

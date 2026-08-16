@@ -1,0 +1,83 @@
+% Deca-alanine in vacuum, end-to-end distance CV -- v2 System 1, CLOSED 2026-08-11 as
+% conditional-equilibration-limited. Hand-maintained; every macro names its source file.
+% NOTE: results/deca/screen/screen_verdict.json still reads "establishment-limited" with
+% licenses_mfr: true. That verdict is WITHHELD (results/deca/screen/VERDICT_WITHHELD.md) and
+% must not be cited. No mFR arm was ever run.
+% Preregistration: docs/V2_PREREGISTRATION.md Amendments 1-10; closure docs/CLOSURE_deca_and_R15.md.
+
+% --- physical model -------------------------------------------------------------------------
+\def\DcAtoms{112}                    % Ace-(Ala)10-Nme
+\def\DcForceField{ff14SB}
+\def\DcTemp{300}
+\def\DcDt{1}                         % fs, BAOAB
+\def\DcParityE{2.9\times10^{-8}}     % OpenMM parity, energy
+\def\DcParityF{8.7\times10^{-9}}     % ... force
+
+% --- collective variable --------------------------------------------------------------------
+\def\DcRlo{1.20}                     % nm, evaluation domain
+\def\DcRhi{3.60}
+\def\DcWallLo{1.25}                  % nm, soft walls
+\def\DcWallHi{3.55}
+\def\DcWallK{4000}                   % kJ/mol/nm^2
+\def\DcGridPts{129}
+
+% --- umbrella + MBAR reference (retained and usable) ----------------------------------------
+% Source: results/deca/reference/reference_summary.json, reference_audit.json, provenance.json
+\def\DcRefWindows{96}
+\def\DcRefKumb{3200}                 % kJ/mol/nm^2
+\def\DcRefReplicas{32}
+\def\DcRefBuilds{3}                  % interleaved, each seeded from a different conformational pool
+\def\DcRefNsPerRep{2.0}
+\def\DcRefAggNs{18\,432}             % ~144x the 128 ns literature ABF benchmark
+\def\DcRefLtwo{0.604}                % kJ/mol, max pairwise between builds
+\def\DcRefSpanKJ{179.6}              % kJ/mol
+\def\DcRefSpanKT{72.00}              % kT
+\def\DcRefRatio{0.0339}              % accepted at <= 0.5
+\def\DcRefDrift{3.181}               % kJ/mol, time drift between the two checkpoints
+\def\DcRefDriftFrac{0.178}           % ... as a fraction of a resolvable effect (5.2x the build spread)
+\def\DcRefArgmin{1.637}              % nm
+\def\DcRefPullErr{0.290}             % nm, max pull error
+\def\DcRefHours{3.79}
+\def\DcRefDropped{1\,777\,960}       % out-of-domain samples DROPPED (not clamped) after the fix
+
+% --- Gate A: are the states visible through the CV? PASS ------------------------------------
+\def\DcGateATV{0.754}                % max pairwise TV vs a 0.30 threshold
+\def\DcGateATValt{0.756}             % the sibling audit file's value for the same quantity
+\def\DcGateALabels{9}                % labels occupied
+
+% --- ABF-only screen at the literature budget -----------------------------------------------
+% Source: results/deca/screen/screen_verdict.json (VERDICT WITHHELD), run log
+\def\DcScreenEnsembles{8}
+\def\DcScreenWalkers{16}
+\def\DcScreenNs{0.5}                 % ns per walker
+\def\DcScreenAggNs{8}                % ns aggregate = the literature benchmark budget
+\def\DcScreenSeeds{3000--3007}
+\def\DcScreenMinCounts{2788.1}       % final minimum effective counts per bin
+\def\DcScreenMinutes{20.4}
+
+% --- Gate 0: FAILS. The conditional ensemble never equilibrates. ----------------------------
+\def\DcGateZero{0.61}                % relative mean-force error vs dF_ref/dR
+\def\DcGateZeroCounts{2\times10^{6}} % effective counts per bin at which the error persists
+\def\DcSpanLo{86.7}                  % kT, learned A_hat span, lowest seed
+\def\DcSpanHi{110.3}                 % ... highest seed, against a 72.00 kT reference
+\def\DcPinLo{0.951}                  % second-half occupancy fraction above 2.80 nm, lowest seed
+\def\DcPinHi{0.9996}                 % ... highest seed (the Gate 0 pinning clause is 0.90)
+% Attribution control: the same estimator inside umbrella windows
+\def\DcCtrlErr{0.084}                % relative error -- estimator, CV, reference, integration all OK
+\def\DcCtrlIntegrated{69.37}         % kT integrated from <f_loc> in windows
+\def\DcCtrlReference{67.08}          % kT reference over the same range
+\def\DcCtrlBinA{103.66}              % interior-bin agreement, sub-1 %%: measured vs reference
+\def\DcCtrlBinAref{103.20}
+\def\DcCtrlBinB{127.08}
+\def\DcCtrlBinBref{127.40}
+\def\DcCtrlBinC{133.04}
+\def\DcCtrlBinCref{132.49}
+
+% --- the retracted screen (results/deca/screen_RETRACTED_no_min_count_guard/) ----------------
+\def\DcRetClampFrac{4.82}            % %% of samples piled into bin 0 by edge clamping
+\def\DcRetFakeWell{2.65}             % kT depth of the artifact well at grid[0] (neighbours ~5.3)
+\def\DcRetFakeState{0.056}           % nm width of the spurious "state" Gate C then fired on
+\def\DcRetSpan{102.5}                % kT learned span with min_count unapplied (+42 %% over 72.0)
+\def\DcRetPinned{97.9}               % %% of walkers above 2.80 nm in the second half
+\def\DcRetOccupancy{0.008}           % folded-basin occupancy
+\def\DcRetMinCounts{1632.6}          % vs the fixed run's 2788.1
