@@ -2428,3 +2428,54 @@ systematic offset must show up as the well-behaved state missing 1.0, not as the
 state looking odd; (iii) the window length is the gate's own contiguity requirement
 (`0.2 T`) and is **never adjusted**; lengthening a window until a band separates is the same
 move as relaxing the 16.7 floor, and is forbidden by the same reasoning.
+
+#### 16.11 The windowed band becomes the PRIMARY establishment instrument; the contiguity gate is demoted to a one-sided detector (2026-08-16, before any C60 occupancy datum)
+
+**What had been seen:** no C60 reference window, occupancy or screen datum (the reference
+campaign had not launched).  The methane session measured, and the NaCl session
+independently replicated, a planted-deficit calibration of the unmodified Gate C on the REAL
+occupancy traces of both closed studies:
+
+```
+              45 %   50 %   55 %   60 %+     <- planted stationary deficit
+  NaCl N=64   0/8    0/8    8/8    8/8
+  NaCl N=32   0/8    0/8    8/8    8/8
+  methane     ~60 % firing threshold; 0/8 at 50 %; 60-75 % across a 50x lambda range
+```
+
+**Zero seeds fire at the 50 % the gate nominally tests, at any lambda.**  The cause is
+structural, not statistical power: at a 50 % deficit the mean occupancy sits exactly ON the
+`0.5 Q*` line, noise lifts ~half the checkpoints above it, and the required contiguous span
+almost never forms.  Contiguity, not counting noise, sets the detection floor — so the 16.7
+floor's rationale ("lambda >= 16 resolves a 50 % deficit at 2 sigma") was correct arithmetic
+about a single-checkpoint quantity **the gate does not compute**.  Both closed verdicts in
+fact rest on band statistics (methane: worst ratio 0.83, a 17 % shortfall its gate could not
+have reported; NaCl: SSIP worst-window band [0.974, 0.991], ~18x tighter than its gate).
+
+**Frozen consequences for every executable C60 cell:**
+
+1. **The 16.10 sliding-window band is the PRIMARY establishment instrument for every
+   relevant state** (not only sub-floor states), with pre-committed branches on the seed-mean
+   band (±2 SEM across the 8 seeds) against the frozen 0.5 ratio: entirely below ->
+   **establishment-limited** (a measured sustained deficit); entirely above -> **powered
+   no-deficit**, reported with the band's own exclusion strength ("excludes deficits
+   > X %"); straddling -> **INCONCLUSIVE**, never converted to ABF-sufficient.
+2. **An ABF-sufficient verdict requires the powered no-deficit branch for every relevant
+   state.**  The mere absence of a contiguity fire is no longer evidence of anything.
+3. The contiguity Gate C is computed and reported unchanged for cross-campaign
+   comparability, as a **one-sided detector**: a FIRE is reliable evidence (its realized
+   firing floor is a >= 55 % deficit) and is accepted as establishment-limited; a non-fire
+   carries no weight.
+4. The 16.7 floor continues to govern where the contiguity detector is binding; the windowed
+   instrument self-reports its power through its band width and the mandatory positive
+   control (16.10 clause ii).  The window length remains the gate's own `0.2 T`, immutable.
+5. The detection-side caveats are carried, not waved off: the planted deficits are
+   stationary (a floor on the real detection threshold — a decaying deficit fires less
+   readily), and the windowed statistic's fire-side calibration still rests on planted data.
+   The NaCl session's instrument bug (proportional redistribution silently producing a
+   basin share of exactly 1.0000 — the tell) is recorded as the calibration's own audit
+   trail.
+
+The C60 gates code does not exist yet; it implements this amendment from the start rather
+than being retrofitted.  Nothing here touches Gates 0/A/B, the budgets, seeds, or the mFR
+prohibition.
