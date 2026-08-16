@@ -1,0 +1,40 @@
+{
+  "note": "Gate C span frontier on methane's real traces. 24 state-seeds (8 seeds x 3 states). 'false' = gate fires on the UNMODIFIED trace (no planted deficit); 'det50' = fires on a planted 50 % deficit. Preregistered span is 0.20.",
+  "n_state_seeds": 24,
+  "deficit_frac": 0.5,
+  "prereg_span": 0.2,
+  "rows": [
+    {
+      "span": 0.02,
+      "false": 0,
+      "det50": 21
+    },
+    {
+      "span": 0.05,
+      "false": 0,
+      "det50": 5
+    },
+    {
+      "span": 0.1,
+      "false": 0,
+      "det50": 2
+    },
+    {
+      "span": 0.2,
+      "false": 0,
+      "det50": 0
+    },
+    {
+      "span": 0.3,
+      "false": 0,
+      "det50": 0
+    },
+    {
+      "span": 0.4,
+      "false": 0,
+      "det50": 0
+    }
+  ],
+  "rule_of_three_upper_bound_on_false_rate": "0/24 bounds the false-positive rate at <= 12 % (95 %), NOT at zero",
+  "caveat": "the false-positive column is measured on a system with no deficit and methane's own autocorrelation; it does not transfer to a system with slower orthogonal relaxation"
+}

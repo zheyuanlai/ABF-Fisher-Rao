@@ -97,6 +97,10 @@ def main():
                     help="emulate a smaller cell by using only this many walkers, so the "
                          "detection threshold can be read at a lambda the C60 branch will "
                          "actually see (0 = use all)")
+    ap.add_argument("--span", type=float, default=None,
+                    help="override the required contiguous span (fraction of T). The open "
+                         "question after the NaCl replication is whether the detection floor "
+                         "tracks THIS or the system; varying it at fixed system separates them.")
     ap.add_argument("--scheme", default="observed", choices=("observed", "target", "uniform"),
                     help="where the displaced population goes; the threshold must not depend "
                          "on this choice")
@@ -138,7 +142,8 @@ def main():
             qstar[i] = bias_aware_target(F_on_grid, pmf_t[j], grid, edges, beta)
 
         half = times >= 0.5 * T
-        span_thr = DEFICIT_SPAN * T
+        span_frac = DEFICIT_SPAN if args.span is None else args.span
+        span_thr = span_frac * T
         dt_frame = float(times[1] - times[0])
         n_walk = int(xi.shape[1])
         for k in range(3):
@@ -152,7 +157,8 @@ def main():
                     fired[float(dd)][k] += 1
         n_seeds += 1
 
-    print(f"[detection] scheme={args.scheme}  {n_seeds} seeds, span {DEFICIT_SPAN:.2f} T, "
+    print(f"[detection] scheme={args.scheme}  {n_seeds} seeds, "
+          f"span {DEFICIT_SPAN if args.span is None else args.span:.2f} T, "
           f"deficit threshold {DEFICIT_FRAC:.2f} Q*\n")
     print("planted   seeds firing (of %d), per state" % n_seeds)
     print("deficit    state 0   state 1   state 2")

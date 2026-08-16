@@ -145,7 +145,40 @@ Firing is 0/8 seeds at a planted 50 % and 8/8 at 60 %, with 55 % partial (2–6 
    That is a measured bound, not a gate output, and it is 3.5× tighter than what the gate could
    have told us.
 
-Full ladder: `gate_c_detection/ladder.json`; script `scripts/methane_gate_c_detection.py`.
+### The span requirement is 10x stricter than it needs to be, and relaxing it strengthens the null
+
+The NaCl session replicated the calibration and got **55 %** against this study's 60 %, and we
+recorded the difference as confounded — two systems, two span settings. It is separable at fixed
+system by varying the span, which is seconds of analysis on traces already on disk. **24
+state-seeds (8 seeds x 3 states), planted 50 % deficit against the unmodified trace:**
+
+| required span | fires with NO deficit | detects a real 50 % deficit |
+|---|---|---|
+| 0.02 T | **0/24** | **21/24** |
+| 0.05 T | 0/24 | 5/24 |
+| 0.10 T | 0/24 | 2/24 |
+| **0.20 T (preregistered)** | **0/24** | **0/24** |
+| 0.30 T | 0/24 | 0/24 |
+| 0.40 T | 0/24 | 0/24 |
+
+**The preregistered span buys nothing measurable and costs all of the detection power at 50 %.**
+A 10x looser requirement detects 21 of 24 planted deficits at the *same* false-positive count.
+The 55 % / 60 % difference between the two studies is therefore **fully accountable by the span
+setting alone**, with no system difference required to explain it.
+
+**This is a post-hoc sensitivity analysis and is labelled as one.** The preregistered gate is
+`DEFICIT_SPAN = 0.20` and the verdict stands on it. What the sweep adds is that **the null
+survives a 10x more sensitive version of its own gate**: run at 0.02 T, where the gate catches
+21 of 24 planted 50 % deficits, the real traces still fire **0/24**. A ~50 % deficit was not
+there to be found, and that is a stronger statement than the preregistered gate could make.
+
+**Two honest limits.** `0/24` bounds the false-positive rate at **<= 12 %** by the rule of three,
+not at zero. And the false-positive column is measured on a system with no deficit and methane's
+own autocorrelation; a system whose orthogonal coordinates relax more slowly could produce
+spurious runs at a loose span, so **the frontier is measured here and does not transfer**.
+
+Full ladder: `gate_c_detection/ladder.json`, span frontier `gate_c_detection/span_frontier.json`;
+script `scripts/methane_gate_c_detection.py`.
 
 **Occupancy sits on the bias-aware target, not near it.** Final-frame occupancy divided by
 `Q*_k(t)`, across all 8 seeds and 3 states: the **worst** ratio is **0.83** and the best is 1.09.
