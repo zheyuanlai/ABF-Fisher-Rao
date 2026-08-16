@@ -186,8 +186,8 @@ Full ladder: `gate_c_detection/ladder.json`, span frontier `gate_c_detection/spa
 script `scripts/methane_gate_c_detection.py`.
 
 **Occupancy sits on the bias-aware target, not near it.** Final-frame occupancy divided by
-`Q*_k(t)`, across all 8 seeds and 3 states: the **worst** ratio is **0.83** and the best is 1.09.
-Over *every* second-half checkpoint rather than the final frame, the worst is **0.731**.
+`Q*_k(t)`, across all 8 seeds and 3 states: at the **final frame** the ratio runs **0.829 to
+1.088**. Over **every** second-half checkpoint — 9 624 of them — it runs **0.731 to 1.270**.
 Gate C's deficit threshold is 0.5. Nothing came close to a deficit; ABF is populating every
 region of the coordinate at the rate the applied bias asks for.
 

@@ -1989,6 +1989,24 @@ what the wider claim asserts is one quantity, 0.83 and 0.733, sat in the same di
 days. *Two values for one quantity is a defect even when both are correct*, because at most one
 of them answers the question being asked.
 
+**The audit this implies was then run deliberately, and it found the twin.** Recomputing every
+scoped number in the methane artifacts *at its stated scope*: `max tercile occupancy = 0.516`
+(2nd half, any seed) — correct; `lambda = 127.6/147.0/224.2` (worst checkpoint of the judged
+window) — correct; Gate A `0.935` over 823 296 paired samples — reproduces exactly. But the
+**best** ratio `1.09`, carried in the same sentence as the worst, is also a final-frame number:
+over all second-half checkpoints it is **1.270**. So the published spread `0.83–1.09` is really
+`0.731–1.270` — occupancy centred on the target with a **±27 %** instantaneous spread rather than
+the ±9–17 % implied. Verdict untouched; the characterisation was tighter than the data.
+
+**Two lessons from the audit rather than from the instance.** The defect came in a **pair**,
+because both halves were read off one final-frame line and restated in one sentence — *when a
+scope error is found, look for its twin in the same sentence*. And the audit that finds this is
+**not a derivation check**: every number involved was correctly computed, and the entire defect
+lived in the mapping from number to sentence, which is the one place a derivation check does not
+look. The NaCl session ran the same audit on its own claims and found its scopes stated
+correctly, but reported the check surfaced a quantity it should have been carrying and was not —
+so the audit pays even when it passes.
+
 **Rule:** when a bound is restated with a wider scope — more seeds, more checkpoints, more
 states, a longer window — **re-measure at the new scope before writing the sentence**. A summary
 is not a citation of the original measurement; it is a claim in its own right.
