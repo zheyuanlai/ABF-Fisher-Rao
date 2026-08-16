@@ -2007,6 +2007,32 @@ look. The NaCl session ran the same audit on its own claims and found its scopes
 correctly, but reported the check surfaced a quantity it should have been carrying and was not —
 so the audit pays even when it passes.
 
+**A sibling class, from the NaCl session's own run of this audit, needing a DIFFERENT check.**
+Their `reference_report.json` stores both Gate A directions and names them backwards:
+`preregistered_max_TV = 1.000` (the verdict quantity) beside `max_TV = 0.9959` (the superseded
+transpose). **The generic-looking key holds the superseded number**, and since it passes the same
+threshold it never announces itself. Their own audit script reached for `max_TV`, got the
+transpose, and briefly concluded the result page was wrong when it was the only document that was
+right — the defect demonstrating itself on the person auditing for it. The real casualty was
+`docs/NACL_EXECUTION_STATE.md`, carrying transposed numbers unlabelled as the Gate A verdict for
+two days, in the file every session is told to read first.
+
+**Two correct values for one quantity, where the NAMING makes the wrong one look canonical.**
+Distinct from the scope class and invisible to the same audit: mine needs *recompute at the
+stated scope*, theirs needs *check which key the prose actually read*. Both are invisible to
+derivation checks because nothing is miscomputed.
+
+**Run here, it found a nastier variant.** Methane's naming was the right way round in every pair
+(`gateA_max_TV` holds the preregistered 0.935, `MeOccRatioWorst` holds the second-half 0.731,
+each superseded twin explicitly suffixed, and the report reads the canonical macro in every
+instance). But `gates.json` carried **`gateC_min_lambda` = 16.0** beside **`gateC_lambda_min` =
+{127.6, 147.0, 224.2}** — two keys differing **only in word order**, holding a *policy constant*
+and a *measurement*. A consumer reaching for "the lambda min" had even odds of reporting the
+threshold as the measured value, and no naming convention distinguishes them because the words
+are identical. Renamed to `gateC_lambda_threshold` and `gateC_lambda_min_per_state`.
+**Near-anagram keys are worse than a misleading canonical name**, because there is no default to
+get right — both readings are equally natural.
+
 **Rule:** when a bound is restated with a wider scope — more seeds, more checkpoints, more
 states, a longer window — **re-measure at the new scope before writing the sentence**. A summary
 is not a citation of the original measurement; it is a claim in its own right.

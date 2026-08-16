@@ -414,7 +414,12 @@ def main():
                gateB_hits=hits, gateB_threshold_ps=thr, gateB_ok=bool(gate_b_ok),
                gateC_persistent=persistent, gateC_span_threshold_ps=span_thr,
                gateC_deficit=bool(gate_c_deficit),
-               gateC_min_lambda=GATE_C_MIN_LAMBDA, gateC_lambda_min=lam_min_all,
+               # NOT `gateC_min_lambda` / `gateC_lambda_min`: those two keys differed only by
+               # word order and held a POLICY CONSTANT and a MEASUREMENT respectively, so a
+               # consumer reaching for "the lambda min" had even odds of reporting the threshold
+               # as if it were the measured value.  Named apart deliberately.
+               gateC_lambda_threshold=GATE_C_MIN_LAMBDA,
+               gateC_lambda_min_per_state=lam_min_all,
                gateC_powered={k: bool(v) for k, v in powered.items()},
                gateC_min_detectable_deficit=mde,
                gateC_computable=bool(gate_c_computable), per_seed=per_seed,
