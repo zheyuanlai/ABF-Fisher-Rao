@@ -72,6 +72,29 @@ Every worst-case window sits above the 0.5 threshold by more than 2 sigma, and n
 seed-window in any cell falls below 0.679. A sustained deficit of the size Gate C tests is
 excluded **with power** at both states of both cells.
 
+**The strongest direct statement, with its scope measured rather than restated.** Over **every**
+second-half state-checkpoint — 632 at N=64 and 1256 at N=32, all 8 seeds — the minimum
+instantaneous `P/Q*` on the powered state is:
+
+| | N=64 SSIP | N=32 SSIP |
+|---|---|---|
+| min over ALL second-half state-checkpoints | 0.866 | **0.832** |
+| median | 0.995 | 0.998 |
+
+So the largest *instantaneous* shortfall anywhere on the state that carries the verdict is
+**16.8 %**, against a 0.5 threshold — a 1.66x margin — and against the gate's measured 55 %
+detection floor the direct bound is **3.3x tighter than the gate could report**. (CIP's minimum
+is 0.000 at both cells: at `lambda` 1.57 and 0.81 that is the state being momentarily empty,
+which is why CIP is non-binding and is cleared by the windowed statistic instead.)
+
+*This figure was recomputed from the traces against its stated scope rather than carried
+forward.* The methane session found a bound of theirs restated from a final-frame minimum into a
+whole-second-half claim in a summary written two days later — every measurement correct, the
+scope grown in the restatement. Checked here: the final-frame minimum would have been 0.950 at
+N=64, so 0.866 is genuinely the all-checkpoint value and not a widened one. **A widened scope is
+a new claim and needs a new measurement**, and restating a result is exactly where that goes
+unnoticed, because it feels like bookkeeping.
+
 ## What "Gate C did not fire" actually licenses — measured, not assumed
 
 Gate C nominally tests a 50 % deficit. **Measured by planting a stationary deficit in the real
