@@ -58,7 +58,8 @@ VERDICT:                GATE 0 PASS (0.0075 global / 0.0483 barrier -- the campa
                         `preregistered_max_TV` (qualified) -- backwards, so anyone reading the
                         obvious key gets the wrong number. My own audit script did exactly that.
                         Renaming requires regenerating the accepted reference report; DEFERRED
-                        rather than done on a closed study, so read the qualified key. Reference ACCEPTED, ratio 0.0907 <= 0.5, complete,
+                        rather than done on a closed study, so read the qualified key.
+                        REFERENCE ACCEPTED, ratio 0.0907 <= 0.5, complete,
                         3 builds x 4 families x 3 replicas x 250 ps.
                         Basins: CIP [0.20,0.34] min 0.26; merged outer [0.34,1.40].
                         dW_CIP->outer 2.54 kT; barrier 5.34 kT.
