@@ -199,7 +199,8 @@ anything about the method.
 Gate C calls a state under-established when its occupancy falls below $0.5\,Q^*_k(t)$ for a
 contiguous stretch of at least $\NaSpanFrac\,T$ in the second half of the run, against the
 bias-aware target $Q^*_k(t) \propto \int_{C_k} \exp[-\beta(F_{\rm ref} - B_t)]$. On the powered
-state it fires on $\NaGateCdeficit$ seeds in both cells.
+state it fires on $\NaGateCdeficit$ seeds in both cells; \cref{fig:nacl_gate_c}(a) shows the
+occupancy ratio itself, every seed of both cells.
 
 The contact pair is \emph{non-binding} in both, at $\lambda = \NaLamCipHi$ and $\NaLamCipLo$
 against the floor of $\NaLamFloor$, where the smallest resolvable deficit is $\NaMdeCipHi\,\%$
@@ -218,6 +219,31 @@ single seed-window in either cell falls below $\NaCipWorstSeedLo$. The outer bas
 through the same audit as an explicit positive control at $\NaSsipWinHi$ and $\NaSsipWinLo$,
 because a check exercised only where it passes cannot be distinguished from one that always
 passes.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.99\textwidth]{fig_nacl_02_gate_c.png}
+  \caption{Gate C, and the two calibrations that say what its silence is worth.
+  \emph{(a)} The verdict-carrying evidence: occupancy over the bias-aware target on the powered
+  state, every seed of both cells, with the second half of each run shaded. This is the ratio
+  Gate C thresholds at $0.5$, so occupancy is normalised as the gate normalises it --- a share of
+  the walkers inside the domain. The worst single checkpoint anywhere in either cell is
+  $\NaDirectHi$, which is what bounds the largest instantaneous shortfall at
+  $\NaShortfallMax\,\%$.
+  \emph{(b)} Why only two cells of the ladder exist. Since basin targets partition,
+  $Q^* \leq 1$ and $\lambda = N Q^* < N$ identically, so no cell at $N \leq 16$ can reach the
+  power floor for any state whatever the sampling; those two cells were struck before running,
+  and their values here are $Q^*\!\times\!N$ arithmetic (hollow) rather than data.
+  \emph{(c)} Detection calibration by planting stationary walker-conserving deficits in the real
+  traces: the gate fires on $0$ of $8$ seeds at the $\NaGateCSilent\,\%$ shortfall it nominally
+  tests for and on $8$ of $8$ at $\NaGateCFires\,\%$, in both cells. The dotted lines are what
+  counting noise predicts it should resolve, and they overstate it about twofold.
+  \emph{(d)} The contiguity span sweep: at half the preregistered span the gate detects
+  $\NaFrontierDetect$ planted deficits at the same zero false positives, so the preregistered
+  choice is dominated. The verdict is nonetheless reported at the preregistered span, where the
+  real traces fire $\NaFrontierPrereg$.}
+  \label{fig:nacl_gate_c}
+\end{figure}
 
 \begin{remark}[What ``Gate C did not fire'' is worth]
 \label{rem:nacl_gatec}
