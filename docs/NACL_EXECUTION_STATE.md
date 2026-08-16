@@ -47,8 +47,18 @@ LAST COMPLETED GATE:    engine equivalence 11/11 <1e-6; box frozen L=2.892700 nm
                         descriptors frozen; baths verified (9 baths, 549 starts)
 VERDICT:                GATE 0 PASS (0.0075 global / 0.0483 barrier -- the campaign's
                         best; WCA passes at 0.040, deca FAILED at 0.61).
-                        GATE A PASS (max TV 0.9959 vs 0.30; n_NaO 0.990, n_ClH 0.996,
-                        n_bridge 0.947). Reference ACCEPTED, ratio 0.0907 <= 0.5, complete,
+                        GATE A PASS, max TV **1.000** in the PREREGISTERED p(xi|Y) direction
+                        (n_NaO 0.863, n_ClH 0.738, n_bridge 1.000) vs 0.30. This line previously
+                        read "0.9959; n_NaO 0.990, n_ClH 0.996, n_bridge 0.947" -- those are the
+                        SPEC-TRANSPOSE p(Y|state) numbers, stale from before commit 239291e
+                        corrected the direction, and they were sitting here unlabelled as though
+                        they were the verdict. Caught 2026-08-16 by a systematic scope audit.
+                        **TRAP IN THE ARTIFACT, still live:** reference_report.json names the
+                        superseded transpose `max_TV` (generic) and the verdict
+                        `preregistered_max_TV` (qualified) -- backwards, so anyone reading the
+                        obvious key gets the wrong number. My own audit script did exactly that.
+                        Renaming requires regenerating the accepted reference report; DEFERRED
+                        rather than done on a closed study, so read the qualified key. Reference ACCEPTED, ratio 0.0907 <= 0.5, complete,
                         3 builds x 4 families x 3 replicas x 250 ps.
                         Basins: CIP [0.20,0.34] min 0.26; merged outer [0.34,1.40].
                         dW_CIP->outer 2.54 kT; barrier 5.34 kT.

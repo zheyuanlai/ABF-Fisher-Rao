@@ -10,6 +10,8 @@ pinned `53dfb30`; analysis at `a268630` (the report carries `analysis_provenance
 reference    ACCEPTED   ratio 0.0907 <= 0.5, 250 ps x 61 r x 3 builds x 4 fam x 3 rep
 Gate 0       PASS       0.0075 global / 0.0483 barrier   (campaign best; deca FAILED at 0.61)
 Gate A       PASS       max TV 1.000 (preregistered p(xi|Y) direction) vs 0.30
+                        [artifact key `preregistered_max_TV`; the generic `max_TV` key
+                         holds 0.9959, the SUPERSEDED spec-transpose -- see note below]
 Gate B       PASS       8/8 seeds, both states, both cells   -- NON-BINDING, see RESULT_N64.md
 Gate C       NO DEFICIT 0/8 seeds on SSIP, the powered state, at BOTH classifiable cells
 -> the map is COMPLETE and no cell is eligible.
@@ -94,6 +96,26 @@ scope grown in the restatement. Checked here: the final-frame minimum would have
 N=64, so 0.866 is genuinely the all-checkpoint value and not a widened one. **A widened scope is
 a new claim and needs a new measurement**, and restating a result is exactly where that goes
 unnoticed, because it feels like bookkeeping.
+
+## A naming trap in the accepted reference artifact
+
+`reference_report.json` stores **both** Gate A directions, and names them the wrong way round:
+`preregistered_max_TV` = **1.000** is the verdict quantity, while the generic-looking `max_TV` =
+**0.9959** is the SUPERSEDED spec-transpose that commit `239291e` corrected. A reader reaching
+for the obvious key gets the superseded number, which passes the same threshold and therefore
+never announces itself. **My own audit script did exactly that**, and I briefly concluded the
+result page was wrong when it was the only document that was right.
+
+Found by systematic scope audit 2026-08-16, prompted by the methane session finding a restated
+scope in their own artifacts: `docs/NACL_EXECUTION_STATE.md` had been carrying the transpose
+numbers unlabelled as the Gate A verdict since before the correction landed. Fixed there. The
+key rename is DEFERRED because it requires regenerating the accepted reference report on a
+closed study; until then, **read `preregistered_max_TV`**.
+
+The general form, and it is not the same defect as a widened scope: **two correct values for one
+quantity, where the naming makes the wrong one look canonical.** Nothing is miscomputed and
+nothing is mislabelled in the artifact's own terms — the defect is entirely in which name looks
+like the default.
 
 ## What "Gate C did not fire" actually licenses — measured, not assumed
 
