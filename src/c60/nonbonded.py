@@ -236,3 +236,184 @@ class C60Nonbonded:
     def local_mean_force(self, f):
         """``f_xi = (1/2)(F_A,z - F_B,z)`` (B,) from raw or redistributed forces."""
         return 0.5 * (f[:, self.cage_a, 2].sum(dim=1) - f[:, self.cage_b, 2].sum(dim=1))
+
+
+class SubsetNeighborList:
+    """Fixed-capacity per-subset Verlet list, rectangular cell, int32 -- the H200 fix.
+
+    Why this exists (and why the methane negative does not transfer): the all-pairs kernel is
+    MEMORY-bound, streaming (B, chunk, N) intermediates of which ~90 % are beyond the cutoff
+    at THIS box (cutoff sphere 4.19 nm^3 vs cell 39.9 nm^3 = 10.5 %; methane's box was 2.5
+    cutoffs across and culled only 1.8x).  Measured before this change: 402 ms/step at
+    B = 816 = ~3 % of the device's fp32 throughput.  The list removes the dead traffic at its
+    source.  Capacity is fixed (int32, headroom asserted at build); a rebuild that overflows
+    RAISES rather than silently dropping pairs, and a drift beyond half the skin RAISES
+    rather than aging the list.
+    """
+
+    def __init__(self, index, box_nm, r_list_nm, m_cap, device=None):
+        self.index = index                       # (n_sub,) long, global site ids
+        # float64 ALWAYS, cast at use: a dtype-defaulted (float32) box truncates the cell at
+        # ~1e-7 relative and shifts every wrapped pair by ~3e-7 nm -- invisible in energy,
+        # ~1e-3 in close-pair forces (measured on all 3846 sites before this line existed)
+        self.L = torch.as_tensor([float(x) for x in box_nm], dtype=torch.float64,
+                                 device=device)
+        self.r_list = float(r_list_nm)
+        self.m_cap = int(m_cap)
+        self.nbr = None                          # (B, n_sub, M) int32, subset-local ids
+        self.count = None                        # (B, n_sub) int32
+        self.x_built = None
+
+    def rebuild(self, x_sub, excluded_sub, chunk=128):
+        """``x_sub``: (B, n_sub, 3) positions of the subset's sites."""
+        B, n, _ = x_sub.shape
+        nbr = torch.zeros(B, n, self.m_cap, dtype=torch.int32, device=x_sub.device)
+        count = torch.zeros(B, n, dtype=torch.int32, device=x_sub.device)
+        L = self.L.to(x_sub.dtype)
+        for lo in range(0, n, chunk):
+            hi = min(lo + chunk, n)
+            d = x_sub[:, lo:hi, None, :] - x_sub[:, None, :, :]
+            d = d - L * torch.round(d / L)
+            m = ((d * d).sum(-1) < self.r_list ** 2) & (~excluded_sub[lo:hi, :])
+            c = m.sum(-1, dtype=torch.int32)
+            if int(c.max()) > self.m_cap:
+                raise RuntimeError(f"neighbor overflow: {int(c.max())} > cap {self.m_cap}")
+            # stable sort brings True entries first, in index order
+            order = torch.argsort((~m).to(torch.uint8), dim=-1, stable=True)[..., :self.m_cap]
+            nbr[:, lo:hi] = order.to(torch.int32)
+            count[:, lo:hi] = c
+        self.nbr, self.count = nbr, count
+        self.x_built = x_sub.detach().clone()
+        return int(count.max())
+
+    def drift_ok(self, x_sub, half_skin):
+        d = x_sub - self.x_built
+        L = self.L.to(x_sub.dtype)
+        d = d - L * torch.round(d / L)
+        return float(d.norm(dim=-1).max()) < half_skin
+
+
+def _nl_pair_terms(x_sub, nl, sig=None, eps=None, q=None, cutoff=1.0, alpha=None,
+                   chunk=384):
+    """Energy (B,) + forces (B, n_sub, 3) over a subset neighbor list, chunked over rows.
+
+    Full (not half) lists: every ordered pair appears once on each side, so energies are
+    halved and each row's force sum is already complete (the methane convention).
+    Parameters are combined from per-site vectors -- the (N, N) tables would re-create the
+    memory traffic the list removes.  Chunking bounds intermediates at (B, chunk, M).
+    """
+    B, n, M = nl.nbr.shape
+    L = nl.L.to(x_sub.dtype)
+    arangeM = torch.arange(M, device=x_sub.device)
+    energy = x_sub.new_zeros(B)
+    forces = x_sub.new_zeros(B, n, 3)
+    for lo in range(0, n, chunk):
+        hi = min(lo + chunk, n)
+        j = nl.nbr[:, lo:hi].long()                                    # (B, c, M)
+        valid = arangeM[None, None, :] < nl.count[:, lo:hi, None].long()
+        xj = torch.gather(x_sub, 1, j.reshape(B, -1, 1).expand(-1, -1, 3)) \
+            .view(B, hi - lo, M, 3)
+        d = x_sub[:, lo:hi, None, :] - xj
+        d = d - L * torch.round(d / L)
+        r = (d * d).sum(-1).clamp_min(1e-24).sqrt()
+        live = valid & (r < cutoff)
+        inv_r = torch.where(live, 1.0 / r, torch.zeros_like(r))
+
+        e = torch.zeros_like(r)
+        dE = torch.zeros_like(r)
+        if eps is not None:
+            sig_j = torch.gather(sig.expand(B, -1), 1, j.reshape(B, -1)).view(B, hi - lo, M)
+            eps_j = torch.gather(eps.expand(B, -1), 1, j.reshape(B, -1)).view(B, hi - lo, M)
+            sig_ij = 0.5 * (sig[lo:hi][None, :, None] + sig_j)
+            eps_ij = torch.sqrt(eps[lo:hi][None, :, None] * eps_j)
+            sr6 = (sig_ij * inv_r).pow(6)
+            sr12 = sr6 * sr6
+            e = e + 4.0 * eps_ij * (sr12 - sr6)
+            dE = dE - 24.0 * eps_ij * (2.0 * sr12 - sr6) * inv_r
+        if q is not None:
+            q_j = torch.gather(q.expand(B, -1), 1, j.reshape(B, -1)).view(B, hi - lo, M)
+            qq = ONE_4PI_EPS0 * q[lo:hi][None, :, None] * q_j
+            ar = alpha * r
+            erfc = torch.erfc(ar)
+            two_a_sqrtpi = 2.0 * alpha / np.sqrt(np.pi)
+            e = e + qq * erfc * inv_r
+            dE = dE - qq * (erfc * inv_r * inv_r
+                            + two_a_sqrtpi * torch.exp(-ar * ar) * inv_r)
+
+        e = torch.where(live, e, torch.zeros_like(e))
+        dE = torch.where(live, dE, torch.zeros_like(dE))
+        energy = energy + 0.5 * e.sum(dim=(1, 2))
+        forces[:, lo:hi, :] = -((dE * inv_r).unsqueeze(-1) * d).sum(dim=2)
+    return energy, forces
+
+
+#: neighbor-list lifecycle constants -- skin sized so ~1-2 ps of water diffusion fits
+NL_SKIN_NM = 0.15
+
+
+class _FastPath:
+    """Neighbor-list state and evaluation for C60Nonbonded (attached lazily)."""
+
+    def __init__(self, eng, x, dtype):
+        pt = eng.pair
+        dev = x.device
+        # per-site vectors (the diagonal of an LB table is the site's own value)
+        self.sig_l = torch.diagonal(pt.lj_sig).to(dtype).contiguous()
+        self.eps_l = torch.diagonal(pt.lj_eps).to(dtype).contiguous()
+        self.q_q = pt.charge.to(dtype)[pt.q_index].contiguous()
+        self.half_skin = 0.5 * NL_SKIN_NM
+        r_list = pt.cutoff + NL_SKIN_NM
+        self.nl_lj = SubsetNeighborList(pt.lj_index, eng.box_nm, r_list, 8, device=dev)
+        self.nl_q = SubsetNeighborList(pt.q_index, eng.box_nm, r_list, 8, device=dev)
+        # size caps from a SMALL-SLICE count pass: probing at full B with cap = n_sub
+        # allocates a (B, n, n) argsort -- 90 GB at B = 816 (measured OOM).  Counts vary
+        # little across walkers; 30 % headroom + the rebuild overflow-raise are the guard.
+        for nl, idx, excl in ((self.nl_lj, pt.lj_index, pt.lj_excluded),
+                              (self.nl_q, pt.q_index, pt.q_excluded)):
+            xs = x[:, idx, :]
+            probe = SubsetNeighborList(idx, eng.box_nm, r_list, xs.shape[1], device=dev)
+            mx = probe.rebuild(xs[: min(4, xs.shape[0])].contiguous(), excl)
+            del probe
+            nl.m_cap = int(np.ceil(mx * 1.30 / 8.0) * 8)
+            nl.rebuild(xs, excl)
+        self.n_rebuilds = 2
+
+    def energy_forces(self, eng, x):
+        pt = eng.pair
+        xl = x[:, pt.lj_index, :].contiguous()
+        xq = x[:, pt.q_index, :].contiguous()
+        if not (self.nl_lj.drift_ok(xl, self.half_skin)
+                and self.nl_q.drift_ok(xq, self.half_skin)):
+            self.nl_lj.rebuild(xl, pt.lj_excluded)
+            self.nl_q.rebuild(xq, pt.q_excluded)
+            self.n_rebuilds += 1
+        e_l, f_l = _nl_pair_terms(xl, self.nl_lj, sig=self.sig_l, eps=self.eps_l,
+                                  cutoff=pt.cutoff)
+        e_q, f_q = _nl_pair_terms(xq, self.nl_q, q=self.q_q, cutoff=pt.cutoff,
+                                  alpha=pt.alpha)
+        forces = x.new_zeros(x.shape)
+        forces.index_add_(1, pt.lj_index, f_l)
+        forces.index_add_(1, pt.q_index, f_q)
+        e_x, f_x = pt.exclusion_correction(x)
+        e_k, f_k = eng.recip.energy_forces(x)
+        return e_l + e_q + e_x + e_k + eng.e_self, forces + f_x + f_k
+
+
+def _attach_fast(eng, x):
+    if getattr(eng, "_fast", None) is None:
+        eng._fast = _FastPath(eng, x, x.dtype)
+    return eng._fast
+
+
+def energy_forces_fast(eng, x):
+    """Neighbor-list evaluation of the full model; identical physics to ``energy_forces``.
+
+    Gated two ways before use: internally against the all-pairs path (< 1e-9 relative, the
+    methane NL convention) by ``tests/test_c60_engine.py::test_neighbor_list_parity``, and
+    externally by the same OpenMM parity suite the all-pairs path passes.  Rebuild-on-drift
+    with a raise-on-overflow capacity; a stale list cannot silently drop pairs.
+    """
+    return _attach_fast(eng, x).energy_forces(eng, x)
+
+
+C60Nonbonded.energy_forces_fast = energy_forces_fast

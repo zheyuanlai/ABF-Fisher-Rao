@@ -2721,3 +2721,17 @@ site), and a full-capacity sizing probe allocating a (B, n, n) argsort (90 GB OO
 B = 816) — replaced by a small-slice probe with 30 % headroom under the overflow-raise.
 Budgets, seeds, gates and every frozen threshold are untouched; the speedup's only
 scientific effect is wall-clock.
+
+**16.13 outcome (2026-08-16, measured, recorded before any use in production):** the
+per-site neighbor list is a **measured performance negative at this configuration** and the
+all-pairs path remains production.  Numbers: correctness 1e-15 vs the gated all-pairs path
+(kept, with its test, as validated infrastructure), but 1163 ms/step eager with a rebuild
+storm — hydrogen LIBRATION (~0.2 nm about O) invalidates a 0.15 nm-skin per-site list every
+~10 steps — and 463.7 ms/step compiled with the 0.45 nm skin that stabilises it, because
+that skin inflates the charged-set list to 1672 entries and destroys the cull (vs 401.7
+ms/step compiled all-pairs).  The correct construction is a molecule-keyed list (rows on
+oxygens, rotation-immune), which is real engineering deliberately NOT attempted under
+deadline.  Third measured NL negative in the campaign, each for a different reason: methane
+(box too small to cull), C60 per-site (libration vs skin), and the general lesson is that
+the cull must be keyed to slowly-varying coordinates.  Two development defects the gates
+caught are recorded in the amendment body above.

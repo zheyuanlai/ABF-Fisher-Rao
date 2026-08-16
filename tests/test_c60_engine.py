@@ -433,3 +433,22 @@ def test_direct_cage_cage_energy_at_contact(built):
     e_min = min(es)
     assert abs(e_min - (-18.5)) < 0.5, \
         f"direct cage-cage minimum {e_min:.2f} kJ/mol vs paper -18.5"
+
+
+def test_neighbor_list_parity(built):
+    """Amendment 16.13: the NL fast path must equal the parity-gated all-pairs engine.
+
+    Measured at 1e-15 across the full config pool after the box-dtype fix (a float32-defaulted
+    cell truncated the box at ~1e-7 relative: invisible in energy, ~1e-3 in close-pair
+    forces, on every site).  Gate set at 1e-9, the methane NL convention.
+    """
+    configs = _configs(built)
+    eng = built["engine"]
+    x = torch.stack([torch.as_tensor(c) for c in configs])
+    eng.compute_vsites(x)
+    e0, f0 = eng.energy_forces(x)
+    eng._fast = None
+    e1, f1 = eng.energy_forces_fast(x)
+    rel_e = float(((e1 - e0).abs() / e0.abs()).max())
+    rel_f = float(((f1 - f0).abs().amax(dim=(1, 2)) / f0.abs().amax(dim=(1, 2))).max())
+    assert rel_e < 1e-9 and rel_f < 1e-9, f"NL parity: e {rel_e:.2e}, f {rel_f:.2e}"

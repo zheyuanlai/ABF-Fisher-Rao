@@ -193,6 +193,9 @@ def main():
     dt = _dt_ps()
     dtype = torch.float32
     eng, base, lx, lz = _load_engine(dtype)
+    # 16.13 outcome: the per-site NL measured SLOWER (463.7 vs 401.7 ms/step -- the skin
+    # that survives hydrogen libration destroys the cull); production stays on the
+    # compiled all-pairs path, the third NL negative in the campaign
     ef_compiled = torch.compile(eng.energy_forces, dynamic=False)
     dyn = C60Dynamics(eng, dt, device="cuda", dtype=dtype,
                       force_fn=lambda q: ef_compiled(q, chunk=CHUNK))
