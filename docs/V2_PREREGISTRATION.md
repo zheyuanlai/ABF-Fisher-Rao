@@ -1841,6 +1841,31 @@ the quantity — and subsampling walkers to read the threshold across `lambda`:
    ladder.** Where that is possible — C60's contact state is the live case — a windowed
    statistic must be **primary**, not secondary to Gate C.
 
+**The planting was audited against the instrument bug that hit the replication, and the audit's
+own strength is stated honestly.** The NaCl session replicated this on its own traces (0/8 at
+50 %, 8/8 at **55 %** — same phenomenon, different geometry) after first getting "never fires up
+to 90 %" from a planting that redistributed the removed mass proportionally to the *existing*
+outside counts: at checkpoints where every walker is already inside the basin there is nothing to
+be proportional to, the mass was dropped, and the basin's **share rose to 1.0000** — the opposite
+of a deficit. Re-run here under three redistribution schemes (observed / bias-aware target /
+uniform), the threshold is **identical to the last partial count** (0/8 at 50 %, 6-2-6 of 8 at
+55 %, 8/8 at 60 %).
+
+**That agreement is a consistency check, not independent evidence, and it should not be quoted as
+the latter.** The per-state test reads only state `k`'s own column and `plant` sets that column to
+`f * occ[:, k]` before touching anything else, so no redistribution scheme *can* move it: this
+implementation is **structurally immune** to that bug class rather than empirically clear of it.
+The immunity is the load-bearing claim; the three-way run is worth keeping only because it would
+catch a future edit that reintroduces a renormalisation path. Asserted in
+`test_the_planted_deficit_is_immune_to_the_redistribution_choice_by_construction`.
+
+**The fire direction needs the floor too, symmetrically.** A *fire* is reliable
+establishment-limited evidence only above the `lambda` floor: below it, `P < 0.5 Q*` is
+arithmetically "the state is empty right now" and autocorrelation lets a well-established state
+show a long empty run — `results/deca/screen_RETRACTED_no_min_count_guard/` is exactly that.
+§12.10's exclusion is already two-sided for this reason; any downstream adoption that treats
+contiguity as a one-sided detector must carry the floor as a precondition rather than assume it.
+
 **Stated limitation:** the planted deficit is *stationary*. A deficit that decays as the bias
 fills in would fire less readily, so **60 % is a floor on the detection threshold, not a
 characterisation of it.** The decaying case was not measured and no claim is made about it.

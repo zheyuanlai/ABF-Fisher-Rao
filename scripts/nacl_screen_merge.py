@@ -25,13 +25,26 @@ import os
 import numpy as np
 
 EXPECTED = list(range(4000, 4008))
-# axis along which each array carries the seed dimension
-SEED_AXIS = dict(mean_force=0, pmf=0, eff_counts=0, xi_trace=1, y_trace=1,
-                 diag_occupancy=1, diag_pmf=1, diag_mean_force=1, diag_p_hat=1,
-                 diag_eff_counts=1, diag_out_of_domain=1, final_positions=0,
-                 W_pmf=0, W_mean_force=0)
-SHARED = ("grid", "dz", "N", "T_ns", "n_steps", "dt_ps", "box_L_nm", "R_hi_nm",
-          "xi_steps", "y_steps", "diag_times", "diag_steps")
+
+
+def classify(key, arrays, parts, S_total, N):
+    """Infer how a field carries the seed dimension, from its SHAPE rather than a hard-coded
+    table.  A table is a claim about every field's layout that silently goes stale when the
+    sampler adds one; inference plus an explicit report is auditable.  Returns
+    (kind, axis) with kind in {seed, walker, shared, mean}."""
+    a0, z0 = arrays[0], parts[0]
+    s0 = len(z0["seed_labels"])
+    if a0.ndim >= 1 and a0.shape[0] == s0:
+        return "seed", 0
+    if a0.ndim >= 2 and a0.shape[1] == s0:
+        return "seed", 1
+    if a0.ndim >= 1 and a0.shape[0] == s0 * N:
+        return "walker", 0
+    if a0.ndim >= 2 and a0.shape[1] == s0 * N:
+        return "walker", 1
+    if all(np.array_equal(a0, a) for a in arrays[1:]):
+        return "shared", None
+    return "mean", None
 
 
 def main():
@@ -49,28 +62,35 @@ def main():
         raise SystemExit(f"merged seeds {sorted(seeds.tolist())} != preregistered block "
                          f"{EXPECTED}; refusing (a partial or duplicated block makes the "
                          "6-of-8 thresholds meaningless)")
-    for key in SHARED:
-        if key in parts[0]:
-            ref = np.asarray(parts[0][key])
-            for z in parts[1:]:
-                if not np.array_equal(ref, np.asarray(z[key])):
-                    raise SystemExit(f"halves disagree on shared field '{key}'; they were not "
-                                     "run with the same frozen settings")
+    N = int(parts[0]["N"])
+    S_total = len(seeds)
 
-    out = {k: np.asarray(parts[0][k]) for k in SHARED if k in parts[0]}
-    out["seed_labels"] = seeds[order]
-    for key, axis in SEED_AXIS.items():
-        if key not in parts[0]:
+    out, report = {}, {}
+    for key in parts[0].files:
+        if key == "seed_labels":
             continue
-        arrs = [np.asarray(z[key]) for z in parts]
-        if any(a.shape[axis] != len(z["seed_labels"]) for a, z in zip(arrs, parts)):
-            raise SystemExit(f"'{key}' does not carry the seed dimension on axis {axis}")
-        merged = np.concatenate(arrs, axis=axis)
-        out[key] = np.take(merged, order, axis=axis)
+        arrays = [np.asarray(z[key]) for z in parts]
+        kind, axis = classify(key, arrays, parts, S_total, N)
+        report[key] = f"{kind}" + (f" axis {axis}" if axis is not None else "")
+        if kind == "seed":
+            out[key] = np.take(np.concatenate(arrays, axis=axis), order, axis=axis)
+        elif kind == "walker":
+            blocks = [a.reshape(*a.shape[:axis], len(z["seed_labels"]), N, *a.shape[axis+1:])
+                      for a, z in zip(arrays, parts)]
+            merged = np.take(np.concatenate(blocks, axis=axis), order, axis=axis)
+            out[key] = merged.reshape(*merged.shape[:axis], S_total * N,
+                                      *merged.shape[axis+2:])
+        elif kind == "shared":
+            out[key] = arrays[0]
+        else:                                    # per-checkpoint scalar diagnostics
+            out[key] = np.mean(np.stack(arrays), axis=0)
+    out["seed_labels"] = seeds[order]
 
+    for k, v in sorted(report.items()):
+        print(f"   {k:22s} {v}")
     np.savez_compressed(os.path.join(args.out, args.cell), **out)
     json.dump(dict(stage="nacl_screen_merged", parts=list(args.parts),
-                   seeds=out["seed_labels"].tolist(),
+                   seeds=out["seed_labels"].tolist(), layout=report,
                    note="seed-axis concatenation; safe for per-seed Gate B/C statistics, NOT "
                         "for arm comparisons (those must share one process)"),
               open(os.path.join(args.out, "manifest.json"), "w"), indent=2)

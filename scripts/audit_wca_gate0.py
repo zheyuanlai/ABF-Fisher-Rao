@@ -98,6 +98,8 @@ def main():
     ap.add_argument("--equil-steps", type=int, default=10_000)
     ap.add_argument("--prod-steps", type=int, default=60_000)
     ap.add_argument("--sample-every", type=int, default=20)
+    ap.add_argument("--reference",
+                    default="cache/phase/wca_ti_b1_h2_w2_n10_a1.5_g160.npz")
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--only-pool", default=None,
                     help="run one pool and save it; lets the pools run as parallel processes")
@@ -111,7 +113,7 @@ def main():
     zs = np.asarray(args.z_values, float)
 
     # v1's cached TI reference, read only
-    ref = np.load(f"cache/phase/wca_ti_b1_h2_w2_n10_a1.5_g160.npz", allow_pickle=True)
+    ref = np.load(args.reference, allow_pickle=True)
     ref_mf = np.interp(zs, ref["grid"], ref["mean_force"])
 
     print(f"WCA Gate 0: cell {CELL}")
@@ -168,6 +170,16 @@ def main():
         print(f"{zv:6.2f} {ref_mf[j]:9.3f} " + " ".join(f"{M[i,j]:9.3f}" for i in range(len(POOLS)))
               + f" {spread[j]:8.3f} {rel_spread[j]:8.3f}")
 
+    # TWO Gate 0 statistics, because they answer different questions and the reference-
+    # normalised one is NOT reference-independent -- which is exactly how the cached-reference
+    # defect hid. At z = 0.25 the old numbers read spread/|F'_cached| = 0.086 while
+    # spread/|pool mean| = 0.192.
+    pool_mean = np.abs(M.mean(0))
+    G_pool = spread / np.clip(pool_mean, 1e-9, None)
+    print(f"\n{'z':>6} {'G_ref':>8} {'G_pool':>8}   (G_pool is reference-INDEPENDENT)")
+    for j, zv in enumerate(zs):
+        print(f"{zv:6.2f} {rel_spread[j]:8.3f} {G_pool[j]:8.3f}")
+    print(f"\n  G_ref  mean {rel_spread.mean():.3f}   G_pool mean {G_pool.mean():.3f}")
     overall = float(spread.mean() / np.abs(ref_mf).mean())
     trans = (zs >= 0.25) & (zs <= 0.75)
     trans_rel = float(spread[trans].mean() / np.abs(ref_mf[trans]).mean()) if trans.any() else np.nan

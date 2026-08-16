@@ -323,3 +323,36 @@ def test_the_guard_rationale_and_the_gate_disagree_and_the_docs_say_so():
     # moves the threshold by at most 10 points
     high = [r["empirical"] for r in by_lam if r["lam"] >= 14.0]
     assert max(high) - min(high) <= 0.10
+
+
+def test_the_planted_deficit_is_immune_to_the_redistribution_choice_by_construction():
+    """The NaCl session's instrument bug cannot reach this one, and not because we got lucky.
+
+    Their planting redistributed the removed mass proportionally to the *existing* outside
+    counts, which has nowhere to go at checkpoints where every walker is already inside the
+    basin; the mass was dropped, the row renormalised, and the basin's share rose to 1.0000 --
+    the exact opposite of a deficit.
+
+    Here the per-state test reads only state `k`'s own column, and `plant` sets that column to
+    `f * occ[:, k]` before touching anything else, so no redistribution scheme can move it. The
+    three-way agreement measured across schemes is therefore a consistency check on the
+    implementation, NOT independent evidence for the 60 % floor -- and it is worth having only
+    because it would catch a future edit that renormalises.
+    """
+    import numpy as np
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
+    from methane_gate_c_detection import plant
+    rng = np.random.default_rng(7)
+    occ = rng.dirichlet(np.ones(3), size=200)
+    occ[50:80] = np.array([1.0, 0.0, 0.0])          # every walker inside state 0: their case
+    qstar = rng.dirichlet(np.ones(3), size=200)
+    ref = None
+    for scheme in ("observed", "target", "uniform"):
+        out = plant(occ, 0, 0.4, scheme, qstar)
+        assert np.allclose(out.sum(axis=1), 1.0, atol=1e-10)     # no mass dropped, ever
+        assert np.allclose(out[:, 0], 0.4 * occ[:, 0], atol=1e-12)
+        if ref is None:
+            ref = out[:, 0]
+        assert np.allclose(out[:, 0], ref, atol=1e-12)
+    # and the failure they hit would be caught here rather than producing a plausible number
+    assert out[50:80, 0].max() < occ[50:80, 0].max()
