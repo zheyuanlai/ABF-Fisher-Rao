@@ -126,7 +126,30 @@ Measured: NaCl's occupancy autocorrelation `tau_occ = 42.2 ps` (median of 32 sta
 N=32. Sweeping the span in **absolute** time rather than as a fraction, the frontier is 120 ps at
 N=64 and 160 ps at N=32 (2.8 and 3.8 `tau_occ`), where a fixed-fraction rule would have predicted
 120 vs 240. **So the frontier is approximately a physical time set by the occupancy correlation,
-not a property of the run length.**
+not proportional to run length** — but the residual 120 -> 160 drift is real and has a cause.
+
+Separated by subsampling walkers within one cell at fixed `T` (multivariate hypergeometric on
+the integer occupancy histograms), which isolates `N` from `T`:
+
+| at fixed T = 1562 ps | N=64 | N=32 | N=16 |
+|---|---|---|---|
+| frontier | 100 ps | 80 ps | 100 ps |
+
+**Flat in `N`** (non-monotonic at the 20 ps grid step). So the drift between the two real cells
+is *not* a counting-noise term — the methane session's system shows one, rising 8x from N=128 to
+N=32, and NaCl does not over 64->16. It tracks **`T`**: the judged window doubles from 790 to
+1570 ps, so there are twice as many opportunities for a spurious run and the longest one grows.
+That is an **extreme-value** effect, not physics. The working model is therefore
+
+    frontier  ~  (a physical floor set by tau_occ)  x  (a weak, ~log growth in window length)
+
+with the `N` term the methane session found entering only once `lambda` is small enough for
+counting noise to bite. Two points, so the growth is a direction and not a fit.
+
+**This sharpens the design defect rather than softening it.** From N=64 to N=32 the *requirement*
+rises 100 -> ~140 ps (1.4x) while the *prescription* `0.20 T` rises 312 -> 625 ps (2x); by N=8
+the prescription is 2500 ps against a requirement of order 200 ps — a **~12x overshoot**. The
+frozen rule scales the span the wrong way *and* faster than the real requirement grows.
 
 Because `N x T` is fixed at 100 ns, `span = 0.20 T` scales as `1/N`:
 
