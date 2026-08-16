@@ -120,8 +120,38 @@ study adopting a span must measure its own**; borrowing another's would import s
 This also retires the 55 % vs 60 % gap between the two studies: it is fully accounted for by the
 span setting, with no system difference required.
 
+**The span is parameterised as a fraction of `T`, and that is the wrong parameterisation.**
+Measured: NaCl's occupancy autocorrelation `tau_occ = 42.2 ps` (median of 32 state-seeds, range
+17-86, well above the 10 ps checkpoint floor) and is **N-independent** — 41.6 ps at N=64, 42.2 at
+N=32. Sweeping the span in **absolute** time rather than as a fraction, the frontier is 120 ps at
+N=64 and 160 ps at N=32 (2.8 and 3.8 `tau_occ`), where a fixed-fraction rule would have predicted
+120 vs 240. **So the frontier is approximately a physical time set by the occupancy correlation,
+not a property of the run length.**
+
+Because `N x T` is fixed at 100 ns, `span = 0.20 T` scales as `1/N`:
+
+| N | T (ps) | span (ps) | span / tau_occ | relative bluntness |
+|---|---|---|---|---|
+| 64 | 1562 | 312 | 7.4 | — |
+| 32 | 3125 | 625 | 14.8 | 2x blunter |
+| 16 | 6250 | 1250 | 29.6 | 4x |
+| 8 | 12500 | 2500 | 59.2 | 8x |
+
+**The cells of the N ladder are therefore not compared on equal instrument terms**: the same
+frozen rule makes Gate C progressively blunter at smaller `N`, in the direction that *hides*
+establishment failure. Since establishment-limitation is the regime the campaign is hunting, this
+is a false-negative bias on the central question, largest exactly where the ladder is
+supposed to be most informative. **It does not affect this verdict** — no cell fired at any span,
+NaCl's null is carried by the windowed band, and N=16/N=8 were struck a priori anyway — but it is
+a defect in the preregistered design rather than in its execution, and any study running an
+`N` ladder under a fixed `N x T` budget inherits it. The fix is to fix the span in **absolute
+time** (a few `tau_occ`, measurable from a short pilot) rather than as a fraction of `T`.
+
 *Limits, stated rather than implied:* the false-positive counts bound the rate by the rule of
-three on a small denominator, not at zero. And the planted deficit is **stationary**. A real
+three on a small denominator, not at zero. The planted deficit is **stationary**. `tau_occ` is
+estimated from 79-157 samples per state-seed (19-37 correlation times), so it is a crude summary
+with a 5x spread across state-seeds, and the frontier/`tau` coefficient (2.8-3.8 here against the
+methane session's 0.7) is order-of-magnitude agreement, not a fit. A real
 establishment failure that decays as the bias fills in would fire less readily still, so 55 % is
 a **floor** on the detection threshold, not a characterisation of it. The decaying case is not
 measured here.
