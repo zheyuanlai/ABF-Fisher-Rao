@@ -86,9 +86,11 @@ def drag_cages(eng, dyn, x, xi_from, xi_to, center, gen,
     # escape through a narrowing annulus (measured: 1/16 replicas trapped at the uniform
     # production rate; max|F| 2.98e4 after settle).  Slowing only the approach costs ~15 ps.
     dist = (xi_to - xi_from).abs()
-    d_final = torch.minimum(dist, torch.full_like(dist, 0.1))
+    d_final = torch.minimum(dist, torch.full_like(dist, 0.15))
     n_main = int(torch.ceil((dist - d_final).max() / (rate_nm_ps * dt)).item())
-    n_final = int(torch.ceil(d_final.max() / (0.25 * rate_nm_ps * dt)).item())
+    # final approach at rate/8 (was /4): the ~25% per-stream jam rate at contact drags is
+    # the binding cost of the whole prep chain; 30 ps more here is cheap against re-rolls
+    n_final = int(torch.ceil(d_final.max() / (0.125 * rate_nm_ps * dt)).item())
     v = dyn.maxwell_velocities(x, generator=gen)
     _, f_raw = eng.energy_forces(x, chunk=chunk)
     f = eng.redistribute(f_raw).clamp(-clamp, clamp)

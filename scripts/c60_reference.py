@@ -49,7 +49,7 @@ B_TOTAL = N_WINDOWS * len(FAMILIES) * N_REP          # 816
 
 ANCHOR_WET_NM = csys.D_REF_NM                        # 2.428, the PMF anchor state
 ANCHOR_DRY_NM = 0.968                                # the paper's contact minimum (declared)
-N_ANCHOR_STREAMS = 12
+N_ANCHOR_STREAMS = 16
 ANCHOR_SETTLE_PS = 30.0
 ANCHOR_RUN_PS = 120.0
 ANCHOR_SNAP_PS = (60.0, 90.0, 120.0)
@@ -286,9 +286,15 @@ def main():
             per_stream = f_chk.abs().amax(dim=(1, 2))
             clean = (per_stream < 1.0e4).cpu().numpy()
             n_clean = int(clean.sum())
-            if n_clean < (2 * N_ANCHOR_STREAMS) // 3:
+            # functional floor: the dry family needs distinct clean sources -- 8 clean
+            # streams x 3 snapshot times = 24 snapshots, >= 8x the per-window need.  The
+            # per-stream jam rate at the contact drag is ~25% (measured 2,3,3,2,3,5 of 12
+            # across six smokes), so a 2/3-of-streams floor failed ordinary binomial
+            # fluctuation (~1 in 6 attempts); the floor is what the pool NEEDS, not a
+            # proportion.
+            if n_clean < 8:
                 raise RuntimeError(f"{name} anchors: only {n_clean}/{N_ANCHOR_STREAMS} "
-                                   "clean streams; prep defect")
+                                   "clean streams (< 8); prep defect")
             arr = np.concatenate(store, axis=0)              # (12*n_snap, N, 3)
             keep = np.tile(clean, len(store))
             snaps[name] = arr[keep]
