@@ -1871,8 +1871,11 @@ fills in would fire less readily, so **60 % is a floor on the detection threshol
 characterisation of it.** The decaying case was not measured and no claim is made about it.
 
 **The verdicts are unchanged and better supported.** Methane's null rests on the direct
-measurement — worst occupancy/`Q*` = 0.83 over 8 seeds × 3 states × the whole second half, so
-the largest shortfall anywhere is **17 %**, 3.5× tighter than the gate could report. NaCl's
+measurement — worst occupancy/`Q*` = **0.731** over 8 seeds × 3 states × 9 624 second-half
+checkpoints, so the largest shortfall anywhere is **26.9 %**, 2.2× tighter than the gate could
+report. (Quoted as 0.83 until 2026-08-16; that is the **final-frame** minimum, correctly labelled
+where it was first measured and silently widened to "the whole second half" when restated. See
+§12.16.) NaCl's
 rests on its windowed band. Neither ever rested on the gate firing, which is the only reason
 this correction costs nothing. Artifacts: `results/methane/screen_N512/gate_c_detection/`,
 `scripts/methane_gate_c_detection.py`.
@@ -1960,6 +1963,35 @@ exactly where the ladder is meant to be most informative. **Methane is unaffecte
 cell at one N and one T, verified rather than assumed), but any ladder under a fixed `N x T`
 budget inherits it. Fix: **set the span in absolute time from a short pilot, not as a fraction of
 `T`** — which is `N`-invariant by construction and needs no coefficient to be transferable.
+
+#### 12.16 A bound widened in restatement, never re-measured (2026-08-16)
+
+The screen measured, correctly and correctly labelled, *final-frame* occupancy/`Q*` with a
+minimum of **0.83**. When §12.13 restated it as the statement carrying the null, it was written
+as "over 8 seeds × 3 states × **the whole second half**" — a strictly wider claim on the same
+number, and **nothing went back to the data**. Measured over all **9 624** second-half
+state-checkpoints the minimum is **0.731**: a 26.9 % worst shortfall, not 17 %.
+
+**The verdict is untouched** — 0.731 against a 0.5 threshold is a 1.46× margin, and the gate's
+own detection floor is 60 %, so the direct bound is still 2.2× tighter than anything Gate C could
+report. The number was quoted to a peer study twice and appears in the report; corrected in all
+of them.
+
+**The failure has no error in it anywhere.** Each measurement was right. The scope was widened in
+a sentence written two days later, while summarising, and a widened scope is a *new claim* that
+needs a new measurement. This is §12.9's *the step you found easy is the step you did not verify*
+in its purest form: restating a result feels like bookkeeping, and it is where the claim actually
+grew.
+
+**It was already detectable and nobody looked.** The finite-size analysis had independently
+computed the same quantity under a perturbed reference and reported **0.733**. Two numbers for
+what the wider claim asserts is one quantity, 0.83 and 0.733, sat in the same directory for two
+days. *Two values for one quantity is a defect even when both are correct*, because at most one
+of them answers the question being asked.
+
+**Rule:** when a bound is restated with a wider scope — more seeds, more checkpoints, more
+states, a longer window — **re-measure at the new scope before writing the sentence**. A summary
+is not a citation of the original measurement; it is a claim in its own right.
 
 ### Amendment 13 — two GPUs for methane, and the optimisation order (2026-08-12)
 
@@ -2558,7 +2590,7 @@ structural, not statistical power: at a 50 % deficit the mean occupancy sits exa
 almost never forms.  Contiguity, not counting noise, sets the detection floor — so the 16.7
 floor's rationale ("lambda >= 16 resolves a 50 % deficit at 2 sigma") was correct arithmetic
 about a single-checkpoint quantity **the gate does not compute**.  Both closed verdicts in
-fact rest on band statistics (methane: worst ratio 0.83, a 17 % shortfall its gate could not
+fact rest on band statistics (methane: worst ratio 0.731, a 26.9 % shortfall its gate could not
 have reported; NaCl: SSIP worst-window band [0.974, 0.991], ~18x tighter than its gate).
 
 **Frozen consequences for every executable C60 cell:**
@@ -2666,3 +2698,26 @@ no coefficient transfers; only the parameterisation lesson does.
 This is the terminal form of the Gate C instrument for C60: a measured band with an
 absolute-time window and pre-committed branches, a reported-only contiguity statistic, and
 every power and calibration number attached to the object it was measured on.
+
+#### 16.13 Engine numerics: subset neighbor lists (physics-identical, double-gated) (2026-08-16)
+
+**What had been seen:** no C60 reference or occupancy datum; only engine benchmarks.  The
+all-pairs kernel ran at ~3 % of the device's fp32 throughput because it is memory-bound and
+~90 % of its streamed pair-slots are beyond the cutoff at this box (sphere 4.19 nm^3 vs cell
+39.9 nm^3; the methane NL negative arose at a box only 2.5 cutoffs across and was recorded
+as worth re-measuring at a larger one).  Under the user's deadline the optimisation is
+adopted now rather than after the reference.
+
+**What changes:** evaluation only.  A fixed-capacity, per-subset (LJ 1402 / charged 3846)
+Verlet list with 0.15 nm skin, rebuild-on-drift (raise past half-skin, raise on capacity
+overflow — a stale or overflowing list can never silently drop pairs), int32 storage,
+row-chunked evaluation.  **No physical number moves**: same cutoffs, same Ewald parameters,
+same exclusions, same estimator.  Gated twice: internally against the parity-gated all-pairs
+path over the full 17-config pool (`test_neighbor_list_parity`, threshold 1e-9; measured
+~1e-15 after the box-dtype fix), and externally by the unchanged OpenMM suite.  Two defects
+were caught by the gates during development and are recorded: a dtype-defaulted float32 cell
+truncating the box at 1e-7 relative (invisible in energy, ~1e-3 in close-pair forces, every
+site), and a full-capacity sizing probe allocating a (B, n, n) argsort (90 GB OOM at
+B = 816) — replaced by a small-slice probe with 30 % headroom under the overflow-raise.
+Budgets, seeds, gates and every frozen threshold are untouched; the speedup's only
+scientific effect is wall-clock.

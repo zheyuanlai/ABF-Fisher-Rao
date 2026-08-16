@@ -141,9 +141,14 @@ Firing is 0/8 seeds at a planted 50 % and 8/8 at 60 %, with 55 % partial (2–6 
 3. **The verdict does not rest on the gate, and this is why that matters.** "Gate C did not fire"
    licenses only *no deficit ≥ 60 % occurred*. The statement that carries the null is the
    **direct measurement**: the worst occupancy/`Q*` ratio over 8 seeds × 3 states × the entire
-   second half is **0.83**, i.e. **the largest shortfall that ever occurred anywhere is 17 %**.
-   That is a measured bound, not a gate output, and it is 3.5× tighter than what the gate could
-   have told us.
+   second half is **0.731** over **9 624 state-checkpoints**, i.e. **the largest shortfall that
+   ever occurred anywhere is 26.9 %**. That is a measured bound, not a gate output, and it is
+   2.2× tighter than what the gate could have told us. (**Corrected 2026-08-16.** This was quoted
+   as 0.83 for two days; 0.83 is the minimum over the **final frame** only, which is what the
+   screen originally reported and correctly labelled. The second-half minimum was never
+   recomputed when the claim was restated with the wider scope — the strengthening happened in
+   the restatement, not in the data. The independent finite-size analysis had already measured
+   0.733 under a perturbed reference, which is the same quantity and should have caught it.)
 
 ### The span requirement is 10x stricter than it needs to be, and relaxing it strengthens the null
 
@@ -182,6 +187,7 @@ script `scripts/methane_gate_c_detection.py`.
 
 **Occupancy sits on the bias-aware target, not near it.** Final-frame occupancy divided by
 `Q*_k(t)`, across all 8 seeds and 3 states: the **worst** ratio is **0.83** and the best is 1.09.
+Over *every* second-half checkpoint rather than the final frame, the worst is **0.731**.
 Gate C's deficit threshold is 0.5. Nothing came close to a deficit; ABF is populating every
 region of the coordinate at the rate the applied bias asks for.
 

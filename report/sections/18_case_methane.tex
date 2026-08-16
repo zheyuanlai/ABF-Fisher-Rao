@@ -77,8 +77,8 @@ $\MeSeeds$ of $\MeSeeds$ seeds, unanimously.
 The result rests on Gate C, and the reasons the other gates carry less weight are worth stating
 rather than hiding. Occupancy of every tercile tracks the bias-aware target
 $Q^*_k(t) \propto \int \exp[-\beta(F_{\mathrm{ref}} - B_t)]$ throughout the second half of every
-run: the worst ratio over $8$ seeds and $3$ states is $\MeOccRatioWorst$ and the best is
-$\MeOccRatioBest$, against a deficit threshold of $0.5$. No partition choice can manufacture
+run: over all $\MeCheckpoints$ second-half state-checkpoints the worst ratio is
+$\MeOccRatioWorst$ and the best is $\MeOccRatioBest$, against a deficit threshold of $0.5$. No partition choice can manufacture
 that. Walkers never pin, with a maximum single-tercile occupancy of $\MePinned$ against a $0.90$
 clause and against deca's $0.951$--$0.9996$.
 
@@ -109,8 +109,8 @@ requirement $\lambda \geq \MeGateCLamMin$ marks where counting noise stops domin
 than where a $50\,\%$ deficit becomes detectable, which is not what we first claimed for it; and
 ``Gate C did not fire'' licenses only that no deficit of $\MeGateCFires\,\%$ or more occurred.
 The statement that carries the null is the direct one --- the worst occupancy ratio anywhere is
-$\MeOccRatioWorst$, bounding the largest shortfall at $\MeShortfallMax\,\%$, some three and a
-half times tighter than the gate could report. The planted deficit is stationary, so
+$\MeOccRatioWorst$, bounding the largest shortfall at $\MeShortfallMax\,\%$, some two and a
+fifth times tighter than the gate could report. The planted deficit is stationary, so
 $\MeGateCFires\,\%$ is a floor on the detection threshold rather than a characterisation of it.
 
 It is not inert in general: in the companion NaCl study the contact-pair state holds

@@ -59,7 +59,9 @@
 \def\MeGateBhits{8/8}
 \def\MeGateCdeficit{0/8}
 \def\MePinned{0.516}                % max tercile occupancy, second half, any seed (clause 0.90)
-\def\MeOccRatioWorst{0.83}          % occupancy / Q*, worst over 8 seeds x 3 states (thresh 0.5)
+\def\MeOccRatioWorst{0.731}         % occ/Q*, worst over ALL 9624 second-half state-checkpoints
+\def\MeOccRatioWorstFinal{0.83}     % ... the FINAL-FRAME minimum; do not quote as second-half
+\def\MeCheckpoints{9\,624}
 \def\MeOccRatioBest{1.09}
 % Gate C power guard (Amendment 12.10), added after the NaCl session's N ladder
 \def\MeGateCLamOne{127.6}           % lambda = Q* N, worst checkpoint, tercile 0
@@ -74,7 +76,7 @@
 \def\MeGateCFlatLo{60}              % %% detection threshold across lambda 14-224 ...
 \def\MeGateCFlatHi{65}
 \def\MeGateCLowLam{70}              % %% needed at lambda = 9.2
-\def\MeShortfallMax{17}             % %% largest shortfall measured anywhere (occ/Q* = 0.83)
+\def\MeShortfallMax{26.9}           % %% largest shortfall measured anywhere (occ/Q* = 0.731)
 \def\MeScreenHours{28.6}
 
 % --- Gate B vacuity: ballistic floor, exact extreme-value quantile --------------------------
