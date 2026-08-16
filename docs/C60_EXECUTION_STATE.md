@@ -1,5 +1,15 @@
 # C60 execution state machine
 
+> **STUDY SUSPENDED 2026-08-16 ~05:3x UTC by user directive** ("stop all C60 related
+> experiments; focus on interpreting other experiments"). Builds 1 and 2 stopped cleanly;
+> GPUs 2 and 3 released; no gate input or verdict-bearing quantity was ever produced, so the
+> preregistration remains in its zero-data state and every amendment stands. **Resumable:**
+> pins `761a4f7` (build 1) / `cc12bb9` (builds 2+, device-widened), worktrees
+> `/home/zheyuanlai/.c60-run-*`, artifacts `results/c60/{box,parity,reference/build1/anchors.npz}`.
+> To resume: relaunch builds via `scripts/c60_reference.py --build k` from the pinned
+> worktrees (build 1 restarts its phase B; anchors revalidate on load), then spot-check,
+> analyze, pools, screen — the frozen order is unchanged.
+
 Read at the start of every session; updated after every stage.  Companion to
 `docs/SPEC_c60_water.md` (frozen, Amendment 16) — this file records *where the study is*,
 never a spec change.
