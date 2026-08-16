@@ -166,8 +166,9 @@ def main():
     a = ap.parse_args()
 
     dev = os.environ.get("CUDA_VISIBLE_DEVICES", "")
-    if dev != "3":
-        raise SystemExit(f"CUDA_VISIBLE_DEVICES={dev!r}; SPEC §11 pins this study to GPU 3")
+    if dev not in ("2", "3"):
+        raise SystemExit(f"CUDA_VISIBLE_DEVICES={dev!r}; Amendment 16.14 pins this study "
+                         "to GPUs 2 and 3")
     assert torch.cuda.device_count() == 1
 
     scale = 0.02 if a.smoke else 1.0

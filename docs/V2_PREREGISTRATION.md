@@ -2792,3 +2792,21 @@ particular on C60's sensitivity curve.  Because the executable cells differ in `
 judged windows differ, so the tau-units report carries **both** `window/tau_occ` **and**
 `judged_window/tau_occ` per cell — otherwise identical 400 ps windows would look more
 comparable across cells than they are.  Non-decisional throughout.
+
+#### 16.14 GPU 2 reassigned to C60; reference builds run concurrently on separate devices (2026-08-16)
+
+**What had been seen:** build 1 of the C60 reference mid-flight on GPU 3 (phase B); no window
+statistic, gate input or verdict-bearing quantity of any kind.  NaCl closed 2026-08-15 and
+its session declared GPU 2 permanently vacated ("nothing of mine runs anywhere"); the device
+measures 0 MiB used.
+
+**Scheduling only, nothing else moves:** GPU 2 joins the C60 study for the remainder of the
+campaign.  Reference builds are independent by construction (disjoint seeds, independent
+anchor pools, separate output directories) and may run **concurrently on separate devices,
+one process per GPU per build** — the one-process-per-block determinism rule is per build
+and is untouched.  The device assert in the driver widens from {3} to {2, 3}; each manifest
+records its device, commit and co-tenancy as before.  Build 1 continues undisturbed at pin
+`761a4f7`; later builds run at the assert-widened commit, whose only delta to the running
+pin is this scheduling change (recorded in each manifest; the physics tree is unchanged).
+Expected effect: reference acceptance at ~2 days instead of ~4.5.  Physics, budgets, seeds,
+gates, thresholds: unchanged.

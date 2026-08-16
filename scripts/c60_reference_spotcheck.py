@@ -37,8 +37,9 @@ def main():
     import openmm.unit as u
 
     dev = os.environ.get("CUDA_VISIBLE_DEVICES", "")
-    if dev != "3":
-        raise SystemExit(f"CUDA_VISIBLE_DEVICES={dev!r}; SPEC §11 pins this study to GPU 3")
+    if dev not in ("2", "3"):
+        raise SystemExit(f"CUDA_VISIBLE_DEVICES={dev!r}; Amendment 16.14 pins this study "
+                         "to GPUs 2 and 3")
     os.makedirs(OUT, exist_ok=True)
 
     with open(os.path.join(os.path.dirname(OUT), "parity", "dt_gate.json")) as fh:
