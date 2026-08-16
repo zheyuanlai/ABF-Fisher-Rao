@@ -423,9 +423,24 @@ def main():
                 dyn.cons.apply_positions(xh, x_ref)
                 eng.compute_vsites(xh)
                 push_waters_off_cages(xh, eng)
-                # FORCE-BASED acceptance (the criterion, not the geometric proxy: a
-                # count-accepted 'shallow' residual measured 2.7e6 -- a ~0.14 nm burial):
-                # a draw is accepted iff its post-push forces are SD-integrable (< 1e5).
+                # SHORT SD BEFORE the acceptance check: a fresh 0.05 nm draw always leaves
+                # some water-water contact < 0.04 nm somewhere in 1282 waters, so PRE-SD max
+                # force always exceeds 1e5 (measured: 18/18 replicas failed every attempt
+                # and the whole hot family silently degenerated to wet duplicates).
+                # Water-water contacts are never sterically locked -- 100 SD steps resolve
+                # them; only cage-locked geometry survives to fail the check.
+                for _ in range(100):
+                    _, f_raw = eng.energy_forces(xh, chunk=CHUNK)
+                    fh = eng.redistribute(f_raw)
+                    stepv = (0.5e-5 * fh).clamp(-2e-4, 2e-4)
+                    stepv[:, eng.cage_a, :] = 0.0
+                    stepv[:, eng.cage_b, :] = 0.0
+                    x_ref = xh.clone()
+                    xh += stepv
+                    dyn.cons.apply_positions(xh, x_ref)
+                    eng.compute_vsites(xh)
+                # FORCE-BASED acceptance (the criterion, not the geometric proxy):
+                # a draw is accepted iff its post-SD forces are integrable (< 1e5).
                 _, f_chk = eng.energy_forces(xh, chunk=CHUNK)
                 per_rep = f_chk.abs().amax(dim=(1, 2))
                 still = torch.nonzero(per_rep > 1.0e5, as_tuple=True)[0]
