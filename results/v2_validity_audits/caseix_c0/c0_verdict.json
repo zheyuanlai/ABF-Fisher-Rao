@@ -1,0 +1,73 @@
+{
+  "reference": "cache/phase_hp_v3/wca_ti_b1_h2_w2_n10_a1.5_g160.npz",
+  "n_seeds": 16,
+  "arms": [
+    "abf",
+    "fr_estimated",
+    "fr_oracle",
+    "sham_practical",
+    "sham_oracle"
+  ],
+  "mask": [
+    -0.15,
+    1.15
+  ],
+  "contrasts": {
+    "old::mFR vs ABF": {
+      "median_pct": -53.77680653502045,
+      "ci95": [
+        -58.47489139011503,
+        -50.72793110037927
+      ],
+      "wins": 16,
+      "n": 16
+    },
+    "old::mFR vs its own sham": {
+      "median_pct": -54.599112198856574,
+      "ci95": [
+        -57.35806448019155,
+        -49.275641726652175
+      ],
+      "wins": 16,
+      "n": 16
+    },
+    "old::sham vs ABF": {
+      "median_pct": -1.6244665360975286,
+      "ci95": [
+        -3.94158814250658,
+        4.34588261805393
+      ],
+      "wins": 10,
+      "n": 16
+    },
+    "new::mFR vs ABF": {
+      "median_pct": -40.00255512135148,
+      "ci95": [
+        -44.6582927691811,
+        -38.38739037993398
+      ],
+      "wins": 16,
+      "n": 16
+    },
+    "new::mFR vs its own sham": {
+      "median_pct": -40.87215753091582,
+      "ci95": [
+        -44.02227551635145,
+        -37.77939122333343
+      ],
+      "wins": 16,
+      "n": 16
+    },
+    "new::sham vs ABF": {
+      "median_pct": -2.1395159184542027,
+      "ci95": [
+        -4.032736339949979,
+        4.374294151246375
+      ],
+      "wins": 10,
+      "n": 16
+    }
+  },
+  "signs_preserved": true,
+  "endpoint": "final-time L2(F); NOT the time-integrated headline"
+}

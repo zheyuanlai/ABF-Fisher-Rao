@@ -1,0 +1,31 @@
+{
+  "config": {
+    "n_windows": 96,
+    "R_lo": 1.2,
+    "R_hi": 3.6,
+    "win_lo": 1.15,
+    "win_hi": 3.7,
+    "k_umbrella": 3200.0,
+    "n_rep": 32,
+    "dt": 0.001,
+    "gamma": 1.0,
+    "temperature": 300.0,
+    "n_pull_steps": 20000,
+    "n_equil_steps": 200000,
+    "n_prod_steps": 4000000,
+    "sample_every": 500,
+    "n_grid": 129,
+    "kde_bandwidth": 0.03,
+    "rng_seed": 20260811
+  },
+  "config_hash": "7126bf20f4f4",
+  "parameter_hash": "c5f71fede185",
+  "n_builds": 3,
+  "n_atoms": 112,
+  "torch": "2.12.0+cu130",
+  "batch": 9216,
+  "device": "NVIDIA H200 NVL",
+  "stop_ratio": 0.5,
+  "stop_floor_ns": 2.0,
+  "prereg": "docs/V2_PREREGISTRATION.md \u00a76.3 + Amendments 1, 2"
+}

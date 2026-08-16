@@ -1,0 +1,46 @@
+{
+  "stage": "nacl_screen_merged",
+  "parts": [
+    "results/nacl/screen",
+    "results/nacl/screen_B"
+  ],
+  "seeds": [
+    4000,
+    4001,
+    4002,
+    4003,
+    4004,
+    4005,
+    4006,
+    4007
+  ],
+  "layout": {
+    "N": "shared",
+    "T_ns": "shared",
+    "n_steps": "shared",
+    "dt_ps": "shared",
+    "box_L_nm": "shared",
+    "R_hi_nm": "shared",
+    "grid": "shared",
+    "dz": "shared",
+    "mean_force": "seed axis 0",
+    "pmf": "seed axis 0",
+    "W_pmf": "seed axis 0",
+    "W_mean_force": "seed axis 0",
+    "eff_counts": "seed axis 0",
+    "xi_trace": "seed axis 1",
+    "xi_steps": "shared",
+    "y_trace": "walker axis 1",
+    "y_steps": "shared",
+    "final_positions": "walker axis 0",
+    "diag_steps": "shared",
+    "diag_times": "shared",
+    "diag_mean_force": "seed axis 1",
+    "diag_pmf": "seed axis 1",
+    "diag_p_hat": "seed axis 1",
+    "diag_eff_counts": "seed axis 1",
+    "diag_occupancy": "seed axis 1",
+    "diag_out_of_domain": "mean"
+  },
+  "note": "seed-axis concatenation; safe for per-seed Gate B/C statistics, NOT for arm comparisons (those must share one process)"
+}
