@@ -1,0 +1,45 @@
+{
+  "system": "NaCl",
+  "planted_deficit": 0.5,
+  "ladder": [
+    {
+      "span": 0.02,
+      "false_positives": 9,
+      "detections": 31,
+      "n_state_seeds": 32,
+      "is_preregistered": false
+    },
+    {
+      "span": 0.05,
+      "false_positives": 1,
+      "detections": 25,
+      "n_state_seeds": 32,
+      "is_preregistered": false
+    },
+    {
+      "span": 0.1,
+      "false_positives": 0,
+      "detections": 11,
+      "n_state_seeds": 32,
+      "is_preregistered": false
+    },
+    {
+      "span": 0.2,
+      "false_positives": 0,
+      "detections": 0,
+      "n_state_seeds": 32,
+      "is_preregistered": true
+    },
+    {
+      "span": 0.4,
+      "false_positives": 0,
+      "detections": 0,
+      "n_state_seeds": 32,
+      "is_preregistered": false
+    }
+  ],
+  "frontier_span": 0.1,
+  "finding": "NaCl's null survives a 2x more sensitive gate: at span 0.10 the real traces fire 0/32 while the gate detects 11/32 planted 50 % deficits. The preregistered 0.20 is DOMINATED -- same zero false positives, zero detection.",
+  "non_transferability": "NaCl shows 9/32 FALSE POSITIVES at span 0.02 where methane showed 0/24. The efficient frontier is set by the system's own occupancy autocorrelation and does NOT transfer between studies; each must measure its own.",
+  "limits": "false-positive counts bound the rate by the rule of three on a small denominator, not at zero; the planted deficit is stationary; this is POST-HOC sensitivity analysis -- the preregistered span is 0.20 and the verdict rests on 0.20."
+}

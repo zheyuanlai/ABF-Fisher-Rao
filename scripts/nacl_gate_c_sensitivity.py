@@ -80,6 +80,9 @@ def main():
     ap.add_argument("--cell", default="N64")
     ap.add_argument("--state", default="SSIP")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--span-sweep", action="store_true",
+                    help="vary the contiguity span and report false positives vs detection; the "
+                         "frontier is system-specific and does NOT transfer between studies")
     args = ap.parse_args()
 
     rep = json.load(open(os.path.join(args.ref, "reference_report.json")))

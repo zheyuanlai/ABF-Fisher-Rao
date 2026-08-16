@@ -97,7 +97,31 @@ the table above: SSIP's worst-window band is `[0.974, 0.991]` at N=64 and `[0.97
 N=32, which excludes any sustained deficit larger than about **3 %** — roughly 18x tighter than
 the gate could report. A measured band, not a gate output.
 
-*Limitation, stated rather than implied:* the planted deficit is **stationary**. A real
+**The null survives a more sensitive gate than the preregistered one** (post-hoc sensitivity
+analysis; the prereg span is 0.20 T and the verdict rests on 0.20 T). Varying only the
+contiguity span, with a planted 50 % deficit, over 32 state-seeds:
+
+| span | false positives, real traces | detects a real 50 % |
+|---|---|---|
+| 0.02 T | **9/32** | 31/32 |
+| 0.05 T | 1/32 | 25/32 |
+| 0.10 T | **0/32** | 11/32 |
+| 0.20 T *(preregistered)* | 0/32 | 0/32 |
+
+At **0.10 T the real traces still fire 0/32 while the gate detects 11/32 planted deficits** — so
+the null holds against a demonstrably more sensitive instrument, and the preregistered 0.20 T is
+*dominated*: identical zero false positives, zero detection. It buys nothing.
+
+**And the efficient frontier does not transfer between systems.** The methane session found
+0/24 false positives at 0.02 T; NaCl shows **9/32** at the same span, so its frontier sits near
+0.10 T — five times tighter. The frontier is set by each system's own occupancy autocorrelation,
+which is exactly the quantity that differs between a two-ion pair and a hydrophobic dimer. **Any
+study adopting a span must measure its own**; borrowing another's would import spurious fires.
+This also retires the 55 % vs 60 % gap between the two studies: it is fully accounted for by the
+span setting, with no system difference required.
+
+*Limits, stated rather than implied:* the false-positive counts bound the rate by the rule of
+three on a small denominator, not at zero. And the planted deficit is **stationary**. A real
 establishment failure that decays as the bias fills in would fire less readily still, so 55 % is
 a **floor** on the detection threshold, not a characterisation of it. The decaying case is not
 measured here.
