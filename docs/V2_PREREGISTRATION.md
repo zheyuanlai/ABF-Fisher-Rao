@@ -1917,6 +1917,50 @@ empirical. If it does not, this paragraph is the falsification and stands as wri
 per-state spread means the median is a crude summary and the prediction is order-of-magnitude,
 not a fit.
 
+#### 12.15 The `tau_occ` prediction is FALSIFIED as a coefficient, and my own number was censored (2026-08-16)
+
+§12.14 predicted the frontier at order-one `tau_occ`, from methane's 4.0 ps against
+`tau_occ = 6.06` ps, i.e. **0.7 tau**. NaCl measured `tau_occ = 42.2` ps (N-independent: 41.6 at
+N=64, 42.2 at N=32 — a physical property behaving like one) and a frontier of **2.8–3.8 tau**.
+That is a factor of 4–5, and the paragraph stands as its own falsification, as it said it would.
+
+**It is worse than that, because my 0.7 was not a measurement.** §12.14 swept the span as a
+*fraction of T* on a grid whose finest step was `0.02 T = 4.0 ps`, and the frontier came out at
+the grid's own edge. Re-swept in **absolute time** down to 1 ps:
+
+| N (fixed T = 200 ps) | frontier | in `tau_occ` |
+|---|---|---|
+| 512 | **<= 1 ps** | <= 0.17 |
+| 128 | **<= 1 ps** | <= 0.17 |
+| 32 | 8 ps | 1.32 |
+
+**Methane's frontier is censored below 1 ps at production N, not 4 ps.** The coefficient
+therefore spans **<= 0.17 to 3.8** across the two systems — at least 20x, not 5x. *A value equal
+to your grid's boundary is a censoring, not a measurement*, and §12.14 reported one as the other
+while carrying an explicit warning about crude summaries that did not cover this.
+
+**What survives is the structural half, and it is NaCl's demonstration rather than my
+prediction.** Re-sweeping in absolute time across two cells, they measure 120 ps and 160 ps where
+a fixed-fraction rule predicts 120 and 240: **the frontier is approximately a physical time, not
+a property of run length.** The `tau_occ` intuition was right about the *kind* of quantity and
+useless about its size.
+
+**A second contribution, measured here, that a single-cell sweep cannot see.** At fixed `T` the
+frontier is flat from N = 512 to N = 128 and rises 8x by N = 32 — counting noise, the §12.10
+mechanism, re-entering as `lambda` falls. So the frontier is **not** `tau_occ` alone but
+approximately `max(physical floor from tau_occ, a counting-noise term growing as N falls)`.
+Consequence for anyone reading NaCl's 120 -> 160 ps drift as residual `T` dependence: their two
+cells differ in **both** `N` and `T`, and the drift is the same direction and plausible size as
+the effect measured here. Separable by subsampling walkers within one cell, which costs nothing.
+
+**The design defect NaCl found stands and is the practically important result.** With `N x T`
+fixed, `span = 0.20 T` scales as `1/N`, so an N ladder judges its small cells with an instrument
+`8x` blunter at N = 8 than at N = 64 — biased toward *hiding* establishment failure, worst
+exactly where the ladder is meant to be most informative. **Methane is unaffected** (a single
+cell at one N and one T, verified rather than assumed), but any ladder under a fixed `N x T`
+budget inherits it. Fix: **set the span in absolute time from a short pilot, not as a fraction of
+`T`** — which is `N`-invariant by construction and needs no coefficient to be transferable.
+
 ### Amendment 13 — two GPUs for methane, and the optimisation order (2026-08-12)
 
 **Written before any methane box, trajectory, reference or gate result existed.** Only engine
