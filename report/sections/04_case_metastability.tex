@@ -160,6 +160,16 @@ and on the final \emph{mean-force} error they lie slightly \emph{above} it ---
 only the oracle control is consistently below. Flattening the marginal with an
 imperfect target buys early speed but not final mean-force accuracy.
 
+The comparison in \cref{tab:main_integrated} is also asymmetric in tuning budget, and the
+asymmetry is worth stating rather than leaving to be inferred from \cref{tab:design}: each FR
+target type is represented by the best of $\NFRconfigs$ configurations, while ABF-only has
+exactly one --- it exposes none of the swept knobs. A best-of-$\NFRconfigs$ contrasted against
+a best-of-one favours the FR arms by construction, by an amount of the order of the spread in
+\cref{fig:ablation}, which is comparable to the reported difference. This case is accordingly
+read as design and diagnosis rather than as evidence of a gain
+(\cref{sec:conv_limits} draws the whole configuration cloud against the single ABF run), and
+none of the report's attribution claims rest on it.
+
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.97\textwidth]{fig04_target_ablation.png}

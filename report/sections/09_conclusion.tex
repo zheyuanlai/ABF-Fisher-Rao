@@ -139,6 +139,20 @@ is therefore regime-aware: use the estimated target, choose a moderate rate
 calibrated to orthogonal relaxation and ancestor diversity, and expect the largest
 returns where ABF alone lacks reaction-coordinate support.
 
+Put in the unit a practitioner actually spends, that recommendation reads as convergence speed
+(\cref{sec:convergence}). Across $\CvNCells$ systems and cells with both arms the free energy
+converges faster in $\CvNFaster$, indistinguishably in $\CvNSame$, and significantly slower in
+$\CvNSlower$; inside the useful regime the budget required to reach ABF's final accuracy falls
+by $\CvEbEightSpeedup\times$, $\CvEbTwelveSpeedup\times$ and $\CvWcaSpeedup\times$. Two limits
+belong in the same sentence as those factors. First, the acceleration is finite-time and not a
+demonstrated change of asymptotic rate: on WCA the advantage grows through the run
+($\CvWcaFinal\%$ at the final time) while on the gateway it reverses ($\CvGwFinal\%$ at the
+final time against $\CvGwInt\%$ integrated), and the frozen-bias control keeps the sign on WCA
+only at $\CvWcaFrozen\%$. Second, every accelerated cell is a model potential or a constructed
+system; every atomistic system in this report is either a null or was stopped ABF-sufficient
+before an mFR arm was licensed. The regime is demonstrated, and it has not yet been found in a
+molecule.
+
 Stated as a falsifiable claim: \emph{marginal Fisher--Rao reallocation does not accelerate
 barrier discovery, and does not improve a free energy ABF already resolves. Its useful regime
 is narrower and more specific --- a relevant state must already have been discovered, have an
@@ -160,3 +174,19 @@ therefore the diagnosis rather than the algorithm --- the regime map, the validi
 decides when the question is well posed, the sham controls that separate direction from
 turnover, and the structural bound on what any marginal selection rule can achieve. It does
 not contribute a method that outperforms what was already available.
+
+\paragraph{What would move the convergence claim, in order.}
+Three gaps are specific enough to name, and the first two are cheap. \emph{A turnover-matched
+sham for the entropic bottleneck at $\beta=8$ and $\beta=12$}: those two cells carry the
+largest accelerations in \cref{tab:conv_scoreboard} and are the only positives in the study
+with no such control, so for them the first question a reader asks --- whether undirected
+resampling at the same intensity would do as well --- is unanswered. \emph{Resolution of the
+gateway's endpoint disagreement}: the online final-time and frozen-bias endpoints there differ
+in sign on the same runs, and until that is settled the report cannot say which of them a
+convergence claim should quote. \emph{An atomistic instance of the regime, or an explicit
+statement that none was found}: the screens in \cref{sec:methane,sec:nacl}, the dipeptides of
+\cref{sec:neutrality} and the $R_{15}$ study of \cref{sec:cv_harder_1d} have between them
+excluded the obvious candidates, and the second outcome is a publishable result rather than a
+missing one. A fourth, lower-priority item is the rate boundary: selection rate improves the
+entropic bottleneck monotonically over a $50\times$ range while it harms the alkanes, and
+nothing here locates the crossover.

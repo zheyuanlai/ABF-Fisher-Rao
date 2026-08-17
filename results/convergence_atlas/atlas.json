@@ -1,0 +1,3151 @@
+{
+  "panels": [
+    {
+      "panel": "wca_starved",
+      "label": "WCA dimer, starved cell  (beta=1, h=2)",
+      "t_fr": 40.0,
+      "x_label": "reduced time",
+      "y_label": "$L_2(F)$  [$k_BT$]",
+      "ref_label": "HP reference v2 (v2 campaign; unsmoothed, nonuniform acquisition)",
+      "note": "Confirmatory Case IX at the corrected high-precision reference; 16 paired seeds.",
+      "n_times": 49,
+      "t_max": 240.0,
+      "arms": {
+        "abf": {
+          "n_seeds": 16,
+          "seeds": [
+            400,
+            401,
+            402,
+            403,
+            404,
+            405,
+            406,
+            407,
+            408,
+            409,
+            410,
+            411,
+            412,
+            413,
+            414,
+            415
+          ]
+        },
+        "mfr": {
+          "n_seeds": 16,
+          "seeds": [
+            400,
+            401,
+            402,
+            403,
+            404,
+            405,
+            406,
+            407,
+            408,
+            409,
+            410,
+            411,
+            412,
+            413,
+            414,
+            415
+          ]
+        },
+        "mfr_oracle": {
+          "n_seeds": 16,
+          "seeds": [
+            400,
+            401,
+            402,
+            403,
+            404,
+            405,
+            406,
+            407,
+            408,
+            409,
+            410,
+            411,
+            412,
+            413,
+            414,
+            415
+          ]
+        },
+        "sham": {
+          "n_seeds": 16,
+          "seeds": [
+            400,
+            401,
+            402,
+            403,
+            404,
+            405,
+            406,
+            407,
+            408,
+            409,
+            410,
+            411,
+            412,
+            413,
+            414,
+            415
+          ]
+        },
+        "sham_oracle": {
+          "n_seeds": 16,
+          "seeds": [
+            400,
+            401,
+            402,
+            403,
+            404,
+            405,
+            406,
+            407,
+            408,
+            409,
+            410,
+            411,
+            412,
+            413,
+            414,
+            415
+          ]
+        }
+      },
+      "configs": null
+    },
+    {
+      "panel": "wca_five_arm",
+      "label": "WCA dimer, five-arm mechanism test",
+      "t_fr": 40.0,
+      "x_label": "reduced time",
+      "y_label": "$L_2(F)$  [$k_BT$]",
+      "ref_label": "HP reference v2 (v2 campaign; unsmoothed, nonuniform acquisition)",
+      "note": "Same cell and reference as the flagship. count_balancing is the non-Fisher-Rao reallocation rule: if it tracks mFR, the gain is not FR-specific.",
+      "n_times": 49,
+      "t_max": 240.0,
+      "arms": {
+        "abf": {
+          "n_seeds": 16,
+          "seeds": [
+            400,
+            401,
+            402,
+            403,
+            404,
+            405,
+            406,
+            407,
+            408,
+            409,
+            410,
+            411,
+            412,
+            413,
+            414,
+            415
+          ]
+        },
+        "mfr": {
+          "n_seeds": 16,
+          "seeds": [
+            400,
+            401,
+            402,
+            403,
+            404,
+            405,
+            406,
+            407,
+            408,
+            409,
+            410,
+            411,
+            412,
+            413,
+            414,
+            415
+          ]
+        },
+        "count_balancing": {
+          "n_seeds": 16,
+          "seeds": [
+            400,
+            401,
+            402,
+            403,
+            404,
+            405,
+            406,
+            407,
+            408,
+            409,
+            410,
+            411,
+            412,
+            413,
+            414,
+            415
+          ]
+        },
+        "book_laplacian": {
+          "n_seeds": 16,
+          "seeds": [
+            400,
+            401,
+            402,
+            403,
+            404,
+            405,
+            406,
+            407,
+            408,
+            409,
+            410,
+            411,
+            412,
+            413,
+            414,
+            415
+          ]
+        },
+        "sham": {
+          "n_seeds": 16,
+          "seeds": [
+            400,
+            401,
+            402,
+            403,
+            404,
+            405,
+            406,
+            407,
+            408,
+            409,
+            410,
+            411,
+            412,
+            413,
+            414,
+            415
+          ]
+        }
+      },
+      "configs": null
+    },
+    {
+      "panel": "gateway_left",
+      "label": "Entropic gateway, init=left  [primary anchor]",
+      "t_fr": 3.99996,
+      "x_label": "reduced time",
+      "y_label": "$L_2(F)$  [$k_BT$]",
+      "ref_label": "analytic",
+      "note": "Constructed establishment-limited regime; 32 preregistered fresh seeds. FR ramps in over the first 10 % of the run rather than switching on.",
+      "n_times": 201,
+      "t_max": 39.9996,
+      "arms": {
+        "abf": {
+          "n_seeds": 32,
+          "seeds": [
+            100,
+            101,
+            102,
+            103,
+            104,
+            105,
+            106,
+            107,
+            108,
+            109,
+            110,
+            111,
+            112,
+            113,
+            114,
+            115,
+            116,
+            117,
+            118,
+            119,
+            120,
+            121,
+            122,
+            123,
+            124,
+            125,
+            126,
+            127,
+            128,
+            129,
+            130,
+            131
+          ]
+        },
+        "mfr": {
+          "n_seeds": 32,
+          "seeds": [
+            100,
+            101,
+            102,
+            103,
+            104,
+            105,
+            106,
+            107,
+            108,
+            109,
+            110,
+            111,
+            112,
+            113,
+            114,
+            115,
+            116,
+            117,
+            118,
+            119,
+            120,
+            121,
+            122,
+            123,
+            124,
+            125,
+            126,
+            127,
+            128,
+            129,
+            130,
+            131
+          ]
+        },
+        "mfr_oracle": {
+          "n_seeds": 32,
+          "seeds": [
+            100,
+            101,
+            102,
+            103,
+            104,
+            105,
+            106,
+            107,
+            108,
+            109,
+            110,
+            111,
+            112,
+            113,
+            114,
+            115,
+            116,
+            117,
+            118,
+            119,
+            120,
+            121,
+            122,
+            123,
+            124,
+            125,
+            126,
+            127,
+            128,
+            129,
+            130,
+            131
+          ]
+        },
+        "sham": {
+          "n_seeds": 32,
+          "seeds": [
+            100,
+            101,
+            102,
+            103,
+            104,
+            105,
+            106,
+            107,
+            108,
+            109,
+            110,
+            111,
+            112,
+            113,
+            114,
+            115,
+            116,
+            117,
+            118,
+            119,
+            120,
+            121,
+            122,
+            123,
+            124,
+            125,
+            126,
+            127,
+            128,
+            129,
+            130,
+            131
+          ]
+        },
+        "sham_oracle": {
+          "n_seeds": 32,
+          "seeds": [
+            100,
+            101,
+            102,
+            103,
+            104,
+            105,
+            106,
+            107,
+            108,
+            109,
+            110,
+            111,
+            112,
+            113,
+            114,
+            115,
+            116,
+            117,
+            118,
+            119,
+            120,
+            121,
+            122,
+            123,
+            124,
+            125,
+            126,
+            127,
+            128,
+            129,
+            130,
+            131
+          ]
+        }
+      },
+      "configs": null
+    },
+    {
+      "panel": "gateway_one_right",
+      "label": "Entropic gateway, init=one_right  [mechanism control]",
+      "t_fr": 3.99996,
+      "x_label": "reduced time",
+      "y_label": "$L_2(F)$  [$k_BT$]",
+      "ref_label": "analytic",
+      "note": "Constructed establishment-limited regime; 32 preregistered fresh seeds. FR ramps in over the first 10 % of the run rather than switching on.",
+      "n_times": 201,
+      "t_max": 39.9996,
+      "arms": {
+        "abf": {
+          "n_seeds": 32,
+          "seeds": [
+            100,
+            101,
+            102,
+            103,
+            104,
+            105,
+            106,
+            107,
+            108,
+            109,
+            110,
+            111,
+            112,
+            113,
+            114,
+            115,
+            116,
+            117,
+            118,
+            119,
+            120,
+            121,
+            122,
+            123,
+            124,
+            125,
+            126,
+            127,
+            128,
+            129,
+            130,
+            131
+          ]
+        },
+        "mfr": {
+          "n_seeds": 32,
+          "seeds": [
+            100,
+            101,
+            102,
+            103,
+            104,
+            105,
+            106,
+            107,
+            108,
+            109,
+            110,
+            111,
+            112,
+            113,
+            114,
+            115,
+            116,
+            117,
+            118,
+            119,
+            120,
+            121,
+            122,
+            123,
+            124,
+            125,
+            126,
+            127,
+            128,
+            129,
+            130,
+            131
+          ]
+        },
+        "mfr_oracle": {
+          "n_seeds": 32,
+          "seeds": [
+            100,
+            101,
+            102,
+            103,
+            104,
+            105,
+            106,
+            107,
+            108,
+            109,
+            110,
+            111,
+            112,
+            113,
+            114,
+            115,
+            116,
+            117,
+            118,
+            119,
+            120,
+            121,
+            122,
+            123,
+            124,
+            125,
+            126,
+            127,
+            128,
+            129,
+            130,
+            131
+          ]
+        },
+        "sham": {
+          "n_seeds": 32,
+          "seeds": [
+            100,
+            101,
+            102,
+            103,
+            104,
+            105,
+            106,
+            107,
+            108,
+            109,
+            110,
+            111,
+            112,
+            113,
+            114,
+            115,
+            116,
+            117,
+            118,
+            119,
+            120,
+            121,
+            122,
+            123,
+            124,
+            125,
+            126,
+            127,
+            128,
+            129,
+            130,
+            131
+          ]
+        },
+        "sham_oracle": {
+          "n_seeds": 32,
+          "seeds": [
+            100,
+            101,
+            102,
+            103,
+            104,
+            105,
+            106,
+            107,
+            108,
+            109,
+            110,
+            111,
+            112,
+            113,
+            114,
+            115,
+            116,
+            117,
+            118,
+            119,
+            120,
+            121,
+            122,
+            123,
+            124,
+            125,
+            126,
+            127,
+            128,
+            129,
+            130,
+            131
+          ]
+        }
+      },
+      "configs": null
+    },
+    {
+      "panel": "eb_beta2",
+      "label": "Entropic bottleneck, beta=2",
+      "t_fr": 3.9999000000000002,
+      "x_label": "reduced time",
+      "y_label": "$L_2(F)$  [$k_BT$]",
+      "ref_label": "analytic",
+      "note": "One model family, one estimator, one plotting convention; only beta changes.",
+      "n_times": 101,
+      "t_max": 39.999,
+      "arms": {
+        "abf": {
+          "n_seeds": 10,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ]
+        },
+        "mfr": {
+          "n_seeds": 10,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ]
+        }
+      },
+      "configs": null
+    },
+    {
+      "panel": "eb_beta4",
+      "label": "Entropic bottleneck, beta=4",
+      "t_fr": 3.9999000000000002,
+      "x_label": "reduced time",
+      "y_label": "$L_2(F)$  [$k_BT$]",
+      "ref_label": "analytic",
+      "note": "One model family, one estimator, one plotting convention; only beta changes.",
+      "n_times": 101,
+      "t_max": 39.999,
+      "arms": {
+        "abf": {
+          "n_seeds": 10,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ]
+        },
+        "mfr": {
+          "n_seeds": 10,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ]
+        }
+      },
+      "configs": null
+    },
+    {
+      "panel": "eb_beta8",
+      "label": "Entropic bottleneck, beta=8",
+      "t_fr": 3.9999000000000002,
+      "x_label": "reduced time",
+      "y_label": "$L_2(F)$  [$k_BT$]",
+      "ref_label": "analytic",
+      "note": "One model family, one estimator, one plotting convention; only beta changes.",
+      "n_times": 101,
+      "t_max": 39.999,
+      "arms": {
+        "abf": {
+          "n_seeds": 10,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ]
+        },
+        "mfr": {
+          "n_seeds": 10,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ]
+        }
+      },
+      "configs": null
+    },
+    {
+      "panel": "eb_beta12",
+      "label": "Entropic bottleneck, beta=12",
+      "t_fr": 3.9999000000000002,
+      "x_label": "reduced time",
+      "y_label": "$L_2(F)$  [$k_BT$]",
+      "ref_label": "analytic",
+      "note": "One model family, one estimator, one plotting convention; only beta changes.",
+      "n_times": 101,
+      "t_max": 39.999,
+      "arms": {
+        "abf": {
+          "n_seeds": 10,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ]
+        },
+        "mfr": {
+          "n_seeds": 10,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ]
+        }
+      },
+      "configs": null
+    },
+    {
+      "panel": "toy2d",
+      "label": "2-D metastability toy  (xi = x)",
+      "t_fr": null,
+      "x_label": "time",
+      "y_label": "$L_2(F)$",
+      "ref_label": "numerical reference",
+      "note": "SELECTION CAVEAT: each FR arm was tuned over 36 configurations, ABF over 1. The unsuffixed FR arm is the SELECTED config; '__cfgN' arms are the other 35. A best-of-36 vs best-of-1 contrast is not an unbiased comparison.",
+      "n_times": 101,
+      "t_max": 199.998,
+      "arms": {
+        "abf": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt01": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt02": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt03": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt04": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt05": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt06": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt07": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt08": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt09": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt10": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt11": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt12": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt13": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt14": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt15": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt16": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt17": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt18": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt19": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt20": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt21": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt22": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt23": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt24": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt25": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt26": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt27": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt28": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt29": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt30": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt31": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt32": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt33": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt34": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "fr_uniform__alt35": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt01": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt02": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt03": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt04": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt05": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt06": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt07": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt08": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt09": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt10": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt11": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt12": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt13": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt14": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt15": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt16": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt17": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt18": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt19": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt20": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt21": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt22": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt23": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt24": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt25": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt26": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt27": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt28": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt29": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt30": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt31": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt32": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt33": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt34": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr__alt35": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt01": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt02": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt03": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt04": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt05": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt06": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt07": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt08": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt09": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt10": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt11": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt12": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt13": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt14": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt15": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt16": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt17": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt18": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt19": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt20": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt21": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt22": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt23": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt24": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt25": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt26": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt27": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt28": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt29": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt30": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt31": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt32": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt33": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt34": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "mfr_oracle__alt35": {
+          "n_seeds": 5,
+          "seeds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      },
+      "configs": {
+        "abf": {
+          "gamma": "0",
+          "eta": "0.075",
+          "burnin_fraction": "0",
+          "fr_every": "1",
+          "config_id": "abf_only|tt=none|g=0|eta=0.075|bi=0|fe=1"
+        },
+        "fr_uniform__alt01": {
+          "gamma": "0.01",
+          "eta": "0.075",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.01|eta=0.075|bi=0|fe=5"
+        },
+        "fr_uniform__alt02": {
+          "gamma": "0.01",
+          "eta": "0.075",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.01|eta=0.075|bi=0.2|fe=5"
+        },
+        "fr_uniform__alt03": {
+          "gamma": "0.01",
+          "eta": "0.075",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.01|eta=0.075|bi=0.4|fe=5"
+        },
+        "fr_uniform__alt04": {
+          "gamma": "0.01",
+          "eta": "0.1",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.01|eta=0.1|bi=0|fe=5"
+        },
+        "fr_uniform__alt05": {
+          "gamma": "0.01",
+          "eta": "0.1",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.01|eta=0.1|bi=0.2|fe=5"
+        },
+        "fr_uniform__alt06": {
+          "gamma": "0.01",
+          "eta": "0.1",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.01|eta=0.1|bi=0.4|fe=5"
+        },
+        "fr_uniform__alt07": {
+          "gamma": "0.01",
+          "eta": "0.15",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.01|eta=0.15|bi=0|fe=5"
+        },
+        "fr_uniform__alt08": {
+          "gamma": "0.01",
+          "eta": "0.15",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.01|eta=0.15|bi=0.2|fe=5"
+        },
+        "fr_uniform__alt09": {
+          "gamma": "0.01",
+          "eta": "0.15",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.01|eta=0.15|bi=0.4|fe=5"
+        },
+        "fr_uniform__alt10": {
+          "gamma": "0.02",
+          "eta": "0.075",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.02|eta=0.075|bi=0|fe=5"
+        },
+        "fr_uniform__alt11": {
+          "gamma": "0.02",
+          "eta": "0.075",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.02|eta=0.075|bi=0.2|fe=5"
+        },
+        "fr_uniform__alt12": {
+          "gamma": "0.02",
+          "eta": "0.075",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.02|eta=0.075|bi=0.4|fe=5"
+        },
+        "fr_uniform__alt13": {
+          "gamma": "0.02",
+          "eta": "0.1",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.02|eta=0.1|bi=0|fe=5"
+        },
+        "fr_uniform__alt14": {
+          "gamma": "0.02",
+          "eta": "0.1",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.02|eta=0.1|bi=0.2|fe=5"
+        },
+        "fr_uniform__alt15": {
+          "gamma": "0.02",
+          "eta": "0.1",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.02|eta=0.1|bi=0.4|fe=5"
+        },
+        "fr_uniform__alt16": {
+          "gamma": "0.02",
+          "eta": "0.15",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.02|eta=0.15|bi=0|fe=5"
+        },
+        "fr_uniform__alt17": {
+          "gamma": "0.02",
+          "eta": "0.15",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.02|eta=0.15|bi=0.2|fe=5"
+        },
+        "fr_uniform__alt18": {
+          "gamma": "0.02",
+          "eta": "0.15",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.02|eta=0.15|bi=0.4|fe=5"
+        },
+        "fr_uniform__alt19": {
+          "gamma": "0.05",
+          "eta": "0.075",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.05|eta=0.075|bi=0|fe=5"
+        },
+        "fr_uniform__alt20": {
+          "gamma": "0.05",
+          "eta": "0.075",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.05|eta=0.075|bi=0.2|fe=5"
+        },
+        "fr_uniform__alt21": {
+          "gamma": "0.05",
+          "eta": "0.075",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.05|eta=0.075|bi=0.4|fe=5"
+        },
+        "fr_uniform__alt22": {
+          "gamma": "0.05",
+          "eta": "0.1",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.05|eta=0.1|bi=0|fe=5"
+        },
+        "fr_uniform__alt23": {
+          "gamma": "0.05",
+          "eta": "0.1",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.05|eta=0.1|bi=0.2|fe=5"
+        },
+        "fr_uniform__alt24": {
+          "gamma": "0.05",
+          "eta": "0.1",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.05|eta=0.1|bi=0.4|fe=5"
+        },
+        "fr_uniform__alt25": {
+          "gamma": "0.05",
+          "eta": "0.15",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.05|eta=0.15|bi=0|fe=5"
+        },
+        "fr_uniform": {
+          "gamma": "0.05",
+          "eta": "0.15",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.05|eta=0.15|bi=0.2|fe=5"
+        },
+        "fr_uniform__alt26": {
+          "gamma": "0.05",
+          "eta": "0.15",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.05|eta=0.15|bi=0.4|fe=5"
+        },
+        "fr_uniform__alt27": {
+          "gamma": "0.1",
+          "eta": "0.075",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.1|eta=0.075|bi=0|fe=5"
+        },
+        "fr_uniform__alt28": {
+          "gamma": "0.1",
+          "eta": "0.075",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.1|eta=0.075|bi=0.2|fe=5"
+        },
+        "fr_uniform__alt29": {
+          "gamma": "0.1",
+          "eta": "0.075",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.1|eta=0.075|bi=0.4|fe=5"
+        },
+        "fr_uniform__alt30": {
+          "gamma": "0.1",
+          "eta": "0.1",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.1|eta=0.1|bi=0|fe=5"
+        },
+        "fr_uniform__alt31": {
+          "gamma": "0.1",
+          "eta": "0.1",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.1|eta=0.1|bi=0.2|fe=5"
+        },
+        "fr_uniform__alt32": {
+          "gamma": "0.1",
+          "eta": "0.1",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.1|eta=0.1|bi=0.4|fe=5"
+        },
+        "fr_uniform__alt33": {
+          "gamma": "0.1",
+          "eta": "0.15",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.1|eta=0.15|bi=0|fe=5"
+        },
+        "fr_uniform__alt34": {
+          "gamma": "0.1",
+          "eta": "0.15",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.1|eta=0.15|bi=0.2|fe=5"
+        },
+        "fr_uniform__alt35": {
+          "gamma": "0.1",
+          "eta": "0.15",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_uniform|tt=uniform|g=0.1|eta=0.15|bi=0.4|fe=5"
+        },
+        "mfr__alt01": {
+          "gamma": "0.01",
+          "eta": "0.075",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.01|eta=0.075|bi=0|fe=5"
+        },
+        "mfr__alt02": {
+          "gamma": "0.01",
+          "eta": "0.075",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.01|eta=0.075|bi=0.2|fe=5"
+        },
+        "mfr__alt03": {
+          "gamma": "0.01",
+          "eta": "0.075",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.01|eta=0.075|bi=0.4|fe=5"
+        },
+        "mfr__alt04": {
+          "gamma": "0.01",
+          "eta": "0.1",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.01|eta=0.1|bi=0|fe=5"
+        },
+        "mfr__alt05": {
+          "gamma": "0.01",
+          "eta": "0.1",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.01|eta=0.1|bi=0.2|fe=5"
+        },
+        "mfr__alt06": {
+          "gamma": "0.01",
+          "eta": "0.1",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.01|eta=0.1|bi=0.4|fe=5"
+        },
+        "mfr__alt07": {
+          "gamma": "0.01",
+          "eta": "0.15",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.01|eta=0.15|bi=0|fe=5"
+        },
+        "mfr__alt08": {
+          "gamma": "0.01",
+          "eta": "0.15",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.01|eta=0.15|bi=0.2|fe=5"
+        },
+        "mfr__alt09": {
+          "gamma": "0.01",
+          "eta": "0.15",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.01|eta=0.15|bi=0.4|fe=5"
+        },
+        "mfr__alt10": {
+          "gamma": "0.02",
+          "eta": "0.075",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.02|eta=0.075|bi=0|fe=5"
+        },
+        "mfr__alt11": {
+          "gamma": "0.02",
+          "eta": "0.075",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.02|eta=0.075|bi=0.2|fe=5"
+        },
+        "mfr__alt12": {
+          "gamma": "0.02",
+          "eta": "0.075",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.02|eta=0.075|bi=0.4|fe=5"
+        },
+        "mfr__alt13": {
+          "gamma": "0.02",
+          "eta": "0.1",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.02|eta=0.1|bi=0|fe=5"
+        },
+        "mfr__alt14": {
+          "gamma": "0.02",
+          "eta": "0.1",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.02|eta=0.1|bi=0.2|fe=5"
+        },
+        "mfr__alt15": {
+          "gamma": "0.02",
+          "eta": "0.1",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.02|eta=0.1|bi=0.4|fe=5"
+        },
+        "mfr__alt16": {
+          "gamma": "0.02",
+          "eta": "0.15",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.02|eta=0.15|bi=0|fe=5"
+        },
+        "mfr__alt17": {
+          "gamma": "0.02",
+          "eta": "0.15",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.02|eta=0.15|bi=0.2|fe=5"
+        },
+        "mfr__alt18": {
+          "gamma": "0.02",
+          "eta": "0.15",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.02|eta=0.15|bi=0.4|fe=5"
+        },
+        "mfr__alt19": {
+          "gamma": "0.05",
+          "eta": "0.075",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.05|eta=0.075|bi=0|fe=5"
+        },
+        "mfr__alt20": {
+          "gamma": "0.05",
+          "eta": "0.075",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.05|eta=0.075|bi=0.2|fe=5"
+        },
+        "mfr__alt21": {
+          "gamma": "0.05",
+          "eta": "0.075",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.05|eta=0.075|bi=0.4|fe=5"
+        },
+        "mfr__alt22": {
+          "gamma": "0.05",
+          "eta": "0.1",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.05|eta=0.1|bi=0|fe=5"
+        },
+        "mfr__alt23": {
+          "gamma": "0.05",
+          "eta": "0.1",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.05|eta=0.1|bi=0.2|fe=5"
+        },
+        "mfr__alt24": {
+          "gamma": "0.05",
+          "eta": "0.1",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.05|eta=0.1|bi=0.4|fe=5"
+        },
+        "mfr__alt25": {
+          "gamma": "0.05",
+          "eta": "0.15",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.05|eta=0.15|bi=0|fe=5"
+        },
+        "mfr__alt26": {
+          "gamma": "0.05",
+          "eta": "0.15",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.05|eta=0.15|bi=0.2|fe=5"
+        },
+        "mfr__alt27": {
+          "gamma": "0.05",
+          "eta": "0.15",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.05|eta=0.15|bi=0.4|fe=5"
+        },
+        "mfr": {
+          "gamma": "0.1",
+          "eta": "0.075",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.1|eta=0.075|bi=0|fe=5"
+        },
+        "mfr__alt28": {
+          "gamma": "0.1",
+          "eta": "0.075",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.1|eta=0.075|bi=0.2|fe=5"
+        },
+        "mfr__alt29": {
+          "gamma": "0.1",
+          "eta": "0.075",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.1|eta=0.075|bi=0.4|fe=5"
+        },
+        "mfr__alt30": {
+          "gamma": "0.1",
+          "eta": "0.1",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.1|eta=0.1|bi=0|fe=5"
+        },
+        "mfr__alt31": {
+          "gamma": "0.1",
+          "eta": "0.1",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.1|eta=0.1|bi=0.2|fe=5"
+        },
+        "mfr__alt32": {
+          "gamma": "0.1",
+          "eta": "0.1",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.1|eta=0.1|bi=0.4|fe=5"
+        },
+        "mfr__alt33": {
+          "gamma": "0.1",
+          "eta": "0.15",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.1|eta=0.15|bi=0|fe=5"
+        },
+        "mfr__alt34": {
+          "gamma": "0.1",
+          "eta": "0.15",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.1|eta=0.15|bi=0.2|fe=5"
+        },
+        "mfr__alt35": {
+          "gamma": "0.1",
+          "eta": "0.15",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_estimated|tt=estimated|g=0.1|eta=0.15|bi=0.4|fe=5"
+        },
+        "mfr_oracle__alt01": {
+          "gamma": "0.01",
+          "eta": "0.075",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.01|eta=0.075|bi=0|fe=5"
+        },
+        "mfr_oracle__alt02": {
+          "gamma": "0.01",
+          "eta": "0.075",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.01|eta=0.075|bi=0.2|fe=5"
+        },
+        "mfr_oracle__alt03": {
+          "gamma": "0.01",
+          "eta": "0.075",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.01|eta=0.075|bi=0.4|fe=5"
+        },
+        "mfr_oracle__alt04": {
+          "gamma": "0.01",
+          "eta": "0.1",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.01|eta=0.1|bi=0|fe=5"
+        },
+        "mfr_oracle__alt05": {
+          "gamma": "0.01",
+          "eta": "0.1",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.01|eta=0.1|bi=0.2|fe=5"
+        },
+        "mfr_oracle__alt06": {
+          "gamma": "0.01",
+          "eta": "0.1",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.01|eta=0.1|bi=0.4|fe=5"
+        },
+        "mfr_oracle__alt07": {
+          "gamma": "0.01",
+          "eta": "0.15",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.01|eta=0.15|bi=0|fe=5"
+        },
+        "mfr_oracle__alt08": {
+          "gamma": "0.01",
+          "eta": "0.15",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.01|eta=0.15|bi=0.2|fe=5"
+        },
+        "mfr_oracle__alt09": {
+          "gamma": "0.01",
+          "eta": "0.15",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.01|eta=0.15|bi=0.4|fe=5"
+        },
+        "mfr_oracle__alt10": {
+          "gamma": "0.02",
+          "eta": "0.075",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.02|eta=0.075|bi=0|fe=5"
+        },
+        "mfr_oracle__alt11": {
+          "gamma": "0.02",
+          "eta": "0.075",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.02|eta=0.075|bi=0.2|fe=5"
+        },
+        "mfr_oracle__alt12": {
+          "gamma": "0.02",
+          "eta": "0.075",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.02|eta=0.075|bi=0.4|fe=5"
+        },
+        "mfr_oracle__alt13": {
+          "gamma": "0.02",
+          "eta": "0.1",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.02|eta=0.1|bi=0|fe=5"
+        },
+        "mfr_oracle__alt14": {
+          "gamma": "0.02",
+          "eta": "0.1",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.02|eta=0.1|bi=0.2|fe=5"
+        },
+        "mfr_oracle__alt15": {
+          "gamma": "0.02",
+          "eta": "0.1",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.02|eta=0.1|bi=0.4|fe=5"
+        },
+        "mfr_oracle__alt16": {
+          "gamma": "0.02",
+          "eta": "0.15",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.02|eta=0.15|bi=0|fe=5"
+        },
+        "mfr_oracle__alt17": {
+          "gamma": "0.02",
+          "eta": "0.15",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.02|eta=0.15|bi=0.2|fe=5"
+        },
+        "mfr_oracle__alt18": {
+          "gamma": "0.02",
+          "eta": "0.15",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.02|eta=0.15|bi=0.4|fe=5"
+        },
+        "mfr_oracle__alt19": {
+          "gamma": "0.05",
+          "eta": "0.075",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.05|eta=0.075|bi=0|fe=5"
+        },
+        "mfr_oracle__alt20": {
+          "gamma": "0.05",
+          "eta": "0.075",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.05|eta=0.075|bi=0.2|fe=5"
+        },
+        "mfr_oracle__alt21": {
+          "gamma": "0.05",
+          "eta": "0.075",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.05|eta=0.075|bi=0.4|fe=5"
+        },
+        "mfr_oracle__alt22": {
+          "gamma": "0.05",
+          "eta": "0.1",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.05|eta=0.1|bi=0|fe=5"
+        },
+        "mfr_oracle__alt23": {
+          "gamma": "0.05",
+          "eta": "0.1",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.05|eta=0.1|bi=0.2|fe=5"
+        },
+        "mfr_oracle__alt24": {
+          "gamma": "0.05",
+          "eta": "0.1",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.05|eta=0.1|bi=0.4|fe=5"
+        },
+        "mfr_oracle__alt25": {
+          "gamma": "0.05",
+          "eta": "0.15",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.05|eta=0.15|bi=0|fe=5"
+        },
+        "mfr_oracle__alt26": {
+          "gamma": "0.05",
+          "eta": "0.15",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.05|eta=0.15|bi=0.2|fe=5"
+        },
+        "mfr_oracle__alt27": {
+          "gamma": "0.05",
+          "eta": "0.15",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.05|eta=0.15|bi=0.4|fe=5"
+        },
+        "mfr_oracle": {
+          "gamma": "0.1",
+          "eta": "0.075",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.1|eta=0.075|bi=0|fe=5"
+        },
+        "mfr_oracle__alt28": {
+          "gamma": "0.1",
+          "eta": "0.075",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.1|eta=0.075|bi=0.2|fe=5"
+        },
+        "mfr_oracle__alt29": {
+          "gamma": "0.1",
+          "eta": "0.075",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.1|eta=0.075|bi=0.4|fe=5"
+        },
+        "mfr_oracle__alt30": {
+          "gamma": "0.1",
+          "eta": "0.1",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.1|eta=0.1|bi=0|fe=5"
+        },
+        "mfr_oracle__alt31": {
+          "gamma": "0.1",
+          "eta": "0.1",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.1|eta=0.1|bi=0.2|fe=5"
+        },
+        "mfr_oracle__alt32": {
+          "gamma": "0.1",
+          "eta": "0.1",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.1|eta=0.1|bi=0.4|fe=5"
+        },
+        "mfr_oracle__alt33": {
+          "gamma": "0.1",
+          "eta": "0.15",
+          "burnin_fraction": "0",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.1|eta=0.15|bi=0|fe=5"
+        },
+        "mfr_oracle__alt34": {
+          "gamma": "0.1",
+          "eta": "0.15",
+          "burnin_fraction": "0.2",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.1|eta=0.15|bi=0.2|fe=5"
+        },
+        "mfr_oracle__alt35": {
+          "gamma": "0.1",
+          "eta": "0.15",
+          "burnin_fraction": "0.4",
+          "fr_every": "5",
+          "config_id": "abf_fr_oracle|tt=oracle|g=0.1|eta=0.15|bi=0.4|fe=5"
+        }
+      }
+    },
+    {
+      "panel": "butane_phi1",
+      "label": "Butane, xi = phi1",
+      "t_fr": 1.25,
+      "x_label": "time [ps]",
+      "y_label": "$L_2(F)$  [$k_BT$]",
+      "ref_label": "umbrella/TI reference",
+      "note": "ABF is already sufficient here; the FR mechanism nearly switches itself off.",
+      "n_times": 9,
+      "t_max": 20.0,
+      "arms": {
+        "abf": {
+          "n_seeds": 16,
+          "seeds": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        "mfr": {
+          "n_seeds": 16,
+          "seeds": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        "mfr_oracle": {
+          "n_seeds": 16,
+          "seeds": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        "fr_uniform": {
+          "n_seeds": 16,
+          "seeds": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        "opes": {
+          "n_seeds": 16,
+          "seeds": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        }
+      },
+      "configs": null
+    },
+    {
+      "panel": "pentane_phi1",
+      "label": "Pentane, xi = phi1",
+      "t_fr": 1.25,
+      "x_label": "time [ps]",
+      "y_label": "$L_2(F)$  [$k_BT$]",
+      "ref_label": "umbrella/TI reference",
+      "note": "Gentle mFR is equivalent; the 'active' arm raises the FR rate and harms a hidden conditional.",
+      "n_times": 10,
+      "t_max": 22.5,
+      "arms": {
+        "abf": {
+          "n_seeds": 16,
+          "seeds": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        "mfr": {
+          "n_seeds": 16,
+          "seeds": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        "mfr_oracle": {
+          "n_seeds": 16,
+          "seeds": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        "mfr_active": {
+          "n_seeds": 16,
+          "seeds": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        "fr_uniform": {
+          "n_seeds": 16,
+          "seeds": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        "opes": {
+          "n_seeds": 16,
+          "seeds": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        }
+      },
+      "configs": null
+    },
+    {
+      "panel": "pentane_r15",
+      "label": "Pentane, xi = R15 distance",
+      "t_fr": 6.0,
+      "x_label": "time [ps]",
+      "y_label": "$L_2(F)$  [$k_BT$]",
+      "ref_label": "umbrella/TI reference",
+      "note": "The only genuinely starved cell in the campaign -- and mFR still fails, oracle included: reallocation converts a support deficit into a diversity deficit.",
+      "n_times": 17,
+      "t_max": 40.0,
+      "arms": {
+        "abf": {
+          "n_seeds": 8,
+          "seeds": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ]
+        },
+        "mfr": {
+          "n_seeds": 8,
+          "seeds": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ]
+        },
+        "mfr_oracle": {
+          "n_seeds": 8,
+          "seeds": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ]
+        },
+        "mfr_active": {
+          "n_seeds": 8,
+          "seeds": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ]
+        },
+        "fr_uniform": {
+          "n_seeds": 8,
+          "seeds": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ]
+        },
+        "opes": {
+          "n_seeds": 8,
+          "seeds": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ]
+        }
+      },
+      "configs": null
+    },
+    {
+      "panel": "pentane_2d",
+      "label": "Pentane, xi = (phi1, phi2)",
+      "t_fr": 4.5,
+      "x_label": "time [ps]",
+      "y_label": "$L_2(F)$  [$k_BT$]",
+      "ref_label": "umbrella/TI reference",
+      "note": "Two-dimensional CV; a genuine null.",
+      "n_times": 10,
+      "t_max": 22.5,
+      "arms": {
+        "abf": {
+          "n_seeds": 6,
+          "seeds": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ]
+        },
+        "mfr": {
+          "n_seeds": 6,
+          "seeds": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ]
+        },
+        "mfr_active": {
+          "n_seeds": 6,
+          "seeds": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ]
+        },
+        "opes": {
+          "n_seeds": 6,
+          "seeds": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ]
+        }
+      },
+      "configs": null
+    },
+    {
+      "panel": "alanine",
+      "label": "Alanine dipeptide, xi = (phi, psi)  [vacuum]",
+      "t_fr": 20.0,
+      "x_label": "time [ps]",
+      "y_label": "$e_F$ (kernel-matched, eq. weight)  [$k_BT$]",
+      "ref_label": "long-run reference FES",
+      "note": "ORACLE mFR at three FR rates. The atomistic neutrality control: the mechanism fires, and the free-energy error does not move.",
+      "n_times": 101,
+      "t_max": 100.0,
+      "arms": {
+        "abf": {
+          "n_seeds": 4,
+          "seeds": [
+            10,
+            11,
+            12,
+            13
+          ]
+        },
+        "mfr_oracle": {
+          "n_seeds": 4,
+          "seeds": [
+            10,
+            11,
+            12,
+            13
+          ]
+        },
+        "mfr_oracle_r015": {
+          "n_seeds": 4,
+          "seeds": [
+            10,
+            11,
+            12,
+            13
+          ]
+        },
+        "mfr_oracle_r045": {
+          "n_seeds": 4,
+          "seeds": [
+            10,
+            11,
+            12,
+            13
+          ]
+        }
+      },
+      "configs": null
+    }
+  ],
+  "excluded": {
+    "methane_water": "ABF-sufficient at the preregistered screen; no mFR arm was ever licensed.",
+    "nacl_water": "ABF-only screen found no persistent population deficit; protocol did not license mFR.",
+    "valine": "ABF reaches and establishes every region before mFR could act; stopped at the ABF-only gate.",
+    "deca_alanine": "ABF baseline invalid (retracted screen); a contrast against it would be meaningless.",
+    "c60_water": "Suspended before any production data; zero-data state preserved.",
+    "wca_production_v1": "Scored against the SUPERSEDED reference and stores no profile time series, so it can be neither reused nor rescored. Superseded by wca_caseix_hp."
+  }
+}

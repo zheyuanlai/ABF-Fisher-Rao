@@ -1,0 +1,309 @@
+\section{Convergence speed: one endpoint across every benchmark}
+\label{sec:convergence}
+
+Every case study so far has been read as a verdict --- does mFR help here, yes or no. That is
+the right question for a regime map, but it discards the shape of the run. Each core in this
+study already scores
+\begin{equation}
+  e_F(t) \;=\; \big\| \widehat F_t - F_{\mathrm{ref}} - c_t \big\|_{\Ltwo(\Omega_{\mathrm{eval}})},
+  \qquad
+  c_t \;=\; \operatorname*{arg\,min}_{c}\, \big\| \widehat F_t - F_{\mathrm{ref}} - c \big\|,
+  \label{eq:conv_eF}
+\end{equation}
+at every saved checkpoint and stores it per seed, because the preregistered primary endpoint
+$I_F=\int_0^T e_F(t)\,\mathrm{d}t$ is built from it. What the study has never done is put those
+curves side by side. This section does, and asks the question the time integral answers only
+implicitly: \emph{does the Fisher--Rao correction make the free energy converge faster?}
+
+Nothing here re-runs dynamics. The atlas is a re-reading of stored artifacts, produced by
+\texttt{scripts/extract\_convergence\_atlas.py} and analysed by
+\texttt{scripts/analyze\_convergence\_atlas.py}.
+
+\begin{remark}[Sign convention]
+This section uses the \emph{relative change} convention of the closure tables throughout:
+a \emph{negative} percentage means the error fell, i.e. mFR is better. It does not use the
+gain convention of \cref{sec:synthesis}.
+\end{remark}
+
+\subsection{One convention, and what makes the comparison admissible}
+\label{sec:conv_convention}
+
+Each system's core removes the arbitrary additive constant on its own evaluation window and
+reports an interior-window RMS error; these definitions were checked against one another and
+agree up to endpoint weighting across the WCA, gateway, entropic-bottleneck, alkane and
+alanine implementations. The \emph{vertical} scales are therefore not comparable between
+panels --- different systems, collective variables and windows --- and nothing in this section
+pools across them. What is comparable is the shape of each curve and each panel's own
+arm-to-arm contrast.
+
+Two provenance facts decide which artifacts may be read. First, the WCA production tree of
+\cref{sec:case_wca} was scored against the reference later found wrong
+(\cref{sec:reference_correction}) and retains no profile time series, so its curves can be neither
+reused nor rescored; the two stored references differ by up to $0.061\,k_BT$ inside the
+evaluation window. The WCA panels here therefore read the confirmatory Case~IX and five-arm
+trees, whose runs store the full $\widehat F_t$ series and carry the corrected high-precision
+reference in the file. Second, that stored series reproduces the stored $e_F(t)$ \emph{exactly}
+(maximum absolute difference $0$ over all $160$ runs) when recomputed from
+$\widehat F_t$ and the in-file reference on the $[-0.1,1.1]$ window, so the extraction is not
+silently applying a different window or reference.
+
+The same check is available end-to-end: re-deriving the primary endpoint from the atlas
+returns $\CvWcaInt\%$ for WCA against the shipped $\WcvEstGain\%$, $\CvGwInt\%$ for the
+gateway, and $\CvFiveInt\%$ and $\CvFiveCount\%$ for the five-arm contrast --- the shipped
+verdicts, to the digits they are quoted at. An extraction that had drifted would not land on
+them.
+
+\begin{figure}[p]\centering
+  \includegraphics[width=\linewidth]{fig_conv_01_atlas.png}
+  \caption{The convergence atlas: $e_F(t)$ of \cref{eq:conv_eF} for every benchmark in this
+  report that has both an ABF and an mFR arm. Median over seeds, band the inter-quartile
+  range, logarithmic ordinate. The dotted vertical rule marks the step at which the
+  birth--death mechanism is enabled; before it the arms differ only by seed noise, which is
+  the visual null control every panel carries for free. The header of each panel states the
+  regime assigned by the preregistered endpoint and its own confidence interval, never by
+  eye. Systems with no mFR arm --- methane, sodium chloride, valine, deca-alanine, C60 ---
+  cannot appear and are not drawn; their absence is a protocol outcome, recorded in
+  \texttt{results/convergence\_atlas/atlas.json}, not an omission.}
+  \label{fig:conv_atlas}
+\end{figure}
+
+\subsection{The scoreboard}
+\label{sec:conv_scoreboard}
+
+\Cref{tab:conv_scoreboard} reads \cref{fig:conv_atlas} on the preregistered endpoint. A cell
+is called \emph{faster} only if the paired median relative change is at most $-5\%$ \emph{and}
+the upper end of its $95\%$ bootstrap interval is below zero.
+
+\begin{table}[t]\centering
+\small
+\caption{Convergence speed by benchmark, on the preregistered time-integrated endpoint
+$I_F$, paired by seed. Negative is better. ``Final'' is the same paired statistic on
+$e_F(T)$ alone. $S$ is the budget factor by which mFR reaches ABF's \emph{final} accuracy
+sooner (\cref{sec:conv_tau}); ``---'' means mFR never reaches it, which for a null cell is
+the expected reading rather than a failure.}
+\label{tab:conv_scoreboard}
+\begin{tabular}{@{}llrrrr@{}}
+\toprule
+& benchmark & $\Delta I_F$ [\%] & seeds won & final [\%] & $S$ \\
+\midrule
+\multirow{4}{*}{\rotatebox{90}{\footnotesize faster}}
+ & entropic bottleneck, $\beta=8$    & $\CvEbEightInt$  & $\CvEbEightWins/\CvEbEightSeeds$ & $\CvEbEightFinal$  & $\CvEbEightSpeedup\times$ \\
+ & entropic bottleneck, $\beta=12$   & $\CvEbTwelveInt$ & $\CvEbTwelveWins/\CvEbTwelveSeeds$ & $\CvEbTwelveFinal$ & $\CvEbTwelveSpeedup\times$ \\
+ & WCA dimer, starved cell           & $\CvWcaInt$      & $\CvWcaWins/\CvWcaSeeds$ & $\CvWcaFinal$      & $\CvWcaSpeedup\times$ \\
+ & entropic gateway, anchor          & $\CvGwInt$       & $\CvGwWins/\CvGwSeeds$ & $\CvGwFinal$       & --- \\
+\midrule
+\multirow{7}{*}{\rotatebox{90}{\footnotesize no difference}}
+ & 2-D metastability model           & $\CvToyInt$      & $\CvToyWins/\CvToySeeds$ & $\CvToyFinal$      & $\CvToySpeedup\times$ \\
+ & entropic bottleneck, $\beta=2$    & $\CvEbTwoInt$    & $\CvEbTwoWins/\CvEbTwoSeeds$ & $\CvEbTwoFinal$    & --- \\
+ & alanine dipeptide (oracle)        & $\CvAlaInt$      & $\CvAlaWins/\CvAlaSeeds$ & $\CvAlaFinal$      & $\CvAlaSpeedup\times$ \\
+ & butane, $\varphi_1$               & $\CvButInt$      & $\CvButWins/\CvButSeeds$ & $\CvButFinal$      & --- \\
+ & pentane, $\varphi_1$              & $\CvPenInt$      & $\CvPenWins/\CvPenSeeds$ & $\CvPenFinal$      & --- \\
+ & pentane, $R_{15}$                 & $\CvRFifteenInt$ & $\CvRFifteenWins/\CvRFifteenSeeds$ & $\CvRFifteenFinal$ & --- \\
+ & entropic bottleneck, $\beta=4$    & $\CvEbFourInt$   & $\CvEbFourWins/\CvEbFourSeeds$ & $\CvEbFourFinal$   & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The tally is $\CvNFaster$ faster, $\CvNSame$ no difference and $\CvNSlower$ significantly
+slower, over $\CvNCells$ distinct systems and cells. The convergence reading therefore does
+not overturn the regime map of \cref{sec:synthesis}; it restates it on a finer endpoint and
+sharpens the conditional. Where ABF develops a persistent population deficit the free energy
+converges materially faster; where ABF already resolves the coordinate the curves lie on top
+of each other; where the bottleneck is discovery rather than representation
+($R_{15}$, \cref{sec:cv_harder_1d}) reallocation cannot act and the curve is unmoved.
+
+\begin{remark}[Equal compute is automatic in these panels]
+Birth--death reallocates existing replicas at fixed population size, and $N$ and the number of
+steps are identical across arms in every panel of \cref{fig:conv_atlas}. No arm buys its curve
+with extra force evaluations, so the obvious objection to a speed claim --- that the faster
+method was simply given more work --- does not arise here, independently of the fixed-budget
+study of \cref{sec:wca_equal_compute}.
+\end{remark}
+
+\subsection{Time to a prescribed accuracy}
+\label{sec:conv_tau}
+
+A percentage change in a time integral is not what a practitioner buys. The direct quantity is
+\begin{equation}
+  \tau_\varepsilon \;=\; \inf\Big\{\, t \;:\; e_F(s)\le\varepsilon
+     \ \ \forall\, s\in[t,\min(t+\Delta,T)] \,\Big\},
+  \qquad
+  S_\varepsilon \;=\; \frac{\tau_\varepsilon(\mathrm{ABF})}{\tau_\varepsilon(\mathrm{mFR})},
+  \label{eq:conv_tau}
+\end{equation}
+with a persistence window $\Delta = \CvPersist\,T$ that prevents a single lucky excursion
+below the threshold from being scored as convergence.
+
+The thresholds are fixed by a rule declared before any arm is inspected, because choosing
+$\varepsilon$ after seeing the curves would let the analyst choose the answer. We use
+$\varepsilon = f\,e_0$ for $f\in\{1/2,1/4,1/8\}$, where $e_0$ is the error at $t=0$ --- a point
+at which every arm carries an identically zero bias, so $e_0$ is a property of the system and
+not of the method. A fourth threshold is ABF's own median final error, which asks directly how
+much simulation an arm needs to reach the answer ABF finishes with. Where a threshold is never
+met, $\tau_\varepsilon=\infty$ is reported as censored and drawn at the axis edge; dropping
+those cases would convert ``this arm never got there'' into ``this arm is not in the average''.
+
+Where the effect is real it is large. To reach ABF's final accuracy, mFR needs
+$1/\CvEbEightSpeedup$ of the budget at $\beta=8$, $1/\CvEbTwelveSpeedup$ at $\beta=12$ and
+$1/\CvWcaSpeedup$ on the starved WCA cell. \Cref{fig:conv_speedup} shows both endpoints
+together.
+
+\begin{figure}[t]\centering
+  \includegraphics[width=\linewidth]{fig_conv_03_speedup.png}
+  \caption{\textbf{Left}: the preregistered endpoint with its bootstrap interval, the shaded
+  band the $\pm5\%$ practical-equivalence margin. The single orange marker is count balancing
+  (\cref{sec:conv_specific}), plotted on the one cell where it exists because omitting it
+  would make the summary read as stronger evidence for Fisher--Rao than the data support.
+  \textbf{Right}: $S_\varepsilon$ of \cref{eq:conv_tau} at the four declared thresholds, on a
+  logarithmic axis; the threshold family is ordered, so it is drawn as a sequential ramp
+  rather than as four unrelated colours. Crosses at the left edge are censored cells.}
+  \label{fig:conv_speedup}
+\end{figure}
+
+\subsection{What kind of acceleration: a rate, or a head start?}
+\label{sec:conv_kind}
+
+A curve can lie below another for two quite different reasons --- a faster decay rate, or an
+approach to a lower asymptotic floor --- and the distinction decides what may be claimed. The
+two positive systems answer it differently, which is the most consequential finding of this
+section.
+
+On the starved WCA cell the ratio $e_F^{\mathrm{mFR}}(t)/e_F^{\mathrm{ABF}}(t)$ falls
+monotonically to $0.54$ at $t=220$ of $240$ and never returns above unity; the final-time
+advantage, $\CvWcaFinal\%$, is larger than the integrated one, so integrating from $t=0$
+\emph{dilutes} the effect. On the gateway anchor the same ratio bottoms at $0.37$ at $t=3.0$,
+crosses back above unity at $t=16.6$, and ends at $1.11$: mFR wins the integrated endpoint on
+$\CvGwWins$ of $\CvGwSeeds$ seeds and \emph{loses} the final-time endpoint by $\CvGwFinal\%$ on
+all of them. \Cref{fig:conv_mechanism}(c) draws the two ratios together.
+
+\begin{figure}[t]\centering
+  \includegraphics[width=\linewidth]{fig_conv_02_mechanism.png}
+  \caption{\textbf{(a)} The five-arm test on the starved WCA cell: mFR and count balancing lie
+  on top of each other for the entire run, while the Laplacian rule tracks ABF.
+  \textbf{(b)} The gateway anchor, with the mFR/ABF error ratio inset. \textbf{(c)} The two
+  positive systems on the same axis (the gateway rescaled in time to match): on WCA the
+  advantage grows and persists, on the gateway it is an early transient that reverses.}
+  \label{fig:conv_mechanism}
+\end{figure}
+
+The frozen-bias controls, which discard the online accumulators and re-evaluate the learned
+bias in a fresh non-adapting run, do not settle the question either --- they disagree with the
+online endpoints, and in the gateway they disagree in sign. Both columns below are read from the
+\emph{same} run tree per row --- the replicate for the gateway, so that the frozen and online
+figures are not a ratio taken across two batches:
+
+\begin{center}\small
+\begin{tabular}{@{}lrr@{}}
+\toprule
+ & online $e_F(T)$ & frozen-bias endpoint \\
+\midrule
+WCA, starved cell & $\CvWcaFinal\%$ ($\CvWcaWins/\CvWcaSeeds$)
+                  & $\CvWcaFrozen\%$ ($\CvWcaFrozenWins/\CvWcaFrozenSeeds$) \\
+entropic gateway  & $\CvGwFinal\%$ ($0/\CvGwSeeds$) & $\GwrFrozen\%$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The WCA frozen figure is the reconstruction of \cref{sec:wca_frozen} rescored against the
+corrected reference ($\CvWcaFrozenAbf \to \CvWcaFrozenFr$; it reads $\CvWcaFrozenOld\%$ at the
+superseded one, so the reference correction is not what drives it). It keeps the sign of the
+online result and loses an order of magnitude in size. Two caveats bound how hard this can be
+pushed: the frozen tree runs at $N=512$ against the confirmatory tree's $N=1024$, and the
+frozen reconstruction carries its own error floor of $\CvWcaFrozenAbf$ against an online final
+error near $0.09$, so it is a blunt instrument for resolving a difference of this size.
+
+We therefore claim finite-time acceleration, and specifically do \emph{not} claim an improved
+asymptotic rate. Reporting an exponential-decay fit here would put a rate constant on data that
+does not identify one separately from the floor.
+
+\subsection{Is the acceleration Fisher--Rao-specific?}
+\label{sec:conv_specific}
+
+\Cref{sec:wca_q1} already answers this on the WCA cell: at matched turnover, count balancing
+returns $\CvFiveCount\%$ against mFR's $\CvFiveInt\%$ and recovers the whole gain, while the
+Laplacian rule is inert at $\CvFiveBook\%$. \Cref{fig:conv_mechanism}(a) shows what that
+equivalence looks like as a curve rather than as an interval: the two are not merely
+statistically indistinguishable at the endpoint, they are superimposed throughout.
+
+The convergence reading adds a second, independent instance of the same result, in a system
+where it had not previously been read as a mechanism test. At $\beta=8$ in the entropic
+bottleneck, the \emph{uniform} target --- which carries no Fisher--Rao construction at all, and
+simply pushes the occupancy toward flat --- gives $\CvAblUni\%$ against the estimated target's
+$\CvAblEst\%$, capturing most of the gain on $\CvAblUniWins/\CvAblUniSeeds$ seeds. The
+\emph{oracle} target, which is handed the exact free energy, is $\CvAblOra\%$ --- worse than
+ABF. The same ordering appears on the gateway, where the oracle arm trails the estimated one.
+If the geometry were the operative ingredient, the arm holding the exact target would be the
+ceiling; across the study it is the ceiling in one cell only. This is consistent with the
+structural result of \cref{prop:sel_invariance} and with the conclusion already reached in
+\cref{sec:wca_q1}: what the mechanism supplies is directed reallocation, and Fisher--Rao is one
+principled way to specify the direction rather than the source of the benefit.
+
+\subsection{The one dose--response in the study}
+\label{sec:conv_dose}
+
+Single contrasts can be explained away; a monotone dose--response is much harder to. The FR
+rate ladder at $\beta=8$ in the entropic bottleneck spans a factor of $50$ in $\gamma$ and the
+integrated error falls monotonically across all of it:
+
+\begin{center}\small
+\begin{tabular}{@{}lrrrrrrr@{}}
+\toprule
+$\gamma$ & $1$ & $3$ & $5$ & $10$ & $15$ & $25$ & $50$ \\
+$\Delta I_F$ [\%] & $\CvDoseOne$ & $\CvDoseThree$ & $\CvDoseFive$ & $\CvDoseTen$ &
+  $\CvDoseFifteen$ & $\CvDoseTwentyFive$ & $\CvDoseFifty$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+with every seed improving from $\gamma=10$ upward. Two properties make this the strongest
+single piece of evidence in the section. The cell quoted elsewhere in this report,
+$\gamma=15$, is \emph{not} the maximum of the ladder, so it is not a best-of-seven selection.
+And the response is ordered in the knob that controls the amount of reallocation, which is
+what a mechanistic explanation predicts and what a selection artifact does not.
+
+It also sets a boundary the study has not characterised. In the alkanes, raising the FR rate
+\emph{harms} --- the aggressive pentane arms of \cref{sec:case_pentane} and
+\cref{sec:cv_harder_1d} degrade monotonically with rate, and in $R_{15}$ they collapse lineage
+diversity. Two systems therefore respond to the same knob in opposite directions, and nothing
+in this report locates the crossover.
+
+\subsection{What the atlas does not support}
+\label{sec:conv_limits}
+
+\paragraph{The metastability panel is not evidence.}
+Each FR arm in \cref{sec:case_meta} was selected from $\NFRconfigs$ configurations
+while ABF was run at exactly one, so its $\CvToyInt\%$ is a best-of-$\NFRconfigs$ contrasted
+against a best-of-one; its interval, $[\CvToyCIlo, \CvToyCIhi]$ on $\CvToySeeds$ seeds, spans
+zero. \Cref{fig:conv_toy} draws all $\NFRconfigs$ curves: the cloud straddles ABF and the
+selected configuration sits at its favourable edge. The panel is retained in
+\cref{fig:conv_atlas} with that reading, rather than dropped, because the asymmetry is a
+property of the design and is better shown than hidden.
+
+\begin{figure}[t]\centering
+  \includegraphics[width=0.78\linewidth]{fig_conv_04_toy_selection.png}
+  \caption{The tuning asymmetry in the metastability model. Faint lines are the
+  $\NFRconfigs-1$ estimated-target configurations that were \emph{not} selected; the heavy
+  blue line is the one that was, and the black line is the single ABF configuration it is
+  compared against. The spread is the tuning budget, not a method effect.}
+  \label{fig:conv_toy}
+\end{figure}
+
+\paragraph{Every positive is a coarse-grained or constructed system.}
+The four accelerated cells are the WCA dimer, the entropic bottleneck at two temperatures, and
+the gateway --- one condensed-phase model potential and two designed models. Every atomistic
+system in this report is either a null (butane, pentane on $\varphi_1$, the torsion torus, both
+dipeptides) or was stopped ABF-sufficient before an mFR arm was licensed (methane, sodium
+chloride, valine). The claim available today is therefore about a regime, demonstrated in
+models built or found to exhibit it, and not about molecular free-energy calculation in
+general.
+
+\paragraph{The largest effects carry the weakest controls.}
+The WCA and gateway positives each have a matched sham --- the same number of clone/delete
+events at the same times with direction randomised. The entropic bottleneck, which supplies the
+two largest numbers in \cref{tab:conv_scoreboard}, has \emph{no} turnover control at any
+$\beta$. The uniform-target ablation of \cref{sec:conv_specific} bounds the role of the target
+but not the role of resampling itself, so the first question a reader will ask of a $\CvEbEightInt\%$
+gain from a birth--death scheme --- whether undirected resampling at the same intensity would do
+as well --- is not answered for that system. A matched sham at $\beta=8$ and $\beta=12$ is the
+single highest-value addition to this section and is listed as such in
+\cref{sec:conclusion}.

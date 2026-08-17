@@ -257,7 +257,10 @@ the endpoint named per row.
 The practical, estimated-target FR gain tracks how starved the ABF estimator is.
 Where ABF is a strong baseline the gain is small and not unconditional ---
 $+\EstIntegImpPct\%$ on the integrated error in the metastability case, with a
-marginal final-budget gain --- and where ABF is even less stressed (the hot
+marginal final-budget gain, and that figure is a best-of-$\NFRconfigs$ against a
+best-of-one and is not evidence of a gain (\cref{fig:ablation}, \cref{sec:conv_limits})
+--- and where ABF is
+even less stressed (the hot
 entropic bottleneck, $\beta\le4$) FR is mildly \emph{harmful}
 ($\EBwarmGainBetaFour\%$ at $\beta=4$), because birth--death injects resampling
 noise into an estimator that was not starved. Where ABF is starved the gain is

@@ -1,0 +1,58 @@
+panel,label,arm,n_seeds,rel_integrated_pct,ci_lo,ci_hi,wins,rel_final_pct,tau_abf_final,speedup_abf_final,speedup_e0_over_8
+wca_starved,"WCA dimer, starved cell  (beta=1, h=2)",abf,16,0.0,0.0,0.0,0/16,0.0,240.0,1.0,1.0
+wca_starved,"WCA dimer, starved cell  (beta=1, h=2)",mfr,16,-17.97,-22.7,-16.42,16/16,-45.35,65.0,3.692,1.4
+wca_starved,"WCA dimer, starved cell  (beta=1, h=2)",mfr_oracle,16,-19.54,-25.45,-15.98,16/16,-44.71,65.0,3.692,1.4
+wca_starved,"WCA dimer, starved cell  (beta=1, h=2)",sham,16,-3.19,-6.2,1.05,9/16,-3.36,175.0,1.371,1.167
+wca_starved,"WCA dimer, starved cell  (beta=1, h=2)",sham_oracle,16,0.05,-4.97,6.97,8/16,-3.04,185.0,1.297,1.167
+wca_five_arm,"WCA dimer, five-arm mechanism test",abf,16,0.0,0.0,0.0,0/16,0.0,240.0,1.0,1.0
+wca_five_arm,"WCA dimer, five-arm mechanism test",mfr,16,-17.62,-23.6,-11.61,15/16,-41.5,70.0,3.429,1.2
+wca_five_arm,"WCA dimer, five-arm mechanism test",count_balancing,16,-18.23,-21.94,-14.55,15/16,-44.08,65.0,3.692,1.2
+wca_five_arm,"WCA dimer, five-arm mechanism test",book_laplacian,16,0.73,-2.42,8.22,7/16,-3.54,165.0,1.455,1.0
+wca_five_arm,"WCA dimer, five-arm mechanism test",sham,16,-1.59,-7.23,7.37,9/16,-1.75,225.0,1.067,1.0
+gateway_left,"Entropic gateway, init=left  [primary anchor]",abf,32,0.0,0.0,0.0,0/32,0.0,25.400000000000002,1.0,1.0
+gateway_left,"Entropic gateway, init=left  [primary anchor]",mfr,32,-12.48,-16.3,-10.16,31/32,11.28,inf,arm_never,1.471
+gateway_left,"Entropic gateway, init=left  [primary anchor]",mfr_oracle,32,-10.01,-14.47,-6.23,26/32,-1.09,9.0,2.822,1.25
+gateway_left,"Entropic gateway, init=left  [primary anchor]",sham,32,1.91,-2.45,6.08,14/32,2.42,34.0,0.747,1.042
+gateway_left,"Entropic gateway, init=left  [primary anchor]",sham_oracle,32,6.27,-1.17,7.97,12/32,0.81,inf,arm_never,0.926
+gateway_one_right,"Entropic gateway, init=one_right  [mechanism control]",abf,32,0.0,0.0,0.0,0/32,0.0,39.9996,1.0,1.0
+gateway_one_right,"Entropic gateway, init=one_right  [mechanism control]",mfr,32,-12.14,-15.08,-5.4,26/32,8.9,inf,arm_never,1.533
+gateway_one_right,"Entropic gateway, init=one_right  [mechanism control]",mfr_oracle,32,-9.8,-14.12,-6.21,27/32,-0.13,9.4,4.255,1.278
+gateway_one_right,"Entropic gateway, init=one_right  [mechanism control]",sham,32,1.57,-4.33,6.6,15/32,-2.26,21.6,1.852,0.92
+gateway_one_right,"Entropic gateway, init=one_right  [mechanism control]",sham_oracle,32,1.16,-4.63,4.24,14/32,-2.09,22.8,1.754,1.0
+eb_beta2,"Entropic bottleneck, beta=2",abf,10,0.0,0.0,0.0,0/10,0.0,39.999,1.0,1.0
+eb_beta2,"Entropic bottleneck, beta=2",mfr,10,-5.64,-15.71,3.15,7/10,14.48,inf,arm_never,1.75
+eb_beta4,"Entropic bottleneck, beta=4",abf,10,0.0,0.0,0.0,0/10,0.0,13.6,1.0,1.0
+eb_beta4,"Entropic bottleneck, beta=4",mfr,10,3.17,-4.88,10.76,3/10,27.37,inf,arm_never,1.667
+eb_beta8,"Entropic bottleneck, beta=8",abf,10,0.0,0.0,0.0,0/10,0.0,39.999,1.0,neither_reaches
+eb_beta8,"Entropic bottleneck, beta=8",mfr,10,-40.49,-44.45,-30.33,10/10,-51.7,3.2,12.5,abf_never
+eb_beta12,"Entropic bottleneck, beta=12",abf,10,0.0,0.0,0.0,0/10,0.0,39.999,1.0,neither_reaches
+eb_beta12,"Entropic bottleneck, beta=12",mfr,10,-33.81,-37.67,-30.08,10/10,-32.1,2.8000000000000003,14.285,neither_reaches
+toy2d,2-D metastability toy  (xi = x),abf,5,0.0,0.0,0.0,0/5,0.0,199.998,1.0,1.0
+toy2d,2-D metastability toy  (xi = x),fr_uniform,5,-5.83,-18.62,7.5,4/5,-10.18,184.0,1.087,1.182
+toy2d,2-D metastability toy  (xi = x),mfr,5,-11.5,-22.54,18.87,3/5,-7.66,182.0,1.099,1.083
+toy2d,2-D metastability toy  (xi = x),mfr_oracle,5,-11.58,-25.35,-1.09,5/5,-11.64,122.0,1.639,1.182
+butane_phi1,"Butane, xi = phi1",abf,16,0.0,0.0,0.0,0/16,0.0,10.0,1.0,neither_reaches
+butane_phi1,"Butane, xi = phi1",mfr,16,0.06,0.03,0.17,2/16,0.1,inf,arm_never,neither_reaches
+butane_phi1,"Butane, xi = phi1",mfr_oracle,16,-0.03,-0.05,0.01,11/16,-0.08,10.0,1.0,neither_reaches
+butane_phi1,"Butane, xi = phi1",fr_uniform,16,0.1,0.03,0.16,2/16,0.19,20.0,0.5,neither_reaches
+butane_phi1,"Butane, xi = phi1",opes,16,25.07,24.67,26.64,0/16,29.23,inf,arm_never,neither_reaches
+pentane_phi1,"Pentane, xi = phi1",abf,16,0.0,0.0,0.0,0/16,0.0,22.5,1.0,neither_reaches
+pentane_phi1,"Pentane, xi = phi1",mfr,16,0.39,0.14,0.59,3/16,0.39,inf,arm_never,neither_reaches
+pentane_phi1,"Pentane, xi = phi1",mfr_oracle,16,-0.05,-0.23,0.19,9/16,-0.3,inf,arm_never,neither_reaches
+pentane_phi1,"Pentane, xi = phi1",mfr_active,16,2.89,1.65,3.73,0/16,5.88,inf,arm_never,neither_reaches
+pentane_phi1,"Pentane, xi = phi1",fr_uniform,16,0.39,0.14,0.6,3/16,0.44,inf,arm_never,neither_reaches
+pentane_phi1,"Pentane, xi = phi1",opes,16,28.75,27.79,31.24,0/16,37.28,inf,arm_never,neither_reaches
+pentane_r15,"Pentane, xi = R15 distance",abf,8,0.0,0.0,0.0,0/8,0.0,40.0,1.0,neither_reaches
+pentane_r15,"Pentane, xi = R15 distance",mfr,8,0.69,0.45,0.82,0/8,2.03,inf,arm_never,neither_reaches
+pentane_r15,"Pentane, xi = R15 distance",mfr_oracle,8,0.74,0.45,1.04,0/8,2.01,inf,arm_never,neither_reaches
+pentane_r15,"Pentane, xi = R15 distance",mfr_active,8,8.07,6.39,8.5,0/8,32.81,inf,arm_never,neither_reaches
+pentane_r15,"Pentane, xi = R15 distance",fr_uniform,8,0.74,0.45,1.05,0/8,2.01,inf,arm_never,neither_reaches
+pentane_r15,"Pentane, xi = R15 distance",opes,8,39.63,29.73,46.32,0/8,117.99,inf,arm_never,neither_reaches
+pentane_2d,"Pentane, xi = (phi1, phi2)",abf,6,0.0,0.0,0.0,0/6,0.0,22.5,1.0,neither_reaches
+pentane_2d,"Pentane, xi = (phi1, phi2)",mfr,6,0.08,0.03,0.15,0/6,0.22,inf,arm_never,neither_reaches
+pentane_2d,"Pentane, xi = (phi1, phi2)",mfr_active,6,0.56,0.27,0.71,0/6,0.91,inf,arm_never,neither_reaches
+pentane_2d,"Pentane, xi = (phi1, phi2)",opes,6,162.86,114.26,191.57,0/6,134.7,inf,arm_never,neither_reaches
+alanine,"Alanine dipeptide, xi = (phi, psi)  [vacuum]",abf,4,0.0,0.0,0.0,0/4,0.0,1.0,1.0,neither_reaches
+alanine,"Alanine dipeptide, xi = (phi, psi)  [vacuum]",mfr_oracle,4,-0.01,-0.05,0.01,3/4,-0.0,1.0,1.0,neither_reaches
+alanine,"Alanine dipeptide, xi = (phi, psi)  [vacuum]",mfr_oracle_r015,4,-0.0,-0.05,0.01,2/4,0.02,1.0,1.0,neither_reaches
+alanine,"Alanine dipeptide, xi = (phi, psi)  [vacuum]",mfr_oracle_r045,4,0.02,0.0,0.03,0/4,0.05,1.0,1.0,neither_reaches

@@ -122,6 +122,22 @@ dynamical bottleneck rather than a support deficit, and pushing mFR hard enough 
 nominal support makes the free energy substantially worse while ancestor diversity collapses
 and round trips fall. Amplification is not discovery.
 
+\paragraph{The same result stated as convergence speed.}
+\Cref{sec:convergence} reads every benchmark on one endpoint --- the $\Ltwo$ free-energy error
+against simulation time --- rather than on a per-study verdict. The map does not change; it
+gains a unit a practitioner can act on. Of $\CvNCells$ systems and cells with both arms, mFR
+converges faster in $\CvNFaster$, is indistinguishable in $\CvNSame$, and is significantly
+slower in $\CvNSlower$, and where it helps the budget needed to reach ABF's final accuracy
+falls by $\CvEbEightSpeedup\times$, $\CvEbTwelveSpeedup\times$ and $\CvWcaSpeedup\times$.
+Two facts visible only on the curves qualify it. The two positive systems accelerate
+differently --- on WCA the advantage grows through the run ($\CvWcaFinal\%$ at the final time),
+on the gateway it is an early transient that reverses ($\CvGwFinal\%$ at the final time,
+against $\CvGwInt\%$ integrated) --- so the report claims finite-time acceleration and not an
+improved asymptotic rate. And the entropic bottleneck supplies a second, independent version
+of the attribution result of \cref{sec:wca_q1}: a uniform target with no Fisher--Rao
+construction in it recovers $\CvAblUni\%$ against the estimated target's $\CvAblEst\%$, while
+the oracle target is worse than ABF at $\CvAblOra\%$.
+
 \paragraph{Principal limitations.}
 The positive rests on two systems, one of them constructed for the purpose. The gateway's
 sham \emph{equivalence} test passes in the first confirmatory pass and misses the
@@ -130,7 +146,10 @@ rests on the direct arm-versus-sham contrast instead; on the WCA dimer that dire
 was preregistered, and the sham fails equivalence in the adverse direction. No practical
 (estimated-target) mFR arm was ever run on alanine, and no mFR arm at all was run on valine,
 whose screen stopped the study before one was justified. The deployable estimated target
-remains the binding constraint wherever an oracle target shows headroom. And every conclusion
+remains the binding constraint wherever an oracle target shows headroom. The two largest
+convergence gains in \cref{tab:conv_scoreboard} come from the entropic bottleneck, which is
+the one positive system with \emph{no} turnover-matched sham at any $\beta$, so for that
+system undirected resampling at the same intensity has not been excluded. And every conclusion
 is conditioned on the specific model, coordinate, budget, and implementation tested here.
 
 Finally, a parallel audit line in this repository --- forked from the same commit, closed

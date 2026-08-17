@@ -288,6 +288,24 @@ comparison (\cref{sec:wca_sham}), where it also passes, and that is the stronger
 two because nothing about it was chosen after the fact.
 \end{remark}
 
+\begin{remark}[The gain here is early, and the final-time endpoint reverses it]
+\label{rem:gw_reversal}
+The preregistered endpoint is the time integral $I_F$, and reading it alone conceals something
+the convergence atlas of \cref{sec:convergence} makes plain. On the replicate the mFR/ABF
+error ratio falls to $0.37$ by $t=3.0$, crosses back above unity at $t=16.6$, and ends at
+$1.11$: mFR wins $I_F$ on $\CvGwWins$ of $\CvGwSeeds$ seeds and \emph{loses} the final-time
+error $e_F(T)$ by $\CvGwFinal\%$ on all $\CvGwSeeds$. This is not in tension with the
+preregistered verdict --- $I_F$ was fixed in advance and is the endpoint this study reports ---
+but it does bound its interpretation. What the gateway demonstrates is that the population
+deficit is repaired sooner, which is what the model was built to test; it does not
+demonstrate that the converged free energy is better, and on this system it is not. The WCA
+dimer behaves oppositely, its advantage growing through the run
+(\cref{sec:conv_kind}), so the two positive systems in this report accelerate in different
+senses and neither on its own establishes the stronger reading. The frozen-bias endpoint,
+which removes the online accumulators, sides with $I_F$ at $\GwrFrozen\%$; that disagreement
+with $e_F(T)$ on the same runs is unresolved and is listed in \cref{sec:conclusion}.
+\end{remark}
+
 \subsection{Three things the design was built to rule out}
 \paragraph{It is establishment, not discovery.} In the mechanism control one walker starts
 across the gateway, so discovery is handed to the sampler for free and any remaining

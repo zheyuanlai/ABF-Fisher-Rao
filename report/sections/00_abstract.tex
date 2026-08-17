@@ -85,7 +85,8 @@ $[\GwrDirectCIlo, \GwrDirectCIhi]$. That run is a replicate on a corrected batch
 and is the one the preregistration's amendment nominates for quoting; the first pass gave
 $\GwcEstGain\%$ and $\GwcDirect\%$ and is neither withdrawn nor overwritten. An
 estimator-independent frozen-bias endpoint, which
-discards the online accumulators entirely, agrees at $\GwcFrozen\%$.
+discards the online accumulators entirely, agrees on both passes
+($\GwrFrozen\%$ on the replicate, $\GwcFrozen\%$ on the first).
 
 The same control is then carried to the many-body system. At the accepted WCA-dimer
 configuration, on \WcsSeeds{} fresh seeds with no hyperparameter reopened, practical mFR
@@ -149,6 +150,28 @@ predictor is the measured ABF error itself, which presupposes the reference free
 method exists to estimate. The same audit shows the error budget is $\VmBiasFracAbf$ bias, so
 marginal reallocation is a bias-reduction mechanism that costs a little variance rather than a
 variance-reduction one.
+
+Read on a single endpoint common to every benchmark --- the $\Ltwo$ free-energy error against
+simulation time, which each case already stores per seed --- the same regime map becomes a
+statement about \emph{convergence speed}, and a sharper one, because it is the endpoint a
+practitioner buys. Of $\CvNCells$ distinct systems and cells with both arms, mFR converges
+faster in $\CvNFaster$, is indistinguishable in $\CvNSame$, and is significantly slower in
+$\CvNSlower$; where it does help, the budget needed to reach ABF's final accuracy falls by
+factors of $\CvEbEightSpeedup$, $\CvEbTwelveSpeedup$ and $\CvWcaSpeedup$. Two qualifications
+travel with that. The two positive systems disagree about \emph{what} is accelerated: on the
+WCA dimer the advantage grows through the run and the final-time error is $\CvWcaFinal\%$,
+while on the gateway it is an early transient that reverses, winning the integrated endpoint
+on $\CvGwWins/\CvGwSeeds$ seeds and losing the final-time endpoint by $\CvGwFinal\%$ on all of
+them; and the frozen-bias controls, which re-evaluate the learned bias without the online
+accumulators, keep the sign on WCA but at $\CvWcaFrozen\%$ rather than $\CvWcaFinal\%$. We
+therefore claim finite-time acceleration in an identified regime and explicitly not an improved
+asymptotic rate. The same reading supplies a second, independent instance of the
+attribution result: at $\beta=8$ in the entropic bottleneck a \emph{uniform} target, carrying
+no Fisher--Rao construction at all, returns $\CvAblUni\%$ against the estimated target's
+$\CvAblEst\%$, while the oracle target is $\CvAblOra\%$ --- worse than ABF. Set against it is
+the study's one monotone dose--response: over a $50\times$ range in the selection rate the
+integrated error falls at every step, from $\CvDoseOne\%$ to $\CvDoseFifty\%$, with the cell
+quoted throughout this report not the maximum of that ladder.
 
 Across all cases, FR is best understood as a
 marginal-reallocation mechanism whose value depends on how starved the ABF estimator is

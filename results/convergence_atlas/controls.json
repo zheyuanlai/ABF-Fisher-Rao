@@ -1,0 +1,103 @@
+{
+  "frozen_bias_wca": {
+    "b1_h2::fr_estimated::stored_superseded_ref": {
+      "median_pct": -3.4883598348877296,
+      "wins": 7,
+      "n": 8,
+      "abf_median": 0.21903174734807196,
+      "arm_median": 0.21224831967533886
+    },
+    "b1_h2::fr_estimated_adaptive::stored_superseded_ref": {
+      "median_pct": -0.06465111905738018,
+      "wins": 4,
+      "n": 8,
+      "abf_median": 0.21903174734807196,
+      "arm_median": 0.2167829710662388
+    },
+    "b1_h2::fr_estimated::corrected_ref": {
+      "median_pct": -4.002513216793609,
+      "wins": 7,
+      "n": 8,
+      "abf_median": 0.21189231115526827,
+      "arm_median": 0.2050190115724705
+    },
+    "b1_h2::fr_estimated_adaptive::corrected_ref": {
+      "median_pct": 0.0031157651790101326,
+      "wins": 4,
+      "n": 8,
+      "abf_median": 0.21189231115526827,
+      "arm_median": 0.20974109517149872
+    },
+    "b4_h1::fr_estimated::stored_superseded_ref": {
+      "median_pct": 1.3753525743053743,
+      "wins": 3,
+      "n": 8,
+      "abf_median": 0.01774801000611169,
+      "arm_median": 0.018784236587036904
+    },
+    "b4_h1::fr_estimated_adaptive::stored_superseded_ref": {
+      "median_pct": -7.27397980324741,
+      "wins": 5,
+      "n": 8,
+      "abf_median": 0.01774801000611169,
+      "arm_median": 0.01693207321678263
+    }
+  },
+  "entropic_bottleneck": {
+    "target_ablation_beta8": {
+      "fr_estimated": {
+        "median_pct": -42.63023496323115,
+        "wins": 5,
+        "n": 5
+      },
+      "fr_oracle": {
+        "median_pct": 10.402319374065337,
+        "wins": 1,
+        "n": 5
+      },
+      "fr_uniform": {
+        "median_pct": -39.38427736723478,
+        "wins": 5,
+        "n": 5
+      }
+    },
+    "gamma_dose_response_beta8": {
+      "gamma1": {
+        "median_pct": -6.28983616144161,
+        "wins": 7,
+        "n": 10
+      },
+      "gamma3": {
+        "median_pct": -8.845968974510168,
+        "wins": 8,
+        "n": 10
+      },
+      "gamma5": {
+        "median_pct": -21.692683527747462,
+        "wins": 9,
+        "n": 10
+      },
+      "gamma10": {
+        "median_pct": -30.290745966083968,
+        "wins": 10,
+        "n": 10
+      },
+      "gamma15": {
+        "median_pct": -43.728731956743836,
+        "wins": 10,
+        "n": 10
+      },
+      "gamma25": {
+        "median_pct": -53.267247875391206,
+        "wins": 10,
+        "n": 10
+      },
+      "gamma50": {
+        "median_pct": -62.23835120328577,
+        "wins": 10,
+        "n": 10
+      }
+    }
+  },
+  "gateway_frozen_bias_note": "results/gateway_anchor/confirmatory_v2/raw.npz stores frozen_l2_f_kT: mFR vs ABF is -10.19 % on 24/32 seeds, while the ONLINE final-time l2_f is +11.28 % on 0/32. The two disagree in sign and both are 'the accuracy at the end of the run'."
+}
