@@ -18,19 +18,26 @@ import numpy as np
 # Arrays every production record must carry.
 REQUIRED_ARRAYS = (
     "time",         # (n_saves,) physical time of each checkpoint
-    "pmf_t",        # (n_saves, G) F_hat at each checkpoint, eval-window-centered
-    "marginal_t",   # (n_saves, G) KDE p_hat at each checkpoint
-    "x_grid",       # (G,)
-    "F_ref",        # (G,) reference profile the run was scored against
+    "pmf_t",        # (n_saves, G) or (n_prof, n1, n2) F_hat at each checkpoint
+    "marginal_t",   # KDE p_hat at each checkpoint, same layout as pmf_t
+    "F_ref",        # reference profile the run was scored against
 )
+# The grid itself: 1D records carry x_grid, 2D torus records x1_grid + x2_grid.
+GRID_KEY_SETS = (("x_grid",), ("x1_grid", "x2_grid"))
 # Metadata every production record must carry.
 REQUIRED_META = ("reference_id", "eval_window", "config", "method", "seed")
 
 
+def _check_arrays(arrays, where):
+    missing = [k for k in REQUIRED_ARRAYS if k not in arrays]
+    assert not missing, f"{where} missing required arrays {missing}; refusing"
+    assert any(all(k in arrays for k in ks) for ks in GRID_KEY_SETS), \
+        f"{where} carries no grid (need x_grid or x1_grid+x2_grid); refusing"
+
+
 def save_run(path, arrays: dict, meta: dict):
     """Write <path>.npz (arrays) + <path>.json (metadata).  Hard-asserts the schema."""
-    missing = [k for k in REQUIRED_ARRAYS if k not in arrays]
-    assert not missing, f"run record missing required arrays {missing}; refusing to save"
+    _check_arrays(arrays, "run record")
     missing = [k for k in REQUIRED_META if k not in meta]
     assert not missing, f"run record missing required metadata {missing}; refusing to save"
     os.makedirs(os.path.dirname(os.path.abspath(path)) or ".", exist_ok=True)
@@ -44,8 +51,7 @@ def load_run(path):
         arrays = {k: z[k] for k in z.files}
     with open(path + ".json") as f:
         meta = json.load(f)
-    missing = [k for k in REQUIRED_ARRAYS if k not in arrays]
-    assert not missing, f"stored record at {path} is missing arrays {missing}"
+    _check_arrays(arrays, f"stored record at {path}")
     return arrays, meta
 
 

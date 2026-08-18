@@ -275,3 +275,24 @@ def test_sham_copies_partner_turnover_2d():
     r_sh = next(r for r in recs if r["method"]["name"] == "sham")
     assert np.array_equal(r_fr["event_turnover"], r_sh["event_turnover"])
     assert r_fr["event_turnover"].sum() > 0
+
+
+def test_2d_record_schema_roundtrip(tmp_path):
+    from abpfr.io import load_run, save_run
+    cfg = small_cfg(n_steps=400, n_saves=5, profile_every=2)
+    rec = t2.simulate_batch([cfg], [0], [Method("shus")], batch_seed=4,
+                            device=DEVICE, dtype=DTYPE)[0]
+    arrays = {k: rec[k] for k in ("time", "profile_time", "pmf_t", "marginal_t",
+                                  "x1_grid", "x2_grid", "F_ref", "l2_f_t",
+                                  "kl_u_t", "P_regions")}
+    meta = {"reference_id": rec["reference_id"], "eval_window": rec["eval_window"],
+            "config": rec["config"], "method": rec["method"], "seed": rec["seed"]}
+    p = str(tmp_path / "rec2d")
+    save_run(p, arrays, meta)
+    back, meta2 = load_run(p)
+    assert np.array_equal(back["pmf_t"], np.asarray(rec["pmf_t"]))
+    assert meta2["reference_id"] == t2.REFERENCE_ID
+    # a record with NO grid at all must still be refused
+    bad = {k: v for k, v in arrays.items() if k not in ("x1_grid", "x2_grid")}
+    with pytest.raises(AssertionError):
+        save_run(str(tmp_path / "bad"), bad, meta)
