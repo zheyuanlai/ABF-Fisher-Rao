@@ -132,6 +132,31 @@ frozen FR winner does not have (Stage 3: -11.4% I_F WITH eT ratio 0.837).
   (same protocol as Stage 3) if the primary result is a near-tie (<5% separation),
   since then the online-estimator artifact question matters most.
 
+### A2 outcome (2026-08-18, seeds 300-315 — recorded, not to be edited)
+
+* dI_F vs shus(g=1): shus_gbest(1.5) -10.7% [-12.1, -9.7]; fr_temp -11.9%
+  [-12.4, -10.5]; count -12.1% [-13.0, -11.4]; sham -0.1% (inert, replicated).
+* **Frozen primary contrast fr_temp vs shus_gbest: -0.9% [-3.5, 0.6] — TIE.
+  Verdict by the frozen rule: no headline claim; point estimate recorded.**
+* Online final error: fr_temp/count eT ratios 0.883/0.895 vs gbest 0.963 (modest
+  FR edge); gbest's speed ladder is erratic (S = 1.27/0.99/1.17) vs fr_temp's
+  uniform modest 1.10/1.05/1.04.
+* Frozen-bias: the in-run 60k endpoint suggested a large FR edge (0.762 vs 0.962),
+  but the 200k equilibrated rescoring (same Stage-3 protocol) shows it was
+  relaxation-limited: all non-sham arms collapse to l2 ~ 0.003 with fr_temp vs
+  gbest = 0.997 [0.729, 1.311] (tie); fr_temp vs shus = 0.919 [0.843, 0.993]
+  (small, significant); gbest vs shus = 0.813 [0.679, 1.205] (n.s., wide).
+* Reading (within the frozen vocabulary): on this 1D gateway a one-parameter
+  adaptation-rate increase reproduces the FR-sized I_F gain; temporary FR achieves
+  the same net effect through a different mechanism (an 8%-of-run population
+  intervention with uniform modest speedups and slightly better online final
+  error) rather than a globally faster adaptation law. Count balancing ties FR for
+  the third time — the fine FR geometry remains non-specific in 1D. Q1's practical
+  answer: **FR is not necessary on the gateway at K = 1024; it is one of (at
+  least) two equally effective ways to buy the same integrated-error improvement —
+  the open FR-specific questions move to resource scaling (Q2), dimensionality
+  (Q3), and clone decorrelation (Q4).**
+
 ## Phase B — WCA population-size / resource-scaling map (Q2)   [FROZEN 2026-08-18]
 
 New study; the closed Stage-4 null at K = 1024 is untouched and reused as this map's
