@@ -10,7 +10,13 @@ g_best selection rule (frozen): among gains with median paired e_F(T) ratio vs
 g = 1.0 <= 1.05, the lowest median paired dI_F wins; qualifying gains within 2% of
 the winner resolve toward g closest to 1.0.
 
-Usage: python scripts/run_appmap_phaseA_gain.py
+A1b extension (amendment frozen 2026-08-18 in the prereg doc): --extend "2.0,3.0"
+runs additional gains with the SAME seeds and batch_seed — the engine noise stream is
+method-independent, so extension rows are exactly noise-paired with the stored A1
+rows; paired stats are computed against the stored g=1 records and the g_best rule
+re-applies over the union of screened gains.
+
+Usage: python scripts/run_appmap_phaseA_gain.py [--extend "2.0,3.0"]
 """
 import json
 import os
@@ -55,14 +61,15 @@ def ring_metrics(rec, e_star, t_hit):
                 overshoot=float(rec["P_regions"][:, 2].max()))
 
 
-def main():
+def main(gains=GAINS, prior_summary=None):
     device = gw.DEVICE
     print(f"device: {device}")
     cfgs = [gw.GatewayConfig(**CELL, **COMMON) for _ in SEEDS]
     T = cfgs[0].T_total
-    arms = [gw.Method(gname(g), g_shus=g) for g in GAINS]
-    print(f"Phase A1: anchor_D, {len(SEEDS)} seeds x {len(GAINS)} gains "
-          f"= {len(SEEDS)*len(GAINS)} rows, T={T:.0f}, plain SHUS only")
+    arms = [gw.Method(gname(g), g_shus=g) for g in gains]
+    print(f"Phase A1{'b' if prior_summary else ''}: anchor_D, {len(SEEDS)} seeds x "
+          f"{len(gains)} gains = {len(SEEDS)*len(gains)} rows, T={T:.0f}, "
+          f"plain SHUS only")
     t0 = time.time()
     recs = gw.simulate_batch(cfgs, SEEDS, arms, batch_seed=BATCH_SEED,
                              device=device, progress=50_000)
@@ -90,7 +97,7 @@ def main():
     e_star = fp["e_star"]
     print(f"D_tol={D_tol:.5f}  e*={e_star:.5f}")
 
-    by = {g: {} for g in GAINS}          # gain -> seed -> row dict
+    by = {g: {} for g in gains}          # gain -> seed -> row dict
     for rec in recs:
         g = rec["method"]["g_shus"]
         t = rec["time"]
@@ -100,9 +107,14 @@ def main():
                    I_F=float(rec["int_l2_f"]), eT=float(rec["l2_f_t"][-1]),
                    **ring_metrics(rec, e_star, th))
         by[g][rec["seed"]] = row
+    if prior_summary is not None:        # A1b: merge the stored (noise-paired) rows
+        for g in prior_summary["gains"]:
+            by[float(g)] = {r["seed"]: r
+                            for r in prior_summary["rows"][gname(g)]["per_seed"]}
+    all_gains = sorted(by)
 
     # ---- paired comparison vs g = 1.0 and frozen g_best selection ----------------
-    summary = {"cell": CELL, "common": COMMON, "seeds": SEEDS, "gains": list(GAINS),
+    summary = {"cell": CELL, "common": COMMON, "seeds": SEEDS, "gains": all_gains,
                "batch_seed": BATCH_SEED, "D_tol": D_tol, "e_star": e_star,
                "noise95": noise95, "wall_s": wall, "rows": {}, "paired": {}}
     med = lambda rows, k: float(np.nanmedian([r[k] for r in rows]))
@@ -110,7 +122,7 @@ def main():
     print(f"\n{'gain':>6s} {'T_hit':>7s} {'T_est':>7s} {'I_F':>7s} {'e_F(T)':>8s} "
           f"{'dI_F%':>18s} {'eT ratio':>9s} {'flips':>6s} {'ringout':>8s} {'ovsh':>6s}")
     qualified = {}
-    for g in GAINS:
+    for g in all_gains:
         rows = list(by[g].values())
         dI = np.array([(by[g][sd]["I_F"] - base[sd]["I_F"]) / base[sd]["I_F"]
                        for sd in SEEDS])
@@ -143,16 +155,18 @@ def main():
     with open(os.path.join(OUT, "summary.json"), "w") as f:
         json.dump(summary, f, indent=2, default=float)
     print(f"summary -> {OUT}/summary.json")
-    make_figure(recs)
+    make_figure(recs, gains,
+                "phaseA_gain_overview_ext.png" if prior_summary
+                else "phaseA_gain_overview.png")
 
 
-def make_figure(recs):
+def make_figure(recs, gains=GAINS, fname="phaseA_gain_overview.png"):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    cmap = {g: f"C{i}" for i, g in enumerate(GAINS)}
+    cmap = {g: f"C{i}" for i, g in enumerate(gains)}
     fig, axes = plt.subplots(2, 2, figsize=(12, 8), sharex=True)
-    for g in GAINS:
+    for g in gains:
         rs = [r for r in recs if r["method"]["g_shus"] == g]
         t = rs[0]["time"]
         for key, ax in (("l2_f_t", axes[0, 0]), ("kl_u_t", axes[0, 1])):
@@ -178,9 +192,22 @@ def make_figure(recs):
     fig.suptitle("Phase A1: plain-SHUS adaptation-gain screen on anchor_D "
                  "(16 seeds; no FR)")
     fig.tight_layout()
-    fig.savefig(os.path.join(OUT, "phaseA_gain_overview.png"), dpi=130)
-    print(f"figure -> {OUT}/phaseA_gain_overview.png")
+    fig.savefig(os.path.join(OUT, fname), dpi=130)
+    print(f"figure -> {OUT}/{fname}")
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--extend", type=str, default=None,
+                    help='comma-separated extra gains, e.g. "2.0,3.0" (A1b)')
+    a = ap.parse_args()
+    if a.extend:
+        new_gains = tuple(float(x) for x in a.extend.split(","))
+        with open(os.path.join(OUT, "summary.json")) as f:
+            prior = json.load(f)
+        assert not (set(new_gains) & set(float(g) for g in prior["gains"])), \
+            "extension gains overlap the stored screen"
+        main(gains=new_gains, prior_summary=prior)
+    else:
+        main()

@@ -72,6 +72,29 @@ K = 1024, dt = 2e-4, n_steps = 500_000 (T = 100), n_saves = 400.
   If two qualifying gains are within 2% relative median I_F of each other, pick the
   one closer to 1.0. If no gain other than 1.0 qualifies, g_best = 1.0.
 
+### A1 outcome (2026-08-18, seeds 200-215 — recorded, not to be edited)
+
+Median paired dI_F vs g = 1.0: g 0.25: +85.5% [83.8, 88.5] (T_est censored);
+g 0.5: +30.8% (eT ratio 1.27 — NOT qualified); g 0.75: +10.9% (eT ratio 0.83);
+g 1.5: **-9.4% [-10.0, -8.6]** (eT ratio 0.96), with earlier discovery (T_hit 3.75
+vs 4.5), earlier establishment (T_est 28.5 vs 38.5) and smaller occupancy overshoot
+(0.660 vs 0.682). **The "SHUS too aggressive" hypothesis is refuted in its original
+form: slowing adaptation hurts; speeding it up recovers most of the FR-sized gain.**
+g_best by the frozen rule = 1.5 — at the BOUNDARY of the frozen grid.
+
+### A1b — grid extension (amendment, FROZEN 2026-08-18 before any A1b run)
+
+Because g_best landed on the grid boundary, A2 against g = 1.5 could understate what
+gain tuning alone achieves and bias Q1 toward FR. Extension, decided before any A1b
+run exists: same cell, same seeds 200-215, same batch_seed 20260824 — the engine's
+noise stream is method-independent, so a new batch with arms
+`g_shus in {2.0, 3.0}` is EXACTLY noise-paired with the stored A1 rows; paired
+statistics are computed against the stored g = 1.0 records. Same qualifying and
+selection rules, applied over the union of A1 and A1b gains. If g = 3.0 is the
+argmin AND improves the median paired dI_F by more than 2 percentage points over
+g = 2.0, one final extension {4.5, 6.0} runs under the same rules; no extension
+beyond 6.0 regardless. A2 then uses the overall g_best.
+
 ### A2 — best-tuned SHUS vs the frozen FR winner
 
 * Seeds: **300..315** (16 fresh matched seeds). One paired batch, arms:
