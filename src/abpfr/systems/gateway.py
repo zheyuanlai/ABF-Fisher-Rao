@@ -156,6 +156,11 @@ class Method:
     t_off_frac: float = 0.0
     fr_every_blocks: int = 5     # FR event stride, in adaptation blocks
     alpha_ess: float = 0.5       # ESS_FR floor as a fraction of K
+    coarse_bins: int = 0         # >0: count-balancing control -- the weight density
+                                 # is a piecewise-constant histogram over this many
+                                 # equal bins instead of the fine KDE (tests whether
+                                 # the fine FR geometry matters beyond coarse
+                                 # population balancing)
 
 
 SHUS = Method("shus")
@@ -274,6 +279,11 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
     is_fr_row = torch.tensor([m.use_fr and not m.sham for m in methods],
                              device=device).repeat(B)
     is_sham_row = torch.tensor([m.sham for m in methods], device=device).repeat(B)
+    is_coarse_row = torch.tensor([m.coarse_bins > 0 for m in methods],
+                                 device=device).repeat(B)
+    coarse_nb = max((m.coarse_bins for m in methods), default=0)
+    assert all(m.coarse_bins in (0, coarse_nb) for m in methods), \
+        "all count-balancing arms in one batch must share coarse_bins"
     theta0 = torch.tensor([m.theta if (m.use_fr and not m.sham) else 0.0
                            for m in methods], device=device, dtype=dtype).repeat(B)
     alpha_ess = torch.tensor([m.alpha_ess for m in methods], device=device,
@@ -399,6 +409,18 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
                 if bool(fr_act.any()):
                     p_hat = binned_density(X, k_eta, r_eta, GRID)
                     logr = uniform_log_ratio(X, p_hat, GRID)
+                    if coarse_nb > 0 and bool((fr_act & is_coarse_row).any()):
+                        # count-balancing control: piecewise-constant histogram
+                        # density over coarse_nb equal bins replaces the fine KDE
+                        bw = (GRID.xmax - GRID.xmin) / coarse_nb
+                        bidx = torch.clamp(((X - GRID.xmin) / bw).long(),
+                                           0, coarse_nb - 1)
+                        cnt = torch.zeros((R, coarse_nb), device=device, dtype=dtype)
+                        cnt.scatter_add_(1, bidx, torch.ones_like(X))
+                        p_coarse = torch.clamp(cnt / (K * bw), min=EPS)
+                        logr_c = (-math.log(GRID.volume)
+                                  - torch.log(torch.gather(p_coarse, 1, bidx)))
+                        logr = torch.where(is_coarse_row.unsqueeze(1), logr_c, logr)
                     w, theta_used, essf = theta_backoff(logr, theta0, alpha_ess)
                     sel_fr = systematic_resample(w, gen_f)
                     turn_fr = turnover_counts(sel_fr, K)

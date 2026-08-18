@@ -84,9 +84,19 @@ run exists**. No value in this file may change after that commit.
      Fisher-Rao DIRECTION, not by generic turnover.
    * Frozen Stage-3 ancestry floors (from pilot winner margins): min windowed
      `ESS_anc/K >= 0.5` and final `n_anc/K >= 0.5`.
-3. **Confirmatory (5 arms, 32 fresh matched seeds each):** plain SHUS; temporary FR;
-   persistent FR; matched-turnover sham; count balancing. Same `K`, same steps, same
-   force-evaluation budget, paired seeds and noise.
+3. **Confirmatory (5 arms, 32 fresh matched seeds each) — arms finalized
+   2026-08-18, before any confirmatory run:** production seeds `100..131` on
+   anchor_D; same `K`, steps, force budget, paired seeds and noise.
+   * `shus` — plain baseline;
+   * `fr_temp` — the frozen pilot winner: theta 0.01, stride 10 blocks, [6, 14];
+   * `fr_persistent` — same theta/stride, window [6, T] (overdamping prediction);
+   * `sham` — matched-turnover control shadowing `fr_temp`;
+   * `count` — count balancing: same theta/stride/window as `fr_temp`, but weights
+     from a piecewise-constant 9-bin histogram instead of the fine KDE (does the
+     fine Fisher-Rao geometry matter beyond coarse balancing?).
+   Mandatory endpoint: frozen-bias validation — each arm's final learned bias is
+   scored by an independent fresh-population run (paired noise per seed), so the
+   comparison cannot be an artifact of the online estimator's statistics.
 
 ## Co-primary endpoints (confirmatory)
 

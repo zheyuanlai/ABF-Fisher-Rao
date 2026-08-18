@@ -162,6 +162,48 @@ def test_global_vs_windowed_ancestry():
     assert np.all(r_fr["ess_anc_glob_t"] <= r_fr["ess_anc_t"] + 1e-9)
 
 
+def test_count_balancing_arm_fires_and_differs_from_fr():
+    cfg = small_cfg(n_steps=4000, n_saves=10)
+    fr = gw.Method("shus_fr", use_fr=True, theta=0.2, t_on_frac=0.1, t_off_frac=0.9,
+                   fr_every_blocks=5)
+    cb = gw.Method("count", use_fr=True, theta=0.2, t_on_frac=0.1, t_off_frac=0.9,
+                   fr_every_blocks=5, coarse_bins=9)
+    recs = gw.simulate_batch([cfg], [4], [gw.SHUS, fr, cb], batch_seed=31,
+                             device=DEVICE, dtype=DTYPE)
+    r_fr = next(r for r in recs if r["method"]["name"] == "shus_fr")
+    r_cb = next(r for r in recs if r["method"]["name"] == "count")
+    assert r_cb["event_turnover"].sum() > 0            # it fires
+    assert not np.array_equal(r_fr["pmf_t"], r_cb["pmf_t"])   # different mechanism
+    assert r_cb["method"]["coarse_bins"] == 9
+
+
+def test_coarse_weights_equalize_occupied_bins():
+    """theta=1 count balancing must flatten the coarse histogram on its support."""
+    import math as m
+    from abpfr.fisher_rao import fr_weights
+    from abpfr.resampling import systematic_resample
+    K, nb = 30_000, 9
+    gen = torch.Generator().manual_seed(7)
+    # skewed population over three coarse bins of [-1.8, 1.8]
+    parts = [torch.empty(int(K * f)).uniform_(lo, hi, generator=gen) for f, lo, hi in
+             ((0.7, -1.8, -1.4), (0.2, -0.2, 0.2), (0.1, 1.4, 1.8))]
+    X = torch.cat(parts).unsqueeze(0).to(DTYPE)
+    bw = 3.6 / nb
+    bidx = torch.clamp(((X + 1.8) / bw).long(), 0, nb - 1)
+    cnt = torch.zeros((1, nb), dtype=DTYPE)
+    cnt.scatter_add_(1, bidx, torch.ones_like(X))
+    p_coarse = torch.clamp(cnt / (X.shape[1] * bw), min=1e-30)
+    logr = -m.log(3.6) - torch.log(torch.gather(p_coarse, 1, bidx))
+    w, _ = fr_weights(logr, torch.tensor([1.0], dtype=DTYPE))
+    Xr = torch.gather(X, 1, systematic_resample(w, gen))
+    cnt2 = torch.zeros((1, nb), dtype=DTYPE)
+    cnt2.scatter_add_(1, torch.clamp(((Xr + 1.8) / bw).long(), 0, nb - 1),
+                      torch.ones_like(Xr))
+    occ = cnt2[0][cnt2[0] > 0]
+    assert len(occ) == 3
+    assert float(occ.max() / occ.min()) < 1.05         # occupied bins equalized
+
+
 def test_record_schema_roundtrip(tmp_path):
     from abpfr.io import load_run, save_run
     cfg = small_cfg(n_steps=400, n_saves=5)
