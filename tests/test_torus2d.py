@@ -296,3 +296,18 @@ def test_2d_record_schema_roundtrip(tmp_path):
     bad = {k: v for k, v in arrays.items() if k not in ("x1_grid", "x2_grid")}
     with pytest.raises(AssertionError):
         save_run(str(tmp_path / "bad"), bad, meta)
+
+
+def test_mixed_count_resolutions_one_batch():
+    """count6/count9/count12 arms coexist in one paired batch; each equalizes at
+    its own resolution and they produce distinct trajectories."""
+    cfg = small_cfg(n_steps=2000, n_saves=10)
+    mk = lambda nb: Method(f"count{nb}", use_fr=True, theta=0.3, t_on_frac=0.1,
+                           t_off_frac=0.9, fr_every_blocks=5, coarse_bins=nb)
+    recs = t2.simulate_batch([cfg], [2], [Method("shus"), mk(6), mk(9), mk(12)],
+                             batch_seed=31, device=DEVICE, dtype=DTYPE)
+    by = {r["method"]["name"]: r for r in recs}
+    for nb in (6, 9, 12):
+        assert by[f"count{nb}"]["event_turnover"].sum() > 0
+    assert not np.array_equal(by["count6"]["pmf_t"], by["count9"]["pmf_t"])
+    assert not np.array_equal(by["count9"]["pmf_t"], by["count12"]["pmf_t"])

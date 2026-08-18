@@ -147,9 +147,9 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
     is_sham_row = torch.tensor([m.sham for m in methods], device=device).repeat(B)
     is_coarse_row = torch.tensor([m.coarse_bins > 0 for m in methods],
                                  device=device).repeat(B)
-    coarse_nb = max((m.coarse_bins for m in methods), default=0)
-    assert all(m.coarse_bins in (0, coarse_nb) for m in methods), \
-        "all count-balancing arms in one batch must share coarse_bins"
+    # per-row resolutions: the 2D event supports mixed coarse_bins in one batch
+    coarse_nb = torch.tensor([m.coarse_bins for m in methods], device=device,
+                             dtype=torch.long).repeat(B)
     theta0 = torch.tensor([m.theta if (m.use_fr and not m.sham) else 0.0
                            for m in methods], device=device, dtype=dtype).repeat(B)
     alpha_ess = torch.tensor([m.alpha_ess for m in methods], device=device,

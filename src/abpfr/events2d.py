@@ -25,9 +25,21 @@ from .resampling import (matched_turnover_indices, systematic_resample,
 
 def fr_event2(z1, z2, fr_act, sham_act, is_coarse_row, coarse_nb, partner, theta0,
               alpha_ess, k1, r1, k2, r2, grid: GridT2, gen):
-    """Returns (sel, turn, theta_used, essf).  z1, z2: (R, K) torus coordinates."""
+    """Returns (sel, turn, theta_used, essf).  z1, z2: (R, K) torus coordinates.
+
+    coarse_nb: an int (uniform resolution for the masked rows, the 1D-style
+    convention) or an (R,) long tensor of per-row resolutions (0 = fine KDE) —
+    the resolution study runs 6x6 / 9x9 / 12x12 arms in ONE paired batch.
+    """
     R, K = z1.shape
     device, dtype = z1.device, z1.dtype
+    if torch.is_tensor(coarse_nb):
+        nb_row = coarse_nb.to(device=device, dtype=torch.long)
+    else:
+        nb_row = torch.where(is_coarse_row,
+                             torch.full((R,), int(coarse_nb), device=device,
+                                        dtype=torch.long),
+                             torch.zeros(R, device=device, dtype=torch.long))
     sel = torch.arange(K, device=device).unsqueeze(0).expand(R, K).clone()
     turn = torch.zeros(R, device=device, dtype=torch.long)
     theta_used = torch.zeros(R, device=device, dtype=dtype)
@@ -35,18 +47,21 @@ def fr_event2(z1, z2, fr_act, sham_act, is_coarse_row, coarse_nb, partner, theta
     if bool(fr_act.any()):
         p_hat = binned_density2(z1, z2, k1, r1, k2, r2, grid)
         logr = uniform_log_ratio2(z1, z2, p_hat, grid)
-        if coarse_nb > 0 and bool((fr_act & is_coarse_row).any()):
-            bw1 = grid.L1 / coarse_nb
-            bw2 = grid.L2 / coarse_nb
-            b1 = torch.remainder(((z1 - grid.x1min) / bw1).long(), coarse_nb)
-            b2 = torch.remainder(((z2 - grid.x2min) / bw2).long(), coarse_nb)
-            bidx = b1 * coarse_nb + b2
-            cnt = torch.zeros((R, coarse_nb * coarse_nb), device=device, dtype=dtype)
+        for nb in sorted(set(nb_row[nb_row > 0].tolist())):
+            rows = (nb_row == nb) & fr_act
+            if not bool(rows.any()):
+                continue
+            bw1 = grid.L1 / nb
+            bw2 = grid.L2 / nb
+            b1 = torch.remainder(((z1 - grid.x1min) / bw1).long(), nb)
+            b2 = torch.remainder(((z2 - grid.x2min) / bw2).long(), nb)
+            bidx = b1 * nb + b2
+            cnt = torch.zeros((R, nb * nb), device=device, dtype=dtype)
             cnt.scatter_add_(1, bidx, torch.ones_like(z1))
             p_coarse = torch.clamp(cnt / (K * bw1 * bw2), min=EPS)
             logr_c = (-math.log(grid.volume)
                       - torch.log(torch.gather(p_coarse, 1, bidx)))
-            logr = torch.where(is_coarse_row.unsqueeze(1), logr_c, logr)
+            logr = torch.where(rows.unsqueeze(1), logr_c, logr)
         w, th, ef = theta_backoff(logr, theta0, alpha_ess)
         sel_fr = systematic_resample(w, gen)
         turn_fr = turnover_counts(sel_fr, K)

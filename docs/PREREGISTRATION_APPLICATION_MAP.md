@@ -237,6 +237,38 @@ The campaign proceeds to the 2D geometry question (Q3, Phase D).**
   with the frozen vocabulary; FR eligibility = median T_hit/T <= 0.2 AND
   median gap/T >= 0.25. A 2D FR/count experiment (D2+) runs ONLY on an
   establishment-limited cell, with its own design freeze first.
+  **D1 outcome (2026-08-18, seeds 0-7 — recorded, not to be edited):** the torus
+  map shows all three regimes, unlike WCA. t_easy SHUS-sufficient (gap 0.07);
+  **t_mid establishment-limited and ELIGIBLE (hit 0.038, est 0.804, gap 0.77,
+  zero censored)**; t_cold establishment-limited but unresolved within T = 200
+  (8/8 censored T_est — reserved, needs longer T); t_anchor discovery-limited
+  (hit 0.246: the 12 kT depth split blocks discovery — the regime reallocation
+  cannot help by construction, kept as a negative-control cell). **t_mid is the
+  2D anchor; D2 proceeds on it.**
+
+  **D2 — FR vs count-balancing resolution on t_mid [FROZEN 2026-08-18, before
+  any 2D FR run]:** fresh seeds 400..415, one paired batch, T = 200, frozen D1
+  numerics. FR transfer, unretuned: theta = 0.01, stride = 10 blocks. Window
+  from the frozen derivation rule on D1 SHUS-only data (t_on = ceil(Q90(T_hit))
+  = 14; t_off = t_on + 0.25 (Q50(T_est) - t_on) = 50 — the gateway winner's
+  25%-of-interval convention). Arms:
+  1. shus (baseline); 2. fr_temp (fine periodic KDE); 3. count6 (6x6);
+  4. count9 (9x9); 5. count12 (12x12); 6. sham (shadows fr_temp);
+  7. shus_g1.5 (gateway-transferred gain, exploratory secondary — the Phase-A
+  lesson demands the tuning comparison be visible in 2D too).
+  Primary endpoint: median paired dI_F vs shus with bootstrap CIs, plus the
+  direct paired contrasts fr_temp vs each count resolution. Q3 reading rules
+  (frozen): count ties FR at ALL resolutions -> the fine geometry is not the
+  active ingredient in 2D either; FR beats count only at the sparse resolutions
+  (12x12 or 12x12+9x9) while count6 ties -> the advantage is RESOLUTION, i.e.
+  smooth density estimation, not FR structure per se (record as such); FR beats
+  ALL count resolutions including 6x6 -> first evidence the smooth FR
+  reallocation itself matters. Ancestry floors as always (min windowed
+  ESS_anc/K >= 0.5, final n_anc/K >= 0.5) — an arm that violates them is
+  reported but not interpreted as a win. Engine note: events2d generalizes
+  coarse_nb to per-row values so all three resolutions share one paired batch;
+  the 1D events.py of the closed campaigns is untouched.
+
 * **Phase E (Q4):** one hidden-solvent stress benchmark chosen for a clean
   orthogonal descriptor, not for FR's expected success.
 
