@@ -52,6 +52,32 @@ copies its entire solvent environment.
   track parent/child decorrelation in xi and in one solvent descriptor after
   cloning (the practical face of the Cov(S, K_perp) defect).
 
+## STAGE-4 OUTCOME (2026-08-18, seeds 0-7 — recorded, not to be edited)
+
+**All three cells are SHUS-sufficient; the preregistered null fires and the WCA
+FR branch is closed without any WCA FR run.**
+
+* Discovery is immediate everywhere (median T_hit/T = 0.003-0.005, even for
+  b2h6's ~12 kT dimer barrier: SHUS floods it within a few time units).
+* The marginal reaches its tolerance within t ~ 25-50 of T = 500 (T_est/T
+  0.00-0.01 under the trailing-median rule; establishment gap ~ 0). The
+  stretched-occupancy overshoot exists but resolves by t ~ 50 — the same
+  transient shape as the gateway, ~50x shorter relative to budget.
+* Interpretation (the outcome the prereg anticipated): the gateway mechanism is
+  CONDITIONAL. Temporary directed reallocation helps an accumulating ABP where
+  establishment is slow relative to the budget; on these WCA cells SHUS
+  establishes almost immediately, so there is nothing for population damping to
+  damp. This asymmetry vs the old ABF campaign (where WCA b1h2 was starved) is
+  itself informative: SHUS's occupancy-driven flooding removes the population
+  deficit that mFR-ABF exploited.
+* Anomaly, documented (not affecting gates): b1h2's e_F(T) plateaus at ~0.16 kT
+  (13x the mollifier floor) as a smooth monotone TILT of F_hat vs the hp_v3
+  reference (+0.36 compact to -0.31 stretched), while the sampled marginal sits
+  at the noise floor. SHUS flattens the marginal it actually samples, so
+  F_hat -> F_dyn of the discretized clipped dynamics; the tilt measures
+  F_dyn - F_TI (dt / force-clip invariant-measure bias, common-mode across any
+  arms). dt-halving attribution check appended to the stage summary when done.
+
 ## Stopping rule
 
 Terminate the WCA branch if no cell passes the Stage-4 gate, or if transferred
