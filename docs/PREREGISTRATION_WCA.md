@@ -75,11 +75,22 @@ FR branch is closed without any WCA FR run.**
   reference (+0.36 compact to -0.31 stretched), while the sampled marginal sits
   at the noise floor. SHUS flattens the marginal it actually samples, so
   F_hat -> F_dyn of the discretized clipped dynamics; the tilt measures
-  F_dyn - F_TI, common-mode across any arms. Attribution: dt-halving left both
-  the error (0.186 -> 0.177) and the tilt slope (-0.63 -> -0.79) unchanged, so
-  it is NOT an O(dt) discretization effect (results/stage4_wca_screen/
-  dt_check.json); remaining candidates are the force clip (dt-independent) and
-  a reference-convention difference; clip ablation in clip_check.json.
+  F_dyn - F_TI, common-mode across any arms. Attribution (closed as far as it
+  can be without a new reference build):
+  - NOT our dt: halving left error (0.186 -> 0.177) and tilt slope
+    (-0.63 -> -0.79) unchanged (dt_check.json);
+  - NOT our force clip: 4x the clip at dt = 5e-4 left the slope unchanged
+    (-0.90 -> -0.85, clip_check.json);
+  - the remaining, consistent explanation is a PROTOCOL-FAMILY disagreement:
+    hp_v3 integrates the smoothed constrained mean force sampled by naive
+    per-step distance projection (no metric/Fixman weighting of the projected
+    measure, its own dt fixed at 2e-3), while SHUS measures the occupancy free
+    energy of the same engine. The old ABF campaign compared mean-force against
+    mean-force, so this systematic canceled there; occupancy-vs-mean-force
+    exposes it. Deciding which family is closer to the exact F would need an
+    independent estimate (metric-corrected TI or umbrella-reweighted unbiased
+    runs) — out of scope for the closed WCA branch, and irrelevant to paired
+    arm comparisons and to the reference-free gates that produced the verdict.
 
 ## Stopping rule
 
