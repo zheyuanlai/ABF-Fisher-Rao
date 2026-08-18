@@ -292,8 +292,62 @@ The campaign proceeds to the 2D geometry question (Q3, Phase D).**
     add anything?), t_cold with longer T, and the Q4 clone-decorrelation
     instrumentation before any solvated system.
 
+  **D3 — closing experiments on t_mid [FROZEN 2026-08-18, before any D3 run]:**
+  the user-approved final campaign: three jobs, then stop opening application
+  branches and take stock.
+
+  * **D3a — t_mid gain curve.** Seeds 400-415, batch_seed 20260828 (exactly
+    noise-paired with the stored D2 rows via the method-independent noise
+    stream). New arms g_shus in {2.0, 3.0, 4.0}; g = 1.0 and 1.5 come from the
+    stored D2 records. Pareto/qualifying rule as in A1: qualifying = median
+    paired e_F(T) ratio vs g = 1 <= 1.05; g* = lowest median paired I_F among
+    qualifying; gains within 2 points resolve toward SMALLER g. If g = 4 is the
+    argmin and beats g = 3 by > 2 points, one extension {6, 8}; hard cap 8.
+    Also recorded per gain: T_hit, T_est (needed for the D3b window).
+  * **D3b — the decisive test: tuned SHUS vs tuned SHUS + FR.** Fresh seeds
+    500-515, five arms: shus_g1 (anchor), shus_gstar (baseline), gstar+fr_temp
+    (theta = 0.01, stride 10, transferred unretuned), gstar+count9,
+    gstar+sham (shadows gstar+fr_temp). Window derived from D3a's g* rows by
+    the frozen rule t_on = ceil(Q90(T_hit)), t_off = t_on +
+    0.25 (Q50(T_est) - t_on). **Decision rule (frozen): median paired dI_F of
+    gstar+FR vs gstar >= -2% or CI straddles 0 -> "FR adds nothing on top of a
+    tuned base ABP on t_mid" and the SHUS-FR question on this cell is CLOSED;
+    <= -5% with CI < 0 AND beating its sham -> FR has independent value on top
+    of tuning (Outcome 1); between: point estimate, no headline.**
+  * **D4 — t_cold honest classification.** Seeds 0-7, T = 800
+    (n_steps = 800_000), arms shus + shus_g1.5 (secondary), same gates with the
+    same D_tol; classify with the frozen vocabulary AND the new mechanism
+    taxonomy: establishment deficit = (A) population-oscillatory (overshoot /
+    ring in basin occupancies and D_t after T_hit), (B) adaptation-rate-limited
+    (monotone slow flooding; the g arm removes it), (C) hidden-coordinate,
+    (D) statistical noise. Only a Type-A residual after gain tuning would
+    justify a future reallocation arm (own freeze first).
+  * **Q4a — first clone-decorrelation measurement (WCA solvent).** Purpose:
+    instrument tau_clone before ANY solvated FR claim; WCA runs remain
+    FR-free (the Q2 closure stands — this is measurement, not intervention).
+    Cells b1h2 + b2h6, K = 256, seeds 0-3. Protocol: plain SHUS to t0 = 100
+    (dt 2e-3), freeze the learned bias, select parents stratified over xi in
+    [0, 1] (8 bins x 8 parents), duplicate each parent into two children,
+    evolve all children under the frozen bias with independent noise to
+    lag 100. Descriptors: xi (dimer extension) and the orthogonal solvent
+    coordination n_coord(q) = sum_j s(min_bead |q_j - q_bead|),
+    s(r) = 0.5 (1 - tanh((r - r_c)/w_s)), r_c = 1.6 sigma, w_s = 0.1 sigma
+    (first-shell count). Decorrelation measure (frozen):
+    m(tau) = 1 - d_sib(tau)/d_ind(tau), with d = RMS pair difference and the
+    independent baseline built from same-bin parent pairs;
+    tau_clone = first tau with m <= 1/e. Report tau_clone^(xi) and
+    tau_clone^(perp) per cell, against the FR event stride (0.2 t) and the
+    establishment scales.
+
 * **Phase E (Q4):** one hidden-solvent stress benchmark chosen for a clean
-  orthogonal descriptor, not for FR's expected success.
+  orthogonal descriptor, not for FR's expected success. Next system after D3/D4/
+  Q4a: vacuum alanine dipeptide (port from the closed ABF-Fisher-Rao campaign),
+  run as a diagnostic benchmark with the staged plan: A (xi = phi, plain-SHUS
+  K-map + conditional psi diagnostics), B (xi = (phi, psi) 2D K-map), C (gain
+  tuning wherever slow), D (FR/count/sham only in a residual Type-A regime),
+  E (explicit solvent only if vacuum leaves a live question). Occupancy-based
+  references under the identical model; the mechanism taxonomy (A/B/C/D)
+  replaces the bare establishment-gap gate everywhere from here on.
 
 ## Stopping / interpretation rules (frozen)
 
