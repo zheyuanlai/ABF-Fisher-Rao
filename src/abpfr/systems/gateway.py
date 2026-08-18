@@ -27,11 +27,11 @@ from dataclasses import asdict, dataclass
 import numpy as np
 import torch
 
-from ..fisher_rao import kl_to_uniform, theta_backoff, tv_to_uniform, uniform_log_ratio
+from ..events import fr_event
+from ..fisher_rao import kl_to_uniform, tv_to_uniform
 from ..grid import (DEVICE, DTYPE, EPS, Grid1D, binned_density, central_diff,
                     gaussian_kernel, interp1d, reflect_into, smooth, trapz)
-from ..resampling import (ancestor_stats, matched_turnover_indices,
-                          surviving_ancestors, systematic_resample, turnover_counts)
+from ..resampling import ancestor_stats, surviving_ancestors
 from ..shus import ShusAccumulator
 
 REFERENCE_ID = "gateway-analytic-v1"
@@ -402,39 +402,11 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
             blk = (step + 1) // block
             if event_ptr < n_events and event_blocks[event_ptr] == blk:
                 active = fires[event_ptr]
-                fr_act = active & is_fr_row
-                sham_act = active & is_sham_row
-                sel = torch.arange(K, device=device).unsqueeze(0).expand(R, K).clone()
-                turn = torch.zeros(R, device=device, dtype=torch.long)
-                if bool(fr_act.any()):
-                    p_hat = binned_density(X, k_eta, r_eta, GRID)
-                    logr = uniform_log_ratio(X, p_hat, GRID)
-                    if coarse_nb > 0 and bool((fr_act & is_coarse_row).any()):
-                        # count-balancing control: piecewise-constant histogram
-                        # density over coarse_nb equal bins replaces the fine KDE
-                        bw = (GRID.xmax - GRID.xmin) / coarse_nb
-                        bidx = torch.clamp(((X - GRID.xmin) / bw).long(),
-                                           0, coarse_nb - 1)
-                        cnt = torch.zeros((R, coarse_nb), device=device, dtype=dtype)
-                        cnt.scatter_add_(1, bidx, torch.ones_like(X))
-                        p_coarse = torch.clamp(cnt / (K * bw), min=EPS)
-                        logr_c = (-math.log(GRID.volume)
-                                  - torch.log(torch.gather(p_coarse, 1, bidx)))
-                        logr = torch.where(is_coarse_row.unsqueeze(1), logr_c, logr)
-                    w, theta_used, essf = theta_backoff(logr, theta0, alpha_ess)
-                    sel_fr = systematic_resample(w, gen_f)
-                    turn_fr = turnover_counts(sel_fr, K)
-                    sel = torch.where(fr_act.unsqueeze(1), sel_fr, sel)
-                    turn = torch.where(fr_act, turn_fr, turn)
-                    ev["theta"][:, event_ptr] = torch.where(fr_act, theta_used,
-                                                            torch.zeros_like(theta_used))
-                    ev["ess_fr"][:, event_ptr] = torch.where(
-                        fr_act, essf, torch.full_like(essf, float("nan")))
-                if bool(sham_act.any()):
-                    m_sham = turn[partner]
-                    sel_sham = matched_turnover_indices(m_sham, K, gen_f, device, dtype)
-                    sel = torch.where(sham_act.unsqueeze(1), sel_sham, sel)
-                    turn = torch.where(sham_act, m_sham, turn)
+                sel, turn, theta_used, essf = fr_event(
+                    X, active & is_fr_row, active & is_sham_row, is_coarse_row,
+                    coarse_nb, partner, theta0, alpha_ess, k_eta, r_eta, GRID, gen_f)
+                ev["theta"][:, event_ptr] = theta_used
+                ev["ess_fr"][:, event_ptr] = essf
                 ev["turnover"][:, event_ptr] = turn.to(dtype)
                 tot_die += turn.to(dtype)
                 # ESTIMATOR PROTECTION: only walker arrays are gathered.  The SHUS
