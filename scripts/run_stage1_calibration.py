@@ -4,8 +4,11 @@ Runs 5 preregistered cells x 8 calibration seeds in one batched GPU call, stores
 records, then applies the Gate-1 analysis frozen in docs/PREREGISTRATION_GATEWAY.md:
 
     T_hit  : first persistent time the right basin holds >= 1 walker (hold 0.05)
-    T_est  : first persistent time D_t = KL(p_hat||u) <= D_tol       (hold 0.10)
-    D_tol  : 1.5 x 95th pct of the finite-K KDE noise floor (identical kernel)
+    T_est  : first time the TRAILING-WINDOW MEDIAN of D_t = KL(p_hat||u) <= D_tol
+             (hold 0.10; median rule is robust to single-save KL spikes)
+    D_tol  : 1.5 x (KL* + noise95), where KL* is the ANALYTIC marginal floor of the
+             mollified-SHUS fixed point on that cell (gw.mollified_fixed_point) and
+             noise95 the finite-K KDE noise floor -- both computable before any run
     eligible for FR  <=>  median T_hit/T <= 0.2  AND  median T_est/T >= 0.4
 
 Cells: an easy negative control plus a betaH = 8 kT family whose geometry (s, r)
@@ -27,9 +30,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 import numpy as np
 import torch
 
-from abpfr.diagnostics import (establishment_time, hit_time, kde_noise_floor)
+from abpfr.diagnostics import (establishment_time_median, hit_time, kde_noise_floor)
 from abpfr.io import save_run
-from abpfr.metrics import cosine_modes
+from abpfr.metrics import cosine_modes, l2_error_gauge
 from abpfr.systems import gateway as gw
 
 SEEDS = list(range(8))                      # calibration seeds, frozen
@@ -46,14 +49,18 @@ CELLS = {
 OUT = "results/stage1_calibration"
 
 
-def gate1_row(rec, D_tol):
+def gate1_row(rec, D_tol, F_star, eval_mask):
     t, T = rec["time"], rec["time"][-1]
     th = hit_time(rec["P_regions"][:, 2], t, hold_frac=0.05)
-    te = establishment_time(rec["kl_u_t"], t, D_tol, hold_frac=0.10)
+    te = establishment_time_median(rec["kl_u_t"], t, D_tol, hold_frac=0.10)
+    # error against the estimator's own analytic limit F* (estimator-consistent
+    # convergence, separated from the irreducible mollifier bias)
+    eT_eps = float(l2_error_gauge(rec["pmf_t"][-1], F_star, eval_mask))
     return dict(seed=rec["seed"], T=T, T_hit=th, T_est=te,
                 hit_frac=th / T if np.isfinite(th) else np.nan,
                 est_frac=te / T if np.isfinite(te) else np.nan,
                 e0=float(rec["l2_f_t"][0]), eT=float(rec["l2_f_t"][-1]),
+                eT_eps=eT_eps,
                 I_F=float(rec["int_l2_f"]), D_T=float(rec["kl_u_t"][-1]))
 
 
@@ -87,10 +94,17 @@ def run_screen(device):
 
     os.makedirs(OUT, exist_ok=True)
     D_noise = kde_noise_floor(COMMON["K"], 0.10, gw.GRID, n_rep=512, seed=777)
-    D_tol = 1.5 * float(np.quantile(D_noise, 0.95))
-    print(f"D_noise 95th pct = {np.quantile(D_noise, 0.95):.5f}  ->  D_tol = {D_tol:.5f}")
+    noise95 = float(np.quantile(D_noise, 0.95))
+    print(f"D_noise 95th pct = {noise95:.5f}")
+    fps = {name: gw.mollified_fixed_point(gw.GatewayConfig(**cell, **COMMON))
+           for name, cell in CELLS.items()}
+    D_tols = {name: 1.5 * (fp["kl_star"] + noise95) for name, fp in fps.items()}
+    for name, fp in fps.items():
+        print(f"  {name}: analytic floor e*={fp['e_star']:.4f} "
+              f"(beta*e*={CELLS[name]['beta']*fp['e_star']:.3f} kT), "
+              f"KL*={fp['kl_star']:.5f} -> D_tol={D_tols[name]:.5f}")
 
-    summary = {"D_tol": D_tol, "common": COMMON, "cells": {}}
+    summary = {"noise95": noise95, "common": COMMON, "cells": {}}
     for i, rec in enumerate(recs):
         arrays = {k: rec[k] for k in
                   ("time", "pmf_t", "marginal_t", "x_grid", "F_ref", "Fp_ref",
@@ -102,10 +116,13 @@ def run_screen(device):
                 "cell": names[i], "stage": "stage1_calibration"}
         save_run(os.path.join(OUT, f"{names[i]}_seed{rec['seed']}"), arrays, meta)
 
+    eval_mask = gw.GRID.eval_mask(torch.device("cpu")).numpy()
     print(f"\n{'cell':<10s} {'barrier':>7s} {'T_hit/T':>12s} {'T_est/T':>12s} "
-          f"{'I_F':>8s} {'e_F(T)':>8s} {'eps*':>8s}  classification")
+          f"{'I_F':>8s} {'e_F(T)':>8s} {'e_eps(T)':>9s} {'eps*':>8s}  classification")
     for name, cell in CELLS.items():
-        rows = [gate1_row(r, D_tol) for i, r in enumerate(recs) if names[i] == name]
+        F_star = fps[name]["F_star"].numpy()
+        rows = [gate1_row(r, D_tols[name], F_star, eval_mask)
+                for i, r in enumerate(recs) if names[i] == name]
         cls = classify(rows)
         med = lambda k: float(np.nanmedian([r[k] for r in rows]))
         n_nan_hit = sum(not np.isfinite(r["hit_frac"]) for r in rows)
@@ -115,19 +132,22 @@ def run_screen(device):
         print(f"{name:<10s} {cfg.barrier_kT():>6.1f}k "
               f"{med('hit_frac'):>9.3f}({n_nan_hit}c) "
               f"{med('est_frac'):>9.3f}({n_nan_est}c) "
-              f"{med('I_F'):>8.2f} {med('eT'):>8.4f} {eps_star:>8.4f}  {cls}")
+              f"{med('I_F'):>8.2f} {med('eT'):>8.4f} {med('eT_eps'):>9.4f} "
+              f"{eps_star:>8.4f}  {cls}")
         summary["cells"][name] = {
             "config": cell, "barrier_kT": cfg.barrier_kT(), "rows": rows,
             "classification": cls, "eps_star": eps_star,
+            "D_tol": D_tols[name], "e_star": fps[name]["e_star"],
+            "kl_star": fps[name]["kl_star"],
             "median": {k: med(k) for k in
-                       ("hit_frac", "est_frac", "I_F", "e0", "eT", "D_T")}}
+                       ("hit_frac", "est_frac", "I_F", "e0", "eT", "eT_eps", "D_T")}}
     with open(os.path.join(OUT, "summary.json"), "w") as f:
         json.dump(summary, f, indent=2, default=float)
     print(f"\nsummary -> {OUT}/summary.json")
-    make_figures(recs, names, D_tol)
+    make_figures(recs, names, D_tols)
 
 
-def make_figures(recs, names, D_tol):
+def make_figures(recs, names, D_tols):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -152,11 +172,11 @@ def make_figures(recs, names, D_tol):
                                            k_max=1))[:, 0] for r in rs])
         axes[1, 1].plot(t, np.median(a1, 0), color=cmap[c])
         axes[1, 1].set_yscale("log")
-    axes[0, 1].axhline(D_tol, color="k", ls="--", lw=1, label="D_tol")
+    for c in cells:
+        axes[0, 1].axhline(D_tols[c], color=cmap[c], ls="--", lw=0.8, alpha=0.7)
     axes[0, 0].set_ylabel(r"$e_F(t)$ (median, IQR)")
     axes[0, 0].legend(fontsize=8)
-    axes[0, 1].set_ylabel(r"KL$(\hat p_t\|u)$")
-    axes[0, 1].legend(fontsize=8)
+    axes[0, 1].set_ylabel(r"KL$(\hat p_t\|u)$  (dashed: per-cell $D_{\rm tol}$)")
     axes[1, 0].set_ylabel(r"right-basin occupancy $P_+$")
     axes[1, 1].set_ylabel(r"slow bias-error mode $|a_1(t)|$")
     for ax in axes[1]:

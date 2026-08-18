@@ -55,5 +55,23 @@ def hit_time(region_occupancy, times, hold_frac=0.05):
 
 
 def establishment_time(D_t, times, D_tol, hold_frac=0.1):
-    """T_est: first persistent time the marginal KL sits at the noise floor."""
+    """T_est: first persistent time the marginal KL sits at the noise floor.
+
+    NOTE: brittle against single-save KL spikes (one excursion resets the window);
+    kept for reference. Production uses establishment_time_median.
+    """
     return first_persistent(np.asarray(D_t) <= D_tol, times, hold_frac)
+
+
+def establishment_time_median(D_t, times, D_tol, hold_frac=0.1):
+    """T_est via a trailing-window MEDIAN: first t with median(D over [t, t+hold]) <=
+    D_tol. Robust to the single-save spikes that a raw all-saves persistence rule
+    trips over (Stage-1 finding: the easy control's KL sits at the floor with ~30%
+    of saves transiently above it)."""
+    D = np.asarray(D_t, dtype=float)
+    n = len(times)
+    hold = max(1, int(hold_frac * n))
+    for i in range(n - hold + 1):
+        if np.median(D[i:i + hold]) <= D_tol:
+            return float(times[i])
+    return float("nan")

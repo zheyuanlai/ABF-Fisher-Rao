@@ -29,13 +29,13 @@ import torch
 
 from ..fisher_rao import kl_to_uniform, theta_backoff, tv_to_uniform, uniform_log_ratio
 from ..grid import (DEVICE, DTYPE, EPS, Grid1D, binned_density, central_diff,
-                    gaussian_kernel, interp1d, reflect_into, trapz)
+                    gaussian_kernel, interp1d, reflect_into, smooth, trapz)
 from ..resampling import (ancestor_stats, matched_turnover_indices,
                           surviving_ancestors, systematic_resample, turnover_counts)
 from ..shus import ShusAccumulator
 
 REFERENCE_ID = "gateway-analytic-v1"
-GRID = Grid1D(xmin=-1.8, xmax=1.8, n=181, eval_lo=-1.5, eval_hi=1.5)
+GRID = Grid1D(xmin=-1.8, xmax=1.8, n=361, eval_lo=-1.5, eval_hi=1.5)
 
 # Region geometry: |x| <= X_BASIN is the gateway corridor, outside are the basins.
 X_BASIN = 0.5
@@ -72,6 +72,42 @@ def reference_profiles(x_grid, eval_mask, beta, Hc, omega_out, omega_in, s):
     return F_ref, Fp_ref
 
 
+def mollified_fixed_point(cfg, eps_bw=None, grid=None, device="cpu", dtype=DTYPE):
+    """Analytic fixed point of mollified SHUS on this cell.
+
+    Shape-stationarity of the accumulator requires K_eps*(p R) ~ R with the biased
+    equilibrium p ~ e^{-beta F}/R, hence R* = K_eps * e^{-beta F_ref} and
+
+        F*      = -beta^{-1} log(K_eps * e^{-beta F_ref})      (estimator limit),
+        p*      ~ e^{-beta F_ref} / K_eps * e^{-beta F_ref}    (NOT uniform),
+        KL*     = KL(p* || u)                                   (marginal floor).
+
+    Returns dict(F_star (G,), e_star, kl_star): the bias floor of the estimator and
+    the marginal-KL floor, both computable BEFORE any run — used to calibrate eps_bw
+    and to make the establishment tolerance fixed-point-aware.
+    """
+    g = grid or GRID
+    eps = cfg.eps_bw if eps_bw is None else eps_bw
+    xg = g.x(device, dtype)
+    mask = g.eval_mask(device, dtype)
+    col = lambda v: torch.tensor([[float(v)]], device=device, dtype=dtype)
+    F_ref, _ = reference_profiles(xg, mask, col(cfg.beta), col(cfg.H),
+                                  col(cfg.omega_out), col(cfg.omega_in), col(cfg.s))
+    rho = torch.exp(-cfg.beta * F_ref)
+    k, r = gaussian_kernel(eps, g.dx, device, dtype)
+    rho_m = smooth(rho, k, r, g.dx)
+    F_star = -torch.log(torch.clamp(rho_m, min=EPS)) / cfg.beta
+    F_star = F_star - F_star[:, mask].mean(dim=1, keepdim=True)
+    d = (F_star - F_ref)[:, mask]
+    d = d - d.mean(dim=1, keepdim=True)
+    e_star = float(torch.sqrt((d * d).mean()))
+    p_star = rho / torch.clamp(rho_m, min=EPS)
+    p_star = p_star / trapz(p_star, g.dx).unsqueeze(1)
+    kl_star = float(trapz(p_star * (torch.log(torch.clamp(p_star, min=EPS))
+                                    - math.log(1.0 / g.volume)), g.dx))
+    return {"F_star": F_star[0], "e_star": e_star, "kl_star": kl_star}
+
+
 # -----------------------------------------------------------------------------
 # configuration
 # -----------------------------------------------------------------------------
@@ -87,7 +123,10 @@ class GatewayConfig:
     dt: float = 4e-4
     n_steps: int = 250_000
     block: int = 20              # SHUS adaptation block, in MD steps
-    eps_bw: float = 0.07         # mollifier bandwidth (deposits)
+    eps_bw: float = 0.02         # mollifier bandwidth (deposits); see Stage-1 audit:
+                                 # the SHUS fixed point is F* = -log(K_eps*e^{-bF})/b,
+                                 # and eps=0.07 put a ~1 kT bias floor under every
+                                 # betaH=8 cell (mollified_fixed_point computes it)
     eta_bw: float = 0.10         # KDE bandwidth (marginal / FR score)
     n_saves: int = 400
     ess_window_steps: int = 4000

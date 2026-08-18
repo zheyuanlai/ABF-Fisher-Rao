@@ -11,14 +11,27 @@ run exists**. No value in this file may change after that commit.
    protection, FR finite-step law, resampling unbiasedness, checkpoint/resume,
    determinism). No scientific output.
 1. **Plain-SHUS calibration.** Calibration seeds `0..7`. Calibrate ONLY SHUS
-   quantities: `eps_bw`, `eta_bw`, grid, `block`, `K`. `[FREEZE @ Stage 1]`.
+   quantities: `eps_bw`, `eta_bw`, grid, `block`, `K`. `[FROZEN 2026-08-18]`:
+   `eps_bw = 0.02`, grid `n = 361`, `eta_bw = 0.10`, `block = 20`, `K = 1024`,
+   `dt = 2e-4`. Basis (SHUS-only data; no FR run existed): mollified SHUS has the
+   analytic fixed point `F* = -b^-1 log(K_eps * e^{-bF})` with a non-uniform
+   stationary marginal; at `eps = 0.07` this put a ~1 kT bias floor and a
+   KL* ~ 0.3 marginal floor under every betaH = 8 kT cell (observed plateaus
+   matched the analytic prediction to <3%). `eps = 0.02` reduces the worst floor
+   to ~0.13 kT / KL* ~ 0.08 (`gw.mollified_fixed_point`).
    Then record, per seed: `e_F(t)`, `D_t = KL(p_hat_t || u)`, cosine modes of
    `F_t - F_ref`, `T_hit`, `T_est`, round trips.
    * `T_hit`: first persistent time every region (minus/gate/plus) holds >= 1 walker
      (hold fraction 0.05).
-   * `T_est`: first persistent time `D_t <= D_tol`, `D_tol = 1.5 x` the 95th
-     percentile of the finite-K KDE noise floor (`abpfr.diagnostics.kde_noise_floor`,
-     identical kernel), hold fraction 0.1.
+   * `T_est`: first time the TRAILING-WINDOW MEDIAN of `D_t` is `<= D_tol` (hold
+     fraction 0.1). Median rule frozen 2026-08-18 after the SHUS-only screen showed
+     an all-saves rule trips on single-save KL spikes even at the noise floor.
+   * `D_tol = 1.5 x (KL*(cell, eps_bw) + noise95)`: the analytic marginal floor of
+     the mollified fixed point plus the 95th-percentile finite-K KDE noise floor
+     (`abpfr.diagnostics.kde_noise_floor`, identical kernel) — both computable
+     before any run.
+   * Estimator-consistent error `e_eps(t) = ||F_hat_t - F*||` is recorded alongside
+     `e_F(t)`; the primary accuracy metric remains `e_F` against the TRUE `F_ref`.
    * **Gate 1 (FR has a job):** `T_hit / T <= 0.2` AND `T_est / T >= 0.4`, or a clear
      slow post-discovery mode in `a_1(t)`. If plain SHUS converges smoothly after
      discovery on the gateway, the gateway FR campaign is stopped (a small WCA

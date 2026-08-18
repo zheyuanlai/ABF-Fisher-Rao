@@ -9,10 +9,23 @@ from abpfr.systems import gateway as gw
 
 
 def small_cfg(**kw):
+    # eps_bw pinned: these tests validate mechanics, not the calibrated bandwidth
     base = dict(beta=1.0, H=1.0, omega_out=1.0, r=2.0, s=0.3, K=256, dt=1e-3,
-                n_steps=20_000, block=20, n_saves=50, ess_window_steps=2000)
+                n_steps=20_000, block=20, n_saves=50, ess_window_steps=2000,
+                eps_bw=0.07)
     base.update(kw)
     return gw.GatewayConfig(**base)
+
+
+def test_mollified_fixed_point_limits():
+    cfg = small_cfg()
+    fp_fine = gw.mollified_fixed_point(cfg, eps_bw=0.005)
+    fp_coarse = gw.mollified_fixed_point(cfg, eps_bw=0.10)
+    # bias floor vanishes with the bandwidth and grows with it
+    assert fp_fine["e_star"] < 0.005 < fp_coarse["e_star"]
+    assert fp_fine["kl_star"] < 1e-3 < fp_coarse["kl_star"]
+    # the coarse fixed point is a real profile: centered, finite
+    assert np.isfinite(fp_coarse["F_star"].numpy()).all()
 
 
 def test_reference_matches_y_quadrature():
