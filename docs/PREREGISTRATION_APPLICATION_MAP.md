@@ -185,6 +185,22 @@ K = 1024 anchor (same seeds 0-7, same protocol, batch_seed 20260821).
   SHUS-sufficient with no establishment window") and Q2 closes negative — FR gets
   no WCA run, and the campaign proceeds to the 2D geometry question (Q3).
 
+### Phase-B outcome (2026-08-18, seeds 0-7 — recorded, not to be edited)
+
+**Complete resource-scaling NULL.** Every (cell, K) for K in {32, 64, 128, 256,
+1024} on both b1h2 and b2h6 is SHUS-sufficient: median T_hit/T <= 0.008, median
+T_est/T = 0.000 (zero censored seeds), gap <= 0 — across D_tol(K) values spanning
+0.009 to 0.33, so this is not a tolerance artifact. The hypothesized three-regime
+structure (discovery-limited -> establishment-limited -> SHUS-sufficient) DOES NOT
+EXIST on WCA: SHUS's occupancy flooding performs the search per-walker (the bias
+drives escape deterministically), so the population size never becomes the binding
+constraint. Accuracy degrades gracefully and statistics-limited with K (b1h2
+median e_F(T): 0.157 at K=1024 -> 0.225 at K=32; D_T rises accordingly): fewer
+walkers cost estimator NOISE, not population placement — which reallocation
+cannot repair by construction. **Q2 closes negative: no eligible K, no WCA FR run
+(preregistered rule); FR has no resource-efficiency window on this system class.
+The campaign proceeds to the 2D geometry question (Q3, Phase D).**
+
 ## Later phases (gated, designs to be frozen when reached)
 
 * **Phase C:** if some (cell, K*) is establishment-limited: plain-SHUS gain screen
