@@ -32,17 +32,45 @@ run exists**. No value in this file may change after that commit.
      before any run.
    * Estimator-consistent error `e_eps(t) = ||F_hat_t - F*||` is recorded alongside
      `e_F(t)`; the primary accuracy metric remains `e_F` against the TRUE `F_ref`.
-   * **Gate 1 (FR has a job):** `T_hit / T <= 0.2` AND `T_est / T >= 0.4`, or a clear
-     slow post-discovery mode in `a_1(t)`. If plain SHUS converges smoothly after
-     discovery on the gateway, the gateway FR campaign is stopped (a small WCA
-     SHUS-only screen still runs before abandoning the application branch).
-2. **FR pilot (rate/window).** Pilot seeds disjoint from calibration and production.
-   Grid: `theta in {0.025, 0.05, 0.10, 0.20}`, windows ~ {10%, 25%, 50%} of the
-   post-discovery budget, `T_on` driven by SHUS-only discovery information (never by
-   error vs F_ref). Selection rule (fixed now):
-   * reject any config with `min ESS_anc / K < 0.30` or `e_F(T) > 1.05 x` plain SHUS;
-   * among survivors choose the **smallest intervention** achieving >= 10% pilot
-     integrated-error gain. Then `theta, window` are frozen. `[FREEZE @ Stage 2]`.
+   * **Gate 1 (FR has a job) — FINAL RULE, frozen 2026-08-18 from SHUS-only data
+     (no FR run on any cell existed):** early discovery, median `T_hit/T <= 0.2`,
+     AND a substantial post-discovery establishment transient, operationalized as
+     median establishment gap `(T_est - T_hit)/T >= 0.25` (the closed ABF campaign's
+     gap convention). The draft absolute cutoff `T_est/T >= 0.4` was replaced
+     because it is denominator-sensitive to the arbitrary run length T; the gap
+     criterion is the quantity the hypothesis is actually about. Supporting (not
+     gating) evidence recorded per cell: sign changes of `a_1(t)` after `T_hit` and
+     ring-out time (last `t` with `e_F > 2 e*`).
+   * **Gate-1 outcome (screen of 2026-08-18, seeds 0-7):** easy_A SHUS-sufficient
+     (gap 0.08); mid_B gap 0.27 but settles to its floor by 0.31 T (flooding-
+     flavored); cold_C gap 0.31, anchor_D gap 0.34 (3 a_1 sign changes, ring-out
+     0.87 T), hot_E gap 0.27. **Frozen Stage-2 cell: anchor_D** (beta=16, H=0.5,
+     s=0.10, r=32; strongest underdamped establishment transient). Frozen anchor
+     thresholds: `eps* = 0.0110` (median final plain-SHUS `e_F`, energy units);
+     ladder `e0/2, e0/4, e0/8` with `e0 = 0.236`. If plain SHUS had converged
+     smoothly after discovery everywhere, the gateway FR campaign would stop (a
+     small WCA SHUS-only screen still runs before abandoning the branch).
+2. **FR pilot (rate/window) — design frozen 2026-08-18 from SHUS-only anchor_D
+   data, before any FR run on the cell.** Pilot seeds `8..15` (disjoint from
+   calibration 0-7 and production 100+). Weak-late-short grid (the Stage-0 smoke
+   showed early/strong FR suppresses SHUS learning):
+   * `theta in {0.01, 0.025, 0.05}`; FR stride in {5, 10} adaptation blocks;
+   * window: `t_on = 6.0` (>= Q90 of SHUS-only `T_hit` = 5.5, rounded up);
+     `t_off in {14, 22}` (25% and 50% of the establishment interval
+     `[t_on, Q50(T_est) = 38.1]`; both < Q50(T_est), so FR acts only while
+     "discovered but not yet established");
+   * arms per config: plain SHUS, SHUS+FR, SHUS+matched-turnover sham, all paired.
+   Selection rule (frozen):
+   * reject any config with min windowed `ESS_anc/K < 0.5` (tightened from the
+     draft 0.30 after the smoke's dips to ~0.5 under an aggressive schedule) or
+     median paired `e_F(T) > 1.05 x` plain SHUS;
+   * a surviving config counts as a WIN only if median paired `Delta I_F <= -10%`
+     vs plain SHUS AND it beats its own sham (median paired `I_F^FR < I_F^sham`);
+   * among winners choose the **smallest intervention**, ordered by turnover
+     budget `gamma_eff * (t_off - t_on)`, `gamma_eff = -ln(1-theta)/dt_FR`.
+   Then `theta, stride, window` are frozen for Stage 3. Global-ancestry acceptance
+   floors for Stage 3 (`n_anc`, `ESS_glob`) will be set from pilot data before any
+   confirmatory run. `[FREEZE @ Stage 2]`.
 3. **Confirmatory (5 arms, 32 fresh matched seeds each):** plain SHUS; temporary FR;
    persistent FR; matched-turnover sham; count balancing. Same `K`, same steps, same
    force-evaluation budget, paired seeds and noise.
