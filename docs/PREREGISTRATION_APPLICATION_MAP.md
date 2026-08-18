@@ -202,6 +202,25 @@ K = 1024 anchor (same seeds 0-7, same protocol, batch_seed 20260821).
 * **Phase D (Q3):** 2D periodic SHUS+FR engine, analytic torus validation, then
   (phi, psi) alanine dipeptide; plain-SHUS K screen before any FR; FR vs
   {6x6, 9x9, 12x12} count balancing.
+
+  **D1 — torus plain-SHUS screen [FROZEN 2026-08-18, before any D1 run]:**
+  engine commit 8814431 (89 tests green). Surface
+  V = H1(1-cos 2phi)/2 + H2(1-cos 2psi)/2 + Hc cos(phi)cos(psi): four basins,
+  axis barriers H1/H2, depth split 2 Hc between the deep and shallow pairs.
+  Cells: t_easy (beta=1, H=0.8, Hc=0.2; control), t_mid (beta=4, H=1.5, Hc=0.5;
+  4 kT barrier, 4 kT split), t_cold (beta=8, H=1.0, Hc=0.25; 6 kT barrier),
+  t_anchor (beta=8, H=1.5, Hc=0.75; 6 kT barrier, 12 kT split). Frozen numerics:
+  grid 72x72, eps_bw = 0.06 (analytic floors: beta e* <= 0.20 kT and
+  KL* <= 0.019 on every cell — the Stage-1 calibration logic applied
+  analytically; 0.10 would put a 0.56 kT floor under t_anchor), eta_bw = 0.25,
+  K = 1024, dt = 1e-3, n_steps = 200_000 (T = 200), block = 20, n_saves = 400,
+  profile_every = 8, seeds 0..7, init: all walkers in the deep b00 basin.
+  Gates (same construction as all closed campaigns): T_hit = first persistent
+  time (hold 0.05) ALL FOUR basins hold >= 1 walker; T_est = trailing-median
+  KL rule (hold 0.10) with D_tol = 1.5 x (KL*(cell) + noise95_2D(K)); classify
+  with the frozen vocabulary; FR eligibility = median T_hit/T <= 0.2 AND
+  median gap/T >= 0.25. A 2D FR/count experiment (D2+) runs ONLY on an
+  establishment-limited cell, with its own design freeze first.
 * **Phase E (Q4):** one hidden-solvent stress benchmark chosen for a clean
   orthogonal descriptor, not for FR's expected success.
 

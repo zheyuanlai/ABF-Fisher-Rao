@@ -49,6 +49,24 @@ def kde_noise_floor(K, eta_bw, grid: Grid1D, n_rep=256, seed=777, device="cpu",
     return np.sort(D.detach().cpu().numpy())
 
 
+def kde_noise_floor2(K, eta_bw, grid2, n_rep=256, seed=777, device="cpu",
+                     dtype=torch.float64):
+    """2D analog of kde_noise_floor: KL(KDE of K uniform torus samples || u)."""
+    from .grid2d import (binned_density2, kl_to_uniform2,
+                         periodic_gaussian_kernel)
+    gen = torch.Generator(device=device)
+    gen.manual_seed(seed)
+    k1, r1 = periodic_gaussian_kernel(eta_bw, grid2.dx1, grid2.n1, device, dtype)
+    k2, r2 = periodic_gaussian_kernel(eta_bw, grid2.dx2, grid2.n2, device, dtype)
+    X1 = grid2.x1min + grid2.L1 * torch.rand((n_rep, K), device=device, dtype=dtype,
+                                             generator=gen)
+    X2 = grid2.x2min + grid2.L2 * torch.rand((n_rep, K), device=device, dtype=dtype,
+                                             generator=gen)
+    p = binned_density2(X1, X2, k1, r1, k2, r2, grid2)
+    D = kl_to_uniform2(p, grid2)
+    return np.sort(D.detach().cpu().numpy())
+
+
 def hit_time(region_occupancy, times, hold_frac=0.05):
     """T_hit for one region: first persistent time its walker fraction is > 0."""
     return first_persistent(np.asarray(region_occupancy) > 0.0, times, hold_frac)
