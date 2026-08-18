@@ -95,6 +95,15 @@ argmin AND improves the median paired dI_F by more than 2 percentage points over
 g = 2.0, one final extension {4.5, 6.0} runs under the same rules; no extension
 beyond 6.0 regardless. A2 then uses the overall g_best.
 
+### A1b outcome (2026-08-18 — recorded, not to be edited)
+
+g = 2.0: dI_F -14.0% but eT ratio 1.249 (NOT qualified); g = 3.0: dI_F -17.1% but
+eT ratio 1.198 (NOT qualified), ringing grows monotonically with gain (sign flips
+4 -> 5 -> 7). Gain tuning above 1.5 is a pure speed/accuracy TRADEOFF: more
+integrated-error reduction only by sacrificing final accuracy — the structure the
+frozen FR winner does not have (Stage 3: -11.4% I_F WITH eT ratio 0.837).
+**Overall g_best = 1.5 (interior point; boundary concern resolved). A2 proceeds.**
+
 ### A2 — best-tuned SHUS vs the frozen FR winner
 
 * Seeds: **300..315** (16 fresh matched seeds). One paired batch, arms:
