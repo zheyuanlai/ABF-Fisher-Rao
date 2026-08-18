@@ -128,3 +128,14 @@ def test_non_b1h2_rows_carry_no_reference():
     assert recs[0]["reference_id"] == "none"
     assert np.isnan(recs[0]["l2_f_t"]).all()
     assert np.isfinite(recs[0]["kl_u_t"]).all()   # gates stay reference-free
+
+
+def test_g_shus_wired_into_wca_engine():
+    # g_shus=1.0 arm bitwise-matches the frozen default; g_shus=0.5 arm differs
+    cfg = tiny_cfg(force_clip=250.0)
+    recs = wca.simulate_batch([cfg], [0],
+                              [SHUS, Method("g1", g_shus=1.0),
+                               Method("g05", g_shus=0.5)],
+                              batch_seed=23, device=DEVICE, score_b1h2=False)
+    assert np.array_equal(recs[0]["pmf_t"], recs[1]["pmf_t"])
+    assert not np.array_equal(recs[0]["pmf_t"], recs[2]["pmf_t"])

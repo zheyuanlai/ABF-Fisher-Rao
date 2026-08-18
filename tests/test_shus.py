@@ -142,6 +142,74 @@ def test_deposition_diagnostic_separates_healthy_from_feedback():
     assert self_f < 0.05 and self_f < ref_f, (ref_f, self_f)
 
 
+def make_gain_shus(g, rows=1, beta=1.0):
+    return ShusAccumulator(rows, G, torch.full((rows, 1), beta, dtype=DTYPE),
+                           eps_bw=0.07, device=DEVICE, dtype=DTYPE,
+                           gain=torch.full((rows,), g, dtype=DTYPE))
+
+
+def test_gain_one_is_bitwise_identical_to_frozen_baseline():
+    s0, s1 = make_shus(), make_gain_shus(1.0)
+    gen = torch.Generator().manual_seed(6)
+    X = 0.4 * torch.randn((1, 2000), generator=gen, dtype=DTYPE).clamp(-1.7, 1.7)
+    for s in (s0, s1):
+        s.deposit(X)
+        s.update(dt=1e-3, K=2000)
+    assert torch.equal(s0.R, s1.R)
+    assert torch.equal(s0.F, s1.F)
+
+
+def test_gain_scales_increment_linearly_and_preserves_shape():
+    # g multiplies the raw increment exactly; the normalized deposit shape (the
+    # object of the reweighting-consistency fixed point) is unchanged, so the
+    # analytic fixed point R* = K_eps e^{-beta F} is gain-independent
+    s1, sg = make_gain_shus(1.0), make_gain_shus(0.5)
+    gen = torch.Generator().manual_seed(7)
+    X = 0.4 * torch.randn((1, 2000), generator=gen, dtype=DTYPE).clamp(-1.7, 1.7)
+    s1.deposit(X)
+    sg.deposit(X)
+    inc1 = s1.update(dt=1e-3, K=2000)
+    incg = sg.update(dt=1e-3, K=2000)
+    assert torch.allclose(incg, 0.5 * inc1, atol=1e-15)
+    n1 = inc1 / inc1.sum()
+    ng = incg / incg.sum()
+    assert torch.allclose(n1, ng, atol=1e-15)
+
+
+def test_gain_gauge_invariance_of_forces():
+    # the gauge property survives g != 1: scaling R by a constant leaves forces
+    # (and, after renormalization, R itself) unchanged
+    s1, s2 = make_gain_shus(0.5), make_gain_shus(0.5)
+    s2.R = s2.R * 37.5
+    s2._refresh_bias()
+    gen = torch.Generator().manual_seed(8)
+    X = 0.5 * torch.randn((1, 2000), generator=gen, dtype=DTYPE).clamp(-1.7, 1.7)
+    for s in (s1, s2):
+        s.deposit(X)
+        s.update(dt=1e-3, K=2000)
+    assert torch.allclose(s1.Fp, s2.Fp, atol=1e-10)
+    assert torch.allclose(s1.R, s2.R, atol=1e-12)
+
+
+def test_gain_keeps_sign_convention():
+    s = make_gain_shus(0.25)
+    gen = torch.Generator().manual_seed(10)
+    X = -1.0 + 0.05 * torch.randn((1, 4000), generator=gen, dtype=DTYPE)
+    for _ in range(5):
+        s.deposit(X)
+    s.update(dt=1e-3, K=4000)
+    xg = G.x(DEVICE, DTYPE)
+    i_left = int(torch.argmin((xg + 1.0).abs()))
+    i_right = int(torch.argmin((xg - 1.0).abs()))
+    assert float(s.F[0, i_left]) < float(s.F[0, i_right])
+
+
+def test_gain_must_be_positive():
+    import pytest
+    with pytest.raises(AssertionError):
+        make_gain_shus(0.0)
+
+
 def test_deposit_weight_is_block_frozen():
     # deposits within one block all see the same R, even after earlier deposits
     s = make_shus()

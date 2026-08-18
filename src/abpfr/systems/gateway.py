@@ -161,6 +161,9 @@ class Method:
                                  # equal bins instead of the fine KDE (tests whether
                                  # the fine FR geometry matters beyond coarse
                                  # population balancing)
+    g_shus: float = 1.0          # SHUS adaptation gain: multiplies the accumulator
+                                 # increment (docs/PREREGISTRATION_APPLICATION_MAP.md);
+                                 # lives on Method so gain arms stay noise-paired
 
 
 SHUS = Method("shus")
@@ -288,6 +291,9 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
                            for m in methods], device=device, dtype=dtype).repeat(B)
     alpha_ess = torch.tensor([m.alpha_ess for m in methods], device=device,
                              dtype=dtype).repeat(B)
+    assert all(m.g_shus > 0 for m in methods), "g_shus must be positive"
+    gain = torch.tensor([m.g_shus for m in methods], device=device,
+                        dtype=dtype).repeat(B)
 
     x_grid = GRID.x(device, dtype)
     eval_mask = GRID.eval_mask(device, dtype)
@@ -332,7 +338,7 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
         Y = Y0_b.repeat_interleave(M, dim=0).clone()
         anc = torch.arange(K, device=device).unsqueeze(0).expand(R, K).clone()
         anc_g = anc.clone()                    # global genealogy: never reset
-        shus = ShusAccumulator(R, GRID, beta, c0.eps_bw, device, dtype)
+        shus = ShusAccumulator(R, GRID, beta, c0.eps_bw, device, dtype, gain=gain)
         dep_ref_cur = torch.full((R,), float("nan"), device=device, dtype=dtype)
         dep_self_cur = torch.full((R,), float("nan"), device=device, dtype=dtype)
         gen_n = torch.Generator(device=device)
@@ -354,7 +360,7 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
         st = start_state
         X, Y, anc, anc_g = st["X"], st["Y"], st["anc"], st["anc_g"]
         dep_ref_cur, dep_self_cur = st["dep_ref_cur"], st["dep_self_cur"]
-        shus = ShusAccumulator(R, GRID, beta, c0.eps_bw, device, dtype)
+        shus = ShusAccumulator(R, GRID, beta, c0.eps_bw, device, dtype, gain=gain)
         shus.load_state_dict(st["shus"])
         gen_n = torch.Generator(device=device)
         gen_n.set_state(st["gen_n"])

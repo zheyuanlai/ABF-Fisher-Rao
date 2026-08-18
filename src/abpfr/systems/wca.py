@@ -335,6 +335,9 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
                            for m in methods], device=device, dtype=RC_DTYPE).repeat(B)
     alpha_ess = torch.tensor([m.alpha_ess for m in methods], device=device,
                              dtype=RC_DTYPE).repeat(B)
+    assert all(m.g_shus > 0 for m in methods), "g_shus must be positive"
+    gain = torch.tensor([m.g_shus for m in methods], device=device,
+                        dtype=RC_DTYPE).repeat(B)
 
     eval_mask = GRID.eval_mask(device, RC_DTYPE)
     k_eta, r_eta = gaussian_kernel(c0.eta_bw, GRID.dx, device, RC_DTYPE)
@@ -365,7 +368,8 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
     q = q0.view(B, K, N, 2).repeat_interleave(M, dim=0).reshape(R * K, N, 2).clone()
     anc = torch.arange(K, device=device).unsqueeze(0).expand(R, K).clone()
     anc_g = anc.clone()
-    shus = ShusAccumulator(R, GRID, beta_row.reshape(R, 1), c0.eps_bw, device, RC_DTYPE)
+    shus = ShusAccumulator(R, GRID, beta_row.reshape(R, 1), c0.eps_bw, device,
+                           RC_DTYPE, gain=gain)
     dep_ref_cur = torch.full((R,), float("nan"), device=device, dtype=RC_DTYPE)
     dep_self_cur = torch.full((R,), float("nan"), device=device, dtype=RC_DTYPE)
 

@@ -7,7 +7,8 @@ Frozen conventions (docs/SPEC_SHUS_FR.md):
 * Deposit weight:       e^{-beta F_n(xi)} = R_n(xi), with F_n (equivalently R_n) FROZEN
                         over the adaptation block that is being deposited.  In this gauge
                         the reweighting factor is literally the interpolated accumulator.
-* Update:               R_{n+1} = R_n + (dt / K) * mollify(sum_of_weighted_deposits),
+* Update:               R_{n+1} = R_n + g_shus * (dt / K) * mollify(sum_of_deposits),
+                        with g_shus the per-row adaptation gain (1 = frozen baseline).
                         then R <- R / max(R)  (per row).  The renormalization is a pure
                         gauge change: every future deposit weight scales by the same
                         factor, so the entire R trajectory is scale-invariant and the
@@ -35,12 +36,21 @@ class ShusAccumulator:
     """
 
     def __init__(self, rows: int, grid: Grid1D, beta: torch.Tensor, eps_bw: float,
-                 device, dtype):
+                 device, dtype, gain=None):
         self.grid = grid
         self.beta = beta.reshape(rows, 1).to(device=device, dtype=dtype)
         self.kernel, self.krad = gaussian_kernel(eps_bw, grid.dx, device, dtype)
         self.R = torch.ones((rows, grid.n), device=device, dtype=dtype)
         self.buf = torch.zeros((rows, grid.n), device=device, dtype=dtype)
+        # adaptation gain g_SHUS: per-row multiplier on the accumulator increment.
+        # Gauge-compatible for any positive per-row constant (increment and deposit
+        # weights both scale linearly in R) and fixed-point-shape-preserving (it
+        # only rescales the approach rate).  gain=None is the frozen g=1 baseline.
+        if gain is None:
+            self.gain = torch.ones((rows, 1), device=device, dtype=dtype)
+        else:
+            self.gain = gain.reshape(rows, 1).to(device=device, dtype=dtype)
+            assert bool((self.gain > 0).all()), "g_shus must be positive"
         self._refresh_bias()
 
     # -- bias seen by the dynamics -------------------------------------------------
@@ -71,7 +81,8 @@ class ShusAccumulator:
         healthy SHUS deposits d_n ~ exp(-beta F); an over-flattened population
         deposits d_n ~ R_n (rich-get-richer feedback).
         """
-        inc = smooth(self.buf, self.kernel, self.krad, self.grid.dx) * (dt / K)
+        inc = smooth(self.buf, self.kernel, self.krad, self.grid.dx) \
+            * (dt / K) * self.gain
         self.R = self.R + inc
         self.R = self.R / self.R.max(dim=1, keepdim=True).values
         self.buf.zero_()

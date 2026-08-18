@@ -97,6 +97,42 @@ def test_checkpoint_resume_bitwise_equal():
         assert np.array_equal(full[r]["n_anc_t"], resumed[r]["n_anc_t"])
 
 
+def test_g_shus_one_arm_matches_frozen_default_bitwise():
+    # an explicit g_shus=1.0 arm must reproduce the frozen implementation exactly
+    cfg = small_cfg(n_steps=2000, n_saves=10)
+    recs = gw.simulate_batch([cfg], [0], [gw.SHUS, gw.Method("g1", g_shus=1.0)],
+                             batch_seed=13, device=DEVICE, dtype=DTYPE)
+    assert np.array_equal(recs[0]["pmf_t"], recs[1]["pmf_t"])
+    # marginal_t carries a pre-existing one-ULP row-order effect of the vectorized
+    # KDE (present for two DEFAULT arms too), so it is compared at tolerance
+    assert np.allclose(recs[0]["marginal_t"], recs[1]["marginal_t"], atol=1e-14)
+
+
+def test_g_shus_below_one_slows_adaptation():
+    # smaller gain accumulates less bias on the same (paired) trajectory noise:
+    # early in a run the learned-profile spread must be strictly smaller
+    cfg = small_cfg(n_steps=2000, n_saves=10)
+    recs = gw.simulate_batch([cfg], [0], [gw.SHUS, gw.Method("g025", g_shus=0.25)],
+                             batch_seed=17, device=DEVICE, dtype=DTYPE)
+    spread = lambda r, i: float(r["pmf_t"][i].max() - r["pmf_t"][i].min())
+    i_mid = len(recs[0]["time"]) // 2
+    assert spread(recs[1], i_mid) < spread(recs[0], i_mid)
+    assert spread(recs[1], -1) < spread(recs[0], -1)
+
+
+def test_g_shus_checkpoint_resume_bitwise_equal():
+    cfg = small_cfg(n_steps=2000, n_saves=10)
+    arm = gw.Method("g05", g_shus=0.5)
+    full = gw.simulate_batch([cfg], [5], [arm], batch_seed=19,
+                             device=DEVICE, dtype=DTYPE)
+    state = gw.simulate_batch([cfg], [5], [arm], batch_seed=19,
+                              device=DEVICE, dtype=DTYPE, stop_at=1000)
+    resumed = gw.simulate_batch([cfg], [5], [arm], batch_seed=19,
+                                device=DEVICE, dtype=DTYPE, start_state=state)
+    assert np.array_equal(full[0]["pmf_t"], resumed[0]["pmf_t"])
+    assert np.array_equal(full[0]["l2_f_t"], resumed[0]["l2_f_t"])
+
+
 def test_sham_copies_partner_turnover_and_timing():
     cfg = small_cfg(n_steps=4000, n_saves=10)
     fr = gw.Method("shus_fr", use_fr=True, theta=0.2, t_on_frac=0.2, t_off_frac=0.8,
