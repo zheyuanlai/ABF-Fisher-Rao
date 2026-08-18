@@ -269,6 +269,29 @@ The campaign proceeds to the 2D geometry question (Q3, Phase D).**
   coarse_nb to per-row values so all three resolutions share one paired batch;
   the 1D events.py of the closed campaigns is untouched.
 
+  **D2 outcome (2026-08-18, seeds 400-415 — recorded, not to be edited):**
+  * **Q3 answer by the frozen rule: count ties FR at ALL resolutions** —
+    fr_temp vs count6/count9/count12 = +0.1/+0.0/+0.1% (CIs within ±0.2%);
+    the fine Fisher-Rao geometry is not the active ingredient in 2D either
+    (fourth replication of FR ~ count across two campaigns and two systems).
+  * Stronger: ALL reallocation arms are inert-to-slightly-harmful on this
+    establishment-limited cell (fr_temp +0.3% [0.3, 0.4] vs shus; sham 0.0;
+    ancestry floors passed, no theta backoff, ~180 events fired — the same
+    dose that bought -11.4% on the gateway). Population placement is not the
+    binding constraint: T_est is unchanged (161.5 vs 161.8).
+  * Exploratory secondary: **shus_g1.5 dominates: dI_F = -29.3% [-29.4, -29.3],
+    e_F(T) ratio 0.427, T_est 104.5 vs 161.8, no resampling.** The torus
+    establishment deficit is an ADAPTATION-RATE deficit, which reallocation
+    cannot repair and gain tuning directly does.
+  * Emerging applicability map: temporary FR helps when the establishment
+    transient is an UNDERDAMPED OSCILLATION (gateway anchor_D: FR ~ gain
+    tuning ~ -10%); it is inert when the transient is slow-adaptation-limited
+    (torus t_mid: gain wins -29%, FR +0.3%); nothing is needed when SHUS
+    floods immediately (WCA, all K). Follow-ups for a next session: t_mid
+    adaptation-gain screen (is g > 1.5 better here? does FR-on-top-of-g_best
+    add anything?), t_cold with longer T, and the Q4 clone-decorrelation
+    instrumentation before any solvated system.
+
 * **Phase E (Q4):** one hidden-solvent stress benchmark chosen for a clean
   orthogonal descriptor, not for FR's expected success.
 
