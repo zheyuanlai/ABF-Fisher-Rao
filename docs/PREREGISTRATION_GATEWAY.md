@@ -70,7 +70,20 @@ run exists**. No value in this file may change after that commit.
      budget `gamma_eff * (t_off - t_on)`, `gamma_eff = -ln(1-theta)/dt_FR`.
    Then `theta, stride, window` are frozen for Stage 3. Global-ancestry acceptance
    floors for Stage 3 (`n_anc`, `ESS_glob`) will be set from pilot data before any
-   confirmatory run. `[FREEZE @ Stage 2]`.
+   confirmatory run.
+   * **Pilot outcome (2026-08-18, seeds 8-15): FROZEN Stage-3 configuration
+     `theta = 0.01, stride = 10 blocks, window [6, 14]`** (gamma_eff = 0.25, the
+     smallest budget among 4 winners; median paired dI_F = -11.6%, e_F(T) ratio
+     0.856, min windowed ESS 0.88, final n_anc/K 0.72). Structure of the grid:
+     every t_off = 14 config improved I_F (12-27%) with better final error;
+     every t_off = 22 config worsened final error (ratio 1.04-1.13) — FR through
+     the overshoot peak suppresses the correction phase, as the feedback mechanism
+     predicts. theta = 0.05 stride 5 was rejected on ESS despite the largest gain
+     (the safety rail binding as intended). The matched-turnover shams were inert
+     (I_F within ~1% of baseline everywhere): the gain is carried by the
+     Fisher-Rao DIRECTION, not by generic turnover.
+   * Frozen Stage-3 ancestry floors (from pilot winner margins): min windowed
+     `ESS_anc/K >= 0.5` and final `n_anc/K >= 0.5`.
 3. **Confirmatory (5 arms, 32 fresh matched seeds each):** plain SHUS; temporary FR;
    persistent FR; matched-turnover sham; count balancing. Same `K`, same steps, same
    force-evaluation budget, paired seeds and noise.

@@ -149,9 +149,9 @@ def make_figure(by, base):
     fig, axes = plt.subplots(1, 3, figsize=(15, 4.4), sharex=True)
     t = base[SEEDS[0]]["time"]
     bmed = np.median(np.stack([base[sd]["l2_f_t"] for sd in SEEDS]), 0)
+    axes[0].plot(t, bmed, "k-", lw=2, label="shus")
+    axes[0].set_yscale("log")
     for ax in axes[:2]:
-        ax.plot(t, bmed, "k-", lw=2, label="shus")
-        ax.set_yscale("log")
         ax.set_xlabel("t")
     for i, (name, rows) in enumerate(sorted(by.items())):
         if name == "shus" or name.startswith("sham"):
