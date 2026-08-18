@@ -339,6 +339,20 @@ The campaign proceeds to the 2D geometry question (Q3, Phase D).**
     tau_clone^(perp) per cell, against the FR event stride (0.2 t) and the
     establishment scales.
 
+  **Q4a outcome (2026-08-18 — recorded, not to be edited):** on both WCA cells
+  (b1h2, b2h6; K = 256, frozen bias at t0 = 100, 64 stratified parents each),
+  m(tau) collapses from 1 to noise around 0 by the FIRST recorded lag:
+  **tau_clone < 0.2 t (resolution-limited upper bound) for BOTH xi and the
+  solvent-coordination descriptor** — i.e. within one FR event stride. The
+  independent baseline is meaningful (conditional n_coord spread 1.4-2.0), so
+  this is a real measurement, not an artifact. Clone descendants become
+  effectively independent almost immediately in this 2D solvated system: the
+  covariance-defect / clone-redundancy mechanism is NOT what limited FR on WCA
+  (that was the absent establishment gap, Q2). The instrument is validated and
+  carries to any future solvated benchmark; a system with slow hidden-variable
+  relaxation (3D water wetting/dewetting, coordination shells) remains the
+  place tau_clone could bind.
+
 * **Phase E (Q4):** one hidden-solvent stress benchmark chosen for a clean
   orthogonal descriptor, not for FR's expected success. Next system after D3/D4/
   Q4a: vacuum alanine dipeptide (port from the closed ABF-Fisher-Rao campaign),
