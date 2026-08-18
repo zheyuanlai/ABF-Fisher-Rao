@@ -75,8 +75,11 @@ FR branch is closed without any WCA FR run.**
   reference (+0.36 compact to -0.31 stretched), while the sampled marginal sits
   at the noise floor. SHUS flattens the marginal it actually samples, so
   F_hat -> F_dyn of the discretized clipped dynamics; the tilt measures
-  F_dyn - F_TI (dt / force-clip invariant-measure bias, common-mode across any
-  arms). dt-halving attribution check appended to the stage summary when done.
+  F_dyn - F_TI, common-mode across any arms. Attribution: dt-halving left both
+  the error (0.186 -> 0.177) and the tilt slope (-0.63 -> -0.79) unchanged, so
+  it is NOT an O(dt) discretization effect (results/stage4_wca_screen/
+  dt_check.json); remaining candidates are the force clip (dt-independent) and
+  a reference-convention difference; clip ablation in clip_check.json.
 
 ## Stopping rule
 
