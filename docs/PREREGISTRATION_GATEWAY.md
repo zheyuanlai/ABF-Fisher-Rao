@@ -113,6 +113,30 @@ With `e_F(t)` the gauge-optimal interior L2 error and `I_F = \int_0^T e_F dt`:
   Level 3 "sustained convergence acceleration" (S > 1 AND
   `e_F^FR(T) <= 1.05 e_F^SHUS(T)` AND frozen-bias validation agrees in sign).
 
+## CONFIRMATORY OUTCOME (2026-08-18, seeds 100-131 — recorded, not to be edited)
+
+* **Accuracy co-primary: PASS.** `fr_temp` dI_F = -11.4% [-12.5, -10.8], CI < 0;
+  e_F(T) ratio 0.837 (non-inferiority passed); ancestry floors passed (0.89/0.73).
+* **Speed co-primary: FAIL.** S_eps* = 1.02 << 1.25; 26/32 seeds right-censored at
+  eps* (eps* sat at the terminal ring amplitude — a preregistration lesson).
+  Uncensored secondary ladder: S = 1.10 [1.09,1.11], 1.08 [1.05,1.09],
+  1.04 [1.03,1.05] at e0/{2,4,8} — a real but modest sustained speedup.
+* **Directionality: sham inert** (-0.1% [-0.6, 0.2]; S = 1.00 everywhere).
+* **Geometry: count balancing TIES fr_temp** (-11.4% [-12.2, -10.8]; identical
+  ladder). As preregistered, we do NOT claim the fine Fisher-Rao geometry is the
+  active ingredient on this system; directed reallocation toward uniform is.
+* **Overdamping prediction: CONFIRMED.** `fr_persistent`: dI_F = +2.5% [1.3, 3.1]
+  (harmful), S = 0.86/0.80 at coarse thresholds, n_anc/K -> 0.17; its e_F(t)
+  decays monotonically with NO ringing (the overdamped lambda ~ -kappa k^2/gamma
+  regime) and reaches the finest threshold FIRST (S = 1.15 [1.09, 1.39] at e0/8).
+* **Frozen-bias validation (200k-step equilibrated rerun):** fr_temp 0.916,
+  count 0.908, sham 1.007, fr_persistent 0.807 vs plain SHUS — same sign as the
+  online result for the temporary arms; the persistent arm's ring-free final bias
+  validates best of all despite its worse online trajectory.
+* **Claim level: Level 1 (better finite-budget computation) firmly established,
+  plus a modest sustained speedup (4-10%) at uncensored thresholds. NOT claimed:
+  the >= 1.25 speed target, or FR-geometry specificity.**
+
 ## Secondary metrics (all stored, none primary)
 
 `e_F(T)`, `e_{F'}(t)`, `D_t`, TV, cosine modes `a_k(t)`, `T_hit`, `T_est`, FR event
