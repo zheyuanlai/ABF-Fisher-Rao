@@ -103,6 +103,45 @@ def test_estimator_protection_fr_event_cannot_touch_accumulator():
     assert torch.equal(s.buf, buf_snap)
 
 
+def test_deposition_diagnostic_separates_healthy_from_feedback():
+    """The mechanism behind the smoke result, at accumulator level:
+    - samples from the biased equilibrium deposit d_n ~ exp(-beta F_true)  (healthy);
+    - samples from an FR-flattened (uniform) population deposit d_n ~ R_n  (feedback).
+    """
+    from abpfr.grid import trapz
+    beta = 1.0
+    xg = G.x(DEVICE, DTYPE)
+    F_true = (xg ** 2).unsqueeze(0)
+    rho_ref = torch.exp(-beta * F_true)
+    rho_ref = rho_ref / trapz(rho_ref, G.dx).unsqueeze(1)
+
+    def normalized_increment(sample_density):
+        s = make_shus(beta=beta)
+        s.R = torch.exp(-1.5 * (xg - 0.6) ** 2).unsqueeze(0)   # nontrivial current R_n
+        s._refresh_bias()
+        r_n = s.R / trapz(s.R, G.dx).unsqueeze(1)
+        cdf = torch.cumsum(sample_density(s) / sample_density(s).sum(), 0)
+        u = torch.rand(300_000, dtype=DTYPE, generator=torch.Generator().manual_seed(9))
+        idx = torch.searchsorted(cdf, u).clamp(max=G.n - 1)
+        X = xg[idx].unsqueeze(0)
+        s.deposit(X)
+        inc = smooth(s.buf, s.kernel, s.krad, G.dx)
+        d_n = inc / trapz(inc, G.dx).unsqueeze(1)
+        m = G.eval_mask(DEVICE, DTYPE)
+        to_ref = float(((d_n - rho_ref)[:, m] ** 2).mean().sqrt())
+        to_self = float(((d_n - r_n)[:, m] ** 2).mean().sqrt())
+        return to_ref, to_self
+
+    # healthy: biased equilibrium p ~ exp(-beta(F_true - F_n))
+    ref_h, self_h = normalized_increment(
+        lambda s: torch.exp(-beta * (F_true - s.F))[0])
+    # feedback: FR has flattened the marginal to uniform
+    ref_f, self_f = normalized_increment(
+        lambda s: torch.ones_like(xg))
+    assert ref_h < 0.05 and ref_h < self_h, (ref_h, self_h)
+    assert self_f < 0.05 and self_f < ref_f, (ref_f, self_f)
+
+
 def test_deposit_weight_is_block_frozen():
     # deposits within one block all see the same R, even after earlier deposits
     s = make_shus()

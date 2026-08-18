@@ -54,7 +54,9 @@ def main():
         name = f"{rec['method']['name']}_seed{rec['seed']}"
         arrays = {k: rec[k] for k in
                   ("time", "pmf_t", "marginal_t", "x_grid", "F_ref", "l2_f_t",
-                   "l2_fp_t", "kl_u_t", "tv_u_t", "ess_anc_t", "wmax_t", "P_regions",
+                   "l2_fp_t", "kl_u_t", "tv_u_t", "ess_anc_t", "wmax_t",
+                   "ess_anc_glob_t", "wmax_glob_t", "n_anc_t",
+                   "dep_ref_l2_t", "dep_self_l2_t", "P_regions",
                    "Q_regions", "event_time", "event_theta", "event_ess_fr",
                    "event_turnover")}
         meta = {"reference_id": rec["reference_id"], "eval_window": rec["eval_window"],
@@ -106,6 +108,31 @@ def main():
         fig.tight_layout()
         fig.savefig(os.path.join(args.out, "smoke_overview.png"), dpi=130)
         print(f"figure -> {os.path.join(args.out, 'smoke_overview.png')}")
+
+        # mechanism figure: does the block deposit follow exp(-beta F_ref) (healthy)
+        # or the accumulator itself (rich-get-richer feedback)?
+        fig2, ax2 = plt.subplots(1, 3, figsize=(14, 4.2), sharex=True)
+        for rec in recs:
+            m = rec["method"]["name"]
+            t = rec["time"]
+            kw = dict(color=colors.get(m, "k"), alpha=0.6, lw=1.2)
+            ax2[0].plot(t, rec["dep_ref_l2_t"], **kw)
+            ax2[1].plot(t, rec["dep_self_l2_t"], **kw)
+            ax2[2].plot(t, rec["n_anc_t"] / rec["config"]["K"], **kw)
+        for m, c in colors.items():
+            ax2[0].plot([], [], color=c, label=m)
+        for ax in ax2:
+            ax.axvspan(won, woff, color="C1", alpha=0.08)
+            ax.set_xlabel("t")
+        ax2[0].set_ylabel(r"$\|d_n - \rho_{\rm ref}\|_{L^2}$   (healthy $\to$ 0)")
+        ax2[0].legend()
+        ax2[1].set_ylabel(r"$\|d_n - r_n\|_{L^2}$   (feedback $\to$ 0)")
+        ax2[2].set_ylabel(r"surviving original ancestors $N_{\rm anc}/K$")
+        fig2.suptitle("Deposition-feedback mechanism: block deposit vs density of "
+                      "states vs accumulator self-feed")
+        fig2.tight_layout()
+        fig2.savefig(os.path.join(args.out, "smoke_mechanism.png"), dpi=130)
+        print(f"figure -> {os.path.join(args.out, 'smoke_mechanism.png')}")
     except Exception as e:  # plotting must never fail the smoke
         print(f"(no figure: {e})")
 

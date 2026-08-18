@@ -64,12 +64,19 @@ class ShusAccumulator:
         self.buf.scatter_add_(1, idx, w)
 
     def update(self, dt: float, K: int):
-        """Close the adaptation block: mollify the buffer, accumulate, renormalize."""
+        """Close the adaptation block: mollify the buffer, accumulate, renormalize.
+
+        Returns the raw (pre-renormalization) increment Delta R_n, which the engine
+        uses for the deposition-feedback diagnostic d_n = Delta R_n / ||Delta R_n||:
+        healthy SHUS deposits d_n ~ exp(-beta F); an over-flattened population
+        deposits d_n ~ R_n (rich-get-richer feedback).
+        """
         inc = smooth(self.buf, self.kernel, self.krad, self.grid.dx) * (dt / K)
         self.R = self.R + inc
         self.R = self.R / self.R.max(dim=1, keepdim=True).values
         self.buf.zero_()
         self._refresh_bias()
+        return inc
 
     # -- reporting / persistence -----------------------------------------------------
     def f_estimate(self, eval_mask):

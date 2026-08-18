@@ -55,6 +55,18 @@ def matched_turnover_indices(m, N, gen, device, dtype):
     return torch.where(die, parent, ar)
 
 
+def surviving_ancestors(anc, N):
+    """Number of ORIGINAL ancestors that still have living descendants.  -> (R,).
+
+    Complements the windowed ESS: windowed ancestry recovering to K only means no
+    recent resampling; lineages lost from the global genealogy never come back.
+    """
+    R = anc.shape[0]
+    hit = torch.zeros((R, N), device=anc.device, dtype=torch.float64)
+    hit.scatter_(1, anc, torch.ones_like(anc, dtype=torch.float64))
+    return hit.sum(dim=1)
+
+
 def ancestor_stats(anc, N):
     """Windowed ancestor ESS and largest lineage share w_max.  anc: (R, N) long.
 

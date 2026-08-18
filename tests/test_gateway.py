@@ -79,6 +79,9 @@ def test_checkpoint_resume_bitwise_equal():
         assert np.array_equal(full[r]["pmf_t"], resumed[r]["pmf_t"])
         assert np.array_equal(full[r]["l2_f_t"], resumed[r]["l2_f_t"])
         assert np.array_equal(full[r]["event_theta"], resumed[r]["event_theta"])
+        assert np.array_equal(full[r]["dep_self_l2_t"], resumed[r]["dep_self_l2_t"],
+                              equal_nan=True)
+        assert np.array_equal(full[r]["n_anc_t"], resumed[r]["n_anc_t"])
 
 
 def test_sham_copies_partner_turnover_and_timing():
@@ -127,6 +130,23 @@ def test_end_to_end_plain_shus_converges():
     # and the biased marginal must flatten
     kl = recs[0]["kl_u_t"]
     assert kl[-1] < 0.3 * kl[0]
+
+
+def test_global_vs_windowed_ancestry():
+    cfg = small_cfg(n_steps=4000, n_saves=20, ess_window_steps=500)
+    fr = gw.Method("shus_fr", use_fr=True, theta=0.3, t_on_frac=0.0, t_off_frac=1.0,
+                   fr_every_blocks=5)
+    recs = gw.simulate_batch([cfg], [2], [gw.SHUS, fr], batch_seed=21,
+                             device=DEVICE, dtype=DTYPE)
+    r_base = next(r for r in recs if r["method"]["name"] == "shus")
+    r_fr = next(r for r in recs if r["method"]["name"] == "shus_fr")
+    # no resampling: every original ancestor survives
+    assert np.all(r_base["n_anc_t"] == cfg.K)
+    # under persistent FR, global lineage loss is monotone and irreversible
+    d = np.diff(r_fr["n_anc_t"])
+    assert np.all(d <= 0) and r_fr["n_anc_t"][-1] < cfg.K
+    # windowed ESS can recover; global ESS never exceeds the windowed one
+    assert np.all(r_fr["ess_anc_glob_t"] <= r_fr["ess_anc_t"] + 1e-9)
 
 
 def test_record_schema_roundtrip(tmp_path):

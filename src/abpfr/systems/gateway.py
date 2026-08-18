@@ -29,9 +29,9 @@ import torch
 
 from ..fisher_rao import kl_to_uniform, theta_backoff, tv_to_uniform, uniform_log_ratio
 from ..grid import (DEVICE, DTYPE, EPS, Grid1D, binned_density, central_diff,
-                    gaussian_kernel, interp1d, reflect_into)
+                    gaussian_kernel, interp1d, reflect_into, trapz)
 from ..resampling import (ancestor_stats, matched_turnover_indices,
-                          systematic_resample, turnover_counts)
+                          surviving_ancestors, systematic_resample, turnover_counts)
 from ..shus import ShusAccumulator
 
 REFERENCE_ID = "gateway-analytic-v1"
@@ -267,6 +267,9 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
                                            oin_b.unsqueeze(1), s_b.unsqueeze(1))
     F_ref = F_ref_b.repeat_interleave(M, dim=0)
     Fp_ref = Fp_ref_b.repeat_interleave(M, dim=0)
+    # normalized density of states: the deposition profile healthy SHUS should follow
+    rho_ref = torch.exp(-beta * F_ref)
+    rho_ref = rho_ref / trapz(rho_ref, GRID.dx).unsqueeze(1)
 
     save_steps = sorted({*range(0, n_steps, max(1, n_steps // c0.n_saves)),
                          n_steps - 1})
@@ -279,14 +282,18 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
         X = X0_b.repeat_interleave(M, dim=0).clone()
         Y = Y0_b.repeat_interleave(M, dim=0).clone()
         anc = torch.arange(K, device=device).unsqueeze(0).expand(R, K).clone()
+        anc_g = anc.clone()                    # global genealogy: never reset
         shus = ShusAccumulator(R, GRID, beta, c0.eps_bw, device, dtype)
+        dep_ref_cur = torch.full((R,), float("nan"), device=device, dtype=dtype)
+        dep_self_cur = torch.full((R,), float("nan"), device=device, dtype=dtype)
         gen_n = torch.Generator(device=device)
         gen_n.manual_seed(2000 + batch_seed)
         gen_f = torch.Generator(device=device)
         gen_f.manual_seed(3000 + batch_seed)
         step0, save_ptr, event_ptr = 0, 0, 0
         ts = {k: torch.zeros((R, n_saves), device=device, dtype=dtype) for k in
-              ("l2_f", "l2_fp", "kl_u", "tv_u", "ess_anc", "wmax")}
+              ("l2_f", "l2_fp", "kl_u", "tv_u", "ess_anc", "wmax",
+               "ess_anc_glob", "wmax_glob", "n_anc", "dep_ref", "dep_self")}
         ts["P"] = torch.zeros((R, n_saves, 3), device=device, dtype=dtype)
         ts["Q"] = torch.zeros((R, n_saves, 3), device=device, dtype=dtype)
         ts["pmf"] = torch.zeros((R, n_saves, GRID.n), device=device, dtype=dtype)
@@ -296,7 +303,8 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
         tot_die = torch.zeros(R, device=device, dtype=dtype)
     else:
         st = start_state
-        X, Y, anc = st["X"], st["Y"], st["anc"]
+        X, Y, anc, anc_g = st["X"], st["Y"], st["anc"], st["anc_g"]
+        dep_ref_cur, dep_self_cur = st["dep_ref_cur"], st["dep_self_cur"]
         shus = ShusAccumulator(R, GRID, beta, c0.eps_bw, device, dtype)
         shus.load_state_dict(st["shus"])
         gen_n = torch.Generator(device=device)
@@ -332,7 +340,16 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
 
         # ---- block boundary: SHUS update, then (maybe) an FR event -------------
         if (step + 1) % block == 0:
-            shus.update(dt, K)
+            # deposition-feedback diagnostic: does this block's deposit follow the
+            # density of states exp(-beta F_ref) (healthy) or the current accumulator
+            # R_n itself (rich-get-richer feedback under an over-flattened marginal)?
+            r_n = shus.R / trapz(shus.R, GRID.dx).unsqueeze(1)
+            inc = shus.update(dt, K)
+            d_n = inc / torch.clamp(trapz(inc, GRID.dx), min=EPS).unsqueeze(1)
+            dd = (d_n - rho_ref)[:, eval_mask]
+            dep_ref_cur = torch.sqrt((dd * dd).mean(dim=1))
+            dd = (d_n - r_n)[:, eval_mask]
+            dep_self_cur = torch.sqrt((dd * dd).mean(dim=1))
             blk = (step + 1) // block
             if event_ptr < n_events and event_blocks[event_ptr] == blk:
                 active = fires[event_ptr]
@@ -364,6 +381,7 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
                 X = torch.gather(X, 1, sel)
                 Y = torch.gather(Y, 1, sel)
                 anc = torch.gather(anc, 1, sel)
+                anc_g = torch.gather(anc_g, 1, sel)
                 event_ptr += 1
 
         # ---- checkpoints ---------------------------------------------------------
@@ -380,6 +398,12 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
             e_, w_ = ancestor_stats(anc, K)
             ts["ess_anc"][:, save_ptr] = e_
             ts["wmax"][:, save_ptr] = w_
+            eg_, wg_ = ancestor_stats(anc_g, K)
+            ts["ess_anc_glob"][:, save_ptr] = eg_
+            ts["wmax_glob"][:, save_ptr] = wg_
+            ts["n_anc"][:, save_ptr] = surviving_ancestors(anc_g, K)
+            ts["dep_ref"][:, save_ptr] = dep_ref_cur
+            ts["dep_self"][:, save_ptr] = dep_self_cur
             plab = region_of(X)
             for k in range(3):
                 ts["P"][:, save_ptr, k] = (plab == k).to(dtype).mean(dim=1)
@@ -391,7 +415,9 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
             print(f"    step {step}/{n_steps}", flush=True)
 
     if stop_at is not None and stop_step < n_steps:
-        return {"X": X, "Y": Y, "anc": anc, "shus": shus.state_dict(),
+        return {"X": X, "Y": Y, "anc": anc, "anc_g": anc_g,
+                "dep_ref_cur": dep_ref_cur, "dep_self_cur": dep_self_cur,
+                "shus": shus.state_dict(),
                 "gen_n": gen_n.get_state(), "gen_f": gen_f.get_state(),
                 "step": stop_step, "save_ptr": save_ptr, "event_ptr": event_ptr,
                 "ts": ts, "ev": ev, "tot_die": tot_die}
@@ -433,6 +459,10 @@ def _finalize(cfgs, seeds, methods, save_steps, dt, x_grid, eval_mask, F_ref, Fp
                 l2_f_t=l2, l2_fp_t=npy(ts["l2_fp"][r]),
                 kl_u_t=npy(ts["kl_u"][r]), tv_u_t=npy(ts["tv_u"][r]),
                 ess_anc_t=npy(ts["ess_anc"][r]), wmax_t=npy(ts["wmax"][r]),
+                ess_anc_glob_t=npy(ts["ess_anc_glob"][r]),
+                wmax_glob_t=npy(ts["wmax_glob"][r]), n_anc_t=npy(ts["n_anc"][r]),
+                dep_ref_l2_t=npy(ts["dep_ref"][r]),
+                dep_self_l2_t=npy(ts["dep_self"][r]),
                 P_regions=npy(ts["P"][r]), Q_regions=npy(ts["Q"][r]),
                 event_time=ev_t, event_theta=npy(ev["theta"][r]),
                 event_ess_fr=npy(ev["ess_fr"][r]),
