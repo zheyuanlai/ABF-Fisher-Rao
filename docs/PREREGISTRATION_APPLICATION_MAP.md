@@ -405,6 +405,53 @@ The campaign proceeds to the 2D geometry question (Q3, Phase D).**
   references under the identical model; the mechanism taxonomy (A/B/C/D)
   replaces the bare establishment-gap gate everywhere from here on.
 
+## Phase ALA — alanine dipeptide diagnostic benchmark
+
+**Engine (commit e290ecc, 104 tests green):** frozen physical model ported from
+the closed campaign — ff14SB vacuum TorchFF built from the cached parameter
+artifact (param_hash 6ffd00dc241f, verified vs OpenMM at extraction; parity
+fixtures stored), BAOAB (dt = 1 fs, gamma = 1 ps^-1, T = 300 K, float64, no
+constraints), IUPAC (phi, psi). Reference = the campaign's accepted
+umbrella+MBAR occupancy FES; the engine grid IS the reference's 97-cell-centred
+torus lattice (no resampling); eval masks mask8 / mask1 (F <= 8 kT); basins =
+watershed from the 4 deepest reference minima (C7eq / C5 / C7ax / alphaR).
+Every walker starts at the minimised C7eq structure with fresh Maxwell momenta.
+FR clones copy (q, cached f) and draw fresh Maxwell momenta (the validated
+full-state cloning). The question is NOT "can FR win" but **"what type of
+limitation (A/B/C/D) does a realistic molecular ABP encounter after proper
+tuning?"**
+
+**ALA-1 — joint (K x g) plain-SHUS screen [FROZEN 2026-08-19, before any run]:**
+* Runs: cv in {phi, phipsi} x K in {32, 128, 512}, each batch carrying
+  g_shus in {0.5, 1, 2, 4, 8} as five noise-paired arms (the tune-first rule is
+  built into the screen; rows are launch-bound-free), seeds 0..7, NO FR
+  anywhere. n_steps = 500_000 (0.5 ns), block = 20, n_saves = 400,
+  profile_every = 8, ess_window_steps = 4000.
+* Frozen numerics: eps_bw = 0.08 (analytic mask8 floor e* = 0.33 kT,
+  KL* = 0.357 — recorded here; the 37 kT surface makes the mollified fixed
+  point genuinely non-uniform and D_tol must carry that), eta_bw = 0.25.
+* Gates: T_hit = all four basins persistently occupied (hold 0.05); T_est =
+  trailing-median KL rule (hold 0.10), D_tol = 1.5 x (KL*(cv) + noise95(cv, K))
+  with the analytic KL* of the mollified fixed point on the reference surface
+  and the finite-K KDE noise floor, both per cv dimensionality.
+* Per (cv, K): Pareto g* by the frozen rule (qualifying = median paired e_F(T)
+  ratio vs g = 1 <= 1.05; lowest median paired I_F; within 2 points -> smaller
+  g); if g = 8 is argmin and beats g = 4 by > 2 points, one extension {12, 16},
+  hard cap 16. Classification with the frozen vocabulary AND the mechanism
+  taxonomy (does gain remove the deficit -> Type B; ringing survives ->
+  Type A candidate).
+* cv = phi additionally records the conditional diagnostic
+  E_cond(t) = int p_t(phi) TV(p_t(psi|phi), p_ref(psi|phi)) dphi and the full
+  joint (phi, psi) KDE series: the Type-C readout is a flat phi-marginal
+  (D_t at floor) with E_cond staying high. Marginal FR is NOT expected to
+  repair Type C; that outcome closes the incomplete-CV question negatively.
+* FR (with count6/9/12 + sham controls, theta = 0.01 stride 10 transferred,
+  window by the frozen quantile rule, on the TUNED baseline, fresh seeds,
+  -5%-with-CI standard) runs ONLY on a (cv, K) cell that retains a residual
+  Type-A establishment deficit after gain tuning — its design gets its own
+  dated freeze first. tau_clone^(psi) instrumentation (Q4a protocol with the
+  hidden psi as the orthogonal descriptor) precedes any such FR run.
+
 ## Stopping / interpretation rules (frozen)
 
 * Tuned plain SHUS matches FR on the gateway => "FR is not practically necessary
