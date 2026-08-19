@@ -164,6 +164,16 @@ class Method:
     g_shus: float = 1.0          # SHUS adaptation gain: multiplies the accumulator
                                  # increment (docs/PREREGISTRATION_APPLICATION_MAP.md);
                                  # lives on Method so gain arms stay noise-paired
+    cond_fr: bool = False        # Phase F: fiber-wise (CONDITIONAL) reallocation
+                                 # instead of the marginal step -- birth-death
+                                 # inside xi-strata toward a flatter p(z | xi),
+                                 # with the xi-marginal invariant by construction
+                                 # (src/abpfr/fisher_rao_cond.py).  Requires an
+                                 # engine that carries a hidden coordinate z.
+    cond_bins1: int = 0          # >0 together with cond_bins2: the stratified-COUNT
+    cond_bins2: int = 0          # control -- p(z | xi) from an nb1 x nb2 histogram
+                                 # instead of the joint KDE, isolating the density
+                                 # estimator inside the same conditional geometry
 
 
 SHUS = Method("shus")

@@ -516,3 +516,201 @@ point before interpretation.
 * No molecular system ever satisfies the establishment criterion under well-tuned
   SHUS => "FR is practically redundant for SHUS in typical molecular applications"
   — an acceptable terminal conclusion.
+
+---
+
+# Phase F — the conditional (fiber-wise) Fisher-Rao question
+
+Status: **F1 design FROZEN 2026-08-19** (this commit; before any F1 run exists).
+F2 (the reallocation experiment) is gated on F1 and gets its own dated freeze.
+
+## Why the campaign reopens after a terminal assessment
+
+The closing assessment above stands unedited: across gateway, WCA at every K, both
+torus cells and atomistic alanine under both CV choices, MARGINAL Fisher-Rao added
+nothing that adaptation-rate tuning or coarse count balancing did not already
+supply.  This phase does not re-litigate any of that.  It asks a question those runs
+could not reach, and it is opened because of a structural reading of why they nulled,
+not because of a hope that one more system will behave differently.
+
+**The lemma the four count-ties were reporting.** `fisher_rao.py` scores walkers with
+`a_k = [u(xi_k)/p_hat(xi_k)]^theta` and `events*.py` count balancing scores them with
+the same expression evaluated on a histogram instead of a KDE.  Both are particle
+realizations of the SAME continuous flow `d_t p = -p (log p/u - KL(p||u))`; they can
+differ only through the estimator of `log p(xi)`.  At K = 1024 on a 1D or 2D CV with
+6-12 bins, both estimators are excellent, so **a tie is the correct answer, not an
+accident** — gateway, D2 at three resolutions, and D3b were four measurements of one
+identity.  It follows that marginal FR can only separate from count balancing where
+the density estimator binds, i.e. in reallocation descriptor spaces of dimension >= 3
+where a histogram's cells outnumber the walkers.  That is Phase G's question, not
+this one, and it is recorded here so the four ties stop being read as a disappointment.
+
+**The regime the ABP cannot reach.** Phase B named the mechanism for the nulls: SHUS
+floods, so escape along xi is deterministic per walker and the bias performs the
+reallocation in xi itself.  Any population method whose target is a function of xi
+alone is therefore redundant with the base method — which is exactly what every
+recorded outcome says.  The complement is a theorem-shaped statement: the ABP owns
+the xi-marginal, and the one thing it structurally cannot flatten is `p(z | xi)` for a
+coordinate z it does not bias.  That is the mechanism taxonomy's **Type C**, and it is
+the only live regime for a population correction under an ABP.  Vacuum alanine was
+the campaign's one Type-C probe and it came back negative (`psi | phi` relaxes at the
+metric floor), so the question was never actually tested — only its absence recorded.
+
+**Why marginal FR could never have answered it.** Two walkers at the same xi in
+different hidden channels receive the SAME marginal score, so no marginal reallocation
+— FR or count — can prefer the under-populated one.  The instrument this campaign has
+been running is blind to the only deficit its base method leaves open.  Phase F
+therefore changes the instrument, not the system class:
+
+    p^+(z | xi) propto p(z | xi)^{1-theta} u(z)^theta,      p(xi) LEFT INVARIANT
+
+(`src/abpfr/fisher_rao_cond.py`, `src/abpfr/events_cond.py`, committed with this
+freeze; 19 validation tests, whole suite 123 green).  Weights come from the joint KDE
+as `[u(z_k)/p_hat(z_k | xi_k)]^theta`; systematic resampling runs INSIDE equal-width
+xi-strata, so every stratum keeps exactly its walker count.  Two properties follow
+that the marginal step does not have:
+
+* the xi-histogram SHUS deposits from is invariant at stratum resolution, so the
+  estimator-resampling feedback this project has fought since Stage 0 cannot enter
+  through the deposit signal (tested: a backed-off conditional arm is bitwise the
+  plain run);
+* **`g_shus` is structurally disqualified as the competing explanation.**  The gain
+  rescales the xi-bias; on a cell whose deficit lives behind a barrier in z it can do
+  nothing by construction.  For the first time in this campaign the arm that matched
+  or beat FR everywhere cannot be the answer.
+
+Target convention transferred unchanged: u is UNIFORM on z.  It is NOT the stationary
+conditional (nothing biases z), so the step is temporary-window only and the realized
+channel populations are recorded at every save so overshoot is measured, not assumed
+absent.  One asymmetric cell is carried precisely because the uniform target is
+knowingly wrong there.
+
+## The system (`src/abpfr/systems/bichannel.py`, committed with this freeze)
+
+Overdamped Langevin on the torus, CV = phi, hidden coordinate = psi:
+
+    s(psi) = (1 + cos psi)/2
+    V = Hperp (1 - cos 2 psi)/2 + Delta (1 - cos psi)/2
+        + s Ha (1 - cos 2 phi)/2 + (1 - s) Hb (1 + cos 2 phi)/2
+
+Two channels (psi ~ 0 and psi ~ pi) span the whole CV range; `Ha = Hb` makes them
+images of each other under `phi -> phi + pi/2`, so channel B's phi-wells sit exactly
+on channel A's barriers, `Z_A = Z_B`, and the channel ratio is exactly
+`e^{-beta Delta}` (tested).  The reference is exact: the CV is a coordinate, so
+`F(phi, psi) = V` and `F(phi) = -beta^{-1} log int e^{-beta V} dpsi` by quadrature on
+the production grid — no reference simulation to confound an accuracy claim.  At
+`psi = +-pi/2` the phi-dependence of V is constant when `Ha = Hb`, so **the hidden
+barrier is exactly orthogonal to the CV**: no bias on phi lowers it.
+
+Pre-run design quantities (`type_c_amplitude`, `analytic_floors`,
+`conditional_floors`), recorded here before any screen row:
+
+| cell (beta = 4, Ha = Hb = 1) | p_B_ref | p_B_ref (biased) | e_F if B never populated | e* (mollifier floor) | E_chan floor q95 |
+|---|---|---|---|---|---|
+| Hperp 1.0, Delta 0   | 0.500 | 0.500 | 0.335 | 0.0032 | 0.071 |
+| Hperp 1.5, Delta 0   | 0.500 | 0.500 | 0.351 | 0.0034 | 0.068 |
+| Hperp 2.0, Delta 0   | 0.500 | 0.500 | 0.358 | 0.0035 | 0.069 |
+| Hperp 2.5, Delta 0   | 0.500 | 0.500 | 0.361 | 0.0035 | 0.070 |
+| Hperp 1.5, Delta 0.5 | 0.129 | 0.316 | 0.181 | 0.0034 | 0.066 |
+| Hperp 2.0, Delta 0.5 | 0.126 | 0.316 | 0.183 | 0.0035 | 0.066 |
+
+The Type-C error stands ~100x above the estimator's own floor.  Under a converged
+bias the stationary law is `p_ref(psi|phi) x uniform(phi)`, so the channel fraction a
+converged run should show is the UNIFORM-phi average `p_B_ref_biased`, not the
+Boltzmann average; both are recorded and the metric floors use the biased null.
+
+**Metric honesty.** `E_cond` — the campaign's ALA-1 conditional metric — is a
+KDE-vs-KDE total variation whose finite-K floor on this system (~0.15 at K = 1024) is
+as large as the whole deficit it would measure.  It is recorded but is NOT a gate
+here.  The primary conditional readout is the channel-resolved
+`E_chan = int p(phi) |P_B(phi) - P_B_ref(phi)| dphi` (floor ~0.07), and the primary
+accuracy endpoint is `e_F` on `F(phi)` (floor 0.0034).
+
+**Engineering calibration (disclosed, 2026-08-19, before this freeze).** A 2-seed,
+T = 200 pilot on cells (Hperp, Delta) in {(1,0), (1.5,0), (2,0), (1.5,0.5)} with arms
+g in {1, 4} chose the cell grid below and measured throughput (1854 steps/s at 16
+rows).  It showed the channel population rising 0 -> 0.49 / 0.38 / 0.13 by T = 200 at
+Hperp = 1.0 / 1.5 / 2.0 with e_F(T) = 0.015 / 0.136 / 0.308, and g = 4 changing
+nothing (0.130 vs 0.136 at Hperp = 1.5).  It is calibration, not an outcome: no F1
+row existed when this design was frozen, and F1 re-measures everything at 8 seeds and
+a 4x longer horizon.
+
+## F1 — plain-SHUS Type-C screen (NO reallocation anywhere)   [FROZEN 2026-08-19]
+
+* Cells: `Hperp in {1.0, 1.5, 2.0, 2.5}` at `Delta = 0`, plus `Hperp in {1.5, 2.0}`
+  at `Delta = 0.5`; `beta = 4`, `Ha = Hb = 1`.  Six cells.
+* Seeds **0..7**; arms `g_shus in {1, 2, 4, 8}` as four noise-paired arms
+  (the tune-first rule built into the screen).  192 rows, one batch,
+  batch_seed 20260950.
+* Frozen numerics: `K = 1024`, `dt = 1e-3`, `n_steps = 800_000` (**T = 800**, the
+  honest horizon — the D4 lesson that a truncated screen mislabels), `block = 20`,
+  `eps_bw = 0.06`, `eta_bw = 0.25`, `n_saves = 400`, `profile_every = 8`,
+  `joint_every = 40`, `ess_window_steps = 4000`, `n_strata = 32`, `init = chanA`
+  (every walker starts in channel A: the hidden channel must be REACHED).
+* Recorded per row: `e_F(t)`, `I_F`, `e_F(T)`; `D_t` = KL(p_hat(phi) || u) with
+  `D_tol = 1.5 x (KL* + noise95(K))`; `T_hit^B` = first persistent time (hold 0.05)
+  with `P_B > 0`; `T_est` from `D_t` (the MARGINAL establishment time — the ABP's own
+  convergence verdict); `E_chan(t)`, `E_cond(t)`, `P_B(t)`, `P_B(phi)` profiles,
+  deposition diagnostics, wall clock.
+
+### Type-C eligibility (frozen, decided on plain-SHUS rows only)
+
+A cell is eligible for the F2 reallocation experiment iff ALL of:
+
+1. **the deficit is in the free energy:** median `e_F(T) >= 10 e*`;
+2. **the hidden channel is reached and populated:** min over seeds of `P_B` at
+   `t = T/4` is `> 0.01` — otherwise the cell is Type D (discovery) and no
+   reallocation can help by construction;
+3. **adaptation rate does not repair it:** the best gain's median `e_F(T)` is still
+   `>= 10 e*` (Type B excluded — the gain arm is in the same batch, noise-paired);
+4. **it is attributable to the channel:** median `E_chan(T) >= 2 x` its biased
+   finite-K floor;
+5. **it is still live at T:** median `P_B` over the last 10% of the run is
+   `< 0.8 x p_B_ref_biased` (a cell that has already equilibrated has nothing left
+   to accelerate).
+
+If NO cell is eligible, record the **Type-C null** and the conditional-FR branch
+closes without an FR run, exactly as Q2 closed on WCA.
+
+### Predictions, recorded before the run so they can fail
+
+* **P1** gain tuning does not repair the deficit on any Type-C-eligible cell.
+* **P2** marginal FR will be inert there (`|dI_F| < 2%`) — it is blind by construction,
+  and it is carried in F2 as a control precisely so that blindness is measured.
+* **P3** conditional FR reduces `I_F` by `>= 20%` on an eligible cell.
+* **P4** conditional COUNT balancing will TIE conditional FR at this descriptor
+  dimension (one hidden coordinate).  This is stated up front: F2 tests the
+  **geometry** claim (reallocation must be conditioned on the coordinate that limits
+  the estimator), not the FR-vs-histogram claim, which by the lemma above needs a
+  >= 3D descriptor and belongs to Phase G.  A P4 tie is a confirmation of the
+  campaign's own lemma, not a new disappointment.
+
+## F2 — the reallocation experiment (gated; own freeze before any FR row)
+
+Runs only on an F1-eligible cell.  Fresh seeds 600-615, one paired batch, arms:
+1. `shus_gstar` (tuned baseline, g* from F1);
+2. `gstar + fr_cond` (theta = 0.01, stride 10 blocks, transferred UNRETUNED);
+3. `gstar + cnt_cond` (stratified count control, resolution frozen in F2);
+4. `gstar + fr_marg` (marginal FR, the blindness control);
+5. `gstar + sham_cond` (stratified matched-turnover sham).
+Window by the frozen quantile rule on F1's g* rows, with the channel establishment
+time in place of the marginal one; its exact form is fixed in the F2 freeze because
+F1 must first show whether `T_est^chan` is censored.  Ancestry floors as always
+(min windowed `ESS_anc/K >= 0.5`, final `n_anc/K >= 0.5`); an arm that violates them
+is reported and not interpreted as a win.  `tau_clone^(psi)` (the validated Q4a
+instrument, hidden psi as the orthogonal descriptor) is measured on the eligible cell
+BEFORE any F2 accuracy claim: in a Type-C system it is long by construction, which is
+both why cloning is needed and the ceiling on what it can buy.
+
+**Decision rules (frozen now):**
+* `fr_cond` vs `gstar`: median paired `dI_F <= -5%` with CI < 0 **and** beating its
+  sham -> **the conditional population correction has independent value on a Type-C
+  deficit**; `>= -2%` or CI straddling 0 -> conditional FR adds nothing either, and
+  the population-correction idea closes negative across every geometry this project
+  can construct.
+* `fr_cond` vs `cnt_cond`: tie -> record "conditioning on the right coordinate is the
+  active ingredient; the FR estimator is not, at this descriptor dimension"
+  (predicted).  `fr_cond` better with CI < 0 -> first evidence the smooth FR estimator
+  itself matters, and Phase G's dimensional claim gets a head start.
+* `fr_marg` non-null -> the blindness argument above is WRONG and this freeze says so;
+  the whole Phase-F rationale would have to be rewritten in that outcome's light.
