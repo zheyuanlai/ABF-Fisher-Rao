@@ -1029,3 +1029,86 @@ matched target — FR's `p^+ ~ p^{1-theta} u^theta` (particle weight `(u/p)^thet
 against, e.g., convex relaxation `p^+ = (1-alpha) p + alpha u` (particle weight
 `(1-alpha) + alpha u/p`), and a chi^2 / deficit-proportional score.  Only a win under
 those constraints is evidence for the Fisher-Rao reaction law itself.
+
+### F3a outcome (2026-08-19, seeds 600-615, noise-paired with F2 — recorded, not to be edited)
+
+**P5 confirmed, and by a wide margin.  The augmented CV wins.**
+
+| cell | `fr_cond` (1D CV + conditional FR) | `cnt_cond` | **`SHUS(phi,psi)` at g\* = 1** | aug vs `fr_cond` |
+|---|---|---|---|---|
+| Hperp 2.0, Delta 0   | -15.33% (e_F 39.5 e*) | -15.15% | **-83.33% (e_F 0.0072 = 2.1 e*)** | **-80.40 [-80.66, -79.82]** |
+| Hperp 2.5, Delta 0   | -12.61% (78.1 e*)     | -11.76% | **-83.20% (0.0085 = 2.4 e*)**     | **-80.79 [-81.25, -80.55]** |
+| Hperp 2.0, Delta 0.5 | -31.35% (17.6 e*)     | -28.22% | **-79.93% (0.0090 = 2.6 e*)**     | **-70.91 [-71.46, -70.25]** |
+
+Same walkers, same steps, same noise, same deliverable, same mollifier floor.  Biasing
+the hidden coordinate takes the run to 2-3 x the estimator floor — essentially
+converged — while conditional reallocation leaves it at 18-78 x.  `g*` = 1 by the
+frozen Pareto rule (higher gains lower `I_F` further but fail the 1.05 final-error
+guard); the choice is immaterial, g = 1 already wins by 80%.
+
+**This changes the Phase-F headline and it is restated here rather than in a later
+gloss.** The claim is NOT that conditional reallocation is the right way to fix a
+Type-C deficit.  It is:
+
+> A Type-C deficit is repaired best by adding the limiting coordinate to the biased
+> CV.  Conditional reallocation repairs a large part of it — 15-31%, where base-method
+> tuning repairs none — **without touching the CV**, and is therefore a fallback for
+> when the limiting coordinate cannot be biased, not a competitor to biasing it.
+
+The honest cases for the fallback, which are what remains to be established:
+1. **Non-differentiable descriptors.** Birth-death needs only to EVALUATE z; biasing
+   needs its gradient.  Hydrogen-bond counts, native contacts with hard cutoffs,
+   cluster labels and most learned descriptors are usable as reallocation coordinates
+   and not as biasing coordinates.  This is a real asymmetry and it is the strongest
+   remaining argument, but it is an argument about applicability, not performance,
+   and this project has not tested it.
+2. **Descriptor dimension / sample complexity.**  An ABP must FILL its accumulator;
+   reallocation only needs enough walkers per stratum.  At `d_z = 1`, `K = 1024` the
+   96 x 96 accumulator is filled easily and the ABP wins by 80%.  Whether a crossing
+   exists is now the load-bearing question, not a side study: **F3b (K ladder) and the
+   renamed Phase G (`d_z` ladder) carry the practical case for the method.**
+
+Note that argument 1 is weaker than it first looks: conditioning and biasing need the
+SAME knowledge of *which* coordinate is slow.  The asymmetry is only in what can be
+done with it once known.
+
+### F4 outcome (2026-08-19, seeds 720-735 — recorded, not to be edited)
+
+**P7 is REFUTED.  The method is target-parametrization sensitive.**
+
+| arm | Hperp 2.0, Delta 0 | Hperp 2.0, Delta 0.5 | turnover |
+|---|---|---|---|
+| `fr_cond` (uniform in psi) | -14.89% | -31.21% | 327 / 341 |
+| `fr_cond_rp+` (uniform in psi + 0.8 sin psi) | **+5.14 [3.75, 5.89]** | **+0.42 [0.18, 1.15]** | 282 / 260 |
+| `fr_cond_rp-` (uniform in psi - 0.8 sin psi) | -63.33% | -42.16% | 617 / 612 |
+| `fr_cond_oracle` (exact `p_ref(psi|phi)`) | -64.02% | -53.81% | 575 / 412 |
+
+* A single arbitrary reparametrization of the descriptor — one that a modeller could
+  make without thinking, e.g. helicity versus a nonlinear function of it — **destroys
+  the entire benefit and slightly reverses it** (+5.1% / +0.4%).  `rp+` fires at a
+  turnover comparable to `fr_cond` (282 vs 327), so this is direction, not dose: at
+  matched intensity the sign flips.  This must be stated as a limitation before any
+  molecular application, and it is the reason the target is now a first-class
+  argument of `conditional_log_ratio` rather than a hard-coded uniform.
+* The `rp-` and oracle magnitudes are **dose-confounded** (turnover 575-617 vs 327):
+  a target further from the current population produces larger scores and more
+  turnover, and F2 already showed dose alone buys a lot.  Their size is therefore not
+  directly comparable to `fr_cond`'s; their DIRECTION is what the arms establish.
+* The oracle nonetheless bounds the headroom: with a perfect conditional target the
+  same machinery reaches -64% / -54% versus uniform's -15% / -31%.  Most of what
+  conditional reallocation could deliver is being left on the table by the target,
+  not by the update law.
+
+**The structural point this exposes.** Under a reparametrization `z -> h(z)` both `q`
+and `p_hat` carry the same Jacobian, so the ratio `q / p_hat` — and hence the FR
+weight — is invariant *only if q is specified as a density in a fixed measure*.
+"Uniform" is a choice of measure on the hidden coordinate.  The one
+parametrization-invariant conditional target is the physical `p(z | xi)` itself, which
+is exactly what is unknown.  **Every practical target therefore encodes a modelling
+choice, on the same footing as choosing a CV — and F4 measures what a bad choice
+costs: all of it.**  Note also the identity recorded in the F4 freeze: tempering a
+target is equivalent to reducing theta, so temperedness is not an escape from this;
+only the choice of reference measure is.
+
+This makes target selection, not the update law, the central open problem for any
+molecular application of conditional reallocation — which reorders Phase H.
