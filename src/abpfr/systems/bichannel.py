@@ -64,9 +64,9 @@ from ..events1p import fr_event1p
 from ..events_cond import fr_event_cond
 from ..grid import DEVICE, DTYPE, EPS
 from ..grid1p import (Grid1P, ShusAccumulator1P, binned_density1p, integral1p,
-                      kl_to_uniform1p, tv_to_uniform1p)
+                      interp1p, kl_to_uniform1p, tv_to_uniform1p)
 from ..grid2d import (GridT2, binned_density2, integral2, periodic_gaussian_kernel,
-                      smooth2, wrap_periodic)
+                      smooth2, torus_distance, wrap_periodic)
 from ..resampling import ancestor_stats, surviving_ancestors
 from .gateway import Method, _fires_at_block, _schedule_source  # shared arm logic
 
@@ -585,3 +585,148 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
                 total_turnover=float(tot_turn[r]),
             ))
     return recs
+
+
+# -----------------------------------------------------------------------------
+# F2a: clone decorrelation in the hidden coordinate
+# -----------------------------------------------------------------------------
+def clone_decorrelation(cfg: BiChannelConfig, seeds, t0=200.0, lag_max=400.0,
+                        n_bins=8, n_par=8, batch_seed=777, device=DEVICE,
+                        dtype=DTYPE, progress=None):
+    """Q4a's instrument, adapted to a Type-C system (Phase F2a).
+
+    Spin plain SHUS up to t0, freeze the learned bias, pick n_par parents in each of
+    n_bins equal phi-strata, duplicate each into two children with independent noise,
+    and watch how fast a clone forgets its parent.
+
+    Two measures, because one number would hide the distinction a conditional
+    correction turns on:
+
+    * m_chan(tau): excess probability that siblings still share a CHANNEL over the
+      same-bin independent baseline.  A population correction is carried by exactly
+      this; if it decays inside an event stride the correction cannot persist.
+    * m_psi / m_phi(tau): the frozen Q4a measure 1 - d_sib/d_ind on RMS torus pair
+      distance.  Fast decay here means siblings are not redundant for conditional
+      averages -- the good case for variance.
+
+    Returns per-row arrays; tau_clone is the first lag with m <= 1/e.
+    """
+    B = len(seeds)
+    K, dt, block = cfg.K, cfg.dt, cfg.block
+    n_spin = int(round(t0 / dt))
+    assert n_spin % block == 0, "t0 must be a whole number of adaptation blocks"
+
+    beta = torch.full((B, 1), cfg.beta, device=device, dtype=dtype)
+    Hp = torch.full((B, 1), cfg.Hperp, device=device, dtype=dtype)
+    Dl = torch.full((B, 1), cfg.Delta, device=device, dtype=dtype)
+    Ha = torch.full((B, 1), cfg.Ha, device=device, dtype=dtype)
+    Hb = torch.full((B, 1), cfg.Hb, device=device, dtype=dtype)
+    noise_amp = torch.sqrt(2.0 * dt / beta)
+
+    X1 = torch.empty((B, K), device=device, dtype=dtype)
+    X2 = torch.empty((B, K), device=device, dtype=dtype)
+    for b, sd in enumerate(seeds):
+        rng = np.random.default_rng(1000 + int(sd))
+        X1[b] = torch.as_tensor(rng.normal(0.0, 0.15, K), device=device, dtype=dtype)
+        X2[b] = torch.as_tensor(rng.normal(0.0, 0.15, K), device=device, dtype=dtype)
+    X1 = wrap_periodic(X1, GRID2.x1min, GRID2.L1)
+    X2 = wrap_periodic(X2, GRID2.x2min, GRID2.L2)
+    shus = ShusAccumulator1P(B, GRID1, beta, cfg.eps_bw, device, dtype)
+    gen = torch.Generator(device=device)
+    gen.manual_seed(2000 + batch_seed)
+
+    for step in range(n_spin):                                  # spin-up
+        g1, g2 = gradV_of(X1, X2, Hp, Dl, Ha, Hb)
+        b1 = shus.bias_force_at(X1)
+        X1 = wrap_periodic(X1 + (-g1 + b1) * dt + noise_amp * torch.randn(
+            (B, K), device=device, dtype=dtype, generator=gen), GRID2.x1min, GRID2.L1)
+        X2 = wrap_periodic(X2 - g2 * dt + noise_amp * torch.randn(
+            (B, K), device=device, dtype=dtype, generator=gen), GRID2.x2min, GRID2.L2)
+        shus.deposit(X1)
+        if (step + 1) % block == 0:
+            shus.update(dt, K)
+    Fp_frozen = shus.Fp.clone()                                 # the bias is now fixed
+
+    # stratified parents: n_par per phi-bin, drawn without replacement
+    bw = GRID1.L / n_bins
+    bidx = torch.remainder(((X1 - GRID1.xmin) / bw).long(), n_bins)
+    cnt = torch.zeros((B, n_bins), device=device, dtype=dtype)
+    cnt.scatter_add_(1, bidx, torch.ones_like(X1))
+    assert float(cnt.min()) >= n_par, (
+        f"a phi-stratum holds {float(cnt.min()):.0f} < {n_par} walkers at t0; "
+        "the parent draw would sample with replacement")
+    key = bidx.to(dtype) + torch.rand((B, K), device=device, dtype=dtype, generator=gen)
+    order = key.argsort(dim=1)
+    off = (torch.cumsum(cnt, dim=1) - cnt).long()
+    take = (off.unsqueeze(2) + torch.arange(n_par, device=device).view(1, 1, -1)
+            ).reshape(B, n_bins * n_par)
+    parents = torch.gather(order, 1, take)                      # (B, n_bins*n_par)
+    P = parents.shape[1]
+
+    C1 = torch.gather(X1, 1, parents).repeat_interleave(2, dim=1)   # (B, 2P)
+    C2 = torch.gather(X2, 1, parents).repeat_interleave(2, dim=1)
+    N = 2 * P
+    Fp_c = Fp_frozen
+    gen_c = torch.Generator(device=device)
+    gen_c.manual_seed(3000 + batch_seed)
+
+    # sibling pairs (2i, 2i+1); independent baseline pairs child0 of parent j with
+    # child0 of parent (j+1) inside the SAME phi-bin
+    sib_a = torch.arange(0, N, 2, device=device)
+    sib_b = sib_a + 1
+    j = torch.arange(P, device=device)
+    nxt = (j % n_par + 1) % n_par + (j // n_par) * n_par
+    ind_a, ind_b = 2 * j, 2 * nxt
+
+    n_fine = int(round(20.0 / dt))
+    fine_every = max(1, int(round(0.2 / dt)))
+    coarse_every = max(1, int(round(10.0 / dt)))
+    n_lag = int(round(lag_max / dt))
+    rec = sorted({0, *range(fine_every, min(n_fine, n_lag) + 1, fine_every),
+                  *range(coarse_every, n_lag + 1, coarse_every)})
+    out = {k: torch.zeros((B, len(rec)), device=device, dtype=dtype)
+           for k in ("d_sib_psi", "d_ind_psi", "d_sib_phi", "d_ind_phi",
+                     "same_sib", "same_ind")}
+
+    def record(ptr):
+        for nm, a, b in (("sib", sib_a, sib_b), ("ind", ind_a, ind_b)):
+            d2 = torus_distance(C2[:, a], C2[:, b], GRID2.L2)
+            d1 = torus_distance(C1[:, a], C1[:, b], GRID2.L1)
+            out[f"d_{nm}_psi"][:, ptr] = torch.sqrt((d2 * d2).mean(dim=1))
+            out[f"d_{nm}_phi"][:, ptr] = torch.sqrt((d1 * d1).mean(dim=1))
+            out[f"same_{nm}"][:, ptr] = (channel_of(C2[:, a])
+                                         == channel_of(C2[:, b])).to(dtype).mean(dim=1)
+
+    rec_set = {s: i for i, s in enumerate(rec)}
+    if 0 in rec_set:
+        record(rec_set[0])
+    for step in range(1, n_lag + 1):
+        g1, g2 = gradV_of(C1, C2, Hp, Dl, Ha, Hb)
+        b1 = interp1p(C1, Fp_c, GRID1)
+        C1 = wrap_periodic(C1 + (-g1 + b1) * dt + noise_amp * torch.randn(
+            (B, N), device=device, dtype=dtype, generator=gen_c), GRID2.x1min, GRID2.L1)
+        C2 = wrap_periodic(C2 - g2 * dt + noise_amp * torch.randn(
+            (B, N), device=device, dtype=dtype, generator=gen_c), GRID2.x2min, GRID2.L2)
+        if step in rec_set:
+            record(rec_set[step])
+        if progress is not None and step % progress == 0:
+            print(f"    lag step {step}/{n_lag}", flush=True)
+
+    npy = lambda t: t.detach().cpu().numpy()
+    lag_t = np.array([s * dt for s in rec])
+    m_psi = 1.0 - npy(out["d_sib_psi"]) / np.clip(npy(out["d_ind_psi"]), 1e-30, None)
+    m_phi = 1.0 - npy(out["d_sib_phi"]) / np.clip(npy(out["d_ind_phi"]), 1e-30, None)
+    same_ind = npy(out["same_ind"])
+    m_chan = (npy(out["same_sib"]) - same_ind) / np.clip(1.0 - same_ind, 1e-12, None)
+
+    def tau_of(m):
+        out_ = []
+        for row in m:
+            hit = np.where(row <= 1.0 / math.e)[0]
+            out_.append(float(lag_t[hit[0]]) if len(hit) else float("nan"))
+        return np.array(out_)
+
+    return {"lag": lag_t, "m_psi": m_psi, "m_phi": m_phi, "m_chan": m_chan,
+            "tau_psi": tau_of(m_psi), "tau_phi": tau_of(m_phi),
+            "tau_chan": tau_of(m_chan), "d_ind_psi": npy(out["d_ind_psi"]),
+            "same_ind": same_ind}
