@@ -1112,3 +1112,64 @@ only the choice of reference measure is.
 
 This makes target selection, not the update law, the central open problem for any
 molecular application of conditional reallocation — which reorders Phase H.
+
+### F3b outcome (2026-08-19, seeds 700-707, anchor cell — recorded, not to be edited)
+
+**P6 is essentially refuted: the margin barely moves.**
+
+| K | n_strata | `fr_cond` vs 1D `shus` | `sham_cond` | aug `g*`=1 vs 1D `shus` | **aug vs `fr_cond`** |
+|---|---|---|---|---|---|
+| 64   | 4  | -14.18 [-18.68, -6.41] | -5.14 [-8.97, 0.89] | -78.04 (e_F 9.0 e*)  | **-74.42 [-76.78, -72.13]** |
+| 256  | 8  | -15.47 [-20.22, -13.40] | -0.23 [-1.85, 2.99] | -81.42 (5.6 e*)      | **-78.37 [-78.98, -75.66]** |
+| 1024 | 32 | -15.33 [-15.90, -13.38] | +0.25 [-0.70, 0.68] | -83.33 (2.1 e*)      | **-80.40 [-80.66, -79.82]** |
+
+Sixteen-fold fewer walkers moves the augmented CV's advantage from -80.4% to -74.4%.
+There is a trend in the predicted direction and it is nowhere near a crossing.
+
+**Why the sample-complexity argument fails, mechanistically.** At K = 64 the 2D
+accumulator has 9216 cells and 64 walkers, and it still reaches 9.0 e* while the 1D
+baseline sits at 57.1 e*.  An ABP's accumulator is filled by **trajectory time, not by
+population size** — 64 walkers over 40 000 adaptation blocks deposit plentifully, and
+the bias itself drives them to cover the grid.  This is Phase B's flooding mechanism
+reappearing on the accumulator side, and it means low K does not create the opening
+the conditional method needed.
+
+Caveats recorded: at K = 64 the conditional comparison is weakly resolved (8 seeds,
+`fr_cond` CI [-18.7, -6.4]) and its sham is no longer inert (-5.14%, CI straddling 0),
+so part of that cell's apparent benefit may be turnover rather than direction; the
+K = 256 and K = 1024 shams are inert as usual.
+
+**Cost accounting.** Under the campaign's frozen convention (force evaluations,
+`C = K x n_steps x N_particles`) the two CV choices are exactly equal here — same
+walkers, same steps, same system.  In wall clock the augmented CV cost 2-5x more in
+this implementation, because the analytic potential is nearly free and a 96 x 96 grid
+convolution per block dominates; in any molecular application force evaluation
+dominates and the difference vanishes.  Either way an 80% gap at these error levels
+is not an accounting artifact.
+
+### What survives of the practical case for conditional reallocation
+
+After F3a/F3b/F4, the claims still standing are narrower than Phase F's own headline:
+
+1. **It repairs what base-method tuning cannot.** Firm: F1 showed an eightfold gain
+   change moves a Type-C deficit <= 3% (wrong sign); F2 showed conditional
+   reallocation moves it 15-31% with null sham and null marginal-FR controls, and a
+   verified-invariant CV marginal.  This is the campaign's one positive.
+2. **It is decisively worse than biasing the limiting coordinate.** Firm, at
+   `d_z = 1` across K in {64, 256, 1024}: -71 to -81%.
+3. **The statistical-efficiency argument for it is refuted at `d_z = 1`** (F3b).  What
+   remains is a *computational* argument — at `d_z >= 3` the accumulator becomes
+   infeasible in memory rather than merely under-sampled — which is a weaker and more
+   mundane claim than the one Phase G was opened on, and it is the honest version.
+4. **The strongest untested case is non-differentiable descriptors:** birth-death needs
+   only to evaluate z (hydrogen-bond counts, contact maps with hard cutoffs, cluster
+   labels, learned descriptors), while biasing needs its gradient.  This project has
+   not tested it, and it is an applicability argument, not a performance one.
+5. **The target is a modelling choice that can cost everything** (F4), and the only
+   parametrization-invariant target is the unknown physical conditional.
+
+Phase G should therefore be run for what it can actually settle — the dimension at
+which an augmented-CV ABP becomes infeasible while conditioning remains usable — and
+NOT as a route to an FR-specific claim.  Before any molecular work, the mandatory
+baseline set is now: tuned ABP on the base CV, **tuned ABP on the augmented CV**,
+conditional reallocation, its stratified-count control, and its sham.
