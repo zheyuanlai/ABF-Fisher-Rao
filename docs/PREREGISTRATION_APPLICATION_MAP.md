@@ -847,10 +847,12 @@ Median paired `dI_F` vs the g\* = 1 baseline, paired bootstrap 95% CI:
 
 **Verdict by the frozen rule: the conditional population correction has independent
 value on a Type-C deficit.** `fr_cond` clears the -5%-with-CI<0 bar on all three
-cells and beats its own matched-turnover sham by -14.95 / -12.36 / -31.03%.  This is
-the first positive population-correction result in the project, and it is the first
-experiment in which the arm that beat FR everywhere else — adaptation-rate tuning —
-was structurally unable to compete (F1: eightfold gain, <= 3% effect, wrong sign).
+cells and beats its own matched-turnover sham by -14.95 / -12.36 / -31.03%.  The
+gateway's Stage-3 result was also positive (-11.4%), but it was reproduced by gain
+tuning and tied by count balancing, so no arm-specific claim survived it.  This is the
+first population-correction result in the project that **no other available arm
+reproduces**: gain tuning is structurally out (F1: eightfold gain, <= 3% effect, wrong
+sign), marginal FR is null, and the matched-turnover sham is null.
 
 * **P2 confirmed: marginal FR is exactly null** (+0.19 / -0.04 / -0.18%, every CI
   straddling zero) while firing 58-80 resampling events.  Same theta, same stride,
