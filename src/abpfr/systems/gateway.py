@@ -170,6 +170,14 @@ class Method:
                                  # with the xi-marginal invariant by construction
                                  # (src/abpfr/fisher_rao_cond.py).  Requires an
                                  # engine that carries a hidden coordinate z.
+    cond_target: str = "uniform"  # Phase F4: the conditional TARGET q(z | xi).
+                                 # "uniform" (frozen default), "reparam" (uniform in
+                                 # psi' = psi + a sin psi, i.e. a deliberate
+                                 # reparametrization of the descriptor), or "oracle"
+                                 # (the exact reference conditional -- DIAGNOSIS
+                                 # ONLY, it consults the reference the run is scored
+                                 # against and is never a claimable method).
+    cond_target_a: float = 0.0   # the reparametrization amplitude, |a| < 1
     cond_bins1: int = 0          # >0 together with cond_bins2: the stratified-COUNT
     cond_bins2: int = 0          # control -- p(z | xi) from an nb1 x nb2 histogram
                                  # instead of the joint KDE, isolating the density

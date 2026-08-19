@@ -57,8 +57,13 @@ def axis1_grid(grid: GridT2) -> Grid1P:
     return Grid1P(xmin=grid.x1min, L=grid.L1, n=grid.n1)
 
 
-def conditional_log_ratio(z1, z2, p2_hat, grid: GridT2):
-    """log[ u(z) / p_hat(z | xi) ] at walker positions.  -> (R, K).
+def conditional_log_ratio(z1, z2, p2_hat, grid: GridT2, log_q=None):
+    """log[ q(z | xi) / p_hat(z | xi) ] at walker positions.  -> (R, K).
+
+    log_q: None for the frozen UNIFORM target, or an (R, n1, n2) grid of
+    log q(z | xi).  "Uniform" is not a canonical notion for a general descriptor --
+    it moves under reparametrization of z -- so the target is a first-class argument
+    and Phase F4 varies it deliberately.
 
     p_hat(z | xi) = p_hat(xi, z) / p_hat(xi), BOTH read off the same smooth joint
     KDE: the conditional inherits the smooth density estimate that is the only
@@ -68,10 +73,12 @@ def conditional_log_ratio(z1, z2, p2_hat, grid: GridT2):
     p1 = p2_hat.sum(dim=2) * grid.dx2                     # (R, n1)
     at2 = torch.clamp(interp2(z1, z2, p2_hat, grid), min=EPS)
     at1 = torch.clamp(interp1p(z1, p1, axis1_grid(grid)), min=EPS)
-    return -math.log(grid.L2) - torch.log(at2) + torch.log(at1)
+    log_at_q = (-math.log(grid.L2) if log_q is None
+                else interp2(z1, z2, log_q, grid))
+    return log_at_q - torch.log(at2) + torch.log(at1)
 
 
-def conditional_log_ratio_binned(z1, z2, nb1, nb2, grid: GridT2):
+def conditional_log_ratio_binned(z1, z2, nb1, nb2, grid: GridT2, log_q=None):
     """Histogram control: the same score from an nb1 x nb2 piecewise-constant joint.
 
     The discrete analog of the conditional step -- stratified count balancing.  It
@@ -88,8 +95,10 @@ def conditional_log_ratio_binned(z1, z2, nb1, nb2, grid: GridT2):
     col = cell.reshape(R, nb1, nb2).sum(dim=2)            # walkers per xi-bin
     n_at = torch.clamp(torch.gather(cell, 1, flat), min=1.0)
     d_at = torch.clamp(torch.gather(col, 1, b1), min=1.0)
+    log_at_q = (-math.log(grid.L2) if log_q is None
+                else interp2(z1, z2, log_q, grid))
     # p_hat(z|xi) = (cell / col) / bw2
-    return -math.log(grid.L2) - torch.log(n_at / d_at / bw2)
+    return log_at_q - torch.log(n_at / d_at / bw2)
 
 
 # -----------------------------------------------------------------------------

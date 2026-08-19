@@ -194,3 +194,44 @@ def test_noise_stream_depends_only_on_rows_and_batch_seed():
     b_shus = [r for r in b if r["method"]["name"] == "shus"]
     for ra, rb in zip(a, b_shus):
         assert np.array_equal(ra["l2_f_t"], rb["l2_f_t"])
+
+
+def test_reparametrized_target_is_exactly_normalized_and_skews_as_designed():
+    cfg = _cfg(beta=4.0, Hperp=2.0, Delta=0.0)
+    refs = [bc.reference_objects(cfg.beta, cfg.Hperp, cfg.Delta, cfg.Ha, cfg.Hb,
+                                 DEV, DT)]
+    arms = [Method("u"), Method("rp", cond_target="reparam", cond_target_a=0.8),
+            Method("or", cond_target="oracle")]
+    lq = bc.target_log_q(arms, refs, len(arms), DEV, DT)
+    q = torch.exp(lq)
+    mass = q.sum(dim=2) * bc.GRID2.dx2
+    assert float((mass - 1.0).abs().max()) < 1e-12          # every target normalized
+    qr = q[1, 0]
+    assert abs(float(qr.max() / qr.min()) - 9.0) < 0.1      # the designed 9:1 skew
+
+
+def test_oracle_target_is_a_no_op_on_a_correctly_distributed_population():
+    """Sanity on the target plumbing: score an exactly-Boltzmann population against
+    the exact conditional and the reallocation should have nothing to do."""
+    from abpfr.fisher_rao_cond import conditional_log_ratio
+    from abpfr.grid2d import binned_density2, periodic_gaussian_kernel
+    cfg = _cfg(beta=4.0, Hperp=2.0, Delta=0.0, K=4096)
+    ref = bc.reference_objects(cfg.beta, cfg.Hperp, cfg.Delta, cfg.Ha, cfg.Hb,
+                               DEV, DT)
+    rho = torch.exp(-cfg.beta * ref["F2"])
+    rho = rho / torch.clamp(rho.sum(dim=1, keepdim=True), min=1e-300)   # biased null
+    w = (rho / rho.sum()).reshape(-1)
+    g = torch.Generator().manual_seed(5)
+    idx = torch.searchsorted(torch.cumsum(w, 0),
+                             torch.rand(4096, generator=g, dtype=DT)).clamp(
+                                 max=w.numel() - 1)
+    z1 = (bc.GRID2.x1min + ((idx // bc.NG).to(DT) + 0.5) * bc.GRID2.dx1).reshape(1, -1)
+    z2 = (bc.GRID2.x2min + ((idx % bc.NG).to(DT) + 0.5) * bc.GRID2.dx2).reshape(1, -1)
+    k, r = periodic_gaussian_kernel(0.25, bc.GRID2.dx1, bc.NG, DEV, DT)
+    p2 = binned_density2(z1, z2, k, r, k, r, bc.GRID2)
+    lq = torch.log(torch.clamp(ref["p_cond"], min=1e-300)).unsqueeze(0)
+    lr_or = conditional_log_ratio(z1, z2, p2, bc.GRID2, lq)
+    lr_un = conditional_log_ratio(z1, z2, p2, bc.GRID2, None)
+    # the oracle score is centred near zero; the uniform score is not
+    assert abs(float(lr_or.mean())) < 0.5 * abs(float(lr_un.mean()))
+    assert float(lr_or.std()) < float(lr_un.std())

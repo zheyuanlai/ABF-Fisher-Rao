@@ -284,6 +284,38 @@ def conditional_floors(cfg: BiChannelConfig, K: int, n_rep=64, seed=777,
             "p_B_err": np.sort(pB.detach().cpu().numpy())}
 
 
+def target_log_q(methods, refs, M, device, dtype):
+    """Per-row log q(psi | phi) for a batch, or None if every arm is uniform.
+
+    "reparam" with amplitude a targets a UNIFORM distribution in
+    psi' = psi + a sin psi (monotone for |a| < 1), whose density in psi is exactly
+    (1 + a cos psi) / L2 -- normalized on the circle with no quadrature.  a = 0.8 is
+    a 9:1 skew, i.e. a large and entirely arbitrary mis-specification of the target,
+    which is what choosing a descriptor over a nonlinear function of it would do.
+    """
+    if all(m.cond_target == "uniform" for m in methods):
+        return None
+    B = len(refs)
+    R = B * M
+    out = torch.empty((R, GRID2.n1, GRID2.n2), device=device, dtype=dtype)
+    psi = GRID2.x2(device, dtype).reshape(1, -1)
+    for b in range(B):
+        for j, m in enumerate(methods):
+            r = b * M + j
+            if m.cond_target == "uniform":
+                out[r] = -math.log(GRID2.L2)
+            elif m.cond_target == "reparam":
+                a = float(m.cond_target_a)
+                assert abs(a) < 1.0, "reparametrization needs |a| < 1 to stay monotone"
+                out[r] = (torch.log1p(a * torch.cos(psi)) - math.log(GRID2.L2)
+                          ).expand(GRID2.n1, GRID2.n2)
+            elif m.cond_target == "oracle":
+                out[r] = torch.log(torch.clamp(refs[b]["p_cond"], min=EPS))
+            else:
+                raise AssertionError(f"unknown cond_target {m.cond_target!r}")
+    return out
+
+
 def reduce_to_phi(F2_hat, beta):
     """F(phi) = -beta^{-1} log int e^{-beta F2(phi,psi)} dpsi, zero-mean.
 
@@ -424,6 +456,7 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
 
     refs = [reference_objects(float(c.beta), float(c.Hperp), float(c.Delta),
                               float(c.Ha), float(c.Hb), device, dtype) for c in cfgs]
+    cond_log_q = target_log_q(methods, refs, M, device, dtype)
     F1_ref = torch.stack([r["F1"] for r in refs]).repeat_interleave(M, dim=0)
     p_cond_ref = torch.stack([r["p_cond"] for r in refs]).repeat_interleave(M, dim=0)
     pB_phi_ref = torch.stack([r["pB_phi_ref"] for r in refs]).repeat_interleave(M, dim=0)
@@ -548,7 +581,8 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
                 if bool((cond_rows | cond_sham).any()):
                     s_c, t_c, th_c, e_c = fr_event_cond(
                         X1, X2, cond_rows, cond_sham, cond_nb1, cond_nb2, n_strata,
-                        partner, theta0, alpha_ess, k1e, r1e, k2e, r2e, GRID2, gen_f)
+                        partner, theta0, alpha_ess, k1e, r1e, k2e, r2e, GRID2,
+                        gen_f, cond_log_q)
                     touched = (cond_rows | cond_sham).unsqueeze(1)
                     sel = torch.where(touched, s_c, sel)
                     turn = torch.where(touched[:, 0], t_c, turn)

@@ -34,12 +34,15 @@ from .resampling import turnover_counts
 
 
 def fr_event_cond(z1, z2, fr_act, sham_act, cond_nb1, cond_nb2, n_strata, partner,
-                  theta0, alpha_ess, k1, r1, k2, r2, grid: GridT2, gen):
+                  theta0, alpha_ess, k1, r1, k2, r2, grid: GridT2, gen, log_q=None):
     """Returns (sel, turn, theta_used, essf).  z1 = xi (biased), z2 = hidden.
 
     cond_nb1 / cond_nb2: (R,) long per-row histogram resolutions; 0 = the fine
     joint KDE (the FR arm).  Rows with cond_nb1 > 0 are the stratified-count
     control and share everything else with the FR rows.
+
+    log_q: None for the frozen uniform target, or an (R, n1, n2) per-row log target
+    conditional (Phase F4 carries several targets in one paired batch).
     """
     R, K = z1.shape
     device, dtype = z1.device, z1.dtype
@@ -51,7 +54,7 @@ def fr_event_cond(z1, z2, fr_act, sham_act, cond_nb1, cond_nb2, n_strata, partne
     strata = stratum_of(z1, grid, n_strata)
     if bool(fr_act.any()):
         p2 = binned_density2(z1, z2, k1, r1, k2, r2, grid)
-        logr = conditional_log_ratio(z1, z2, p2, grid)
+        logr = conditional_log_ratio(z1, z2, p2, grid, log_q)
         nb1 = cond_nb1.to(device=device, dtype=torch.long)
         nb2 = cond_nb2.to(device=device, dtype=torch.long)
         for res in sorted({(int(a), int(b)) for a, b in
@@ -59,7 +62,8 @@ def fr_event_cond(z1, z2, fr_act, sham_act, cond_nb1, cond_nb2, n_strata, partne
             rows = (nb1 == res[0]) & (nb2 == res[1]) & fr_act
             if not bool(rows.any()):
                 continue
-            logr_c = conditional_log_ratio_binned(z1, z2, res[0], res[1], grid)
+            logr_c = conditional_log_ratio_binned(z1, z2, res[0], res[1], grid,
+                                                  log_q)
             logr = torch.where(rows.unsqueeze(1), logr_c, logr)
         theta_in = torch.where(fr_act, theta0, torch.zeros_like(theta0))
         w, cnt, th, ef = theta_backoff_cond(logr, strata, n_strata, theta_in,
