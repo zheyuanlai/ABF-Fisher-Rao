@@ -421,6 +421,21 @@ full-state cloning). The question is NOT "can FR win" but **"what type of
 limitation (A/B/C/D) does a realistic molecular ABP encounter after proper
 tuning?"**
 
+**Engineering note (2026-08-19, commit 82400f1, before any completed ALA-1
+run):** the first launch showed the classic launch-bound profile (99% util at
+156/600 W, 2.7 GB used — thousands of tiny kernels). The engine was rebuilt:
+analytic forces and dihedral gradients replacing the three per-step autograd
+graphs (validated to ~1e-15 relative against autograd, incl. the extreme
+parity fixture), CUDA-graph capture/replay of each 20-step adaptation block
+(noise pre-drawn eagerly per block from the unchanged generator sequence),
+and torch deterministic algorithms so GPU reruns are bitwise reproducible.
+87 -> 381 steps/s (4.4x; 633 without order-stable scatters — determinism
+chosen). One instrumentation deviation: saves are now aligned to adaptation-
+block boundaries (~400 saves preserved); physics, seeds, and noise streams
+unchanged. Identical-parameter arms pair bitwise on CPU; on CUDA they share
+the noise stream but can diverge from last-bit reduction-order effects —
+the regime every GPU campaign in this project operated in.
+
 **ALA-1 — joint (K x g) plain-SHUS screen [FROZEN 2026-08-19, before any run]:**
 * Runs: cv in {phi, phipsi} x K in {32, 128, 512}, each batch carrying
   g_shus in {0.5, 1, 2, 4, 8} as five noise-paired arms (the tune-first rule is
