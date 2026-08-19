@@ -714,3 +714,99 @@ both why cloning is needed and the ceiling on what it can buy.
   itself matters, and Phase G's dimensional claim gets a head start.
 * `fr_marg` non-null -> the blindness argument above is WRONG and this freeze says so;
   the whole Phase-F rationale would have to be rewritten in that outcome's light.
+
+### F1 outcome (2026-08-19, seeds 0-7, T = 800 — recorded, not to be edited)
+
+**Three of six cells are Type-C eligible under the frozen gate**, and the campaign's
+first ABP deficit that adaptation-rate tuning cannot touch:
+
+| cell | e_F(T) at g=1 | / e* | P_B(T) vs ref | E_chan / floor | e_F across g in {1,2,4,8} | eligible |
+|---|---|---|---|---|---|---|
+| Hperp 1.0, Delta 0   | 0.021 | 6.5 | 0.495 / 0.500 | 0.82 | 0.021 -> 0.032 | no (equilibrates) |
+| Hperp 1.5, Delta 0   | 0.018 | 5.3 | 0.494 / 0.500 | 0.77 | 0.018 -> 0.029 | no (equilibrates) |
+| **Hperp 2.0, Delta 0**   | **0.171** | **49.3** | 0.335 / 0.500 | 2.33 | 0.171 -> 0.174 | **YES** |
+| **Hperp 2.5, Delta 0**   | **0.327** | **93.1** | 0.096 / 0.500 | 5.80 | 0.327 -> 0.329 | **YES** |
+| Hperp 1.5, Delta 0.5 | 0.016 | 4.6 | 0.312 / 0.316 | 0.83 | 0.016 -> 0.028 | no (equilibrates) |
+| **Hperp 2.0, Delta 0.5** | **0.105** | **30.2** | 0.175 / 0.316 | 2.26 | 0.105 -> 0.103 | **YES** |
+
+* **P1 confirmed, decisively.** On every eligible cell an eightfold increase in the
+  adaptation gain moves e_F(T) by <= 3%, and where it moves it at all it moves it the
+  WRONG way (0.1706 -> 0.1743 on the anchor).  Every earlier establishment deficit in
+  this campaign was Type B and dissolved under gain tuning — up to -73.7% on torus
+  t_mid.  Here the same knob, over the same range, does nothing.  This is what a
+  deficit orthogonal to the CV looks like, and it is the first one the campaign has
+  produced.
+* **The ABP reports success while being wrong.** The marginal establishment time
+  `T_est` from the phi-KL rule is 0.00 with zero censored seeds on every eligible cell:
+  by its own convergence diagnostic SHUS has finished immediately, while `e_F` sits
+  at 49-93 x the estimator floor for the whole 800-unit run.  The deficit is invisible
+  to every gate this project has used before Phase F.
+* **Mechanism confirmed as designed.** `E_chan` starts near its floor (at t = 0 the
+  population sits at phi ~ 0, where the reference conditional really is ~98% channel
+  A), rises to 0.41-0.49 once the bias spreads the walkers across phi, and then decays
+  only as slowly as the channels exchange: on the anchor 0.41 (t=100) -> 0.15 (t=800),
+  on Hperp 2.5 0.49 -> 0.41.  The error is created by the biasing itself and drained
+  only by hidden-coordinate transport.
+* **T_est^chan is censored 8/8 on all three eligible cells** (E_chan never reaches
+  2 x floor within T = 800), so the F2 window uses the fallback fixed below.
+* Non-eligible cells behave exactly as the taxonomy predicts: Hperp <= 1.5 equilibrates
+  its channels well inside T and lands at 5-6 e*, i.e. SHUS-sufficient, and there the
+  familiar 1D pattern returns — gain tuning makes final accuracy WORSE (0.018 -> 0.029).
+
+## F2 — the reallocation experiment   [FROZEN 2026-08-19, before any F2 row]
+
+* **Cells:** all three eligible ones, in one batch: `hp2_d0` (anchor: severe, channel
+  well populated), `hp2.5_d0` (sparse channel: 9.6% — tests whether reallocation
+  still works when there is little to clone), `hp2_d0.5` (asymmetric: the frozen
+  UNIFORM target is knowingly WRONG here, target 0.316 vs uniform's 0.5, and it is
+  carried precisely to expose overshoot).
+* **g\* = 1 on all three cells** by the frozen selection rule: the gains are within
+  0.12-1.5% of each other on median I_F, far inside the 2-point band, which resolves
+  toward the smaller gain.
+* **Window (frozen derivation, censored fallback):** `t_on = ceil(Q90(T_hit^B))`
+  pooled over the eligible cells = ceil(19.8) = **20**; with `T_est^chan` censored,
+  `t_off = t_on + 0.25 (T - t_on)` = **215**, the same 25%-of-interval convention with
+  the horizon replacing the unreachable establishment time.  As run fractions:
+  `t_on_frac = 0.025`, `t_off_frac = 0.26875`.
+* **Dose (frozen decision, stated before any F2 row):** the transferred protocol is
+  theta = 0.01 at "stride 10 blocks", but block TIME differs across systems — 10
+  blocks is 0.04 time units on the gateway and 0.2 here, so the raw stride would
+  deliver ~975 events against the frozen winner's ~200.  The primary arm therefore
+  transfers the **dose**: `fr_every_blocks = 49` gives 199 events in the window,
+  matching the winner.  A secondary arm keeps the raw stride 10 (~975 events, 5x dose)
+  so the dose dependence is measured rather than assumed.
+* **Arms** (seeds **600-615**, one paired batch, batch_seed 20260960):
+  1. `shus` — g\* baseline;
+  2. `fr_cond` — conditional FR, theta = 0.01, stride 49, alpha_ess = 0.5;
+  3. `fr_cond_hi` — conditional FR at the raw transferred stride 10 (5x dose);
+  4. `cnt_cond` — stratified count control, `cond_bins = (32, 9)`: the phi resolution
+     is set EQUAL to `n_strata = 32` so the only difference from `fr_cond` is the psi
+     density estimator (9-bin histogram vs smooth KDE);
+  5. `fr_marg` — marginal FR, same theta/stride: the blindness control;
+  6. `sham_cond` — stratified matched-turnover sham shadowing `fr_cond`.
+* Primary endpoint: median paired `dI_F` vs `shus` with paired bootstrap 95% CIs,
+  plus the direct contrasts `fr_cond` vs `cnt_cond`, `fr_cond` vs `fr_marg`, and
+  `fr_cond` vs `sham_cond`.  Secondary: `e_F(T)`, `E_chan(T)`, the `P_B(t)`
+  trajectory against `p_B_ref_biased` (overshoot on the asymmetric cell is a
+  REPORTED outcome, not a failure), ancestry floors, realized turnover and theta.
+  Decision rules are the ones frozen in the Phase-F entry above and are not restated.
+
+### F2a — clone decorrelation in the hidden coordinate (before any F2 accuracy claim)
+
+The Q4a instrument, adapted: plain SHUS to `t0 = 200`, bias frozen, 8 x 8 parents
+stratified over phi, each duplicated into two children evolved under the frozen bias
+with independent noise.  Two decorrelation measures, because a Type-C system needs
+both and Q4a's single number would hide the distinction:
+
+* `m_chan(tau)` — excess probability that siblings still share a CHANNEL, over the
+  same-phi-bin independent baseline.  For a population correction this SHOULD be
+  slow: a clone that immediately forgets which channel it was in cannot carry the
+  correction.  Long `tau_clone^chan` is a PRECONDITION here, not a limitation.
+* `m_psi(tau)`, `m_phi(tau)` — the Q4a RMS-pair-difference measure on psi and on the
+  CV.  Fast within-channel decorrelation means siblings are not statistically
+  redundant for conditional averages.
+
+Recorded per eligible cell against the F2 event stride (0.98 time units) and the
+window length (195).  The pairing `tau_clone^chan >> stride` with
+`tau_clone^psi ~ stride` is the configuration in which conditional cloning can help;
+the opposite pairing would bound what F2 can buy, and is recorded either way.
