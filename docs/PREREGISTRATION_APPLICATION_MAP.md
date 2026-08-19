@@ -909,3 +909,123 @@ score off a joint KDE, so the engine work is a grid/kernel generalization rather
 a new method.  `tau_clone` per descriptor becomes the pre-run screen for which
 coordinates belong in the conditioning set.  Design to be frozen before any Phase-G
 run, as always.
+
+---
+
+# Phase F3/F4 — the baselines Phase F was missing   [FROZEN 2026-08-19, before any run]
+
+Two corrections to the Phase-F design, raised after the F2 outcome and adopted before
+any new row exists.  Both are recorded as gaps in the original design, not as
+refinements of it.
+
+**Gap 1 — the augmented CV.** F2 shows that `SHUS(phi) + conditional reallocation in
+psi` beats `SHUS(phi)`.  But once psi is known to be the limiting coordinate, the
+obvious alternative is to bias it: `SHUS(phi, psi)`.  The 2D engine has existed since
+commit 8814431 and this arm was simply never run.  Until it is, F2's result cannot be
+called an algorithmic advance — it might only be an indirect substitute for enlarging
+the CV.  This is the more fundamental experiment and it precedes Phase G.
+
+**Gap 2 — target parametrization.** The conditional target is UNIFORM in z.  "Uniform"
+is not a canonical notion for a molecular descriptor: it changes under
+reparametrization of z (helicity vs its logarithm).  Note first an identity that
+removes one apparent knob: with the FR law, a tempered target
+`q_lambda ~ p^{1-lambda} u^lambda` gives `p^+ ~ p^{1-theta lambda} u^{theta lambda}`,
+i.e. **tempering the target is exactly equivalent to reducing theta** — the F2 dose
+ladder already IS the target-temperature ladder.  What is NOT equivalent, and is what
+the objection is really about, is a target that is uniform in a *different*
+parametrization of z.  That is what F4 tests.
+
+## Engine work committed with this freeze
+
+`BiChannelConfig.cv in {"phi", "phipsi"}` with the 2D accumulator path; an
+augmented-CV run is scored on the SAME deliverable via
+`reduce_to_phi(F2_hat) = -beta^{-1} log int e^{-beta F2} dpsi` (exact on the reference
+to 1e-12, tested).  Recorded before the run: the mollifier floor on the reduced
+quantity is **identical for both CV choices** (e* = 0.00346 / 0.00351 / 0.00347 on the
+three cells) because the psi-mollification integrates out — so neither side gets a
+floor advantage.  The engine refuses reallocation arms under `cv = "phipsi"` (biasing
+and reallocating the same coordinate is a different experiment).  Also tested: the
+Langevin noise stream depends only on `(B, seeds, batch_seed)`, so a separate batch
+with the same three keys is EXACTLY noise-paired with the stored F2 rows — the same
+device used for A1b.
+
+## F3a — augmented CV vs conditional reallocation, equal budget   [FROZEN]
+
+* Cells: the three F1-eligible ones.  Seeds **600-615**, batch_seed **20260960**,
+  B = 48 — identical to F2, so every F3a row is paired with its F2 counterpart.
+* `cv = "phipsi"`, arms = the gain ladder `g_shus in {1, 2, 4, 8}` (the augmented-CV
+  arm must be TUNED, or this repeats the campaign's own worst mistake).  K = 1024,
+  T = 800: identical force evaluations, identical walkers, identical steps — the grid
+  bookkeeping is the only cost difference and it is negligible.  `g*` by the frozen
+  Pareto rule (qualifying median paired `e_F(T)` ratio vs g = 1 <= 1.05; lowest median
+  `I_F`; ties within 2 points resolve toward the smaller gain).
+* Primary endpoint: median paired `dI_F` of `SHUS(phi,psi)` at `g*` against the stored
+  `shus` baseline AND against the stored `fr_cond`, with paired bootstrap CIs.
+* **`E_chan` is NOT a valid cross-CV metric and is not used as one.** Under a 2D bias
+  the sampled conditional is uniform BY DESIGN, so a large `E_chan` for that arm is
+  the intended sampling distribution, not an error.  Only `e_F` on the reduced `F(phi)`
+  is comparable across the two CV choices.
+
+**P5 (predicted before the run):** the tuned augmented-CV ABP BEATS
+`SHUS(phi) + conditional FR` on all three cells at K = 1024.  Biasing psi removes the
+barrier outright; reallocation only moves population across it.  If P5 holds, the
+honest headline is that conditional reallocation is valuable **when the limiting
+coordinate cannot or will not be added to the biased CV** — not that it dominates
+augmented biasing.  We state this now so the result cannot be re-narrated afterwards.
+
+## F3b — where the augmented CV starts to cost   [FROZEN]
+
+The sample-complexity question P5 leaves open: a `96 x 96` accumulator needs walkers to
+fill it, while conditional reallocation needs only enough walkers per stratum.
+
+* Anchor cell `hp2_d0`, fresh seeds **700-707**, T = 800, `K in {64, 256}` (K = 1024
+  comes from F2/F3a).  One `cv = "phi"` batch (arms `shus`, `fr_cond`, `cnt_cond`,
+  `sham_cond`) and one `cv = "phipsi"` batch (gain ladder) per K, same batch_seed
+  (**20260970 + K**) so they are noise-paired.
+* **`n_strata = max(4, K // 32)`** — frozen now, holding ~32 walkers per stratum, so
+  the conditional arm's own sample complexity is handled by a stated rule rather than
+  by a choice made after seeing the numbers.  This makes the method K-dependent and
+  that is disclosed.
+* **P6:** the augmented CV's margin over conditional reallocation SHRINKS as K falls,
+  and the crossing K (if any) is the quantitative form of the practical claim.
+
+## F4 — target-parametrization sensitivity   [FROZEN]
+
+On the asymmetric cell `hp2_d0.5` (where the uniform target is already known to be
+wrong) and the anchor `hp2_d0`, fresh seeds **720-735**, batch_seed **20260980**, all
+other F2 settings unchanged.  Arms:
+1. `shus` (baseline);
+2. `fr_cond` (uniform in psi — the frozen target);
+3. `fr_cond_rp+` (uniform in `psi' = psi + 0.8 sin psi`, i.e. target density in psi
+   `~ 1 + 0.8 cos psi`: a 9:1 skew TOWARD channel A, the wrong way);
+4. `fr_cond_rp-` (uniform in `psi' = psi - 0.8 sin psi`: the same skew toward B);
+5. `fr_cond_oracle` (target = the exact `p_ref(psi | phi)`; **ORACLE, diagnosis
+   only, never a claimable method** — it consults the reference the run is scored
+   against);
+6. `sham_cond`.
+
+The reparametrized arms are deliberate, large, *arbitrary* mis-specifications of the
+target — exactly what choosing helicity over log-helicity would do.  **P7:** the
+benefit survives both reparametrizations at reduced size, and the oracle target
+bounds how much a perfect target could add.  If instead a reparametrization destroys
+or reverses the benefit, the method is parametrization-critical and that must be
+stated as a limitation before any molecular application.
+
+## Phase G — RENAMED: conditional density-estimation scaling (not "the FR claim")
+
+The earlier framing was wrong and is corrected here.  A win of KDE-scored conditional
+FR over histogram-scored stratified count in dimension >= 3 would establish that
+**smooth conditional density estimation scales better than fixed bins** — an estimator
+result, useful in practice, but NOT evidence that the Fisher-Rao geometry is the
+right reaction law.  Both arms already implement the same FR-type law and differ only
+in `p_hat(z | xi)`.  Phase G is therefore a scaling study (`d_z in {1,2,3,4}` at
+several K), named for what it measures.
+
+## Phase H — the actual Fisher-Rao law test (design sketch, freeze when reached)
+
+To test the LAW rather than the estimator: compute one conditional KDE and feed it to
+several update laws at matched turnover, matched ESS loss, matched event times and
+matched target — FR's `p^+ ~ p^{1-theta} u^theta` (particle weight `(u/p)^theta`)
+against, e.g., convex relaxation `p^+ = (1-alpha) p + alpha u` (particle weight
+`(1-alpha) + alpha u/p`), and a chi^2 / deficit-proportional score.  Only a win under
+those constraints is evidence for the Fisher-Rao reaction law itself.

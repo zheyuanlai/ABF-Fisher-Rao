@@ -145,3 +145,52 @@ def test_marginal_and_conditional_arms_coexist_in_one_batch():
     # the sham is intensity-matched to the conditional arm it shadows
     assert abs(by["sham_cond"]["total_turnover"]
                - by["fr_cond"]["total_turnover"]) < 1e-9
+
+
+def test_reduction_to_phi_reproduces_the_exact_1d_reference():
+    """An augmented-CV run is scored on F(phi) = -b^-1 log int e^{-bF2} dpsi, so the
+    reduction has to be exact on the reference or the head-to-head is rigged."""
+    cfg = _cfg(beta=4.0, Hperp=2.0, Delta=0.5)
+    ref = bc.reference_objects(cfg.beta, cfg.Hperp, cfg.Delta, cfg.Ha, cfg.Hb,
+                               DEV, DT)
+    beta = torch.full((1, 1), cfg.beta, dtype=DT)
+    got = bc.reduce_to_phi(ref["F2"].unsqueeze(0), beta)[0]
+    assert float((got - ref["F1"]).abs().max()) < 1e-12
+
+
+def test_augmented_cv_run_is_scored_on_the_same_quantity():
+    cfg = _cfg(beta=4.0, Hperp=1.0, Delta=0.0, cv="phipsi")
+    recs = bc.simulate_batch([cfg], [0], [Method("shus"), Method("g4", g_shus=4.0)],
+                             batch_seed=7, device=torch.device(DEV), dtype=DT)
+    for r in recs:
+        _check_arrays(r, "augmented-cv record")
+        assert r["pmf_t"].shape[1] == bc.NG           # reduced F(phi), comparable
+        assert r["pmf2_t"].shape[1:] == (bc.NG, bc.NG)
+        assert np.all(np.isfinite(r["l2_f_t"]))
+    # the 2D mollifier floor on the reduced quantity is its own number
+    f2 = bc.analytic_floors_2d(cfg, DEV, DT)
+    assert f2["e_star"] > 0 and f2["e_star_2d"] > 0
+
+
+def test_augmented_cv_refuses_reallocation_arms():
+    cfg = _cfg(cv="phipsi")
+    with pytest.raises(AssertionError, match="already biased"):
+        bc.simulate_batch([cfg], [0],
+                          [Method("fr", use_fr=True, cond_fr=True, theta=0.01,
+                                  t_on_frac=0.0, t_off_frac=1.0)],
+                          batch_seed=8, device=torch.device(DEV), dtype=DT)
+
+
+def test_noise_stream_depends_only_on_rows_and_batch_seed():
+    """The pairing claim F3 rests on: a separate batch with the same (B, seeds,
+    batch_seed) sees the SAME Langevin noise, whatever arms it carries."""
+    cfg = _cfg(beta=4.0, Hperp=1.0, Delta=0.0)
+    a = bc.simulate_batch([cfg, cfg], [0, 1], [Method("shus")], batch_seed=11,
+                          device=torch.device(DEV), dtype=DT)
+    b = bc.simulate_batch([cfg, cfg], [0, 1],
+                          [Method("shus"), Method("g2", g_shus=2.0),
+                           Method("g4", g_shus=4.0)], batch_seed=11,
+                          device=torch.device(DEV), dtype=DT)
+    b_shus = [r for r in b if r["method"]["name"] == "shus"]
+    for ra, rb in zip(a, b_shus):
+        assert np.array_equal(ra["l2_f_t"], rb["l2_f_t"])

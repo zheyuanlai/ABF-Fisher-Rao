@@ -201,6 +201,12 @@ class BiChannelConfig:
     n_strata: int = 32           # xi-strata for fiber-wise reallocation; the width
                                  # 2 pi / 32 = 0.196 is the resolution at which the
                                  # phi-marginal is held invariant
+    cv: str = "phi"              # "phi" = the 1D CV this phase is about; "phipsi" =
+                                 # the AUGMENTED CV, i.e. just bias the hidden
+                                 # coordinate too.  That is the baseline an
+                                 # application scientist asks for first, and it is
+                                 # scored on the SAME reduced quantity F(phi) so the
+                                 # two approaches are directly comparable.
     init: str = "chanA"          # every walker starts in channel A: the rare channel
                                  # must be REACHED, which is what makes the deficit
                                  # a sampling problem rather than an initial condition
@@ -278,6 +284,40 @@ def conditional_floors(cfg: BiChannelConfig, K: int, n_rep=64, seed=777,
             "p_B_err": np.sort(pB.detach().cpu().numpy())}
 
 
+def reduce_to_phi(F2_hat, beta):
+    """F(phi) = -beta^{-1} log int e^{-beta F2(phi,psi)} dpsi, zero-mean.
+
+    The deliverable is F(phi) in both CV choices, so an augmented-CV run is scored on
+    its reduction, not on the 2D surface it happens to have learned.  F2_hat:
+    (R, n1, n2), beta: (R, 1) -> (R, n1).
+    """
+    b = beta.reshape(-1, 1, 1)
+    e = -b * F2_hat
+    e = e - e.amax(dim=(1, 2), keepdim=True)
+    Z = torch.clamp(torch.exp(e).sum(dim=2) * GRID2.dx2, min=EPS)
+    F1 = -torch.log(Z) / beta.reshape(-1, 1)
+    return F1 - F1.mean(dim=1, keepdim=True)
+
+
+def analytic_floors_2d(cfg, device="cpu", dtype=DTYPE):
+    """Mollifier floor of an AUGMENTED-CV run, scored on the reduced F(phi).
+
+    The 2D accumulator's fixed point is mollified on a 96x96 grid and then reduced,
+    so its floor on F(phi) is not the 1D floor and must be quoted separately or the
+    head-to-head is unfair to one side.
+    """
+    from ..shus2d import mollified_fixed_point2
+    ref = reference_objects(cfg.beta, cfg.Hperp, cfg.Delta, cfg.Ha, cfg.Hb,
+                            device, dtype)
+    fp = mollified_fixed_point2(ref["F2"], cfg.beta, cfg.eps_bw, GRID2, device, dtype)
+    beta = torch.full((1, 1), cfg.beta, device=device, dtype=dtype)
+    F1_star = reduce_to_phi(fp["F_star"].unsqueeze(0), beta)[0]
+    d = F1_star - ref["F1"]
+    d = d - d.mean()
+    return {"e_star": float(torch.sqrt((d * d).mean())),
+            "e_star_2d": fp["e_star"], "kl_star_2d": fp["kl_star"]}
+
+
 def _e_chan(p2, pB_phi_ref):
     """E_chan = int p(phi) |P_B(phi) - P_B_ref(phi)| dphi.
 
@@ -317,8 +357,13 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
     for c in cfgs:
         for a in ("K", "dt", "n_steps", "block", "eps_bw", "eta_bw", "n_saves",
                   "profile_every", "joint_every", "ess_window_steps",
-                  "n_strata"):
+                  "n_strata", "cv"):
             assert getattr(c, a) == getattr(c0, a), f"non-uniform {a} across configs"
+    is2d = c0.cv == "phipsi"
+    assert c0.cv in ("phi", "phipsi"), f"unknown cv {c0.cv!r}"
+    assert not (is2d and any(m.use_fr or m.sham for m in methods)), (
+        "the augmented-CV arm is a plain-ABP baseline; reallocation on an already "
+        "biased coordinate is a different experiment and is not mixed into it")
     K, dt, n_steps, block = c0.K, c0.dt, c0.n_steps, c0.block
     assert n_steps % block == 0
     n_blocks = n_steps // block
@@ -397,7 +442,15 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
     X2 = wrap_periodic(X2.repeat_interleave(M, dim=0), GRID2.x2min, GRID2.L2)
     anc = torch.arange(K, device=device).unsqueeze(0).expand(R, K).clone()
     anc_g = anc.clone()
-    shus = ShusAccumulator1P(R, GRID1, beta, c0.eps_bw, device, dtype, gain=gain)
+    if is2d:
+        from ..shus2d import ShusAccumulator2
+        shus = ShusAccumulator2(R, GRID2, beta, c0.eps_bw, device, dtype, gain=gain)
+        rho_ref2 = torch.exp(-beta.reshape(R, 1, 1)
+                             * torch.stack([r["F2"] for r in refs]
+                                           ).repeat_interleave(M, dim=0))
+        rho_ref2 = rho_ref2 / integral2(rho_ref2, GRID2).reshape(R, 1, 1)
+    else:
+        shus = ShusAccumulator1P(R, GRID1, beta, c0.eps_bw, device, dtype, gain=gain)
     dep_ref_cur = torch.full((R,), float("nan"), device=device, dtype=dtype)
     dep_self_cur = torch.full((R,), float("nan"), device=device, dtype=dtype)
 
@@ -429,6 +482,8 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
             "marg": torch.zeros((R, n_prof, NG), device=device, dtype=dtype),
             "pB_phi": torch.zeros((R, n_prof, NG), device=device, dtype=dtype),
             "joint": torch.zeros((R, n_joint, NG, NG), device=device, dtype=dtype)}
+    if is2d:
+        prof["pmf2"] = torch.zeros((R, n_joint, NG, NG), device=device, dtype=dtype)
     ev = {k: torch.zeros((R, max(n_events, 1)), device=device, dtype=dtype)
           for k in ("theta", "ess_fr", "turnover")}
     tot_turn = torch.zeros(R, device=device, dtype=dtype)
@@ -441,23 +496,35 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
 
         # ---- physical propagation: overdamped EM on the torus, bias on phi ONLY
         g1, g2 = gradV_of(X1, X2, Hperp, Delta, Ha, Hb)
-        b1 = shus.bias_force_at(X1)
+        if is2d:
+            b1, b2 = shus.bias_force_at(X1, X2)
+        else:
+            b1, b2 = shus.bias_force_at(X1), 0.0
         z1 = torch.randn((B, K), device=device, dtype=dtype,
                          generator=gen_n).repeat_interleave(M, dim=0)
         z2 = torch.randn((B, K), device=device, dtype=dtype,
                          generator=gen_n).repeat_interleave(M, dim=0)
         X1 = wrap_periodic(X1 + (-g1 + b1) * dt + noise_amp * z1,
                            GRID2.x1min, GRID2.L1)
-        X2 = wrap_periodic(X2 - g2 * dt + noise_amp * z2, GRID2.x2min, GRID2.L2)
+        X2 = wrap_periodic(X2 + (-g2 + b2) * dt + noise_amp * z2,
+                           GRID2.x2min, GRID2.L2)
 
-        shus.deposit(X1)
+        shus.deposit(X1, X2) if is2d else shus.deposit(X1)
 
         if (step + 1) % block == 0:
-            r_n = shus.R / integral1p(shus.R, GRID1).unsqueeze(1)
-            inc = shus.update(dt, K)
-            d_n = inc / torch.clamp(integral1p(inc, GRID1), min=EPS).unsqueeze(1)
-            dep_ref_cur = torch.sqrt(((d_n - rho_ref) ** 2).mean(dim=1))
-            dep_self_cur = torch.sqrt(((d_n - r_n) ** 2).mean(dim=1))
+            if is2d:
+                r_n = shus.R / integral2(shus.R, GRID2).reshape(R, 1, 1)
+                inc = shus.update(dt, K)
+                d_n = inc / torch.clamp(integral2(inc, GRID2),
+                                        min=EPS).reshape(R, 1, 1)
+                dep_ref_cur = torch.sqrt(((d_n - rho_ref2) ** 2).mean(dim=(1, 2)))
+                dep_self_cur = torch.sqrt(((d_n - r_n) ** 2).mean(dim=(1, 2)))
+            else:
+                r_n = shus.R / integral1p(shus.R, GRID1).unsqueeze(1)
+                inc = shus.update(dt, K)
+                d_n = inc / torch.clamp(integral1p(inc, GRID1), min=EPS).unsqueeze(1)
+                dep_ref_cur = torch.sqrt(((d_n - rho_ref) ** 2).mean(dim=1))
+                dep_self_cur = torch.sqrt(((d_n - r_n) ** 2).mean(dim=1))
             blk = (step + 1) // block
             if event_ptr < n_events and event_blocks[event_ptr] == blk:
                 active = fires[event_ptr]
@@ -499,7 +566,8 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
                 event_ptr += 1
 
         if step in save_set:
-            F_hat = shus.f_estimate()
+            F_hat2 = shus.f_estimate() if is2d else None
+            F_hat = reduce_to_phi(F_hat2, beta) if is2d else shus.f_estimate()
             d = F_hat - F1_ref
             d = d - d.mean(dim=1, keepdim=True)
             ts["l2_f"][:, save_ptr] = torch.sqrt((d * d).mean(dim=1))
@@ -530,6 +598,8 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
                 prof_ptr += 1
             if step in joint_set:
                 prof["joint"][:, joint_ptr] = p2
+                if is2d:
+                    prof["pmf2"][:, joint_ptr] = F_hat2
                 joint_ptr += 1
             save_ptr += 1
         if progress is not None and step % progress == 0:
@@ -565,6 +635,7 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
                 p_B_ref_biased=float(refs[b]["p_B_ref_biased"]),
                 pmf_t=npy(prof["pmf"][r]), marginal_t=npy(prof["marg"][r]),
                 pB_phi_t=npy(prof["pB_phi"][r]), joint_t=npy(prof["joint"][r]),
+                **({"pmf2_t": npy(prof["pmf2"][r])} if is2d else {}),
                 l2_f_t=l2, kl_u_t=npy(ts["kl_u"][r]), tv_u_t=npy(ts["tv_u"][r]),
                 e_cond_t=npy(ts["e_cond"][r]), e_chan_t=npy(ts["e_chan"][r]),
                 ess_anc_t=npy(ts["ess_anc"][r]), wmax_t=npy(ts["wmax"][r]),
