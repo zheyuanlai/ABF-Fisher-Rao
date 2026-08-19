@@ -44,7 +44,27 @@ Langevin noise, so every comparison is paired.
 
 ## Status
 
-- Stage 0 (engineering validation): **done** — all conventions frozen in
-  `docs/SPEC_SHUS_FR.md`, tests green, GPU smoke run reproduces the predicted
-  FR/SHUS feedback qualitatively.
-- Stage 1 (plain-SHUS calibration + establishment diagnosis on the gateway): next.
+Stages 0-4 and the applicability map (gateway, WCA, torus, alanine) are closed; all
+outcomes are recorded in `docs/PREREGISTRATION_*.md` and are not edited.
+
+**Where the project stands (Phase F, 2026-08-19).** MARGINAL Fisher-Rao is redundant
+for an ABP and ties coarse count balancing, in four replications across two campaigns
+— because both realize the same flow and differ only in the estimator of
+`log p(xi)`, and because the ABP's own bias already owns the xi-marginal. The one
+deficit an ABP cannot repair is the conditional structure of a coordinate it does not
+bias (Type C), and marginal FR is blind to it by construction. Phase F built a system
+that exhibits Type C (`src/abpfr/systems/bichannel.py`) and a step that can see it —
+fiber-wise Fisher-Rao, birth-death inside xi-strata with the xi-marginal left
+invariant (`src/abpfr/fisher_rao_cond.py`):
+
+- an eightfold adaptation-gain increase moves the deficit by <= 3% (wrong sign);
+- conditional FR: **-15 / -13 / -31% integrated error**, beating its matched-turnover
+  sham by the same margin, while marginal FR is exactly null;
+- stratified COUNT balancing ties conditional FR — at one hidden dimension the
+  active ingredient is which coordinate you condition on, not the FR estimator;
+- `tau_clone` is < one event stride in the CV and 160-290 strides in the hidden
+  channel, in the same runs: the mechanism, and a pre-run diagnostic for which
+  descriptor a reallocation should be conditioned on.
+
+Phase G (open): the FR-specific claim, which by the lemma above can only be settled
+on a reallocation descriptor of dimension >= 3.

@@ -810,3 +810,100 @@ Recorded per eligible cell against the F2 event stride (0.98 time units) and the
 window length (195).  The pairing `tau_clone^chan >> stride` with
 `tau_clone^psi ~ stride` is the configuration in which conditional cloning can help;
 the opposite pairing would bound what F2 can buy, and is recorded either way.
+
+### F2a outcome (2026-08-19, 4 seeds/cell — recorded, not to be edited)
+
+| cell | tau_clone^chan | tau_clone^psi | tau_clone^phi | F2 event stride |
+|---|---|---|---|---|
+| Hperp 2.0, Delta 0   | 280 | 135 | **0.20** (resolution-limited) | 0.98 |
+| Hperp 2.5, Delta 0   | 155 |  58 | **0.20** | 0.98 |
+| Hperp 2.0, Delta 0.5 | 225 | 165 | **0.20** | 0.98 |
+
+The instrument separates what Q4a's single number could not, **in one system at one
+time**: a clone forgets its parent's CV within a single event stride
+(`tau_clone^phi` is at the first recorded lag, exactly the WCA result), while it keeps
+its CHANNEL identity for 160-290 event strides.  Independent baselines are meaningful
+(same-channel 0.78-0.95, RMS psi separation 0.7-1.4 rad), so these are measurements,
+not artifacts.
+
+This is the mechanistic account of the whole campaign in one table.  Cloning is
+worthless in the coordinate the bias already controls — the copy is independent again
+before the next event — and valuable in the hidden one, where the copy carries the
+correction for the rest of the run.  It also yields a **pre-run diagnostic**: measure
+`tau_clone` on a candidate descriptor; if it is short compared with the intended event
+stride, reallocation conditioned on that descriptor cannot help, whatever the metric.
+
+### F2 outcome (2026-08-19, seeds 600-615, T = 800 — recorded, not to be edited)
+
+Median paired `dI_F` vs the g\* = 1 baseline, paired bootstrap 95% CI:
+
+| arm | Hperp 2.0, Delta 0 | Hperp 2.5, Delta 0 | Hperp 2.0, Delta 0.5 |
+|---|---|---|---|
+| `fr_cond` (dose-matched) | **-15.33 [-15.90, -13.38]** | **-12.61 [-13.68, -10.93]** | **-31.35 [-32.17, -28.58]** |
+| `cnt_cond` (stratified count) | -15.15 [-15.59, -13.27] | -11.76 [-13.81, -10.71] | -28.22 [-29.77, -26.44] |
+| `fr_marg` (marginal FR) | +0.19 [-1.85, 1.23] | -0.04 [-0.29, 0.16] | -0.18 [-1.48, 1.07] |
+| `sham_cond` (matched turnover) | +0.25 [-0.70, 0.68] | -0.08 [-0.26, 0.06] | +0.11 [-0.67, 0.92] |
+| `fr_cond_hi` (5x dose) | -30.80 [-33.06, -29.60] | -36.17 [-37.20, -34.85] | -72.50 [-73.26, -70.05] |
+
+**Verdict by the frozen rule: the conditional population correction has independent
+value on a Type-C deficit.** `fr_cond` clears the -5%-with-CI<0 bar on all three
+cells and beats its own matched-turnover sham by -14.95 / -12.36 / -31.03%.  This is
+the first positive population-correction result in the project, and it is the first
+experiment in which the arm that beat FR everywhere else — adaptation-rate tuning —
+was structurally unable to compete (F1: eightfold gain, <= 3% effect, wrong sign).
+
+* **P2 confirmed: marginal FR is exactly null** (+0.19 / -0.04 / -0.18%, every CI
+  straddling zero) while firing 58-80 resampling events.  Same theta, same stride,
+  same window, same engine; only the geometry differs.  The blindness argument that
+  motivated this phase is measured, not assumed.
+* **P4 confirmed: stratified count ties conditional FR** (-0.84 [-1.98, 1.34],
+  -1.21 [-1.87, 2.55], -2.44 [-7.60, 2.09]).  **The active ingredient is WHICH
+  coordinate the reallocation is conditioned on, not the Fisher-Rao estimator.**  This
+  was predicted before the run from the campaign's own lemma; the FR-vs-histogram
+  question needs a >= 3D descriptor and is Phase G's, not this phase's.
+* **P3 partially met.** The predicted >= 20% reduction was reached on one of three
+  cells at the dose-matched transfer (-31.4% on the asymmetric cell); the other two
+  gave -15.3% and -12.6%, past the decision bar but short of the prediction.  At 5x
+  dose all three exceed 20%, but that arm **violates the frozen ancestry floor**
+  (final `n_anc/K` = 0.34-0.36 < 0.5) and is therefore reported and NOT interpreted as
+  a win.  The dose-matched arms pass every floor (min windowed `ESS_anc/K` >= 0.966,
+  final `n_anc/K` >= 0.58).
+* **Marginal invariance holds in production, not just in the unit tests.** On the
+  anchor cell the phi-marginal KL the SHUS accumulator deposits from is
+  0.00237-0.00251 across all six arms (`D_tol` = 0.0088): every arm's marginal gate
+  says "converged" for the whole run, and only `e_F` separates them.  The correction
+  cannot have been bought by perturbing the occupancy signal.
+* **Mechanism, end to end.** Anchor-cell channel population (median, reference 0.5):
+  all arms identical at the window start (0.0068 at t = 20); by the window end
+  (t = 215) `shus`/`fr_marg`/`sham` sit at 0.129-0.132 while `fr_cond` is at 0.228 and
+  `fr_cond_hi` at 0.296; the lead persists to T = 800 (0.332 vs 0.368 vs 0.404), with
+  `E_chan` and `e_F` falling in step.  The step transports population across the
+  hidden barrier during a 24%-of-run window; the physics then keeps it.
+* **The knowingly-wrong target did not overshoot.** On the asymmetric cell the frozen
+  uniform-in-psi target corresponds to a 0.5 channel fraction while the correct biased
+  value is 0.316.  `fr_cond` ends at 0.245 and `fr_cond_hi` at 0.319 — approaching the
+  correct value from below, not past it, because the window is temporary and the
+  post-window relaxation sets the final populations.  The temporary-window discipline
+  frozen since Stage 0 is what makes a deliberately incorrect target safe here; a
+  persistent version would not enjoy this and is not claimed.
+
+**What this does and does not establish.** It establishes that an adaptive-biasing
+potential leaves exactly one repairable deficit — the conditional structure of the
+coordinates it does not bias — and that a temporary, marginal-preserving population
+correction repairs it where nothing else in this project's toolkit could: not gain
+tuning (F1), not marginal FR, not turnover alone.  It does NOT establish that the
+Fisher-Rao geometry is the reason: at one hidden dimension a 9-bin histogram does the
+same job, exactly as the lemma predicts.  The FR-specific claim now has one honest
+place left to live, and Phase G is where it must be settled.
+
+## Phase G (opened by F2, design NOT yet frozen)
+
+The dimensional claim: marginal or conditional, FR separates from count balancing only
+where the density estimator binds, i.e. a reallocation descriptor of dimension >= 3
+where a histogram's cells outnumber the walkers (12^4 ~ 2 x 10^4 cells against
+K ~ 10^3).  The bi-channel construction generalizes directly (several hidden angles,
+each with its own orthogonal barrier), and `conditional_log_ratio` already reads its
+score off a joint KDE, so the engine work is a grid/kernel generalization rather than
+a new method.  `tau_clone` per descriptor becomes the pre-run screen for which
+coordinates belong in the conditioning set.  Design to be frozen before any Phase-G
+run, as always.
