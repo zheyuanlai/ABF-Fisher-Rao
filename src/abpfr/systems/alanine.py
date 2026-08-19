@@ -119,6 +119,59 @@ class TorchFF:
             g, = torch.autograd.grad(self.energy(xg).sum(), xg)
         return -g
 
+    def forces_analytic(self, x):
+        """Closed-form forces: identical physics to :meth:`forces` (autograd),
+        validated against it to ~1e-10 in tests; no autograd graph in the hot
+        loop, and safe inside CUDA-graph capture."""
+        B = x.shape[0]
+        F = torch.zeros_like(x)
+
+        # bonds: E = k/2 (r - r0)^2
+        d = x[:, self.bi[:, 0]] - x[:, self.bi[:, 1]]
+        r = d.norm(dim=-1).clamp_min(1e-12)
+        fb = (-self.bk * (r - self.b0) / r).unsqueeze(-1) * d
+        F.index_add_(1, self.bi[:, 0], fb)
+        F.index_add_(1, self.bi[:, 1], -fb)
+
+        # angles: E = k/2 (theta - theta0)^2 with theta = atan2(|v1 x v2|, v1.v2)
+        v1 = x[:, self.ai[:, 0]] - x[:, self.ai[:, 1]]
+        v2 = x[:, self.ai[:, 2]] - x[:, self.ai[:, 1]]
+        r1 = v1.norm(dim=-1).clamp_min(1e-12)
+        r2 = v2.norm(dim=-1).clamp_min(1e-12)
+        u = v1 / r1.unsqueeze(-1)
+        w = v2 / r2.unsqueeze(-1)
+        cth = (u * w).sum(-1).clamp(-1.0, 1.0)
+        sth = torch.sqrt((1.0 - cth * cth).clamp_min(1e-12))
+        th = torch.atan2(torch.linalg.cross(v1, v2, dim=-1).norm(dim=-1),
+                         (v1 * v2).sum(-1))
+        dEdth = self.ak * (th - self.a0)
+        dth0 = -(w - cth.unsqueeze(-1) * u) / (r1 * sth).unsqueeze(-1)
+        dth2 = -(u - cth.unsqueeze(-1) * w) / (r2 * sth).unsqueeze(-1)
+        F.index_add_(1, self.ai[:, 0], -dEdth.unsqueeze(-1) * dth0)
+        F.index_add_(1, self.ai[:, 2], -dEdth.unsqueeze(-1) * dth2)
+        F.index_add_(1, self.ai[:, 1], dEdth.unsqueeze(-1) * (dth0 + dth2))
+
+        # torsions: E = k (1 + cos(n ang - phase))
+        p0, p1, p2, p3 = (x[:, self.ti[:, k]] for k in range(4))
+        ang, g0, g1, g2, g3 = dihedral_value_grad_analytic(p0, p1, p2, p3)
+        dEdphi = (-self.tk * self.tn * torch.sin(self.tn * ang - self.tp)
+                  ).unsqueeze(-1)
+        F.index_add_(1, self.ti[:, 0], -dEdphi * g0)
+        F.index_add_(1, self.ti[:, 1], -dEdphi * g1)
+        F.index_add_(1, self.ti[:, 2], -dEdphi * g2)
+        F.index_add_(1, self.ti[:, 3], -dEdphi * g3)
+
+        # pairs: E = 4 eps ((s/r)^12 - (s/r)^6) + qq/r
+        dp = x[:, self.pi] - x[:, self.pj]
+        rp = dp.norm(dim=-1).clamp_min(1e-8)
+        sr6 = (self.ps / rp) ** 6
+        dEdr = (4.0 * self.pe * (-12.0 * sr6 * sr6 + 6.0 * sr6) / rp
+                - self.pq / rp ** 2)
+        fp = (-dEdr / rp).unsqueeze(-1) * dp
+        F.index_add_(1, self.pi, fp)
+        F.index_add_(1, self.pj, -fp)
+        return F
+
 
 # -----------------------------------------------------------------------------
 # collective variables (IUPAC convention; values + Cartesian gradients)
@@ -133,11 +186,41 @@ def dihedral_torch(p0, p1, p2, p3):
                        (v * w).sum(-1))
 
 
+def dihedral_value_grad_analytic(p0, p1, p2, p3):
+    """Signed dihedral (same convention as :func:`dihedral_torch`) and its four
+    Cartesian gradients, closed form (Blondel-Karplus). Inputs (..., 3).
+
+    Returns (phi, g0, g1, g2, g3); validated against autograd in tests."""
+    Fv = p0 - p1
+    G = p1 - p2
+    H = p3 - p2
+    A = torch.linalg.cross(Fv, G, dim=-1)
+    Bv = torch.linalg.cross(H, G, dim=-1)
+    Gn = G.norm(dim=-1).clamp_min(1e-12)
+    A2 = (A * A).sum(-1).clamp_min(1e-24)
+    B2 = (Bv * Bv).sum(-1).clamp_min(1e-24)
+    phi = dihedral_torch(p0, p1, p2, p3)
+    t0 = -(Gn / A2).unsqueeze(-1) * A
+    t3 = (Gn / B2).unsqueeze(-1) * Bv
+    fg = ((Fv * G).sum(-1) / (Gn * Gn)).unsqueeze(-1)
+    hg = ((H * G).sum(-1) / (Gn * Gn)).unsqueeze(-1)
+    t1 = -t0 - fg * t0 - hg * t3
+    t2 = -t3 + fg * t0 + hg * t3
+    return phi, t0, t1, t2, t3
+
+
 def cv_values(q):
     """(phi, psi) of a (B, 22, 3) batch, each (B,)."""
     phi = dihedral_torch(*(q[:, i] for i in PHI_ATOMS))
     psi = dihedral_torch(*(q[:, i] for i in PSI_ATOMS))
     return phi, psi
+
+
+def cv_value_grad_analytic(q, atoms):
+    """Analytic counterpart of :func:`cv_value_grad`: (val (B,), grad (B, 4, 3))."""
+    phi, g0, g1, g2, g3 = dihedral_value_grad_analytic(
+        q[:, atoms[0]], q[:, atoms[1]], q[:, atoms[2]], q[:, atoms[3]])
+    return phi, torch.stack([g0, g1, g2, g3], dim=1)
 
 
 def cv_value_grad(q, atoms):
@@ -254,6 +337,25 @@ class AlaConfig:
 # -----------------------------------------------------------------------------
 def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
                    dtype=DTYPE, progress=None):
+    """Runs with torch deterministic algorithms enabled (restored on exit): the
+    force scatters (index_add_/scatter_add_) are then order-stable, so GPU runs
+    are bitwise reproducible per (device, seed) — at ~1.7x the nondeterministic
+    graph-replay speed, still ~4x faster than the autograd engine.
+
+    Arm pairing on GPU is same-noise-stream pairing: two IDENTICAL arms in one
+    batch agree bitwise on CPU but can differ at the last bit on CUDA (row-
+    position-dependent reduction order), which underdamped MD then amplifies
+    chaotically — the regime every GPU campaign in this project operated in."""
+    was_det = torch.are_deterministic_algorithms_enabled()
+    torch.use_deterministic_algorithms(True)
+    try:
+        return _simulate_batch(configs, seeds, methods, batch_seed, device,
+                               dtype, progress)
+    finally:
+        torch.use_deterministic_algorithms(was_det)
+
+
+def _simulate_batch(configs, seeds, methods, batch_seed, device, dtype, progress):
     cfgs, methods = list(configs), list(methods)
     assert len(cfgs) == len(seeds)
     B, M = len(cfgs), len(methods)
@@ -338,50 +440,126 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
     gen_f = torch.Generator(device=device)
     gen_f.manual_seed(3000 + batch_seed)
 
-    # initial conditions: every walker starts at the minimised C7eq structure with
-    # fresh Maxwell momenta; per-seed noise streams are shared across arms (paired)
-    q = tff.X0.unsqueeze(0).expand(R * K, N_ATOMS, 3).clone()
+    # ---- static state (shared by the eager path and the CUDA-graph replay) ----
+    q_s = tff.X0.unsqueeze(0).expand(R * K, N_ATOMS, 3).contiguous().clone()
     v0 = torch.randn((B, K, N_ATOMS, 3), device=device, dtype=dtype,
                      generator=gen_n) * sigma_v
-    v = v0.repeat_interleave(M, dim=0).reshape(R * K, N_ATOMS, 3).clone()
+    v_s = v0.repeat_interleave(M, dim=0).reshape(R * K, N_ATOMS, 3).contiguous()
     del v0
+    f_s = torch.zeros_like(q_s)
+    z1_s = torch.zeros((R, K), device=device, dtype=dtype)
+    z2_s = torch.zeros((R, K), device=device, dtype=dtype)
+    noise_s = torch.zeros((block, B, K, N_ATOMS, 3), device=device, dtype=dtype)
+    if is2d:
+        R_s = shus.R.clone()
+        Fp1_s = shus.Fp1.clone()
+        Fp2_s = shus.Fp2.clone()
+    else:
+        R_s = shus.R.clone()
+        Fp1_s = shus.Fp.clone()
+        Fp2_s = None
     anc = torch.arange(K, device=device).unsqueeze(0).expand(R, K).clone()
     anc_g = anc.clone()
 
     def wrapg(a):
         return wrap_periodic(a, X0MIN, 2 * PI)
 
-    def bias_and_cv(qq):
-        """Physical+bias force and wrapped CV values at qq (R*K, A, 3)."""
-        f = tff.forces(qq)
-        phi, gphi = cv_value_grad(qq, PHI_ATOMS)
-        phi_w = wrapg(phi)
+    from ..grid1p import interp1p, nearest_bin1p
+    from ..grid2d import interp2, nearest_bin2
+
+    phi_idx = torch.tensor(PHI_ATOMS, device=device, dtype=torch.long)
+    psi_idx = torch.tensor(PSI_ATOMS, device=device, dtype=torch.long)
+
+    def compute_f_and_cv():
+        """Force (physical + bias from the static mirrors) and CV at q_s, into
+        f_s/z1_s/z2_s. Analytic throughout -- capture-safe (device indices only)."""
+        f = tff.forces_analytic(q_s)
+        phi, gphi = cv_value_grad_analytic(q_s, PHI_ATOMS)
+        z1 = wrapg(phi).view(R, K)
+        z1_s.copy_(z1)
         if is2d:
-            psi, gpsi = cv_value_grad(qq, PSI_ATOMS)
-            psi_w = wrapg(psi)
-            z1 = phi_w.view(R, K)
-            z2 = psi_w.view(R, K)
-            from ..grid2d import interp2
-            cphi = interp2(z1, z2, shus.Fp1, ALA_GRID2).reshape(R * K)
-            cpsi = interp2(z1, z2, shus.Fp2, ALA_GRID2).reshape(R * K)
-            f = f + scatter_cv_force(qq, cphi, gphi, PHI_ATOMS)
-            f = f + scatter_cv_force(qq, cpsi, gpsi, PSI_ATOMS)
-            return f, z1, z2
-        cphi = shus.bias_force_at(phi_w.view(R, K)).reshape(R * K)
-        f = f + scatter_cv_force(qq, cphi, gphi, PHI_ATOMS)
-        return f, phi_w.view(R, K), None
+            psi, gpsi = cv_value_grad_analytic(q_s, PSI_ATOMS)
+            z2 = wrapg(psi).view(R, K)
+            z2_s.copy_(z2)
+            cphi = interp2(z1, z2, Fp1_s, ALA_GRID2).reshape(R * K)
+            cpsi = interp2(z1, z2, Fp2_s, ALA_GRID2).reshape(R * K)
+            f.index_add_(1, phi_idx, cphi[:, None, None] * gphi)
+            f.index_add_(1, psi_idx, cpsi[:, None, None] * gpsi)
+        else:
+            cphi = interp1p(z1, Fp1_s, ALA_GRID1).reshape(R * K)
+            f.index_add_(1, phi_idx, cphi[:, None, None] * gphi)
+        f_s.copy_(f)
 
-    f, z1, z2 = bias_and_cv(q)
+    def deposit():
+        """Block-frozen deposit with weight R_n(xi) read from the static mirror,
+        scattered into the accumulator's (storage-stable) buffer."""
+        if is2d:
+            w = interp2(z1_s, z2_s, R_s, ALA_GRID2)
+            idx = nearest_bin2(z1_s, z2_s, ALA_GRID2)
+        else:
+            w = interp1p(z1_s, R_s, ALA_GRID1)
+            idx = nearest_bin1p(z1_s, ALA_GRID1)
+        shus.buf.scatter_add_(1, idx, w)
 
-    save_steps = sorted({*range(0, n_steps, max(1, n_steps // c0.n_saves)),
-                         n_steps - 1})
+    def propagate_block():
+        """block BAOAB steps + deposits, reading noise_s. No RNG, no Python state
+        beyond loop constants: identical for eager execution and graph replay."""
+        for i in range(block):
+            v_s.add_((0.5 * dt) * f_s / m_col)
+            q_s.add_((0.5 * dt) * v_s)
+            v_s.mul_(c1).add_(
+                c2 * noise_s[i].repeat_interleave(M, dim=0).reshape(
+                    R * K, N_ATOMS, 3) * sigma_v)
+            q_s.add_((0.5 * dt) * v_s)
+            compute_f_and_cv()
+            v_s.add_((0.5 * dt) * f_s / m_col)
+            deposit()
+
+    def refresh_statics():
+        R_s.copy_(shus.R)
+        if is2d:
+            Fp1_s.copy_(shus.Fp1)
+            Fp2_s.copy_(shus.Fp2)
+        else:
+            Fp1_s.copy_(shus.Fp)
+
+    def fill_noise():
+        for i in range(block):
+            noise_s[i].copy_(torch.randn((B, K, N_ATOMS, 3), device=device,
+                                         dtype=dtype, generator=gen_n))
+
+    compute_f_and_cv()                     # initial force/CV at the start state
+
+    use_graph = (device.type == "cuda") if hasattr(device, "type") else False
+    graph = None
+    if use_graph:
+        snap = [t.clone() for t in (q_s, v_s, f_s, z1_s, z2_s, shus.buf)]
+        s = torch.cuda.Stream()
+        s.wait_stream(torch.cuda.current_stream())
+        with torch.cuda.stream(s):
+            for _ in range(3):
+                propagate_block()          # warmup (zero noise, discarded)
+        torch.cuda.current_stream().wait_stream(s)
+        graph = torch.cuda.CUDAGraph()
+        with torch.cuda.graph(graph):
+            propagate_block()
+        for t, sn in zip((q_s, v_s, f_s, z1_s, z2_s, shus.buf), snap):
+            t.copy_(sn)
+        del snap
+
+    # ---- saves aligned to adaptation-block boundaries -------------------------
+    blk_per_save = max(1, (n_steps // c0.n_saves) // block)
+    save_blocks = sorted({*range(blk_per_save, n_blocks + 1, blk_per_save),
+                          n_blocks})
+    save_steps = [b * block for b in save_blocks]
     n_saves = len(save_steps)
-    save_set = set(save_steps)
-    prof_steps = save_steps[:: c0.profile_every]
-    if save_steps[-1] not in prof_steps:
-        prof_steps = prof_steps + [save_steps[-1]]
+    prof_blocks = save_blocks[:: c0.profile_every]
+    if save_blocks[-1] not in prof_blocks:
+        prof_blocks = prof_blocks + [save_blocks[-1]]
+    prof_steps = [b * block for b in prof_blocks]
     n_prof = len(prof_steps)
-    prof_set = set(prof_steps)
+    prof_set = set(prof_blocks)
+    save_set = set(save_blocks)
 
     ts = {k: torch.zeros((R, n_saves), device=device, dtype=dtype) for k in
           ("l2_f", "kl_u", "tv_u", "ess_anc", "wmax", "ess_anc_glob", "wmax_glob",
@@ -400,102 +578,99 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
     dep_self_cur = torch.full((R,), float("nan"), device=device, dtype=dtype)
     save_ptr, prof_ptr, event_ptr = 0, 0, 0
     ar = torch.arange(K, device=device).unsqueeze(0).expand(R, K)
-
     p_cond_ref = ref["p_cond"].unsqueeze(0)          # (1, 97, 97)
 
-    for step in range(n_steps):
-        if c0.ess_window_steps > 0 and step % c0.ess_window_steps == 0:
+    ess_blk = max(1, c0.ess_window_steps // block)
+
+    for blk in range(1, n_blocks + 1):
+        if c0.ess_window_steps > 0 and (blk - 1) % ess_blk == 0:
             anc = ar.clone()
 
-        # ---- BAOAB step (paired noise across arms) -----------------------------
-        v = v + (0.5 * dt) * f / m_col
-        q = q + (0.5 * dt) * v
-        noise = torch.randn((B, K, N_ATOMS, 3), device=device, dtype=dtype,
-                            generator=gen_n).repeat_interleave(M, dim=0)
-        v = c1 * v + c2 * noise.reshape(R * K, N_ATOMS, 3) * sigma_v
-        q = q + (0.5 * dt) * v
-        f, z1, z2 = bias_and_cv(q)
-        v = v + (0.5 * dt) * f / m_col
-
-        # ---- SHUS deposit -------------------------------------------------------
-        if is2d:
-            shus.deposit(z1, z2)
+        # ---- propagation: one adaptation block (graph replay on cuda) ----------
+        fill_noise()
+        if graph is not None:
+            graph.replay()
         else:
-            shus.deposit(z1)
+            propagate_block()
 
-        # ---- block boundary: update, then (maybe) an FR event -------------------
-        if (step + 1) % block == 0:
+        # ---- SHUS update + deposition diagnostics ------------------------------
+        if is2d:
+            r_n = shus.R / integral2(shus.R, ALA_GRID2).reshape(R, 1, 1)
+            inc = shus.update(dt, K)
+            d_n = inc / torch.clamp(integral2(inc, ALA_GRID2),
+                                    min=EPS).reshape(R, 1, 1)
+            dep_ref_cur = torch.sqrt(((d_n - rho_ref) ** 2).mean(dim=(1, 2)))
+            dep_self_cur = torch.sqrt(((d_n - r_n) ** 2).mean(dim=(1, 2)))
+        else:
+            r_n = shus.R / integral1p(shus.R, ALA_GRID1).unsqueeze(1)
+            inc = shus.update(dt, K)
+            d_n = inc / torch.clamp(integral1p(inc, ALA_GRID1),
+                                    min=EPS).unsqueeze(1)
+            dep_ref_cur = torch.sqrt(((d_n - rho_ref) ** 2).mean(dim=1))
+            dep_self_cur = torch.sqrt(((d_n - r_n) ** 2).mean(dim=1))
+        refresh_statics()
+
+        # ---- (maybe) an FR event ----------------------------------------------
+        if event_ptr < n_events and event_blocks[event_ptr] == blk:
+            active = fires[event_ptr]
             if is2d:
-                r_n = shus.R / integral2(shus.R, ALA_GRID2).reshape(R, 1, 1)
-                inc = shus.update(dt, K)
-                d_n = inc / torch.clamp(integral2(inc, ALA_GRID2),
-                                        min=EPS).reshape(R, 1, 1)
-                dep_ref_cur = torch.sqrt(((d_n - rho_ref) ** 2).mean(dim=(1, 2)))
-                dep_self_cur = torch.sqrt(((d_n - r_n) ** 2).mean(dim=(1, 2)))
+                sel, turn, theta_used, essf = fr_event2(
+                    z1_s, z2_s, active & is_fr_row, active & is_sham_row,
+                    is_coarse_row, coarse_nb, partner, theta0, alpha_ess,
+                    k1e, r1e, k2e, r2e, ALA_GRID2, gen_f)
             else:
-                r_n = shus.R / integral1p(shus.R, ALA_GRID1).unsqueeze(1)
-                inc = shus.update(dt, K)
-                d_n = inc / torch.clamp(integral1p(inc, ALA_GRID1),
-                                        min=EPS).unsqueeze(1)
-                dep_ref_cur = torch.sqrt(((d_n - rho_ref) ** 2).mean(dim=1))
-                dep_self_cur = torch.sqrt(((d_n - r_n) ** 2).mean(dim=1))
-            blk = (step + 1) // block
-            if event_ptr < n_events and event_blocks[event_ptr] == blk:
-                active = fires[event_ptr]
-                if is2d:
-                    sel, turn, theta_used, essf = fr_event2(
-                        z1, z2, active & is_fr_row, active & is_sham_row,
-                        is_coarse_row, coarse_nb, partner, theta0, alpha_ess,
-                        k1e, r1e, k2e, r2e, ALA_GRID2, gen_f)
-                else:
-                    sel, turn, theta_used, essf = fr_event1p(
-                        z1, active & is_fr_row, active & is_sham_row,
-                        is_coarse_row, coarse_nb, partner, theta0, alpha_ess,
-                        k1e, r1e, ALA_GRID1, gen_f)
-                ev["theta"][:, event_ptr] = theta_used
-                ev["ess_fr"][:, event_ptr] = essf
-                ev["turnover"][:, event_ptr] = turn.to(dtype)
-                tot_turn += turn.to(dtype)
-                # full-state clone: gather (q, f, ancestry); FRESH Maxwell momenta
-                # for replaced slots (fixed-size draw -> pairing preserved)
-                replaced = (sel != ar)
-                gi = torch.arange(R, device=device).unsqueeze(1)
-                q = q.view(R, K, N_ATOMS, 3)[gi, sel].reshape(R * K, N_ATOMS, 3)
-                f = f.view(R, K, N_ATOMS, 3)[gi, sel].reshape(R * K, N_ATOMS, 3)
-                v_new = torch.randn((R, K, N_ATOMS, 3), device=device, dtype=dtype,
-                                    generator=gen_f) * sigma_v
-                v = torch.where(replaced.unsqueeze(-1).unsqueeze(-1),
-                                v_new, v.view(R, K, N_ATOMS, 3)).reshape(
-                    R * K, N_ATOMS, 3)
-                anc = torch.gather(anc, 1, sel)
-                anc_g = torch.gather(anc_g, 1, sel)
-                event_ptr += 1
+                sel, turn, theta_used, essf = fr_event1p(
+                    z1_s, active & is_fr_row, active & is_sham_row,
+                    is_coarse_row, coarse_nb, partner, theta0, alpha_ess,
+                    k1e, r1e, ALA_GRID1, gen_f)
+            ev["theta"][:, event_ptr] = theta_used
+            ev["ess_fr"][:, event_ptr] = essf
+            ev["turnover"][:, event_ptr] = turn.to(dtype)
+            tot_turn += turn.to(dtype)
+            # full-state clone into the STATIC buffers: gather (q, f, ancestry,
+            # CV caches); fresh Maxwell momenta for replaced slots (fixed-size)
+            replaced = (sel != ar)
+            gi = torch.arange(R, device=device).unsqueeze(1)
+            q_s.copy_(q_s.view(R, K, N_ATOMS, 3)[gi, sel].reshape(
+                R * K, N_ATOMS, 3))
+            f_s.copy_(f_s.view(R, K, N_ATOMS, 3)[gi, sel].reshape(
+                R * K, N_ATOMS, 3))
+            v_new = torch.randn((R, K, N_ATOMS, 3), device=device, dtype=dtype,
+                                generator=gen_f) * sigma_v
+            v_s.copy_(torch.where(replaced.unsqueeze(-1).unsqueeze(-1), v_new,
+                                  v_s.view(R, K, N_ATOMS, 3)).reshape(
+                R * K, N_ATOMS, 3))
+            z1_s.copy_(torch.gather(z1_s, 1, sel))
+            if is2d:
+                z2_s.copy_(torch.gather(z2_s, 1, sel))
+            anc = torch.gather(anc, 1, sel)
+            anc_g = torch.gather(anc_g, 1, sel)
+            event_ptr += 1
 
-        # ---- checkpoints ---------------------------------------------------------
-        if step in save_set:
+        # ---- checkpoints -------------------------------------------------------
+        if blk in save_set:
             F_hat = shus.f_estimate()
             d = (F_hat - F_ref.unsqueeze(0))[:, emask]
             d = d - d.mean(dim=1, keepdim=True)
             ts["l2_f"][:, save_ptr] = torch.sqrt((d * d).mean(dim=1))
             if is2d:
-                p_hat = binned_density2(z1, z2, k1e, r1e, k2e, r2e, ALA_GRID2)
+                p_hat = binned_density2(z1_s, z2_s, k1e, r1e, k2e, r2e, ALA_GRID2)
                 ts["kl_u"][:, save_ptr] = kl_to_uniform2(p_hat, ALA_GRID2)
                 ts["tv_u"][:, save_ptr] = tv_to_uniform2(p_hat, ALA_GRID2)
+                zz1, zz2 = z1_s, z2_s
             else:
-                p_hat = binned_density1p(z1, k1e, r1e, ALA_GRID1)
+                p_hat = binned_density1p(z1_s, k1e, r1e, ALA_GRID1)
                 ts["kl_u"][:, save_ptr] = kl_to_uniform1p(p_hat, ALA_GRID1)
                 ts["tv_u"][:, save_ptr] = tv_to_uniform1p(p_hat, ALA_GRID1)
-                # conditional diagnostic E_cond(t): TV(p_t(psi|phi), p_ref) weighted
-                # by the sampled phi-marginal (psi tracked even though unbiased)
-                phiv, psiv = cv_values(q)
+                phiv, psiv = cv_values(q_s)
                 zz1 = wrapg(phiv).view(R, K)
                 zz2 = wrapg(psiv).view(R, K)
                 p2 = binned_density2(zz1, zz2, k1e, r1e, k1e, r1e, ALA_GRID2)
-                p_phi = p2.sum(dim=2) * DZ                       # (R, 97)
+                p_phi = p2.sum(dim=2) * DZ
                 p_c = p2 / torch.clamp(p2.sum(dim=2, keepdim=True), min=EPS) / DZ
                 tv_col = 0.5 * ((p_c - p_cond_ref).abs().sum(dim=2) * DZ)
                 ts["e_cond"][:, save_ptr] = (p_phi * tv_col).sum(dim=1) * DZ
-                if step in prof_set:
+                if blk in prof_set:
                     prof["marg2"][:, prof_ptr] = p2
             e_, w_ = ancestor_stats(anc, K)
             ts["ess_anc"][:, save_ptr] = e_
@@ -506,26 +681,21 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
             ts["n_anc"][:, save_ptr] = surviving_ancestors(anc_g, K)
             ts["dep_ref"][:, save_ptr] = dep_ref_cur
             ts["dep_self"][:, save_ptr] = dep_self_cur
-            ke = 0.5 * (m_col * v * v).view(R, K, -1).sum(dim=2)
+            ke = 0.5 * (m_col * v_s * v_s).view(R, K, -1).sum(dim=2)
             ts["temp_kin"][:, save_ptr] = (2.0 * ke / (3 * N_ATOMS * KB)).mean(dim=1)
-            # basin occupancies via cell lookup on the reference lattice
-            # (for cv="phi" the psi coordinate is tracked even though unbiased;
-            # zz1/zz2 were computed in the conditional-diagnostic branch above)
-            if is2d:
-                zz1, zz2 = z1, z2
             i1 = torch.remainder(torch.round((zz1 - X0MIN) / DZ).long(), N_GRID)
             i2 = torch.remainder(torch.round((zz2 - X0MIN) / DZ).long(), N_GRID)
             lab = labels_flat[(i1 * N_GRID + i2).reshape(-1)].reshape(R, K)
             for k in range(n_basins):
                 ts["P"][:, save_ptr, k] = (lab == k).to(dtype).mean(dim=1)
             ts["P"][:, save_ptr, n_basins] = (lab < 0).to(dtype).mean(dim=1)
-            if step in prof_set:
+            if blk in prof_set:
                 prof["pmf"][:, prof_ptr] = F_hat
                 prof["marg"][:, prof_ptr] = p_hat
                 prof_ptr += 1
             save_ptr += 1
-        if progress is not None and step % progress == 0:
-            print(f"    step {step}/{n_steps}", flush=True)
+        if progress is not None and (blk * block) % progress < block:
+            print(f"    step {blk * block}/{n_steps}", flush=True)
 
     # ---- finalize ---------------------------------------------------------------
     t_axis = np.array([s * dt for s in save_steps])
