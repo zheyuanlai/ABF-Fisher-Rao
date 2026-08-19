@@ -266,11 +266,15 @@ def load_reference(device=DEVICE, dtype=DTYPE):
 
 
 def basin_labels(F2, mask8, n_basins=4):
-    """Watershed labels (97, 97) int64: flood from the n deepest reference minima
-    (min-max water level, periodic 8-neighbour); -1 outside mask8.
+    """Watershed labels (97, 97) int64: flood from the n most PROMINENT reference
+    minima (min-max water level, periodic 8-neighbour); -1 outside mask8.
 
-    Ported convention from the closed campaign's alanine/basins.py (basins are
-    regions of the ACCEPTED reference, fixed before any run)."""
+    Prominence (min-max barrier to any deeper minimum) — not raw depth — selects
+    the seeds: the MBAR surface's statistical roughness creates near-degenerate
+    sub-minima inside one physical well (three within 0.1 kT inside C7eq), and a
+    depth-sorted top-n would seed one basin three times while missing C7ax and
+    alphaR entirely. Basins remain regions of the ACCEPTED reference, fixed
+    before any run (the closed campaign's convention)."""
     import heapq
     F = F2.detach().cpu().numpy()
     m = mask8.detach().cpu().numpy()
@@ -285,7 +289,43 @@ def basin_labels(F2, mask8, n_basins=4):
             if all((not np.isfinite(x)) or F[i, j] <= x for x in nb):
                 minima.append((float(F[i, j]), i, j))
     minima.sort()
-    seeds = minima[:n_basins]
+
+    def water_level(src, targets):
+        """Lowest max-F path level from src to ANY target cell (periodic Dijkstra
+        over finite-F cells)."""
+        best = np.full((n, n), np.inf)
+        best[src] = F[src]
+        pq = [(F[src], src[0], src[1])]
+        tset = set(targets)
+        while pq:
+            lvl, i, j = heapq.heappop(pq)
+            if (i, j) in tset:
+                return lvl
+            if lvl > best[i, j]:
+                continue
+            for di in (-1, 0, 1):
+                for dj in (-1, 0, 1):
+                    if (di, dj) == (0, 0):
+                        continue
+                    a, b = (i + di) % n, (j + dj) % n
+                    if not np.isfinite(F[a, b]):
+                        continue
+                    nl = max(lvl, F[a, b])
+                    if nl < best[a, b]:
+                        best[a, b] = nl
+                        heapq.heappush(pq, (nl, a, b))
+        return np.inf
+
+    # prominence of each minimum vs the union of strictly deeper minima
+    prom = []
+    for k, (fv, i, j) in enumerate(minima):
+        deeper = [(a, b) for fv2, a, b in minima[:k]]
+        if not deeper:
+            prom.append((np.inf, fv, i, j))          # global minimum
+        else:
+            prom.append((water_level((i, j), deeper) - fv, fv, i, j))
+    prom.sort(key=lambda t: -t[0])
+    seeds = sorted([(fv, i, j) for _, fv, i, j in prom[:n_basins]])
     lab = np.full((n, n), -1, dtype=np.int64)
     pq = []
     for k, (fv, i, j) in enumerate(seeds):

@@ -125,6 +125,15 @@ def test_basin_labels_watershed():
     assert int(lab[gm[0], gm[1]]) == 0
     # labels only inside mask8
     assert bool((lab[~ref["mask8"].cpu()] == -1).all())
+    # prominence selection recovers the documented physical minima: C7eq, C5,
+    # and crucially C7ax across the 15.8 kT barrier (depth-sorted selection
+    # seeded C7eq three times from MBAR sub-minima and missed C7ax entirely)
+    import math as _m
+    deg = [(round(_m.degrees(-PI + (i + 0.5) * ala.DZ)),
+            round(_m.degrees(-PI + (j + 0.5) * ala.DZ))) for i, j in seeds]
+    assert any(abs(a + 74) < 6 and abs(b - 56) < 6 for a, b in deg)   # C7eq
+    assert any(abs(a + 152) < 6 and abs(b - 156) < 6 for a, b in deg)  # C5
+    assert any(abs(a - 63) < 6 and abs(b + 48) < 6 for a, b in deg)   # C7ax
 
 
 # -----------------------------------------------------------------------------

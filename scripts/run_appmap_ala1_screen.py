@@ -124,6 +124,18 @@ def classify(rows):
 
 
 def analyze():
+    """Basin occupancies are RESCORED here from the stored joint KDEs with the
+    corrected prominence-based basins (the engine's online P_regions in the
+    first-screen records used the buggy depth-sorted seeds; labels are
+    diagnostics-only, so no rerun is needed). Occupied = basin KDE mass
+    >= 0.5/K (a KDE-smeared one-walker equivalent, generous side)."""
+    import torch
+    ref = ala.load_reference("cpu", torch.float64)
+    lab, _seeds = ala.basin_labels(ref["F2"], ref["mask8"])
+    lab = lab.numpy()
+    basin_masks = np.stack([(lab == k) for k in range(4)])       # (4, 97, 97)
+    dA = ala.DZ * ala.DZ
+
     summary = {"common": COMMON, "seeds": SEEDS, "map": {}}
     for cv in CVS:
         for K in KS:
@@ -139,8 +151,14 @@ def analyze():
                         break
                     with np.load(p) as z:
                         t, T = z["time"], float(z["time"][-1])
-                        occ_all = (z["P_regions"][:, :4] > 0).all(axis=1)
-                        th = first_persistent(occ_all, t, hold_frac=0.05)
+                        # basin occupancy from the stored joint KDE (corrected
+                        # basins), at profile cadence
+                        p2 = z["marginal_t"] if cv == "phipsi" else z["marginal2_t"]
+                        occ = np.stack([(p2 * bm[None]).sum(axis=(1, 2)) * dA
+                                        for bm in basin_masks], axis=1)  # (np, 4)
+                        occupied_all = (occ >= 0.5 / K).all(axis=1)
+                        th = first_persistent(occupied_all, z["profile_time"],
+                                              hold_frac=0.05)
                         te = establishment_time_median(z["kl_u_t"], t, tol,
                                                        hold_frac=0.10)
                         rows[sd] = dict(
@@ -151,7 +169,7 @@ def analyze():
                             eT=float(z["l2_f_t"][-1]),
                             D_T=float(z["kl_u_t"][-1]),
                             e_cond_T=float(z["e_cond_t"][-1]),
-                            n_basins_final=int((z["P_regions"][-1, :4] > 0).sum()))
+                            n_basins_final=int((occ[-1] >= 0.5 / K).sum()))
                 if len(rows) == len(SEEDS):
                     by[g] = rows
             if 1.0 not in by:

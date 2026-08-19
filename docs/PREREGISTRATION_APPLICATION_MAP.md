@@ -467,6 +467,44 @@ the regime every GPU campaign in this project operated in.
   dated freeze first. tau_clone^(psi) instrumentation (Q4a protocol with the
   hidden psi as the orthogonal descriptor) precedes any such FR run.
 
+**ALA-1 corrections before the outcome (2026-08-19, recorded):** (i) the basin
+seeds are selected by topographic PROMINENCE, not raw depth — the MBAR
+surface's roughness put three sub-minima within 0.1 kT inside C7eq, so a
+depth-sorted top-4 seeded one well three times and missed C7ax entirely; the
+prominence rule recovers the documented minima (C7eq, C5, C7ax + the psi-bridge
+at (-82, 137)). Basin labels are diagnostics-only, so the completed runs were
+rescored from their stored joint KDEs (no rerun). (ii) The E_cond metric's own
+floor — the SAME eta = 0.25 KDE applied to PERFECT sampling — is 0.180
+(finite-K: 0.185/0.181 at K = 128/512), preregistered here as the reference
+point before interpretation.
+
+**ALA-1 outcome (2026-08-19, seeds 0-7 — recorded, not to be edited):**
+* **cv = phi (psi hidden): SHUS-sufficient at every K and every gain**
+  (hit/T <= 0.09, est/T <= 0.11, zero censored). E_cond sits AT the metric
+  floor for K >= 128 (0.183-0.195 at g = 1 vs floor 0.180; K = 32 mildly
+  elevated, 0.26): **no Type-C conditional deficit — psi | phi relaxes fast
+  enough in vacuum at 300 K even with only phi biased.** Gain tuning HURTS
+  in 1D beyond g ~ 2 (K = 32: +32% I_F and eT ratio 1.53 at g = 8); the
+  default adaptation rate is roughly right.
+* **cv = (phi, psi): SHUS-sufficient at K in {128, 512}** (hit/T <= 0.10,
+  est/T <= 0.19); K = 32 is partially discovery-limited at 0.5 ns (small
+  population vs the 15.8 kT C7ax barrier — Type D/discovery, which
+  reallocation cannot repair by construction). Gain helps I_F monotonically
+  in 2D (to -33.3% at K = 512, g = 8, eT ratio 0.96); Pareto g* = 2/2/4 at
+  K = 32/128/512. Final errors ~0.36-0.40 kT, near the eps = 0.08 mollifier
+  floor (0.33 kT).
+* **No (cv, K) cell is establishment-limited => by the frozen gate, NO FR
+  run on alanine.** The first real molecular benchmark reproduces the WCA
+  pattern: a properly-run SHUS leaves no population-reallocation window; the
+  residual inefficiencies are adaptation-rate (Type B, 2D) or small-K
+  discovery/statistics (Type D), and the hidden-coordinate channel (Type C)
+  is absent in vacuum. The FR-opportunity question on alanine closes
+  negative without an FR run ever being justified — the campaign's terminal
+  assessment (Outcome 2/3) now spans gateway, WCA (all K), both torus
+  cells, and atomistic alanine under both CV choices. Solvated alanine
+  (Stage E) remains the one live candidate for Type C / slow-tau_clone
+  physics, to be opened only as its own preregistered study.
+
 ## Stopping / interpretation rules (frozen)
 
 * Tuned plain SHUS matches FR on the gateway => "FR is not practically necessary
