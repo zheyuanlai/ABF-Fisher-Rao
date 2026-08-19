@@ -339,7 +339,49 @@ The campaign proceeds to the 2D geometry question (Q3, Phase D).**
     tau_clone^(perp) per cell, against the FR event stride (0.2 t) and the
     establishment scales.
 
-  **Q4a outcome (2026-08-18 — recorded, not to be edited):** on both WCA cells
+  **D3 outcome (2026-08-18 — recorded, not to be edited):**
+  * D3a gain curve (noise-paired with D2; seeds 400-415): I_F falls
+    MONOTONICALLY through the whole grid — g 1.5/2/3/4/6/8 give
+    -29.3/-44.3/-58.8/-65.6/-71.5/-73.7% with eT ratios 0.43-0.72 (ALL improve
+    final error; the 1.05 guard never binds). T_est falls 162 -> 13.8.
+    g* = 8 at the preregistered hard cap: the historical SHUS adaptation rate
+    is simply far too slow on this cell; the "tuned" regime is an order of
+    magnitude faster than the frozen default.
+  * D3b (fresh seeds 500-515; g* = 8 baseline; window [5, 7] by the frozen
+    derivation): **gstar+FR = -0.1% [-0.5, 0.4]; gstar+count9 = -0.1%;
+    sham +0.2% (inert); anchor shus_g1 = +282.6% vs the tuned baseline.**
+    Ancestry floors passed, FR fired (~10 events, turnover 22). **Frozen
+    verdict: FR adds nothing on top of a tuned base ABP on t_mid — the
+    SHUS-FR question is CLOSED for this cell (the user's Outcome 2/3:
+    apparent reallocation opportunities on this cell were artifacts of a
+    non-optimally tuned adaptive method).**
+
+  **D4 outcome (2026-08-19, seeds 0-7, T = 800 — recorded, not to be edited):**
+  t_cold resolves honestly at longer T: T_hit/T = 0.024, T_est/T = 0.223 with
+  ZERO censored seeds (the T = 200 screen had merely truncated a ~160-unit
+  establishment interval, the same absolute scale as t_mid's). Gap/T = 0.199 —
+  **below the 0.25 eligibility bar: t_cold is NOT establishment-limited at an
+  honest horizon.** Mechanism: the g = 1.5 arm removes most of the remaining
+  deficit (T_est 178 -> 106, paired dI_F = -24.0% [-24.1, -23.6]) — Type B
+  (adaptation-rate-limited) again, with a mild final-error trade (eT ratio
+  1.07). No Type-A oscillatory residual emerged; per the frozen rule no
+  reallocation arm is justified on t_cold.
+
+  **Closing assessment of the three-job campaign (2026-08-19):** the user's
+  predefined Outcome 2/3 is realized. Across gateway, WCA (all K), and both
+  torus cells: (i) every establishment deficit large enough to matter was
+  either absent (WCA) or predominantly adaptation-rate-limited (torus; and on
+  the gateway, gain tuning matched FR); (ii) FR never beat count balancing in
+  four attempts spanning 1D and 2D CVs at three histogram resolutions;
+  (iii) FR added nothing (-0.1%) on top of a properly tuned base ABP where it
+  was tested head-to-head; (iv) clone decorrelation is not the limiter on the
+  one solvated system measured (tau_clone < one event stride). The empirical
+  practical hierarchy stands: tune the base adaptive method first; diagnose
+  the deficit type; reach for directed reallocation only for a genuine
+  population-oscillatory residual, and there simple count balancing suffices
+  at low CV dimension. The remaining open door for FR-specific value is a
+  molecular benchmark with coupled CVs (alanine, Stages A-E) and, for the
+  cloning question, a solvated system with genuinely slow hidden coordinates. on both WCA cells
   (b1h2, b2h6; K = 256, frozen bias at t0 = 100, 64 stratified parents each),
   m(tau) collapses from 1 to noise around 0 by the FIRST recorded lag:
   **tau_clone < 0.2 t (resolution-limited upper bound) for BOTH xi and the
