@@ -123,17 +123,21 @@ def nearest_bin2(X1, X2, grid: GridT2):
 
 
 def binned_density2(X1, X2, k1, r1, k2, r2, grid: GridT2, weights=None):
-    """(Optionally weighted) periodic KDE.  X: (R, N) -> p: (R, n1, n2)."""
+    """(Optionally weighted) periodic KDE.  X: (R, N) -> p: (R, n1, n2).
+
+    weights = None is the equal-weight ensemble; (R, N) positive weights estimate the
+    density of the measure the ensemble REPRESENTS (sum w_k delta_k / sum w_k).
+    Weights of exactly 1 reproduce the unweighted call bitwise.
+    """
     R, N = X1.shape
     idx = nearest_bin2(X1, X2, grid)
     hist = torch.zeros((R, grid.n1 * grid.n2), device=X1.device, dtype=X1.dtype)
     hist.scatter_add_(1, idx, torch.ones_like(X1) if weights is None else weights)
     p = smooth2(hist.reshape(R, grid.n1, grid.n2), k1, r1, k2, r2)
-    if weights is None:
-        p = p / float(N)
-        mass = torch.clamp(integral2(p, grid), min=EPS).reshape(R, 1, 1)
-        return torch.clamp(p / mass, min=EPS)
-    return p
+    p = p / (float(N) if weights is None
+             else torch.clamp(weights.sum(dim=1), min=EPS).reshape(R, 1, 1))
+    mass = torch.clamp(integral2(p, grid), min=EPS).reshape(R, 1, 1)
+    return torch.clamp(p / mass, min=EPS)
 
 
 def interp2(X1, X2, grid_vals, grid: GridT2):

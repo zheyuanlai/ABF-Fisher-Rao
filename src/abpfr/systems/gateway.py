@@ -182,6 +182,15 @@ class Method:
     cond_bins2: int = 0          # control -- p(z | xi) from an nb1 x nb2 histogram
                                  # instead of the joint KDE, isolating the density
                                  # estimator inside the same conditional geometry
+    cond_weighted: bool = False  # Phase I: carry statistical weights through the
+                                 # conditional selection, so the score allocates
+                                 # COMPUTATIONAL EFFORT while the ensemble keeps
+                                 # representing the same law (src/abpfr/
+                                 # fisher_rao_cond.py::child_weights).  The event
+                                 # index is identical to the equal-weight arm's, so
+                                 # a weighted arm is dose-matched to its partner by
+                                 # construction and the ONLY difference is whether
+                                 # the target gets to move the represented measure.
 
 
 SHUS = Method("shus")

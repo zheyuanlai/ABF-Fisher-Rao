@@ -52,16 +52,24 @@ def nearest_bin1p(X, grid: Grid1P):
 
 
 def binned_density1p(X, kernel, r, grid: Grid1P, weights=None):
+    """Mollified empirical density of the walkers.  X: (R, N) -> (R, n).
+
+    weights: None for the equal-weight ensemble, or (R, N) statistical weights (the
+    convention of the weighted conditional selection of fisher_rao_cond.py: weights
+    are positive and sum to N per row, so weights = 1 reproduces the unweighted call
+    BITWISE).  Weighted or not, the return is a normalized density -- what changes is
+    which empirical measure it estimates: the ensemble REPRESENTS
+    sum_k w_k delta_{X_k} / sum_k w_k, not sum_k delta_{X_k} / N.
+    """
     R, N = X.shape
     idx = nearest_bin1p(X, grid)
     hist = torch.zeros((R, grid.n), device=X.device, dtype=X.dtype)
     hist.scatter_add_(1, idx, torch.ones_like(X) if weights is None else weights)
     p = smooth1p(hist, kernel, r)
-    if weights is None:
-        p = p / float(N)
-        mass = torch.clamp(integral1p(p, grid), min=EPS).unsqueeze(1)
-        return torch.clamp(p / mass, min=EPS)
-    return p
+    p = p / (float(N) if weights is None
+             else torch.clamp(weights.sum(dim=1, keepdim=True), min=EPS))
+    mass = torch.clamp(integral1p(p, grid), min=EPS).unsqueeze(1)
+    return torch.clamp(p / mass, min=EPS)
 
 
 def interp1p(X, grid_vals, grid: Grid1P):
@@ -121,8 +129,16 @@ class ShusAccumulator1P:
     def bias_force_at(self, X):
         return interp1p(X, self.Fp, self.grid)
 
-    def deposit(self, X):
+    def deposit(self, X, weights=None):
+        """Accumulate this step's deposit.  weights: (R, K) statistical weights,
+        mean 1 (None = the equal-weight ensemble, and weights = 1 is bitwise the
+        same call).  The SHUS increment estimates R(x) rho_t(x) with rho_t the law
+        the ensemble REPRESENTS, so a weighted ensemble must deposit its weights --
+        otherwise the accumulator would learn the allocation instead of the
+        physics, which is exactly what weighted selection exists to avoid."""
         w = interp1p(X, self.R, self.grid)
+        if weights is not None:
+            w = w * weights
         idx = nearest_bin1p(X, self.grid)
         self.buf.scatter_add_(1, idx, w)
 

@@ -200,6 +200,70 @@ def stratified_systematic_resample(w, strata, cnt, n_strata, gen):
 
 
 # -----------------------------------------------------------------------------
+# weighted selection: allocation decoupled from represented probability
+# -----------------------------------------------------------------------------
+def stratum_sum(v, strata, n_strata):
+    """Per-stratum sums of a per-walker quantity.  v: (R, K) -> (R, S)."""
+    out = torch.zeros((v.shape[0], n_strata), device=v.device, dtype=v.dtype)
+    out.scatter_add_(1, strata, v)
+    return out
+
+
+def child_weights(W, sel, strata, n_strata, w=None, cnt=None):
+    """Statistical weights of the resampled slots.  W: (R, K) -> (R, K).
+
+    WHY (Phase I).  In the equal-weight step of F2/F4 the selection IS the answer:
+    reallocating toward a target q makes the ensemble represent something closer to
+    q, so a wrong q is a wrong physical distribution -- which is exactly what F4
+    measured when one arbitrary reparametrization of the descriptor turned a -15%
+    gain into a +5% loss.  Weighted selection separates the two jobs: the score
+    decides WHERE COMPUTATIONAL EFFORT GOES, and the weights keep WHAT THE ENSEMBLE
+    REPRESENTS fixed.  The selection index `sel` is unchanged -- the weighted arm
+    fires the identical event as its equal-weight partner, dose-matched by
+    construction -- and only the weights it carries afterwards differ.
+
+    Two rules, one for each kind of selection in this codebase:
+
+    * `w`/`cnt` given (SCORE-DRIVEN arms).  The slots of stratum j are drawn with
+      within-stratum probabilities w_k, so the importance weight of a child of k is
+      W_k / (cnt_j w_k): summed over the cnt_j slots this returns sum_k W_k in
+      expectation, for ANY score.  Note the child weight is inversely proportional
+      to the desirability a_k -- allocate more copies, carry less weight each.
+    * `w` None (the SHAM).  Its kill is uniform and position-independent, so there
+      is no proposal density to divide by; each parent's weight is split equally
+      among its realized children, which conserves it exactly (the split rule
+      sum_{children(i)} W_j = W_i).
+
+    Both are then renormalized so each stratum's total weight is EXACTLY what it was.
+    That is the weighted form of the invariant the whole conditional design rests on
+    (F2: stratum COUNTS are preserved, so the SHUS deposit signal cannot be
+    perturbed).  With weights, counts no longer carry the marginal -- weight does --
+    so it is the stratum weight that must be held fixed, and the renormalization
+    also removes the O(1/cnt_j) resampling fluctuation of the importance rule.
+    """
+    parent_div = (torch.zeros_like(W).scatter_add_(1, sel, torch.ones_like(W))
+                  if w is None else w * torch.gather(cnt, 1, strata))
+    Wc = (torch.gather(W, 1, sel)
+          / torch.clamp(torch.gather(parent_div, 1, sel), min=EPS))
+    # children of stratum j land in slots of stratum j, so strata labels are unmoved
+    scale = (stratum_sum(W, strata, n_strata)
+             / torch.clamp(stratum_sum(Wc, strata, n_strata), min=EPS))
+    return Wc * torch.gather(scale, 1, strata)
+
+
+def weight_ess(W):
+    """ESS of the statistical weights as a fraction of K: (sum W)^2 / (K sum W^2).
+
+    The price of weighted selection, and the reason it is reported at every save
+    rather than guarded: allocating away from the represented law necessarily
+    spreads the weights, and a weight-ESS floor would silently change the dose and
+    destroy the pairing with the equal-weight arm.  Equal weights give exactly 1.
+    """
+    K = W.shape[1]
+    return W.sum(dim=1).pow(2) / torch.clamp(W.pow(2).sum(dim=1) * K, min=EPS)
+
+
+# -----------------------------------------------------------------------------
 # stratified sham: matched turnover with the fiber direction destroyed
 # -----------------------------------------------------------------------------
 def stratified_sham_indices(m, strata, cnt, n_strata, gen, K):

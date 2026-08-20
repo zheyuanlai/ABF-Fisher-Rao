@@ -129,9 +129,9 @@ def test_conditional_enriches_the_rare_fiber_and_marginal_is_blind():
     before = _rare_frac(z2)
     sel_m, _, _, _ = fr_event1p(z1, act, off, off, zero_nb, partner, theta, alpha,
                                 k1, r1, G1, torch.Generator().manual_seed(4))
-    sel_c, _, _, _ = fr_event_cond(z1, z2, act, off, zero_nb, zero_nb, S, partner,
-                                   theta, alpha, k1, r1, k2, r2, G2,
-                                   torch.Generator().manual_seed(4))
+    sel_c, _, _, _, _ = fr_event_cond(z1, z2, act, off, zero_nb, zero_nb, S,
+                                      partner, theta, alpha, k1, r1, k2, r2, G2,
+                                      torch.Generator().manual_seed(4))
     after_m = _rare_frac(z2, sel_m)
     after_c = _rare_frac(z2, sel_c)
     # marginal: no systematic movement of the fiber population

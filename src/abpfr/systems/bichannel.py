@@ -62,6 +62,7 @@ import torch
 
 from ..events1p import fr_event1p
 from ..events_cond import fr_event_cond
+from ..fisher_rao_cond import weight_ess
 from ..grid import DEVICE, DTYPE, EPS
 from ..grid1p import (Grid1P, ShusAccumulator1P, binned_density1p, integral1p,
                       interp1p, kl_to_uniform1p, tv_to_uniform1p)
@@ -424,6 +425,19 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
     # a sham inherits its partner's geometry: it must be the null for THAT step
     partner_cond = torch.tensor([methods[partner_col[j]].cond_fr
                                  for b in range(B) for j in range(M)], device=device)
+    is_wt_row = rowmask(lambda m: m.cond_weighted)
+    assert all(m.cond_fr or m.sham or not m.cond_weighted for m in methods), (
+        "weighted selection is defined for the FIBER-WISE step only: the marginal "
+        "step moves the very marginal the accumulator learns from, and compensating "
+        "weights there would cancel the arm outright")
+    for j, m in enumerate(methods):
+        if m.sham:
+            assert not (m.cond_weighted and not methods[partner_col[j]].cond_fr), (
+                f"sham {m.name!r} carries weights but shadows a MARGINAL arm; "
+                f"weighted selection is fiber-wise only")
+            assert m.cond_weighted == methods[partner_col[j]].cond_weighted, (
+                f"sham {m.name!r} must carry the same weighting as the arm it "
+                f"shadows ({m.shadows!r}); otherwise it is not that arm's null")
     is_coarse_row = rowmask(lambda m: m.coarse_bins > 0)
     coarse_nb = torch.tensor([m.coarse_bins for m in methods], device=device,
                              dtype=torch.long).repeat(B)
@@ -475,6 +489,9 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
     X2 = wrap_periodic(X2.repeat_interleave(M, dim=0), GRID2.x2min, GRID2.L2)
     anc = torch.arange(K, device=device).unsqueeze(0).expand(R, K).clone()
     anc_g = anc.clone()
+    # statistical weights, mean 1 (Phase I).  Equal-weight arms keep them at exactly
+    # 1.0 forever, so every weighted code path below is the identity for them.
+    W = torch.ones((R, K), device=device, dtype=dtype)
     if is2d:
         from ..shus2d import ShusAccumulator2
         shus = ShusAccumulator2(R, GRID2, beta, c0.eps_bw, device, dtype, gain=gain)
@@ -509,8 +526,17 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
 
     ts = {k: torch.zeros((R, n_saves), device=device, dtype=dtype) for k in
           ("l2_f", "kl_u", "tv_u", "e_cond", "e_chan", "ess_anc", "wmax",
-           "ess_anc_glob", "wmax_glob", "n_anc", "dep_ref", "dep_self")}
+           "ess_anc_glob", "wmax_glob", "n_anc", "dep_ref", "dep_self",
+           # Phase I: the price and the proof of weighted selection.  ess_w is the
+           # weight ESS (1 for every equal-weight arm); wmax_w the largest single
+           # share of the represented mass; w_sum the running total weight, which
+           # the stratum-wise renormalization holds at K.
+           "ess_w", "wmax_w", "w_sum")}
+    # P is the channel split of the REPRESENTED law (weights); P_n is the channel
+    # split of the PARTICLES.  They are the same series for every equal-weight arm
+    # and the direct measurement of the decoupling for a weighted one.
     ts["P"] = torch.zeros((R, n_saves, 2), device=device, dtype=dtype)
+    ts["P_n"] = torch.zeros((R, n_saves, 2), device=device, dtype=dtype)
     prof = {"pmf": torch.zeros((R, n_prof, NG), device=device, dtype=dtype),
             "marg": torch.zeros((R, n_prof, NG), device=device, dtype=dtype),
             "pB_phi": torch.zeros((R, n_prof, NG), device=device, dtype=dtype),
@@ -542,7 +568,7 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
         X2 = wrap_periodic(X2 + (-g2 + b2) * dt + noise_amp * z2,
                            GRID2.x2min, GRID2.L2)
 
-        shus.deposit(X1, X2) if is2d else shus.deposit(X1)
+        shus.deposit(X1, X2) if is2d else shus.deposit(X1, W)
 
         if (step + 1) % block == 0:
             if is2d:
@@ -562,6 +588,7 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
             if event_ptr < n_events and event_blocks[event_ptr] == blk:
                 active = fires[event_ptr]
                 sel = ar.clone()
+                W_cond = W                       # weights after the fiber-wise step
                 turn = torch.zeros(R, device=device, dtype=torch.long)
                 th_u = torch.zeros(R, device=device, dtype=dtype)
                 ef = torch.full((R,), float("nan"), device=device, dtype=dtype)
@@ -579,11 +606,12 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
                 cond_rows = (active & is_fr_row & is_cond_row)
                 cond_sham = (active & is_sham_row & partner_cond)
                 if bool((cond_rows | cond_sham).any()):
-                    s_c, t_c, th_c, e_c = fr_event_cond(
+                    s_c, t_c, th_c, e_c, W_c = fr_event_cond(
                         X1, X2, cond_rows, cond_sham, cond_nb1, cond_nb2, n_strata,
                         partner, theta0, alpha_ess, k1e, r1e, k2e, r2e, GRID2,
-                        gen_f, cond_log_q)
+                        gen_f, cond_log_q, W, is_wt_row)
                     touched = (cond_rows | cond_sham).unsqueeze(1)
+                    W_cond = torch.where(touched, W_c, W_cond)
                     sel = torch.where(touched, s_c, sel)
                     turn = torch.where(touched[:, 0], t_c, turn)
                     th_u = torch.where(touched[:, 0], th_c, th_u)
@@ -595,6 +623,12 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
                 # ESTIMATOR PROTECTION: walker arrays only
                 X1 = torch.gather(X1, 1, sel)
                 X2 = torch.gather(X2, 1, sel)
+                # weighted rows take the compensating weights the fiber-wise step
+                # computed; every other row (marginal FR, sham, plain SHUS) carries
+                # its weights through the same gather as its walkers -- which for
+                # the equal-weight arms is exactly 1 in, exactly 1 out
+                W = torch.where(is_wt_row.unsqueeze(1), W_cond,
+                                torch.gather(W, 1, sel))
                 anc = torch.gather(anc, 1, sel)
                 anc_g = torch.gather(anc_g, 1, sel)
                 event_ptr += 1
@@ -605,10 +639,10 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
             d = F_hat - F1_ref
             d = d - d.mean(dim=1, keepdim=True)
             ts["l2_f"][:, save_ptr] = torch.sqrt((d * d).mean(dim=1))
-            p_hat = binned_density1p(X1, k1e, r1e, GRID1)
+            p_hat = binned_density1p(X1, k1e, r1e, GRID1, W)
             ts["kl_u"][:, save_ptr] = kl_to_uniform1p(p_hat, GRID1)
             ts["tv_u"][:, save_ptr] = tv_to_uniform1p(p_hat, GRID1)
-            p2 = binned_density2(X1, X2, k1e, r1e, k2e, r2e, GRID2)
+            p2 = binned_density2(X1, X2, k1e, r1e, k2e, r2e, GRID2, W)
             ts["e_cond"][:, save_ptr] = _e_cond(p2, p_cond_ref)
             ts["e_chan"][:, save_ptr] = _e_chan(p2, pB_phi_ref)
             e_, w_ = ancestor_stats(anc, K)
@@ -621,8 +655,14 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
             ts["dep_ref"][:, save_ptr] = dep_ref_cur
             ts["dep_self"][:, save_ptr] = dep_self_cur
             lab = channel_of(X2)
-            ts["P"][:, save_ptr, 0] = (lab == 0).to(dtype).mean(dim=1)
-            ts["P"][:, save_ptr, 1] = (lab == 1).to(dtype).mean(dim=1)
+            wsum = torch.clamp(W.sum(dim=1), min=EPS)
+            for j in (0, 1):
+                inj = (lab == j).to(dtype)
+                ts["P"][:, save_ptr, j] = (W * inj).sum(dim=1) / wsum
+                ts["P_n"][:, save_ptr, j] = inj.mean(dim=1)
+            ts["ess_w"][:, save_ptr] = weight_ess(W)
+            ts["wmax_w"][:, save_ptr] = W.max(dim=1).values / wsum
+            ts["w_sum"][:, save_ptr] = W.sum(dim=1) / float(K)
             if step in prof_set:
                 prof["pmf"][:, prof_ptr] = F_hat
                 prof["marg"][:, prof_ptr] = p_hat
@@ -677,7 +717,9 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
                 wmax_glob_t=npy(ts["wmax_glob"][r]), n_anc_t=npy(ts["n_anc"][r]),
                 dep_ref_l2_t=npy(ts["dep_ref"][r]),
                 dep_self_l2_t=npy(ts["dep_self"][r]),
-                P_regions=npy(ts["P"][r]),
+                P_regions=npy(ts["P"][r]), P_regions_n=npy(ts["P_n"][r]),
+                ess_w_t=npy(ts["ess_w"][r]), wmax_w_t=npy(ts["wmax_w"][r]),
+                w_sum_t=npy(ts["w_sum"][r]),
                 event_time=ev_t, event_theta=npy(ev["theta"][r]),
                 event_ess_fr=npy(ev["ess_fr"][r]),
                 event_turnover=npy(ev["turnover"][r]),
@@ -687,6 +729,9 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
                 final_e_chan=float(npy(ts["e_chan"][r])[-1]),
                 int_e_chan=float(np.trapezoid(npy(ts["e_chan"][r]), t_axis)),
                 final_p_B=float(npy(ts["P"][r])[-1, 1]),
+                final_p_B_n=float(npy(ts["P_n"][r])[-1, 1]),
+                final_ess_w=float(npy(ts["ess_w"][r])[-1]),
+                min_ess_w=float(npy(ts["ess_w"][r]).min()),
                 total_turnover=float(tot_turn[r]),
             ))
     return recs

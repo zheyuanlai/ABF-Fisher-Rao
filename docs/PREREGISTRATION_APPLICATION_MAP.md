@@ -1173,3 +1173,140 @@ which an augmented-CV ABP becomes infeasible while conditioning remains usable �
 NOT as a route to an FR-specific claim.  Before any molecular work, the mandatory
 baseline set is now: tuned ABP on the base CV, **tuned ABP on the augmented CV**,
 conditional reallocation, its stratified-count control, and its sham.
+
+---
+
+# Phase I — weighted fiber-wise selection: allocation vs represented probability   [FROZEN 2026-08-20, before any Phase-I row]
+
+## Why this comes before Phase G and Phase H
+
+F4 refuted P7: one arbitrary reparametrization of the hidden descriptor turned
+`fr_cond`'s -14.9% into +5.1%.  The reason is structural, not numerical.  In the
+equal-weight step, **the selection IS the represented distribution**: reallocating
+walkers toward a target `q` makes the ensemble represent something closer to `q`, and
+the SHUS accumulator then learns from that.  A wrong `q` is therefore a wrong physical
+distribution, and the only parametrization-invariant `q` is the unknown physical
+`p(z | xi)`.  Scaling that method to `d_z = 4` (Phase G) or refining its update law
+(Phase H) does not touch this: it would make a target-critical method faster and
+prettier.
+
+There is a standard way to separate the two jobs the equal-weight step conflates —
+carry statistical weights, as selection/splitting methods do:
+
+    where computational effort goes      <-- decided by the score
+    what probability the ensemble carries <-- decided by the weights
+
+Phase I implements it and asks the one question that decides whether conditional
+reallocation is a **sampling** method (a target is a modelling choice with F4's
+downside) or a **variance-reduction** method (target-free, and safe to take to a
+molecule).
+
+## The step (`src/abpfr/fisher_rao_cond.py::child_weights`, committed with this freeze)
+
+Everything about the event is unchanged: the same conditional score read off the
+same particle-density KDE, the same theta, the same ESS backoff, the same
+within-stratum systematic resampling, the same event times.  **The selection index is
+bit-identical to the equal-weight arm's** (unit-tested), so a weighted arm is its
+equal-weight twin at matched dose by construction, not by tuning.  What changes is
+what the descendants carry:
+
+* score-driven arms (FR, count): slot descending from parent `k` in stratum `j` gets
+  `W_k / (cnt_j w_k)` — the importance weight of a draw from the `a`-tilted law, so
+  more copies means proportionally less weight each, for ANY score;
+* the sham: its kill is uniform and position-independent, so each parent's weight is
+  split equally among its realized children (`sum_{children(i)} W_j = W_i`);
+* both are then renormalized to hold **each stratum's total weight exactly fixed**.
+  That is the weighted form of the invariant Phase F rests on: with weights, the
+  xi-marginal the SHUS deposit sees is carried by weight, not by counts, so it is the
+  stratum weight that must be conserved.  It is, to 1e-10 (unit-tested).
+
+Consequences, all committed with this freeze and unit-tested:
+
+* the SHUS deposit is `W_k * R(X_k)`, i.e. the accumulator learns the law the ensemble
+  REPRESENTS, not the allocation; at `W = 1` every code path is bitwise the F2/F4
+  engine (verified against `HEAD` on a 10-row batch, all series bit-identical);
+* every scored diagnostic (`e_F`, `KL(p_xi||u)`, `E_cond`, `E_chan`, `P_B`) is a
+  weighted estimate, and the PARTICLE channel split is recorded alongside it as
+  `P_regions_n` — the decoupling is measured in every run, not assumed;
+* **no weight-ESS guard is applied.**  A guard would silently change the dose and
+  destroy the pairing with the equal-weight arm, so the weight ESS is recorded at
+  every save (`ess_w_t`, `min_ess_w`) and reported as the method's cost.
+
+## I1 — the target-sensitivity re-run, with and without weights   [FROZEN]
+
+Same two cells as F4 (`hp2_d0`, `hp2_d0.5`), same `K = 1024`, `T = 800`,
+`n_strata = 32`, same window/dose (`theta = 0.01`, stride 49 blocks, `[20, 215]`),
+**fresh seeds 800-815**, batch_seed **20261000**.  All eleven arms in ONE batch, so
+every contrast is paired in noise and initial conditions:
+
+| family | arms |
+|---|---|
+| baseline | `shus` |
+| equal weight (F4 arms, re-run on the new seeds) | `fr_cond`, `fr_cond_rp+`, `fr_cond_rp-`, `fr_cond_oracle`, `sham_cond` |
+| weighted | `wfr_cond`, `wfr_cond_rp+`, `wfr_cond_rp-`, `wfr_cond_oracle`, `wsham_cond` |
+| weighted, EXPLORATORY dose ladder (not dose-matched) | `wfr_cond_hot` (`theta = 0.1`), `wfr_cond_hot_oracle` |
+
+`rp+`/`rp-` are F4's targets unchanged (uniform in `psi +- 0.8 sin psi`); the oracle
+target remains DIAGNOSIS ONLY (it consults the reference the run is scored against).
+
+**Primary endpoint (frozen): the target-induced spread.**  For each family, let
+`S = max - min` of the median paired `dI_F` vs `shus` over the three *choosable*
+targets `{uniform, rp+, rp-}` (the oracle is excluded: it is not a choice a modeller
+can make).  F4 gives `S_equal = 20.0` points on `hp2_d0` and `31.6` on `hp2_d0.5`.
+
+* **P8 (target safety):** `S_weighted <= 0.5 S_equal` on both cells, and no weighted
+  target arm has a paired CI lying entirely above zero.  If P8 holds, weighting fixes
+  the defect F4 exposed.
+* **P9 (benefit retention) — predicted to FAIL, recorded now so it cannot be
+  re-narrated:** `wfr_cond` will NOT reproduce `fr_cond`'s -15% / -31%; we expect it
+  within noise of `shus` and of `wsham_cond`.  The reason is the same structural fact:
+  the equal-weight gain came from imposing the target on the represented conditional,
+  and weighting is precisely the removal of that mechanism.  What can still buy a
+  genuine gain is variance reduction — more particles carrying the rare channel's
+  weight, hence a better-resolved A->B flux — and that is the effect P9 measures.
+* **P10 (the decisive diagnostic):** the ORACLE arms separate the two mechanisms
+  cleanly.  Equal-weight oracle bought -64% / -54% (F4).  If `wfr_cond_oracle`
+  collapses toward null, the whole Phase-F positive was *borrowing the answer from the
+  target*, and conditional reallocation is a sampling method that needs knowledge it
+  does not have.  If `wfr_cond_oracle` keeps a large fraction of that gain, the method
+  has real variance-reduction value that survives being made target-safe — which
+  would be the strongest result of the campaign and would justify Phase G/H.
+
+* **P11 (exploratory, secondary):** weighting makes hard allocation *safe* — the
+  represented law is held whatever the score does — so the natural follow-up is
+  whether allocating ten times harder buys the variance reduction the frozen dose
+  may be too weak to show.  `wfr_cond_hot` and `wfr_cond_hot_oracle` run at
+  `theta = 0.1` (a probe confirms the ESS backoff leaves it intact; `theta = 0.5`
+  does not survive and is not used).  These two arms have NO dose-matched sham, so a
+  positive from them is a lead for a follow-up experiment and is not claimable here;
+  a null from them, on the other hand, closes the variance-reduction hypothesis at
+  this system, because `wfr_cond_hot_oracle` allocates hard toward the exactly
+  correct conditional and cannot be improved upon as an allocation policy.
+
+Secondary, reported for every arm: `min ess_w` (the cost), realized turnover (dose
+check), `P_B` vs `P_B^n` (the decoupling — a weighted arm must show particle
+enrichment comparable to its equal-weight twin while its represented `P_B` stays in
+the plain-SHUS band, or the implementation claim is false), `KL(p_phi || u)` (the CV
+marginal must stay invariant, as in F2), and `e_F(T) / e*`.
+
+**Pilot disclosure (frozen with the design).**  Two engineering pilots preceded this
+freeze and are reported so nothing about them is discovered later: (i) a 10-row,
+T = 100 probe used only for wall-clock and to confirm the weight bookkeeping is
+conserved; (ii) a 2-seed, full-T, 11-arm probe launched BEFORE this section was
+written and read AFTER it, used to size the weight-ESS cost and to confirm that the
+equal-weight arms reproduce F4 on fresh seeds.  The predictions above stand exactly as
+they were written; the pilot's two-seed numbers are reported alongside the outcome
+below so a reader can see what was already visible at freeze time.  The pilot also
+corrected one engineering expectation: `ess_w` does NOT stay near 1 — at the frozen
+dose it ends around 0.86-0.99 for the uniform and `rp+` targets and around 0.47-0.72
+for the higher-turnover `rp-` and oracle targets — so the weight-variance cost is
+real and is reported as a primary secondary endpoint rather than as a footnote.
+
+**Interpretation rule (frozen).**  P8 alone is not a success: a method can be made
+target-insensitive by making it inert, and P9 is expected to show exactly that.  The
+combination that would keep conditional reallocation alive as a general method is
+**P8 held AND P10 retaining a substantial fraction of the oracle gain**; the
+combination P8 held + P9 and P10 both null means the honest conclusion is that
+equal-weight conditional reallocation works by assuming the answer, and that its
+practical value is confined to cases where a defensible target is available on
+independent physical grounds.

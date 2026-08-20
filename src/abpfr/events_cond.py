@@ -25,7 +25,8 @@ from __future__ import annotations
 
 import torch
 
-from .fisher_rao_cond import (conditional_log_ratio, conditional_log_ratio_binned,
+from .fisher_rao_cond import (child_weights, conditional_log_ratio,
+                              conditional_log_ratio_binned,
                               stratified_sham_indices,
                               stratified_systematic_resample, stratum_of,
                               theta_backoff_cond)
@@ -34,8 +35,9 @@ from .resampling import turnover_counts
 
 
 def fr_event_cond(z1, z2, fr_act, sham_act, cond_nb1, cond_nb2, n_strata, partner,
-                  theta0, alpha_ess, k1, r1, k2, r2, grid: GridT2, gen, log_q=None):
-    """Returns (sel, turn, theta_used, essf).  z1 = xi (biased), z2 = hidden.
+                  theta0, alpha_ess, k1, r1, k2, r2, grid: GridT2, gen, log_q=None,
+                  W=None, wt_act=None):
+    """Returns (sel, turn, theta_used, essf, W_new).  z1 = xi (biased), z2 = hidden.
 
     cond_nb1 / cond_nb2: (R,) long per-row histogram resolutions; 0 = the fine
     joint KDE (the FR arm).  Rows with cond_nb1 > 0 are the stratified-count
@@ -43,6 +45,15 @@ def fr_event_cond(z1, z2, fr_act, sham_act, cond_nb1, cond_nb2, n_strata, partne
 
     log_q: None for the frozen uniform target, or an (R, n1, n2) per-row log target
     conditional (Phase F4 carries several targets in one paired batch).
+
+    W / wt_act (Phase I): (R, K) statistical weights and the (R,) mask of rows that
+    carry them.  The SELECTION is identical whether or not a row is weighted -- the
+    score is read off the particle density in both, so a weighted arm is the
+    dose-matched twin of its equal-weight partner -- and `wt_act` only decides
+    whether the descendants inherit compensating weights (allocation without
+    changing the represented law) or the equal weights of F2/F4 (allocation IS the
+    change).  W = None keeps every row at weight 1 and reproduces the F2/F4 engine
+    bitwise.
     """
     R, K = z1.shape
     device, dtype = z1.device, z1.dtype
@@ -50,6 +61,11 @@ def fr_event_cond(z1, z2, fr_act, sham_act, cond_nb1, cond_nb2, n_strata, partne
     turn = torch.zeros(R, device=device, dtype=torch.long)
     theta_used = torch.zeros(R, device=device, dtype=dtype)
     essf = torch.full((R,), float("nan"), device=device, dtype=dtype)
+    if W is None:
+        W = torch.ones((R, K), device=device, dtype=dtype)
+    if wt_act is None:
+        wt_act = torch.zeros(R, device=device, dtype=torch.bool)
+    W_new = W
 
     strata = stratum_of(z1, grid, n_strata)
     if bool(fr_act.any()):
@@ -74,6 +90,10 @@ def fr_event_cond(z1, z2, fr_act, sham_act, cond_nb1, cond_nb2, n_strata, partne
         turn = torch.where(fr_act, turn_fr, turn)
         theta_used = torch.where(fr_act, th, theta_used)
         essf = torch.where(fr_act, ef, essf)
+        rows_w = fr_act & wt_act
+        if bool(rows_w.any()):
+            W_w = child_weights(W, sel_fr, strata, n_strata, w, cnt)
+            W_new = torch.where(rows_w.unsqueeze(1), W_w, W_new)
 
     if bool(sham_act.any()):
         cnt_all = torch.zeros((R, n_strata), device=device, dtype=dtype)
@@ -82,4 +102,11 @@ def fr_event_cond(z1, z2, fr_act, sham_act, cond_nb1, cond_nb2, n_strata, partne
         sel_sham = stratified_sham_indices(m_sham, strata, cnt_all, n_strata, gen, K)
         sel = torch.where(sham_act.unsqueeze(1), sel_sham, sel)
         turn = torch.where(sham_act, turnover_counts(sel_sham, K), turn)
-    return sel, turn, theta_used, essf
+        rows_w = sham_act & wt_act
+        if bool(rows_w.any()):
+            W_s = child_weights(W, sel_sham, strata, n_strata)
+            W_new = torch.where(rows_w.unsqueeze(1), W_s, W_new)
+    # unweighted rows carry their (identically 1) weights through the gather, so the
+    # return is uniform in the arms and bitwise the identity for every F2/F4 arm
+    W_new = torch.where(wt_act.unsqueeze(1), W_new, torch.gather(W, 1, sel))
+    return sel, turn, theta_used, essf, W_new
