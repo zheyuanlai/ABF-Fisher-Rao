@@ -1397,3 +1397,70 @@ noise-paired to each other as well as within themselves.
 * The static drift for each configuration is measured by the same script, on the same
   populations, before the batch runs — so the bias correction is quantified rather
   than argued.
+
+### I2 outcome (2026-08-20, seeds 800-815, two noise-paired batches — recorded, not to be edited)
+
+**P12 fails: the hot-dose lead is the bookkeeping bias, not variance reduction.**
+
+Static bias of the weight rule, measured on the same populations before the batches
+ran (200 events, no dynamics, fiber fraction 0.1514):
+
+| walkers/stratum | `theta = 0.01` | `theta = 0.1` |
+|---|---|---|
+| 32 (`n_strata = 32`) | +0.0064 | **+0.0142** |
+| 128 (`n_strata = 8`) | +0.0024 | **+0.0032** |
+
+Anchor cell, `theta = 0.1`, against plain SHUS and against matched-turnover weighted
+shams:
+
+| | `n_strata = 32` (32/stratum) | `n_strata = 8` (128/stratum) |
+|---|---|---|
+| `wfr_cond_hot` vs `shus` | -0.22 [-3.20, 2.45] | -0.34 [-2.81, 1.42] |
+| `wfr_cond_hot_oracle` vs `shus` | **-29.57 [-36.31, -22.91]** | **-1.71 [-12.08, 2.92]** |
+| `wfr_cond_hot` vs its sham | -1.81 [-4.88, 2.30] | -2.44 [-3.82, 2.43] |
+| `wfr_cond_hot_oracle` vs its sham | **-31.78 [-38.74, -18.57]** | **+0.09 [-10.64, 3.32]** |
+| represented `dP_B` (oracle arm) | +0.0654 | +0.0216 |
+| particle `P_B^n` (oracle arm) | 0.7407 | **0.8276** |
+| `KL(p_phi||u)` at T (shus / hot / hot-oracle / sham) | 0.0022 / 0.0044 / 0.0140 / 0.0109 | 0.0023 / 0.0042 / 0.0261 / 0.0123 |
+
+Quadrupling the walkers per stratum cuts the static bias by 4.4x, cuts the arm's
+represented `dP_B` by 3x, and **removes the entire gain** (-31.8% -> +0.1% against its
+own sham).  The allocation itself did not weaken — the particle population in channel
+B is *larger* at 128/stratum (0.83 vs 0.74) — so the gain tracked the movement of the
+REPRESENTED law, which is the bias, and not the allocation, which is the putative
+variance reduction.  `wfr_cond_hot` (uniform target) is null against its sham in both
+configurations.
+
+Two honest caveats recorded with it: (i) `n_strata = 8` makes the strata 4x wider in
+phi, and the CV marginal is correspondingly less protected (`KL` 0.026 vs 0.014 for
+the oracle arm) — the configuration trades marginal invariance for lower bias, and
+both effects point the same way only for the bias explanation; (ii) heavy turnover
+perturbs the KDE-level marginal even at exactly preserved stratum counts (the sham
+sits at `KL` 0.011-0.012 against the baseline's 0.0022), which is a within-stratum
+effect of duplicated walkers and is why the F2-dose arms, not these, are the ones the
+marginal-invariance claim is made for.
+
+### What Phase I settles
+
+1. **The mechanism of the campaign's one positive is identified.**  Equal-weight
+   fiber-wise reallocation improves `I_F` by moving the represented conditional toward
+   its target; the target's correctness is therefore the method's accuracy, which is
+   why `rp+` reverses the sign (F4) and why the oracle is best (F4).  Forbidding that
+   movement — while keeping the identical selection — removes 95% of the oracle's
+   effect and all of the uniform target's.
+2. **A weighted (measure-preserving) birth-death step cannot repair a Type-C
+   deficit.**  It leaves the represented law invariant in expectation and does not
+   touch the generator, so it can only reduce the VARIANCE of that law's estimate; a
+   Type-C deficit is a BIAS — an unrelaxed conditional — and no variance reduction
+   removes a bias.  I1/I2 are the measurement of that statement on the system built
+   to exhibit Type C.
+3. **Therefore conditional reallocation is a method for the case where a defensible
+   target is known independently** (a symmetry-related family, discrete states with
+   known relative free energies, a validated prior), and is not a general repair for
+   hidden-coordinate starvation.  Where the target is a guess, F4 bounds the downside
+   at "all of it, with the wrong sign".
+4. **The remaining honest use of weights is as a safety net, not as an accelerator**:
+   at the frozen dose the weighted arm costs 1-2% and removes a 20-40 point target
+   risk.  Whether the safe version can ever WIN is a question about
+   variance-limited — not bias-limited — hidden structure, which this system does not
+   exhibit and which no experiment in this campaign has yet built.

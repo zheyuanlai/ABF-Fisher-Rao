@@ -47,7 +47,23 @@ Langevin noise, so every comparison is paired.
 Stages 0-4 and the applicability map (gateway, WCA, torus, alanine) are closed; all
 outcomes are recorded in `docs/PREREGISTRATION_*.md` and are not edited.
 
-**Where the project stands (Phase F, 2026-08-19).** MARGINAL Fisher-Rao is redundant
+**Where the project stands (Phase I, 2026-08-20).**  Conditional reallocation's gain
+is now explained, and the explanation is not the one Phase F assumed.  Carrying
+statistical weights through the identical selection — so the score allocates
+computational effort while the ensemble keeps representing the same law — removes the
+method's target sensitivity (the spread over three choosable targets falls from
+73 / 40 points to 1.5 / 2.9) **and its benefit with it**: the weighted arm ties its
+own sham, and the ORACLE target, worth -63% / -55% with equal weights, is worth
+-2.8% / -0.6% with them.  The Phase-F positive was the target being written into the
+represented conditional.  A measure-preserving birth-death step leaves the
+represented law invariant and the generator untouched, so it can only reduce
+variance, and a Type-C deficit is a bias; the one apparent exception (a -30% hot-dose
+oracle arm) was traced to an O(1/walkers-per-stratum) ratio bias in the weight
+bookkeeping and vanishes when the per-stratum sample size is quadrupled.  Details and
+the frozen predictions that produced this: `docs/PREREGISTRATION_APPLICATION_MAP.md`,
+Phase I.
+
+**What Phase F established (2026-08-19), now read in that light.** MARGINAL Fisher-Rao is redundant
 for an ABP and ties coarse count balancing, in four replications across two campaigns
 — because both realize the same flow and differ only in the estimator of
 `log p(xi)`, and because the ABP's own bias already owns the xi-marginal. The one
@@ -66,5 +82,14 @@ invariant (`src/abpfr/fisher_rao_cond.py`):
   channel, in the same runs: the mechanism, and a pre-run diagnostic for which
   descriptor a reallocation should be conditioned on.
 
-Phase G (open): the FR-specific claim, which by the lemma above can only be settled
-on a reallocation descriptor of dimension >= 3.
+Phase F3a then found the baseline the phase was missing: adding the hidden coordinate
+to the biased CV beats conditional reallocation by 71-81% at equal cost, at every K
+from 64 to 1024 (F3b), so reallocation is a fallback for coordinates that cannot be
+biased, not a competitor to biasing them.  F4 found that one arbitrary
+reparametrization of the hidden descriptor reverses the benefit's sign, and Phase I
+explained why.
+
+Open: whether the SAFE (weighted) version can win where the hidden structure is
+variance-limited rather than bias-limited — no cell in this campaign is — and the
+Phase-G question of the descriptor dimension at which an augmented-CV ABP becomes
+computationally infeasible while conditioning stays usable.
