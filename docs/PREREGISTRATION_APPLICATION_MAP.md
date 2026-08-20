@@ -1448,12 +1448,19 @@ marginal-invariance claim is made for.
    why `rp+` reverses the sign (F4) and why the oracle is best (F4).  Forbidding that
    movement — while keeping the identical selection — removes 95% of the oracle's
    effect and all of the uniform target's.
-2. **A weighted (measure-preserving) birth-death step cannot repair a Type-C
-   deficit.**  It leaves the represented law invariant in expectation and does not
-   touch the generator, so it can only reduce the VARIANCE of that law's estimate; a
-   Type-C deficit is a BIAS — an unrelaxed conditional — and no variance reduction
-   removes a bias.  I1/I2 are the measurement of that statement on the system built
-   to exhibit Type C.
+2. **A weighted (measure-preserving) birth-death step did not repair the Type-C
+   deficit, at any dose, even with a perfect target.**  The reason it is not expected
+   to is that such a step satisfies `E[mu_N^+ | mu_N] = mu_N` — it does not move the
+   represented law at the event — while a Type-C deficit is a BIAS, an unrelaxed
+   conditional.
+   **Scope correction (2026-08-20, narrowed after review; no number changes).**  An
+   earlier wording here said such a step "can only reduce variance".  That is too
+   strong as a general statement about an adaptive algorithm: the event is unbiased at
+   the instant it fires, but it changes the GENEALOGY, and an altered genealogy can
+   change later estimator variance and rare-transition statistics — which is exactly
+   why weighted-ensemble and sequential Monte Carlo work where they do.  What I1/I2
+   establish is the measurement, not the theorem: on this Type-C benchmark, weighted
+   conditional allocation produced no repair of the deficit.
 3. **Therefore conditional reallocation is a method for the case where a defensible
    target is known independently** (a symmetry-related family, discrete states with
    known relative free energies, a validated prior), and is not a general repair for
@@ -1498,11 +1505,24 @@ mollifier floor, tracks the biased population monotonically —
 | 1.0 | 1.5 | 0.0025 | 0.029 | 3.4 |
 | 1.0 | 2.0 | 0.0003 | 0.005 | **0.5 (below the floor)** |
 
-A state rare enough to be poorly represented is, by the same token, one the free energy
-barely depends on.  **The ABP's own flattening is what promotes every F-relevant state
-to O(1) population** — the accumulator-side form of the flooding mechanism Phase B
-found.  So the realizable variance-limited regime is not a rare state at large K; it is
-**few walkers per stratum**, i.e. small K, with a start that removes the bias.
+In this family, a state rare enough to be poorly represented is by the same token one
+the free energy barely depends on, and the ABP's own flattening is what promotes the
+F-relevant states to O(1) population — the accumulator-side form of the flooding
+mechanism Phase B found.  So the variance-limited regime realizable HERE is not a rare
+state at large K; it is **few walkers per stratum**, i.e. small K, with a start that
+removes the bias.
+
+**Scope note (2026-08-20, narrowed after review).**  This is a property of the
+symmetric bi-channel family scanned above, not a theorem about adaptive biasing.
+`F(phi) = -beta^-1 log int e^{-beta V(phi,z)} dz` is an integral over z at fixed phi, so
+a state may be globally rare, `int p(B|phi) dphi << 1`, and still dominate over a NARROW
+interval of phi — omitting it would then cause a locally serious free-energy error at a
+small population cost.  What the scan shows is that in THIS family the two quantities
+move together, because channel B's phi-profile is as broad as channel A's; a
+narrow-well hidden state would decouple them (at the cost of a stiffness this
+integrator cannot carry: reaching a 2% population needs `Hb ~ 10^3`).  The distinction
+matters for any later molecular example and is recorded so the constraint is not
+mistaken for a law.
 
 ## The protocol (engine work committed with this freeze)
 
@@ -1705,3 +1725,106 @@ target is known on independent grounds (symmetry-related states, discrete states
 known relative free energies) — where the gain is the target's information, not the
 geometry's, and where the honest comparison is against simply biasing that descriptor
 (F3a: -71% to -81% in favour of biasing it).
+
+---
+
+# The speed map — every stored run rescored as time-to-accuracy (2026-08-20, no new simulations)
+
+`I_F` mixes two things: how fast the error fell and how low it ended.  The campaign's
+other frozen endpoint separates them, and it had only ever been run on the gateway:
+
+    tau_eps = first t whose trailing 0.2 T window stays at or below eps   (right-censored)
+    S_eps   = tau_eps^baseline / tau_eps^arm
+
+`scripts/analyze_speed_map.py` applies it to every stored run on a ladder of thresholds
+in units of each cell's analytic mollifier floor `e*`, so a rung means the same thing in
+every system.  Censoring is printed, and a speedup is computed only over seeds where
+both arms attained the rung, with that count shown.  Nothing was re-simulated.
+
+### Gateway anchor_D — the original positive, and what it was
+
+| `eps/e*` | `fr_temp` vs UNTUNED `shus` | `count` vs UNTUNED `shus` | `sham` | `fr_temp` vs TUNED `shus_gbest` |
+|---|---|---|---|---|
+| 32 | **1.29 [1.27, 1.33]** | 1.30 [1.28, 1.31] | 1.00 | 1.06 [1.01, 1.10] |
+| 16 | 1.11 [1.10, 1.12] | 1.11 [1.10, 1.12] | 1.00 | 0.87 [0.86, 0.88] |
+| 8 | 1.08 [1.07, 1.09] | 1.08 [1.07, 1.09] | 1.00 | 1.29 [1.27, 1.32] |
+| 4 | 1.05 [1.04, 1.06] | 1.04 [1.04, 1.05] | 1.00 | 1.11 [1.00, 1.14] |
+| 2 | 1.03 [1.01, 1.04] | 1.03 [1.02, 1.04] | 1.00 | 0.97 [0.89, 1.04] |
+
+Against the untuned baseline the speedup is real, largest at loose accuracy (1.29x) and
+decaying to 1.03x at the tightest rung the run resolves — the same shape the Stage-3
+threshold ladder reported, now with 32 paired seeds at every rung.  **Count balancing
+matches it to two decimals at every rung** (a fifth replication of that tie), and the
+matched-turnover sham is exactly 1.00, so the effect is real and is not FR-specific.
+Against the TUNED baseline the ordering is not even consistent in sign (1.06, 0.87,
+1.29, 1.11, 0.97): there is no rung-independent speedup left.
+
+### 2D torus t_mid — the adaptation-rate case
+
+`gstar_fr` = **1.00 at every rung** (1.00, 1.00, 1.00, 1.00, 0.98), `gstar_count9`
+likewise, `gstar_sham` likewise — while the untuned `shus_g1` scores 0.35, 0.19, 0.14,
+0.13 and is censored at the tightest rung.  On this system the entire speed story is the
+adaptation gain, and reallocation contributes nothing measurable.
+
+### Phase F Type-C — what the conditional step bought, and what biasing the coordinate bought
+
+| arm | `hp2_d0` (`eps` = 64 e*) | `hp2_d0.5` (`eps` = 32 e*) |
+|---|---|---|
+| `fr_cond` (equal weight) | **1.57 [1.49, 1.68]** | **3.66 [3.14, 3.77]** |
+| `cnt_cond` (stratified count) | 1.65 [1.48, 1.70] | 3.47 [3.32, 3.57] |
+| `fr_marg` (marginal FR) | 1.00 [0.96, 1.06] | 1.00 [0.98, 1.04] |
+| `sham_cond` | 0.99 | 1.00 |
+| **`aug_g1` (bias psi too)** | **6.25 [6.09, 6.70]** | **7.31 [7.24, 7.62]** |
+
+The conditional step is a genuine 1.6-3.7x time-to-accuracy speedup where marginal FR
+and the sham are exactly 1.00 — and simply adding the hidden coordinate to the biased CV
+is **6-7x**, i.e. about 4x faster again than the fallback, at identical cost.  This is
+the F3a conclusion in the speed metric rather than in `I_F`.
+
+### Phase I — the same speedup, switched off by making the step measure-preserving
+
+| arm | `hp2_d0` (64 e*) | `hp2_d0.5` (32 e*) |
+|---|---|---|
+| `fr_cond` (equal weight, uniform target) | 1.60 [1.53, 1.64] | 3.50 [3.29, 3.84] |
+| `fr_cond_oracle` (equal weight, exact target) | **4.84 [4.32, 4.96]** | **5.37 [4.74, 5.90]** |
+| `wfr_cond` (weighted, uniform) | **0.99 [0.97, 1.03]** | **1.01 [0.99, 1.05]** |
+| `wfr_cond_oracle` (weighted, exact target) | **1.04 [1.01, 1.18]** | **1.00 [0.99, 1.05]** |
+| `wfr_cond_hot` (weighted, 10x dose) | 1.05 [0.99, 1.13] | 1.05 [0.95, 1.08] |
+| `sham_cond` / `wsham_cond` | 1.00 / 1.00 | 1.00 / 1.00 |
+
+**This is the mechanism result restated in the metric the speedup claim was originally
+made in.**  An oracle conditional target reaches the accuracy rung 4.8-5.4x sooner with
+equal weights, and 1.00-1.04x sooner once the descendants carry compensating weights.
+The acceleration was the target information entering the represented law, not a property
+of the selection.
+
+### Phase J — no convergence phase by construction
+
+The warm-started runs begin AT the fixed point, are driven up to their own sampling-noise
+level and relax back, so `tau_eps` is undefined.  The comparable quantity is the late-run
+noise level (mean `e_F` over the last quarter of T, in units of `e*`): `shus` 7.6 / 7.4,
+`wfr_cond` **7.9 / 7.5 (ratio 1.00 [0.94, 1.15] and 0.99 [0.96, 1.14])**, `wfr_cond_hot`
+11.0 / 9.2 (1.39, 1.28), `fr_cond` 8.0 / 12.9 (1.09, 1.69), `wsham_cond` 17.1 / 16.5
+(2.19, 2.21).  Measure-preserving allocation neither speeds up nor slows down the
+estimator at the gentle dose, and costs at any stronger one.
+
+### What the speed map settles
+
+Three claims had been running together under the word "faster", and they separate
+cleanly:
+
+* **A — did the error curve sit lower?**  Yes, for gateway FR and for Phase-F equal-weight
+  conditional FR.
+* **B — did it reach a fixed accuracy sooner?**  Yes: 1.03-1.29x on the untuned gateway
+  (matched exactly by count balancing), 1.6-3.7x on Type C.  Both are real.
+* **C — is that a target-free acceleration, after controlling for base-method tuning and
+  for changes of the represented law?**  **No.**  Against a tuned baseline the gateway
+  speedup is inconsistent in sign and the torus speedup is exactly 1.00; on Type C the
+  entire speedup — including the oracle's 4.8-5.4x — falls to 1.00-1.04x the moment the
+  step is made measure-preserving.
+
+The honest summary of the campaign's speed evidence is therefore: **the observed
+accelerations are real, and every one of them is attributable either to a correction the
+adaptive bias can make by itself (gateway, torus) or to target information injected into
+the represented distribution (Type C).  No target-free Fisher-Rao acceleration of the
+free-energy estimate has been demonstrated.**

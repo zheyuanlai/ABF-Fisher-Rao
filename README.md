@@ -51,7 +51,9 @@ outcomes are recorded in `docs/PREREGISTRATION_*.md` and are not edited.
 the answer is the same in each.  When the hidden conditional is WRONG (Phase F/I),
 equal-weight reallocation repairs it only by writing its target into the represented
 law -- forbidding that with compensating weights removes 95% of even the oracle
-target's effect.  When the hidden conditional is RIGHT but noisy (Phase J: an
+target's effect, and the same thing happens in the SPEED metric: an oracle target
+reaches a fixed accuracy 4.8-5.4x sooner with equal weights and 1.00-1.04x sooner once
+the step is measure-preserving.  When the hidden conditional is RIGHT but noisy (Phase J: an
 ensemble started at the exact stationary law, accumulator warm-started at its fixed
 point, 77-92% of the residual error seed variance), measure-preserving allocation buys
 nothing: no arm improves the deliverable, its best variance reduction (-31% on one
@@ -61,6 +63,16 @@ to weight degeneracy than it gains in coverage.  And the same step that gained
 set by whether the target beats the current ensemble, which is unknowable without the
 answer.
 
+**Speed, separately from `I_F`** (`scripts/analyze_speed_map.py`, every stored run
+rescored as time-to-accuracy `S_eps` on a ladder of thresholds; no new simulations).
+The accelerations this project measured are real and none of them is target-free:
+gateway FR is 1.03-1.29x faster than the UNTUNED baseline and count balancing matches
+it to two decimals, while against the tuned baseline the ordering is inconsistent in
+sign; on the 2D torus a tuned baseline leaves `S_eps` at exactly 1.00; on Type C the
+conditional step is a genuine 1.6-3.7x, simply biasing the hidden coordinate is 6-7x,
+and the whole conditional speedup collapses to 1.00-1.04x when weights make the step
+measure-preserving.
+
 **Where Phase I left it (2026-08-20).**  Conditional reallocation's gain
 is now explained, and the explanation is not the one Phase F assumed.  Carrying
 statistical weights through the identical selection — so the score allocates
@@ -69,9 +81,11 @@ method's target sensitivity (the spread over three choosable targets falls from
 73 / 40 points to 1.5 / 2.9) **and its benefit with it**: the weighted arm ties its
 own sham, and the ORACLE target, worth -63% / -55% with equal weights, is worth
 -2.8% / -0.6% with them.  The Phase-F positive was the target being written into the
-represented conditional.  A measure-preserving birth-death step leaves the
-represented law invariant and the generator untouched, so it can only reduce
-variance, and a Type-C deficit is a bias; the one apparent exception (a -30% hot-dose
+represented conditional.  A measure-preserving birth-death step does not move
+the represented law at the event, while a Type-C deficit is a bias, so there is no
+mechanism for it to repair one -- an altered genealogy can still change later
+variance, which is why weighted-ensemble methods work where they do, but no such
+benefit appeared here.  The one apparent exception (a -30% hot-dose
 oracle arm) was traced to an O(1/walkers-per-stratum) ratio bias in the weight
 bookkeeping and vanishes when the per-stratum sample size is quadrupled.  Details and
 the frozen predictions that produced this: `docs/PREREGISTRATION_APPLICATION_MAP.md`,
