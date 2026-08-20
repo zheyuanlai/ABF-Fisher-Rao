@@ -1,5 +1,20 @@
 # PREREGISTRATION — Applicability map (post-campaign study)
 
+## CAMPAIGN FROZEN 2026-08-20 (tag `v1-application-map-final`)
+
+Phases A, B, D, ALA, F, I and J are closed with their outcomes recorded below, and the
+campaign-level synthesis is the speed map at the end of this file.  The narrative
+account is `docs/TECHNICAL_REPORT.md`.  Phase G (descriptor-dimension scaling) and
+Phase H (reaction-law comparison) are **designed but deliberately not run**: both would
+refine a step with no demonstrated benefit in either the bias-limited or the
+variance-limited regime, and that decision is recorded rather than left implicit.  A
+weighted-population study of rare-event fluxes or rates would be a different observable
+and belongs in a new project with its own preregistration.
+
+Nothing below this line is edited.  Two *interpretations* were narrowed after review;
+both are marked in place as dated scope corrections next to the claim they narrow, and
+no recorded number changed.
+
 Status: **Phase A + Phase B designs FROZEN 2026-08-18** (this commit; before any
 Phase-A/Phase-B run exists). Later phases (C+) are sketched with their gates; their
 numerical designs get their own dated freeze commits before their runs.

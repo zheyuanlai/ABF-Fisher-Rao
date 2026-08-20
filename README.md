@@ -44,6 +44,11 @@ Langevin noise, so every comparison is paired.
 
 ## Status
 
+**The campaign is FROZEN as of 2026-08-20** (tag `v1-application-map-final`).  The
+narrative account — what the hypothesis was, how it changed, and what the campaign
+established instead — is `docs/TECHNICAL_REPORT.md`; the frozen designs and their
+recorded outcomes are in `docs/PREREGISTRATION_*.md`.
+
 Stages 0-4 and the applicability map (gateway, WCA, torus, alanine) are closed; all
 outcomes are recorded in `docs/PREREGISTRATION_*.md` and are not edited.
 
