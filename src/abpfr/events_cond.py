@@ -27,6 +27,7 @@ import torch
 
 from .fisher_rao_cond import (child_weights, conditional_log_ratio,
                               conditional_log_ratio_binned,
+                              conditional_log_ratio_state,
                               stratified_sham_indices,
                               stratified_systematic_resample, stratum_of,
                               theta_backoff_cond)
@@ -36,7 +37,7 @@ from .resampling import turnover_counts
 
 def fr_event_cond(z1, z2, fr_act, sham_act, cond_nb1, cond_nb2, n_strata, partner,
                   theta0, alpha_ess, k1, r1, k2, r2, grid: GridT2, gen, log_q=None,
-                  W=None, wt_act=None):
+                  W=None, wt_act=None, state=None, state_act=None, n_states=2):
     """Returns (sel, turn, theta_used, essf, W_new).  z1 = xi (biased), z2 = hidden.
 
     cond_nb1 / cond_nb2: (R,) long per-row histogram resolutions; 0 = the fine
@@ -54,6 +55,12 @@ def fr_event_cond(z1, z2, fr_act, sham_act, cond_nb1, cond_nb2, n_strata, partne
     changing the represented law) or the equal weights of F2/F4 (allocation IS the
     change).  W = None keeps every row at weight 1 and reproduces the F2/F4 engine
     bitwise.
+
+    state / state_act (Phase J): a (R, K) DISCRETE hidden-state label and the rows
+    that score on it instead of on a density estimate of z.  Those rows realize
+    classical stratified allocation (n_s ~ p_s^{1-theta} q_s^theta per xi-stratum),
+    which is the baseline a smooth conditional estimator has to beat once the step is
+    measure-preserving and the target is only an allocation policy.
     """
     R, K = z1.shape
     device, dtype = z1.device, z1.dtype
@@ -81,6 +88,9 @@ def fr_event_cond(z1, z2, fr_act, sham_act, cond_nb1, cond_nb2, n_strata, partne
             logr_c = conditional_log_ratio_binned(z1, z2, res[0], res[1], grid,
                                                   log_q)
             logr = torch.where(rows.unsqueeze(1), logr_c, logr)
+        if state_act is not None and bool((state_act & fr_act).any()):
+            logr_s = conditional_log_ratio_state(state, strata, n_states, n_strata)
+            logr = torch.where((state_act & fr_act).unsqueeze(1), logr_s, logr)
         theta_in = torch.where(fr_act, theta0, torch.zeros_like(theta0))
         w, cnt, th, ef = theta_backoff_cond(logr, strata, n_strata, theta_in,
                                             alpha_ess)

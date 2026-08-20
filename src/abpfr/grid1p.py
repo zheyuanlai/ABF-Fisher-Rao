@@ -108,12 +108,26 @@ class ShusAccumulator1P:
     increment, max-gauge renormalization, estimator protection by structure)."""
 
     def __init__(self, rows: int, grid: Grid1P, beta: torch.Tensor, eps_bw: float,
-                 device, dtype, gain=None):
+                 device, dtype, gain=None, R_init=None):
+        """R_init: (rows, n) accumulator warm start, gauge-normalized on entry.
+
+        The frozen default R = 1 is a run that learns its bias from nothing, which
+        carries an establishment transient into every measurement.  A warm start at
+        the analytic fixed point removes that transient by construction, so a run can
+        ask about the estimator's VARIANCE around its fixed point rather than about
+        the approach to it.  It consults the reference and is therefore an
+        experimental CONDITION, applied identically to every arm, never an arm's
+        private information."""
         self.grid = grid
         self.beta = beta.reshape(rows, 1).to(device=device, dtype=dtype)
         self.kernel, self.krad = periodic_gaussian_kernel(eps_bw, grid.dx, grid.n,
                                                           device, dtype)
-        self.R = torch.ones((rows, grid.n), device=device, dtype=dtype)
+        if R_init is None:
+            self.R = torch.ones((rows, grid.n), device=device, dtype=dtype)
+        else:
+            R0 = R_init.to(device=device, dtype=dtype).reshape(rows, grid.n)
+            assert bool((R0 > 0).all()), "accumulator warm start must be positive"
+            self.R = R0 / R0.max(dim=1, keepdim=True).values
         self.buf = torch.zeros((rows, grid.n), device=device, dtype=dtype)
         if gain is None:
             self.gain = torch.ones((rows, 1), device=device, dtype=dtype)

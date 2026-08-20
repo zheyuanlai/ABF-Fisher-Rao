@@ -101,6 +101,38 @@ def conditional_log_ratio_binned(z1, z2, nb1, nb2, grid: GridT2, log_q=None):
     return log_at_q - torch.log(n_at / d_at / bw2)
 
 
+def conditional_log_ratio_state(state, strata, n_states, n_strata, log_q=None):
+    """Score on a DISCRETE hidden descriptor: log[ q(s) / p_hat(s | stratum) ].
+
+    No kernel, no bins, no density estimate at all -- just the frequency of each
+    hidden STATE inside each xi-stratum.  This is the classical stratified-allocation
+    rule, and it is the baseline the KDE and histogram scores have to beat once the
+    step is measure-preserving: with within-stratum weights a_s = (q_s/p_s)^theta the
+    realized allocation is
+
+        n_s  proportional to  p_s^{1-theta} q_s^theta,
+
+    so with a uniform q over states, theta = 0 is PROPORTIONAL allocation (a no-op),
+    theta = 1/2 is the square-root compromise allocation, and theta = 1 is EQUAL
+    COUNT PER STATE.  Neyman's optimal allocation n_s ~ p_s sigma_s is this family
+    only when sigma_s is constant; the per-state deposit spread is recorded as a
+    diagnostic rather than fed back, because using it would make the allocation
+    depend on the estimand it is being scored on.
+    """
+    R, K = state.shape
+    dev, dt_ = strata.device, torch.float64 if state.dtype == torch.long else state.dtype
+    flat = strata * n_states + state
+    ones = torch.ones((R, K), device=dev, dtype=dt_)
+    cell = torch.zeros((R, n_strata * n_states), device=dev, dtype=dt_)
+    cell.scatter_add_(1, flat, ones)
+    col = cell.reshape(R, n_strata, n_states).sum(dim=2)
+    n_at = torch.clamp(torch.gather(cell, 1, flat), min=1.0)
+    d_at = torch.clamp(torch.gather(col, 1, strata), min=1.0)
+    log_at_q = (-math.log(n_states) if log_q is None
+                else torch.gather(log_q, 1, state))
+    return log_at_q - torch.log(n_at / d_at)
+
+
 # -----------------------------------------------------------------------------
 # stratification and the within-stratum weight law
 # -----------------------------------------------------------------------------

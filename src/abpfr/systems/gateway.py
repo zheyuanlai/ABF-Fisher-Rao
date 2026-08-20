@@ -182,6 +182,14 @@ class Method:
     cond_bins2: int = 0          # control -- p(z | xi) from an nb1 x nb2 histogram
                                  # instead of the joint KDE, isolating the density
                                  # estimator inside the same conditional geometry
+    cond_state: bool = False     # Phase J: score on the DISCRETE hidden state
+                                 # (channel label) instead of on a density estimate
+                                 # of z -- classical stratified allocation, which
+                                 # with a uniform state target realizes
+                                 # n_s ~ p_s^{1-theta}: theta = 1 is equal count per
+                                 # state, theta = 1/2 the square-root compromise.
+                                 # No kernel and no bins, so it is the baseline the
+                                 # KDE and histogram scores have to beat.
     cond_weighted: bool = False  # Phase I: carry statistical weights through the
                                  # conditional selection, so the score allocates
                                  # COMPUTATIONAL EFFORT while the ensemble keeps

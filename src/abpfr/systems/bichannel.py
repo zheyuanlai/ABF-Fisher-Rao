@@ -208,9 +208,23 @@ class BiChannelConfig:
                                  # application scientist asks for first, and it is
                                  # scored on the SAME reduced quantity F(phi) so the
                                  # two approaches are directly comparable.
-    init: str = "chanA"          # every walker starts in channel A: the rare channel
-                                 # must be REACHED, which is what makes the deficit
-                                 # a sampling problem rather than an initial condition
+    init: str = "chanA"          # "chanA": every walker starts in channel A -- the
+                                 # rare channel must be REACHED, which makes the
+                                 # deficit an unrelaxed conditional (Phase F, Type C
+                                 # = a BIAS).  "stationary": walkers drawn from the
+                                 # exact stationary law of the CONVERGED bias
+                                 # (uniform in phi x p_ref(psi | phi)), so the
+                                 # represented conditional is correct in expectation
+                                 # and what remains is finite-K noise (Phase J = a
+                                 # VARIANCE).  "boltzmann": the unbiased equilibrium.
+                                 # The last two consult the reference and are
+                                 # experimental CONDITIONS shared by every arm.
+    warm_start: bool = False     # start the accumulator at its analytic fixed point
+                                 # R* = K_eps e^{-beta F1} instead of at R = 1, i.e.
+                                 # begin the run already converged.  With
+                                 # init="stationary" this removes the establishment
+                                 # transient entirely and the run measures only the
+                                 # estimator's variance about its fixed point.
 
     @property
     def T_total(self) -> float:
@@ -283,6 +297,46 @@ def conditional_floors(cfg: BiChannelConfig, K: int, n_rep=64, seed=777,
     return {"e_cond": np.sort(ec.detach().cpu().numpy()),
             "e_chan": np.sort(ech.detach().cpu().numpy()),
             "p_B_err": np.sort(pB.detach().cpu().numpy())}
+
+
+def stationary_init(cfg: BiChannelConfig, K: int, seed: int, biased=True,
+                    device=DEVICE, dtype=DTYPE):
+    """Exact draw from a stationary law of this cell.  -> (phi, psi), each (K,).
+
+    biased=True is the law a CONVERGED phi-bias samples: uniform in phi, with psi from
+    the exact conditional p_ref(psi | phi).  It is stationary for the frozen-bias
+    dynamics, so an ensemble started there stays correct in expectation for the whole
+    run whatever the channel-exchange time is -- which is what turns the Type-C
+    deficit from a bias into a variance.  biased=False is the unbiased Boltzmann law.
+
+    Grid inverse-CDF with uniform jitter inside the cell (the sampler already used by
+    conditional_floors, so the run's initial condition and the metric floors it is
+    scored against are drawn from the same construction).
+    """
+    ref = reference_objects(cfg.beta, cfg.Hperp, cfg.Delta, cfg.Ha, cfg.Hb,
+                            device, dtype)
+    rho2 = torch.exp(-cfg.beta * (ref["F2"] - ref["F2"].min()))
+    if biased:
+        rho2 = rho2 / torch.clamp(rho2.sum(dim=1, keepdim=True), min=EPS)
+    w = (rho2 / rho2.sum()).reshape(-1)
+    rng = np.random.default_rng(1000 + int(seed))
+    u = torch.as_tensor(rng.random(K), device=device, dtype=dtype)
+    idx = torch.searchsorted(torch.cumsum(w, dim=0), u).clamp(max=w.numel() - 1)
+    j = torch.as_tensor(rng.random((2, K)) - 0.5, device=device, dtype=dtype)
+    z1 = GRID2.x1min + ((idx // GRID2.n2).to(dtype) + j[0]) * GRID2.dx1
+    z2 = GRID2.x2min + ((idx % GRID2.n2).to(dtype) + j[1]) * GRID2.dx2
+    return (wrap_periodic(z1, GRID2.x1min, GRID2.L1),
+            wrap_periodic(z2, GRID2.x2min, GRID2.L2))
+
+
+def warm_start_R(cfg: BiChannelConfig, device=DEVICE, dtype=DTYPE):
+    """The accumulator's analytic fixed point on this cell: R* = K_eps e^{-beta F1}."""
+    from ..grid1p import smooth1p
+    ref = reference_objects(cfg.beta, cfg.Hperp, cfg.Delta, cfg.Ha, cfg.Hb,
+                            device, dtype)
+    k, r = periodic_gaussian_kernel(cfg.eps_bw, GRID1.dx, GRID1.n, device, dtype)
+    rho = torch.exp(-cfg.beta * (ref["F1"] - ref["F1"].min())).unsqueeze(0)
+    return torch.clamp(smooth1p(rho, k, r), min=EPS)
 
 
 def target_log_q(methods, refs, M, device, dtype):
@@ -390,7 +444,7 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
     for c in cfgs:
         for a in ("K", "dt", "n_steps", "block", "eps_bw", "eta_bw", "n_saves",
                   "profile_every", "joint_every", "ess_window_steps",
-                  "n_strata", "cv"):
+                  "n_strata", "cv", "init", "warm_start"):
             assert getattr(c, a) == getattr(c0, a), f"non-uniform {a} across configs"
     is2d = c0.cv == "phipsi"
     assert c0.cv in ("phi", "phipsi"), f"unknown cv {c0.cv!r}"
@@ -426,6 +480,9 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
     partner_cond = torch.tensor([methods[partner_col[j]].cond_fr
                                  for b in range(B) for j in range(M)], device=device)
     is_wt_row = rowmask(lambda m: m.cond_weighted)
+    is_state_row = rowmask(lambda m: m.cond_state)
+    assert all(m.cond_fr or not m.cond_state for m in methods), (
+        "the discrete-state score is a CONDITIONAL (fiber-wise) allocation rule")
     assert all(m.cond_fr or m.sham or not m.cond_weighted for m in methods), (
         "weighted selection is defined for the FIBER-WISE step only: the marginal "
         "step moves the very marginal the accumulator learns from, and compensating "
@@ -481,10 +538,17 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
     X1 = torch.empty((B, K), device=device, dtype=dtype)
     X2 = torch.empty((B, K), device=device, dtype=dtype)
     for b, sd in enumerate(seeds):
-        rng = np.random.default_rng(1000 + int(sd))
-        assert cfgs[b].init == "chanA", f"unknown init {cfgs[b].init!r}"
-        X1[b] = torch.as_tensor(rng.normal(0.0, 0.15, K), device=device, dtype=dtype)
-        X2[b] = torch.as_tensor(rng.normal(0.0, 0.15, K), device=device, dtype=dtype)
+        init = cfgs[b].init
+        assert init in ("chanA", "stationary", "boltzmann"), f"unknown init {init!r}"
+        if init == "chanA":
+            rng = np.random.default_rng(1000 + int(sd))
+            X1[b] = torch.as_tensor(rng.normal(0.0, 0.15, K), device=device,
+                                    dtype=dtype)
+            X2[b] = torch.as_tensor(rng.normal(0.0, 0.15, K), device=device,
+                                    dtype=dtype)
+        else:
+            X1[b], X2[b] = stationary_init(cfgs[b], K, sd, init == "stationary",
+                                           device, dtype)
     X1 = wrap_periodic(X1.repeat_interleave(M, dim=0), GRID2.x1min, GRID2.L1)
     X2 = wrap_periodic(X2.repeat_interleave(M, dim=0), GRID2.x2min, GRID2.L2)
     anc = torch.arange(K, device=device).unsqueeze(0).expand(R, K).clone()
@@ -500,7 +564,12 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
                                            ).repeat_interleave(M, dim=0))
         rho_ref2 = rho_ref2 / integral2(rho_ref2, GRID2).reshape(R, 1, 1)
     else:
-        shus = ShusAccumulator1P(R, GRID1, beta, c0.eps_bw, device, dtype, gain=gain)
+        R0 = None
+        if c0.warm_start:
+            R0 = torch.cat([warm_start_R(c, device, dtype).expand(M, -1)
+                            for c in cfgs], dim=0)
+        shus = ShusAccumulator1P(R, GRID1, beta, c0.eps_bw, device, dtype, gain=gain,
+                                 R_init=R0)
     dep_ref_cur = torch.full((R,), float("nan"), device=device, dtype=dtype)
     dep_self_cur = torch.full((R,), float("nan"), device=device, dtype=dtype)
 
@@ -609,7 +678,8 @@ def simulate_batch(configs, seeds, methods, batch_seed=12345, device=DEVICE,
                     s_c, t_c, th_c, e_c, W_c = fr_event_cond(
                         X1, X2, cond_rows, cond_sham, cond_nb1, cond_nb2, n_strata,
                         partner, theta0, alpha_ess, k1e, r1e, k2e, r2e, GRID2,
-                        gen_f, cond_log_q, W, is_wt_row)
+                        gen_f, cond_log_q, W, is_wt_row, channel_of(X2),
+                        is_state_row, len(REGIONS))
                     touched = (cond_rows | cond_sham).unsqueeze(1)
                     W_cond = torch.where(touched, W_c, W_cond)
                     sel = torch.where(touched, s_c, sel)

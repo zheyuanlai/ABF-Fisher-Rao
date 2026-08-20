@@ -265,3 +265,78 @@ def test_weighted_marginal_reallocation_is_refused():
                            Method("bad", use_fr=True, cond_weighted=True, theta=0.05,
                                   t_on_frac=0.1, t_off_frac=0.9)],
                           batch_seed=15, device=torch.device("cpu"), dtype=DT)
+
+
+# -----------------------------------------------------------------------------
+# Phase J: the variance-limited protocol and the discrete-state allocation
+# -----------------------------------------------------------------------------
+def test_stationary_init_reproduces_the_law_it_claims():
+    """The initial condition IS the reference: if it is off, the run measures a bias
+    it created itself, which is the whole thing Phase J exists to avoid."""
+    cfg = bc.BiChannelConfig(beta=4.0, Hperp=1.5, Delta=1.0)
+    ref = bc.reference_objects(cfg.beta, cfg.Hperp, cfg.Delta, cfg.Ha, cfg.Hb,
+                               "cpu", DT)
+    for biased, key in ((True, "p_B_ref_biased"), (False, "p_B_ref")):
+        z1, z2 = bc.stationary_init(cfg, 200_000, 0, biased, "cpu", DT)
+        pB = float((torch.cos(z2) < 0).to(DT).mean())
+        assert abs(pB - ref[key]) < 0.01, (biased, pB, ref[key])
+    z1, _ = bc.stationary_init(cfg, 200_000, 0, True, "cpu", DT)
+    h = torch.histc(z1, bins=16, min=-PI, max=PI)
+    assert float(h.min() / h.max()) > 0.9          # the biased law is uniform in phi
+    z1b, _ = bc.stationary_init(cfg, 200_000, 0, False, "cpu", DT)
+    hb = torch.histc(z1b, bins=16, min=-PI, max=PI)
+    assert float(hb.min() / hb.max()) < 0.5        # the Boltzmann law is not
+
+
+def test_warm_start_begins_at_the_analytic_fixed_point():
+    cfg = bc.BiChannelConfig(beta=4.0, Hperp=1.5, Delta=1.0, K=64, n_steps=200,
+                             n_saves=4, profile_every=1, joint_every=1,
+                             init="stationary", warm_start=True)
+    e_star = bc.analytic_floors(cfg, "cpu", DT)["e_star"]
+    recs = bc.simulate_batch([cfg], [0], [Method("shus")], batch_seed=17,
+                             device=torch.device("cpu"), dtype=DT)
+    assert recs[0]["l2_f_t"][0] < 1.5 * e_star, (recs[0]["l2_f_t"][0], e_star)
+    cold = bc.BiChannelConfig(**{**cfg.__dict__, "warm_start": False})
+    rc = bc.simulate_batch([cold], [0], [Method("shus")], batch_seed=17,
+                           device=torch.device("cpu"), dtype=DT)
+    assert rc[0]["l2_f_t"][0] > 10 * recs[0]["l2_f_t"][0]   # a cold start is nowhere
+
+
+def test_state_allocation_equalizes_counts_per_state_at_theta_one():
+    """theta = 1 with a uniform state target IS equal-count-per-state allocation."""
+    from abpfr.fisher_rao_cond import conditional_log_ratio_state
+    z1, z2 = _pop(R=2, K=1024, p_rare=0.1, seed=21)
+    R, K = z1.shape
+    state = (z2.abs() > PI / 2).long()
+    strata = stratum_of(z1, G2, S)
+    lr = conditional_log_ratio_state(state, strata, 2, S)
+    w, cnt, _, _ = theta_backoff_cond(lr, strata, S, torch.ones(R, dtype=DT), 0.0)
+    sel = stratified_systematic_resample(w, strata, cnt, S,
+                                         torch.Generator().manual_seed(22))
+    def share(lab):
+        c = torch.zeros(R, S * 2, dtype=DT).scatter_add_(
+            1, strata * 2 + lab, torch.ones(R, K, dtype=DT)).reshape(R, S, 2)
+        return c, c[..., 1] / torch.clamp(c.sum(dim=2), min=1.0)
+    c0, f0 = share(state)
+    c1, f1 = share(torch.gather(state, 1, sel))
+    both = c0.min(dim=2).values > 0                        # both states present before
+    assert bool(both.any())
+    # systematic resampling equalizes each walker's count to within one, so a STATE's
+    # share lands near 1/2 but not exactly (its members are interleaved in the draw)
+    assert float((f1[both] - 0.5).abs().max()) < 0.12, f1[both]
+    assert float((f0[both] - 0.5).abs().max()) > 0.25      # it was far from 1/2
+
+
+def test_state_allocation_needs_no_kernel_and_no_bins():
+    """The point of the control: it consumes only the state label and the stratum."""
+    from abpfr.fisher_rao_cond import conditional_log_ratio_state
+    z1, z2 = _pop(R=2, K=512, p_rare=0.25, seed=23)
+    strata = stratum_of(z1, G2, S)
+    state = (z2.abs() > PI / 2).long()
+    lr = conditional_log_ratio_state(state, strata, 2, S)
+    # rare-state walkers score positive (they are the ones to allocate to)
+    assert float(lr[state == 1].mean()) > float(lr[state == 0].mean())
+    balanced = torch.zeros_like(state)
+    balanced[:, ::2] = 1
+    lrb = conditional_log_ratio_state(balanced, strata, 2, S)
+    assert float(lrb.abs().max()) < 0.7      # already balanced -> nothing to do

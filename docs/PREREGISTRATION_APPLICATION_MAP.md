@@ -1464,3 +1464,149 @@ marginal-invariance claim is made for.
    risk.  Whether the safe version can ever WIN is a question about
    variance-limited — not bias-limited — hidden structure, which this system does not
    exhibit and which no experiment in this campaign has yet built.
+
+---
+
+# Phase J — the variance-limited regime: can measure-preserving selection win when the conditional is already right?   [FROZEN 2026-08-20, before any J2 row]
+
+Phase I closed the bias route: equal-weight reallocation repairs a Type-C deficit by
+writing its target into the represented conditional, and the measure-preserving
+version — which cannot do that — buys nothing on a deficit that IS a bias.  The one
+regime it was never tested in is the complementary one: **the represented conditional
+correct in expectation, but resolved by too few walkers.**  That is the setting
+weighted-ensemble / stratified-sampling methods are actually built for, and Phase J is
+the experiment that decides whether the safe version of this method has a use at all.
+It runs BEFORE Phase G (dimension scaling) and Phase H (reaction laws), both of which
+would otherwise be refining a step with no demonstrated benefit.
+
+## A structural fact this phase had to establish first (recorded, it constrains the design)
+
+The obvious construction — make the hidden state RARE (`p_B ~ 1-5%`) and start the
+ensemble at the correct conditional — cannot be had by tuning `Delta`.  Under a
+CONVERGED phi-bias the sampled law is uniform in phi times `p_ref(psi | phi)`, so a
+hidden state's population is its phi-averaged conditional weight, and its contribution
+to the deliverable `F(phi) = -kT log sum_s Z_s(phi)` is that same weight.  Rarity and
+relevance are the same number.  Scanned analytically over `Hperp in {1.25..2}`,
+`Delta in {0.5..2}`, `Ha = Hb in {1, 2}` (`scripts/run_appmap_phaseJ_variance.py`
+reproduces it): the shape of `F(phi)` that channel B carries, in units of the
+mollifier floor, tracks the biased population monotonically —
+
+| `Ha = Hb` | `Delta` | `p_B` (Boltzmann) | `p_B` (biased, = what a converged run samples) | `|dF from B| / e*` |
+|---|---|---|---|---|
+| 1.0 | 0.5 | 0.119 | 0.316 | 53 |
+| 1.0 | 1.0 | 0.018 | 0.130 | 17.5 |
+| 1.0 | 1.5 | 0.0025 | 0.029 | 3.4 |
+| 1.0 | 2.0 | 0.0003 | 0.005 | **0.5 (below the floor)** |
+
+A state rare enough to be poorly represented is, by the same token, one the free energy
+barely depends on.  **The ABP's own flattening is what promotes every F-relevant state
+to O(1) population** — the accumulator-side form of the flooding mechanism Phase B
+found.  So the realizable variance-limited regime is not a rare state at large K; it is
+**few walkers per stratum**, i.e. small K, with a start that removes the bias.
+
+## The protocol (engine work committed with this freeze)
+
+* `init = "stationary"`: walkers drawn from the exact stationary law of the CONVERGED
+  bias (uniform in phi, psi from `p_ref(psi | phi)`) by grid inverse-CDF — the same
+  construction `conditional_floors` already used, so the initial condition and the
+  metric floors come from one sampler;
+* `warm_start = True`: the accumulator starts at its analytic fixed point
+  `R* = K_eps e^{-beta F1}` instead of at `R = 1`.
+* Together these make the run start converged AND stationary, so there is no
+  establishment transient and no unrelaxed conditional: what is left is the estimator's
+  variance about its fixed point.  Both consult the reference and are therefore
+  experimental CONDITIONS applied identically to every arm — never an arm's private
+  information, and never a claimable method.
+* `Method.cond_state`: a score on the DISCRETE hidden state (channel label) with no
+  kernel and no bins — classical stratified allocation, realizing
+  `n_s ~ p_s^{1-theta} q_s^theta`, so `theta = 1` is equal count per state and
+  `theta = 1/2` the square-root compromise.  Neyman's `n_s ~ p_s sigma_s` is this
+  family only at constant `sigma_s`; the per-state spread is recorded, not fed back,
+  because using it would make the allocation depend on the estimand being scored.
+
+## J1 — the screen (plain SHUS only; RUN, seeds 900-907, recorded here)
+
+Cells `Hperp in {1.5, 2.0} x Delta in {1.0, 1.5}` (`Ha = Hb = 1`, `beta = 4`),
+`K in {64, 256, 1024}`, T = 800, `init = "stationary"`, `warm_start`, one arm.
+Gate for J2, stated here and evaluated on the screen (disclosure: these criteria were
+written after the screen was read; every cell passes all three, so the gate performs no
+cell selection — the anchor was then chosen on deficit SIZE, a plain-SHUS quantity):
+
+1. **no bias**: `|median P_B(T) - p_B_ref_biased| <= 1` binomial sd `sqrt(p(1-p)/K)`;
+2. **variance-dominated**: seed variance >= 50% of the MSE of `F_hat(T)` in the
+   B-carrying window `||phi| - pi/2| < pi/4`;
+3. **something to improve**: median `e_F(T) >= 2 e*`.
+
+| K | cell | `e_F(T)/e*` | `P_B` vs ref (in sd) | var / MSE (global) | var / MSE (B window) |
+|---|---|---|---|---|---|
+| 1024 | hp1.5_d1.0 | 4.2 | +0.21 | 0.79 | 0.83 |
+| 1024 | hp2.0_d1.0 | 4.4 | -0.73 | 0.78 | 0.77 |
+| 1024 | hp2.0_d1.5 | 3.2 | -0.32 | 0.85 | 0.87 |
+| 256 | hp1.5_d1.0 | 7.2 | -0.45 | 0.87 | 0.88 |
+| 256 | hp2.0_d1.0 | 7.7 | -0.30 | 0.88 | 0.84 |
+| 64 | hp1.5_d1.0 | 14.7 | -0.50 | 0.90 | 0.92 |
+| 64 | hp2.0_d1.0 | 14.9 | -0.47 | 0.82 | 0.82 |
+
+**All three gates pass everywhere.**  This is the first cell in the campaign whose
+deficit is a VARIANCE: the represented conditional sits within half a binomial sd of
+the exact one at every K, and 77-92% of the remaining error is seed-to-seed scatter.
+(Contrast Phase F's `chanA` protocol on the same system: `I_F` 115-205 with the
+conditional grossly wrong.)  The deficit grows as K falls exactly as a variance should.
+
+## J2 — the experiment   [FROZEN]
+
+Anchor: `K = 256`, `n_strata = 8` — **32 walkers per stratum, the same per-stratum
+sample size whose weight-bookkeeping bias I2 measured (+0.0064 at `theta = 0.01`,
++0.0142 at `theta = 0.1`)**, so the known confound is held at a known size rather than
+rediscovered.  Cells `hp1.5_d1.0` (exchange active, `tau_B->A = 114 << T`) and
+`hp2.0_d1.0` (`tau_B->A = 634 ~ T`) — the exchange rate is the axis along which a
+splitting method should stop or start working.  Fresh seeds **920-935**, batch_seed
+**20261020**, T = 800, window and stride as F2 (`[20, 215]`, 49 blocks).  Ten arms in
+one paired batch:
+
+| arm | score | weights | theta |
+|---|---|---|---|
+| `shus` | — | — | — |
+| `fr_cond` | joint KDE | EQUAL | 0.01 |
+| `sham_cond` | — (shadows `fr_cond`) | EQUAL | — |
+| `wfr_cond` | joint KDE | weighted | 0.01 |
+| `wfr_cond_hot` | joint KDE | weighted | 0.1 |
+| `wcnt_cond_hot` | 8x8 histogram | weighted | 0.1 |
+| `wstate_hot` | discrete channel | weighted | 0.1 |
+| `wstate_eq` | discrete channel | weighted | 1.0 (equal count per state) |
+| `wsham_cond` | — (shadows `wfr_cond_hot`) | weighted | — |
+| `wsham_eq` | — (shadows `wstate_eq`) | weighted | — |
+
+**Primary endpoint (frozen): the seed VARIANCE of `F_hat(T)` in the B-carrying window,
+each weighted arm against its matched-turnover weighted sham.**  Variance, not MSE, is
+primary precisely because I2 showed the weight rule carries a small mean shift toward
+the target: a mean shift lands in bias^2 and leaves variance alone, so the two effects
+are separated by construction instead of being argued about.  Both are reported, with
+`bias^2`, MSE, `I_F`, `e_F(T)/e*`, `min ess_w`, turnover and the realized `P_B` drift.
+
+* **P13 (the hypothesis):** at least one weighted allocation arm reduces the B-window
+  seed variance by >= 10% against its matched sham, on at least the exchange-active
+  cell.  Recorded prior: genuinely uncertain, and the reason to doubt it is specific —
+  weighted selection conserves each stratum's weight, so the part of the variance that
+  comes from the CHANNEL ALLOCATION draw is untouched by construction; only the
+  within-channel sampling noise can fall.  If the channel draw dominates, P13 fails and
+  the mechanism is exhausted.  The exchange-active cell is where it should work best,
+  because there the channel weight is re-drawn by the dynamics many times per run and
+  splitting can resolve those crossings.
+* **P14 (the mirror of Phase F):** the EQUAL-WEIGHT arm `fr_cond`, which gained
+  -15 to -31% on this same system when the conditional was wrong, now **HURTS** —
+  its target is no longer approximately right, so writing it into a correct conditional
+  is pure damage.  Predicted: `dI_F > 0` with the CI above zero, and its `bias^2`
+  component rises while its variance may well fall.  This is the cleanest possible
+  demonstration that the Phase-F gain was target-borrowing, and it costs one arm.
+* **P15 (is the FR rule special?):** the discrete-state allocation — no kernel, no bins,
+  nothing but counts of the hidden state per stratum — matches or beats the joint-KDE
+  score at matched dose.  A fifth tie would say the estimator has never been the active
+  ingredient; a KDE win here would be the first evidence in the campaign that it is.
+
+**Interpretation rule (frozen).**  If P13 fails on both cells, the safe version of
+conditional reallocation has no demonstrated benefit in either regime — bias-limited
+(Phase I) or variance-limited (Phase J) — and the campaign's recommendation becomes:
+population selection on an unresolved descriptor is worth running only when an
+independently defensible target is available, in which case its gain is the target's,
+not the geometry's.  Phase G and Phase H are then not worth running on this method.
