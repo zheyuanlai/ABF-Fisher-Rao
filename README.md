@@ -47,7 +47,21 @@ Langevin noise, so every comparison is paired.
 Stages 0-4 and the applicability map (gateway, WCA, torus, alanine) are closed; all
 outcomes are recorded in `docs/PREREGISTRATION_*.md` and are not edited.
 
-**Where the project stands (Phase I, 2026-08-20).**  Conditional reallocation's gain
+**Where the project stands (Phase J, 2026-08-20).**  Both regimes are now measured and
+the answer is the same in each.  When the hidden conditional is WRONG (Phase F/I),
+equal-weight reallocation repairs it only by writing its target into the represented
+law -- forbidding that with compensating weights removes 95% of even the oracle
+target's effect.  When the hidden conditional is RIGHT but noisy (Phase J: an
+ensemble started at the exact stationary law, accumulator warm-started at its fixed
+point, 77-92% of the residual error seed variance), measure-preserving allocation buys
+nothing: no arm improves the deliverable, its best variance reduction (-31% on one
+cell) is mostly reproduced by undirected churn (-21%), and any stronger dose loses more
+to weight degeneracy than it gains in coverage.  And the same step that gained
+-15 to -31% on a wrong conditional COSTS +24% to +88% on a correct one -- its sign is
+set by whether the target beats the current ensemble, which is unknowable without the
+answer.
+
+**Where Phase I left it (2026-08-20).**  Conditional reallocation's gain
 is now explained, and the explanation is not the one Phase F assumed.  Carrying
 statistical weights through the identical selection — so the score allocates
 computational effort while the ensemble keeps representing the same law — removes the
@@ -89,7 +103,17 @@ biased, not a competitor to biasing them.  F4 found that one arbitrary
 reparametrization of the hidden descriptor reverses the benefit's sign, and Phase I
 explained why.
 
-Open: whether the SAFE (weighted) version can win where the hidden structure is
-variance-limited rather than bias-limited — no cell in this campaign is — and the
-Phase-G question of the descriptor dimension at which an augmented-CV ABP becomes
-computationally infeasible while conditioning stays usable.
+Phase J built the variance-limited cell and closed that question too (above), so Phase
+G (descriptor-dimension scaling) and Phase H (reaction-law comparison) are not worth
+running on this method: both would refine a step with no demonstrated benefit in
+either regime.  What remains defensible is narrow and stated as such: a hidden
+descriptor whose conditional target is known on independent grounds (symmetry-related
+states, discrete states with known relative free energies) — where the gain is the
+target's information, not the geometry's, and where the honest comparison is against
+simply biasing that descriptor (F3a: -71 to -81% in favour of biasing it).
+
+Three method-level warnings outlive the negative result: a matched-turnover sham is
+not a valid null once walkers carry statistical weights (Phase J measured it degrading
+`I_F` by +90%); seed-variance endpoints in selection experiments carry a ~20% churn
+null, because resampling couples seeds through shared ancestry; and "uniform" is a
+choice of reference measure, not a canonical target.

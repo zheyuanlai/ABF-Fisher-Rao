@@ -1610,3 +1610,98 @@ conditional reallocation has no demonstrated benefit in either regime — bias-l
 population selection on an unresolved descriptor is worth running only when an
 independently defensible target is available, in which case its gain is the target's,
 not the geometry's.  Phase G and Phase H are then not worth running on this method.
+
+### J2 outcome (2026-08-20, seeds 920-935, 320 rows in one paired batch — recorded, not to be edited)
+
+**P13 fails.  P14 confirmed, and decisively.  P15 untestable as designed (the two
+scores did not match dose).  And the frozen primary endpoint turned out to be the
+wrong one — that is reported first, because it changes how the headline number reads.**
+
+**The frozen endpoint is invalid here, and why.**  The primary was "seed variance
+against the matched-turnover weighted sham".  Against that reference every weighted
+arm looks excellent: `wfr_cond` -92% / -74%, `wfr_cond_hot` -86% / -64%,
+`wcnt_cond_hot` -83% / -22%, `wstate_hot` -85% / -54%.  **None of that is a benefit.**
+The weighted sham is not inert — it degrades `I_F` by +93% / +88% and inflates the
+B-window variance by +766% / +313% against plain SHUS — so the "improvements" are
+measured against a broken arm.  The reason is structural and is worth recording:
+random weight-conserving churn fragments weights multiplicatively (each refill splits
+a survivor's weight), so the weight ESS random-walks to 0.22 over 800 events, whereas
+a score-driven allocation's weights are a deterministic function of the score and stop
+changing once the particle population reaches the target.  **A matched-turnover sham is
+a valid null for an equal-weight step and is NOT one for a weighted step.**  Every
+number below is therefore re-scored against plain SHUS.
+
+| arm | cell hp1.5 (`tau_B->A` = 114) | | | cell hp2.0 (`tau_B->A` = 634) | | | |
+|---|---|---|---|---|---|---|---|
+| | `dI_F` | var(B) | MSE(B) | `dI_F` | var(B) | MSE(B) | min ESS_w |
+| `fr_cond` (equal weight) | **+24.0 [19.2, 42.0]** | -25% | -15% | **+87.6 [39.8, 116.9]** | -7% | **+104%** | 1.00 |
+| `sham_cond` (equal weight) | +1.9 [-3.4, 6.4] | -21% | -20% | -3.0 [-6.2, 6.9] | -6% | -3% | 1.00 |
+| `wfr_cond` (theta 0.01) | +7.9 [-2.8, 14.3] | **-31%** | -25% | +6.8 [-0.8, 19.4] | +8% | +9% | 0.92 |
+| `wfr_cond_hot` (theta 0.1) | +44.6 | +25% | +25% | +41.1 | +50% | +66% | 0.51 |
+| `wcnt_cond_hot` | +36.0 | +47% | +52% | +37.7 | +221% | +219% | 0.55 |
+| `wstate_hot` | +23.8 | +33% | +44% | +38.6 | +89% | +119% | 0.66 |
+| `wstate_eq` (equal count/state) | +309 | +980% | +1052% | +263 | +1391% | +1812% | 0.03 |
+
+**P13 — no.**  Not one weighted arm improves the deliverable against plain SHUS on
+either cell; every `dI_F` is positive or straddles zero.  The single variance
+reduction is the gentlest arm on the exchange-active cell (`wfr_cond`, -31% B-window
+variance at `ESS_w` 0.92), and it (i) does not replicate on the slower cell (+8%),
+(ii) does not reach the deliverable (`I_F` +7.9%), and (iii) is **mostly not
+direction**: the equal-weight matched-turnover sham, which allocates nothing, already
+buys -21% of it.  Resampling of any kind couples seeds through shared ancestry and
+therefore shrinks seed-to-seed scatter on its own — a null of about -20% that any
+variance endpoint in a selection experiment has to clear, and which this campaign had
+not measured before.  Stronger allocation is strictly worse, and the mechanism is
+visible in the same rows: `ESS_w` falls to 0.51-0.66 at `theta = 0.1` and to 0.03 at
+full equalization, so the accumulator ends up driven by fewer effective walkers than
+plain SHUS has.  **Allocating more particles into the rare channel and paying for it
+in weight variance is a wash at best on this system, and a large loss at any
+appreciable dose.**
+
+**P14 — yes, and it is the cleanest confirmation of the Phase-I mechanism.**  The
+equal-weight arm `fr_cond` is the SAME arm, at the same dose, on the same system that
+gained -15% to -31% in Phase F.  With the conditional now correct in expectation it
+**hurts**: `I_F` +24.0% and +87.6%, both CIs entirely above zero, its `bias^2` in the
+B window up +276% and +2676%, and its represented `P_B` displaced +2.12 binomial sd on
+the asymmetric cell.  Its VARIANCE actually falls (-25%, -7%) — it trades a little
+variance for a much larger bias, which is exactly what "writing the target into the
+represented law" means.  Phase F's positive and Phase J's negative are the same
+operation applied to a wrong and to a right conditional.
+
+**P15 — not answered.**  At the same `theta` the discrete-state score fires far less
+turnover than the joint KDE (278 vs 870 events' worth), so the two were not
+dose-matched and the comparison is confounded; what can be said is that the
+kernel-free score is not worse than the KDE at comparable damage, consistent with the
+campaign's four earlier ties.  The classical equal-count-per-state allocation
+(`theta = 1`) is not merely inert but destructive here (`ESS_w` 0.03), which is a
+useful negative for anyone tempted by textbook stratified allocation inside an
+adaptive-bias run: the allocation and the represented measure are carried by the same
+weights, and equalizing counts fragments them.
+
+### What Phases I and J together settle
+
+1. **Bias-limited hidden structure** (Phase F/I): equal-weight conditional
+   reallocation repairs it *by writing its target into the represented conditional*;
+   the measure-preserving version repairs nothing, at any dose, even with a perfect
+   target.
+2. **Variance-limited hidden structure** (Phase J): measure-preserving allocation buys
+   no improvement in the deliverable; its best case is a variance reduction that
+   undirected churn largely reproduces, and any appreciable dose loses more to weight
+   degeneracy than it gains in coverage.
+3. **The same step damages a correct conditional as much as it repairs a wrong one**
+   (P14), so its sign depends entirely on whether the target is closer to the truth
+   than the current ensemble is — which is unknowable without the answer.
+4. **Method-level warnings this campaign produced that outlive its negative result:**
+   a matched-turnover sham is not a valid null once walkers carry weights; seed-variance
+   endpoints in selection experiments carry a ~20% churn null; and "uniform" is a
+   choice of reference measure, not a canonical target.
+
+**Recommendation (frozen).**  Phase G (descriptor-dimension scaling) and Phase H
+(reaction-law comparison) are not worth running on this method: both refine a step
+with no demonstrated benefit in either regime.  Molecular work (deca-alanine) should
+not proceed on conditional reallocation with a guessed target.  The only remaining
+defensible use is the one Phase I identified — a hidden descriptor whose conditional
+target is known on independent grounds (symmetry-related states, discrete states with
+known relative free energies) — where the gain is the target's information, not the
+geometry's, and where the honest comparison is against simply biasing that descriptor
+(F3a: -71% to -81% in favour of biasing it).
