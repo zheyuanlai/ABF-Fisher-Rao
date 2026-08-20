@@ -1310,3 +1310,90 @@ combination P8 held + P9 and P10 both null means the honest conclusion is that
 equal-weight conditional reallocation works by assuming the answer, and that its
 practical value is confined to cases where a defensible target is available on
 independent physical grounds.
+
+### I1 outcome (2026-08-20, seeds 800-815, 416 rows in one paired batch — recorded, not to be edited)
+
+**P8 confirmed (spread clause, by a factor of 7-24 beyond what it asked; no-harm
+clause fails narrowly on one arm).  P9 confirmed as predicted: the benefit does not
+survive.  P10 decisive: the Phase-F positive was the target being imposed on the
+represented law.**
+
+| arm | `hp2_d0` dI_F | `hp2_d0.5` dI_F | P_B (represented) | P_B^n (particles) | min ESS_w |
+|---|---|---|---|---|---|
+| `shus` | 0 (I_F 204.7, 47.8 e*) | 0 (114.9, 29.9 e*) | 0.3384 / 0.1748 | same | 1 |
+| `fr_cond` | **-14.66 [-15.54, -12.70]** | **-28.81 [-29.97, -25.90]** | 0.3779 / 0.2402 | same | 1 |
+| `fr_cond_rp+` | **+6.52 [4.67, 8.06]** | +0.19 [-0.83, 1.34] | 0.3193 / 0.1724 | same | 1 |
+| `fr_cond_rp-` | -66.36 [-69.29, -63.52] | -39.85 [-43.79, -37.45] | 0.4878 / 0.3740 | same | 1 |
+| `fr_cond_oracle` | -62.85 [-64.43, -60.81] | -55.37 [-59.31, -52.10] | 0.4761 / 0.2881 | same | 1 |
+| `wfr_cond` | +0.08 [-1.03, 1.51] | -0.82 [-1.68, 0.83] | 0.3382 / 0.1761 | 0.4077 / 0.2710 | 0.93 / 0.89 |
+| `wfr_cond_rp+` | +1.15 [0.18, 1.93] | +0.50 [-0.86, 1.62] | 0.3365 / 0.1736 | 0.3022 / 0.1738 | 0.95 / 0.99 |
+| `wfr_cond_rp-` | -0.37 [-1.51, 1.30] | -2.43 [-3.44, -0.71] | 0.3403 / 0.1820 | 0.5923 / 0.4639 | 0.60 / 0.58 |
+| `wfr_cond_oracle` | -2.84 [-4.55, -1.84] | -0.58 [-2.10, 0.18] | 0.3434 / 0.1789 | 0.6621 / 0.3618 | 0.48 / 0.74 |
+| `sham_cond` | -0.02 | +0.39 | 0.3389 / 0.1743 | same | 1 |
+| `wsham_cond` | -0.01 | +0.07 | 0.3404 / 0.1723 | 0.3408 / 0.1758 | 0.85 / 0.84 |
+| `wfr_cond_hot` (exploratory) | -2.98 [-5.53, -0.50] | -2.72 [-5.13, 1.46] | 0.3453 / 0.1823 | 0.4419 / 0.3564 | 0.57 / 0.53 |
+| `wfr_cond_hot_oracle` (exploratory) | -28.19 [-33.03, -17.18] | -3.95 [-7.35, -1.70] | 0.4034 / 0.1854 | 0.7676 / 0.5225 | 0.10 / 0.30 |
+
+**P8 — target-induced spread over the three choosable targets.**  Equal weight
+72.88 / 40.04 points; weighted **1.52 / 2.93** points; ratios 0.021 and 0.073 against
+a criterion of 0.50.  The sign flip is gone: `rp+`, the reparametrization that cost
+`fr_cond` its entire benefit and +6.5% on top, costs the weighted arm +1.15%.  The
+no-harm clause nonetheless FAILS on that one arm (`wfr_cond_rp+` on `hp2_d0`, CI
+[0.18, 1.93] entirely above zero) — a fifth of the equal-weight harm, but a real one,
+and it is recorded as a partial fail rather than rounded to zero.
+
+**P9 — nothing survives.**  `wfr_cond` is +0.08% / -0.82% against `shus` and
++1.17% / -0.50% against its own weighted sham, while `fr_cond` beats its sham by
+-14.69% / -29.18% in the same batch.  The equal-weight step's entire margin over its
+sham disappears when the descendants carry compensating weights.
+
+**P10 — the mechanism, settled.**  The oracle target is the best conditional target
+that exists.  With equal weights it buys -62.85% / -55.37%; with weights it buys
+-2.84% / -0.58%.  Roughly 95% of the largest effect this campaign ever measured was
+the target being written into the represented distribution, not information the
+selection extracted from the trajectories.  The decoupling is visible directly in the
+same rows: `wfr_cond_oracle` puts **66% of its particles** in channel B while the
+population it represents stays at **0.3434** — the plain-SHUS value 0.3384 — and its
+CV marginal is unmoved (`KL(p_phi||u)` 0.0023-0.0029 across `shus`, `fr_cond`,
+`wfr_cond`).
+
+**Cost.**  Weight ESS falls to 0.93-0.99 at the frozen dose for the uniform and `rp+`
+targets, 0.48-0.74 for the high-turnover `rp-`/oracle targets, and 0.10-0.30 for the
+hot arms.  No guard is applied, by design.
+
+**P11 (exploratory) — a lead, and a confound found while checking it.**  At ten times
+the dose the weighted arms do move: `wfr_cond_hot` -2.98% / -2.72%, and
+`wfr_cond_hot_oracle` **-28.19% [-33.03, -17.18]** on the anchor cell.  Before this is
+read as variance reduction, a bookkeeping check was run (no dynamics at all, the same
+frozen population resampled 200 times, `scratchpad/drift2.py` reproduced in the I2
+script): the importance rule plus the per-stratum renormalization is a RATIO estimator
+and carries an O(1/walkers-per-stratum) residual bias **toward the target** — at the
+production `n_strata = 32` (32 walkers per stratum) it moves a 0.151 fiber fraction by
++0.006 at `theta = 0.01` and **+0.014 at `theta = 0.1`**, and at 128 walkers per
+stratum only +0.002 / +0.003.  (Dropping the renormalization does not help: the drift
+reverses sign, the stratum weights random-walk to 11x their nominal value, and the
+xi-marginal invariance the design rests on is lost.)  `wfr_cond_hot_oracle`'s
+represented `P_B` moved +0.065 against plain SHUS, which is several times the static
+drift but of the same sign and the same mechanism, so **the -28% is confounded and is
+not claimable as it stands.**  I2 settles it.
+
+### I2 — is the hot-dose lead variance reduction or residual bookkeeping bias?   [FROZEN 2026-08-20, before any I2 row]
+
+Anchor cell `hp2_d0` only, seeds **800-815**, batch_seed **20261010**, everything else
+as I1.  Five arms — `shus`, `wfr_cond_hot`, `wfr_cond_hot_oracle`, and a weighted
+matched-turnover sham for EACH hot arm (`wsham_hot`, `wsham_hot_oracle`) — run twice,
+in two batches identical except for `n_strata in {32, 8}`, i.e. **32 vs 128 walkers
+per stratum**.  Same arms and same event schedule in both, so the two batches are
+noise-paired to each other as well as within themselves.
+
+* **P12:** if the hot-oracle gain is variance reduction, it survives at 128 walkers
+  per stratum, where the static drift is ~4x smaller, and it beats its matched sham in
+  both configurations.  If it is the residual ratio bias, it shrinks with the bias and
+  collapses toward the sham.
+* Recorded per configuration: the sham-relative margin (the primary number), the
+  represented `P_B` gap against plain SHUS (the bias monitor), `KL(p_phi||u)` (wider
+  strata weaken the marginal invariance and this is where that would show), and
+  `min ess_w`.
+* The static drift for each configuration is measured by the same script, on the same
+  populations, before the batch runs — so the bias correction is quantified rather
+  than argued.
