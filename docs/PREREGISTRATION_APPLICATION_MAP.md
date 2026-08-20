@@ -2,6 +2,11 @@
 
 ## CAMPAIGN FROZEN 2026-08-20 (tag `v1-application-map-final`)
 
+Published as branch `abp-fisher-rao` of `github.com/zheyuanlai/ABF-Fisher-Rao`.  That
+repository hosts the closed mFR-ABF campaign on `main`; the two branches share a remote
+and **no history** (see `docs/PROVENANCE.md`), so nothing here merges into that campaign
+and its recorded outcomes are untouched.
+
 Phases A, B, D, ALA, F, I and J are closed with their outcomes recorded below, and the
 campaign-level synthesis is the speed map at the end of this file.  The narrative
 account is `docs/TECHNICAL_REPORT.md`.  Phase G (descriptor-dimension scaling) and

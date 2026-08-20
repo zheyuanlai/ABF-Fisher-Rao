@@ -2,7 +2,9 @@
 
 ### What the hypothesis was, what happened to it, and what the campaign established instead
 
-**Status: FROZEN 2026-08-20.**  Branch `application-map`, tag `v1-application-map-final`.
+**Status: FROZEN 2026-08-20.**  Tag `v1-application-map-final`, published as branch
+`abp-fisher-rao` of `github.com/zheyuanlai/ABF-Fisher-Rao` (whose `main` carries the
+separate, closed mFR-ABF campaign; the two share a remote and no history).
 Every number below is taken from a recorded outcome in `PREREGISTRATION_GATEWAY.md`,
 `PREREGISTRATION_WCA.md` or `PREREGISTRATION_APPLICATION_MAP.md`; none of those outcome
 sections were edited after the fact, and the two places where an *interpretation* was

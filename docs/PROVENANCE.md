@@ -2,7 +2,13 @@
 
 This repository is a fresh start (the ABP-FR project), separate from the closed
 mFR-ABF campaign in `zheyuanlai/ABF-Fisher-Rao`. We reuse *code*, not repository
-history. Ported material and its origin (old repo at tag `v1-regime-map-final`,
+history.
+
+**Hosting (2026-08-20).** The ABP-FR history is published as branch `abp-fisher-rao` of
+that same GitHub repository, so both campaigns live in one place. This is a hosting
+decision only: the branches have no common ancestor, nothing from this campaign merges
+into `main`, and the mFR-ABF record on `main` (tag `v1-regime-map-final`, commit
+`662f2fc`) is unchanged by it. Ported material and its origin (old repo at tag `v1-regime-map-final`,
 commit `662f2fc`):
 
 | New location | Origin (ABF-Fisher-Rao) | Notes |
