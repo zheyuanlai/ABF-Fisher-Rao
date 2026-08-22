@@ -22,8 +22,11 @@ SYSTEMS = {
         beta=8.0, H=2.5, omega_out=1.0, omega_in=25.0, s=0.25)),
 
     # ---- B. slow fiber: the lift has to pay for a soft, slowly relaxing y ---
+    # y_max must cover the SOFT fiber: sd = 1/(sqrt(beta) omega_out) = 1.41, so the
+    # inherited default y_max = 6 is only 4.2 sd and trips the tail assertion.
     "SLOWFIB": dict(grid=_grid(), params=SysParams(
-        beta=8.0, H=2.5, omega_out=0.25, omega_in=4.0, s=0.25)),
+        beta=8.0, H=2.5, omega_out=0.25, omega_in=4.0, s=0.25,
+        y_max=14.0, n_yq=6001)),
 
     # ---- C. hidden two-channel fiber with a switch region at x = 0 ----------
     #    correct P(y>0|x) runs 1 -> 0 across the domain; channels interconvert

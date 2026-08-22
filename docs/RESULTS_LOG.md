@@ -607,3 +607,428 @@ still 57% behind RE-TI.  The L-scan's WFR numbers are therefore conservative.
 long torsional domain the stochastic step at moderate `kappa` wins (0.02237 vs 0.02792).
 The flow's advantage is specific to regimes where the residual hysteresis dominates the
 error; where transport itself is the bottleneck, the SDE's larger effective step wins.
+
+---
+
+# Manifold phase - the Chapter-3 reformulation on a NONLINEAR reaction coordinate
+
+Everything above uses `xi(q) = x`, for which `G = 1` and the entire manifold
+construction degenerates (see `docs/MANIFOLD_FORMULATION.md` §2.1). A nonlinear
+test family was built to make it testable: same potentials, `xi = x + a sin(k y)`,
+`Sigma(z)` a graph over the fiber, everything exact by quadrature, `a = 0`
+reproducing the frozen systems bit for bit (`tests/test_manifold.py`).
+
+## Phase M0 - does the Chapter-3 machinery reproduce the exact answer?
+
+`scripts/validate_manifold.py`, `results/manifold/validate.json`.
+
+| check | result |
+|---|---|
+| co-area normalization, `(det G)^{-1/2} dsigma = dy` | rel. error **3.8e-14** |
+| local mean force, `E_nu[f] = F'(z)`, 4e6 samples, 5 values of `z` | worst deviation **1.9 SE** |
+| same with the divergence term **dropped** | **3.2-4.0x the estimator floor** in `F` |
+| SHAKE projection and all three lifts land on `Sigma(z)` | residual **< 2e-16** |
+| constrained ambient sampler, Fixman on | PIT-KL at the histogram floor |
+
+**Finding M1.** The Chapter-3 formulae are correct as stated and are correctly
+implemented here. The divergence term of the local mean force — the one that is
+identically zero when `xi` is linear, and therefore never exercised by the frozen
+campaign — is not optional on a nonlinear coordinate. Pushing the exact conditional
+means through the estimator by quadrature (`results/manifold/nodiv.json`), dropping
+it costs up to **0.13 in `F'`** and **0.013-0.016 in `F`, i.e. 3.2-4.0x the estimator
+floor**, on three (system, a, k) settings. Keeping it, the same computation returns
+1e-4 to 7e-4 — below the floor, i.e. pure quadrature error, which also validates the
+implementation.
+
+**Correction.** An earlier draft of this section quoted "0.052 in `F'`, 13x the
+estimator floor". That compared a MEAN-FORCE error against a FREE-ENERGY floor; the
+two have different units. The corrected figure above is 3.2-4.0x. The conclusion is
+unchanged in direction but the divergence term is comparable to the Fixman factor
+(<= 7x, Phase M1) rather than an order of magnitude larger, and both are dwarfed by
+the lift error of Phase M2.
+
+**Finding M2 (variance).** `f_LRS` and the fiber-frame `dPsi/dz` are both valid
+mean-force samples and neither dominates: `Var(f_LRS)/Var(f_graph)` ranges over
+**0.047 to 1074** across `z`. At the barrier top of `EB` the ratio is 263 in favour
+of the fiber frame; in the wells it is 0.35 the other way.
+
+## Phase M1 - how much is the Fixman factor worth?
+
+`scripts/exp_fixman.py`, `results/manifold/fixman.json`, `figures/figM4_fixman.png`.
+Exact by quadrature: `F` vs `F_rgd = -beta^-1 log int e^{-beta Psi} sqrt(G) dy`.
+
+Full grid in [`MANIFOLD_TABLES.md`](MANIFOLD_TABLES.md), max over the three
+systems at each `a k`:
+
+| `a k` | RMSE(`F - F_rgd`) | multiple of the 0.004 floor |
+|---|---|---|
+| 0.21 | 0.0009 | 0.2 |
+| 0.42 | 0.0036 | 0.9 |
+| 0.84 | 0.0118 | 2.9 |
+| 1.68 | 0.0289 | 7.2 |
+| 2.80 | 0.0298 | 7.4 |
+
+**Finding M3.** The Fixman/rigid error scales as `(a k)^2` and crosses the
+estimator floor at `a k ~ 0.55`, saturating at **7x the floor**. The corresponding
+conditional error is at most `KL(nu_rgd || nu) = 0.018`. So the geometric factor is
+**real but second-order**: it must be implemented (it is three lines) and it is
+one to two orders of magnitude smaller than the lift error measured next.
+
+## Phase M2 - the lift, and the law that governs it
+
+`scripts/exp_lift.py`, `results/manifold/lift_a_*.json`, `figures/figM1_lift.png`.
+Exact pushforward of `nu(.|z0)` through each lift map, cross-checked by 4e5-sample
+Monte Carlo (agreement to 3 digits wherever the 64-bin PIT is unsaturated).
+
+**Finding M4 (the lift-lag law).** `D_cond(z0 + dz) = C(z0, lift) dz^2 / 2 + O(dz^3)`
+with `C = int [d_y(nu delta)]^2 / nu dy` and `delta = w - w*`. Measured/predicted
+= 0.987, 0.982, 0.976, 1.018 at `dz = 0.0125` across four `z`, and the exact KL
+scales as `dz^2` (successive ratios 3.95, 3.90, 3.80 for doublings of `dz`).
+
+**Finding M5 (minimum-norm is not the answer).** Repeated at `(a,k)` = (0.3, 1.4),
+(0.6, 0.7) and (0.6, 1.4), 24 values of `z`: `C(minnorm)/C(cartesian)` is **0.33-0.71
+in the wells** — a real factor 1.4-3 — and **1.006 / 1.018 / 1.054 at the barrier
+top**, marginally worse at every setting, where `C` is 6x larger than anywhere else and
+where the profile is determined. At `(0.3, 1.4)`, `z = +-0.30`, the ratio is **3.65**:
+the minimum-norm lift is over three times WORSE than moving one ambient coordinate.
+The law itself holds throughout — measured/predicted in [0.86, 1.16] over every
+`(z, a, k)`. The lift that solves the fiber continuity equation gives `C = 0` exactly,
+and the measurement confirms it at all three settings: max PIT-KL over all `(z0, dz)`
+is 3.0e-5, the noise floor.
+
+**Trap M-a.** `w*` itself diverges across any low-density valley of the conditional
+(moving mass through it needs unbounded velocity), so integrating `dy/dz = w*` as an
+ODE fails exactly on the multimodal fibers the method is meant to help with. Use
+the monotone map `y' = CDF^{-1}_{z'}(CDF_z(y))`, which is the same flow integrated
+exactly. First attempt reported `D_cond = 210` for the "exact" lift; that was the
+integrator, not the lift.
+
+## Phase M3 - the timescale condition, made parameter-free
+
+`scripts/exp_timescale.py`, `scripts/analyze_timescale.py`,
+`results/manifold/timescale.json`. Ensemble of 1e5 swept at constant `dz/dt = v`
+with the fiber relaxing; `v = 0` control gives a discretization floor of `1e-5`.
+
+**Finding M6.** `D_cond(steady) = C_eff v^2 / 2` with `C_eff = beta^2 Var_nu(int delta)`
+— closed form, no eigenproblem, no fitted constant. In the linear-response regime
+(left well, predicted `D < 0.1`): measured/predicted median **1.03** [0.99, 1.07]
+over 13 points (cartesian) and **1.05** [0.99, 1.29] (min-norm). Fitted `v`-exponent
+**1.96-2.04** in every case.
+
+**Finding M7.** The relevant timescale is `tau_eff = sqrt(C_eff / C)`, not the
+fiber spectral-gap time `1/omega^2`. They differ by 1.4-5.4x here, i.e. up to **29x
+in `D_cond`** — using the spectral gap would force `kappa_W` down ~5x for nothing.
+
+**Finding M8.** The adiabatic lift has `D_cond <= 1.8e-4` at **every** speed and
+every fiber stiffness tested (cartesian reaches 4.11 on the same sweep). For a
+conditionally correct lift there is no timescale condition at all.
+
+**Finding M9 (where the law fails).** At the barrier top, where the conditional is
+multimodal, linear response over-predicts by up to 2500x while the measured
+`D_cond` saturates near 1.6. The prediction is an upper bound there, not an
+estimate; quote it only where `C_eff v^2 / 2 < 0.1`.
+
+## Phase M4 - does lift correctness change the free energy, not just the lag?
+
+`scripts/exp_arms.py`, `results/manifold/arms/`. Nonlinear-CV `CHANNEL`,
+`N = 256`, 1e5 steps, 16 seeds, matched force evaluations, frozen Stage-1
+hyper-parameters (flow `kappa = 2.0`, `theta = 0.3`, jitter 0.01), floor 0.00458.
+
+**Caveat, stated once and applying to Phases M4-M5.** `scripts/exp_arms.py` is a
+FRESH engine on the graph systems, not `src/rcwfr/engines.py`. Its fiber dynamics is
+the intrinsic flat-`y` Langevin (exact invariant measure, different from the ambient
+constrained dynamics), its `ti_*` baselines place all `N` windows across the eval
+window, and it carries none of the burn-in / ancestry / annealing machinery. Its
+absolute numbers are NOT comparable to the linear-`xi` campaign above and are not
+offered as a reproduction of it. Every claim drawn from these tables is a
+WITHIN-EXPERIMENT contrast between arms that share the code and differ in one call.
+
+| arm | `e_F` | / floor | vs `wfr_cart` |
+|---|---|---|---|
+| `ti_cold` fixed windows, cold fiber | 0.6501 | 142 | +0.9% |
+| `wfr_cart` W+FR, cartesian lift | 0.6445 | 141 | — |
+| `wfr_minnorm` W+FR, **minimum-norm lift** | 0.6157 | 134 | **-4.5%** |
+| `fr_only` birth-death only, no transport | 0.2626 | 57 | -59.3% |
+| `ti_warm` fixed windows, equilibrium start | 0.0355 | 7.8 | -94.5% |
+| `wfr_adiab` W+FR, **adiabatic lift** | 0.0088 | **1.9** | **-98.6%** |
+| `wfr_oracle` W+FR, conditional refresh | 0.0046 | 1.0 | -99.3% |
+
+**Finding M9b (the degeneracy, measured).** Re-running the same arm comparison with
+`a = 0` — the only change being that the reaction coordinate is linear — the cartesian
+and minimum-norm arms return `e_F = 0.25614` and `D_cond = 0.8509` for BOTH. Identical
+to every digit: with `G = 1` the minimum-norm horizontal lift and the identity lift are
+the same operation, so the frozen campaign could not have tested the proposed fix even
+in principle.
+
+**Finding M9c (the lift error is not created by the nonlinearity).** The full matched
+pair (floors 0.00349 linear / 0.00458 nonlinear; % against the cartesian lift on the
+same coordinate):
+
+| arm | linear `xi` | nonlinear `xi` |
+|---|---|---|
+| `ti_cold` | 0.1569 (-38.7%) | 0.6501 (+0.9%) |
+| `wfr_cart` | 0.2561 (--) | 0.6445 (--) |
+| `wfr_minnorm` | **0.2561 (+0.0%)** | 0.6157 (-4.5%) |
+| `wfr_fit` | 0.3008 (+17.4%) | 0.8302 (+28.8%) |
+| `wfr_fit_decay` | 0.0966 (-62.3%) | 0.5211 (-19.2%) |
+| `wfr_adiab` | **0.0141 (-94.5%)** | 0.0088 (-98.6%) |
+| `wfr_oracle` | 0.0036 (-98.6%) | 0.0046 (-99.3%) |
+
+On the campaign's OWN linear systems the lift error is already worth **94.5%** of the
+reachable error, and there the minimum-norm lift addresses none of it -- not because it
+approximates badly but because it IS the cartesian lift. The nonlinearity is only what
+lets the two differ, and they differ by 4.5%.
+
+**Finding M9d.** The self-built lift with forgetting reaches **-62.3%** on the linear
+coordinate against **-19.2%** on the nonlinear one: its viability tracks how hard the
+fiber conditional is to estimate, which is the same thing that makes a correct lift
+necessary.
+
+**Finding M10.** On the end metric the minimum-norm lift is worth **4.5%** and the
+conditionally correct lift is worth **98.6%**, landing within 2x of the estimator floor
+and within 2x of the oracle. `wfr_adiab` and `wfr_oracle` both use the EXACT conditional
+and are upper bounds, not implementable arms (Phase M5 is where that is tested). What
+the contrast establishes is where the achievable gain lives: the 98.6% is unreachable by
+any amount of care about the ambient metric, because `wfr_minnorm` is another arm in the
+same table on the same z-trajectories and it sits at 4.5%.
+
+**Finding M11.** With a nonlinear coordinate and a naive lift, the **Wasserstein
+half is actively harmful**: `fr_only` (0.263) beats `wfr_cart` (0.645) by a factor
+2.5, and `wfr_cart` does not beat cold fixed windows at all. This is the frozen
+campaign's Finding C8 sharpened — Fisher-Rao carries no lift, so it carries no
+lift bias, and once the coordinate is nonlinear that is the whole difference.
+
+## Phase M5 - can the correct lift be built from the run's own samples?
+
+`src/rcwfr/adaptive_lift.py`, `scripts/exp_arms.py --arms wfr_fit ...`.
+Running smoothed `(z, y)` histogram -> `nu_hat(y|z)` -> CDF-matching lift, with a
+count-based fallback to cartesian.
+
+Fed **exact** samples the construction works: `D_cond` after a `dz = 0.2` step falls
+from 0.762 (cartesian) to **0.0026**, a 290x reduction. That residual is a
+**bandwidth floor**, flat under a 4x increase in samples, and `bw_z` is the
+sensitive knob (0.08 gives 0.041, 0.03 gives 0.003) because the conditional changes
+fast with `z`.
+
+Fed its **own** samples inside the algorithm (1e5 steps, 16 seeds):
+
+| arm | `e_F` | vs `wfr_cart` |
+|---|---|---|
+| `wfr_cart` | 0.6445 | — |
+| `wfr_fit` running average | 0.8302 | **+28.8% (worse)** |
+| `wfr_fit_decay` with forgetting | 0.5211 | -19.2% |
+| `wfr_adiab` exact | 0.0088 | -98.6% |
+
+**Finding M12 (forgetting is not optional).** A plain running average of the
+`(z, y)` histogram makes the lift **worse than doing nothing** at both budgets tested
+(+28.8% at 1e5 steps, +25% at 4e5), with a log-error slope of **-0.02**: it is parked.
+The estimate is made from the ensemble the lift is steering, and without forgetting it
+never sheds the ensemble's early error.
+
+**Finding M13 (with forgetting the bootstrap works, at a warm-up cost).** Rerunning at
+4x the budget (4e5 steps, 8 seeds) against the 1e5 / 16-seed run:
+
+| arm | 1e5 steps | 4e5 steps | change | vs `wfr_cart`, same budget |
+|---|---|---|---|---|
+| `wfr_cart` | 0.6445 | 0.6469 | **+0.4%** | -- |
+| `wfr_fit` | 0.8302 | 0.8107 | -2.3% | +25% |
+| `wfr_fit_decay` | 0.5211 | **0.2357** | **-55%** | **-64%** |
+| `wfr_adiab` | 0.0088 | 0.0056 | -37% | -99.1% |
+
+Log-error slopes over the final decade: `wfr_cart` **-0.06**, `wfr_fit` **-0.02**
+(both on a bias floor), `wfr_fit_decay` **-0.22**, `wfr_adiab` **-0.76**. The
+self-built lift's conditional lag falls monotonically 0.596 -> 0.075 -> 0.027 ->
+0.016 -> 0.0096 as its estimate improves. It is an implementable method with a
+measured convergence rate, still 40x short of the exact lift, and the cost is the
+deposits it makes while the lift is still harmful.
+
+**Trap M-d (grade a self-consistent scheme by its slope, not its endpoint).** At one
+budget unit `wfr_fit_decay` beat `wfr_cart` by 19% and would have been written off; at
+four it beat it by 64%, because `wfr_cart` was on a floor and `wfr_fit_decay` was not.
+Two arms 1.6x apart at 1x were 3.4x apart at 4x. Any comparison involving an arm that
+estimates something from its own trajectory needs at least two budgets.
+
+**Trap M-b (pooled vs z-resolved conditional error).** `wfr_fit_decay` ends with a
+**pooled** PIT-KL of 0.0097 — near the floor — while its free-energy error is 114x
+the floor. A single PIT histogram over the whole ensemble lets errors at different
+`z` cancel. The quantity in the error functional is
+`D_z = int KL[rho(.|z) || nu(.|z)] p(z) dz`, and it must be accumulated per `z`-bin
+over the production half of the run. On a spot check `wfr_cart` reads 0.338 pooled
+and **0.552** z-resolved. Grading a lift on the pooled number will reward the wrong
+thing.
+
+## Phase M6 - transport rate, and what a burn-in sweep cannot test
+
+**Finding M16 (the trade-off is a property of the lift).** Sweeping the transport rate
+`kappa` over a factor 32, 16 seeds each, everything else frozen (floor 0.00458):
+
+| `kappa` | `wfr_cart` | `wfr_minnorm` | `wfr_adiab` |
+|---|---|---|---|
+| 0.25 | 0.26338 | 0.25749 | 0.01244 |
+| 0.50 | 0.27124 | 0.27124 | 0.01241 |
+| 1.00 | 0.35403 | 0.33595 | 0.01076 |
+| 2.00 | 0.64454 | 0.61574 | 0.00881 |
+| 4.00 | 0.95036 | 0.88297 | 0.00694 |
+| 8.00 | **1.16727** | **1.04286** | **0.00669** |
+
+The two families run in OPPOSITE directions. The naive lifts degrade monotonically by
+a factor 4.4 and their best point is the SLOWEST rate tested, where the value (0.2634)
+is just the birth-death-only arm (0.2626): their optimum is the limit in which the
+Wasserstein transport is switched off. The adiabatic lift improves monotonically by a
+factor 1.86 and its best point is the FASTEST rate tested, at 1.5x the estimator floor.
+The gap widens from 21x to 175x. `figures/figM5_kappa.png`.
+
+(The `kappa = 0.5` medians agree to five decimals by coincidence -- 0.27124354 vs
+0.27124095, with per-seed differences up to 1.6e-2 -- not a bug.)
+
+This is the condition `tau_mix << tau_WFR` shown to be a property of the lift and not
+of the method: with `delta = 0` there is no rate to tune, and faster is strictly
+better because faster transport buys coverage at no cost.
+
+
+**Trap M-c (the burn-in sweep is budget-limited).** The obvious test of "transport,
+freeze, equilibrate, then estimate" is to raise `n_eq` at fixed `n_cond`. It cannot
+work: at `n_cond = 20`, `dt = 1e-3`, even `n_eq = 19` buys 0.019 time units of
+relaxation against a fiber time of order 1.
+
+| `n_eq` | deposits kept | `ti_cold` | `wfr_cart` | `wfr_minnorm` | `wfr_adiab` |
+|---|---|---|---|---|---|
+| 0 | 100% | 0.65007 | 0.95554 | 0.89317 | 0.00756 |
+| 5 | 75% | 0.65006 | 0.95102 | 0.89099 | 0.00759 |
+| 10 | 50% | 0.65001 | 0.94677 | 0.88892 | 0.00758 |
+| 15 | 25% | 0.64995 | 0.94272 | 0.88700 | 0.00755 |
+| 19 | 5% | 0.64997 | **0.93961** | 0.88545 | 0.00755 |
+| | | -0.0% | **-1.7%** | -0.9% | -0.2% |
+
+The correct reading is "short burn-in is worthless", not "Version I is refuted".
+
+**Finding M15 (the arm is bias-dominated).** The curve above is monotone improving,
+not U-shaped: discarding 95% of the deposits still helps, so the variance cost of
+losing them is smaller than the bias removed. With N = 256 over 5000 epochs even 5%
+of deposits is 1.3M samples, so variance is not binding -- the error is essentially
+all bias, and the burn-in affordable inside an epoch removes 1.7% of it. `wfr_adiab`
+is unmoved because it has no such bias to remove.
+
+**Finding M14 (an exact lift is free to transport fast).** Quadrupling the transport
+step by raising `n_cond` from 5 to 20 at fixed `kappa`, 16 seeds, matched force
+evaluations:
+
+| arm | n_cond = 5 | n_cond = 20 | change |
+|---|---|---|---|
+| `wfr_cart` | 0.6445 | 0.9555 | **+48%** |
+| `wfr_minnorm` | 0.6157 | 0.8932 | **+45%** |
+| `wfr_adiab` | 0.0088 | **0.0076** | **-14%** |
+
+The two naive lifts degrade in the direction the `dz^2` law requires; the exact lift
+does not degrade at all and in fact improves, because larger W steps transport more
+efficiently and an exact lift carries no penalty for taking them. This is Finding M8
+(no timescale condition for a correct lift) at the level of the whole algorithm.
+
+## Phase M7 - the warm-up policy, and the rigid-measure route
+
+**Finding M17 (discarding the warm-up works, and the control confirms why).**
+Zeroing the mean-force accumulator partway through, 16 seeds, everything else frozen:
+
+| reset at | `wfr_cart` | `wfr_fit_decay` | `wfr_adiab` |
+|---|---|---|---|
+| none | 0.64454 | 0.52105 | 0.00881 |
+| 0.50 | 0.66254 (**+2.8%**) | 0.36270 (**-30.4%**) | 0.00885 (+0.4%) |
+| 0.75 | 0.67343 (**+4.5%**) | **0.31493 (-39.6%)** | 0.01385 (**+57.2%**) |
+
+The three arms respond in three different directions and each is the predicted one:
+
+* `wfr_cart` has no warm-up, so discarding deposits is pure variance cost -- monotone
+  worse, and mildly so.
+* `wfr_fit_decay` has a warm-up whose bias dominates that variance cost even when 75%
+  of the deposits go -- monotone better, and still improving at the largest fraction
+  tested, which says the optimum is later still.
+* `wfr_adiab` is already within 2x of the estimator floor, so it is variance-limited:
+  +0.4% at half, **+57%** at three quarters.
+
+That divergence is a usable diagnostic in its own right: **if a reset helps, the arm
+has a warm-up; if it hurts, the arm is variance-limited.** A fixed fraction is the
+crude version -- the right policy resets when the lift's own conditional diagnostic
+stops moving.
+
+Combining with M13: the self-built lift is at **-51%** against the cartesian lift at
+the same reset (0.3149 vs 0.6734) at one budget unit, having been -19% with no warm-up
+policy at all.
+
+**Finding M18 (the rigid-measure route is free).** Chapter 3's alternative to targeting
+`nu^xi` directly is to sample the rigid measure with plain SHAKE/RATTLE and correct
+statistically,
+
+    F(z) = F_rgd(z) - beta^-1 log E_{nu_Sigma(z)}[ (det G)^{-1/2} ],
+
+which avoids second derivatives of `xi` entirely. The identity is exact, so the only
+question is the reweighting variance (`scripts/exp_rigid_route.py`):
+
+| `a k` | max \|F - F_rgd\| | ESS fraction | samples/bin for 0.1x floor |
+|---|---|---|---|
+| 0.42 | 0.0054 | 0.999 | 89 |
+| 0.84 | 0.0187 | 0.985 | 1510 |
+| 1.68 | 0.0442 | 0.976 | 2371 |
+| 2.80 | 0.0859 | 0.948 | 5374 |
+
+A production run deposits 1e5-1e6 samples per z-bin, so the correction is resolved to a
+tenth of the estimator floor at a cost of nothing. **For an atomistic implementation,
+take route (B):** standard rigid constrained dynamics, Fixman handled statistically.
+
+## Phase M8 - making the learned lift deployable, and stressing the design rule
+
+**Finding M19 (the learned lift's two knobs, and where its optimum is).** Screening
+the forgetting factor against the z-bandwidth of the conditional estimate, warm-up
+discard on throughout (reset at 0.5), 16 seeds, floor 0.00458:
+
+| decay \ bw_z | 0.015 | 0.03 | 0.06 | 0.10 | 0.16 | 0.24 | 0.36 |
+|---|---|---|---|---|---|---|---|
+| 1.0 (none) | 0.858 | 0.820 | 0.591 | -- | -- | -- | -- |
+| 0.9995 | 0.683 | 0.451 | 0.244 | -- | -- | -- | -- |
+| **0.999** | 0.552 | 0.363 | 0.213 | 0.206 | 0.185 | **0.181** | 0.250 |
+| 0.997 | 0.566 | 0.545 | 0.534 | -- | -- | -- | -- |
+| 0.99 | 0.662 | 0.662 | 0.662 | -- | -- | -- | -- |
+
+Best is decay 0.999, `bw_z` 0.24: **0.1809**, which is **-72.7%** against the cartesian
+lift at the same budget and reset (0.6625), 39.5x the estimator floor, and 20x the
+exact lift. The bandwidth optimum is interior -- 0.36 is worse -- so this is a real
+optimum, not an edge.
+
+**Finding M20 (the deployed optimum bandwidth is NOT the oracle-fed one).** Fed exact
+samples, the learned lift is best at `bw_z = 0.03` and degrades by 13x at 0.08
+(Phase M5). Fed its own samples it is best at `bw_z = 0.24` -- **8x larger** -- and
+0.03 is 2x worse than the optimum. Heavy z-smoothing damps the self-reinforcement
+that makes the estimate track its own ensemble. Tuning this knob against an oracle
+would land on the wrong value by a factor of eight.
+
+**Finding M21 (the design rule, properly stressed).** Using the SHIFTED spectator
+block, with `A = 1.0` so that `C_S / C_y1 = 0.92` and the block's lift error is held
+FIXED while its relaxation time sweeps 256x:
+
+| `tau_spec` | naive | promote (naive on S) | both | oracle | excess/floor | Dz(S) promote |
+|---|---|---|---|---|---|---|
+| 16.0 | 0.6749 | 0.2521 | 0.0624 | 0.0050 | **38.6** | 0.269 |
+| 1.0 | 0.5734 | 0.0788 | 0.0135 | 0.0050 | **13.3** | 0.103 |
+| 0.062 | 0.6353 | 0.0199 | 0.0087 | 0.0050 | **2.3** | 0.0075 |
+
+The right statistic is the EXCESS of `promote` over `both` in units of the estimator
+floor, because the ratio is contaminated by `both` itself approaching the floor. That
+excess falls **17x** (38.6 -> 2.3 floors) across a 256x fall in relaxation time, with
+the lift error held constant, and `Dz(S)` falls 36x alongside it. **The same lift
+error costs less on a faster mode** -- which is the design rule, and the width-only
+block of Phase M6 could not have shown it (promote/both = 0.89 there, i.e. no
+difference at all).
+
+Two limits, stated plainly:
+
+* **The gap never closes.** At `tau_spec = 0.062` promoting one mode is still 2.3
+  floors behind correcting both, and 4.1x the floor. "Fast modes are free to lift
+  naively" is too strong over the range reachable here; they are *cheaper*, not free.
+* **Promotion is worth 8-32x on its own** at every stiffness (0.675->0.252,
+  0.573->0.079, 0.635->0.020). Branch B works; it does not reach the ceiling alone.
+
+**Efficiency note (not a result, but it changed the campaign).** The inner loop is
+launch-latency-bound, not bandwidth-bound: 4096 and 40960 particles both cost 2.7 ms
+per step. Running arms sequentially wasted a factor of the arm count for nothing.
+Batching the arms into the row axis and striding the deposits (the fiber
+autocorrelation time is O(1) against `dt = 1e-3`, so consecutive deposits are ~1000x
+redundant) gave **~9x** with no change to any result.
