@@ -78,6 +78,10 @@ def report(res, baselines, out_json=None, floor=None):
     return txt
 
 
+def labels_first(res):
+    return next(iter(res))
+
+
 DEFAULT_ENTRIES = [
     ("wfr",        "wfr",       {}),
     ("w_only",     "w_only",    {}),
@@ -122,6 +126,9 @@ def main():
     txt = report(res, ["ti_cold", "reti_cold", "abf"],
                  out_json=os.path.join(a.out, f"{name}.json"), floor=float(fl))
     os.makedirs(a.out, exist_ok=True)
+    save_npz(os.path.join(a.out, f"{name}_curves.npz"),
+             floor=np.array(fl), fe=res[labels_first(res)]["fe"],
+             **{f"eF__{k}": v["e_F"] for k, v in res.items()})
     with open(os.path.join(a.out, f"{name}.txt"), "w") as f:
         f.write(f"floor={fl:.6f}\n" + txt)
 

@@ -143,7 +143,7 @@ def test_force_budget_is_matched_across_arms(arm):
           "unbiased": run_unbiased, "reti": run_reti}[arm]
     r = fn(S, cfg, rows=2, seed=11)
     exact = cfg.N * cfg.n_steps
-    assert abs(float(r["fe"][-1]) - exact) / exact < 0.11, \
+    assert abs(float(r["fe"][-1]) - exact) / exact < 0.02, \
         f"{arm}: fe={float(r['fe'][-1])} vs {exact}"
 
 

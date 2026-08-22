@@ -43,7 +43,27 @@ SYSTEMS = {
 }
 
 
+def torsion(L: float, well_spacing: float = 1.5, H: float = 1.0,
+            omega_in: float = 6.0, omega_out: float = 1.0, beta: float = 8.0,
+            dx: float = 0.01, **kw) -> SepSystem:
+    """Periodic CV of length L with L/well_spacing identical wells.
+
+    The local landscape is L-independent by construction, so L is a pure
+    TRANSPORT-DISTANCE knob: it is the axis on which prediction P1 (RC-WFR's
+    advantage over ABF grows with L, because ABF equilibrates the CV diffusively
+    in O(L^2) while W+FR fronts in O(L)) is tested.
+    """
+    n_wells = int(round(L / well_spacing))
+    n = int(round(L / dx)) + 1
+    g = Grid1D(-L / 2, L / 2, n, -L / 2, L / 2, bc="periodic")
+    p = SysParams(beta=beta, barrier="periodic", H=H, n_wells=n_wells,
+                  omega_in=omega_in, omega_out=omega_out, **kw)
+    return SepSystem(p, g)
+
+
 def build(name: str, **param_overrides) -> SepSystem:
+    if name.startswith("TORSION_L"):
+        return torsion(float(name[len("TORSION_L"):]), **param_overrides)
     spec = SYSTEMS[name]
     p = spec["params"]
     if param_overrides:

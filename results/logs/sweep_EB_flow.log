@@ -1,0 +1,26 @@
+=== sweep EB_flow  fe=1.02e+07  floor=0.00398 ===
+     lift n_cond  anneal  reset   kappa  theta |       I_F   e_F_fin    /fl    chan   cov   ess
+iden/flow      5    None   None    0.03    0.0 |   1.08156   1.08156  271.8  0.0210  0.02  1.00
+iden/flow      5    None   None    0.03    0.6 |   1.08156   1.08156  271.8  0.0219  0.02  1.00
+iden/flow      5    None   None   0.125    0.0 |   1.08156   1.08156  271.8  0.0141  0.02  1.00
+iden/flow      5    None   None   0.125    0.6 |   1.08156   1.08156  271.8  0.0176  0.02  1.00
+iden/flow      5    None   None     0.5    0.0 |   1.08157   1.08156  271.8  0.0230  0.02  1.00
+iden/flow      5    None   None     0.5    0.6 |   1.08156   1.08156  271.8  0.0171  0.02  1.00
+iden/flow      5    None   None     2.0    0.0 |   1.08156   1.08156  271.8  0.0176  0.02  1.00
+iden/flow      5    None   None     2.0    0.6 |   1.08156   1.08156  271.8  0.0117  0.02  1.00
+iden/flow      5    None   None     8.0    0.0 |   1.08156   1.08156  271.8  0.0254  0.02  1.00
+iden/flow      5    None   None     8.0    0.6 |   1.08156   1.08156  271.8  0.0347  0.02  1.00
+   [32s]
+ iden/sde      5    None   None    0.03    0.0 |   0.16703   0.01604    4.0  0.1548  0.98  1.00
+ iden/sde      5    None   None    0.03    0.6 |   0.02963   0.01407    3.5  0.1646  1.00  1.00
+ iden/sde      5    None   None   0.125    0.0 |   0.07569   0.03627    9.1  0.1517  0.99  1.00
+ iden/sde      5    None   None   0.125    0.6 |   0.03766   0.03407    8.6  0.1641  1.00  1.00
+ iden/sde      5    None   None     0.5    0.0 |   0.08996   0.07439   18.7  0.1620  1.00  1.00
+ iden/sde      5    None   None     0.5    0.6 |   0.07833   0.07371   18.5  0.1647  1.00  1.00
+ iden/sde      5    None   None     2.0    0.0 |   0.13469   0.11495   28.9  0.1558  1.00  1.00
+ iden/sde      5    None   None     2.0    0.6 |   0.11740   0.11098   27.9  0.1607  1.00  1.00
+ iden/sde      5    None   None     8.0    0.0 |   0.11050   0.09424   23.7  0.1724  1.00  1.00
+ iden/sde      5    None   None     8.0    0.6 |   0.10227   0.09403   23.6  0.1646  1.00  1.00
+   [29s]
+
+BEST {'lift': 'identity', 'w_mode': 'sde', 'bw_kde': 0.1, 'n_cond': 5, 'anneal': None, 'reset': None, 'kappa': 0.03, 'theta': 0.6, 'I_F': 0.029628372148343473, 'e_F_final': 0.014072665227583518, 'chan': 0.16464560900886177, 'cov': 1.0, 'ess': 1.0}

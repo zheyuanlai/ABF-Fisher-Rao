@@ -85,3 +85,26 @@ The decisive predictor is the LIFT RATIO
     R_lift = tau_cond_needed / tau_transport_under_optimal_bias
 
 RC-WFR can only win where R_lift << 1.
+
+## Why an unconditional CV move cannot be made exact (the structural obstruction)
+
+The artificial target is `nubar(dq) propto exp(-beta V(q)) exp(+beta F(xi(q))) dq`.
+A Metropolis correction for ANY move that changes `xi(q)` therefore needs the
+acceptance ratio
+
+    a = min(1, exp(-beta [V(q') - V(q)]) * exp(+beta [F(xi(q')) - F(xi(q))]) )
+
+which contains the unknown `F`.  Using the running estimate `F_hat` restores
+exactness only asymptotically and turns the method back into adaptive biasing
+(it is then an expanded-ensemble / simulated-scaling scheme whose weights are
+exactly the free energy).
+
+Hamiltonian replica exchange escapes this: swapping fiber configurations between
+two OCCUPIED windows leaves each replica's window assignment unchanged, so the
+`exp(+beta F(z_k))` factors cancel identically and no weights are needed.  That
+is why RE-TI is bias-free and RC-WFR is not.
+
+RC-WFR's Wasserstein step takes the third option: move unconditionally and do not
+correct.  The price is a hysteresis bias whose size is set by
+`kappa * tau_fiber` summed over EVERY fiber mode - including the slowest one,
+which is precisely the mode that made physical CV transport slow to begin with.

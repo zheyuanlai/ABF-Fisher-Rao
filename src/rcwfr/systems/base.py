@@ -303,6 +303,23 @@ class SepSystem:
         return ((2.0 * dt / self.p.beta) ** 0.5) * torch.randn(
             shape, device=device, dtype=dtype, generator=gen)
 
+    def lift_scaled(self, X_old, X_new, Y):
+        """Adiabatic ("scaled") lift: rescale each fiber coordinate by the ratio of
+        its harmonic width between the old and the new fiber.
+
+        For a purely harmonic fiber this maps nu^xi(.|x) EXACTLY onto nu^xi(.|x'),
+        so it removes the hysteresis of every mode whose x-dependence is MODELLED.
+        It is the best lift a practitioner could build from a known local model; it
+        can do nothing about modes that are not in the model (e.g. which channel a
+        two-channel fiber occupies), which is the point of the ablation.
+        """
+        r = (self.omega(X_old) / self.omega(X_new)).unsqueeze(-1)
+        y = Y[..., :1] * r
+        if self.p.m_spec == 0:
+            return y
+        rs = (self.omega_s(X_old) / self.omega_s(X_new)).unsqueeze(-1)
+        return torch.cat([y, Y[..., 1:] * rs], dim=-1)
+
     def step_fiber(self, X, Y, dt, gen):
         return self.clamp_y(Y - dt * self.grad_y(X, Y)
                             + self._noise(Y.shape, dt, gen, Y.device, Y.dtype))

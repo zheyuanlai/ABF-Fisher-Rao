@@ -118,3 +118,200 @@ delivers for free and without any lift bias.  **H2 fails on EB.**
 histogram-filling ABP.  At gain 1e6 it has filled F_hat to 6.9 of the true 11.1 within
 the budget.  A force-based method (ABF) is simply far more efficient on a high
 enthalpic barrier.  ABF is used as the primary adaptive-biasing baseline.
+
+## Phase 2 - hidden-channel system (CHANNEL), 25.6M force evals, 16 seeds
+
+System: two fiber channels (y_1 > 0 / y_1 < 0) whose CORRECT occupancy runs
+P(y>0|x): 1.0 at x = -1.4  ->  0.0 at x = +1.4.  The channels interconvert only near
+x_sw = 0.  Measured sign-change time at fixed x:
+
+| x            | 0.0   | 0.3  | 0.6  | 1.2  |
+|--------------|------:|-----:|-----:|-----:|
+| tau_switch   | 0.025 | 0.15 | 16.7 | 83.3 |
+
+so the switch region is |x| < 0.4 and the budget is T = 100.  Estimator floor 0.0035.
+
+| arm         | I_F     | e_F_final | /floor | chan  | cov   |
+|-------------|--------:|----------:|-------:|------:|------:|
+| wfr_oracle  | 0.00378 | 0.00356   |  1.0   | 0.033 | 1.000 |
+| ti_cold     | 0.22149 | 0.16112   | 46.6   | 0.297 | 1.000 |
+| wfr         | 0.22450 | 0.18477   | 53.4   | 0.172 | 1.000 |
+| w_count     | 0.24052 | 0.18656   | 53.9   | 0.201 | 1.000 |
+| w_only      | 0.26080 | 0.18042   | 52.1   | 0.198 | 1.000 |
+| fr_only     | 0.64543 | 0.64543   | 186.6  | 0.000 | 0.022 |
+
+**Finding C1 (the mechanism inverts).**  RC-WFR's hidden-channel error GROWS with its
+own transport rate.  From the kappa sweep (8 seeds, same budget, n_cond = 5):
+
+| kappa | 0.03 | 0.125 | 0.5  | 2.0  | 8.0  |
+|-------|-----:|------:|-----:|-----:|-----:|
+| chan  | 0.12 | 0.20  | 0.31 | 0.40 | 0.45 |
+| e_F   | 0.13 | 0.18  | 0.25 | 0.25 | 0.34 |
+
+Faster transport in z drags walkers through the switch region before the slow fiber
+mode can equilibrate, so the very move that buys CV coverage destroys the conditional
+law the estimator needs.  **Fast CV transport and correct conditional sampling are in
+direct conflict**, and the conflict is governed by the SLOWEST fiber mode - the same
+mode that made the physical transport slow in the first place.
+
+**Finding C2 (the lift is the whole story).**  `wfr_oracle` - identical marginal WFR
+dynamics, exact conditional refresh - sits at 1.0x the estimator floor at EVERY kappa
+from 0.03 to 8.0 and at every theta.  All of RC-WFR's error is lift hysteresis, none of
+it is the WFR flow.
+
+**Finding C3.**  `fr_only` confirms Phase 0 in the free-energy setting: coverage 0.022,
+`chan` trivially 0 (it never leaves the start), I_F 187x the floor.  FR alone cannot
+discover.
+
+**Finding C4 (H4, geometry).**  `wfr` 0.2245 vs `w_count` 0.2405 - the smooth
+Fisher-Rao score and plain count balancing are within a few percent, consistent with
+the identity `uniform-target FR with histogram density == count balancing` (unit test
+`test_uniform_target_fr_equals_count_balancing_in_the_histogram_limit`, r > 0.99).
+
+## Phase 2 (cont.) - the decisive CHANNEL table, 25.6M force evals, 16 seeds
+
+| arm         | I_F     | e_F_final | /floor | chan  | note                    |
+|-------------|--------:|----------:|-------:|------:|-------------------------|
+| wfr_oracle  | 0.00378 | 0.00356   |   1.0  | 0.033 | exact lift, not usable  |
+| reti_warm   | 0.00953 | 0.00674   |   1.9  | 0.029 | oracle-initialized      |
+| ti_warm     | 0.01152 | 0.00551   |   1.6  | 0.025 | oracle-initialized      |
+| **reti_cold**  | **0.12974** | **0.03897** | **11.3** | **0.032** | acc 0.975; NO oracle |
+| wfr (annealed, best) | 0.18993 | 0.09885 | 28.0 | 0.082 | kappa 0.5 -> 0.003   |
+| ti_cold     | 0.22149 | 0.16112   |  46.6  | 0.297 |                         |
+| wfr         | 0.22450 | 0.18477   |  53.4  | 0.172 |                         |
+| w_count     | 0.24052 | 0.18656   |  53.9  | 0.201 |                         |
+| w_only      | 0.26080 | 0.18042   |  52.1  | 0.198 |                         |
+| fr_only     | 0.64543 | 0.64543   | 186.6  | 0.000 | coverage 0.022          |
+
+**Finding C5 (the decisive one).**  On the system built specifically to reward
+CV-space population mobility, cold-start Hamiltonian replica exchange REPAIRS the
+hidden channel completely (chan 0.297 -> 0.032, the same value the oracle arms reach)
+and reaches e_F = 0.039.  RC-WFR, with the same information and the same budget,
+reaches e_F = 0.185 (0.099 with its best kappa anneal) and chan = 0.172 (0.082).
+**RE-TI beats the best RC-WFR configuration by 4.7x (1.9x annealed) in final error.**
+The reason is structural: RE swaps between two OCCUPIED windows, so the unknown
+exp(+beta F) weights cancel and the move is EXACT.  RC-WFR's unconditional move
+cannot be corrected without knowing F (docs/METHOD.md), so it is biased.
+
+**Finding C6 (annealing helps, does not rescue).**  Annealing kappa 0.5 -> 0.003 with
+the mean-force accumulator reset after 30-60% of the budget cuts e_F from 0.185 to
+0.069-0.099 - still 20-28x the floor and still worse than cold-start RE-TI.  Freezing
+late does not repair the conditional, because repairing it needs precisely the slow
+fiber relaxation the transport was meant to avoid.
+
+## Phase 2b - can a BETTER lift rescue it?  (EB, 10.24M fe, 8 seeds, theta=0.6)
+
+`scaled` lift = rescale each fiber coordinate by omega(x)/omega(x'), i.e. the exact
+adiabatic map for a harmonic fiber - the best lift a practitioner could build from a
+known local model.
+
+| kappa | identity e_F | scaled e_F | oracle e_F |
+|-------|-------------:|-----------:|-----------:|
+| 0.03  | 0.0135       | 0.0061     | 0.0044     |
+| 0.125 | 0.0323       | 0.0058     | 0.0044     |
+| 0.5   | 0.0729       | 0.0061     | 0.0045     |
+| 2.0   | 0.1120       | 0.0090     | 0.0045     |
+| 8.0   | 0.0948       | 0.0180     | 0.0045     |
+
+**Finding B1.**  A model-based lift removes the hysteresis of exactly the modes it
+models: on the purely harmonic EB fiber the scaled lift restores RC-WFR to 1.5x the
+estimator floor up to kappa = 0.5.  Best scaled-lift `I_F` = 0.0069, versus ti_warm
+0.0064 and reti_warm 0.0059 - **a tie with stratified TI at best, not a win**, and it
+requires an analytic model of the fiber that no real system provides.
+
+## Phase 2c - a model-based lift only helps when the model is RIGHT
+
+`scaled` lift on the CHANNEL fiber (whose slow mode is WHICH channel is occupied, a
+mode the omega-rescaling model does not contain):
+
+| kappa | 0.03 | 0.125 | 0.5  | 2.0  | 8.0  |
+|-------|-----:|------:|-----:|-----:|-----:|
+| identity e_F | 0.128 | 0.184 | 0.246 | 0.245 | 0.335 |
+| scaled   e_F | 0.143 | 0.267 | 0.372 | 0.411 | 0.396 |
+
+**Finding B2.**  On EB (harmonic fiber, the model is exact) the scaled lift cuts e_F by
+5x.  On CHANNEL (the slow mode is not in the model) the SAME lift makes e_F 1.1-1.7x
+WORSE than doing nothing, because rescaling y distorts the channel minima at y = +-c.
+A lift built from a local model therefore cannot be trusted: it repairs exactly the
+modes one already understands and can actively damage the ones one does not - which
+are, by construction, the modes that made the problem hard.
+
+## Phase 2d - the deterministic probability-flow W step
+
+`w_mode='flow'` replaces `Z <- Z + sqrt(2 kappa dtau) eta` by the probability flow
+`Z <- Z - kappa dtau grad log p_hat(Z)`.  Started from a single structure it NEVER
+MOVES: the score of a delta initial ensemble vanishes at the particles, so coverage
+stays at 0.02 and e_F at 1.08 for every kappa and theta tested (10 configurations).
+The deterministic form of the Wasserstein step therefore requires a non-degenerate
+starting ensemble - a structural disadvantage relative to the SDE form, which is
+exactly the regime ("we have one equilibrated structure") the method is sold for.
+
+## Phase 3 - the best RC-WFR variant: probability-flow W + FR + resample-move jitter
+
+Replacing the stochastic W step `Z <- Z + sqrt(2 kappa dtau) eta` by the DETERMINISTIC
+probability flow `Z <- Z - kappa dtau grad log p_hat(Z)` changes the bias picture
+qualitatively, because the flow velocity vanishes as p -> u: the hysteresis
+self-annihilates once the marginal is flat.
+
+EB, 10.24M fe, 8 seeds, n_cond = 5, identity lift, floor 0.00398:
+
+| W step | fr_jitter | kappa | theta | I_F     | e_F_final | /floor | coverage |
+|--------|----------:|------:|------:|--------:|----------:|-------:|---------:|
+| sde    | -         | 0.03  | 0.6   | 0.02328 | 0.01255   |  3.2   | 1.00 |
+| sde    | -         | 2.0   | 0.6   | 0.11738 | 0.11022   | 27.7   | 1.00 |
+| flow   | 0         | 0.5   | 0.0   | 0.02802 | 0.00930   |  2.3   | 1.00 |
+| flow   | 0         | 0.5   | 0.6   | 0.14675 | 0.01127   |  2.8   | **0.33** |
+| flow   | 0.01      | 0.5   | 0.3   | 0.01474 | 0.00888   |  2.2   | 1.00 |
+| flow   | 0.01      | 2.0   | 0.3   | **0.01397** | **0.00794** | **2.0** | 1.00 |
+| flow   | 0.05      | 2.0   | 0.3   | 0.05435 | 0.05028   | 12.6   | 1.00 |
+
+**Finding F1.**  The deterministic flow keeps `e_F` at ~2x the floor for kappa from
+0.03 to 2.0 - essentially kappa-INDEPENDENT - where the SDE form degrades from 3.2x to
+28x.  This is the single most important algorithmic improvement found in the campaign.
+
+**Finding F2 (an incompatibility).**  Deterministic transport plus Fisher-Rao
+resampling is degenerate: clones are exact duplicates and the flow moves them
+identically, so they never separate and coverage collapses to 0.33-0.44.  The standard
+SMC "resample-move" fix - a small z-jitter after each FR event - repairs it, but only
+in a narrow window: sigma = 0.01 is optimal, sigma = 0.05 reintroduces the SDE
+hysteresis and costs a factor 6 in e_F.
+
+**Finding F3 (H0 supported, in the flow formulation only).**  With the jitter,
+theta = 0.3 beats theta = 0 at every kappa (0.0308 -> 0.0147 at kappa = 0.5), so the
+Fisher-Rao term does real work once the Wasserstein step is deterministic.  In the SDE
+formulation theta helps far less because the W noise already redistributes population.
+
+## Phase 4 - scaling tests of the two mechanism predictions
+
+### P1: does RC-WFR's advantage over ABF grow with the CV domain length L?
+
+Periodic torsional landscape, wells at fixed spacing 1.5, beta*dF = 9.8 per barrier,
+budget 25.6M force evaluations for every arm; N is each arm's own knob at fixed budget.
+Paired median relative change in I_F (negative = RC-WFR better), 8 seeds:
+
+| L  | wells | RC-WFR vs best ABF          | RC-WFR vs best fixed TI      |
+|----|------:|-----------------------------|------------------------------|
+| 3  |     2 | **+191.3%** [+163.0,+209.3] | +164.9% [ +95.1,+269.2]      |
+| 6  |     4 | -19.1% [-37.2,+19.5] (tie)  | **+95.8%** [ +60.7,+118.7]   |
+
+The DIRECTION of P1 is confirmed - RC-WFR gains on ABF as the CV domain lengthens,
+exactly as the O(L) vs O(L^2) marginal argument predicts.  But fixed-window stratified
+TI is L-INDEPENDENT by construction (its coverage is O(1)), so the same axis that helps
+RC-WFR against ABF does nothing for it against TI.
+
+### P2: does RC-WFR overtake RE-TI as the fiber grows?  NO - the opposite.
+
+CHANNEL fiber plus m inert-in-x-but-not-in-z spectator dofs; errors relative to
+|F_ref| so the axis is comparable across m.  8 seeds, 15.4M force evaluations.
+
+| m_spec | RE acceptance | wfr I_F_rel | ti_cold I_F_rel | reti I_F_rel | wfr vs reti      |
+|--------|--------------:|------------:|----------------:|-------------:|------------------|
+| 0      | 0.975         | 0.401       | 0.385           | 0.309        | +33.0% [+23,+48] |
+| 32     | 0.944         | 0.195       | 0.105           | 0.108        | +78.6% [+67,+98] |
+| 128    | 0.899         | 0.226       | 0.057           | 0.062        | (worse still)    |
+
+**Finding P2-neg.**  Exchange acceptance decays only slowly (0.975 -> 0.899 over
+m = 0 -> 128) while RC-WFR's lift bias grows with EVERY fiber mode it drags, so the
+gap widens rather than closing.  The hoped-for crossover does not exist in this family.
+RC-WFR does beat ABF by a wide margin here (-86.5% at m = 32) - but only because a
+large entropic barrier is very hard for ABF, and stratified TI beats both.

@@ -47,6 +47,10 @@ class RunConfig:
     n_min: float = 1.0
     init: str = "point"          # point | grid_cold | grid_warm | uniform_warm | uniform_cold
     x0: float = -1.0
+    x0_jitter: float = 0.0        # spread of the 'point' start.  The DETERMINISTIC
+                                  # probability-flow W step has zero velocity at a
+                                  # delta initial condition and can never move, so it
+                                  # requires a non-degenerate starting ensemble.
     # RC-WFR
     n_cond: int = 20
     n_eq: int = 0
@@ -59,6 +63,10 @@ class RunConfig:
     bw_kde: float = 0.10
     n_bins_count: int = 45
     alpha_ess: float = 0.5
+    fr_jitter: float = 0.0        # resample-move: sigma of the z-jitter applied after
+                                  # an FR event.  Deterministic ('flow') transport gives
+                                  # clones IDENTICAL trajectories, so without jitter the
+                                  # particle ensemble collapses onto a few distinct z.
     lift: str = "identity"       # identity | oracle
     # --- annealing / burn-in (the steelman for the lift-bias tradeoff) ------
     kappa_end: float = None      # geometric anneal kappa -> kappa_end over the run
@@ -71,6 +79,9 @@ class RunConfig:
     shus_eps_bw: float = 0.07
     # replica exchange
     n_ex: int = 20               # inner steps between exchange sweeps
+    n_windows: int = 0            # RE-TI: distinct windows (0 = N).  Fewer windows =
+                                  # larger exchange stride = faster window-space
+                                  # diffusion at coarser CV resolution.
 
 
 def _init_state(sys: SepSystem, cfg: RunConfig, rows: int, gen):
@@ -87,10 +98,15 @@ def _draw_ic(sys: SepSystem, cfg: RunConfig, rows: int, gen):
     g, dev, dt, N = sys.grid, sys.device, sys.dtype, cfg.N
     if cfg.init == "point":
         X = torch.full((rows, N), cfg.x0, device=dev, dtype=dt)
+        if cfg.x0_jitter > 0:
+            X = g.enforce(X + cfg.x0_jitter * torch.randn(
+                X.shape, device=dev, dtype=dt, generator=gen))
         Y = sys.sample_conditional(X, gen)
     elif cfg.init in ("grid_cold", "grid_warm"):
-        zs = torch.linspace(g.eval_lo, g.eval_hi, N, device=dev, dtype=dt)
-        X = zs.unsqueeze(0).expand(rows, N).clone()
+        M = cfg.n_windows if cfg.n_windows else N
+        assert N % M == 0, f"N={N} must be a multiple of n_windows={M}"
+        zs = torch.linspace(g.eval_lo, g.eval_hi, M, device=dev, dtype=dt)
+        X = zs.repeat_interleave(N // M).unsqueeze(0).expand(rows, N).clone()
         src = torch.full((rows, N), cfg.x0, device=dev, dtype=dt) \
             if cfg.init == "grid_cold" else X
         Y = sys.sample_conditional(src, gen)
@@ -198,6 +214,8 @@ def run_wfr(sys: SepSystem, cfg: RunConfig, rows: int, seed: int, sham_source=No
             raise ValueError(cfg.w_mode)
         if cfg.lift == "oracle":
             Y = sys.sample_conditional(Xn, gen)
+        elif cfg.lift == "scaled":
+            Y = sys.clamp_y(sys.lift_scaled(X, Xn, Y))
         elif cfg.lift != "identity":
             raise ValueError(cfg.lift)
         X = Xn
@@ -213,6 +231,9 @@ def run_wfr(sys: SepSystem, cfg: RunConfig, rows: int, seed: int, sham_source=No
             Y = torch.gather(Y, 1, sel.unsqueeze(-1).expand(-1, -1, Y.shape[-1]))
             anc = torch.gather(anc, 1, sel)
             anc_g = torch.gather(anc_g, 1, sel)
+            if cfg.fr_jitter > 0:
+                X = g.enforce(X + cfg.fr_jitter * torch.randn(
+                    X.shape, device=dev, dtype=dt, generator=gen))
             turnovers.append(info["turnover"])
         else:
             turnovers.append(torch.zeros(rows, device=dev, dtype=torch.long))
@@ -317,31 +338,41 @@ def run_reti(sys: SepSystem, cfg: RunConfig, rows: int, seed: int):
     X, Y = _init_state(sys, cfg, rows, gen)
     acc = MeanForceAccumulator(rows, g, cfg.bw_mf, cfg.n_min, dev, dt)
     mask = g.eval_mask(dev, dt)
-    n_saves = cfg.n_steps // cfg.save_every
+    # COST MATCHING: an exchange sweep costs 2 new energies per pair = ~N per sweep,
+    # i.e. one extra force-equivalent per replica every n_ex steps.  Shorten the inner
+    # loop so the TOTAL charge equals N * cfg.n_steps, the budget every other arm uses.
+    n_inner = int(round(cfg.n_steps / (1.0 + 1.0 / cfg.n_ex)))
+    n_saves = max(1, n_inner // cfg.save_every)
     out = _saver(rows, g, n_saves, dev, dt)
     N = cfg.N
+    M = cfg.n_windows if cfg.n_windows else N
+    rep = N // M                       # replicas per window
     acc_num = torch.zeros((), device=dev, dtype=dt)
     acc_den = torch.zeros((), device=dev, dtype=dt)
     fe = 0.0
     si, parity = 0, 0
-    for n in range(cfg.n_steps):
+    for n in range(n_inner):
         Y = sys.step_fiber(X, Y, cfg.dt, gen)
         acc.deposit(X, sys.mean_force(X, Y))
         fe += N
         if (n + 1) % cfg.n_ex == 0:
             i0 = parity
             parity ^= 1
-            idx = torch.arange(i0, N - 1, 2, device=dev)
+            # partner of replica i is i + rep (the same slot in the next window)
+            base_idx = torch.arange(0, (M - 1) * rep, device=dev)
+            wnd = base_idx // rep
+            idx = base_idx[(wnd % 2) == i0]
             if idx.numel():
-                Xi, Xj = X[:, idx], X[:, idx + 1]
-                Yi, Yj = Y[:, idx], Y[:, idx + 1]
+                jdx = idx + rep
+                Xi, Xj = X[:, idx], X[:, jdx]
+                Yi, Yj = Y[:, idx], Y[:, jdx]
                 Enew = sys.energy(Xi, Yj) + sys.energy(Xj, Yi)
                 Eold = sys.energy(Xi, Yi) + sys.energy(Xj, Yj)
                 pacc = torch.exp(torch.clamp(-sys.p.beta * (Enew - Eold), max=0.0))
                 u = torch.rand(pacc.shape, device=dev, dtype=dt, generator=gen)
                 sw = (u < pacc).unsqueeze(-1)
                 Y[:, idx] = torch.where(sw, Yj, Yi)
-                Y[:, idx + 1] = torch.where(sw, Yi, Yj)
+                Y[:, jdx] = torch.where(sw, Yi, Yj)
                 acc_num += (u < pacc).to(dt).sum()
                 acc_den += float(pacc.numel())
                 fe += 2.0 * idx.numel() * rows / rows      # 2 new energies per pair
