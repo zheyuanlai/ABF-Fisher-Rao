@@ -14,28 +14,36 @@ from rcwfr.campaign import (estimator_floor, paired_bootstrap, rel_change, run_a
 from rcwfr.engines import RunConfig
 from rcwfr.registry import build, torsion
 
-# FROZEN from Stage 1 (docs/RESULTS_LOG.md).  Each entry: label, arm, overrides.
-FROZEN = [
-    ("wfr",         "wfr",       dict(kappa=0.125, theta=0.6, n_cond=5, lift="identity")),
+def frozen(a):
+    """Stage-1 winners, frozen.  Each entry: label, arm, overrides."""
+    K, TH = a.kappa, a.theta
+    FK, FT, FJ = a.flow_kappa, a.flow_theta, a.flow_jitter
+    return [
+    ("wfr",         "wfr",       dict(kappa=K, theta=TH, n_cond=5, lift="identity")),
     ("wfr_anneal",  "wfr",       dict(kappa=0.5, kappa_end=0.003, acc_reset_at=0.3,
-                                      theta=0.6, n_cond=5, lift="identity")),
-    ("wfr_flow",    "wfr_flow",  dict(kappa=0.5, theta=0.0, n_cond=5, lift="identity")),
-    ("wfr_flow_fr", "wfr_flow",  dict(kappa=0.5, theta=0.6, n_cond=5, lift="identity",
-                                      fr_jitter=0.05)),
-    ("wfr_scaled",  "wfr",       dict(kappa=0.125, theta=0.6, n_cond=5, lift="scaled")),
-    ("wfr_oracle",  "wfr_oracle", dict(kappa=0.5, theta=0.6, n_cond=5)),
-    ("w_only",      "w_only",    dict(kappa=0.125, n_cond=5)),
-    ("fr_only",     "fr_only",   dict(theta=0.6, n_cond=5)),
-    ("w_count",     "w_count",   dict(kappa=0.125, theta=0.6, n_cond=5)),
-    ("w_sham",      "w_sham",    dict(kappa=0.125, n_cond=5)),
+                                      theta=TH, n_cond=5, lift="identity")),
+    ("wfr_flow",    "wfr_flow",  dict(kappa=FK, theta=FT, n_cond=5, lift="identity",
+                                      fr_jitter=FJ)),
+    ("wfr_flow_w",  "wfr_flow",  dict(kappa=FK, theta=0.0, n_cond=5, lift="identity",
+                                      fr_jitter=FJ)),
+    ("wfr_flow_cnt","wfr",       dict(kappa=FK, theta=FT, n_cond=5, lift="identity",
+                                      w_mode="flow", fr_rule="count", fr_jitter=FJ)),
+    ("wfr_scaled",  "wfr",       dict(kappa=K, theta=TH, n_cond=5, lift="scaled")),
+    ("wfr_oracle",  "wfr_oracle", dict(kappa=0.5, theta=TH, n_cond=5)),
+    ("w_only",      "w_only",    dict(kappa=K, n_cond=5)),
+    ("fr_only",     "fr_only",   dict(theta=TH, n_cond=5)),
+    ("w_count",     "w_count",   dict(kappa=K, theta=TH, n_cond=5)),
+    ("w_sham",      "w_sham",    dict(kappa=K, n_cond=5)),
     ("ti_cold",     "ti_cold",   dict(n_cond=5)),
     ("ti_warm",     "ti_warm",   dict(n_cond=5)),
-    ("reti_cold",   "reti_cold", dict(n_ex=5, n_windows=256)),
-    ("reti_warm",   "reti_warm", dict(n_ex=5, n_windows=256)),
+    ("reti_cold",   "reti_cold", dict(n_ex=a.reti_nex, n_windows=a.reti_M)),
+    ("reti_warm",   "reti_warm", dict(n_ex=a.reti_nex, n_windows=a.reti_M)),
     ("abf",         "abf",       dict(bias_n_min=1.0)),
     ("shus",        "shus",      dict(shus_gain=1000.0)),
     ("unbiased",    "unbiased",  {}),
 ]
+
+
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--system", default="EB")
@@ -44,6 +52,14 @@ ap.add_argument("--steps", type=int, default=100_000)
 ap.add_argument("--seeds", type=int, default=32)
 ap.add_argument("--seed", type=int, default=9000)
 ap.add_argument("--out", default="results/confirm")
+# calibrated per-system RC-WFR settings (Stage-1 screens, docs/RESULTS_LOG.md)
+ap.add_argument("--kappa", type=float, default=0.125)
+ap.add_argument("--theta", type=float, default=0.6)
+ap.add_argument("--flow_kappa", type=float, default=2.0)
+ap.add_argument("--flow_theta", type=float, default=0.3)
+ap.add_argument("--flow_jitter", type=float, default=0.01)
+ap.add_argument("--reti_M", type=int, default=256)
+ap.add_argument("--reti_nex", type=int, default=5)
 a = ap.parse_args()
 
 S = torsion(float(a.system[len("TORSION_L"):])) if a.system.startswith("TORSION_L") \
@@ -60,7 +76,7 @@ print(f"=== CONFIRM {a.system}  N={a.N} steps={a.steps} fe={a.N*a.steps:.3g} "
       f"seeds={a.seeds} floor={fl:.5f} ===", flush=True)
 
 res, curves = {}, {}
-for label, arm, ov in FROZEN:
+for label, arm, ov in frozen(a):
     # a sham arm needs its FR partner's per-event turnover: run wfr first and reuse it
     sham_src = res.get("_turnover") if arm == "w_sham" else None
     t0 = time.time()

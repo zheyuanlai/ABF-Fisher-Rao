@@ -23,6 +23,12 @@ ap.add_argument("--kappa", type=float, default=0.125)
 ap.add_argument("--theta", type=float, default=0.6)
 ap.add_argument("--n_cond", type=int, default=5)
 ap.add_argument("--H", type=float, default=1.0)
+ap.add_argument("--bw_mf", type=float, default=0.02)
+ap.add_argument("--Ns", type=int, nargs="*", default=None)
+ap.add_argument("--tag", default="")
+ap.add_argument("--flow", action="store_true",
+                help="use the calibrated probability-flow RC-WFR arm")
+ap.add_argument("--flow_jitter", type=float, default=0.01)
 ap.add_argument("--out", default="results/torsion")
 a = ap.parse_args()
 
@@ -38,12 +44,20 @@ ENTRIES = [
     ("abf_N256",     "abf",       256,  {}),
     ("abf_N1024",    "abf",       1024, {}),
 ]
+if a.Ns:                       # let every family choose its own replica count at
+    ENTRIES = []               # FIXED total budget: many short windows vs few long ones
+    _wov = dict(w_mode="flow", fr_jitter=a.flow_jitter) if a.flow else {}
+    for _n in a.Ns:
+        ENTRIES += [(f"wfr_N{_n}", "wfr", _n, dict(_wov)),
+                    (f"ti_cold_N{_n}", "ti_cold", _n, {}),
+                    (f"reti_cold_N{_n}", "reti_cold", _n, {"n_ex": 5}),
+                    (f"abf_N{_n}", "abf", _n, {})]
 
 allres = {}
 for L in a.Ls:
     S = torsion(L, H=a.H)
     n_steps0 = int(a.budget / 256)
-    probe = RunConfig(N=256, n_steps=n_steps0, bw_mf=0.02, n_min=1.0)
+    probe = RunConfig(N=256, n_steps=n_steps0, bw_mf=a.bw_mf, n_min=1.0)
     fl = float(estimator_floor(S, probe, [2 ** 22], rows=4)[2 ** 22].mean())
     print(f"\n=== TORSION L={L}  wells={S.p.n_wells}  budget={a.budget:.3g} "
           f"floor={fl:.5f}  beta*dF={S.p.beta*float(S.F_ref.max()-S.F_ref.min()):.1f} ===",
@@ -52,7 +66,7 @@ for L in a.Ls:
     for label, arm, N, ov in ENTRIES:
         n_steps = int(a.budget / N)
         cfg = RunConfig(N=N, n_seed=a.seeds, n_steps=n_steps,
-                        save_every=max(200, n_steps // 60), bw_mf=0.02, n_min=1.0,
+                        save_every=max(200, n_steps // 60), bw_mf=a.bw_mf, n_min=1.0,
                         bw_kde=max(0.10, L / 60), n_bins_count=45, x0=-L / 4,
                         kappa=a.kappa, theta=a.theta, n_cond=a.n_cond, ess_window=40)
         t0 = time.time()
@@ -80,7 +94,7 @@ for L in a.Ls:
                               "chan": v["chan"][-1].tolist()} for k, v in res.items()},
                  "wfr_vs_abf": [m1, lo1, hi1, bw, ba],
                  "wfr_vs_ti": [m2, lo2, hi2, bw, bt]}
-save_json(os.path.join(a.out, "torsion_scaling.json"), allres)
+save_json(os.path.join(a.out, f"torsion_scaling{a.tag}.json"), allres)
 print("\nSUMMARY  (paired median rel change in I_F, negative = RC-WFR better)")
 print(f"{'L':>6} {'wells':>6} | {'vs ABF':>26} | {'vs fixed TI':>26}")
 for L, r in allres.items():

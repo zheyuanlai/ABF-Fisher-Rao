@@ -28,3 +28,32 @@
 === TORSION L=12.0  wells=8  budget=2.56e+07 floor=0.00185  beta*dF=9.8 ===
   wfr_N256         N=  256 steps= 100000 I_F=0.01628 e_F=0.01125 (/fl   6.1) cov=1.000 [81s]
   wfr_N1024        N= 1024 steps=  25000 I_F=0.02866 e_F=0.01159 (/fl   6.3) cov=1.000 [20s]
+  w_only_N256      N=  256 steps= 100000 I_F=0.07129 e_F=0.01253 (/fl   6.8) cov=1.000 [58s]
+  ti_cold_N256     N=  256 steps= 100000 I_F=0.01187 e_F=0.00634 (/fl   3.4) cov=1.000 [57s]
+  ti_cold_N1024    N= 1024 steps=  25000 I_F=0.01259 e_F=0.00717 (/fl   3.9) cov=1.000 [14s]
+  ti_warm_N1024    N= 1024 steps=  25000 I_F=0.01121 e_F=0.00727 (/fl   3.9) cov=1.000 [15s]
+  reti_cold_N1024  N= 1024 steps=  25000 I_F=0.00835 e_F=0.00364 (/fl   2.0) cov=1.000 [17s]
+  abf_N256         N=  256 steps= 100000 I_F=0.05678 e_F=0.00764 (/fl   4.1) cov=1.000 [86s]
+  abf_N1024        N= 1024 steps=  25000 I_F=0.16354 e_F=0.01477 (/fl   8.0) cov=1.000 [21s]
+  --> best wfr=wfr_N256 vs best abf=abf_N256: -72.2% [-74.8,-58.4]
+  --> best wfr=wfr_N256 vs best ti_cold=ti_cold_N256: +39.9% [+26.1,+94.4]
+
+=== TORSION L=24.0  wells=16  budget=2.56e+07 floor=0.00300  beta*dF=9.8 ===
+  wfr_N256         N=  256 steps= 100000 I_F=0.03332 e_F=0.01479 (/fl   4.9) cov=1.000 [74s]
+  wfr_N1024        N= 1024 steps=  25000 I_F=0.05883 e_F=0.01570 (/fl   5.2) cov=1.000 [19s]
+  w_only_N256      N=  256 steps= 100000 I_F=0.26691 e_F=0.02831 (/fl   9.4) cov=0.933 [59s]
+  ti_cold_N256     N=  256 steps= 100000 I_F=0.03279 e_F=0.02249 (/fl   7.5) cov=1.000 [57s]
+  ti_cold_N1024    N= 1024 steps=  25000 I_F=0.02540 e_F=0.01252 (/fl   4.2) cov=1.000 [14s]
+  ti_warm_N1024    N= 1024 steps=  25000 I_F=0.02161 e_F=0.01308 (/fl   4.4) cov=1.000 [15s]
+  reti_cold_N1024  N= 1024 steps=  25000 I_F=0.01423 e_F=0.00641 (/fl   2.1) cov=1.000 [15s]
+  abf_N256         N=  256 steps= 100000 I_F=0.19833 e_F=0.02208 (/fl   7.4) cov=0.944 [86s]
+  abf_N1024        N= 1024 steps=  25000 I_F=0.40360 e_F=0.40053 (/fl 133.7) cov=0.689 [22s]
+  --> best wfr=wfr_N256 vs best abf=abf_N256: -82.5% [-85.9,-78.8]
+  --> best wfr=wfr_N256 vs best ti_cold=ti_cold_N1024: +31.4% [+8.9,+66.5]
+
+SUMMARY  (paired median rel change in I_F, negative = RC-WFR better)
+     L  wells |                     vs ABF |                vs fixed TI
+   3.0      2 |  +191.3% [+163.0,+209.3] |  +164.9% [ +95.1,+269.2]
+   6.0      4 |   -19.1% [ -37.2, +19.5] |   +95.8% [ +60.7,+118.7]
+  12.0      8 |   -72.2% [ -74.8, -58.4] |   +39.9% [ +26.1, +94.4]
+  24.0     16 |   -82.5% [ -85.9, -78.8] |   +31.4% [  +8.9, +66.5]

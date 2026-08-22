@@ -315,3 +315,91 @@ m = 0 -> 128) while RC-WFR's lift bias grows with EVERY fiber mode it drags, so 
 gap widens rather than closing.  The hoped-for crossover does not exist in this family.
 RC-WFR does beat ABF by a wide margin here (-86.5% at m = 32) - but only because a
 large entropic barrier is very hard for ABF, and stratified TI beats both.
+
+## Phase 5 - frozen confirmation, EB (32 fresh seeds, 10.24M force evals, floor 0.00403)
+
+`scripts/confirm.py --system EB --steps 40000 --seeds 32`
+
+| arm         | I_F     | e_F_final | /floor | note |
+|-------------|--------:|----------:|-------:|------|
+| wfr_oracle  | 0.00456 | 0.00444   |  1.1   | exact conditional refresh (upper bound) |
+| reti_warm   | 0.00627 | 0.00551   |  1.4   | oracle-initialized |
+| ti_warm     | 0.00669 | 0.00566   |  1.4   | oracle-initialized |
+| **wfr_scaled** | **0.00711** | 0.00615 | 1.5 | needs an exact analytic fiber model |
+| reti_cold   | 0.00999 | 0.00612   |  1.5   | acc 0.983; no oracle |
+| ti_cold     | 0.01140 | 0.00639   |  1.6   | no oracle |
+| wfr_flow    | 0.02858 | 0.01004   |  2.5   | uncalibrated kappa/theta, see Phase 6 |
+| w_count     | 0.03502 | 0.03283   |  8.1   | |
+| wfr         | 0.03612 | 0.03362   |  8.3   | |
+| wfr_anneal  | 0.03767 | 0.01265   |  3.1   | |
+| abf         | 0.04138 | 0.00749   |  1.9   | |
+| w_only      | 0.07650 | 0.03656   |  9.1   | |
+| w_sham      | 0.08185 | 0.03786   |  9.4   | |
+| fr_only     | 1.03684 | 1.03676   | 257.2  | coverage 0.067 |
+| shus        | 2.48788 | 0.78684   | 195.2  | coverage 0.644 |
+
+**Finding H0 (mechanism, SUPPORTED).**  `wfr` (0.0361) beats `w_only` (0.0765) and
+`fr_only` (1.037).  The W+FR decomposition does what it claims: W discovers, FR
+establishes, and neither alone suffices.
+
+**Finding H4 (geometry, FAILS for count, PASSES for sham).**  `w_count` 0.03502 vs
+`wfr` 0.03612 - count balancing is a hair BETTER than smooth Fisher-Rao, i.e. an exact
+tie; `w_sham` (0.08185) is 2.3x worse, so the DIRECTION of the reallocation matters
+but its Fisher-Rao geometry does not.  This reproduces the ABF/ABP campaign's finding
+in a setting with no adaptive bias to be redundant with, which strengthens it: the
+result is a property of the uniform target, not of the host method.
+
+## Phase 5b - EB confirmation: paired relative change in I_F (32 fresh seeds)
+
+`* = 95% bootstrap CI excludes 0`
+
+| arm         | vs ti_cold                | vs reti_cold              | vs abf                    |
+|-------------|---------------------------|---------------------------|---------------------------|
+| wfr_oracle  | -59.2% [-61.6,-57.4]*     | -54.7% [-57.2,-52.4]*     | -88.7% [-89.4,-88.2]*     |
+| reti_warm   | -43.8% [-47.1,-39.1]*     | -37.1% [-40.6,-32.6]*     | -84.9% [-85.7,-83.3]*     |
+| ti_warm     | -40.3% [-43.0,-37.4]*     | -32.8% [-39.5,-28.2]*     | -83.4% [-84.5,-82.4]*     |
+| **wfr_scaled** | **-36.1% [-39.9,-33.8]\*** | **-26.9% [-34.2,-23.0]\*** | -82.8% [-83.7,-80.5]*  |
+| reti_cold   | -12.7% [-19.2,-2.2]*      | -                         | -75.6% [-76.4,-73.4]*     |
+| ti_cold     | -                         | +14.5% [+2.2,+23.7]       | -71.1% [-73.5,-69.3]*     |
+| wfr_flow    | +147.4%                   | +188.3%                   | -27.2% [-32.4,-22.1]*     |
+| wfr         | +223.7%                   | +265.7%                   | -5.8% [-17.2,+3.2] (tie)  |
+| w_only      | +579.0%                   | +670.7%                   | +85.9%                    |
+| w_sham      | +612.7%                   | +697.8%                   | +99.4%                    |
+
+**Finding E3.**  Given an EXACT analytic model of the fiber (`wfr_scaled`), RC-WFR is
+the best non-oracle arm on EB: -36% vs cold-start stratified TI and -27% vs cold-start
+RE-TI, both with CIs excluding 0.  Without such a model it ties ABF and loses heavily
+to both stratified baselines.  The method's usable regime therefore requires knowing
+the fiber well enough to map it between neighbouring reaction-coordinate values - which
+is exactly the situation in which the sampling problem was not hard.
+
+## Phase 6 - P1 in full: RC-WFR vs ABF vs stratified TI as the CV domain lengthens
+
+`scripts/torsion_scaling.py`, periodic landscape with wells at fixed spacing 1.5,
+beta*dF = 9.8 per barrier, 25.6M force evaluations for every arm, 8 seeds, N is each
+arm's own knob at fixed budget.  Best I_F per family:
+
+| L  | wells | RC-WFR   | ABF      | fixed TI | RE-TI    | RC-WFR vs ABF            | RC-WFR vs fixed TI |
+|----|------:|---------:|---------:|---------:|---------:|--------------------------|--------------------|
+| 3  |     2 | 0.00889  | 0.00305  | 0.00334  | 0.00428  | **+191.3%** [+163,+209]  | +164.9% [+95,+269] |
+| 6  |     4 | 0.01254  | 0.01539  | 0.00682  | 0.00664  | -19.1% [-37,+20] (tie)   | +95.8% [+61,+119]  |
+| 12 |     8 | 0.01628  | 0.05678  | 0.01187  | 0.00835  | **-72.2%** [-75,-58]     | +39.9% [+26,+94]   |
+| 24 |    16 | 0.03332  | 0.19x    | 0.02540  | 0.01423  | **-82.5%** [-86,-79]     | +31.4% [+9,+67]    |
+
+**Finding P1-pos.**  RC-WFR's standing against ABF improves MONOTONICALLY with the CV
+domain length, from 3x worse at L = 3 to 3.6x better at L = 12 and 5.7x better at L = 24, exactly as the marginal
+argument predicts: ABF's CV equilibration is diffusive (O(L^2)) while W+FR is a
+reaction-diffusion front (O(L)).  This is the campaign's clearest positive result and it
+is the direct answer to "is it better than adaptive biasing?": **yes, on a long CV
+domain, and by a wide and growing margin.**
+
+**Finding P1-caveat.**  Stratified TI also degrades with L at fixed budget - it needs
+M ~ L windows for fixed CV resolution, so samples per window fall like 1/L - and it
+degrades more slowly than ABF.  RC-WFR closes on it (+165% -> +96% -> +40% -> +31%) but had not
+overtaken it at L = 24 in the first scan.  A fairer re-scan (probability-flow arm,
+bandwidth matched to the well structure, each family free to pick its replica count,
+L up to 48) is `results/torsion/torsion_scaling_flowfair.json`.
+
+**Calibrated flow arm on TORSION L=12** (`sweep_TORSION12`, 8 seeds): flow, kappa 0.5,
+theta 0.6, jitter 0.01 gives I_F = 0.01353 vs the SDE arm's 0.01628 - so the flow form
+narrows the gap to fixed TI (0.01187) to about 14%.

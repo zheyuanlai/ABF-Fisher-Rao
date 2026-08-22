@@ -26,3 +26,26 @@
   ti_cold          I_F=0.47148 I_F_rel=0.05672 e_F=0.17388 (/fl   8.4) chan=0.3082 [52s]
   reti_cold_M256   I_F=0.51420 I_F_rel=0.06186 e_F=0.19278 (/fl   9.3) chan=0.2054 [58s] acc=0.899
   reti_cold_M64    I_F=0.52198 I_F_rel=0.06279 e_F=0.19069 (/fl   9.2) chan=0.2271 [58s] acc=0.676
+  abf              I_F=11.15384 I_F_rel=1.34179 e_F=10.76250 (/fl 520.9) chan=0.1989 [86s]
+  wfr vs reti_cold_M256  :  +276.4% [+250.3,+296.2]
+  wfr vs reti_cold_M64   :  +260.9% [+246.7,+334.2]
+  wfr vs ti_cold         :  +308.2% [+272.4,+343.1]
+  wfr vs abf             :   -83.0% [ -84.5, -81.5]
+
+=== m_spec=512  floor=0.07859  |F|_rms=31.594 ===
+  wfr              I_F=7.38821 I_F_rel=0.23385 e_F=5.92195 (/fl  75.4) chan=0.2375 [63s]
+  ti_cold          I_F=1.77398 I_F_rel=0.05615 e_F=0.36392 (/fl   4.6) chan=0.3101 [53s]
+  reti_cold_M256   I_F=2.00216 I_F_rel=0.06337 e_F=0.43593 (/fl   5.5) chan=0.3028 [57s] acc=0.814
+  reti_cold_M64    I_F=2.00691 I_F_rel=0.06352 e_F=0.49439 (/fl   6.3) chan=0.3145 [57s] acc=0.568
+  abf              I_F=28.83061 I_F_rel=0.91255 e_F=28.72079 (/fl 365.4) chan=0.0000 [84s]
+  wfr vs reti_cold_M256  :  +270.0% [+245.3,+296.4]
+  wfr vs reti_cold_M64   :  +269.6% [+248.9,+293.7]
+  wfr vs ti_cold         :  +318.8% [+304.6,+347.5]
+  wfr vs abf             :   -74.3% [ -75.6, -72.3]
+
+SUMMARY: RE acceptance and wfr-vs-RE-TI as the fiber grows
+ m_spec  acc M256  acc M64 |      wfr vs reti(M256)  wfr chan  reti chan
+      0     0.975    0.901 |    +33.0% [ +23.1, +47.5]    0.1583     0.0274
+     32     0.944    0.792 |    +78.6% [ +66.6, +98.3]    0.1769     0.0253
+    128     0.899    0.676 |   +276.4% [+250.3,+296.2]    0.2216     0.2054
+    512     0.814    0.568 |   +270.0% [+245.3,+296.4]    0.2375     0.3028
