@@ -75,3 +75,49 @@ P3. RC-WFR degrades when tau_fiber is long relative to the conditional budget
 If H2 fails on every system - i.e. plain stratified TI or RE-TI matches or
 beats RC-WFR everywhere - the method has no practical case over classical
 stratification and the campaign reports that as its result.
+
+---
+
+# OUTCOMES (appended after the confirmation runs; the design above is not edited)
+
+* **H0 (mechanism) — SUPPORTED.** `wfr` beats `w_only` (0.0361 vs 0.0765) and
+  `fr_only` (1.037, coverage 0.067) on EB. In the calibrated probability-flow variant,
+  removing Fisher-Rao costs a factor 2.4 (EB) and 2.5 (CHANNEL). Both halves are
+  necessary, and the marginal-level prediction (W scales O(L^2), W+FR scales O(L)) was
+  confirmed quantitatively in Phase 0.
+
+* **H1 (vs adaptive biasing) — SUPPORTED, with a stated condition.** RC-WFR beats
+  tuned ABF by 62.6% [-66, -58] on EB (probability-flow variant) and by 72-83% on the
+  long-CV torsion systems; it beats SHUS by 1-2 orders of magnitude everywhere. It
+  LOSES to ABF by 191% on the shortest CV domain tested. The margin is monotone in CV
+  domain length, as predicted by P1.
+
+* **H2 (vs classical stratification) — SPLIT.** RC-WFR beats cold-start RE-TI on the
+  hidden-channel system and beats cold-start stratified TI on the easy system ONLY when
+  given an exact analytic lift. Model-free, on an easy fiber, plain fixed-window TI
+  still wins by ~40%. The preregistered kill criterion ("TI or RE-TI matches or beats
+  RC-WFR everywhere") is NOT met.
+
+* **H3 (validity) — REJECTED as stated, and the failure is the campaign's main
+  scientific content.** The identity lift has a systematic bias floor 3-28x the
+  estimator floor that grows with kappa, is independent of `n_cond`, and does not
+  decrease with more compute. The deterministic probability-flow step reduces it to
+  ~2x the floor by self-annihilating, but the bias remains extensive in fiber modes.
+
+* **H4 (geometry) — REJECTED for the count control, UPHELD for the sham control**,
+  as predicted. Count balancing ties smooth Fisher-Rao three separate times; the
+  matched-turnover sham is 2.3x worse.
+
+* **P1 (advantage over ABF grows with L) — CONFIRMED.** +191% at L=3, tie at L=6,
+  -72% at L=12, -82% at L=24.
+
+* **P2 (advantage over RE-TI grows with system size) — FALSIFIED.** The gap widens in
+  the wrong direction (+33% -> +270% as m_spec goes 0 -> 128) because exchange
+  acceptance decays slowly (0.975 -> 0.814) while the lift bias is extensive.
+
+* **P3 (degradation when tau_fiber is long, removed by lift=oracle) — CONFIRMED.**
+  `lift=oracle` reaches 1.0-1.1x the estimator floor at every kappa on both systems.
+
+Two findings were NOT anticipated by this preregistration and are recorded as such:
+the probability-flow form of the W step, and its incompatibility with FR resampling
+without a resample-move jitter.

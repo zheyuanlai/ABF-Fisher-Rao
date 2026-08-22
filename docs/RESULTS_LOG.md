@@ -513,3 +513,33 @@ FR dose (theta = 0.6): slow, careful transport so walkers equilibrate the slow m
 while they are in the switch region, with the hysteresis-free birth-death term doing the
 amplification.  This is the WFR division of labour behaving exactly as the theory says
 it should.
+
+### EB calibrated confirmation - paired comparisons (32 fresh seeds, `*` = CI excludes 0)
+
+| arm          | I_F     | vs ti_cold             | vs reti_cold           | vs abf                 |
+|--------------|--------:|------------------------|------------------------|------------------------|
+| wfr_oracle   | 0.00456 | -59.2% [-62,-57]*      | -57.8% [-60,-56]*      | -88.7% [-89,-88]*      |
+| reti_warm    | 0.00637 | -42.8% [-45,-40]*      | -39.7% [-42,-36]*      | -83.3% [-85,-81]*      |
+| ti_warm      | 0.00669 | -40.3% [-43,-37]*      | -38.4% [-43,-35]*      | -83.4% [-85,-82]*      |
+| **wfr_scaled** | 0.00711 | **-36.1% [-40,-34]\*** | **-31.4% [-42,-26]\*** | -82.8% [-84,-81]*   |
+| reti_cold    | 0.01086 | -2.5% [-14,+2] (tie)   | -                      | -72.6% [-74,-70]*      |
+| ti_cold      | 0.01140 | -                      | +2.6% [-2,+16] (tie)   | -71.1% [-74,-69]*      |
+| wfr_flow_cnt | 0.01504 | +25.9% [+11,+52]       | +40.0% [+22,+50]       | -61.9% [-67,-59]*      |
+| **wfr_flow** | 0.01513 | +40.5% [+29,+54]       | +46.0% [+33,+65]       | **-62.6% [-66,-58]\*** |
+| wfr_gmm      | 0.02139 | +80.8% [+73,+109]      | +100.9% [+75,+116]     | -47.8% [-52,-42]*      |
+| wfr (SDE)    | 0.03612 | +223.7%                | +235.1%                | -5.8% [-17,+3] (tie)   |
+| abf          | 0.04138 | +246.4%                | +264.5%                | -                      |
+| w_only       | 0.07650 | +579.0%                | +617.8%                | +85.9%                 |
+| w_sham       | 0.08185 | +612.7%                | +620.4%                | +99.4%                 |
+| shus         | 2.51069 | +22061%                | +22910%                | +5968%                 |
+
+**Finding E4.**  On the easy system the model-free probability-flow RC-WFR **beats ABF
+by 62.6%** (CI excludes 0) and loses to cold-start stratified TI by 40.5%.  The SDE form
+merely ties ABF.  Given an exact analytic lift, RC-WFR beats every non-oracle baseline
+by 31-83%.
+
+**Finding G3.**  The GMM score arm (`wfr_gmm`, K = 24) confirms at 0.02139 - worse than
+the KDE score at the same kappa/theta (0.01513).  On the screen at its own best
+kappa/theta the two were identical (0.01381 vs 0.01366).  The GMM is therefore an
+equal-quality but NOT a drop-in replacement: it needs its own K and kappa calibration,
+and transplanting the KDE arm's settings into it costs ~40%.

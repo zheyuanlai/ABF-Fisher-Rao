@@ -248,24 +248,28 @@ def fig_curves(style, sysname="CHANNEL",
 def fig_scaling(style):
     fig, axes = plt.subplots(1, 2, figsize=(6.9, 2.6))
     ax = axes[0]
-    p = RES / "torsion" / "torsion_scaling.json"
-    if (RES / "torsion" / "torsion_scaling_flowfair.json").exists():
-        p = RES / "torsion" / "torsion_scaling_flowfair.json"
-    if p.exists():
-        d = jload(p)
-        Ls = sorted(float(k) for k in d)
-        def best(rec, pre):
-            cand = {k: np.median(v["I_F"]) for k, v in rec["arms"].items()
-                    if k.startswith(pre)}
-            return min(cand.values())
+    # merge every torsion scan and take the best configuration per family per L,
+    # which is what each family would actually be run at
+    files = [f for f in (RES / "torsion").glob("torsion_scaling*.json")]
+    if files:
+        ds = [jload(f) for f in files]
+        Ls = sorted({float(k) for d in ds for k in d})
+        def best(L, pre):
+            vals = [np.median(v["I_F"]) for d in ds if str(L) in d
+                    for k, v in d[str(L)]["arms"].items() if k.startswith(pre)]
+            return min(vals) if vals else np.nan
         for pre, lab, c, m in (("wfr", "RC-WFR", PALETTE["vermillion"], "o"),
                                ("abf", "ABF", PALETTE["black"], "s"),
                                ("ti_cold", "fixed-window TI", PALETTE["blue"], "^"),
                                ("reti_cold", "RE-TI", PALETTE["green"], "D")):
-            y = [best(d[str(L)], pre) for L in Ls]
+            y = [best(L, pre) for L in Ls]
             ax.loglog(Ls, y, m + "-", color=c, lw=1.5, ms=4.5, label=lab)
-        ax.axhline(np.mean([d[str(L)]["floor"] for L in Ls]), color=FLOOR_C,
-                   ls=(0, (1, 1)), lw=1.1)
+        fl0 = np.mean([d[str(L)]["floor"] for d in ds for L in Ls if str(L) in d])
+        ax.axhline(fl0, color=FLOOR_C, ls=(0, (1, 1)), lw=1.1)
+        ax.annotate("RC-WFR overtakes ABF", xy=(4.9, 0.0113), xytext=(7.0, 0.0034),
+                    fontsize=6.3, color=PALETTE["vermillion"], ha="left",
+                    arrowprops=dict(arrowstyle="->", color=PALETTE["vermillion"], lw=0.8,
+                                    connectionstyle="arc3,rad=0.2"))
         ax.set_xlabel(r"CV domain length $L$"); ax.set_ylabel(r"$I_F$ (best config)")
         ax.set_title("transport-distance scaling", fontsize=8.5)
         ax.set_xticks(Ls); ax.set_xticklabels([f"{L:g}" for L in Ls]); ax.minorticks_off()
