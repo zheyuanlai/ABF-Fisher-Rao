@@ -1,7 +1,10 @@
 __pycache__/
 *.pyc
 .pytest_cache/
-results/**/*.npz
 results/**/*.npy
+results/**/*.npz
+# the confirmation curve archives are small (~1.5 MB total) and figures/make_figures.py
+# needs them to redraw the convergence panels from stored results
+!results/confirm/*_curves.npz
 *.egg-info/
 .ipynb_checkpoints/
