@@ -27,7 +27,9 @@ from dataclasses import dataclass, asdict
 import torch
 
 from .estimators import MeanForceAccumulator, gauge_l2
-from .fisher_rao import kde_marginal, kl_to_uniform, selection_indices, tv_to_uniform
+from .fisher_rao import (fr_weights, kde_marginal, kl_to_uniform, selection_indices,
+                         theta_backoff, tv_to_uniform)
+from .gmm import GMM1D
 from .grid import DEVICE, DTYPE, EPS, Grid1D, interp1d
 from .resampling import ancestor_stats, surviving_ancestors
 from .rowspec import as_col, tile_seeds
@@ -61,6 +63,11 @@ class RunConfig:
     fr_every: int = 1
     fr_rule: str = "fr"
     bw_kde: float = 0.10
+    density_model: str = "kde"   # 'kde' | 'gmm' - what estimates p_hat for BOTH the
+                                 # probability-flow score and the FR log-ratio
+    gmm_K: int = 24
+    gmm_em: int = 3
+    gmm_eps_bg: float = 1e-3
     n_bins_count: int = 45
     alpha_ess: float = 0.5
     fr_jitter: float = 0.0        # resample-move: sigma of the z-jitter applied after
@@ -187,6 +194,10 @@ def run_wfr(sys: SepSystem, cfg: RunConfig, rows: int, seed: int, sham_source=No
     out = _saver(rows, g, n_saves, dev, dt)
     theta0 = as_col(cfg.theta, rows, dev, dt).squeeze(1)
     kappa_col = as_col(cfg.kappa, rows, dev, dt)
+    gmm = None
+    if cfg.density_model == "gmm":
+        gmm = GMM1D(rows, g, cfg.gmm_K, dev, dt, eps_bg=cfg.gmm_eps_bg)
+        gmm.fit(X, n_em=10)          # one deeper fit at t=0, warm-started thereafter
     ar = torch.arange(cfg.N, device=dev).unsqueeze(0).expand(rows, cfg.N)
     anc, anc_g = ar.clone(), ar.clone()
     dtau = cfg.n_cond * cfg.dt
@@ -204,10 +215,16 @@ def run_wfr(sys: SepSystem, cfg: RunConfig, rows: int, seed: int, sham_source=No
             Y = sys.step_fiber(X, Y, cfg.dt, gen)
             if k >= cfg.n_eq:
                 acc.deposit(X, sys.mean_force(X, Y))
+        if gmm is not None:
+            gmm.fit(X, n_em=cfg.gmm_em)
         if cfg.w_mode == "sde":
             Xn = w_step_sde(X, k_now, dtau, g, gen)
         elif cfg.w_mode == "flow":
-            Xn = w_step_flow(X, cfg.kappa, dtau, g, cfg.bw_kde, cfg.w_flow_clip)
+            if gmm is not None:
+                sc_ = torch.clamp(gmm.score(X), -cfg.w_flow_clip, cfg.w_flow_clip)
+                Xn = g.enforce(X - k_now * dtau * sc_)
+            else:
+                Xn = w_step_flow(X, cfg.kappa, dtau, g, cfg.bw_kde, cfg.w_flow_clip)
         elif cfg.w_mode == "none":
             Xn = X
         else:
@@ -224,9 +241,18 @@ def run_wfr(sys: SepSystem, cfg: RunConfig, rows: int, seed: int, sham_source=No
             if cfg.fr_rule == "sham":
                 sham = (sham_source[it] if sham_source is not None
                         else torch.zeros(rows, device=dev, dtype=torch.long))
-            sel, info = selection_indices(X, g, cfg.fr_rule, theta0, gen,
-                                          bw=cfg.bw_kde, n_bins=cfg.n_bins_count,
-                                          alpha_ess=cfg.alpha_ess, sham_turnover=sham)
+            if gmm is not None and cfg.fr_rule == "fr":
+                lr = math.log(1.0 / g.volume) - gmm.log_prob(X)
+                w_, th_, essf_ = theta_backoff(lr, theta0, cfg.alpha_ess)
+                from .resampling import systematic_resample, turnover_counts
+                sel = systematic_resample(w_, gen)
+                info = {"theta": th_, "ess_frac": essf_,
+                        "turnover": turnover_counts(sel, cfg.N)}
+            else:
+                sel, info = selection_indices(X, g, cfg.fr_rule, theta0, gen,
+                                              bw=cfg.bw_kde, n_bins=cfg.n_bins_count,
+                                              alpha_ess=cfg.alpha_ess,
+                                              sham_turnover=sham)
             X = torch.gather(X, 1, sel)
             Y = torch.gather(Y, 1, sel.unsqueeze(-1).expand(-1, -1, Y.shape[-1]))
             anc = torch.gather(anc, 1, sel)

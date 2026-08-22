@@ -26,6 +26,10 @@ ARM_LIBRARY = {
     "w_count":    ("wfr",  dict(w_mode="sde",  fr_rule="count", init="point")),
     "w_sham":     ("wfr",  dict(w_mode="sde",  fr_rule="sham",  init="point")),
     "wfr_flow":   ("wfr",  dict(w_mode="flow", fr_rule="fr",    init="point")),
+    "wfr_gmm":    ("wfr",  dict(w_mode="flow", fr_rule="fr",    init="point",
+                                density_model="gmm")),
+    "wfr_gmm_sde":("wfr",  dict(w_mode="sde",  fr_rule="fr",    init="point",
+                                density_model="gmm")),
     "wfr_oracle": ("wfr",  dict(w_mode="sde",  fr_rule="fr",    init="point",
                                 lift="oracle")),
     # --- classical stratified baselines -------------------------------------

@@ -28,6 +28,8 @@ def frozen(a):
                                       fr_jitter=FJ)),
     ("wfr_flow_cnt","wfr",       dict(kappa=FK, theta=FT, n_cond=5, lift="identity",
                                       w_mode="flow", fr_rule="count", fr_jitter=FJ)),
+    ("wfr_gmm",     "wfr_gmm",   dict(kappa=FK, theta=FT, n_cond=5, lift="identity",
+                                      fr_jitter=FJ, gmm_K=a.gmm_K)),
     ("wfr_scaled",  "wfr",       dict(kappa=K, theta=TH, n_cond=5, lift="scaled")),
     ("wfr_oracle",  "wfr_oracle", dict(kappa=0.5, theta=TH, n_cond=5)),
     ("w_only",      "w_only",    dict(kappa=K, n_cond=5)),
@@ -52,12 +54,14 @@ ap.add_argument("--steps", type=int, default=100_000)
 ap.add_argument("--seeds", type=int, default=32)
 ap.add_argument("--seed", type=int, default=9000)
 ap.add_argument("--out", default="results/confirm")
+ap.add_argument("--tag", default="")
 # calibrated per-system RC-WFR settings (Stage-1 screens, docs/RESULTS_LOG.md)
 ap.add_argument("--kappa", type=float, default=0.125)
 ap.add_argument("--theta", type=float, default=0.6)
 ap.add_argument("--flow_kappa", type=float, default=2.0)
 ap.add_argument("--flow_theta", type=float, default=0.3)
 ap.add_argument("--flow_jitter", type=float, default=0.01)
+ap.add_argument("--gmm_K", type=int, default=24)
 ap.add_argument("--reti_M", type=int, default=256)
 ap.add_argument("--reti_nex", type=int, default=5)
 a = ap.parse_args()
@@ -87,6 +91,7 @@ for label, arm, ov in frozen(a):
     if "ex_accept" in run:
         sc["ex_accept"] = run["ex_accept"]
     curves[label] = sc["e_F"]
+    curves["fe__" + label] = sc["fe"]
     res[label] = sc
     ex = f" acc={run['ex_accept']:.3f}" if "ex_accept" in run else ""
     print(f"  {label:12s} I_F={np.median(sc['I_F']):.5f} e_F={np.median(sc['e_F_final']):.5f} "
@@ -97,9 +102,9 @@ for label, arm, ov in frozen(a):
 res.pop("_turnover", None)
 
 fe = res["wfr"]["fe"]
-save_npz(os.path.join(a.out, f"{a.system}_curves.npz"), floor=np.array(fl), fe=fe,
-         **{f"eF__{k}": v for k, v in curves.items()})
-save_json(os.path.join(a.out, f"{a.system}.json"),
+save_npz(os.path.join(a.out, f"{a.system}{a.tag}_curves.npz"), floor=np.array(fl), fe=fe,
+         **{(k if k.startswith("fe__") else f"eF__{k}"): v for k, v in curves.items()})
+save_json(os.path.join(a.out, f"{a.system}{a.tag}.json"),
           {"floor": fl, "arms": {k: {kk: (vv.tolist() if isinstance(vv, np.ndarray) else vv)
                                      for kk, vv in v.items() if kk != "e_F"}
                                  for k, v in res.items()}})

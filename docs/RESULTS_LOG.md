@@ -403,3 +403,68 @@ L up to 48) is `results/torsion/torsion_scaling_flowfair.json`.
 **Calibrated flow arm on TORSION L=12** (`sweep_TORSION12`, 8 seeds): flow, kappa 0.5,
 theta 0.6, jitter 0.01 gives I_F = 0.01353 vs the SDE arm's 0.01628 - so the flow form
 narrows the gap to fixed TI (0.01187) to about 14%.
+
+## Phase 7 - the baselines' own screens, and the calibrated flow arm
+
+### RE-TI screen on CHANNEL (`scripts/screen_reti.py`, 8 seeds, 25.6M fe, floor 0.00353)
+
+Window count M trades CV resolution against window-space mobility; the exchange
+period n_ex trades mobility against the energy evaluations it is charged for.
+
+| M   | n_ex | I_F     | e_F     | chan   | acceptance |
+|-----|-----:|--------:|--------:|-------:|-----------:|
+| 256 |    1 | 0.16887 | 0.05763 | 0.0272 | 0.975 |
+| 256 |    5 | 0.13944 | 0.04679 | 0.0313 | 0.975 |
+| 256 |   20 | 0.15748 | 0.05658 | 0.0298 | 0.975 |
+| 128 |    5 | 0.12610 | 0.04237 | 0.0276 | 0.950 |
+| 64  |    5 | **0.12214** | **0.04118** | 0.0280 | 0.901 |
+| 64  |   20 | 0.13138 | 0.04174 | 0.0286 | 0.902 |
+
+Tuned RE-TI on CHANNEL: **I_F = 0.1221** (M = 64, n_ex = 5).  Every setting repairs the
+hidden channel (`chan` ~ 0.028, the oracle value).
+
+### The calibrated probability-flow RC-WFR arm
+
+CHANNEL screen (`sweep_CHANNEL_flowjit`, 8 seeds): the best configuration is
+flow, kappa = 0.125, theta = 0.6, fr_jitter = 0.005 ->
+**I_F = 0.0733, e_F = 0.0308 (8.7x floor), chan = 0.0469** - i.e. it repairs most of
+the hidden channel AND beats the tuned RE-TI baseline (0.1221) by ~40% on the screen.
+Note the winning kappa is SMALL: with a deterministic, self-annihilating W step the
+method wants slow, careful transport (so walkers linger in the switch region and
+equilibrate the slow mode) and lets Fisher-Rao - which reallocates population WITHOUT
+dragging any fiber, and therefore contributes no hysteresis at all - do the
+amplification.  That is the WFR division of labour working exactly as designed.
+
+This is a screen result on 8 seeds and must be confirmed on fresh seeds before it is
+claimed; see Phase 8.
+
+## Phase 7b - GMM score vs KDE score  ("Version A" of the Gaussian-mixture plan)
+
+`src/rcwfr/gmm.py`: a batched 1-D Gaussian mixture with a uniform background, fitted by
+WARM-STARTED EM (a fresh fit each step would make the induced Wasserstein velocity
+discontinuous), supplying BOTH quantities RC-WFR needs analytically:
+`p(z) = sum_k w_k N(z; m_k, s_k^2)` and `grad log p(z) = sum_k r_k(z)(m_k - z)/s_k^2`.
+Validated against numerical differentiation to 3e-8 and against grid quadrature for
+mass, on reflecting and periodic domains.
+
+EB, 10.24M fe, 8 seeds, probability-flow W, fr_jitter = 0.01:
+
+| density model | K  | kappa | theta | I_F     | e_F_final | /floor | coverage |
+|---------------|---:|------:|------:|--------:|----------:|-------:|---------:|
+| GMM           |  8 | 0.5   | 0.6   | 0.14054 | 0.12949   | 32.5   | **0.00** |
+| GMM           | 24 | 0.5   | 0.6   | **0.01381** | 0.00831 | 2.1  | 1.00 |
+| GMM           | 24 | 2.0   | 0.3   | 0.01601 | 0.01169   | 2.9    | 0.98 |
+| GMM           | 64 | 0.5   | 0.6   | 0.01742 | 0.00934   | 2.3    | 0.99 |
+| KDE           |  - | 2.0   | 0.3   | **0.01366** | 0.00823 | 2.1  | 1.00 |
+
+**Finding G1.**  With enough components the GMM score reproduces the KDE score's
+performance EXACTLY (0.01381 vs 0.01366 - within seed noise) at the same wall clock.
+The Gaussian-mixture representation is therefore a valid, analytic, grid-free drop-in
+- attractive for `d_xi >= 2` where KDE and grid differentiation get expensive - but it
+does NOT change any conclusion of this campaign, because the limiting error is the
+lift, not the density estimate.
+
+**Finding G2.**  Too few components is catastrophic, not merely inaccurate: at K = 8
+the mixture score is wrong enough to drive the entire ensemble into the domain walls
+(coverage 0.00).  K must resolve the marginal's structure; K = 24 over a 3.6-wide
+domain (component spacing 0.15) was the optimum here.

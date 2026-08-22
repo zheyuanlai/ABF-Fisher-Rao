@@ -27,9 +27,9 @@ FLOOR_C = PALETTE["gray"]
 # one semantic colour per method family, used identically in every figure
 COLORS = {
     "wfr":        PALETTE["vermillion"],
-    "wfr_anneal": PALETTE["orange"],
+    "wfr_anneal": PALETTE["yellow"],
     "wfr_flow":   PALETTE["purple"],
-    "wfr_scaled": PALETTE["yellow"],
+    "wfr_scaled": PALETTE["orange"],
     "wfr_oracle": PALETTE["light_gray"],
     "w_only":     PALETTE["sky"],
     "fr_only":    PALETTE["gray"],
@@ -202,26 +202,31 @@ def fig_arms(style, systems=("EB", "CHANNEL")):
 
 # ---------------------------------------------------------------- figure 4 --
 def fig_curves(style, sysname="CHANNEL",
-               show=("wfr", "wfr_anneal", "ti_cold", "reti_cold", "abf", "wfr_oracle")):
+               show=("wfr", "wfr_flow", "wfr_scaled", "ti_cold", "reti_cold", "abf",
+                     "wfr_oracle")):
     z = np.load(RES / "confirm" / f"{sysname}_curves.npz")
     fe, floor = z["fe"], float(z["floor"])
-    fig, ax = plt.subplots(figsize=(3.35, 2.7))
+    fig, ax = plt.subplots(figsize=(3.6, 2.9))
     for k in show:
         key = f"eF__{k}"
         if key not in z:
             continue
         e = z[key]                                    # (n_saves, rows)
+        x = z[f"fe__{k}"] if f"fe__{k}" in z else fe   # RE-TI runs a shorter inner loop
+        x = x[:e.shape[0]]
         med = np.median(e, axis=1)
         lo, hi = np.quantile(e, [.25, .75], axis=1)
         c = COLORS.get(k, PALETTE["gray"])
         ls = "-." if k in ORACLE_ARMS else "-"
-        ax.loglog(fe, med, ls, color=c, lw=1.5, label=k + (" *" if k in ORACLE_ARMS else ""))
-        ax.fill_between(fe, lo, hi, color=c, alpha=.13, lw=0)
+        ax.loglog(x, med, ls, color=c, lw=1.5, label=k + (" *" if k in ORACLE_ARMS else ""))
+        ax.fill_between(x, lo, hi, color=c, alpha=.13, lw=0)
     ax.axhline(floor, color=FLOOR_C, ls=(0, (1, 1)), lw=1.1)
-    ax.text(fe[1], floor * 1.15, "estimator floor", fontsize=6.5, color=FLOOR_C)
+    ax.text(0.98, 0.03, "estimator floor", fontsize=6.3, color=FLOOR_C,
+            transform=ax.transAxes, ha="right", va="bottom")
     ax.set_xlabel("force evaluations"); ax.set_ylabel(r"$e_F$")
     ax.set_title(f"{sysname}: convergence at matched cost", fontsize=8.5)
-    ax.legend(frameon=False, fontsize=6.5, loc="lower left")
+    ax.legend(frameon=False, fontsize=6.2, loc="lower left", ncol=2,
+              handlelength=1.6, columnspacing=1.0, borderaxespad=0.2)
     fig.tight_layout()
     return save_figure(fig, HERE / f"fig4_curves_{sysname}")
 
@@ -231,6 +236,8 @@ def fig_scaling(style):
     fig, axes = plt.subplots(1, 2, figsize=(6.9, 2.6))
     ax = axes[0]
     p = RES / "torsion" / "torsion_scaling.json"
+    if (RES / "torsion" / "torsion_scaling_flowfair.json").exists():
+        p = RES / "torsion" / "torsion_scaling_flowfair.json"
     if p.exists():
         d = jload(p)
         Ls = sorted(float(k) for k in d)
@@ -248,7 +255,8 @@ def fig_scaling(style):
                    ls=(0, (1, 1)), lw=1.1)
         ax.set_xlabel(r"CV domain length $L$"); ax.set_ylabel(r"$I_F$ (best config)")
         ax.set_title("transport-distance scaling", fontsize=8.5)
-        ax.legend(frameon=False, fontsize=6.5, loc="upper left")
+        ax.set_xticks(Ls); ax.set_xticklabels([f"{L:g}" for L in Ls]); ax.minorticks_off()
+        ax.legend(frameon=False, fontsize=6.5, loc="upper left", ncol=2)
 
     ax = axes[1]
     p = RES / "mspec" / "CHANNEL_mspec.json"
@@ -260,10 +268,13 @@ def fig_scaling(style):
                              ("reti_cold_M256", "RE-TI", PALETTE["green"], "D")):
             y = [np.median(d[str(mm)]["arms"][k]["I_F_rel"]) for mm in ms]
             ax.semilogy(ms, y, m + "-", color=c, lw=1.5, ms=4.5, label=lab)
+        ax.set_xscale("symlog", linthresh=16)
+        ax.set_xticks(ms); ax.set_xticklabels([str(m) for m in ms])
         ax.set_xlabel(r"spectator fiber dofs $m$")
         ax.set_ylabel(r"$I_F\,/\,\|F_{\mathrm{ref}}\|$")
         ax.set_title("fiber-size scaling", fontsize=8.5)
-        ax.legend(frameon=False, fontsize=6.5, loc="lower left")
+        ax.legend(frameon=False, fontsize=6.2, loc="lower left", ncol=2,
+              handlelength=1.6, columnspacing=1.0, borderaxespad=0.2)
         ax2 = ax.twinx()
         acc = [d[str(mm)]["arms"]["reti_cold_M256"]["ex_accept"] for mm in ms]
         ax2.plot(ms, acc, ":", color=PALETTE["gray"], lw=1.2)

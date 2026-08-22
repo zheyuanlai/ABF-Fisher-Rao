@@ -27,6 +27,8 @@ ap.add_argument("--w_mode", nargs="*", default=["sde"])
 ap.add_argument("--bw_kde", type=float, nargs="*", default=[0.10])
 ap.add_argument("--jitter", type=float, default=0.0)
 ap.add_argument("--fr_jitter", type=float, nargs="*", default=[0.0])
+ap.add_argument("--density_model", nargs="*", default=["kde"])
+ap.add_argument("--gmm_K", type=int, nargs="*", default=[24])
 ap.add_argument("--tag", default="")
 a = ap.parse_args()
 
@@ -45,11 +47,13 @@ kap = row_column([c["kappa"] for c in cfgs], a.seeds, DEVICE, DTYPE)
 th = row_column([c["theta"] for c in cfgs], a.seeds, DEVICE, DTYPE)
 rec = []
 import itertools as _it
-for lift, wmode, bwk, frj, n_cond, ann, rst in _it.product(
-        a.lift, a.w_mode, a.bw_kde, a.fr_jitter, a.nconds, a.anneal, a.reset):
+for lift, wmode, bwk, frj, n_cond, ann, rst, dm, gk in _it.product(
+        a.lift, a.w_mode, a.bw_kde, a.fr_jitter, a.nconds, a.anneal, a.reset,
+        a.density_model, a.gmm_K):
         cfg = RunConfig(**{**base.__dict__, "n_seed": a.seeds, "n_cond": n_cond,
                            "kappa": kap, "theta": th, "w_mode": wmode,
                            "bw_kde": bwk, "fr_rule": "fr", "lift": lift, "fr_jitter": frj,
+                           "density_model": dm, "gmm_K": gk,
                            "kappa_end": ann, "acc_reset_at": rst})
         t0 = time.time()
         r = run_wfr(S, cfg, rows=n_cfg * a.seeds, seed=a.seed)
@@ -61,13 +65,13 @@ for lift, wmode, bwk, frj, n_cond, ann, rst in _it.product(
         ES = sc["ess_anc"][-1].reshape(n_cfg, a.seeds)
         for i, c in enumerate(cfgs):
             row = dict(lift=lift, w_mode=wmode, bw_kde=bwk, n_cond=n_cond,
-                       fr_jitter=frj, anneal=ann, reset=rst,
+                       fr_jitter=frj, anneal=ann, reset=rst, density_model=dm, gmm_K=gk,
                        **c, I_F=float(np.median(IF[i])),
                        e_F_final=float(np.median(EF[i])),
                        chan=float(np.median(CH[i])), cov=float(np.median(CV[i])),
                        ess=float(np.median(ES[i])))
             rec.append(row)
-            print(f"{lift[:4]+'/'+wmode[:4]:>9} {n_cond:>6} {str(frj):>7} {str(rst):>6} "
+            print(f"{dm[:3]+'/'+wmode[:4]:>9} {gk:>6} {str(frj):>7} {str(bwk):>6} "
                   f"{c['kappa']:>7} {c['theta']:>6} | {row['I_F']:>9.5f} "
                   f"{row['e_F_final']:>9.5f} {row['e_F_final']/fl:>6.1f} "
                   f"{row['chan']:>7.4f} {row['cov']:>5.2f} {row['ess']:>5.2f}",

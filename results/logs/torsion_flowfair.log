@@ -1,2 +1,18 @@
 
-=== TORSION L=6.0  wells=4  budget=2.56e+07 floor=0.00949  beta*dF=9.8 ===
+=== TORSION L=6.0  wells=4  budget=2.56e+07 floor=0.00162  beta*dF=9.8 ===
+  wfr_N256         N=  256 steps= 100000 I_F=0.00951 e_F=0.00403 (/fl   2.5) cov=1.000 [84s]
+  ti_cold_N256     N=  256 steps= 100000 I_F=0.00682 e_F=0.00420 (/fl   2.6) cov=1.000 [58s]
+  reti_cold_N256   N=  256 steps= 100000 I_F=0.00356 e_F=0.00189 (/fl   1.2) cov=1.000 [59s]
+  abf_N256         N=  256 steps= 100000 I_F=0.01539 e_F=0.00220 (/fl   1.4) cov=1.000 [87s]
+  wfr_N1024        N= 1024 steps=  25000 I_F=0.01183 e_F=0.00491 (/fl   3.0) cov=1.000 [21s]
+  ti_cold_N1024    N= 1024 steps=  25000 I_F=0.00818 e_F=0.00353 (/fl   2.2) cov=1.000 [15s]
+  reti_cold_N1024  N= 1024 steps=  25000 I_F=0.00664 e_F=0.00238 (/fl   1.5) cov=1.000 [15s]
+  abf_N1024        N= 1024 steps=  25000 I_F=0.04640 e_F=0.00592 (/fl   3.6) cov=1.000 [22s]
+  wfr_N4096        N= 4096 steps=   6250 I_F=0.03502 e_F=0.01143 (/fl   7.0) cov=1.000 [5s]
+  ti_cold_N4096    N= 4096 steps=   6250 I_F=0.01738 e_F=0.00455 (/fl   2.8) cov=1.000 [4s]
+  reti_cold_N4096  N= 4096 steps=   6250 I_F=0.01861 e_F=0.00481 (/fl   3.0) cov=1.000 [4s]
+  abf_N4096        N= 4096 steps=   6250 I_F=0.13012 e_F=0.01706 (/fl  10.5) cov=1.000 [5s]
+  --> best wfr=wfr_N256 vs best abf=abf_N256: -37.0% [-51.4,-20.2]
+  --> best wfr=wfr_N256 vs best ti_cold=ti_cold_N256: +54.9% [-19.4,+121.4]
+
+=== TORSION L=12.0  wells=8  budget=2.56e+07 floor=0.00185  beta*dF=9.8 ===
