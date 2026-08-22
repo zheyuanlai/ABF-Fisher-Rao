@@ -29,27 +29,60 @@ bias potential anywhere. The preregistered question (`docs/PREREGISTRATION.md`):
 
 ## 2. Verdict
 
-**Against adaptive biasing: sometimes, and predictably.**
-**Against classical stratification: no, except when an exact analytic model of the
-fiber is available — which is precisely when the problem was not hard.**
+**Against adaptive biasing: yes, in an identifiable and predictable regime.**
+**Against classical stratification: it depends on the fiber, and on which form of the
+Wasserstein step is used.**
 
-The mechanism claim (`W = discovery, FR = establishment`) is **confirmed** and is
-quantitatively sharp at the marginal level. The free-energy claim fails for a reason
-that is structural rather than numerical, and that is worth stating on its own:
+Two things had to be got right before the method could be judged at all, and both were
+found by this campaign rather than assumed:
+
+1. the **stochastic** Wasserstein step is the wrong one. Replacing
+   `Z <- Z + sqrt(2 kappa dtau) eta` by the deterministic probability flow
+   `Z <- Z - kappa dtau grad log p_hat(Z)` changes the error by up to an order of
+   magnitude, because the flow velocity vanishes as `p -> u`, so its hysteresis
+   self-annihilates instead of persisting forever;
+2. deterministic transport and Fisher-Rao resampling are **incompatible** unless a
+   small resample-move jitter is added — clones follow identical trajectories and the
+   ensemble collapses. The jitter window is narrow (`sigma = 0.01` optimal on a
+   3.6-wide domain; `sigma = 0.05` costs a factor 6).
+
+With both fixed, RC-WFR is a real method with a real regime:
+
+| comparison | result |
+|---|---|
+| vs **ABF**, short CV domain (L = 3) | 3.1x WORSE |
+| vs **ABF**, long CV domain (L = 12 / 24) | **3.6x / 5.7x BETTER** |
+| vs **ABF**, large fiber (m_spec = 32) | **7.4x BETTER** |
+| vs **SHUS/ABP** | better by 1-2 orders of magnitude everywhere tested |
+| vs **cold-start RE-TI**, hidden-channel fiber | **~2x BETTER** (0.065 vs 0.122-0.145) |
+| vs **cold-start fixed-window TI**, easy fiber | 1.3x worse (0.0151 vs 0.0114) |
+| vs **fixed-window TI** with an exact analytic lift | **1.6x BETTER** (0.0071 vs 0.0114) |
+| vs oracle-initialized TI / RE-TI | worse (those use information nobody has) |
+
+and it retains one hard, structural limitation that no amount of compute removes.
+
+## 2b. The structural limitation
 
 > Any move that changes `xi(q)` without knowing `F` cannot be Metropolis-corrected,
 > because the acceptance ratio for the target `u(z) nu^xi(dq|z)` contains
-> `exp(+beta F(xi(q)))`. Replica exchange avoids this by swapping between two
+> `exp(+beta F(xi(q)))`. Replica exchange escapes this by swapping between two
 > **occupied** windows, where the unknown weights cancel identically. RC-WFR instead
 > moves unconditionally and does not correct — buying CV transport at the price of a
-> hysteresis bias whose magnitude is set by `kappa * tau_fiber` summed over every fiber
-> mode, including the slowest one, which is exactly the mode that made physical CV
-> transport slow in the first place.
+> hysteresis bias set by `kappa * tau_fiber` summed over EVERY fiber mode it drags,
+> including the slowest one, which is precisely the mode that made physical CV
+> transport slow to begin with.
 
 So RC-WFR converts a *convergence* problem into a *bias* problem. More compute fixes
-the first and not the second.
+the first and not the second. The deterministic flow mitigates this (its velocity, and
+therefore its hysteresis, decays to zero) but does not repeal it: the bias is still
+extensive in the number of dragged fiber modes, which is why RC-WFR falls further
+behind RE-TI as the fiber grows rather than catching up (Section 4, F5).
 
----
+The one component of RC-WFR that is entirely free of this problem is **Fisher-Rao**:
+selection copies a walker together with its fiber configuration and drags nothing, so
+it reallocates population at zero hysteresis cost. That is why the best configurations
+found here use a SMALL `kappa` and a LARGE `theta` — minimum dragging, maximum
+birth-death — and why removing FR costs a factor 2.4-2.5.
 
 ## 3. What was confirmed
 
@@ -75,94 +108,123 @@ systems it beats ABF by 45–87%.
 
 ## 4. What was falsified
 
-**F1. The lift is the whole problem, and it is irreducible.** With an *oracle* lift
-(exact conditional refresh) RC-WFR sits at 1.0–1.1× the estimator floor at every
-transport rate from `kappa = 0.03` to `8.0`. With the implementable *identity* lift the
-error grows monotonically with `kappa` (3.3× → 28× the floor) and is **independent of
-`n_cond`** — it is a steady-state hysteresis, not a post-jump transient, so it cannot
-be removed by relaxing longer after each move. (Figure 2a.)
+**F1. The lift is the whole problem.** With an *oracle* lift (exact conditional
+refresh) RC-WFR sits at 1.0-1.1x the estimator floor at every transport rate from
+`kappa = 0.03` to `8.0`, on both systems. Every error the method makes is lift
+hysteresis; none of it is the WFR flow. (Figure 2.)
 
-**F2. A model-based lift only repairs the modes it models.** Rescaling the fiber
-coordinate by `omega(x)/omega(x')` — exact for a harmonic fiber — restores RC-WFR to
-1.5× the floor on `EB` and makes it the best non-oracle arm there. On the hidden-channel
-system, where the slow mode is *which* channel is occupied, the same lift makes the
-error **1.1–1.7× worse than doing nothing**. (Figure 2b.)
+**F2. With the SDE step the bias is irreducible.** It grows monotonically with `kappa`
+(3.3x -> 28x the floor) and is **independent of `n_cond`** — a steady-state hysteresis,
+not a post-jump transient, so relaxing longer after each move does not remove it. Only
+the deterministic flow form escapes this, and only because its velocity decays.
 
-**F3. Fast CV transport and correct conditional sampling are in direct conflict.** On
+**F3. A model-based lift only repairs the modes it models.** Rescaling the fiber
+coordinate by `omega(x)/omega(x')` — exact for a harmonic fiber — makes RC-WFR the best
+non-oracle arm on the easy system (`I_F` 0.0071 vs fixed TI's 0.0114). On the
+hidden-channel system, where the slow mode is *which* channel is occupied, the same
+lift makes the error **1.1-1.7x worse than doing nothing**. A lift built from a local
+model cannot be trusted: it repairs what one already understands and can damage what
+one does not — which is, by construction, what made the problem hard.
+
+**F4. Fast CV transport and correct conditional sampling are in direct conflict.** On
 the hidden-channel system RC-WFR's channel error *grows* with its own transport rate
 (0.12 at `kappa = 0.03` to 0.45 at `kappa = 8`): walkers are dragged through the switch
-region faster than the slow mode can equilibrate. The move that buys coverage destroys
-the conditional law the estimator needs.
-
-**F4. Replica exchange does the same job exactly.** Cold-start Hamiltonian RE-TI repairs
-the hidden channel completely (`chan` 0.297 → 0.032, matching the oracle arms) at the
-same budget and with no bias.
+region faster than the slow mode can equilibrate. This is why the winning configuration
+uses a small `kappa` and leans on Fisher-Rao, which reallocates population without
+dragging anything.
 
 **F5. The hoped-for large-system crossover does not exist.** Exchange acceptance decays
-only slowly with fiber size (0.975 → 0.899 over `m_spec = 0 → 128`), while RC-WFR's
-lift bias grows with *every* dragged mode, so the gap widens: RC-WFR goes from +33% to
-+276% worse than RE-TI. (Figure 5b.)
+only slowly with fiber size (0.975 -> 0.814 over `m_spec = 0 -> 512`), while RC-WFR's
+lift bias is extensive in dragged modes, so the gap widens instead of closing:
+RC-WFR goes from +33% to +270% worse than RE-TI. (Figure 5b.) **Prediction P2 is
+falsified.**
 
-**F6. Smooth Fisher–Rao is not needed.** Plain count balancing ties smooth FR
-(0.03502 vs 0.03612), while the matched-turnover sham is 2.3× worse. The *direction* of
-the reallocation matters; its Fisher–Rao geometry does not. This reproduces the ABF/ABP
-result in a setting with no adaptive bias to be redundant with, which makes it a
-property of the uniform target rather than of the host method.
+**F6. Smooth Fisher-Rao is not needed.** Count balancing ties smooth FR three separate
+times (EB SDE 0.03502 vs 0.03612; EB flow 0.01504 vs 0.01513; CHANNEL flow 0.07804 vs
+0.06519), while the matched-turnover sham is 2.3x worse. The *direction* of the
+reallocation matters and its Fisher-Rao geometry does not. This reproduces the ABF/ABP
+campaign's result in a setting with no adaptive bias to be redundant with, which makes
+it a property of the uniform target rather than of the host method. **Hypothesis H4 is
+rejected for the count control and upheld for the sham control.**
 
 ---
 
-## 5. The one genuinely useful algorithmic finding
+## 5. Prediction P1, confirmed quantitatively
 
-Replacing the stochastic Wasserstein step by the **deterministic probability flow**
+RC-WFR's standing against ABF improves **monotonically** with the CV domain length,
+exactly as the marginal argument predicts (ABF's CV equilibration is diffusive,
+`O(L^2)`; W+FR is a reaction-diffusion front, `O(L)`). Periodic landscape with wells at
+fixed spacing, identical local physics at every L, 25.6M force evaluations per arm,
+each family free to pick its replica count:
 
-    Z <- Z - kappa * dtau * grad log p_hat(Z)
+| L  | wells | RC-WFR vs best ABF        | RC-WFR vs best fixed TI |
+|----|------:|---------------------------|-------------------------|
+| 3  |     2 | +191.3% [+163, +209]      | +164.9% [+95, +269]     |
+| 6  |     4 | -19.1% [-37, +20] (tie)   | +95.8% [+61, +119]      |
+| 12 |     8 | **-72.2%** [-75, -58]     | +39.9% [+26, +94]       |
+| 24 |    16 | **-82.5%** [-86, -79]     | +31.4% [+9, +67]        |
 
-changes the bias picture qualitatively, because the velocity vanishes as `p -> u`: the
-hysteresis self-annihilates once the marginal is flat. On `EB` it holds `e_F` near 2×
-the floor across `kappa = 0.03 ... 2.0` where the SDE form degrades from 3.2× to 28×.
-This is also the formulation that connects to the Gaussian-mixture picture, since
-`grad log p` is analytic for a GMM and needs no KDE differentiation.
-
-Two caveats found with it, both structural:
-
-* it cannot start from a single structure (the score of a delta ensemble vanishes at the
-  particles, so the ensemble never moves), and
-* deterministic transport plus FR resampling is degenerate — clones follow identical
-  trajectories and coverage collapses to 0.33–0.44. The standard SMC *resample–move*
-  jitter repairs it, but only in a narrow window (`sigma = 0.01` optimal; `sigma = 0.05`
-  reintroduces SDE hysteresis and costs a factor 6).
+Stratified TI also degrades with L at fixed budget — it needs `M ~ L` windows for fixed
+CV resolution, so samples per window fall like `1/L` — and RC-WFR closes on it steadily
+(+165% -> +96% -> +40% -> +31%) without overtaking it in this family.
 
 ---
 
 ## 6. Where this leaves the idea
 
-RC-WFR is a **correct and well-behaved marginal sampler bolted onto an incorrect
-conditional transport**. Its useful regime is narrow and identifiable in advance:
+RC-WFR is a real method with a narrow, *predictable in advance* regime:
 
 | condition | RC-WFR |
 |---|---|
-| CV domain long relative to physical CV diffusion | beats ABF, grows with L |
-| high enthalpic or entropic barrier the bias must learn | beats ABF and SHUS |
-| fiber has an exact, cheap analytic model | competitive with, or better than, stratified TI |
-| fiber has a slow mode not in the model | loses to cold-start RE-TI, often to plain fixed-window TI |
+| CV domain long relative to physical CV diffusion | beats ABF, and the margin grows with L |
+| high enthalpic or entropic barrier the bias must learn | beats ABF and SHUS decisively |
+| fiber has a slow mode with a localized switch region | **beats cold-start RE-TI ~2x** with small kappa + strong FR |
+| fiber has an exact, cheap analytic lift | beats cold-start stratified TI ~1.6x |
+| easy unimodal fiber, short CV domain | loses to stratified TI and to ABF |
 | system size grows | loses further; the lift bias is extensive in fiber modes |
-| only one starting structure is available | the flow form cannot start; the SDE form pays full hysteresis |
+| only one starting structure is available | the flow form cannot start at all (zero score at a delta ensemble); use the SDE form for a few steps first |
 
-The honest positioning is not "a faster free-energy method". It is:
+The honest positioning:
 
-> **Reaction-coordinate WFR is a continuum, grid-free way to GENERATE stratified
-> window configurations by continuation, whose free-energy estimate is biased by
-> exactly the fiber modes it drags. Where a cheap exact lift exists it is competitive
-> with stratified TI; where one does not, Hamiltonian replica exchange achieves the
-> same CV-space mobility without the bias, and should be preferred.**
+> **Reaction-coordinate WFR is a grid-free, continuum alternative to stratified
+> thermodynamic integration whose CV transport is unconditional and therefore biased by
+> exactly the fiber modes it drags. Its Fisher-Rao half is hysteresis-free and does most
+> of the useful work; its Wasserstein half should be run deterministically and gently.
+> It beats adaptive biasing by a margin that grows with CV domain length, and it beats
+> Hamiltonian replica-exchange TI when the fiber's slow mode has a localized gateway —
+> but it is not a general replacement for either, and its bias does not go away with
+> more compute.**
 
-## 7. What would have to be true for the idea to work
+## 7. What would have to be true for the method to be general
 
-A lift that is *asymptotically exact without knowing F*. The campaign found only three
-kinds: the oracle (not implementable), a model-based rescaling (only repairs modelled
-modes, and damages unmodelled ones), and annealing `kappa -> 0` (removes the bias only
-by removing the transport, converging to stratified TI). If a fourth exists it is the
-thing to look for; nothing in the structural argument of Section 2 forbids it, but any
-candidate must supply the missing `exp(+beta F)` weight from somewhere other than an
-estimate of `F` — and the only known mechanism that does is exchange between occupied
-windows.
+A lift that is asymptotically exact *without knowing F*. The campaign found four kinds
+and none qualifies: the oracle (not implementable); a model-based rescaling (repairs
+only modelled modes, damages unmodelled ones); annealing `kappa -> 0` (removes the bias
+only by removing the transport, converging to stratified TI); and the deterministic
+probability flow (self-annihilating, which is why it is the best variant found — but
+still extensive in dragged modes). Any fifth candidate must supply the missing
+`exp(+beta F)` weight from somewhere other than an estimate of `F`, and the only known
+mechanism that does is exchange between occupied windows.
+
+Two directions the campaign did NOT close and that look worth a look:
+
+* a **hybrid**: use RC-WFR's front to establish coverage, then hand the resulting
+  configurations to exact RE-TI. The two mechanisms are complementary — RC-WFR is fast
+  and biased, RE-TI is exact and slow to mobilize — and RC-WFR's own annealed variant
+  is already a crude version of this;
+* **variance-optimal targets**. Everything here targets `u(z)` uniform, which allocates
+  computation evenly rather than where the mean-force variance is. That is an
+  allocation question, entirely separate from the bias question, and the FR machinery
+  can carry any target at no extra cost.
+
+## 8. Reproducibility
+
+Every number in this report is produced by a script in `scripts/` and recorded, in the
+order it was measured, in `docs/RESULTS_LOG.md`. Arms in a comparison share `N`,
+`n_steps`, the estimator, the initial ensemble and the seed base, so all comparisons are
+paired; RE-TI's exchange energy evaluations are charged to its force budget and its
+inner loop shortened to match. Every claim is quoted against a measured estimator floor
+and no difference at or below that floor is claimed. Wall clock is reported separately:
+RC-WFR's marginal machinery costs about 1.5x the wall clock of stratified TI in this
+toy, where a "force evaluation" is a two-term polynomial; in any real system the force
+cost dominates and that overhead vanishes.

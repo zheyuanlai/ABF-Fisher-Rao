@@ -369,6 +369,10 @@ def run_reti(sys: SepSystem, cfg: RunConfig, rows: int, seed: int):
     # loop so the TOTAL charge equals N * cfg.n_steps, the budget every other arm uses.
     n_inner = int(round(cfg.n_steps / (1.0 + 1.0 / cfg.n_ex)))
     n_saves = max(1, n_inner // cfg.save_every)
+    # space the saves evenly over n_inner so the LAST one lands on the final step;
+    # a fixed save_every stride would stop short and silently score RE-TI on a
+    # smaller budget than every other arm.
+    save_stride = max(1, n_inner // n_saves)
     out = _saver(rows, g, n_saves, dev, dt)
     N = cfg.N
     M = cfg.n_windows if cfg.n_windows else N
@@ -402,7 +406,7 @@ def run_reti(sys: SepSystem, cfg: RunConfig, rows: int, seed: int):
                 acc_num += (u < pacc).to(dt).sum()
                 acc_den += float(pacc.numel())
                 fe += 2.0 * idx.numel() * rows / rows      # 2 new energies per pair
-        if (n + 1) % cfg.save_every == 0 and si < n_saves:
+        if (n + 1) % save_stride == 0 and si < n_saves:
             _record(out, si, sys, cfg, acc, X, Y, mask, fe)
             si += 1
     out["X_final"], out["Y_final"] = X, Y

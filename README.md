@@ -14,9 +14,28 @@ The campaign asks one question:
 
 ## Answer
 
-**Partly yes against adaptive biasing, no against stratification.** See
-[`docs/TECHNICAL_REPORT.md`](docs/TECHNICAL_REPORT.md) for the full account and
-[`docs/RESULTS_LOG.md`](docs/RESULTS_LOG.md) for every measurement in order.
+**Yes against adaptive biasing, in a regime you can identify in advance. Against
+classical stratification it depends on the fiber — and on getting two things right
+that the campaign had to discover.**
+
+* Use the **deterministic probability-flow** Wasserstein step, not the SDE one: its
+  velocity vanishes as `p -> u`, so its hysteresis self-annihilates.
+* Deterministic transport plus Fisher-Rao resampling needs a small **resample-move
+  jitter**, or clones never separate and the ensemble collapses.
+
+With both, at matched force evaluations: **3.6x / 5.7x better than ABF** on long CV
+domains (and 3.1x worse on a short one), **~2x better than cold-start Hamiltonian
+replica-exchange TI** on a fiber with a hidden slow channel, and **1.3x worse than plain
+cold-start stratified TI** on an easy fiber.
+
+The hard limitation is structural and does not go away with compute: an unconditional
+move in `xi` cannot be Metropolis-corrected without knowing `F`, so RC-WFR trades a
+convergence problem for a **bias** problem. Its Fisher-Rao half is free of this (it
+copies walkers whole and drags nothing) and does most of the useful work — removing it
+costs a factor 2.4-2.5.
+
+Full account: [`docs/TECHNICAL_REPORT.md`](docs/TECHNICAL_REPORT.md).
+Every measurement in the order it was taken: [`docs/RESULTS_LOG.md`](docs/RESULTS_LOG.md).
 
 ## Layout
 

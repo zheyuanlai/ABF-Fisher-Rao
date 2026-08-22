@@ -25,24 +25,35 @@ RES = ROOT / "results"
 FLOOR_C = PALETTE["gray"]
 
 # one semantic colour per method family, used identically in every figure
+# semantic families: RC-WFR variants warm (red/orange/purple), classical cool
+# (blue/green), adaptive biasing black/grey.  Marker encodes the family so the
+# figure survives grayscale printing.
 COLORS = {
-    "wfr":        PALETTE["vermillion"],
-    "wfr_anneal": PALETTE["yellow"],
-    "wfr_flow":   PALETTE["purple"],
-    "wfr_scaled": PALETTE["orange"],
-    "wfr_oracle": PALETTE["light_gray"],
-    "w_only":     PALETTE["sky"],
-    "fr_only":    PALETTE["gray"],
-    "w_count":    PALETTE["purple"],
-    "w_sham":     PALETTE["light_gray"],
-    "ti_cold":    PALETTE["blue"],
-    "ti_warm":    PALETTE["sky"],
-    "reti_cold":  PALETTE["green"],
-    "reti_warm":  PALETTE["sky"],
-    "abf":        PALETTE["black"],
-    "shus":       PALETTE["gray"],
-    "unbiased":   PALETTE["light_gray"],
+    "wfr":          (PALETTE["vermillion"], "o"),
+    "wfr_anneal":   (PALETTE["orange"], "o"),
+    "wfr_flow":     (PALETTE["purple"], "o"),
+    "wfr_flow_w":   (PALETTE["purple"], "x"),
+    "wfr_flow_fr":  (PALETTE["purple"], "+"),
+    "wfr_flow_cnt": (PALETTE["purple"], "*"),
+    "wfr_gmm":      (PALETTE["vermillion"], "*"),
+    "wfr_scaled":   (PALETTE["yellow"], "o"),
+    "wfr_oracle":   (PALETTE["gray"], "D"),
+    "w_only":       (PALETTE["vermillion"], "v"),
+    "fr_only":      (PALETTE["vermillion"], "^"),
+    "w_count":      (PALETTE["vermillion"], "s"),
+    "w_sham":       (PALETTE["light_gray"], "s"),
+    "ti_cold":      (PALETTE["blue"], "s"),
+    "ti_warm":      (PALETTE["blue"], "D"),
+    "reti_cold":    (PALETTE["green"], "s"),
+    "reti_warm":    (PALETTE["green"], "D"),
+    "abf":          (PALETTE["black"], "^"),
+    "shus":         (PALETTE["gray"], "^"),
+    "unbiased":     (PALETTE["light_gray"], "^"),
 }
+
+
+def cm(k):
+    return COLORS.get(k, (PALETTE["gray"], "o"))
 ORACLE_ARMS = {"wfr_oracle", "ti_warm", "reti_warm"}
 
 
@@ -166,10 +177,11 @@ def fig_lift(style):
 
 # ---------------------------------------------------------------- figure 3 --
 def fig_arms(style, systems=("EB", "CHANNEL")):
-    fig, axes = plt.subplots(1, len(systems), figsize=(6.9, 3.4))
+    fig, axes = plt.subplots(1, len(systems), figsize=(6.9, 3.9))
     axes = np.atleast_1d(axes)
     for ax, sysname in zip(axes, systems):
-        d = jload(RES / "confirm" / f"{sysname}.json")
+        pcal = RES / "confirm" / f"{sysname}_cal.json"
+        d = jload(pcal if pcal.exists() else RES / "confirm" / f"{sysname}.json")
         floor, arms = d["floor"], d["arms"]
         labs = [k for k in arms if k != "unbiased"]
         vals = {k: boot_ci(arms[k]["I_F"]) for k in labs}
@@ -177,11 +189,12 @@ def fig_arms(style, systems=("EB", "CHANNEL")):
         y = np.arange(len(labs))
         for i, k in enumerate(labs):
             m, lo, hi = vals[k]
-            c = COLORS.get(k, PALETTE["gray"])
+            c, mk = cm(k)
             oracle = k in ORACLE_ARMS
-            ax.plot([lo, hi], [i, i], "-", color=c, lw=1.4, alpha=.85)
-            ax.plot([m], [i], "o" if not oracle else "D", color=c, ms=5,
-                    mfc="white" if oracle else c, mew=1.4)
+            ax.plot([lo, hi], [i, i], "-", color=c, lw=2.2, alpha=.9,
+                    solid_capstyle="butt")
+            ax.plot([m], [i], mk, color=c, ms=5.5,
+                    mfc="white" if oracle else c, mew=1.3)
         ax.set_yticks(y)
         ax.set_yticklabels([k + ("  *" if k in ORACLE_ARMS else "") for k in labs],
                            fontsize=7)
@@ -192,11 +205,11 @@ def fig_arms(style, systems=("EB", "CHANNEL")):
         ax.set_title(sysname, fontsize=9)
         ax.invert_yaxis()
         ax.grid(axis="x", lw=.4, alpha=.35)
-    axes[0].text(0.02, -0.22, "* uses oracle information (exact conditional); "
-                 "open diamonds are upper bounds, not usable methods",
-                 transform=axes[0].transAxes, fontsize=6.3, color=PALETTE["black"])
+    fig.text(0.5, 0.012, "* uses oracle information (exact conditional law); open "
+             "markers are upper bounds, not usable methods",
+             fontsize=6.3, color=PALETTE["black"], ha="center")
     add_panel_labels(axes, ("a", "b"))
-    fig.tight_layout()
+    fig.tight_layout(rect=(0, 0.045, 1, 1))
     return save_figure(fig, HERE / "fig3_arms")
 
 
@@ -216,7 +229,7 @@ def fig_curves(style, sysname="CHANNEL",
         x = x[:e.shape[0]]
         med = np.median(e, axis=1)
         lo, hi = np.quantile(e, [.25, .75], axis=1)
-        c = COLORS.get(k, PALETTE["gray"])
+        c, _mk = cm(k)
         ls = "-." if k in ORACLE_ARMS else "-"
         ax.loglog(x, med, ls, color=c, lw=1.5, label=k + (" *" if k in ORACLE_ARMS else ""))
         ax.fill_between(x, lo, hi, color=c, alpha=.13, lw=0)

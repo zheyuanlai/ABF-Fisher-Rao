@@ -468,3 +468,48 @@ lift, not the density estimate.
 the mixture score is wrong enough to drive the entire ensemble into the domain walls
 (coverage 0.00).  K must resolve the marginal's structure; K = 24 over a 3.6-wide
 domain (component spacing 0.15) was the optimum here.
+
+## Phase 8 - calibrated confirmation on fresh seeds (32 seeds, `--tag _cal`)
+
+Stage-1 winners frozen and re-run at base seed 9000, which no screen used.
+
+### EB (10.24M fe, floor 0.00403)
+
+| arm          | I_F     | e_F_final | /floor | note |
+|--------------|--------:|----------:|-------:|------|
+| wfr_scaled   | 0.00711 | 0.00615   |  1.5   | exact analytic fiber model |
+| wfr_flow     | **0.01513** | 0.00834 |  2.1 | flow, kappa 2.0, theta 0.3, jitter 0.01 |
+| wfr_flow_cnt | 0.01504 | 0.00879   |  2.2   | flow + COUNT balancing (ties FR exactly) |
+| wfr_gmm      | 0.02139 | 0.01257   |  3.1   | GMM score, K = 24 |
+| wfr_flow_w   | 0.03648 | 0.01273   |  3.2   | flow, theta = 0: **FR removed** |
+| wfr          | 0.03612 | 0.03362   |  8.3   | SDE form |
+| wfr_anneal   | 0.03767 | 0.01265   |  3.1   | |
+
+**Finding F4 (H0, decisive).**  Turning Fisher-Rao OFF in the best RC-WFR variant costs
+a factor **2.4** on EB (0.01513 -> 0.03648) and a factor **2.5** on CHANNEL
+(0.06519 -> 0.16549).  The birth-death term is doing real, large work once the
+Wasserstein step is deterministic - and it does it WITHOUT any hysteresis, because
+selection copies a walker together with its fiber configuration and drags nothing.
+
+**Finding F5 (H4 again).**  `wfr_flow_cnt` (count balancing) 0.01504 vs `wfr_flow`
+(smooth FR) 0.01513: an exact tie for the third time in this campaign.  What matters is
+*that* population is reallocated toward uniform, not the Fisher-Rao geometry of the
+reallocation.
+
+### CHANNEL (25.6M fe, floor 0.00346)
+
+| arm         | I_F     | e_F_final | /floor | chan   |
+|-------------|--------:|----------:|-------:|-------:|
+| **wfr_flow**| **0.06519** | 0.03862 | 11.2 | 0.0402 |
+| wfr_flow_w  | 0.16549 | 0.05982   | 17.3   | 0.0561 |
+| wfr_anneal  | 0.19239 | 0.10397   | 30.1   | 0.1040 |
+| wfr (SDE)   | 0.23933 | 0.19399   | 56.1   | 0.1677 |
+
+Tuned cold-start RE-TI on the same system is `I_F = 0.1221` (M = 64, n_ex = 5, screen)
+/ `0.14482` (M = 256, 32-seed confirmation).  **The calibrated probability-flow RC-WFR
+(0.0652) is roughly 2x better than the strongest classical baseline that does not use
+oracle information.**  Its winning configuration uses a SMALL kappa (0.125) and a strong
+FR dose (theta = 0.6): slow, careful transport so walkers equilibrate the slow mode
+while they are in the switch region, with the hysteresis-free birth-death term doing the
+amplification.  This is the WFR division of labour behaving exactly as the theory says
+it should.

@@ -26,7 +26,7 @@ def confirm_table(sysname):
         IF = np.asarray(v["I_F"], float)
         eF = np.asarray(v["e_F_final"], float)
         m, lo, hi = paired_bootstrap(IF)
-        rows.append(dict(arm=k, I_F=m, I_F_lo=lo, I_F_hi=hi,
+        rows.append(dict(arm=k, I_F=m, I_F_lo=lo, I_F_hi=hi, wall=v.get("wall"),
                          e_F=float(np.median(eF)), ratio=float(np.median(eF)) / fl,
                          chan=float(np.median(np.asarray(v["chan"], float))),
                          cov=float(np.median(np.asarray(v["cov"], float))),
@@ -34,10 +34,12 @@ def confirm_table(sysname):
     rows.sort(key=lambda r: r["I_F"])
     print(f"\n### {sysname}   (floor {fl:.5f})")
     print(f"{'arm':14s} {'I_F':>9s} {'95% CI':>20s} {'e_F':>9s} {'/fl':>6s} "
-          f"{'chan':>7s} {'cov':>5s}")
+          f"{'chan':>7s} {'cov':>5s} {'wall_s':>7s}")
     for r in rows:
+        w = r["wall"] if r["wall"] is not None else float("nan")
         print(f"{r['arm']:14s} {r['I_F']:9.5f} [{r['I_F_lo']:8.5f},{r['I_F_hi']:8.5f}] "
-              f"{r['e_F']:9.5f} {r['ratio']:6.1f} {r['chan']:7.4f} {r['cov']:5.2f}")
+              f"{r['e_F']:9.5f} {r['ratio']:6.1f} {r['chan']:7.4f} {r['cov']:5.2f} "
+              f"{w:7.0f}")
     print("\n  paired median rel. change in I_F (negative = row better):")
     base = [b for b in ("ti_cold", "reti_cold", "abf") if b in arms]
     print(f"  {'arm':14s} " + " ".join(f"{'vs ' + b:>26s}" for b in base))
@@ -93,7 +95,12 @@ def mspec_table():
 
 
 if __name__ == "__main__":
-    for s in ("EB", "CHANNEL"):
-        confirm_table(s)
+    import sys as _s
+    tags = ["_cal", ""] if "--cal" in _s.argv else [""]
+    for sysn in ("EB", "CHANNEL"):
+        for t in tags:
+            if (RES / "confirm" / f"{sysn}{t}.json").exists():
+                confirm_table(sysn + t)
+                break
     torsion_table()
     mspec_table()
