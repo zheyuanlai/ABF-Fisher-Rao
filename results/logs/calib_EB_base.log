@@ -1,0 +1,27 @@
+  abf        {'bias_n_min': 1.0}                                        I_F=0.04088 e_F=0.00604 (30s)
+  abf        {'bias_n_min': 10.0}                                       I_F=0.04121 e_F=0.00600 (30s)
+  abf        {'bias_n_min': 100.0}                                      I_F=0.04367 e_F=0.00598 (30s)
+  abf        {'bias_n_min': 1000.0}                                     I_F=0.05233 e_F=0.00631 (30s)
+abf        BEST {'bias_n_min': 1.0}  I_F=0.04088
+  shus       {'shus_gain': 1.0, 'shus_block': 100}                      I_F=1.49406 e_F=1.30842 (21s)
+  shus       {'shus_gain': 10.0, 'shus_block': 100}                     I_F=2.55345 e_F=1.04693 (21s)
+  shus       {'shus_gain': 100.0, 'shus_block': 100}                    I_F=2.57973 e_F=1.14659 (21s)
+  shus       {'shus_gain': 1000.0, 'shus_block': 100}                   I_F=2.56570 e_F=0.89701 (21s)
+  shus       {'shus_gain': 10000.0, 'shus_block': 100}                  I_F=2.62641 e_F=1.00343 (21s)
+shus       BEST {'shus_gain': 1.0, 'shus_block': 100}  I_F=1.49406
+  ti_warm    {}                                                         I_F=0.00644 e_F=0.00555 (18s)
+ti_warm    BEST {}  I_F=0.00644
+  ti_cold    {}                                                         I_F=0.01061 e_F=0.00625 (18s)
+ti_cold    BEST {}  I_F=0.01061
+  unbiased   {}                                                         I_F=0.90578 e_F=0.90388 (26s)
+unbiased   BEST {}  I_F=0.90578
+  reti_warm  {'n_ex': 5}                                                I_F=0.00589 e_F=0.00550 (23s)
+  reti_warm  {'n_ex': 20}                                               I_F=0.00688 e_F=0.00591 (20s)
+  reti_warm  {'n_ex': 100}                                              I_F=0.00651 e_F=0.00564 (20s)
+reti_warm  BEST {'n_ex': 5}  I_F=0.00589
+  reti_cold  {'n_ex': 5}                                                I_F=0.01037 e_F=0.00638 (23s)
+  reti_cold  {'n_ex': 20}                                               I_F=0.01082 e_F=0.00658 (20s)
+  reti_cold  {'n_ex': 100}                                              I_F=0.01153 e_F=0.00647 (19s)
+reti_cold  BEST {'n_ex': 5}  I_F=0.01037
+
+wrote results/calibration/EB_calib.json
