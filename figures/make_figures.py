@@ -234,8 +234,10 @@ def fig_curves(style, sysname="CHANNEL",
         ax.loglog(x, med, ls, color=c, lw=1.5, label=k + (" *" if k in ORACLE_ARMS else ""))
         ax.fill_between(x, lo, hi, color=c, alpha=.13, lw=0)
     ax.axhline(floor, color=FLOOR_C, ls=(0, (1, 1)), lw=1.1)
-    ax.text(0.98, 0.03, "estimator floor", fontsize=6.3, color=FLOOR_C,
-            transform=ax.transAxes, ha="right", va="bottom")
+    ax.text(0.985, 0.012, "estimator floor", fontsize=6.3, color=FLOOR_C,
+            transform=ax.transAxes, ha="right", va="bottom",
+            bbox=dict(fc=PALETTE["light_gray"], ec="none", alpha=0, pad=0.5))
+    ax.set_ylim(bottom=floor * 0.55)
     ax.set_xlabel("force evaluations"); ax.set_ylabel(r"$e_F$")
     ax.set_title(f"{sysname}: convergence at matched cost", fontsize=8.5)
     ax.legend(frameon=False, fontsize=6.2, loc="lower left", ncol=2,

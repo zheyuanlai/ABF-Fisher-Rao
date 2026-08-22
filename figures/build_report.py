@@ -313,10 +313,17 @@ def build():
     def g(d, k, field="I_F"):
         return float(np.median(np.asarray(d["arms"][k][field], float)))
 
-    eb_flow, eb_ti, eb_abf = g(eb, "wfr_flow"), g(eb, "ti_cold"), g(eb, "abf")
-    ch_flow, ch_reti = g(ch, "wfr_flow"), g(ch, "reti_cold")
-    ch_ti, ch_abf = g(ch, "ti_cold"), g(ch, "abf")
-    L_last = tors_rows[-1] if tors_rows else None
+    def pair(d, a, b):
+        m, lo, hi = paired_bootstrap(rel_change(d["arms"][a]["I_F"], d["arms"][b]["I_F"]))
+        return 100 * m, 100 * lo, 100 * hi
+
+    eb_vs_ti = pair(eb, "wfr_flow", "ti_cold")
+    eb_vs_abf = pair(eb, "wfr_flow", "abf")
+    ch_vs_reti = pair(ch, "wfr_flow", "reti_cold")
+    ch_vs_ti = pair(ch, "wfr_flow", "ti_cold")
+    ch_vs_abf = pair(ch, "wfr_flow", "abf")
+    # highlight L = 24: the longest domain at which every arm's own knobs were screened
+    L_hi = next((r for r in tors_rows if abs(r[0] - 24.0) < 1e-9), tors_rows[-1])
 
     head = f"""<title>Does reaction-coordinate WFR beat adaptive biasing?</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -358,19 +365,24 @@ def build():
     ensemble collapses.</p>
   </div>
   <div class="cards">
-    <div class="card win"><h3>vs ABF &mdash; long CV domain</h3>
-      <span class="big">{100*L_last[2][0]:+.0f}%</span>
-      <p>integrated error at <span class="mono">L&nbsp;=&nbsp;{L_last[0]:g}</span>, and the
-      margin grows monotonically with domain length. At
-      <span class="mono">L&nbsp;=&nbsp;3</span> RC-WFR is 3&times; <em>worse</em>.</p></div>
     <div class="card win"><h3>vs replica-exchange TI &mdash; hidden channel</h3>
-      <span class="big">{100*(ch_flow-ch_reti)/ch_reti:+.0f}%</span>
-      <p>on a fiber whose slow mode has a localized gateway, against a
-      cold-start Hamiltonian-exchange baseline screened over 12 configurations.</p></div>
+      <span class="big">{ch_vs_reti[0]:+.0f}%</span>
+      <p>against a cold-start Hamiltonian-exchange baseline screened over 12
+      configurations, on a fiber whose slow mode has a localized gateway.
+      95% CI [{ch_vs_reti[1]:+.0f}, {ch_vs_reti[2]:+.0f}]. Same arm vs stratified TI:
+      {ch_vs_ti[0]:+.0f}%; vs ABF: {ch_vs_abf[0]:+.0f}%.</p></div>
+    <div class="card win"><h3>vs ABF &mdash; long CV domain</h3>
+      <span class="big">{100*L_hi[2][0]:+.0f}%</span>
+      <p>at <span class="mono">L&nbsp;=&nbsp;{L_hi[0]:g}</span>, and the margin grows
+      monotonically with domain length &mdash; at <span class="mono">L&nbsp;=&nbsp;3</span>
+      RC-WFR is 3&times; <em>worse</em>. Exactly the crossover the
+      <span class="mono">O(L)</span> vs <span class="mono">O(L&sup2;)</span> argument
+      predicts.</p></div>
     <div class="card lose c-clas"><h3>vs stratified TI &mdash; easy fiber</h3>
-      <span class="big">{100*(eb_flow-eb_ti)/eb_ti:+.0f}%</span>
+      <span class="big">{eb_vs_ti[0]:+.0f}%</span>
       <p>plain cold-start fixed-window TI still wins where the fiber is unimodal and
-      fast. It has no transport, so it has no lift bias.</p></div>
+      fast: it has no transport, so it has no lift bias. The same arm still beats ABF
+      there by {abs(eb_vs_abf[0]):.0f}%.</p></div>
   </div>
   <div class="col">
     <div class="claim">

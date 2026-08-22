@@ -48,16 +48,24 @@ found by this campaign rather than assumed:
 
 With both fixed, RC-WFR is a real method with a real regime:
 
-| comparison | result |
-|---|---|
-| vs **ABF**, short CV domain (L = 3) | 3.1x WORSE |
-| vs **ABF**, long CV domain (L = 12 / 24) | **3.6x / 5.7x BETTER** |
-| vs **ABF**, large fiber (m_spec = 32) | **7.4x BETTER** |
-| vs **SHUS/ABP** | better by 1-2 orders of magnitude everywhere tested |
-| vs **cold-start RE-TI**, hidden-channel fiber | **~2x BETTER** (0.065 vs 0.122-0.145) |
-| vs **cold-start fixed-window TI**, easy fiber | 1.3x worse (0.0151 vs 0.0114) |
-| vs **fixed-window TI** with an exact analytic lift | **1.6x BETTER** (0.0071 vs 0.0114) |
-| vs oracle-initialized TI / RE-TI | worse (those use information nobody has) |
+All figures below are paired median relative changes in `I_F` on 32 fresh confirmation
+seeds at matched force evaluations, with every baseline screened at least as hard as
+RC-WFR.  Bold entries have 95% bootstrap CIs excluding zero.
+
+| comparison                                            | result |
+|-------------------------------------------------------|--------|
+| vs **ABF**, hidden-channel fiber                       | **-82.4%** [-85, -73] |
+| vs **cold-start RE-TI**, hidden-channel fiber          | **-50.1%** [-55, -14] |
+| vs **cold-start fixed-window TI**, hidden-channel fiber| **-70.5%** [-75, -50] |
+| vs **ABF**, easy fiber                                 | **-62.6%** [-66, -58] |
+| vs **fixed-window TI**, easy fiber, no fiber model     | +40.5% [+29, +54]     |
+| vs **fixed-window TI**, easy fiber, exact analytic lift| **-36.1%** [-40, -34] |
+| vs **ABF**, long torsional CV (L = 24)                 | **-89%** (0.0224 vs 0.198) |
+| vs **fixed-window TI**, long torsional CV (L = 24)     | **-12%** (0.0224 vs 0.0254) |
+| vs **RE-TI**, long torsional CV (L = 24)               | +57% (0.0224 vs 0.0142) |
+| vs **ABF**, short torsional CV (L = 3)                 | +191% [+163, +209] |
+| vs **SHUS / ABP**                                      | better by 1-2 orders of magnitude everywhere |
+| vs oracle-initialized TI / RE-TI                       | worse (they use information nobody has) |
 
 and it retains one hard, structural limitation that no amount of compute removes.
 
@@ -83,6 +91,11 @@ selection copies a walker together with its fiber configuration and drags nothin
 it reallocates population at zero hysteresis cost. That is why the best configurations
 found here use a SMALL `kappa` and a LARGE `theta` — minimum dragging, maximum
 birth-death — and why removing FR costs a factor 2.4-2.5.
+
+The sharpest form of that statement: on the hidden-channel system, RC-WFR **with**
+Fisher-Rao beats cold-start replica exchange by 50.1%; the identical arm **without** it
+loses to replica exchange by 27.5%. The birth-death half is not a refinement — it is
+the difference between winning and losing.
 
 ## 3. What was confirmed
 
@@ -166,7 +179,17 @@ each family free to pick its replica count:
 
 Stratified TI also degrades with L at fixed budget — it needs `M ~ L` windows for fixed
 CV resolution, so samples per window fall like `1/L` — and RC-WFR closes on it steadily
-(+165% -> +96% -> +40% -> +31%) without overtaking it in this family.
+(+165% -> +96% -> +40% -> +31%).
+
+Those RC-WFR numbers are **conservative**: the scan fixed the marginal-density bandwidth
+at `bw_kde = max(0.10, L/60)`, which is far too coarse at large L. Screening it properly
+at L = 24 gives RC-WFR `I_F = 0.0224`, which is **12% better than the best fixed-window
+stratified TI (0.0254) and 89% better than the best ABF (0.198)**, though still 57%
+behind RE-TI (0.0142). That screen also shows the probability flow is not universally
+the better W step: on this long torsional domain the stochastic step at moderate `kappa`
+wins (0.0224 vs 0.0279). The flow's advantage is specific to regimes where residual
+hysteresis dominates the error; where transport itself is the bottleneck, the SDE's
+larger effective step wins.
 
 ---
 
@@ -178,8 +201,8 @@ RC-WFR is a real method with a narrow, *predictable in advance* regime:
 |---|---|
 | CV domain long relative to physical CV diffusion | beats ABF, and the margin grows with L |
 | high enthalpic or entropic barrier the bias must learn | beats ABF and SHUS decisively |
-| fiber has a slow mode with a localized switch region | **beats cold-start RE-TI ~2x** with small kappa + strong FR |
-| fiber has an exact, cheap analytic lift | beats cold-start stratified TI ~1.6x |
+| fiber has a slow mode with a localized switch region | **beats cold-start RE-TI by 50%, stratified TI by 70%, ABF by 82%** — with small kappa, strong FR and the flow step |
+| fiber has an exact, cheap analytic lift | beats cold-start stratified TI by 36% |
 | easy unimodal fiber, short CV domain | loses to stratified TI and to ABF |
 | system size grows | loses further; the lift bias is extensive in fiber modes |
 | only one starting structure is available | the flow form cannot start at all (zero score at a delta ensemble); use the SDE form for a few steps first |

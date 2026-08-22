@@ -543,3 +543,67 @@ the KDE score at the same kappa/theta (0.01513).  On the screen at its own best
 kappa/theta the two were identical (0.01381 vs 0.01366).  The GMM is therefore an
 equal-quality but NOT a drop-in replacement: it needs its own K and kappa calibration,
 and transplanting the KDE arm's settings into it costs ~40%.
+
+### CHANNEL calibrated confirmation - paired comparisons (32 fresh seeds, floor 0.00346)
+
+Baselines at their own screen winners: RE-TI at M = 64, n_ex = 5 (screened over 12
+configurations); ABF at its screened ramp.  `*` = 95% bootstrap CI excludes 0.
+
+| arm          | I_F     | e_F     | chan   | vs ti_cold             | vs reti_cold           | vs abf                 |
+|--------------|--------:|--------:|-------:|------------------------|------------------------|------------------------|
+| wfr_oracle   | 0.00377 | 0.00359 | 0.032  | -98.3%*                | -97.2%*                | -99.0%*                |
+| reti_warm    | 0.01015 | 0.00636 | 0.031  | -95.5%*                | -92.4%*                | -97.4%*                |
+| ti_warm      | 0.01066 | 0.00582 | 0.030  | -95.3%*                | -91.7%*                | -97.4%*                |
+| **wfr_flow** | **0.06519** | 0.03862 | 0.040 | **-70.5% [-75,-50]\*** | **-50.1% [-55,-14]\*** | **-82.4% [-85,-73]\*** |
+| wfr_flow_cnt | 0.07804 | 0.03581 | 0.051  | -62.7% [-74,-55]*      | -40.7% [-55,-20]*      | -80.5% [-86,-72]*      |
+| reti_cold    | 0.13122 | 0.03954 | 0.030  | -40.7% [-43,-38]*      | -                      | -66.6% [-68,-65]*      |
+| wfr_flow_w   | 0.16549 | 0.05982 | 0.056  | -24.0% [-27,-22]*      | **+27.5% [+23,+33]**   | -57.7% [-60,-56]*      |
+| wfr_anneal   | 0.19239 | 0.10397 | 0.104  | -12.3% [-14,-8]*       | +43.4%                 | -50.6%*                |
+| wfr_gmm      | 0.20254 | 0.11910 | 0.183  | -5.0% [-19,-2]*        | +53.6%                 | -49.1%*                |
+| ti_cold      | 0.21816 | 0.15432 | 0.299  | -                      | +68.8%                 | -43.5%*                |
+| w_count      | 0.23212 | 0.18598 | 0.171  | +6.3% [-0.2,+15]       | +75.5%                 | -41.9%*                |
+| wfr (SDE)    | 0.23933 | 0.19399 | 0.168  | +11.0%                 | +82.3%                 | -39.5%*                |
+| w_only       | 0.25834 | 0.18153 | 0.192  | +16.1%                 | +97.7%                 | -35.2%*                |
+| w_sham       | 0.26029 | 0.18806 | 0.161  | +20.9%                 | +104.1%                | -31.9%*                |
+| wfr_scaled   | 0.29172 | 0.26642 | 0.219  | +33.1%                 | +119.3%                | -27.0%*                |
+| abf          | 0.39734 | 0.18966 | 0.059  | +77.1%                 | +199.0%                | -                      |
+| fr_only      | 0.62760 | 0.62765 | 0.000  | +187.5%                | +375.8%                | +57.7%                 |
+| unbiased     | 0.68097 | 0.71962 | 0.000  | +205.9%                | +417.6%                | +76.7%                 |
+| shus         | 2.52239 | 0.35457 | 0.033  | +1023%                 | +1817%                 | +533%                  |
+
+**Finding C7 (the campaign's headline positive).**  On a fiber whose slow mode has a
+localized gateway, the probability-flow RC-WFR beats **tuned cold-start Hamiltonian
+replica-exchange TI by 50.1%**, cold-start stratified TI by 70.5% and ABF by 82.4%, all
+with 95% CIs excluding zero, at matched force evaluations and with the baselines
+screened at least as hard as it was.
+
+**Finding C8 (Fisher-Rao is what makes it win).**  Remove the FR term from the same
+arm (`wfr_flow_w`) and it *loses* to RE-TI by 27.5% [+23, +33].  The birth-death half is
+not a refinement here - it is the difference between winning and losing, and it is the
+only half that carries no hysteresis, because selection copies a walker together with
+its fiber configuration.
+
+## Phase 9 - bandwidth tuning at L = 24, and where RC-WFR overtakes stratified TI
+
+The torsion L-scan used `bw_kde = max(0.10, L/60)`, which is badly coarse at large L.
+Screening it properly at L = 24 (8 seeds, 25.6M fe, floor 0.00300):
+
+| W step | bw_kde | kappa | I_F     |
+|--------|-------:|------:|--------:|
+| flow   | 0.1    | 2.0   | 0.02792 |
+| sde    | 0.1    | 0.5   | 0.02253 |
+| **sde**| **0.3**| **0.5** | **0.02237** |
+| sde    | 0.3    | 2.0   | 0.02506 |
+| flow   | 1.0    | 2.0   | 0.07203 |
+
+Best baselines at L = 24: fixed TI **0.02540** (N = 1024), RE-TI **0.01423**
+(N = 1024), ABF **0.19833**.
+
+**Finding P1b.**  With its density bandwidth tuned, RC-WFR at L = 24 is **12% better
+than the best fixed-window stratified TI** and **89% better than the best ABF**, while
+still 57% behind RE-TI.  The L-scan's WFR numbers are therefore conservative.
+
+**Finding F6.**  The probability flow is NOT universally the better W step: on this
+long torsional domain the stochastic step at moderate `kappa` wins (0.02237 vs 0.02792).
+The flow's advantage is specific to regimes where the residual hysteresis dominates the
+error; where transport itself is the bottleneck, the SDE's larger effective step wins.

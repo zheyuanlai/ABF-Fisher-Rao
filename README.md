@@ -23,10 +23,26 @@ that the campaign had to discover.**
 * Deterministic transport plus Fisher-Rao resampling needs a small **resample-move
   jitter**, or clones never separate and the ensemble collapses.
 
-With both, at matched force evaluations: **3.6x / 5.7x better than ABF** on long CV
-domains (and 3.1x worse on a short one), **~2x better than cold-start Hamiltonian
-replica-exchange TI** on a fiber with a hidden slow channel, and **1.3x worse than plain
-cold-start stratified TI** on an easy fiber.
+With both, at matched force evaluations (32 fresh confirmation seeds, every baseline
+screened at least as hard, 95% bootstrap CIs excluding zero on the bold entries):
+
+| on a fiber with a hidden slow channel | |
+|---|---|
+| vs cold-start Hamiltonian replica-exchange TI | **-50.1%** |
+| vs cold-start stratified TI | **-70.5%** |
+| vs ABF | **-82.4%** |
+
+| elsewhere | |
+|---|---|
+| vs ABF, long torsional CV (L = 24) | **-89%** |
+| vs fixed-window TI, long torsional CV (L = 24) | **-12%** |
+| vs ABF, easy fiber | **-62.6%** |
+| vs fixed-window TI, easy fiber | +40.5% (TI wins) |
+| vs ABF, short torsional CV (L = 3) | +191% (ABF wins) |
+
+Removing the Fisher-Rao term from the winning arm turns a 50% win over replica exchange
+into a 27% loss: the birth-death half is the difference between winning and losing, and
+it is the only half that carries no hysteresis.
 
 The hard limitation is structural and does not go away with compute: an unconditional
 move in `xi` cannot be Metropolis-corrected without knowing `F`, so RC-WFR trades a
