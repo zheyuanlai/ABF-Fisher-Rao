@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import torch
 
-from .grid import (EPS, Grid1D, cumtrapz, gaussian_kernel, scatter_counts,
+from .grid import (EPS, Grid1D, central_diff, cumtrapz, gaussian_kernel, scatter_counts,
                    smooth, trapz)
 
 
@@ -69,3 +69,32 @@ def gauge_l2(F_hat, F_ref, eval_mask):
 def gauge_l2_profile(F_hat, F_ref, eval_mask):
     d = F_hat - F_ref
     return d - d[:, eval_mask].mean(dim=1, keepdim=True)
+
+
+def smoothing_floor(grid: Grid1D, F_ref, bw, eval_mask=None):
+    """The L2 error a PERFECT mean-force estimator still makes at this bandwidth.
+
+    The kernel in `MeanForceAccumulator` is a bias as well as a variance
+    reduction: even with infinite samples the Nadaraya-Watson ratio returns a
+    smoothed mean force, and integrating that gives a smoothed profile.  This
+    computes exactly that, by differentiating `F_ref` and putting it back
+    through the estimator's own pipeline.
+
+    The comparison is against the UNSMOOTHED reconstruction rather than against
+    `F_ref` itself, so the reference's noise and the differentiate/re-integrate
+    mismatch both cancel and what is left is only what the kernel did.
+    """
+    dev, dt = F_ref.device, F_ref.dtype
+    m = grid.eval_mask(dev, dt) if eval_mask is None else eval_mask
+    F = F_ref if F_ref.dim() == 2 else F_ref.unsqueeze(0)
+    fr = central_diff(F, grid.dx, grid.bc)
+    K, r = gaussian_kernel(bw, grid.dx, dev, dt)
+    num = smooth(fr, K, r, grid.dx, grid.bc)
+    den = smooth(torch.ones_like(fr), K, r, grid.dx, grid.bc)
+
+    def gauge(v):
+        return v - v[:, m].mean(dim=1, keepdim=True)
+
+    Fs = gauge(cumtrapz(num / den.clamp_min(1e-30), grid.dx))
+    F0 = gauge(cumtrapz(fr, grid.dx))
+    return gauge_l2(Fs, F0[0], m)

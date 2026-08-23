@@ -23,29 +23,15 @@ import numpy as np
 import torch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-from rcwfr.estimators import gauge_l2
-from rcwfr.grid import Grid1D, central_diff, cumtrapz, gaussian_kernel, smooth
+from rcwfr.estimators import gauge_l2, smoothing_floor as _sfloor
+from rcwfr.grid import Grid1D
 from rcwfr.mol.refdata import load_reference
 
 
 def smoothing_floor(g, ref_path, bw, dev, dt):
     """L2 error a PERFECT mean-force estimator still makes at this (grid, bw)."""
     ref = load_reference(ref_path, g, g, dev, dt)
-    mask = g.eval_mask(dev, dt)
-    Fr = ref["F_ref"]                                   # (1, n)
-    # Differentiate the reference and put it back through the estimator's own
-    # pipeline.  Comparing the smoothed reconstruction against the UNSMOOTHED
-    # one -- rather than against F_ref -- cancels both the reference's noise and
-    # the differentiate/re-integrate mismatch, leaving only what the kernel did.
-    fr = central_diff(Fr, g.dx, g.bc)
-    K, r = gaussian_kernel(bw, g.dx, dev, dt)
-    num = smooth(fr, K, r, g.dx, g.bc)
-    den = smooth(torch.ones_like(fr), K, r, g.dx, g.bc)
-    def gauge(F):
-        return F - F[:, mask].mean(dim=1, keepdim=True)
-    Fs = gauge(cumtrapz(num / den.clamp_min(1e-30), g.dx))
-    F0 = gauge(cumtrapz(fr, g.dx))
-    return float(gauge_l2(Fs, F0[0], mask)[0])
+    return float(_sfloor(g, ref["F_ref"], bw)[0])
 
 
 def main():

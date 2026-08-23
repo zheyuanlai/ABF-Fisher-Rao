@@ -10,6 +10,7 @@ import pytest
 import torch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+from rcwfr.grid import Grid1D
 from rcwfr.mol import systems as S
 from rcwfr.mol.dynamics import constrained_step, free_step
 from rcwfr.mol.ff import (_wrap, angle, bond, dihedral, ideal_alkane,
@@ -303,3 +304,39 @@ def test_snap_at_switch_makes_the_windows_uniform(pen):
     d = torch.diff(torch.sort(z, dim=1).values, dim=1)
     expect = pen.grid.volume / cfg.N
     assert float((d - expect).abs().max()) < 1e-9, float((d - expect).abs().max())
+
+
+def test_smoothing_floor_is_zero_for_a_profile_the_kernel_cannot_bend():
+    """A constant mean force survives smoothing exactly, so its floor is zero.
+
+    The floor reported in `MOLECULAR_RESULTS.md` section 20 carries the claim
+    that the campaign's plateau was mostly the estimator's kernel.  That number
+    is only meaningful if it measures curvature and nothing else, so the sharp
+    check is a profile with no curvature to lose: `F` linear in `z` means a
+    constant mean force, which any normalised kernel returns unchanged.
+    """
+    from rcwfr.estimators import smoothing_floor
+    dev, dt = DEV, torch.float64
+    g = Grid1D(-math.pi, math.pi, 257, -math.pi, math.pi, "reflect")
+    x = g.x(dev, dt)
+    lin = (0.7 * x).unsqueeze(0)
+    for bw in (0.02, 0.05, 0.08):
+        assert float(smoothing_floor(g, lin, bw)[0]) < 1e-10
+
+
+def test_smoothing_floor_falls_like_the_square_of_the_bandwidth():
+    """On a curved profile the floor is the kernel's O(bw^2) bias.
+
+    Halving the bandwidth should quarter it, until the grid rather than the
+    kernel sets the resolution.  This pins the SCALING, which is what makes the
+    floor predictive at conventions that were never run.
+    """
+    from rcwfr.estimators import smoothing_floor
+    dev, dt = DEV, torch.float64
+    g = Grid1D(-math.pi, math.pi, 1025, -math.pi, math.pi, "periodic")
+    x = g.x(dev, dt)
+    F = (2.0 * torch.cos(2 * x) + 0.5 * torch.cos(3 * x)).unsqueeze(0)
+    v = [float(smoothing_floor(g, F, bw)[0]) for bw in (0.16, 0.08, 0.04)]
+    assert v[0] > v[1] > v[2] > 0
+    for a, b in zip(v[:-1], v[1:]):
+        assert 3.5 < a / b < 4.5, v
