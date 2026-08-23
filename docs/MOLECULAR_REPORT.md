@@ -26,25 +26,28 @@ unbiased dynamics, and every baseline screened at least as hard as the new arms.
 Chapter 3's minimum-norm horizontal lift — move along `M^-1 grad xi` and SHAKE —
 is not merely no better than a naive alternative, as the toy phase found. On a
 molecule it is **actively worse than an internal-coordinate rotation**, by
-**-53.7% [-56.6, -49.0]** on pentane and +26% on alanine. Its conditional error
-in the slow mode is the *same* (0.170 vs 0.194): the extra damage is not in the
-slow mode at all. It is in the fast modes the projection bends in order to buy
-the constraint.
+**-53.7% [-56.6, -49.0]** on pentane. Its conditional error in the slow mode is
+the *same* (0.170 vs 0.194): the extra damage is not in the slow mode at all. It
+is in the fast modes the projection bends in order to buy the constraint. (On
+alanine the two are separated at 1x, -38.8% for the rotation, but the CI spans
+zero by 4x; pentane is the cleaner measurement.)
 
 That also explains the toy phase's transport-rate pathology. Sweeping `kappa_W`
-over a factor 16:
+over a factor **64** on 16 fresh seeds:
 
-| `kappa_W` | 0.075 | 0.15 | 0.3 | 0.6 | 1.2 |
-|---|---|---|---|---|---|
-| min-norm SHAKE | 0.118 | 0.167 | 0.250 | 0.423 | **0.725** |
-| internal-coordinate rotation | 0.070 | 0.075 | 0.060 | 0.074 | 0.047 |
-| + oracle conditional map | 0.026 | 0.028 | 0.037 | 0.030 | 0.032 |
+| `kappa_W` | 0.0375 | 0.075 | 0.15 | 0.3 | 0.6 | 1.2 | 2.4 |
+|---|---|---|---|---|---|---|---|
+| min-norm SHAKE | 0.098 | 0.115 | 0.159 | 0.249 | 0.414 | 0.722 | **1.231** |
+| internal-coordinate rotation | 0.065 | 0.069 | 0.077 | 0.074 | 0.065 | 0.060 | 0.049 |
+| + oracle conditional map | 0.028 | 0.028 | 0.025 | 0.031 | 0.027 | 0.025 | 0.029 |
+| + Metropolis move (learned) | 0.027 | 0.025 | 0.022 | 0.025 | 0.024 | 0.023 | 0.029 |
 
-The pathology belongs to the SHAKE lift specifically, because its damage is a
-per-step *distortion* proportional to the displacement it has to buy. A rotation
-distorts nothing and is flat in `kappa_W`. With the conditional transported, the
-conditional error *improves* with faster transport (0.050 -> 0.017), because
-faster transport visits more fibers and the map re-equilibrates at each one.
+The pathology belongs to the SHAKE lift specifically -- a factor **12.6** across
+the sweep -- because its damage is a per-step *distortion* proportional to the
+displacement it has to buy. A rotation distorts nothing and is flat. And for the
+corrected arm both `e_F` and `D_cond` (0.0050-0.0055) are flat to seed noise over
+the whole 64-fold range: **the transport rate stops being a hyper-parameter,
+because the thing the tradeoff was made of has been removed.**
 
 ### 2. A lift learned from the run's own samples, applied uncorrected, is worse than no lift
 
@@ -103,19 +106,37 @@ That is the practical result: no reference conditional is needed anywhere.
 | stratified constrained TI, cold | **-62.3%** | **-47.1%** |
 | stratified constrained TI, warm (oracle initial conditional) | **-43.5%** | **-25.1%** |
 
-### 5. The caveat, stated plainly
+### 5. The caveat, stated plainly -- and then measured
 
 The advantage shrinks with budget and the reason is structural. The baselines are
 unbiased; RC-WFR is not, because its Wasserstein step moves `z` without a
 Metropolis correction and correcting it would need `F`. Late-time
-`d log e_F / d log fe` is -0.42 for ABF and cold TI (statistical) against -0.13
-for the corrected RC-WFR arm (partly bias-limited). Extrapolating the fits one
-decade puts the crossover at ~3.4x this campaign's largest budget for ABF and
-~7.6x for cold TI.
+`d log e_F / d log fe` at the confirmation budget is -0.42 for ABF and cold TI
+(statistical) against -0.13 for the corrected RC-WFR arm. Extrapolating those
+fits put the crossover with ABF at ~4e8 force evaluations.
+
+**Rather than leave that as an extrapolation, it was run.** At ~4.3e8, 16 seeds:
+
+| arm | at 1.07e8 | at ~4.3e8 | late slope |
+|---|---|---|---|
+| RC-WFR + Metropolis (learned) | 0.0215 | **0.0206** | -0.044 |
+| ABF | 0.0314 | 0.0227 | -0.231 |
+| stratified constrained TI, cold | 0.0378 | 0.0284 | - |
+| RC-WFR, naive rotation lift | 0.0475 | 0.0437 | - |
+
+The prediction was right to better than a factor two. RC-WFR is still ahead of
+ABF at 4.1e8 (**-8.1%** [-17.5, -5.9]) but only just, and it is flat while ABF
+is not.
+
+**And the residual is provably not the fiber.** Over that same run the corrected
+arm's conditional error fell from 0.0051 to **0.0014 nats** while `e_F` did not
+move. The fiber conditional is essentially exact and `e_F` still sits at 1.6
+estimator floors.
 
 So: **the conditional move removes the fiber half of RC-WFR's error exactly, and
-is worth a factor two. The marginal half remains, and it sets a budget beyond
-which plain stratification wins.**
+is worth a factor two -- the corrected floor is 0.021 against the naive lift's
+0.044. The marginal half remains, and it sets a budget, measured at a few times
+1e8 force evaluations here, beyond which plain adaptive biasing wins.**
 
 ## Where the numbers come from
 

@@ -725,3 +725,77 @@ thermodynamic-integration run already produces, before any of these arms ran.
 `S_k tau_k^2` is therefore usable as a selection rule, and the axis it selects
 on is **coupling, not timescale** -- which is the axis the toy phase could not
 vary.
+
+## 17. The predicted crossover, measured
+
+The confirmation's fitted convergence rates put the crossover with ABF at ~4e8
+force evaluations, 3.4x the largest budget run there.  Rather than leave that as
+an extrapolation, the same arms were run to 1.6e6 steps (4.1-4.7e8 force
+evaluations), 16 seeds:
+
+| | at 1.07e8 (confirmation) | at ~4.3e8 | late-time slope |
+|---|---|---|---|
+| RC-WFR + Metropolis (learned) | 0.0215 | **0.0206** | -0.044 |
+| ABF, multiple walkers | 0.0314 | 0.0227 | -0.231 |
+| stratified constrained TI, cold | 0.0378 | 0.0284 | - |
+| paired change vs ABF | **-31.4%** [-38.1, -25.3] | **-8.1%** [-17.5, -5.9] | |
+
+The prediction was right to within less than a factor two, and the picture it
+describes is exactly what happened: RC-WFR is flat (slope -0.044, a bias floor)
+while ABF keeps converging (-0.231).  RC-WFR is still ahead at 4.1e8 with a CI
+excluding zero, but only by 8%, and it will be overtaken shortly after.
+
+**And the residual is provably not the fiber.**  Over the same long run the
+corrected arm's conditional error fell from 0.0051 to **0.0014 nats** while its
+free-energy error did not move (0.0215 -> 0.0207).  The fiber conditional is
+essentially exact and `e_F` still sits at 1.6 estimator floors.  What is left is
+the uncorrected Wasserstein step in `z` -- the structural obstruction, unchanged
+from the toy phase, and the one thing this campaign did not fix.
+
+## 18. Alanine transport-rate sweep (16 fresh seeds, 1e5 steps)
+
+`e_F` (kJ/mol):
+
+| `kappa_W` | 0.0375 | 0.15 | 0.6 | 2.4 | max/min |
+|---|---|---|---|---|---|
+| min-norm SHAKE | 6.025 | 7.095 | 6.741 | 6.137 | 1.2x |
+| naive rotation | 5.106 | 6.210 | 5.276 | 3.799 | 1.6x |
+| + Metropolis (oracle) | 3.588 | 0.705 | 0.644 | **0.635** | 5.6x |
+| + Metropolis (learned) | 3.615 | 0.938 | 0.799 | **0.660** | 5.5x |
+
+`D_cond`:
+
+| `kappa_W` | 0.0375 | 0.15 | 0.6 | 2.4 |
+|---|---|---|---|---|
+| naive rotation | 0.989 | 0.946 | 0.864 | 0.826 |
+| + Metropolis (learned) | 0.147 | 0.168 | 0.159 | 0.150 |
+
+The alanine version of the stress test says the same thing in the opposite
+voice.  On pentane the corrected arm was FLAT in `kappa_W` over 64x; here it
+**improves 5.6x** with faster transport, because alanine's domain is a
+160-degree arc with 22-28 kJ/mol walls and the slowest transport cannot cover
+it inside 1e5 steps.  Either way the conclusion is the same: once the fiber
+conditional is handled correctly, faster reaction-coordinate transport is never
+a liability, and here it is the single largest available gain.
+
+The min-norm lift does NOT show its pentane pathology here (1.2x, not 12.6x).
+Its per-step distortion scales with the displacement it has to buy, and on a
+264-degree domain at the same `kappa` those displacements are smaller relative
+to everything else that is going wrong -- alanine's naive-lift error is 5 kJ/mol
+against a 0.156 floor, so the distortion is not the binding constraint.
+
+## 19. What the long runs settle
+
+At ~4.3e8 force evaluations, 16 seeds:
+
+| arm | at 1.07e8 | at ~4.3e8 |
+|---|---|---|
+| RC-WFR + Metropolis (learned) | 0.0215 | **0.0206** |
+| ABF | 0.0314 | 0.0227 |
+| stratified constrained TI, cold | 0.0378 | 0.0284 |
+| RC-WFR, naive rotation lift | 0.0475 | 0.0437 |
+
+Both RC-WFR arms are on their bias floors; both baselines are still converging.
+The corrected arm's floor (0.021) is **half** the naive lift's (0.044), and it
+is 1.6 estimator floors -- while its conditional error over the same run fell to
+0.0014 nats.  The fiber is solved; the marginal is not.
