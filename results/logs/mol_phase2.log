@@ -1,0 +1,139 @@
+[1/5] wfr_ymh screen
+PEN_wfr_ymh_screen: e_F=0.0230 I_F=0.0312 dcond=0.0103 cov=1.000 fe=2.94e+07 wall=210s
+[2/5] wfr_lmh screen_bz0.15
+PEN_wfr_lmh_screen_bz0.15: e_F=0.0250 I_F=0.0335 dcond=0.0108 cov=1.000 fe=2.94e+07 wall=205s
+[3/5] wfr_lmh screen_bz0.25
+PEN_wfr_lmh_screen_bz0.25: e_F=0.0247 I_F=0.0336 dcond=0.0106 cov=1.000 fe=2.94e+07 wall=189s
+[4/5] wfr_lmh screen_bz0.4
+PEN_wfr_lmh_screen_bz0.4: e_F=0.0243 I_F=0.0337 dcond=0.0107 cov=1.000 fe=2.94e+07 wall=197s
+[5/5] wfr_qref screen
+PEN_wfr_qref_screen: e_F=0.0895 I_F=0.0911 dcond=0.0125 cov=1.000 fe=2.69e+07 wall=148s
+ALL_DONE 950s
+| arm | frozen | screen I_F | screen e_F | screen D_cond |
+|---|---|---|---|---|
+| wfr_rot | kappa=1.2 theta=0.3 decay=0.999 - | 0.0579 | 0.0466 | 0.2109 |
+| wfr_shake | kappa=0.075 theta=0.6 decay=0.999 - | 0.1219 | 0.1014 | 0.1918 |
+| wfr_ymap | kappa=0.15 theta=0.6 decay=0.999 - | 0.0346 | 0.0247 | 0.0411 |
+| wfr_yref | kappa=0.075 theta=0.3 decay=0.999 - | 0.0322 | 0.0273 | 0.0093 |
+| wfr_lmap | kappa=0.3 theta=0.3 decay=1 bz0.4 | 0.0851 | 0.0799 | 0.2233 |
+| wfr_lref | kappa=0.3 theta=0.3 decay=0.999 bz0.4 | 0.0783 | 0.0499 | 1.0288 |
+| wfr_ymh | kappa=0.15 theta=0.15 decay=0.999 - | 0.0258 | 0.0210 | 0.0099 |
+| wfr_lmh | kappa=0.6 theta=0.3 decay=0.999 bz0.25 | 0.0297 | 0.0236 | 0.0105 |
+| wfr_qref | kappa=0.15 theta=0.3 decay=0.999 - | 0.0881 | 0.0884 | 0.0122 |
+| ti_cold | kappa=0.3 theta=0.3 decay=0.999 w32 | 0.0796 | 0.0641 | 0.1723 |
+| ti_warm | kappa=0.3 theta=0.3 decay=0.999 w64 | 0.0474 | 0.0343 | 0.1756 |
+| abf | kappa=0.3 theta=0.3 decay=0.999 n50 | 0.0667 | 0.0505 | 0.0525 |
+
+12 confirmation runs -> results/mol/confirm_spec.json
+[1/12] wfr_rot confirm
+PEN_wfr_rot_confirm: e_F=0.0475 I_F=0.0565 dcond=0.1940 cov=1.000 fe=1.07e+08 wall=711s
+[2/12] wfr_shake confirm
+PEN_wfr_shake_confirm: e_F=0.1003 I_F=0.1080 dcond=0.1704 cov=1.000 fe=1.07e+08 wall=695s
+[3/12] wfr_ymap confirm
+PEN_wfr_ymap_confirm: e_F=0.0223 I_F=0.0273 dcond=0.0270 cov=1.000 fe=1.07e+08 wall=709s
+[4/12] wfr_yref confirm
+PEN_wfr_yref_confirm: e_F=0.0419 I_F=0.0431 dcond=0.0297 cov=1.000 fe=1.07e+08 wall=705s
+[5/12] wfr_lmap confirm
+PEN_wfr_lmap_confirm: e_F=0.0710 I_F=0.0748 dcond=0.1917 cov=1.000 fe=1.07e+08 wall=636s
+[6/12] wfr_lref confirm
+PEN_wfr_lref_confirm: e_F=0.2917 I_F=0.1364 dcond=1.4860 cov=1.000 fe=1.07e+08 wall=614s
+[7/12] wfr_ymh confirm
+PEN_wfr_ymh_confirm: e_F=0.0196 I_F=0.0240 dcond=0.0049 cov=1.000 fe=1.18e+08 wall=627s
+[8/12] wfr_lmh confirm
+PEN_wfr_lmh_confirm: e_F=0.0215 I_F=0.0246 dcond=0.0051 cov=1.000 fe=1.18e+08 wall=663s
+[9/12] wfr_qref confirm
+PEN_wfr_qref_confirm: e_F=0.0902 I_F=0.0904 dcond=0.0073 cov=1.000 fe=1.07e+08 wall=562s
+[10/12] ti_cold confirm
+PEN_ti_cold_confirm: e_F=0.0378 I_F=0.0550 dcond=0.1352 cov=0.711 fe=1.07e+08 wall=539s
+[11/12] ti_warm confirm
+PEN_ti_warm_confirm: e_F=0.0299 I_F=0.0400 dcond=0.1526 cov=1.000 fe=1.07e+08 wall=535s
+[12/12] abf confirm
+PEN_abf_confirm: e_F=0.0314 I_F=0.0451 dcond=0.0259 cov=1.000 fe=1.02e+08 wall=471s
+ALL_DONE 7469s
+[1/6] wfr_rot kappa
+PEN_wfr_rot_kappa: e_F=0.0666 I_F=0.0786 dcond=0.1926 cov=1.000 fe=2.69e+07 wall=161s
+[2/6] wfr_shake kappa
+PEN_wfr_shake_kappa: e_F=0.2492 I_F=0.2702 dcond=0.2087 cov=1.000 fe=2.69e+07 wall=173s
+[3/6] wfr_ymap kappa
+PEN_wfr_ymap_kappa: e_F=0.0271 I_F=0.0349 dcond=0.0184 cov=1.000 fe=2.69e+07 wall=154s
+[4/6] wfr_yref kappa
+PEN_wfr_yref_kappa: e_F=0.0434 I_F=0.0478 dcond=0.0300 cov=1.000 fe=2.69e+07 wall=153s
+[5/6] wfr_ymh kappa
+PEN_wfr_ymh_kappa: e_F=0.0263 I_F=0.0324 dcond=0.0049 cov=1.000 fe=2.94e+07 wall=163s
+[6/6] wfr_lmh kappa
+PEN_wfr_lmh_kappa: e_F=0.0248 I_F=0.0303 dcond=0.0053 cov=1.000 fe=2.94e+07 wall=176s
+ALL_DONE 982s
+[1/6] w_only confirm
+PEN_w_only_confirm: e_F=0.0444 I_F=0.0530 dcond=0.1829 cov=1.000 fe=1.07e+08 wall=568s
+[2/6] fr_only confirm
+PEN_fr_only_confirm: e_F=1.2622 I_F=1.2622 dcond=0.0027 cov=0.022 fe=1.07e+08 wall=558s
+[3/6] w_count confirm
+Traceback (most recent call last):
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_run_many.py", line 25, in main
+    run_one(**kw)
+    ~~~~~~~^^^^^^
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_campaign.py", line 141, in run_one
+    out = run_constrained(sy, cfg, rows, seed=a.seed0, ref=ref,
+                          kappa_vec=kv, theta_vec=tv, decay_vec=dv)
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/../src/rcwfr/mol/engines.py", line 385, in run_constrained
+    sel, info = selection_indices(z[..., 0], g, cfg.fr_rule, theta0, gen,
+                ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                  bw=cfg.bw_kde, alpha_ess=cfg.alpha_ess)
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/../src/rcwfr/fisher_rao.py", line 117, in selection_indices
+    lr = log_ratio_counts(X, grid, n_bins)
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/../src/rcwfr/fisher_rao.py", line 62, in log_ratio_counts
+    width = grid.volume / n_bins
+            ~~~~~~~~~~~~^~~~~~~~
+TypeError: unsupported operand type(s) for /: 'float' and 'NoneType'
+[4/6] w_only_y confirm
+PEN_w_only_y_confirm: e_F=0.0415 I_F=0.0430 dcond=0.0292 cov=1.000 fe=1.07e+08 wall=586s
+[5/6] wfr_flow confirm
+PEN_wfr_flow_confirm: e_F=1.2622 I_F=1.2622 dcond=0.0027 cov=0.022 fe=1.07e+08 wall=606s
+[6/6] wfr_flow_y confirm
+PEN_wfr_flow_y_confirm: e_F=1.2622 I_F=1.2622 dcond=0.0042 cov=0.022 fe=1.07e+08 wall=614s
+ALL_DONE 2933s
+{
+ "system": "PEN",
+ "tau_steps": [
+  85372.96969002955
+ ],
+ "p_final": [
+  0.365264892578125
+ ],
+ "z": 0.0
+}
+{
+ "system": "HEX",
+ "tau_steps": [
+  62272.49998571384,
+  99619.86571509554
+ ],
+ "p_final": [
+  0.3154296875,
+  0.306732177734375
+ ],
+ "z": 0.0
+}
+Traceback (most recent call last):
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_mode_diagnostic.py", line 67, in <module>
+    main()
+    ~~~~^^
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_mode_diagnostic.py", line 62, in main
+    json.dump(out, open(f"results/mol/{a.system}_mode_diagnostic.json", "w"), indent=1)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/json/__init__.py", line 181, in dump
+    for chunk in iterable:
+                 ^^^^^^^^
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/json/encoder.py", line 435, in _iterencode
+    yield from _iterencode_dict(o, _current_indent_level)
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/json/encoder.py", line 409, in _iterencode_dict
+    yield from chunks
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/json/encoder.py", line 328, in _iterencode_list
+    yield from chunks
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/json/encoder.py", line 442, in _iterencode
+    o = _default(o)
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/json/encoder.py", line 182, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+                    f'is not JSON serializable')
+TypeError: Object of type int64 is not JSON serializable

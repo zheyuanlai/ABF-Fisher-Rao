@@ -1,0 +1,36 @@
+| arm | frozen | screen I_F | screen e_F | screen D_cond |
+|---|---|---|---|---|
+| wfr_rot | kappa=1.2 theta=0.3 decay=0.999 - | 3.7977 | 4.3894 | 0.8665 |
+| wfr_shake | kappa=0.075 theta=0.3 decay=0.999 - | 6.0185 | 7.1046 | 0.9992 |
+| wfr_ymap | kappa=1.2 theta=0.3 decay=0.999 - | 1.7870 | 1.2114 | 0.3247 |
+| wfr_yref | kappa=0.075 theta=0.3 decay=0.999 - | 14.4045 | 15.3433 | 4.1308 |
+| wfr_ymh | kappa=1.2 theta=0.3 decay=0.999 - | 1.0371 | 0.5694 | 0.3026 |
+| wfr_lmh | kappa=1.2 theta=0.3 decay=0.999 bz0.25 | 1.6327 | 0.7997 | 0.1800 |
+| wfr_qref | kappa=0.075 theta=0.3 decay=0.999 - | 3.2665 | 1.6368 | 0.1571 |
+| ti_cold | kappa=0.3 theta=0.3 decay=0.999 w64 | 3.1963 | 3.8935 | 1.0808 |
+| ti_warm | kappa=0.3 theta=0.3 decay=0.999 w64 | 1.1207 | 0.8426 | 0.4822 |
+| abf | kappa=0.3 theta=0.3 decay=0.999 n800 | 16.1595 | 13.7391 | 1.2027 |
+
+10 confirmation runs -> results/mol/ala_confirm_spec.json
+[1/10] wfr_rot confirm
+ALA_wfr_rot_confirm: e_F=3.3245 I_F=3.7803 dcond=0.3228 cov=1.000 fe=1.07e+08 wall=612s
+[2/10] wfr_shake confirm
+ALA_wfr_shake_confirm: e_F=3.3573 I_F=5.3210 dcond=0.4549 cov=1.000 fe=1.07e+08 wall=731s
+[3/10] wfr_ymap confirm
+ALA_wfr_ymap_confirm: e_F=0.6814 I_F=1.0403 dcond=0.2600 cov=1.000 fe=1.07e+08 wall=648s
+[4/10] wfr_yref confirm
+ALA_wfr_yref_confirm: e_F=15.2039 I_F=15.0490 dcond=4.0953 cov=1.000 fe=1.07e+08 wall=624s
+[5/10] wfr_ymh confirm
+ALA_wfr_ymh_confirm: e_F=0.5790 I_F=0.6716 dcond=0.2472 cov=1.000 fe=1.18e+08 wall=642s
+[6/10] wfr_lmh confirm
+ALA_wfr_lmh_confirm: e_F=0.5257 I_F=0.7752 dcond=0.1613 cov=1.000 fe=1.18e+08 wall=687s
+[7/10] wfr_qref confirm
+ALA_wfr_qref_confirm: e_F=7.3719 I_F=5.7962 dcond=0.1817 cov=1.000 fe=1.07e+08 wall=599s
+[8/10] ti_cold confirm
+ALA_ti_cold_confirm: e_F=2.9799 I_F=3.6182 dcond=0.4289 cov=1.000 fe=1.07e+08 wall=560s
+[9/10] ti_warm confirm
+ALA_ti_warm_confirm: e_F=0.6527 I_F=0.7685 dcond=0.3977 cov=1.000 fe=1.07e+08 wall=567s
+[10/10] abf confirm
+ALA_abf_confirm: e_F=8.7071 I_F=12.1286 dcond=1.0864 cov=0.400 fe=1.02e+08 wall=441s
+ALL_DONE 6113s
+PHASE3_DONE

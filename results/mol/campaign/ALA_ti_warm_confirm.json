@@ -1,0 +1,59 @@
+{
+ "arm": "ti_warm",
+ "system": "ALA",
+ "wall_s": 567.1087644100189,
+ "cfg": {
+  "N": 256,
+  "n_steps": 400000,
+  "n_cond": 20,
+  "dep_every": 20,
+  "save_every": 10000,
+  "n_eq": 2000,
+  "bw_mf": 0.05,
+  "n_min": 1.0,
+  "init": "grid_warm",
+  "z0": -0.5236,
+  "n_windows": 64,
+  "kappa": 0.3,
+  "w_mode": "none",
+  "w_flow_clip": 50.0,
+  "theta": 0.3,
+  "fr_rule": "none",
+  "bw_kde": 0.25,
+  "alpha_ess": 0.5,
+  "fr_jitter": 0.0,
+  "lift": "shake",
+  "lift_bw_z": 0.25,
+  "lift_bw_y": 0.3,
+  "lift_decay": 0.999,
+  "lift_nmin": 150.0,
+  "lift_substeps": 4,
+  "promote": [
+   1
+  ],
+  "lift_start": 0.0,
+  "abf_n_min": 200.0,
+  "abf_wall_k": 400.0,
+  "n_newton": 6,
+  "joint_nb": 0
+ },
+ "seeds": 16,
+ "seed0": 90000,
+ "n_cfg": 1,
+ "promote": [
+  1
+ ],
+ "cfg_grid": [
+  [
+   0.3,
+   0.3,
+   0.999
+  ]
+ ],
+ "e_F_final_median": 0.6526638441979224,
+ "I_F_median": 0.7685186227664663,
+ "dcond_final_median": 0.39771097837572894,
+ "cov_final_median": 1.0,
+ "ess_fix_median": 0.9757613883214665,
+ "fe_final": 107494400.0
+}

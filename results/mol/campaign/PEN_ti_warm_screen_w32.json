@@ -1,0 +1,54 @@
+{
+ "arm": "ti_warm",
+ "system": "PEN",
+ "wall_s": 135.15767574310303,
+ "cfg": {
+  "N": 256,
+  "n_steps": 100000,
+  "n_cond": 20,
+  "dep_every": 20,
+  "save_every": 5000,
+  "n_eq": 2000,
+  "bw_mf": 0.05,
+  "n_min": 1.0,
+  "init": "grid_warm",
+  "z0": 0.0,
+  "n_windows": 32,
+  "kappa": 0.3,
+  "w_mode": "none",
+  "w_flow_clip": 50.0,
+  "theta": 0.3,
+  "fr_rule": "none",
+  "bw_kde": 0.25,
+  "alpha_ess": 0.5,
+  "fr_jitter": 0.0,
+  "lift": "shake",
+  "lift_bw_z": 0.25,
+  "lift_bw_y": 0.3,
+  "lift_decay": 0.999,
+  "lift_nmin": 150.0,
+  "lift_substeps": 4,
+  "promote": [
+   1
+  ],
+  "lift_start": 0.0,
+  "abf_n_min": 200.0,
+  "n_newton": 6
+ },
+ "seeds": 8,
+ "seed0": 1000,
+ "n_cfg": 1,
+ "cfg_grid": [
+  [
+   0.3,
+   0.3,
+   0.999
+  ]
+ ],
+ "e_F_final_median": 0.04200465104430379,
+ "I_F_median": 0.047775411429682196,
+ "dcond_final_median": 0.15327783797417138,
+ "cov_final_median": 0.7111111111111111,
+ "ess_fix_median": 0.9798568250974344,
+ "fe_final": 26854400.0
+}

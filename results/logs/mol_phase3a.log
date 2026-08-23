@@ -1,0 +1,53 @@
+Traceback (most recent call last):
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_mode_diagnostic.py", line 67, in <module>
+    main()
+    ~~~~^^
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_mode_diagnostic.py", line 62, in main
+    json.dump(out, open(f"results/mol/{a.system}_mode_diagnostic.json", "w"), indent=1)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/json/__init__.py", line 181, in dump
+    for chunk in iterable:
+                 ^^^^^^^^
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/json/encoder.py", line 435, in _iterencode
+    yield from _iterencode_dict(o, _current_indent_level)
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/json/encoder.py", line 409, in _iterencode_dict
+    yield from chunks
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/json/encoder.py", line 328, in _iterencode_list
+    yield from chunks
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/json/encoder.py", line 442, in _iterencode
+    o = _default(o)
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/json/encoder.py", line 182, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+                    f'is not JSON serializable')
+TypeError: Object of type int64 is not JSON serializable
+14 ALA screen runs
+[1/14] wfr_rot screen
+ALA_wfr_rot_screen: e_F=5.4558 I_F=4.8505 dcond=0.9408 cov=1.000 fe=2.69e+07 wall=150s
+[2/14] wfr_shake screen
+ALA_wfr_shake_screen: e_F=6.8630 I_F=7.1533 dcond=0.8609 cov=1.000 fe=2.69e+07 wall=178s
+[3/14] wfr_ymap screen
+ALA_wfr_ymap_screen: e_F=1.7357 I_F=2.9515 dcond=0.4309 cov=1.000 fe=2.69e+07 wall=156s
+[4/14] wfr_yref screen
+ALA_wfr_yref_screen: e_F=15.2836 I_F=14.9318 dcond=4.0987 cov=1.000 fe=2.69e+07 wall=149s
+[5/14] wfr_ymh screen
+ALA_wfr_ymh_screen: e_F=0.8160 I_F=1.8973 dcond=0.3588 cov=1.000 fe=2.94e+07 wall=156s
+[6/14] wfr_lmh screen_bz0.25
+ALA_wfr_lmh_screen_bz0.25: e_F=1.0221 I_F=2.7013 dcond=0.2689 cov=1.000 fe=2.94e+07 wall=192s
+[7/14] ti_cold screen_w64
+ALA_ti_cold_screen_w64: e_F=3.8935 I_F=3.1963 dcond=1.0808 cov=1.000 fe=2.69e+07 wall=151s
+[8/14] ti_warm screen_w64
+ALA_ti_warm_screen_w64: e_F=0.8426 I_F=1.1207 dcond=0.4822 cov=1.000 fe=2.69e+07 wall=145s
+[9/14] ti_cold screen_w256
+ALA_ti_cold_screen_w256: e_F=3.9260 I_F=3.2090 dcond=1.0780 cov=1.000 fe=2.69e+07 wall=142s
+[10/14] ti_warm screen_w256
+ALA_ti_warm_screen_w256: e_F=0.8861 I_F=1.1769 dcond=0.4788 cov=1.000 fe=2.69e+07 wall=136s
+[11/14] abf screen_n50
+ALA_abf_screen_n50: e_F=28.4735 I_F=33.1295 dcond=1.1642 cov=0.289 fe=2.56e+07 wall=116s
+[12/14] abf screen_n200
+ALA_abf_screen_n200: e_F=21.0179 I_F=24.4834 dcond=1.1208 cov=0.333 fe=2.56e+07 wall=115s
+[13/14] abf screen_n800
+ALA_abf_screen_n800: e_F=12.2370 I_F=15.7609 dcond=1.0477 cov=0.433 fe=2.56e+07 wall=112s
+[14/14] wfr_qref screen
+ALA_wfr_qref_screen: e_F=7.3704 I_F=5.8285 dcond=0.1872 cov=1.000 fe=2.69e+07 wall=152s
+ALL_DONE 2051s
+PHASE3A_DONE

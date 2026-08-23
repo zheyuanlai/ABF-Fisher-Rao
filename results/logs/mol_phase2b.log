@@ -1,0 +1,136 @@
+{
+ "system": "PEN",
+ "S": [
+  0.08284844931659573
+ ],
+ "tau": [
+  85372.96969002955
+ ],
+ "damage": [
+  603844564.339456
+ ],
+ "ranking": [
+  1
+ ]
+}
+{
+ "system": "HEX",
+ "S": [
+  0.06577524283279038,
+  0.0006816549139595139
+ ],
+ "tau": [
+  62272.49998571384,
+  99619.86571509554
+ ],
+ "damage": [
+  255067463.0104099,
+  6764823.559490418
+ ],
+ "ranking": [
+  1,
+  2
+ ]
+}
+[1/1] w_count confirm
+PEN_w_count_confirm: e_F=0.0448 I_F=0.0568 dcond=0.2277 cov=1.000 fe=1.07e+08 wall=582s
+ALL_DONE 584s
+[1/6] wfr_rot hex
+Traceback (most recent call last):
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_run_many.py", line 25, in main
+    run_one(**kw)
+    ~~~~~~~^^^^^^
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_campaign.py", line 141, in run_one
+    out = run_constrained(sy, cfg, rows, seed=a.seed0, ref=ref,
+                          kappa_vec=kv, theta_vec=tv, decay_vec=dv)
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/../src/rcwfr/mol/engines.py", line 196, in run_constrained
+    q, _ = full_cv.project(q, torch.cat([z, full_cv.value(q)[..., 1:2]], -1),
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                           n_newton=8, n_outer=2) if nt > 1 else cv.project(
+                           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/../src/rcwfr/mol/geom.py", line 171, in project
+    r = self.dz_residual(self._val_local(qn), z)      # (..., m)
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/../src/rcwfr/mol/geom.py", line 143, in dz_residual
+    return _wrap(xi - z) if self.periodic else xi - z
+                 ~~~^~~
+RuntimeError: The size of tensor a (3) must match the size of tensor b (2) at non-singleton dimension 2
+[2/6] wfr_ymh hex_p1
+Traceback (most recent call last):
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_run_many.py", line 25, in main
+    run_one(**kw)
+    ~~~~~~~^^^^^^
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_campaign.py", line 141, in run_one
+    out = run_constrained(sy, cfg, rows, seed=a.seed0, ref=ref,
+                          kappa_vec=kv, theta_vec=tv, decay_vec=dv)
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/../src/rcwfr/mol/engines.py", line 196, in run_constrained
+    q, _ = full_cv.project(q, torch.cat([z, full_cv.value(q)[..., 1:2]], -1),
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                           n_newton=8, n_outer=2) if nt > 1 else cv.project(
+                           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/../src/rcwfr/mol/geom.py", line 171, in project
+    r = self.dz_residual(self._val_local(qn), z)      # (..., m)
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/../src/rcwfr/mol/geom.py", line 143, in dz_residual
+    return _wrap(xi - z) if self.periodic else xi - z
+                 ~~~^~~
+RuntimeError: The size of tensor a (3) must match the size of tensor b (2) at non-singleton dimension 2
+[3/6] wfr_ymh hex_p2
+Traceback (most recent call last):
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_run_many.py", line 25, in main
+    run_one(**kw)
+    ~~~~~~~^^^^^^
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_campaign.py", line 141, in run_one
+    out = run_constrained(sy, cfg, rows, seed=a.seed0, ref=ref,
+                          kappa_vec=kv, theta_vec=tv, decay_vec=dv)
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/../src/rcwfr/mol/engines.py", line 196, in run_constrained
+    q, _ = full_cv.project(q, torch.cat([z, full_cv.value(q)[..., 1:2]], -1),
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                           n_newton=8, n_outer=2) if nt > 1 else cv.project(
+                           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/../src/rcwfr/mol/geom.py", line 171, in project
+    r = self.dz_residual(self._val_local(qn), z)      # (..., m)
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/../src/rcwfr/mol/geom.py", line 143, in dz_residual
+    return _wrap(xi - z) if self.periodic else xi - z
+                 ~~~^~~
+RuntimeError: The size of tensor a (3) must match the size of tensor b (2) at non-singleton dimension 2
+[4/6] wfr_ymh hex_p12
+Traceback (most recent call last):
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_run_many.py", line 25, in main
+    run_one(**kw)
+    ~~~~~~~^^^^^^
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_campaign.py", line 141, in run_one
+    out = run_constrained(sy, cfg, rows, seed=a.seed0, ref=ref,
+                          kappa_vec=kv, theta_vec=tv, decay_vec=dv)
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/../src/rcwfr/mol/engines.py", line 196, in run_constrained
+    q, _ = full_cv.project(q, torch.cat([z, full_cv.value(q)[..., 1:2]], -1),
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                           n_newton=8, n_outer=2) if nt > 1 else cv.project(
+                           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/../src/rcwfr/mol/geom.py", line 171, in project
+    r = self.dz_residual(self._val_local(qn), z)      # (..., m)
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/../src/rcwfr/mol/geom.py", line 143, in dz_residual
+    return _wrap(xi - z) if self.periodic else xi - z
+                 ~~~^~~
+RuntimeError: The size of tensor a (3) must match the size of tensor b (2) at non-singleton dimension 2
+[5/6] ti_cold hex
+Traceback (most recent call last):
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_run_many.py", line 25, in main
+    run_one(**kw)
+    ~~~~~~~^^^^^^
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_campaign.py", line 141, in run_one
+    out = run_constrained(sy, cfg, rows, seed=a.seed0, ref=ref,
+                          kappa_vec=kv, theta_vec=tv, decay_vec=dv)
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/../src/rcwfr/mol/engines.py", line 196, in run_constrained
+    q, _ = full_cv.project(q, torch.cat([z, full_cv.value(q)[..., 1:2]], -1),
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                           n_newton=8, n_outer=2) if nt > 1 else cv.project(
+                           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/../src/rcwfr/mol/geom.py", line 171, in project
+    r = self.dz_residual(self._val_local(qn), z)      # (..., m)
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/../src/rcwfr/mol/geom.py", line 143, in dz_residual
+    return _wrap(xi - z) if self.periodic else xi - z
+                 ~~~^~~
+RuntimeError: The size of tensor a (3) must match the size of tensor b (2) at non-singleton dimension 2
+[6/6] abf hex
+HEX_abf_hex: e_F=0.0383 I_F=0.0750 dcond=0.0265 cov=1.000 fe=5.12e+07 wall=291s
+ALL_DONE 293s
+PHASE2B_DONE
