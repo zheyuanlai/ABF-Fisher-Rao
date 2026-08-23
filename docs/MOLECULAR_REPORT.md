@@ -161,10 +161,12 @@ reproduces the snapped result to 3e-12. Freezing the replicas where transport
 happened to leave them is an uneven stratification, and because the same set is
 reused for the entire production stage that unevenness never averages away.
 
-So the honest claim upgrades from *"speed at practical budgets"* to
-
-> **RC-WFR is a fast adaptive initialiser for an asymptotically unbiased
-> constrained free-energy estimator, and `t_switch` is the dial.**
+**This did not survive its decisive test.**  Run to 9e8 force evaluations the
+switched arm converges up to the persistent one and stops: +2.7% [-4.2, +9.8],
+interval spanning zero.  Both approach ~0.020 kcal/mol, which the arm with no
+transport also reaches, so it is most likely the shared constrained-integrator
+plus estimator floor rather than a transport bias.  The claim is withdrawn; see
+`docs/SWITCH_CAMPAIGN.md`.
 
 ### 7. What the advantage actually is
 

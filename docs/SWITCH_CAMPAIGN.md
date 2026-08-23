@@ -145,7 +145,11 @@ watching one window relax, and promote the modes whose product is an order of
 magnitude above the rest.  On these systems that is exactly one mode, and
 promoting a second buys nothing.
 
-## The switch works once the replicas are snapped
+## The switch: snapping fixes the failure, but does not buy an asymptotic win
+
+(Read this section together with the final one.  The convergence claim made here
+was tested to 9e8 force evaluations afterwards and did not hold; what survives is
+the comparison between snapping and freezing in place.)
 
 Pentane, 16 seeds, same block as the persistent / ABF / cold-TI long runs:
 
@@ -189,7 +193,8 @@ So the honest statement is narrower than the raw numbers first suggested:
 * they are currently **level** with it (0.022 against 0.0207), not below it.
 
 A crossing is imminent at that rate but has not been demonstrated, so a longer
-run is under way to measure it rather than extrapolate.  The `-0.484` figure
+run was done to measure it rather than extrapolate -- see the final section: the
+crossing does NOT happen.  The `-0.484` figure
 quoted earlier was measured over a window immediately after the switch, where the
 estimator was still shedding its start-up transient, and it overstates the
 asymptotic rate; it is withdrawn in favour of `-0.28`.
@@ -294,7 +299,11 @@ implementation and is withdrawn.
 Screened on their own knobs: OPES over kernel width `sigma` in {0.05, 0.10, 0.20}
 and barrier limit in {8, 20, 40} k_B T; ABP over its gain across two decades.
 
-## Alanine: the switch transfers, one step further back on the same curve
+## Alanine: the same picture, one step further back on the same curve
+
+(Superseded in the same way as the pentane section: read with the crossing test
+below.  The comparison against a matched-length persistent run stands; the
+inference that the switch would eventually win does not.)
 
 The first read of this was against the shorter confirmation run and was wrong.
 Compared against a persistent run of the SAME length and seeds (8e5 steps,
@@ -325,138 +334,134 @@ alanine's reaches -0.11.  Two reasons, and the second is a design lesson:
   several replicas per window after the switch, at the same total cost -- is a
   scheduling change this campaign did not test, and is the obvious next thing.
 
-## Final baseline picture
+## Final baseline picture (corrected)
 
-Pentane at ~4.2e8 force evaluations, 16 seeds, every family screened on its own
-knobs:
+Pentane, 16 seeds, every family screened on its own knobs, after removing the
+Fixman weight that never belonged in the unconstrained arms:
 
-| arm | e_F (kcal/mol) | late-time rate |
+| arm | e_F @1.0e8 | e_F @4.1e8 | late slope |
+|---|---|---|---|
+| RC-WFR + learned Metropolis lift | **0.0215** | **0.0206** | -0.044, parked |
+| ABF, multiple walkers | 0.0322 | 0.0227 | -0.231 |
+| OPES (reweighted density, barrier floor) | 0.0341 | 0.0235 | -0.252 |
+| ABP / SHUS (visit counts) | 0.0361 | 0.0258 | -0.211 |
+| stratified constrained TI, cold | 0.0375 | 0.0285 | -0.253 |
+| RC-WFR, naive rotation lift | 0.0450 | 0.0426 | -0.088 |
+
+Paired change of RC-WFR against each adaptive baseline:
+
+| vs | at 1.0e8 | at 4.1e8 |
 |---|---|---|
-| RC-WFR persistent, learned Metropolis lift | **0.0207** | -0.044, parked |
-| RC-WFR -> TI (snap @4e5), post-switch estimator | 0.0235 | **-0.283** (vs production fe) |
-| ABF, multiple walkers | 0.0227 | -0.231 |
-| stratified constrained TI, cold | 0.0287 | -0.253 |
-| RC-WFR, naive rotation lift | 0.0432 | -0.088 |
-| OPES / ABP family | 0.1571 | -0.056 |
+| ABF | **-33.1%** [-38.2, -25.7] | **-8.1%** [-17.5, -5.9] |
+| OPES | **-37.3%** [-39.5, -27.0] | **-10.8%** [-21.4, -0.8] |
+| ABP / SHUS | **-37.2%** [-46.4, -29.2] | **-19.8%** [-24.8, -14.7] |
 
-Alanine at ~2.2e8:
+The three adaptive methods now land within 14% of each other, which is what one
+should expect of properly implemented members of the same family, and the shape
+of the RC-WFR result is unchanged by the correction: **a large advantage at
+intermediate budgets that decays as the unbiased methods converge past it.**  At
+1e8 it is a third better than any of them; at 4e8 it is 8-20% better and its
+slope says it will not stay ahead.
 
-| arm | e_F (kJ/mol) | late-time rate |
+Alanine is a different regime and the numbers there are dominated by the setting
+rather than by the methods: the restricted `phi` arc means an unconstrained
+sampler must be held inside it by walls and diffuse 160 degrees from one basin,
+and at 1e8 both ABF (8.71) and OPES (8.24) are still at coverage ~0.5, against
+stratified TI's 2.98 and RC-WFR's 0.53.
+
+## The crossing was measured, and it does not happen
+
+Both arms were run to ~9e8 force evaluations -- twice the previous largest
+budget -- specifically to see whether the switched arm passes the persistent one.
+
+| force evaluations | persistent RC-WFR | switched @4e5, post-switch |
 |---|---|---|
-| RC-WFR persistent | **0.5364** | +0.007, parked |
-| stratified constrained TI, cold | 1.7573 | -0.679 |
+| 1.0e8 | 0.0215 | 0.0215 (has not switched yet) |
+| 2.0e8 | 0.0208 | 0.0328 (restarted estimator) |
+| 4.0e8 | 0.0208 | 0.0243 |
+| 6.0e8 | 0.0207 | 0.0227 |
+| **8.5e8** | **0.0205** | **0.0211** |
 
-RC-WFR is **-68.4%** [-70.0, -66.0] below cold stratified TI on alanine at that
-budget, and TI's steep slope says it is the one still converging.  Both readings
-are the same story the switch experiment tells: RC-WFR buys a large head start
-and then stops improving, and the switch is what converts the head start into a
-permanent one.
+Paired at 8.5e8: **+2.7% [-4.2, +9.8]** -- the interval spans zero.  The switched
+arm catches up and stops there.  Its own rate decays too, from -0.28 measured at
+the shorter budget to **-0.162** against production budget here.
+
+**So the central claim of this campaign does not survive its own decisive test,
+and is withdrawn.**  Switching transport off does not take RC-WFR below the level
+persistent RC-WFR reaches; both approach ~0.020 kcal/mol and stop.
+
+### What ~0.020 actually is
+
+It is very unlikely to be RC-WFR's transport bias, because the arm with **no
+transport at all after the switch** lands on the same number.  Three facts point
+the same way:
+
+* the switched arm's conditional error is 0.089 nats against the persistent
+  arm's 0.0008 -- a hundredfold difference in fiber quality with **no**
+  difference in `e_F`, so neither arm's error is fiber-limited either;
+* every constrained-dynamics arm converges toward the same neighbourhood, and
+  the naive-lift arm (0.0437, slope -0.088) is the only one clearly above it;
+* Gate I already measured this on butane: stratified constrained TI settled at
+  0.0531 against a 0.0488 estimator smoothing floor, an excess of 0.021 in
+  quadrature, attributable to the projected-Euler constrained integrator, which
+  **every** constrained arm here shares.
+
+The estimator smoothing floor at `bw_mf = 0.05` is 0.0127, and 0.0205 is 1.6x
+that.  The most likely reading is that the shared floor of the constrained
+integrator plus the estimator sits at ~0.020, and that RC-WFR's transport bias is
+somewhere BELOW it -- which would mean the bias this campaign set out to remove
+was never the binding constraint at these budgets, and the earlier "persistent
+RC-WFR is parked at a transport-bias floor" reading confused a shared numerical
+floor for a method-specific one.
+
+That is testable and was not tested: re-run persistent and switched at a smaller
+`bw_mf` and a smaller `h`.  If the plateau moves with `bw_mf`, it is the
+estimator; if with `h`, the integrator; if with neither, it really is transport.
+**That experiment is the first thing to do next**, and until it is done, no claim
+should be made about removing RC-WFR's asymptotic bias.
+
+### What still stands
+
+Nothing above touches the results that do not depend on the asymptotic story:
+
+* the Metropolis-corrected learned conditional lift, -53.6% against the naive
+  lift on pentane and -83.4% on alanine, indistinguishable from an oracle
+  proposal;
+* the minimum-norm lift being actively harmful, and its 12.6x degradation with
+  transport rate;
+* RC-WFR's -33% against ABF and -37% against OPES at 1e8 force evaluations, both
+  with intervals excluding zero;
+* the complete-coordinate control: with `z = (phi, psi)` RC-WFR loses to plain
+  stratified TI by +31.5%, so the advantage is hidden-mode repair;
+* the `S_k tau_k^2` selection rule over five mode-contrasts;
+* freezing replicas in place being much worse than snapping them.
+
+What is withdrawn is only the claim that the two-stage schedule removes an
+asymptotic bias.  At these budgets it does not, and the reason may be that there
+was no method-specific asymptotic bias there to remove.
+
 
 ## Where this leaves the project
 
 | | before this campaign | after |
 |---|---|---|
-| the fiber conditional | fixed exactly by a Metropolis-corrected learned move | unchanged |
-| the marginal `z`-transport | permanent bias, caveat on every claim | **removable** by switching transport off and snapping |
-| what the advantage IS | unclear -- transport, or hidden-mode repair? | **hidden-mode repair**; with a complete CV the method loses to plain TI |
-| which mode to promote | one contrast (hexane) | a rule with five contrasts, separating by an order of magnitude |
-| baselines | ABF, stratified TI | + OPES/ABP family |
+| the fiber conditional | fixed exactly by a Metropolis-corrected learned move | unchanged, and now shown irrelevant to the plateau (0.089 vs 0.0008 nats, same `e_F`) |
+| the marginal `z`-transport | assumed to be the residual bias | **not established**; the ~0.020 plateau is reached by an arm with no transport, so it is probably a shared numerical floor |
+| what the advantage IS | unclear | **hidden-mode repair**; with a complete CV the method loses to plain TI |
+| which mode to promote | one contrast | a rule with five contrasts, separating by an order of magnitude |
+| baselines | ABF, stratified TI | + OPES proper and ABP, both corrected after a bug of mine |
+| stage B | untried | snapping to a uniform grid is essential; replicas per window are not |
 
-The three things this campaign did NOT do, in the order they now matter:
+Next, in the order they now matter:
 
-1. **more replicas per window after the switch.**  Alanine recovers less rate
-   than pentane, and the visible reason is that stage B leaves one replica per
-   window to explore a 60-coordinate fiber by time-averaging alone.
-2. **an adaptive switch criterion** -- switch when `D_cond` and the marginal KL
-   have both stopped moving, rather than at a fixed step count.
-3. **solvated alanine, then NaCl.**  Solvated alanine keeps the exact torsional
-   proposal and adds a many-body fiber; NaCl needs a genuinely new
-   non-torsional conditional move and is a separate algorithmic problem.
-
-## Replicas per window after the snap: the hypothesis is not supported
-
-The obvious explanation for alanine recovering less rate than pentane was that
-stage B leaves ONE replica per window to explore a 60-coordinate fiber by
-time-averaging alone.  Tested directly, holding `M x R = 256` and the total
-force-evaluation budget fixed, so everything before the switch is the same
-trajectory:
-
-| M windows | R replicas/window | e_F | post-switch e_F | slope (production fe) | vs R=1 |
-|---|---|---|---|---|---|
-| 256 | 1 | 0.5540 | 0.5666 | -0.116 | - |
-| 128 | 2 | 0.5163 | **0.5240** | -0.112 | **-8.3%** [-8.8, -6.7] |
-| 64 | 4 | 0.5494 | 0.5627 | -0.119 | -0.2% [-0.6, -0.0] |
-| 32 | 8 | 0.5492 | 0.5648 | -0.128 | -0.1% [-1.1, +0.3] |
-
-**The rate does not move.**  Every allocation gives -0.11 to -0.13, against the
-success criterion of -0.4.  `R = 2` buys 8.3% in LEVEL, with an interval
-excluding zero, and `R = 4` and `R = 8` buy nothing -- the extra replicas cost
-exactly the z-resolution they gain.
-
-So the one-replica-per-window explanation is wrong, and the alanine gap is not
-about stage-B allocation.  What the numbers do say is where it is: alanine sits
-at 3.4 estimator floors after the switch while pentane sits at 1.8, so alanine
-has much more error left of some other kind.  The natural next suspect is that
-`psi` is not the only fiber mode that matters on alanine -- the `S_k tau_k^2`
-diagnostic has only ever been applied to alkane torsions, and applying it to
-alanine's remaining internal coordinates (the methyl rotations, `omega`) would
-say whether the promoted set is simply incomplete there.  That is a different
-experiment from this one and was not run.
-
-## Automatic switching: the criterion fires too early, and the data says why
-
-Two deployable diagnostics, recorded every 5000 steps and needing no reference:
-
-* `D_snap` -- mean squared distance from the replicas to the uniform grid they
-  would be snapped onto, i.e. how violent the snap would be;
-* `D_learn` -- how much the learned conditional table still moves between checks.
-
-Thresholds were calibrated on **pentane only** (`eps_snap = 0.01`,
-`eps_learn = 0.002`, three consecutive passes) and then frozen and applied to
-alanine with no retuning.
-
-The problem is visible in the calibration itself: **both settle by ~3e4 steps**
-and are flat thereafter, while the best hand-tuned switch is at 4e5 steps.  They
-measure the marginal and the estimate, and what a later switch buys is fiber
-equilibration, which neither sees.  The rule fires at 4.4e4 steps.
-
-| pentane | switch (fe) | e_F | slope vs production fe |
-|---|---|---|---|
-| automatic | 1.2e7 | 0.0232 | -0.051 |
-| fixed @1e5 | 2.9e7 | 0.0220 | -0.281 |
-| fixed @4e5 (best hand-tuned) | 1.2e8 | 0.0228 | -0.283 |
-
-At a **matched production budget** of 2.9e8 the automatic rule is actually the
-best of the three (0.0219 against 0.0252 and 0.0239) -- it simply started
-production earlier and is further along its own curve, which is also why its
-measured slope is shallower.
-
-**But it does not transfer, and it fired on noise.**  Applied to alanine with the
-thresholds unchanged, as preregistered, it **never fired at all**.  Looking at
-which diagnostic blocks:
-
-| | passes `D_snap < 0.01` | passes `D_learn < 0.002` |
-|---|---|---|
-| pentane | 100% of checks | **1%** |
-| alanine | 99% | **0%** |
-
-`D_snap` is satisfied everywhere -- transport equidistributes the marginal within
-a few thousand steps and keeps it there, which is exactly the point of the
-Wasserstein step -- so it carries no information about when to stop.  `D_learn`
-is the binding constraint, it is noisy at this check cadence, and its scale does
-not transfer between systems: pentane's three consecutive passes were an early
-fluctuation rather than a convergence signal.
-
-So the criterion as specified **is not usable**: non-selective on the system it
-was calibrated on, and never triggered on the system it was tested on.  Together
-with the failure of the fiber-side diagnostic below, the conclusion is that an
-automatic rule needs a measure of FIBER equilibration, and this campaign did not
-find a deployable one.
-
-A third diagnostic was built specifically to see fiber equilibration -- the total
-variation between the recent ensemble's conditional and the run's own time
-average -- and tried at two resolutions and against both the smoothed and the raw
-reference.  Every version is dominated by sampling noise and flat from the first
-checkpoint (0.26-0.34 throughout).  It is recorded in the archives and not used.
-**A deployable fiber-equilibration measure is the missing piece, and this
-campaign did not find one.**
+1. **Identify the ~0.020 plateau.**  Vary `bw_mf` and vary `h` on persistent
+   RC-WFR at a long budget.  If it moves with `bw_mf` it is the estimator, with
+   `h` the integrator, with neither it really is transport.  Every asymptotic
+   claim in this project is downstream of this one measurement, and it is cheap.
+2. **A deployable fiber-equilibration diagnostic**, without which the automatic
+   switch cannot be selective.  Three versions were tried here and all were
+   sampling-noise dominated.
+3. **Solvated alanine**, keeping `z = phi`, `y = psi` so the exact torsional
+   proposal still applies while the fiber gains hundreds of solvent coordinates.
+4. **NaCl** only after that; a hydration coordinate needs a genuinely new
+   non-torsional conditional move, which is a separate algorithmic problem.
