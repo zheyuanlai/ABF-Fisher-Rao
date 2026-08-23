@@ -196,6 +196,47 @@ than the constrained arm's at the same step.  So the excess belongs to the
 projection, not to the dynamics, and **the number every constrained arm
 converged to was never any of their own.**
 
+### 6b. Rerun at a convention where the floor is not doing the work
+
+With the plateau explained, the comparison that mattered was worth running
+again at `h` = 1e-3, `b_mf` = 0.02 and a 257-node grid, where the same
+accounting puts the floor near 0.005 instead of 0.020.  Pentane, 16 seeds,
+1024 windows, 3.2e6 steps, three arms:
+
+| arm | 8.6e8 fe | 1.7e9 fe | 3.4e9 fe | late slope |
+|---|---|---|---|---|
+| stratified TI, warm (ceiling) | 0.0114 | 0.0093 | **0.0084** | +0.024 |
+| RC-WFR + Metropolis y-move | 0.0088 | 0.0088 | **0.0087** | -0.037 |
+| stratified TI, cold | 0.0210 | 0.0124 | **0.0102** | -0.302 |
+
+**Everything moved down by a factor 2.4 and the ordering held.**  Against cold
+TI, RC-WFR is **-56.2%** [-64.4, -49.5] at 8.6e8 and still **-11.6%**
+[-20.9, -4.3] at 3.4e9.  Against the warm ceiling it is **-28.5%**
+[-39.0, -10.1] at 8.6e8 and level at the end (+5.6% [-11.9, +24.8]).
+
+**This is the test the withdrawn bias claim never had.**  Roughly 0.015 kcal/mol
+of room was opened by lowering the floor; an RC-WFR-specific transport bias of
+even half that would have separated it from the ceiling arm.  None is visible.
+RC-WFR is instead flat from its first save -- 0.0088 to 0.0087 across a factor 4
+in budget -- while warm TI takes the whole run to arrive at the same place and
+cold TI is still descending when it stops.  The advantage is real and it lives
+at the front of the budget axis, which is where a sampler that removes an
+equilibration cost should live.
+
+Two further facts from the same run.  The conditional error is 0.0003 nats for
+RC-WFR against 0.0268 for both TI arms -- a factor 90, and the mechanism of
+section 3 intact.  And RC-WFR's seed-to-seed scatter is **3.5x smaller** than
+either TI arm's (0.0017 against 0.0058): its error is almost entirely
+common-mode, so different seeds at the same budget return nearly the same
+profile.
+
+Of the residual ~0.008 that all three arms share, 0.0029 is accounted for by
+three independently measured terms (kernel, the reference's 180-bin resolution,
+the reference's own noise).  The rest is arm-DEPENDENT -- the arms differ from
+each other by 0.004-0.006 against a row mean's 0.0014 -- so it is not a common
+reference offset.  The likely cause is named in `MOLECULAR_RESULTS.md` section
+21.1 and deliberately left unmeasured.
+
 ### 7. What the advantage actually is
 
 With `z = (phi, psi)` -- alanine's hidden torsion promoted into the reaction
