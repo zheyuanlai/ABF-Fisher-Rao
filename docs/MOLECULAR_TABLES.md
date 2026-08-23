@@ -94,6 +94,7 @@ Force evaluations at 4x: 1.07e+08.
 | wfr_ymap | 0.0223 | -0.146 | partly bias-limited |
 | ti_warm | 0.0299 | -0.249 | partly bias-limited |
 | abf | 0.0314 | -0.416 | still converging |
+| opes | 0.0340 | -0.501 | still converging |
 | ti_cold | 0.0378 | -0.412 | still converging |
 | w_only_y | 0.0415 | -0.037 | bias floor |
 | wfr_yref | 0.0419 | -0.008 | bias floor |
@@ -104,7 +105,6 @@ Force evaluations at 4x: 1.07e+08.
 | wfr_lmap | 0.0710 | -0.059 | bias floor |
 | wfr_qref | 0.0835 | -0.007 | bias floor |
 | wfr_shake | 0.1003 | -0.081 | bias floor |
-| opes | 0.1728 | -0.135 | partly bias-limited |
 | wfr_lref | 0.2917 | +1.612 | bias floor |
 | wfr_flow_y | 1.2622 | -0.000 | bias floor |
 | fr_only | 1.2622 | +0.000 | bias floor |
@@ -189,7 +189,6 @@ Force evaluations at 4x: 1.07e+08.
 | ti_cold | 2.9799 | -0.266 | partly bias-limited |
 | wfr_rot | 3.3245 | -0.200 | partly bias-limited |
 | wfr_shake | 3.3573 | -0.588 | still converging |
-| opes | 4.6904 | -0.462 | still converging |
 | wfr_qref | 7.3293 | +0.479 | bias floor |
 | abf | 8.7071 | -0.373 | still converging |
 | wfr_yref | 15.2039 | +0.005 | bias floor |
@@ -213,7 +212,6 @@ Force evaluations at 4x: 1.07e+08.
 | ABF | all deposits | 0.0322 | 0.0227 | -0.231 |
 | stratified TI, cold | all deposits | 0.0363 | 0.0284 | -0.253 |
 | RC-WFR, naive lift | all deposits | 0.0448 | 0.0437 | -0.088 |
-| OPES / ABP | all deposits | 0.1719 | 0.1571 | -0.056 |
 | WFR->TI, frozen in place, @2e+04 steps (fe 7.3e+06) | all deposits | 0.0380 | 0.0411 | +0.050 |
 | WFR->TI, frozen in place, @2e+04 steps (fe 7.3e+06) | **post-switch only** | 0.0387 | 0.0412 | +0.030 |
 | WFR->TI, snapped + frozen proposal, @1e+05 steps (fe 2.9e+07) | all deposits | 0.0282 | 0.0221 | -0.220 |

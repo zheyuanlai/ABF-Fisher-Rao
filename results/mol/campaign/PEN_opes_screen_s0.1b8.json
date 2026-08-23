@@ -1,13 +1,13 @@
 {
  "arm": "opes",
  "system": "PEN",
- "wall_s": 594.8570702075958,
+ "wall_s": 145.62861156463623,
  "cfg": {
   "N": 256,
-  "n_steps": 400000,
+  "n_steps": 100000,
   "n_cond": 20,
   "dep_every": 20,
-  "save_every": 10000,
+  "save_every": 5000,
   "n_eq": 2000,
   "bw_mf": 0.05,
   "n_min": 1.0,
@@ -38,7 +38,7 @@
   "shus_gain": 1.0,
   "shus_block": 200,
   "shus_eps_bw": 0.07,
-  "opes_sigma": 0.05,
+  "opes_sigma": 0.1,
   "opes_barrier": 8.0,
   "opes_gamma": Infinity,
   "opes_stride": 200,
@@ -47,7 +47,6 @@
   "auto_switch": false,
   "eps_snap": 0.0,
   "eps_learn": 0.0,
-  "eps_ens": 0.0,
   "auto_hold": 3,
   "auto_every": 5000,
   "snap_windows": 0,
@@ -56,8 +55,8 @@
   "fixman_weight": true,
   "joint_nb": 0
  },
- "seeds": 32,
- "seed0": 90000,
+ "seeds": 8,
+ "seed0": 1000,
  "n_cfg": 1,
  "promote": [
   1
@@ -69,11 +68,11 @@
    0.999
   ]
  ],
- "e_F_final_median": 0.03396984326868517,
- "e_F_prod_final_median": 0.03396984326868517,
- "I_F_median": 0.0542947284432511,
- "dcond_final_median": 0.02637758137346652,
+ "e_F_final_median": 0.07235363518217294,
+ "e_F_prod_final_median": 0.07235363518217294,
+ "I_F_median": 0.091328925427376,
+ "dcond_final_median": 0.0450745489058258,
  "cov_final_median": 1.0,
  "ess_fix_median": 1.0,
- "fe_final": 102400000.0
+ "fe_final": 25600000.0
 }

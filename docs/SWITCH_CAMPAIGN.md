@@ -160,39 +160,39 @@ Pentane, 16 seeds, same block as the persistent / ABF / cold-TI long runs:
 | WFR -> TI, **snapped** @1e5 | all | 0.0282 | 0.0221 | -0.220 |
 | WFR -> TI, **snapped** @1e5 | post-switch | 0.0339 | 0.0220 | **-0.318** |
 | WFR -> TI, **snapped** @4e5 | all | **0.0228** | 0.0212 | -0.081 |
-| WFR -> TI, **snapped** @4e5 | post-switch | **0.0228** | 0.0232 | **-0.484** |
+| WFR -> TI, **snapped** @4e5 | post-switch | **0.0228** | 0.0232 | -0.484 (vs total fe; -0.283 vs PRODUCTION fe, which is the honest axis) |
 
-**That is the result the campaign was after.**  The persistent arm is parked at
-a bias floor: slope -0.044, flatter than every baseline, and flat over a factor
-four in force evaluations.  The snapped switch does not have that floor.  Its
-post-switch estimator converges at **-0.484** for the late switch -- the pure
-statistical rate, indistinguishable from -0.5 -- and at -0.318 for the early one.
+**The persistent arm is parked** -- slope -0.044, flatter than every baseline and
+flat over a factor four in force evaluations -- and the switched arms are not.
+But the slope has to be read against the right axis, and reading it against
+TOTAL force evaluations overstates the effect.  An arm that switched earlier has
+a more mature production estimate at the same total budget, so its measured slope
+is naturally shallower for reasons that have nothing to do with bias.  Against
+**production** force evaluations (`fe - fe_switch`), which is the axis the
+post-switch estimator actually lives on:
 
-The late switch is the one to read.  Its `t_switch` sits at 1.2e8 force
-evaluations, so up to that point it IS persistent RC-WFR and matches it exactly
-(0.0228 at 1.1e8).  After it, the two diverge in behaviour rather than level:
+| arm | switch at | production fe | e_F at end | slope vs production fe |
+|---|---|---|---|---|
+| persistent RC-WFR | - | - | 0.0207 | **-0.044** |
+| switch @1e5 | 2.9e7 | 4.0e8 | 0.0220 | **-0.281** |
+| switch @4e5 | 1.2e8 | 3.2e8 | 0.0228 | **-0.283** |
+| automatic | 1.2e7 | 4.2e8 | 0.0232 | -0.051 |
 
-|  | at 1.1e8 | at 4.3e8 | rate |
-|---|---|---|---|
-| persistent | 0.0228 | 0.0208 | -0.044, parked |
-| switched at 4e5 steps | 0.0228 | 0.0232 | **-0.484, statistical** |
+and at a MATCHED production budget of 2.9e8 the three switched arms give 0.0219,
+0.0252 and 0.0239 -- they are the same arm at different points on one curve.
 
-At 4.3e8 the switched arm is 12% behind, because it threw away the 1.2e8 force
-evaluations of stage-A deposits and is running on 3.2e8 of production.  At
--0.484 against -0.044 that deficit is repaid within a factor of two more budget,
-and everything past that is gain.
+So the honest statement is narrower than the raw numbers first suggested:
 
-So the algorithm is:
+* persistent RC-WFR **is** parked (-0.044 over a factor four);
+* the switched arms are **still converging** (-0.28), which the persistent arm is
+  not;
+* they are currently **level** with it (0.022 against 0.0207), not below it.
 
-    RC-WFR persistent   -> fastest early, then parked at a bias floor
-    RC-WFR -> TI (snap) -> identical early, then converges at the statistical rate
-
-and `t_switch` is the dial between them.  What was a permanent caveat --
-"speed at practical budgets, not accuracy at unlimited budget" -- is now a
-scheduling choice, and the honest claim becomes:
-
-    RC-WFR is a fast adaptive initialiser for an asymptotically unbiased
-    constrained free-energy estimator.
+A crossing is imminent at that rate but has not been demonstrated, so a longer
+run is under way to measure it rather than extrapolate.  The `-0.484` figure
+quoted earlier was measured over a window immediately after the switch, where the
+estimator was still shedding its start-up transient, and it overstates the
+asymptotic rate; it is withdrawn in favour of `-0.28`.
 
 **One** implementation detail is load-bearing, and an ablation says which.  Two
 fixes were applied together -- snapping the replicas onto a uniform window grid,
@@ -255,33 +255,44 @@ Two supporting details.
   cells against stratified TI's 1.000 by construction; diffusive transport
   equidistributes a two-torus much less efficiently than a grid does.
 
-## The second adaptive baseline
+## The adaptive baselines, and a bug in my own implementation of them
 
-The comparison so far had only adaptive-biasing-FORCE.  Adding the
-adaptive-biasing-POTENTIAL family (SHUS/ABP, the same construction OPES belongs
-to: build a bias from the visited density and push with its gradient, targeting
-a uniform marginal), with the SAME Chapter-3 mean-force estimator so nothing
-turns on an estimator difference.
+The comparison had only adaptive-biasing-FORCE.  Two adaptive-biasing-POTENTIAL
+arms were added: an ABP/SHUS one (bias built from raw visit counts) and **OPES
+proper** -- reweighted density `w_k = exp(beta V_{n-1}(s_k))`, the explicit
+barrier floor `epsilon = exp(-beta DeltaE/(1-1/gamma))`, and normalisation by
+`Z_n` over the explored region, with `gamma -> infinity` targeting the uniform
+marginal every other arm targets.  Kernel compression is replaced by the same
+fixed grid and Gaussian kernel the rest of the package uses; that changes the
+representation of `P_hat`, not the algorithm, and it is stated rather than
+hidden.
 
-Screened over a **3000-fold** range of its adaptation gain, pentane at 1e5 steps:
+**Both arms were initially broken, and the symptom was diagnostic.**  They
+reported `e_F ~ 0.20` on pentane against ABF's 0.048, with an apparent bias floor
+(slope -0.056 out to 4.1e8) -- an unbiased method should not have one.  The cause:
+they deposited the mean force with the `(det G)^{-1/2}` Fixman weight.  That
+weight converts the RIGID measure a constrained sampler produces into `nu^xi`.
+These arms sample UNCONSTRAINED, and their bias depends on `z` alone, so
+conditioning on `z` already gives `nu^xi` -- the weight is pure error.  It is
+exactly the wrong-weight control Gate I measured at 0.151 kcal/mol on butane, and
+0.15 is precisely the floor they were sitting on.
 
-| gain | 0.03 | 0.3 | 1 | 3 | 10 | 100 |
-|---|---|---|---|---|---|---|
-| e_F | 0.1915 | 0.2101 | 0.2168 | 0.2101 | 0.2125 | 0.2168 |
+After removing it, at 1e5 steps on pentane:
 
-It is flat in the knob and sits at ~0.20, against ABF's 0.048 at the same budget
-and RC-WFR's 0.024.  Coverage is 1.000 and the conditional error is low (0.05),
-so it explores fine; what is slower is the bias itself -- ABF's bias IS the
-running mean force, while an ABP bias has to accumulate a visited density first.
+| arm | before | after |
+|---|---|---|
+| OPES | 0.1997 | **0.0650** |
+| ABP / SHUS | 0.1915 | **0.0577** |
+| ABF (unaffected -- it never had the weight) | 0.0505 | 0.0505 |
 
-Two things should be said plainly about this.  It is a fair screen of the
-implementation that is here (the ABP engine ported from the earlier campaign,
-with its own knob tried over three decades), and it is NOT a claim about
-production OPES, which uses adaptive-bandwidth kernel density estimates and a
-well-tempered target and is a better-tuned instrument than this.  **ABF remains
-the primary adaptive baseline in this campaign**, because on these systems it is
-the stronger of the two.
+and at the confirmation budget (4e5 steps, 32 seeds) OPES reaches **0.0340**
+against ABF's 0.0314 and RC-WFR's 0.0215.  So the corrected baseline set has all
+three adaptive methods within 10% of each other, which is what one should expect,
+and the earlier "OPES is 4x worse than ABF" statement was an artefact of my
+implementation and is withdrawn.
 
+Screened on their own knobs: OPES over kernel width `sigma` in {0.05, 0.10, 0.20}
+and barrier limit in {8, 20, 40} k_B T; ABP over its gain across two decades.
 
 ## Alanine: the switch transfers, one step further back on the same curve
 
@@ -302,8 +313,8 @@ evaluations of stage-A deposits; at -0.220 against +0.007 it repays that within
 about 1.4x more budget.
 
 So the qualitative result transfers.  What differs from pentane is how far along
-it is: pentane's late switch reached -0.484, the full statistical rate, while
-alanine's reaches -0.220.  Two reasons, and the second is a design lesson:
+it is: pentane's late switch reaches -0.283 against production budget, while
+alanine's reaches -0.11.  Two reasons, and the second is a design lesson:
 
 * alanine's persistent error is 3.4 estimator floors with a conditional error
   still at 0.15 nats, so a larger share of what remains is fiber sampling rather
@@ -322,7 +333,7 @@ knobs:
 | arm | e_F (kcal/mol) | late-time rate |
 |---|---|---|
 | RC-WFR persistent, learned Metropolis lift | **0.0207** | -0.044, parked |
-| RC-WFR -> TI (snap @4e5), post-switch estimator | 0.0235 | **-0.484, statistical** |
+| RC-WFR -> TI (snap @4e5), post-switch estimator | 0.0235 | **-0.283** (vs production fe) |
 | ABF, multiple walkers | 0.0227 | -0.231 |
 | stratified constrained TI, cold | 0.0287 | -0.253 |
 | RC-WFR, naive rotation lift | 0.0432 | -0.088 |

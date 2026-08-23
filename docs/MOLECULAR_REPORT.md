@@ -148,12 +148,14 @@ from post-switch samples only.
 | | at 1.1e8 | at 4.3e8 | late-time rate |
 |---|---|---|---|
 | persistent RC-WFR | 0.0228 | 0.0208 | -0.044, parked |
-| switched at 4e5 steps | 0.0228 | 0.0232 | **-0.484, statistical** |
+| switched at 4e5 steps | 0.0228 | 0.0232 | **-0.283** (vs production fe) |
 | switched at 1e5 steps | 0.0339 | 0.0220 | -0.318 |
 | switched, frozen IN PLACE at 2.5e4 | 0.0387 | 0.0412 | +0.030, worse floor |
 
 The late switch is identical to persistent RC-WFR up to its switch point and
-then converges at the pure statistical rate instead of parking. The **snapping
+then keeps converging (-0.283 against production budget) instead of parking.  It
+is currently LEVEL with the persistent arm rather than below it; a crossing is
+implied by the rates but was not demonstrated at the budgets run here. The **snapping
 is the whole fix**: an ablation that snaps without freezing the proposal
 reproduces the snapped result to 3e-12. Freezing the replicas where transport
 happened to leave them is an uneven stratification, and because the same set is

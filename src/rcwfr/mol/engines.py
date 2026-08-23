@@ -27,6 +27,7 @@ from ..wasserstein import w_step_sde, w_step_flow
 from .dynamics import constrained_step, free_step
 from .ff import _wrap, rotate_about_bond
 from ..shus import ShusAccumulator
+from .opes import OpesAccumulator
 from .geom import TorsionCV
 from .joint import JointRefresh
 from .lift import AdaptiveFiberCDF, ReferenceFiberCDF
@@ -75,15 +76,33 @@ class MolCfg:
     # --- ABF ---------------------------------------------------------------
     abf_n_min: float = 200.0
     abf_wall_k: float = 400.0    # half-harmonic wall outside a restricted CV domain
-    shus_gain: float = 1.0       # ABP / SHUS / OPES baseline
+    shus_gain: float = 1.0       # ABP / SHUS baseline
     shus_block: int = 200
     shus_eps_bw: float = 0.07
+    opes_sigma: float = 0.10     # OPES kernel width, in CV units
+    opes_barrier: float = 20.0   # OPES barrier limit, in units of 1/beta
+    opes_gamma: float = float("inf")   # inf targets a uniform marginal
+    opes_stride: int = 200
     n_newton: int = 6
     # --- two-stage: RC-WFR as an initialiser, then unbiased constrained TI ---
     t_switch: int = 0            # steps after which reaction-coordinate TRANSPORT
                                  # and Fisher-Rao selection are switched off and
                                  # the run becomes ordinary stratified constrained
                                  # TI at whatever z the replicas reached.  0 = never.
+    # --- automatic switching -------------------------------------------------
+    auto_switch: bool = False    # switch when both deployable diagnostics have
+                                 # settled, instead of at a fixed step count
+    eps_snap: float = 0.0        # threshold on D_snap (rad^2), see below
+    eps_learn: float = 0.0       # threshold on D_learn (TV per z-slice)
+    eps_ens: float = 0.0         # threshold on D_ens; <= 0 disables it
+    auto_hold: int = 3           # consecutive checks both must pass
+    auto_every: int = 5_000      # steps between checks
+    snap_windows: int = 0        # replicas per window after the snap is N/snap_windows;
+                                 # 0 means one replica per window (M = N).  Trading
+                                 # z-resolution for replicas per window is the only
+                                 # dial stage B has: a window whose fiber is 60
+                                 # coordinates cannot be explored by ONE trajectory
+                                 # time-averaging, however long the run.
     snap_at_switch: bool = False   # at the switch, place the replicas on a UNIFORM
                                  # grid of windows (by sorted rank) instead of
                                  # leaving them where transport happened to drop
@@ -172,6 +191,16 @@ def _invcdf(table, Z, u):
     t = (u - a) / torch.clamp(b - a, min=EPS)
     y0, y1 = table.yv[(j - 1).squeeze(-1)], table.yv[j.squeeze(-1)]
     return y0 + t * (y1 - y0)
+
+
+NEZ, NEY = 12, 12          # resolution of the ensemble-equilibration diagnostic
+
+
+def _coarse_pdf(P, nz, ny):
+    """(R, Gz, Gy) node pdf -> (R, nz, ny) cell masses, by block summing."""
+    R, Gz, Gy = P.shape
+    fz, fy = Gz // nz, Gy // ny
+    return P[:, : nz * fz, : ny * fy].reshape(R, nz, fz, ny, fy).sum((2, 4))
 
 
 def _marginalise(Hjoint, keep):
@@ -294,9 +323,67 @@ def run_constrained(sy, cfg: MolCfg, rows: int, seed: int, ref=None,
     fe, si, out_w = 0.0, 0, None
     eq_outer = cfg.n_eq // cfg.n_cond
     sw_outer = (cfg.t_switch // cfg.n_cond) if cfg.t_switch else None
+    chk_outer = max(1, cfg.auto_every // cfg.n_cond)
+    hold, prev_tab, diag = 0, None, []
+    Hwin = None                       # short-window ensemble (z, y) histogram
     did_reset = False
     out["fe_switch"] = torch.zeros((), device=dev, dtype=dt)
     for it in range(n_outer):
+        # --- deployable switch diagnostics ---------------------------------
+        # D_snap: how violent the snap would be, i.e. how far the replicas are
+        #         from the deterministic stratification they will be forced onto.
+        # D_learn: how much the learned conditional still moves between checks.
+        # Neither needs a reference, so both can be used to STOP a real run.
+        if (cfg.auto_switch or cfg.t_switch) and it % chk_outer == 0:
+            M_ = cfg.snap_windows if cfg.snap_windows else cfg.N
+            zs = torch.sort(z[..., 0], dim=1).values
+            rk = torch.arange(cfg.N, device=dev).unsqueeze(0).expand(rows, cfg.N)
+            wn = torch.div(rk * M_, cfg.N, rounding_mode="floor")
+            tgt = g.xmin + (wn.to(dt) + 0.5) * g.volume / M_
+            d = (_wrap(zs - tgt) if g.bc == "periodic" else zs - tgt)
+            d_snap = (d * d).mean(1)
+            if learn is not None:
+                learn._build()
+                tab = learn._cdf.clone()
+                d_learn = ((tab - prev_tab).abs().amax(-1).mean(1)
+                           if prev_tab is not None
+                           else torch.ones(rows, device=dev, dtype=dt))
+                prev_tab = tab
+                # D_ens: is the ENSEMBLE at the conditional the run has learned,
+                # or only the time-average?  A cold-started ensemble is a delta
+                # in y while the decayed table has already accumulated spread, so
+                # this separates "the estimate has settled" from "the replicas
+                # have actually equilibrated" -- which the marginal diagnostics
+                # cannot do, and which is what a later switch buys.
+                if Hwin is not None and float(Hwin.sum()) > 0:
+                    # coarse on purpose: at the run's own resolution a window of
+                    # N walkers gives a near-delta empirical conditional and the
+                    # TV floors out at the sampling noise, ~0.31, whatever the
+                    # physics is doing
+                    # compare RAW against RAW: the learned pdf carries a wide
+                    # smoothing kernel and a uniform background, and comparing a
+                    # smoothed density against an unsmoothed histogram leaves a
+                    # permanent 0.26 offset that has nothing to do with the physics
+                    pt = _coarse_pdf(learn.H, NEZ, NEY)
+                    pe = Hwin / torch.clamp(Hwin.sum(-1, keepdim=True), min=EPS)
+                    pt = pt / torch.clamp(pt.sum(-1, keepdim=True), min=EPS)
+                    occ = Hwin.sum(-1)
+                    wz = occ / torch.clamp(occ.sum(-1, keepdim=True), min=EPS)
+                    d_ens = (0.5 * (pe - pt).abs().sum(-1) * wz).sum(-1)
+                else:
+                    d_ens = torch.ones(rows, device=dev, dtype=dt)
+                Hwin = torch.zeros((rows, NEZ, NEY), device=dev, dtype=dt)
+            else:
+                d_learn = d_ens = torch.zeros(rows, device=dev, dtype=dt)
+            diag.append(torch.stack([torch.full_like(d_snap, float(fe * cfg.N)),
+                                     d_snap, d_learn, d_ens], -1))
+            if cfg.auto_switch and sw_outer is None:
+                ok = bool((d_snap.median() < cfg.eps_snap)
+                          and (d_learn.median() < cfg.eps_learn)
+                          and (cfg.eps_ens <= 0.0 or d_ens.median() < cfg.eps_ens))
+                hold = hold + 1 if ok else 0
+                if hold >= cfg.auto_hold:
+                    sw_outer = it
         transporting = sw_outer is None or it < sw_outer
         if sw_outer is not None and it == sw_outer and not did_reset:
             did_reset = True
@@ -307,7 +394,10 @@ def run_constrained(sy, cfg: MolCfg, rows: int, seed: int, ref=None,
                 rank = torch.empty_like(order)
                 rank.scatter_(1, order, torch.arange(cfg.N, device=dev)
                               .unsqueeze(0).expand(rows, cfg.N))
-                ztgt = g.xmin + (rank.to(dt) + 0.5) * g.volume / cfg.N
+                M = cfg.snap_windows if cfg.snap_windows else cfg.N
+                assert cfg.N % M == 0, (cfg.N, M)
+                win = torch.div(rank * M, cfg.N, rounding_mode="floor")
+                ztgt = g.xmin + (win.to(dt) + 0.5) * g.volume / M
                 if cfg.lift == "shake":
                     q, _ = cv.project(q, ztgt.unsqueeze(-1),
                                       n_newton=cfg.n_newton, n_outer=3)
@@ -354,6 +444,13 @@ def run_constrained(sy, cfg: MolCfg, rows: int, seed: int, ref=None,
                 # accumulated with the same (det G)^{-1/2} weight the mean force
                 # carries -- otherwise nu_hat(y|z) is the rigid conditional
                 learn.deposit(z[..., 0], y, weight=(out_w if it >= eq_outer else None))
+                if Hwin is not None:
+                    iz2 = torch.clamp(((z[..., 0] - g.xmin) / g.volume * NEZ).long(),
+                                      0, NEZ - 1)
+                    iy2 = torch.clamp(((y - gy.xmin) / gy.volume * NEY).long(),
+                                      0, NEY - 1)
+                    Hwin.reshape(rows, -1).scatter_add_(
+                        1, iz2 * NEY + iy2, torch.ones_like(iz2, dtype=dt))
         # --- Wasserstein transport of the labels ---------------------------
         if not transporting:
             zn = z[..., 0]
@@ -488,6 +585,8 @@ def run_constrained(sy, cfg: MolCfg, rows: int, seed: int, ref=None,
             anc = ar.clone()
             si += 1
     out["z_final"], out["q_final"] = z, q
+    if diag:
+        out["diag"] = torch.stack(diag, 0)          # (n_checks, rows, 3)
     if Hjt is not None:
         out["Hjoint"] = Hjt
     return out
@@ -562,6 +661,7 @@ def run_abf(sy, cfg: MolCfg, rows: int, seed: int, ref=None):
         if (n + 1) % cfg.save_every == 0 and si < n_saves:
             p = kde_marginal(zc, g, cfg.bw_kde)
             out["F"][si] = acc.free_energy(mask)
+            out["F_prod"][si] = out["F"][si]
             out["kl"][si] = kl_to_uniform(p, g)
             out["cov"][si] = _coverage(zc, g)
             if ref is not None and nt > 1:
@@ -652,8 +752,13 @@ def run_opes(sy, cfg: MolCfg, rows: int, seed: int, ref=None):
             shus.update(h * cfg.shus_block, cfg.shus_block)
         if (n + 1) % cfg.dep_every == 0 and n >= cfg.n_eq:
             f, G = cv.mean_force(q, gradV(q), beta)
-            w = G[..., 0, 0] ** -0.5
-            acc.deposit(zc, f[..., 0], weights=w)
+            # UNWEIGHTED.  These samples come from the biased Boltzmann measure,
+            # and the bias depends on z alone, so conditioning on z already gives
+            # nu^xi -- the (det G)^{-1/2} weight belongs to CONSTRAINED sampling,
+            # which produces the rigid measure instead.  Applying it here is the
+            # same error Gate I measured at 0.15 kcal/mol on butane, and it was
+            # this arm's entire apparent bias floor.
+            acc.deposit(zc, f[..., 0])
         if yfun is not None and n % 20 == 0:
             y = yfun(q)[..., 1]
             iz = torch.clamp(((zc - g.xmin) / g.volume * nkz).long(), 0, nkz - 1)
@@ -674,4 +779,74 @@ def run_opes(sy, cfg: MolCfg, rows: int, seed: int, ref=None):
     return out
 
 
-ARMS = {"constrained": run_constrained, "abf": run_abf, "opes": run_opes}
+def run_opes_true(sy, cfg: MolCfg, rows: int, seed: int, ref=None):
+    """OPES proper: reweighted density, barrier floor, explored-volume normalisation.
+
+    Same dynamics and the same Chapter-3 mean-force estimator as every other
+    unconstrained arm, so only the biasing scheme differs.
+    """
+    dev, dt, g = sy.device, sy.dtype, sy.grid
+    top, cv, beta, h = sy.top, sy.cv, sy.beta, sy.h
+    torch.manual_seed(seed + 2909)
+    nt = top.tor_idx.shape[0]
+    full_cv = TorsionCV(top.tor_idx, top.mass, shift=cv.shift) if nt > 1 else cv
+    phis = torch.full((rows, cfg.N, nt), sy.y0, device=dev, dtype=dt)
+    phis[..., 0] = cfg.z0
+    q = sy.ideal(phis.reshape(-1, nt)).reshape(rows, cfg.N, top.n_atoms, 3)
+    acc = MeanForceAccumulator(rows, g, cfg.bw_mf, cfg.n_min, dev, dt)
+    op = OpesAccumulator(rows, g, beta, cfg.opes_sigma, dev, dt,
+                         gamma=cfg.opes_gamma, barrier=cfg.opes_barrier)
+    mask = g.eval_mask(dev, dt)
+    kw = (cfg.abf_wall_k if g.bc == "reflect" else 0.0)
+    step = torch.compile(lambda q, bg: _abf_step(top, cv, q, bg, g, h, beta,
+                                                 drift_cap=sy.drift_cap, k_wall=kw),
+                         dynamic=False)
+    gradV = torch.compile(lambda q: top.grad(q), dynamic=False)
+    yfun = torch.compile(lambda q: full_cv.value(q), dynamic=False) if nt > 1 else None
+    n_saves = cfg.n_steps // cfg.save_every
+    Z = lambda *s: torch.zeros(s, device=dev, dtype=dt)
+    out = {"F": Z(n_saves, rows, g.n), "F_prod": Z(n_saves, rows, g.n),
+           "kl": Z(n_saves, rows), "cov": Z(n_saves, rows),
+           "ess_fix": Z(n_saves, rows) + 1.0, "ess_anc": Z(n_saves, rows) + 1.0,
+           "dcond": Z(n_saves, rows), "resid": Z(n_saves, rows), "fe": Z(n_saves),
+           "lift_cov": Z(n_saves, rows),
+           "fe_switch": torch.zeros((), device=dev, dtype=dt)}
+    nkz = nky = (int(ref["Hdiag"].shape[-1]) if (ref is not None and "Hdiag" in ref)
+                 else 36)
+    Hdiag = Z(rows, nkz, nky)
+    si, fe = 0, 0.0
+    for n in range(cfg.n_steps):
+        # `_abf_step` adds `-b grad xi` to the gradient, i.e. it expects the
+        # NEGATED bias gradient (for ABF, b = F'_hat flattens because the
+        # effective potential is V - F_hat).  OPES supplies a bias POTENTIAL, so
+        # b = -dV_bias/ds.
+        q, zc = step(q, -op.Vp)
+        fe += 1.0
+        op.deposit(zc)
+        if (n + 1) % cfg.opes_stride == 0:
+            op.update()
+        if (n + 1) % cfg.dep_every == 0 and n >= cfg.n_eq:
+            f, G = cv.mean_force(q, gradV(q), beta)
+            acc.deposit(zc, f[..., 0])          # unweighted; see run_opes
+        if yfun is not None and n % 20 == 0:
+            y = yfun(q)[..., 1]
+            iz = torch.clamp(((zc - g.xmin) / g.volume * nkz).long(), 0, nkz - 1)
+            iy = torch.clamp(((y + math.pi) / (2 * math.pi) * nky).long(), 0, nky - 1)
+            Hdiag.reshape(rows, -1).scatter_add_(1, iz * nky + iy,
+                                                 torch.ones_like(iz, dtype=dt))
+        if (n + 1) % cfg.save_every == 0 and si < n_saves:
+            out["F"][si] = acc.free_energy(mask)
+            out["F_prod"][si] = out["F"][si]
+            out["kl"][si] = kl_to_uniform(kde_marginal(zc, g, cfg.bw_kde), g)
+            out["cov"][si] = _coverage(zc, g)
+            if ref is not None and nt > 1:
+                out["dcond"][si] = _cond_kl(Hdiag, ref["Hdiag"][0], 1.0)
+            out["fe"][si] = fe * cfg.N
+            Hdiag.zero_()
+            si += 1
+    out["z_final"], out["q_final"] = zc.unsqueeze(-1), q
+    return out
+
+
+ARMS = {"constrained": run_constrained, "abf": run_abf, "opes": run_opes,
+        "opes_true": run_opes_true}
