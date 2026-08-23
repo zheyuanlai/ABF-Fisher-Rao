@@ -1054,3 +1054,95 @@ the arm-to-arm difference scales as `b_mf^2` -- and it is left undone here
 deliberately, at the campaign's agreed stop.
 
 Figure `figures/figMOL12_M3.png`; report `scripts/mol_M3_report.py`.
+
+## 22. Is the new 0.008 floor the time step? No.
+
+Section 21 left a residual: all three M3 arms share roughly 0.008 kcal/mol, of
+which only 0.0029 was accounted for at the time.  The obvious suspect is the
+same one section 20 caught at `h` = 2e-3 -- so it was tested rather than assumed.
+
+The first attempt was under-powered and is reported because it shows what the
+design needed.  Pentane, warm constrained TI, four `h` values at physical time
+400, `N` = 1024, 8 rows:
+
+| `h` | `b_mf`=0.08 | 0.04 | 0.02 |
+|---|---|---|---|
+| 2.0e-3 | 0.03412 | 0.01983 | 0.02023 |
+| 1.0e-3 | 0.03557 | 0.01781 | 0.01566 |
+| 5.0e-4 | 0.03620 | 0.01930 | 0.01757 |
+| 2.5e-4 | 0.03573 | 0.02053 | 0.01952 |
+
+The `h` = 2e-3 self-difference is 0.0175, so pentane's constrained-integrator
+term at the campaign's step is comparable to butane's 0.0133 -- the section 20
+accounting transfers.  But at physical time 400 the statistical floor is 0.016,
+which is larger than the 0.008 being chased, so nothing below `h` = 2e-3 is
+resolvable.  **The measurement could not have answered the question it was
+pointed at**, and increasing the number of `h` values would not have helped;
+only power would.
+
+Rerun with four times the physical time and four times the rows (32), on the two
+`h` values that matter, with three bandwidths riding along free:
+
+| `h` | `b_mf`=0.04 | 0.02 | 0.01 |
+|---|---|---|---|
+| 1.0e-3 | 0.01060 | **0.00928** | 0.00920 |
+| 5.0e-4 | 0.01172 | 0.01019 | 0.01043 |
+
+    ||F(h=1e-3) - F(h=5e-4)||  =  0.00272     against a noise floor of 0.00420
+
+**Halving `h` again does not reduce the error, and neither does halving
+`b_mf`.**  Going from `b_mf` = 0.02 to 0.01 moves `e_F` by 0.00008, and the
+residual after removing smoothing and statistics is 0.00473 at `b_mf` = 0.02 and
+0.00449 at 0.01 -- agreeing across a factor 2 in bandwidth, which is the
+independence check the decomposition had to pass.  So the residual is neither
+the time step nor the kernel.
+
+### 22.1 The reference's own time step, on pentane
+
+Butane's reference was rerun four times finer in section 20.4; pentane's had not
+been.  It has now:
+
+| system | `‖F_ref(2e-3) - F_ref(5e-4)‖` | block s.e. |
+|---|---|---|
+| butane | 0.00181 | 0.00090 / 0.00081 |
+| pentane | **0.00238** | 0.00088 / 0.00141 |
+
+Both are small and both are within about 1.5 standard errors of their own noise,
+so neither reference is meaningfully biased by its integrator -- but at the 0.008
+scale the pentane number is no longer negligible, and it is a floor on any `e_F`
+measured against that reference.
+
+### 22.2 The floor, fully itemised
+
+Pentane, warm constrained TI, `h` = 1e-3, `b_mf` = 0.02, `n` = 257, physical
+time 1600.  Every term measured independently, combined in quadrature:
+
+| term | kcal/mol |
+|---|---|
+| statistics (row scatter) | 0.00772 |
+| estimator kernel | 0.00200 |
+| reference 180-bin resolution | 0.00196 |
+| reference's own time step | 0.00238 |
+| reference block noise | 0.00085 |
+| **quadrature of known terms** | **0.00859** |
+| observed | 0.00928 |
+| unaccounted | 0.00351 |
+
+The known terms account for **86% of the squared error**.  Two consistency
+checks come free: the statistical term scales as it should between this run and
+M3 (0.00772 at physical time 1600 implies 0.0055 at M3's 3200; M3 measured
+0.0058), and the residual is bandwidth-independent.
+
+**What this settles and what it does not.**  The 0.020 plateau -- the thing that
+made every long-budget conclusion in this campaign unreadable -- is understood:
+kernel plus constrained integrator, section 20, reproduced on pentane here.  The
+0.009 floor that replaced it is 86% itemised, and is dominated by ordinary
+statistics rather than by any bias.  The remaining 0.0035 is at the level of the
+individual terms and within the uncertainty of the subtraction, and this campaign
+does not resolve it.  The leading untested candidate remains the one named in
+section 21.1: the smoothing floor assumes a uniform window density, and neither
+RC-WFR's transport-equidistributed windows nor the discreteness of 1024 windows
+on a 257-node grid is covered by that assumption.
+
+Scripts `scripts/mol_floor_study.py --warm`, `scripts/mol_floor_fit.py`,
+`scripts/mol_reference.py --h`.
