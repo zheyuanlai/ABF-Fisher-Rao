@@ -920,5 +920,35 @@ factor 3.6 under the plateau.  The floor is not a property of the method, and
 lowering it costs a factor 2 in force evaluations per unit physical time and
 nothing else.
 
+
+### 20.7 The same accounting on the other systems
+
+The smoothing term needs no dynamics, so it can be computed for every system
+directly:
+
+| system | grid | `b_mf`=0.08 | 0.05 | 0.04 | 0.02 |
+|---|---|---|---|---|---|
+| butane (kcal/mol) | 129 | 0.03155 | 0.01243 | 0.00797 | 0.00108 |
+| butane | 257 | 0.03158 | 0.01244 | 0.00798 | 0.00200 |
+| pentane (kcal/mol) | 129 | 0.03157 | **0.01244** | 0.00798 | 0.00108 |
+| pentane | 257 | 0.03159 | 0.01245 | 0.00799 | 0.00200 |
+| alanine (kJ/mol) | 129 | 0.24465 | **0.12928** | 0.09557 | 0.03393 |
+| alanine | 257 | 0.25373 | 0.14028 | 0.10674 | 0.04178 |
+
+Two checks fall out.  First, this reproduces the floors the campaign has been
+quoting all along -- 0.0127 for pentane and 0.156 for alanine -- to within a few
+percent, from an independent construction.  Second, pentane's floor is
+**identical** to butane's, because both are TraPPE torsion profiles with the same
+curvature scale.  So pentane's observed plateau of 0.0205 decomposes as
+
+    smoothing               0.01244   (measured here)
+    constrained integrator  0.01326   (measured on butane, same h, same projection)
+    leaving                 0.0095    for statistics, in quadrature
+
+and needs nothing else.  **The pentane plateau is the same two terms as
+butane's**, which is why M3 below can be run at a convention where the floor is
+~0.005 instead of ~0.020 and expect to resolve differences that were previously
+invisible.
+
 Reproduced by `scripts/mol_floor_study.py` and `scripts/mol_floor_fit.py`;
 figure `figures/figMOL11_floor.png`.
