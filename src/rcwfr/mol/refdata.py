@@ -120,6 +120,15 @@ def load_reference(path, grid: Grid1D, y_grid: Grid1D, device, dtype, k=0,
         # the coarse diagnostic table the engines compare against
         out["Hdiag"] = T(np.stack([_regrid_coarse(H2, ctr, grid, 36, cv_shift)]))
         out["cond_source"] = "unbiased"
+    if "Hpair" in d and d["Hpair"].size:
+        # per-mode reference conditionals p(y_k | z), on the campaign grids.
+        # These, not the full joint, are what the single-mode Metropolis proposal
+        # and the z-resolved conditional diagnostic read.
+        Hp = d["Hpair"].sum(0)                       # (n_fib, nb, nb)
+        out["Hcond"] = T(np.stack([_regrid2d(Hp[k], ctr, grid, y_grid, cv_shift)
+                                   for k in range(Hp.shape[0])]))
+        out["Hdiag"] = T(np.stack([_regrid_coarse(Hp[k], ctr, grid, 36, cv_shift)
+                                   for k in range(Hp.shape[0])]))
     if "Hjoint" in d and d["Hjoint"].size:
         Hj = d["Hjoint"].sum(0)
         out["Hjoint"] = T(Hj)

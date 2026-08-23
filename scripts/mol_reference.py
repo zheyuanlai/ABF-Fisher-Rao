@@ -81,7 +81,10 @@ def main():
     # full joint over (z, y_1, ..., y_F) at a coarser resolution: the |S| >= 2
     # refresh lift needs p(y_S | z) for arbitrary promoted subsets S
     nj = a.joint_nb
-    Hj = Z(*([nbk] + [nj] * nt)) if nt >= 2 else None
+    # the full joint is only affordable up to three torsions; the PAIRWISE tables
+    # (z, y_k) are what the diagnostic and the single-mode proposals actually use
+    Hj = Z(*([nbk] + [nj] * nt)) if 2 <= nt <= 3 else None
+    Hp = Z(nbk, nt - 1, nb, nb) if nt >= 2 else None
     ij_of = lambda x: torch.clamp(((x + math.pi) / (2 * math.pi) * nj).long(), 0, nj - 1)
     S0, S1, W0, W1 = Z(nbk, nt, nb), Z(nbk, nt, nb), Z(nbk, nt, nb), Z(nbk, nt, nb)
     burn = int(a.burn * a.steps)
@@ -101,11 +104,16 @@ def main():
                 H2[blk].reshape(-1).scatter_add_(
                     0, ib_of(phi[:, 0]) * nb + ib_of(phi[:, 1]),
                     torch.ones(a.B, device=dev, dtype=dt))
-                flat = ij_of(phi[:, 0])
+                if Hj is not None:
+                    flat = ij_of(phi[:, 0])
+                    for kk in range(1, nt):
+                        flat = flat * nj + ij_of(phi[:, kk])
+                    Hj[blk].reshape(-1).scatter_add_(
+                        0, flat, torch.ones(a.B, device=dev, dtype=dt))
                 for kk in range(1, nt):
-                    flat = flat * nj + ij_of(phi[:, kk])
-                Hj[blk].reshape(-1).scatter_add_(
-                    0, flat, torch.ones(a.B, device=dev, dtype=dt))
+                    Hp[blk, kk - 1].reshape(-1).scatter_add_(
+                        0, ib_of(phi[:, 0]) * nb + ib_of(phi[:, kk]),
+                        torch.ones(a.B, device=dev, dtype=dt))
         if it % a.mf_every == 0:
             gV = top.grad(q)
             for k, c in enumerate(cvs):
@@ -128,6 +136,7 @@ def main():
         H1=H1.cpu().numpy(), H2=(H2.cpu().numpy() if H2 is not None else np.zeros((0, 0, 0))),
         S0=S0.cpu().numpy(), S1=S1.cpu().numpy(), W0=W0.cpu().numpy(), W1=W1.cpu().numpy(),
         Hjoint=(Hj.cpu().numpy() if Hj is not None else np.zeros((0,))), joint_nb=nj,
+        Hpair=(Hp.cpu().numpy() if Hp is not None else np.zeros((0,))),
         beta=beta, h=h, B=a.B, steps=a.steps, burn=burn, T=sy.T, nb=nb, blocks=nbk)
     print(f"done {time.time()-t0:.0f}s -> {p}", flush=True)
 

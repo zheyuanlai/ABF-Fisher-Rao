@@ -25,6 +25,17 @@ import argparse, json, math, os, sys
 import numpy as np
 
 
+def _sens2d(H, dz_bins=1):
+    """S from a pairwise (nz, ny) table."""
+    p = H / np.maximum(H.sum(-1, keepdims=True), 1e-12)
+    p = 0.98 * p + 0.02 / p.shape[-1]
+    q = np.roll(p, -dz_bins, axis=0)
+    kl = (p * (np.log(p) - np.log(q))).sum(-1)
+    w = H.sum(-1); w = w / w.sum()
+    dz = dz_bins * 2 * math.pi / p.shape[0]
+    return float((kl * w).sum() / dz ** 2)
+
+
 def sensitivity(Hjoint, k, dz_bins=1):
     """S_k from a (nz, n1, ..., nF) joint count table."""
     nfib = Hjoint.ndim - 1
@@ -49,9 +60,15 @@ def main():
     a = ap.parse_args()
     ref = a.ref or f"results/mol/ref/{a.system}_ref.npz"
     d = np.load(ref)
-    Hj = d["Hjoint"].sum(0) if ("Hjoint" in d and d["Hjoint"].size) else d["H2"].sum(0)
-    nfib = Hj.ndim - 1
-    S = [sensitivity(Hj, k) for k in range(nfib)]
+    if "Hpair" in d and d["Hpair"].size:
+        Hj = None                                    # pairwise tables directly
+        Hp = d["Hpair"].sum(0)
+    else:
+        Hj = d["Hjoint"].sum(0) if ("Hjoint" in d and d["Hjoint"].size) else d["H2"].sum(0)
+        Hp = None
+    nfib = (Hp.shape[0] if Hp is not None else Hj.ndim - 1)
+    S = ([_sens2d(Hp[k]) for k in range(nfib)] if Hp is not None
+         else [sensitivity(Hj, k) for k in range(nfib)])
     tp = a.tau or f"results/mol/{a.system}_fiber_time.npz"
     tau = np.load(tp)["tau"] if os.path.exists(tp) else np.ones(nfib)
     tau = np.atleast_1d(tau)

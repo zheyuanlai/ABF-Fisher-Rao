@@ -15,7 +15,7 @@ import torch
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from rcwfr.estimators import gauge_l2
 from rcwfr.mol import systems as S
-from rcwfr.mol.engines import MolCfg, run_abf, run_constrained
+from rcwfr.mol.engines import MolCfg, run_abf, run_constrained, run_opes
 from rcwfr.mol.refdata import load_reference
 
 
@@ -25,6 +25,7 @@ ARM_LIBRARY = {
     "ti_warm":     ("constrained", dict(init="grid_warm", w_mode="none", fr_rule="none")),
     # --- adaptive biasing ----------------------------------------------------
     "abf":         ("abf", dict()),
+    "opes":        ("opes", dict()),
     # --- RC-WFR --------------------------------------------------------------
     "wfr_shake":   ("constrained", dict(init="point", w_mode="sde", fr_rule="fr",
                                         lift="shake")),
@@ -61,7 +62,7 @@ ARM_LIBRARY = {
     "wfr_flow_y":  ("constrained", dict(init="point", w_mode="flow", fr_rule="fr",
                                         lift="yref_oracle")),
 }
-ENGINES = {"constrained": run_constrained, "abf": run_abf}
+ENGINES = {"constrained": run_constrained, "abf": run_abf, "opes": run_opes}
 
 
 def score(out, ref, sy):
@@ -71,7 +72,11 @@ def score(out, ref, sy):
     fe = out["fe"].cpu().numpy()
     e = eF.cpu().numpy()
     IF = np.trapezoid(e, fe, axis=0) / max(fe[-1] - fe[0], 1.0)
-    return {"e_F": e, "fe": fe, "I_F": IF, "e_F_final": e[-1],
+    ep = (torch.stack([gauge_l2(out["F_prod"][i], ref["F_ref"], mask)
+                       for i in range(n_saves)]).cpu().numpy()
+          if "F_prod" in out else e)
+    return {"e_F": e, "e_F_prod": ep, "fe": fe, "I_F": IF, "e_F_final": e[-1],
+            "e_F_prod_final": ep[-1],
             "kl": out["kl"].cpu().numpy(), "cov": out["cov"].cpu().numpy(),
             "dcond": out["dcond"].cpu().numpy(),
             "dcond_all": (out["dcond_all"].cpu().numpy()
@@ -86,7 +91,8 @@ DEFAULTS = dict(system="PEN", arm=None, seeds=8, seed0=1000, N=256, steps=100_00
                 n_cond=20, n_windows=64, kappa="0.30", theta="0.30", decay=None,
                 bw_mf=0.05, bw_kde=0.25, lift_bw_z=0.25, lift_bw_y=0.30,
                 lift_decay=0.999, lift_nmin=150.0, lift_start=0.0, abf_nmin=200.0,
-                promote=(1,), z0=0.0,
+                shus_gain=1.0,
+                promote=(1,), z0=0.0, t_switch=0, snap=False, freeze_lift=False,
                 fr_jitter=0.0, dep_every=20, save_every=5_000, n_eq=2_000,
                 tag="", out="results/mol/campaign")
 
@@ -136,11 +142,13 @@ def run_one(**kw):
                  lift_bw_z=a.lift_bw_z, lift_bw_y=a.lift_bw_y,
                  lift_decay=dec[0], lift_nmin=a.lift_nmin,
                  lift_start=a.lift_start, abf_n_min=a.abf_nmin,
+                 t_switch=a.t_switch, shus_gain=a.shus_gain,
+                 snap_at_switch=a.snap, freeze_lift_at_switch=a.freeze_lift,
                  promote=tuple(int(x) for x in str(a.promote).split(','))
                  if isinstance(a.promote, str) else tuple(a.promote), **defaults)
     t0 = time.time()
-    if eng == "abf":
-        out = run_abf(sy, cfg, rows, seed=a.seed0, ref=ref)
+    if eng in ("abf", "opes"):
+        out = ENGINES[eng](sy, cfg, rows, seed=a.seed0, ref=ref)
     else:
         out = run_constrained(sy, cfg, rows, seed=a.seed0, ref=ref,
                               kappa_vec=kv, theta_vec=tv, decay_vec=dv)
@@ -152,6 +160,7 @@ def run_one(**kw):
     np.savez_compressed(os.path.join(a.out, name + ".npz"),
                         F=out["F"].cpu().numpy(), F_ref=ref["F_ref"].cpu().numpy(),
                         wall=wall, n_cfg=n_cfg, n_seed=a.seeds,
+                        fe_switch=float(out.get("fe_switch", 0.0)),
                         cfg_grid=np.array(grid_cfg), **sc)
     with open(os.path.join(a.out, name + ".json"), "w") as f:
         json.dump({"arm": a.arm, "system": a.system, "wall_s": wall,
@@ -160,12 +169,14 @@ def run_one(**kw):
                    "promote": list(cfg.promote),
                    "cfg_grid": [list(g) for g in grid_cfg],
                    "e_F_final_median": float(np.median(sc["e_F_final"])),
+                   "e_F_prod_final_median": float(np.median(sc["e_F_prod_final"])),
                    "I_F_median": float(np.median(sc["I_F"])),
                    "dcond_final_median": float(np.median(sc["dcond"][-1])),
                    "cov_final_median": float(np.median(sc["cov"][-1])),
                    "ess_fix_median": float(np.median(sc["ess_fix"][-1])),
                    "fe_final": float(sc["fe"][-1])}, f, indent=1)
-    print(f"{name}: e_F={np.median(sc['e_F_final']):.4f} I_F={np.median(sc['I_F']):.4f} "
+    print(f"{name}: e_F={np.median(sc['e_F_final']):.4f} "
+          f"e_Fprod={np.median(sc['e_F_prod_final']):.4f} I_F={np.median(sc['I_F']):.4f} "
           f"dcond={np.median(sc['dcond'][-1]):.4f} cov={np.median(sc['cov'][-1]):.3f} "
           f"fe={sc['fe'][-1]:.3g} wall={wall:.0f}s", flush=True)
     return sc
@@ -192,8 +203,12 @@ def main():
     ap.add_argument("--lift-nmin", type=float, default=150.0)
     ap.add_argument("--lift-start", type=float, default=0.0)
     ap.add_argument("--abf-nmin", type=float, default=200.0)
+    ap.add_argument("--shus-gain", type=float, default=1.0)
     ap.add_argument("--promote", default="1")
     ap.add_argument("--z0", type=float, default=0.0)
+    ap.add_argument("--t-switch", type=int, default=0)
+    ap.add_argument("--snap", action="store_true")
+    ap.add_argument("--freeze-lift", action="store_true")
     ap.add_argument("--fr-jitter", type=float, default=0.0)
     ap.add_argument("--dep-every", type=int, default=20)
     ap.add_argument("--save-every", type=int, default=5_000)

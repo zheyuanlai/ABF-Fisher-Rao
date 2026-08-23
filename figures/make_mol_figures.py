@@ -253,6 +253,123 @@ def fig_hexane(out):
     fig.savefig(out + ".png"); fig.savefig(out + ".pdf"); plt.close(fig)
 
 
+CAM2 = os.path.join(ROOT, "results", "mol", "campaign2d")
+
+
+def fig_2d(out):
+    """The (phi, psi) surface, and where each arm's estimate is wrong."""
+    rp = os.path.join(REF, "ALA2D_tiref.npz")
+    if not os.path.exists(rp):
+        return
+    d = np.load(rp)
+    Fr = d["F"].mean(0); Fr = Fr - Fr.min()
+    ext = [-80, 80, -180, 180]
+    arms = [("wfr", "RC-WFR (learned MH)"), ("ti_cold", "stratified TI"),
+            ("abf", "ABF")]
+    have = [(a, l) for a, l in arms if os.path.exists(os.path.join(CAM2, f"ALA2D_{a}.npz"))]
+    fig, ax = plt.subplots(1, 1 + len(have), figsize=(2.3 * (1 + len(have)), 2.5),
+                           gridspec_kw=dict(wspace=0.35))
+    ax = np.atleast_1d(ax)
+    im = ax[0].imshow(Fr.T, origin="lower", aspect="auto", extent=ext,
+                      cmap="viridis", vmax=40)
+    ax[0].set_title(r"reference $F(\phi,\psi)$", loc="left")
+    ax[0].set_xlabel(r"$\zeta$ (deg)"); ax[0].set_ylabel(r"$\psi$ (deg)")
+    plt.colorbar(im, ax=ax[0], label="kJ/mol")
+    for k, (a, lab) in enumerate(have):
+        z = np.load(os.path.join(CAM2, f"ALA2D_{a}.npz"))
+        F = z["F"].mean(0)
+        D = (F - F.mean()) - (Fr - Fr.mean())
+        v = np.quantile(np.abs(D), 0.99)
+        im = ax[k + 1].imshow(D.T, origin="lower", aspect="auto", extent=ext,
+                              cmap="RdBu_r", vmin=-v, vmax=v)
+        ax[k + 1].set_title(f"{lab}\n$e_F$={np.median(z['e_F_final']):.2f}",
+                            loc="left", fontsize=7)
+        ax[k + 1].set_xlabel(r"$\zeta$ (deg)")
+        plt.colorbar(im, ax=ax[k + 1], label="kJ/mol")
+    for x in ax:
+        x.set_xticks([-80, 0, 80]); x.set_yticks([-180, 0, 180])
+    fig.savefig(out + ".png"); fig.savefig(out + ".pdf"); plt.close(fig)
+
+
+def fig_selection_rule(out):
+    """Predicted damage S_k tau_k^2 against the measured gain from promoting mode k."""
+    import json
+    sys.path.insert(0, os.path.join(ROOT, "src"))
+    from rcwfr.campaign import paired_bootstrap, rel_change
+    pts = []
+    for sysname, base_f, arms in [
+            ("HEX", "HEX_wfr_rot_hex", [("HEX_wfr_ymh_hex_p1", 0, r"$\phi_2$"),
+                                        ("HEX_wfr_ymh_hex_p2", 1, r"$\phi_3$")]),
+            ("HEP", "HEP_wfr_rot_hep", [("HEP_wfr_ymh_hep_p1", 0, r"$\phi_2$"),
+                                        ("HEP_wfr_ymh_hep_p2", 1, r"$\phi_3$"),
+                                        ("HEP_wfr_ymh_hep_p3", 2, r"$\phi_4$")])]:
+        dj = os.path.join(ROOT, f"results/mol/{sysname}_mode_diagnostic.json")
+        bp = os.path.join(CAM, base_f + ".npz")
+        if not (os.path.exists(dj) and os.path.exists(bp)):
+            continue
+        dg = json.load(open(dj)); base = np.load(bp)["e_F_final"]
+        for f, k, lab in arms:
+            p_ = os.path.join(CAM, f + ".npz")
+            if not os.path.exists(p_):
+                continue
+            e = np.load(p_)["e_F_final"]
+            m, lo, hi = paired_bootstrap(rel_change(e, base))
+            pts.append((dg["damage"][k], -100 * m, -100 * hi, -100 * lo,
+                        f"{sysname} {lab}", lo * hi > 0))
+    if not pts:
+        return
+    fig, ax = plt.subplots(figsize=(4.0, 2.7))
+    for d_, g, glo, ghi, lab, sig in pts:
+        c = "#16a085" if sig else "#c0392b"
+        ax.errorbar(d_, g, yerr=[[max(g - glo, 0)], [max(ghi - g, 0)]], fmt="o",
+                    color=c, ms=5, capsize=2, elinewidth=.8)
+        ax.annotate(lab, (d_, g), textcoords="offset points", xytext=(6, -3),
+                    fontsize=6)
+    ax.axhline(0, color="k", lw=.7)
+    ax.set_xscale("log")
+    ax.set_xlabel(r"predicted damage  $S_k\,\tau_k^2$  (before any run)")
+    ax.set_ylabel("measured reduction in $e_F$ (%)")
+    ax.set_title("does the selection rule pick the right mode?", loc="left")
+    ax.plot([], [], "o", color="#16a085", label="CI excludes zero")
+    ax.plot([], [], "o", color="#c0392b", label="CI spans zero")
+    ax.legend(frameon=False, fontsize=6, loc="upper left")
+    fig.savefig(out + ".png"); fig.savefig(out + ".pdf"); plt.close(fig)
+
+
+def fig_switch(out, floor=0.0127):
+    """Does switching transport off recover the statistical convergence rate?"""
+    import glob, re
+    runs = [("persistent RC-WFR", "PEN_wfr_lmh_long.npz", "#e8b31f", "-"),
+            ("ABF", "PEN_abf_long.npz", "#e67e22", "-"),
+            ("stratified TI, cold", "PEN_ti_cold_long.npz", "#34495e", "-")]
+    for p in sorted(glob.glob(os.path.join(CAM, "PEN_wfr_lmh_sw*.npz"))):
+        b = os.path.basename(p)
+        m = re.search(r"_sw(snap|snaponly)?(\d+)\.npz", b)
+        if not m:
+            continue
+        kind = m.group(1) or "inplace"
+        lab = {"inplace": "WFR->TI, frozen in place",
+               "snap": "WFR->TI, snapped + frozen proposal",
+               "snaponly": "WFR->TI, snapped"}[kind]
+        col = {"inplace": "#c0392b", "snap": "#16a085", "snaponly": "#2980b9"}[kind]
+        runs.append((f"{lab} @{int(m.group(2)):.0g}", b, col, "--"))
+    fig, ax = plt.subplots(figsize=(4.4, 2.8))
+    for lab, f, col, ls in runs:
+        p = os.path.join(CAM, f)
+        if not os.path.exists(p):
+            continue
+        d = np.load(p)
+        key = "e_F_prod" if "_sw" in f and "e_F_prod" in d else "e_F"
+        e = d[key]
+        ax.loglog(d["fe"], np.median(e, 1), ls, color=col, label=lab, lw=1.3)
+    ax.axhline(floor, color="k", ls=":", lw=1)
+    ax.text(ax.get_xlim()[0] * 1.1, floor * 1.06, "estimator floor", fontsize=6)
+    ax.set_xlabel("force evaluations"); ax.set_ylabel(r"$e_F$ (kcal/mol)")
+    ax.set_title("does switching transport off restore the rate?", loc="left")
+    ax.legend(frameon=False, fontsize=5.8, loc="lower left")
+    fig.savefig(out + ".png"); fig.savefig(out + ".pdf"); plt.close(fig)
+
+
 if __name__ == "__main__":
     os.makedirs(os.path.join(HERE), exist_ok=True)
     fig_profiles(os.path.join(HERE, "figMOL1_systems"))
@@ -267,6 +384,9 @@ if __name__ == "__main__":
         fig_summary("confirm", os.path.join(HERE, "figMOL5_summary"))
     if load("kappa", "wfr_rot") is not None:
         fig_kappa(os.path.join(HERE, "figMOL3_kappa"))
+    fig_2d(os.path.join(HERE, "figMOL8_alanine2d"))
+    fig_selection_rule(os.path.join(HERE, "figMOL10_selection"))
+    fig_switch(os.path.join(HERE, "figMOL9_switch"))
     if os.path.exists(os.path.join(CAM, "HEX_wfr_ymh_hex_p12.npz")):
         fig_hexane(os.path.join(HERE, "figMOL6_hexane"))
     if load("confirm", "wfr_rot", "ALA") is not None:

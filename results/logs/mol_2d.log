@@ -1,0 +1,95 @@
+{
+ "wall_s": 1668.1391201019287,
+ "row_sd_rms": 0.05608363816448027,
+ "last_save_drift_rms": 0.049870393017367266,
+ "curl_frac": 0.027318917551648336,
+ "F_span": 91.27359273916117,
+ "path": "results/mol/ref/ALA2D_tiref.npz"
+}
+[1/5] wfr 
+Traceback (most recent call last):
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_campaign2d.py", line 100, in main
+    run_one2d(**kw)
+    ~~~~~~~~~^^^^^^
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_campaign2d.py", line 86, in run_one2d
+    f"I_F={np.median(IF):.4f} cov={np.median(out['cov'][-1]):.3f} "
+                                   ~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/site-packages/numpy/lib/_function_base_impl.py", line 3999, in median
+    return _ureduce(a, func=_median, keepdims=keepdims, axis=axis, out=out,
+                    overwrite_input=overwrite_input)
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/site-packages/numpy/lib/_function_base_impl.py", line 3853, in _ureduce
+    a = np.asanyarray(a)
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/site-packages/torch/_tensor.py", line 1253, in __array__
+    return self.numpy()
+           ~~~~~~~~~~^^
+TypeError: can't convert cuda:0 device type tensor to numpy. Use Tensor.cpu() to copy the tensor to host memory first.
+[2/5] w_only 
+Traceback (most recent call last):
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_campaign2d.py", line 100, in main
+    run_one2d(**kw)
+    ~~~~~~~~~^^^^^^
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_campaign2d.py", line 86, in run_one2d
+    f"I_F={np.median(IF):.4f} cov={np.median(out['cov'][-1]):.3f} "
+                                   ~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/site-packages/numpy/lib/_function_base_impl.py", line 3999, in median
+    return _ureduce(a, func=_median, keepdims=keepdims, axis=axis, out=out,
+                    overwrite_input=overwrite_input)
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/site-packages/numpy/lib/_function_base_impl.py", line 3853, in _ureduce
+    a = np.asanyarray(a)
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/site-packages/torch/_tensor.py", line 1253, in __array__
+    return self.numpy()
+           ~~~~~~~~~~^^
+TypeError: can't convert cuda:0 device type tensor to numpy. Use Tensor.cpu() to copy the tensor to host memory first.
+[3/5] ti_cold 
+Traceback (most recent call last):
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_campaign2d.py", line 100, in main
+    run_one2d(**kw)
+    ~~~~~~~~~^^^^^^
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_campaign2d.py", line 86, in run_one2d
+    f"I_F={np.median(IF):.4f} cov={np.median(out['cov'][-1]):.3f} "
+                                   ~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/site-packages/numpy/lib/_function_base_impl.py", line 3999, in median
+    return _ureduce(a, func=_median, keepdims=keepdims, axis=axis, out=out,
+                    overwrite_input=overwrite_input)
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/site-packages/numpy/lib/_function_base_impl.py", line 3853, in _ureduce
+    a = np.asanyarray(a)
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/site-packages/torch/_tensor.py", line 1253, in __array__
+    return self.numpy()
+           ~~~~~~~~~~^^
+TypeError: can't convert cuda:0 device type tensor to numpy. Use Tensor.cpu() to copy the tensor to host memory first.
+[4/5] abf 
+Traceback (most recent call last):
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_campaign2d.py", line 100, in main
+    run_one2d(**kw)
+    ~~~~~~~~~^^^^^^
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_campaign2d.py", line 86, in run_one2d
+    print(f"{name}: e_F={np.median(e[-1]):.4f} e_Fprod={np.median(ep[-1]):.4f} "
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/site-packages/numpy/lib/_function_base_impl.py", line 3999, in median
+    return _ureduce(a, func=_median, keepdims=keepdims, axis=axis, out=out,
+                    overwrite_input=overwrite_input)
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/site-packages/numpy/lib/_function_base_impl.py", line 3853, in _ureduce
+    a = np.asanyarray(a)
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/site-packages/torch/_tensor.py", line 1253, in __array__
+    return self.numpy()
+           ~~~~~~~~~~^^
+TypeError: can't convert cuda:0 device type tensor to numpy. Use Tensor.cpu() to copy the tensor to host memory first.
+[5/5] wfr sw50000
+Traceback (most recent call last):
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_campaign2d.py", line 100, in main
+    run_one2d(**kw)
+    ~~~~~~~~~^^^^^^
+  File "/home/zheyuanlai/reaction-coordinate-wfr/scripts/mol_campaign2d.py", line 86, in run_one2d
+    print(f"{name}: e_F={np.median(e[-1]):.4f} e_Fprod={np.median(ep[-1]):.4f} "
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/site-packages/numpy/lib/_function_base_impl.py", line 3999, in median
+    return _ureduce(a, func=_median, keepdims=keepdims, axis=axis, out=out,
+                    overwrite_input=overwrite_input)
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/site-packages/numpy/lib/_function_base_impl.py", line 3853, in _ureduce
+    a = np.asanyarray(a)
+  File "/home/zheyuanlai/miniconda3/lib/python3.13/site-packages/torch/_tensor.py", line 1253, in __array__
+    return self.numpy()
+           ~~~~~~~~~~^^
+TypeError: can't convert cuda:0 device type tensor to numpy. Use Tensor.cpu() to copy the tensor to host memory first.
+ALL2D_DONE
+ALA2D_DONE

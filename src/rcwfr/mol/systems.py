@@ -122,6 +122,18 @@ def hexane(device, dtype=torch.float64, T=300.0, h=0.002, n_grid=129, m=1):
 _ALA_CACHE = {}
 
 
+def alanine2d(device, dtype=torch.float64, T=300.0, n_grid=97):
+    """z = (phi, psi): the COMPLETE-coordinate control.
+
+    Same molecule, same shift and same restricted phi arc as the 1-CV version, so
+    the two are directly comparable; psi keeps its full period.
+    """
+    from .grid2d import Grid2D
+    sy = alanine(device, dtype, T=T, m=2)
+    g2 = Grid2D(arc_grid(80.0 * math.pi / 180.0, n_grid), periodic_grid(n_grid))
+    return sy, g2
+
+
 def alanine(device, dtype=torch.float64, T=300.0, h=None, n_grid=129, m=1):
     """Ace-Ala-Nme in vacuum, ff14SB.  z = phi, the hidden slow mode is psi.
 
@@ -172,4 +184,23 @@ def alanine(device, dtype=torch.float64, T=300.0, h=None, n_grid=129, m=1):
                      ideal_fn=_ideal, drift_cap=20.0, y0=-0.9)
 
 
-REGISTRY = {"BUT": butane, "PEN": pentane, "HEX": hexane, "ALA": alanine}
+def heptane(device, dtype=torch.float64, T=300.0, h=0.002, n_grid=129, m=1):
+    """z = phi1; THREE candidate hidden torsions, at increasing distance from z.
+
+    Extends the hexane contrast into a family, so the S_k tau_k^2 diagnostic can
+    be checked against measured promotion gains over more than one contrast.
+    """
+    top = ua_alkane(7, device, dtype)
+    cv = TorsionCV(top.tor_idx[:m], top.mass)
+    g = periodic_grid(n_grid)
+    return MolSystem("HEP", top, cv, 1.0 / (KB * T), h, 7, g,
+                     y_grid=periodic_grid(n_grid), T=T,
+                     z_bond=(1, 2), z_movers=(3, 4, 5, 6),
+                     y_bond=(2, 3), y_movers=(4, 5, 6),
+                     y_specs=((1, (2, 3), (4, 5, 6)),
+                              (2, (3, 4), (5, 6)),
+                              (3, (4, 5), (6,))))
+
+
+REGISTRY = {"BUT": butane, "PEN": pentane, "HEX": hexane, "HEP": heptane,
+            "ALA": alanine}
