@@ -130,13 +130,23 @@ is not.
 
 **And the residual is provably not the fiber.** Over that same run the corrected
 arm's conditional error fell from 0.0051 to **0.0014 nats** while `e_F` did not
-move. The fiber conditional is essentially exact and `e_F` still sits at 1.6
-estimator floors.
+move. The fiber conditional is essentially exact and `e_F` did not follow it
+down.
+
+**Nor is the residual a transport bias -- it is the numerics.** The 0.021 that
+the corrected arm stopped at was measured directly (section 6 below, and
+`MOLECULAR_RESULTS.md` section 20) and reconstructed from two terms with no
+fitted parameters: the estimator's kernel smoothing at `b_mf = 0.05` contributes
+0.01243, and the constrained integrator's time-step bias at `h = 2e-3`
+contributes 0.01326, for 0.01818 in quadrature before any statistical error.
+Lowering `h` to 1e-3 and `b_mf` to 0.02 puts butane's warm constrained TI at
+**0.0056** with no detectable bias left.
 
 So: **the conditional move removes the fiber half of RC-WFR's error exactly, and
-is worth a factor two -- the corrected floor is 0.021 against the naive lift's
-0.044. The marginal half remains, and it sets a budget, measured at a few times
-1e8 force evaluations here, beyond which plain adaptive biasing wins.**
+is worth a factor two -- 0.021 against the naive lift's 0.044.** Everything below
+0.021 was invisible to the convention the campaign ran at, which is why the
+budget at which adaptive biasing overtakes RC-WFR was measurable but the reason
+for the plateau was not.
 
 ### 6. ...and the marginal half is removable too, by switching transport off
 
@@ -164,9 +174,27 @@ reused for the entire production stage that unevenness never averages away.
 **This did not survive its decisive test.**  Run to 9e8 force evaluations the
 switched arm converges up to the persistent one and stops: +2.7% [-4.2, +9.8],
 interval spanning zero.  Both approach ~0.020 kcal/mol, which the arm with no
-transport also reaches, so it is most likely the shared constrained-integrator
-plus estimator floor rather than a transport bias.  The claim is withdrawn; see
-`docs/SWITCH_CAMPAIGN.md`.
+transport also reaches.  The claim is withdrawn; see `docs/SWITCH_CAMPAIGN.md`.
+
+**And the ~0.020 is now measured rather than suspected.**  On butane, with warm
+stratified constrained TI and nothing else -- no transport, no exploration, no
+hidden mode -- sweeping `h` at fixed physical time and accumulating three
+bandwidths from each trajectory:
+
+| | kcal/mol |
+|---|---|
+| estimator smoothing at `b_mf` = 0.05 | 0.01243 |
+| constrained integrator at `h` = 2e-3 | 0.01326 |
+| quadrature sum | **0.01818** |
+| observed plateau | ~0.020 |
+
+At `b_mf = 0.08` the measured `e_F` IS the analytic smoothing floor to three
+digits and the residual is exactly zero -- the check this could have failed.
+The reference's own time-step bias was measured too, by rerunning it four times
+finer: 0.0018 kcal/mol, barely over its own block error, and eight times smaller
+than the constrained arm's at the same step.  So the excess belongs to the
+projection, not to the dynamics, and **the number every constrained arm
+converged to was never any of their own.**
 
 ### 7. What the advantage actually is
 
