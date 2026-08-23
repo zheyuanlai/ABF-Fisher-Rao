@@ -132,19 +132,22 @@ def main():
                                               for b, v in zip((0.08, 0.05, 0.04, 0.02), row)))
         out[f"smoothing_floor_n{ncmp}"] = row
 
-    # the campaign's own plateau, reconstructed from the two measured terms
-    B_cam = out["smoothing_floor_n129"][1]          # bw = 0.05
-    D_cam = float(sd[0])                            # integrator bias at h = 2e-3
-    tot = math.hypot(B_cam, D_cam)
-    print(f"\nthe campaign ran at h=2e-3, b_mf=0.05, n=129.  Its two KNOWN "
-          f"numerical terms are")
-    print(f"  smoothing {B_cam:.5f} and constrained-integrator {D_cam:.5f} "
-          f"kcal/mol, giving {tot:.5f}")
-    print(f"  in quadrature before any statistical error -- against an observed "
-          f"plateau of ~0.020.")
-    out["campaign_smoothing"] = B_cam
-    out["campaign_integrator"] = D_cam
-    out["campaign_predicted_floor"] = tot
+    # the campaign's own plateau, reconstructed from the two measured terms.
+    # Only meaningful when the sweep actually CONTAINS the campaign's step --
+    # otherwise sd[0] is a self-difference between two other h values.
+    if abs(hs[0] - 2e-3) < 1e-9:
+        B_cam = out["smoothing_floor_n129"][1]      # bw = 0.05
+        D_cam = float(sd[0])                        # integrator bias at h = 2e-3
+        tot = math.hypot(B_cam, D_cam)
+        print(f"\nthe campaign ran at h=2e-3, b_mf=0.05, n=129.  Its two KNOWN "
+              f"numerical terms are")
+        print(f"  smoothing {B_cam:.5f} and constrained-integrator {D_cam:.5f} "
+              f"kcal/mol, giving {tot:.5f}")
+        print(f"  in quadrature before any statistical error -- against an "
+              f"observed plateau of ~0.020.")
+        out["campaign_smoothing"] = B_cam
+        out["campaign_integrator"] = D_cam
+        out["campaign_predicted_floor"] = tot
 
     if a.ref2 and os.path.exists(a.ref2):
         r1 = load_reference(a.ref, g, g, dev, dt)["F_ref"]
