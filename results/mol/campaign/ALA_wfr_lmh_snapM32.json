@@ -1,0 +1,69 @@
+{
+ "arm": "wfr_lmh",
+ "system": "ALA",
+ "wall_s": 1854.5606741905212,
+ "cfg": {
+  "N": 256,
+  "n_steps": 1200000,
+  "n_cond": 20,
+  "dep_every": 20,
+  "save_every": 30000,
+  "n_eq": 2000,
+  "bw_mf": 0.05,
+  "n_min": 1.0,
+  "init": "point",
+  "z0": -0.5236,
+  "n_windows": 64,
+  "kappa": 1.2,
+  "w_mode": "sde",
+  "w_flow_clip": 50.0,
+  "theta": 0.3,
+  "fr_rule": "fr",
+  "bw_kde": 0.25,
+  "alpha_ess": 0.5,
+  "n_bins_count": 45,
+  "fr_jitter": 0.0,
+  "lift": "ymh_learned",
+  "lift_bw_z": 0.25,
+  "lift_bw_y": 0.3,
+  "lift_decay": 0.999,
+  "lift_nmin": 150.0,
+  "lift_substeps": 4,
+  "promote": [
+   1
+  ],
+  "lift_start": 0.0,
+  "abf_n_min": 200.0,
+  "abf_wall_k": 400.0,
+  "shus_gain": 1.0,
+  "shus_block": 200,
+  "shus_eps_bw": 0.07,
+  "n_newton": 6,
+  "t_switch": 200000,
+  "snap_windows": 32,
+  "snap_at_switch": true,
+  "freeze_lift_at_switch": false,
+  "fixman_weight": true,
+  "joint_nb": 0
+ },
+ "seeds": 16,
+ "seed0": 90000,
+ "n_cfg": 1,
+ "promote": [
+  1
+ ],
+ "cfg_grid": [
+  [
+   1.2,
+   0.3,
+   0.999
+  ]
+ ],
+ "e_F_final_median": 0.5492423985859808,
+ "e_F_prod_final_median": 0.5647956375698584,
+ "I_F_median": 0.5989686348617944,
+ "dcond_final_median": 0.3197395086283044,
+ "cov_final_median": 0.7111111111111111,
+ "ess_fix_median": 0.9756364603011753,
+ "fe_final": 327654400.0
+}

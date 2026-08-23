@@ -372,3 +372,91 @@ The three things this campaign did NOT do, in the order they now matter:
 3. **solvated alanine, then NaCl.**  Solvated alanine keeps the exact torsional
    proposal and adds a many-body fiber; NaCl needs a genuinely new
    non-torsional conditional move and is a separate algorithmic problem.
+
+## Replicas per window after the snap: the hypothesis is not supported
+
+The obvious explanation for alanine recovering less rate than pentane was that
+stage B leaves ONE replica per window to explore a 60-coordinate fiber by
+time-averaging alone.  Tested directly, holding `M x R = 256` and the total
+force-evaluation budget fixed, so everything before the switch is the same
+trajectory:
+
+| M windows | R replicas/window | e_F | post-switch e_F | slope (production fe) | vs R=1 |
+|---|---|---|---|---|---|
+| 256 | 1 | 0.5540 | 0.5666 | -0.116 | - |
+| 128 | 2 | 0.5163 | **0.5240** | -0.112 | **-8.3%** [-8.8, -6.7] |
+| 64 | 4 | 0.5494 | 0.5627 | -0.119 | -0.2% [-0.6, -0.0] |
+| 32 | 8 | 0.5492 | 0.5648 | -0.128 | -0.1% [-1.1, +0.3] |
+
+**The rate does not move.**  Every allocation gives -0.11 to -0.13, against the
+success criterion of -0.4.  `R = 2` buys 8.3% in LEVEL, with an interval
+excluding zero, and `R = 4` and `R = 8` buy nothing -- the extra replicas cost
+exactly the z-resolution they gain.
+
+So the one-replica-per-window explanation is wrong, and the alanine gap is not
+about stage-B allocation.  What the numbers do say is where it is: alanine sits
+at 3.4 estimator floors after the switch while pentane sits at 1.8, so alanine
+has much more error left of some other kind.  The natural next suspect is that
+`psi` is not the only fiber mode that matters on alanine -- the `S_k tau_k^2`
+diagnostic has only ever been applied to alkane torsions, and applying it to
+alanine's remaining internal coordinates (the methyl rotations, `omega`) would
+say whether the promoted set is simply incomplete there.  That is a different
+experiment from this one and was not run.
+
+## Automatic switching: the criterion fires too early, and the data says why
+
+Two deployable diagnostics, recorded every 5000 steps and needing no reference:
+
+* `D_snap` -- mean squared distance from the replicas to the uniform grid they
+  would be snapped onto, i.e. how violent the snap would be;
+* `D_learn` -- how much the learned conditional table still moves between checks.
+
+Thresholds were calibrated on **pentane only** (`eps_snap = 0.01`,
+`eps_learn = 0.002`, three consecutive passes) and then frozen and applied to
+alanine with no retuning.
+
+The problem is visible in the calibration itself: **both settle by ~3e4 steps**
+and are flat thereafter, while the best hand-tuned switch is at 4e5 steps.  They
+measure the marginal and the estimate, and what a later switch buys is fiber
+equilibration, which neither sees.  The rule fires at 4.4e4 steps.
+
+| pentane | switch (fe) | e_F | slope vs production fe |
+|---|---|---|---|
+| automatic | 1.2e7 | 0.0232 | -0.051 |
+| fixed @1e5 | 2.9e7 | 0.0220 | -0.281 |
+| fixed @4e5 (best hand-tuned) | 1.2e8 | 0.0228 | -0.283 |
+
+At a **matched production budget** of 2.9e8 the automatic rule is actually the
+best of the three (0.0219 against 0.0252 and 0.0239) -- it simply started
+production earlier and is further along its own curve, which is also why its
+measured slope is shallower.
+
+**But it does not transfer, and it fired on noise.**  Applied to alanine with the
+thresholds unchanged, as preregistered, it **never fired at all**.  Looking at
+which diagnostic blocks:
+
+| | passes `D_snap < 0.01` | passes `D_learn < 0.002` |
+|---|---|---|
+| pentane | 100% of checks | **1%** |
+| alanine | 99% | **0%** |
+
+`D_snap` is satisfied everywhere -- transport equidistributes the marginal within
+a few thousand steps and keeps it there, which is exactly the point of the
+Wasserstein step -- so it carries no information about when to stop.  `D_learn`
+is the binding constraint, it is noisy at this check cadence, and its scale does
+not transfer between systems: pentane's three consecutive passes were an early
+fluctuation rather than a convergence signal.
+
+So the criterion as specified **is not usable**: non-selective on the system it
+was calibrated on, and never triggered on the system it was tested on.  Together
+with the failure of the fiber-side diagnostic below, the conclusion is that an
+automatic rule needs a measure of FIBER equilibration, and this campaign did not
+find a deployable one.
+
+A third diagnostic was built specifically to see fiber equilibration -- the total
+variation between the recent ensemble's conditional and the run's own time
+average -- and tried at two resolutions and against both the smoothed and the raw
+reference.  Every version is dominated by sampling noise and flat from the first
+checkpoint (0.26-0.34 throughout).  It is recorded in the archives and not used.
+**A deployable fiber-equilibration measure is the missing piece, and this
+campaign did not find one.**
