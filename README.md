@@ -134,6 +134,7 @@ Full account: [`docs/MOLECULAR_REPORT.md`](docs/MOLECULAR_REPORT.md). **Start th
 | [`docs/PREREGISTRATION.md`](docs/PREREGISTRATION.md) | hypotheses and decision rules as frozen, with outcomes appended |
 | [`docs/METHOD.md`](docs/METHOD.md) | the construction, the cost model, and the structural obstruction |
 | [`docs/MOLECULAR_REPORT.md`](docs/MOLECULAR_REPORT.md) | the molecular phase's standalone account: question, verdict, mechanism, caveat |
+| [`docs/SWITCH_CAMPAIGN.md`](docs/SWITCH_CAMPAIGN.md) | removing the residual bias by switching transport off; the 2-CV control; the slow-mode selection rule on five contrasts |
 | [`docs/MOLECULAR_PLAN.md`](docs/MOLECULAR_PLAN.md) | molecular campaign: systems, gates, arms, preregistered predictions |
 | [`docs/MOLECULAR_METHOD.md`](docs/MOLECULAR_METHOD.md) | the molecular construction: lifts, the Metropolis conditional move, estimators, cost |
 | [`docs/MOLECULAR_RESULTS.md`](docs/MOLECULAR_RESULTS.md) | every molecular measurement in the order it was taken |

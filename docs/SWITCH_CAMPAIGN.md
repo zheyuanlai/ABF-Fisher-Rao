@@ -103,7 +103,9 @@ Both have direct fixes, and both are one line:
   stage of relaxation, and it turns stage B into a genuine stratified TI whose
   windows carry RC-WFR-built fibers.
 * `freeze_lift_at_switch` -- stop UPDATING the learned conditional at the switch
-  and keep using what it learned while `z` was still moving.
+  and keep using what it learned while `z` was still moving.  (This one turned
+  out to make no difference; see the ablation below.  It is kept as a flag
+  because the reasoning that motivated it is still the right thing to check.)
 
 ## The selection rule, tested on five mode-contrasts
 
@@ -147,31 +149,68 @@ promoting a second buys nothing.
 
 Pentane, 16 seeds, same block as the persistent / ABF / cold-TI long runs:
 
-| arm | estimator | e_F @1.07e8 | e_F @4.3e8 | late slope |
+| arm | estimator | e_F @1.1e8 | e_F @4.3e8 | late slope |
 |---|---|---|---|---|
-| persistent RC-WFR | all | **0.0228** | 0.0208 | **-0.044** |
+| persistent RC-WFR | all | **0.0228** | **0.0208** | **-0.044** |
+| ABF | all | 0.0322 | 0.0227 | -0.231 |
+| stratified constrained TI, cold | all | 0.0363 | 0.0284 | -0.253 |
+| RC-WFR, naive lift | all | 0.0448 | 0.0437 | -0.088 |
 | WFR -> TI, frozen in place @2.5e4 | all | 0.0380 | 0.0411 | +0.050 |
 | WFR -> TI, frozen in place @2.5e4 | post-switch | 0.0387 | 0.0412 | +0.030 |
-| WFR -> TI, **snapped** + frozen proposal @1e5 | all | 0.0282 | 0.0221 | **-0.220** |
-| WFR -> TI, **snapped** + frozen proposal @1e5 | post-switch | 0.0339 | **0.0220** | **-0.318** |
+| WFR -> TI, **snapped** @1e5 | all | 0.0282 | 0.0221 | -0.220 |
+| WFR -> TI, **snapped** @1e5 | post-switch | 0.0339 | 0.0220 | **-0.318** |
+| WFR -> TI, **snapped** @4e5 | all | **0.0228** | 0.0212 | -0.081 |
+| WFR -> TI, **snapped** @4e5 | post-switch | **0.0228** | 0.0232 | **-0.484** |
 
 **That is the result the campaign was after.**  The persistent arm is parked at
-a bias floor (slope -0.044).  The snapped switch reaches the same level and is
-still converging at -0.32, close to the statistical rate, so it does not have
-that floor.  The two estimators converge onto each other, which says the
-stage-A deposits are not the problem once the stratification is fixed.
+a bias floor: slope -0.044, flatter than every baseline, and flat over a factor
+four in force evaluations.  The snapped switch does not have that floor.  Its
+post-switch estimator converges at **-0.484** for the late switch -- the pure
+statistical rate, indistinguishable from -0.5 -- and at -0.318 for the early one.
 
-The trade is explicit rather than free: at 1.07e8 the switched arm is worse
-(0.0282 vs 0.0228) because it paid 2.7e7 force evaluations for transport it then
-stopped using, and at 4.3e8 they are level.  Extrapolating the fitted slopes one
-more factor of four puts the switched arm 28% below the persistent one and still
-falling.  So:
+The late switch is the one to read.  Its `t_switch` sits at 1.2e8 force
+evaluations, so up to that point it IS persistent RC-WFR and matches it exactly
+(0.0228 at 1.1e8).  After it, the two diverge in behaviour rather than level:
 
-    RC-WFR persistent   -> fastest at small budgets, parked at a floor
-    RC-WFR -> TI (snap) -> slightly behind early, keeps converging, wins later
+|  | at 1.1e8 | at 4.3e8 | rate |
+|---|---|---|---|
+| persistent | 0.0228 | 0.0208 | -0.044, parked |
+| switched at 4e5 steps | 0.0228 | 0.0232 | **-0.484, statistical** |
 
-and `t_switch` is the dial between them.  What was a permanent caveat is now a
-scheduling choice.
+At 4.3e8 the switched arm is 12% behind, because it threw away the 1.2e8 force
+evaluations of stage-A deposits and is running on 3.2e8 of production.  At
+-0.484 against -0.044 that deficit is repaid within a factor of two more budget,
+and everything past that is gain.
+
+So the algorithm is:
+
+    RC-WFR persistent   -> fastest early, then parked at a bias floor
+    RC-WFR -> TI (snap) -> identical early, then converges at the statistical rate
+
+and `t_switch` is the dial between them.  What was a permanent caveat --
+"speed at practical budgets, not accuracy at unlimited budget" -- is now a
+scheduling choice, and the honest claim becomes:
+
+    RC-WFR is a fast adaptive initialiser for an asymptotically unbiased
+    constrained free-energy estimator.
+
+**One** implementation detail is load-bearing, and an ablation says which.  Two
+fixes were applied together -- snapping the replicas onto a uniform window grid,
+and freezing the learned conditional at the switch -- and running the snap
+WITHOUT the freeze gives numbers that agree to 3e-12:
+
+| @1e5 switch | e_F @1.1e8 | e_F @4.3e8 | late slope |
+|---|---|---|---|
+| snapped + frozen proposal | 0.0339 | 0.0220 | -0.318 |
+| snapped only | 0.0339 | 0.0220 | -0.318 |
+
+So the proposal-collapse diagnosis was wrong, or rather it was a SYMPTOM: once
+the replicas are spread uniformly, every window keeps seeing a well-spread
+ensemble and the learned conditional does not degenerate whether it is frozen or
+not.  **The entire fix is the snapping.**  Freezing the replicas where transport
+happened to leave them is an uneven stratification, and that unevenness -- not
+the deposits, not the proposal -- is what turned the switch from a gain into a
+loss.
 
 ## Alanine with `z = (phi, psi)`: the advantage IS hidden-mode repair
 
@@ -215,3 +254,110 @@ Two supporting details.
 * **Part of the gap is coverage, not bias.**  RC-WFR reaches 0.786 of the coarse
   cells against stratified TI's 1.000 by construction; diffusive transport
   equidistributes a two-torus much less efficiently than a grid does.
+
+## The second adaptive baseline
+
+The comparison so far had only adaptive-biasing-FORCE.  Adding the
+adaptive-biasing-POTENTIAL family (SHUS/ABP, the same construction OPES belongs
+to: build a bias from the visited density and push with its gradient, targeting
+a uniform marginal), with the SAME Chapter-3 mean-force estimator so nothing
+turns on an estimator difference.
+
+Screened over a **3000-fold** range of its adaptation gain, pentane at 1e5 steps:
+
+| gain | 0.03 | 0.3 | 1 | 3 | 10 | 100 |
+|---|---|---|---|---|---|---|
+| e_F | 0.1915 | 0.2101 | 0.2168 | 0.2101 | 0.2125 | 0.2168 |
+
+It is flat in the knob and sits at ~0.20, against ABF's 0.048 at the same budget
+and RC-WFR's 0.024.  Coverage is 1.000 and the conditional error is low (0.05),
+so it explores fine; what is slower is the bias itself -- ABF's bias IS the
+running mean force, while an ABP bias has to accumulate a visited density first.
+
+Two things should be said plainly about this.  It is a fair screen of the
+implementation that is here (the ABP engine ported from the earlier campaign,
+with its own knob tried over three decades), and it is NOT a claim about
+production OPES, which uses adaptive-bandwidth kernel density estimates and a
+well-tempered target and is a better-tuned instrument than this.  **ABF remains
+the primary adaptive baseline in this campaign**, because on these systems it is
+the stronger of the two.
+
+
+## Alanine: the switch transfers, one step further back on the same curve
+
+The first read of this was against the shorter confirmation run and was wrong.
+Compared against a persistent run of the SAME length and seeds (8e5 steps,
+16 seeds, seed block 90000):
+
+| arm | estimator | e_F @1.07e8 | e_F @2.3e8 | late slope | vs persistent @2.3e8 |
+|---|---|---|---|---|---|
+| persistent RC-WFR | all | 0.5307 | **0.5349** | **+0.007** | - |
+| switch @5e4 | post-switch | 0.6187 | 0.5719 | -0.078 | **+5.9%** [+2.3, +8.5] |
+| switch @2e5 | post-switch | 0.7058 | 0.5791 | **-0.220** | **+5.7%** [+2.3, +10.7] |
+
+Persistent RC-WFR on alanine is parked, exactly as on pentane -- slope +0.007
+over the last factor four -- and the later switch is still converging at -0.220.
+The switched arm is 5.7% behind at 2.3e8 because it discarded 5.5e7 force
+evaluations of stage-A deposits; at -0.220 against +0.007 it repays that within
+about 1.4x more budget.
+
+So the qualitative result transfers.  What differs from pentane is how far along
+it is: pentane's late switch reached -0.484, the full statistical rate, while
+alanine's reaches -0.220.  Two reasons, and the second is a design lesson:
+
+* alanine's persistent error is 3.4 estimator floors with a conditional error
+  still at 0.15 nats, so a larger share of what remains is fiber sampling rather
+  than transport bias, and switching does not touch that;
+* after the switch each window holds **one** replica whose entire 60-coordinate
+  fiber must be explored by time-averaging alone.  Pentane's fiber is a single
+  torsion plus fast bonds and angles; alanine's is not.  The natural fix --
+  several replicas per window after the switch, at the same total cost -- is a
+  scheduling change this campaign did not test, and is the obvious next thing.
+
+## Final baseline picture
+
+Pentane at ~4.2e8 force evaluations, 16 seeds, every family screened on its own
+knobs:
+
+| arm | e_F (kcal/mol) | late-time rate |
+|---|---|---|
+| RC-WFR persistent, learned Metropolis lift | **0.0207** | -0.044, parked |
+| RC-WFR -> TI (snap @4e5), post-switch estimator | 0.0235 | **-0.484, statistical** |
+| ABF, multiple walkers | 0.0227 | -0.231 |
+| stratified constrained TI, cold | 0.0287 | -0.253 |
+| RC-WFR, naive rotation lift | 0.0432 | -0.088 |
+| OPES / ABP family | 0.1571 | -0.056 |
+
+Alanine at ~2.2e8:
+
+| arm | e_F (kJ/mol) | late-time rate |
+|---|---|---|
+| RC-WFR persistent | **0.5364** | +0.007, parked |
+| stratified constrained TI, cold | 1.7573 | -0.679 |
+
+RC-WFR is **-68.4%** [-70.0, -66.0] below cold stratified TI on alanine at that
+budget, and TI's steep slope says it is the one still converging.  Both readings
+are the same story the switch experiment tells: RC-WFR buys a large head start
+and then stops improving, and the switch is what converts the head start into a
+permanent one.
+
+## Where this leaves the project
+
+| | before this campaign | after |
+|---|---|---|
+| the fiber conditional | fixed exactly by a Metropolis-corrected learned move | unchanged |
+| the marginal `z`-transport | permanent bias, caveat on every claim | **removable** by switching transport off and snapping |
+| what the advantage IS | unclear -- transport, or hidden-mode repair? | **hidden-mode repair**; with a complete CV the method loses to plain TI |
+| which mode to promote | one contrast (hexane) | a rule with five contrasts, separating by an order of magnitude |
+| baselines | ABF, stratified TI | + OPES/ABP family |
+
+The three things this campaign did NOT do, in the order they now matter:
+
+1. **more replicas per window after the switch.**  Alanine recovers less rate
+   than pentane, and the visible reason is that stage B leaves one replica per
+   window to explore a 60-coordinate fiber by time-averaging alone.
+2. **an adaptive switch criterion** -- switch when `D_cond` and the marginal KL
+   have both stopped moving, rather than at a fixed step count.
+3. **solvated alanine, then NaCl.**  Solvated alanine keeps the exact torsional
+   proposal and adds a many-body fiber; NaCl needs a genuinely new
+   non-torsional conditional move and is a separate algorithmic problem.

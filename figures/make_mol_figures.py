@@ -351,9 +351,12 @@ def fig_switch(out, floor=0.0127):
         lab = {"inplace": "WFR->TI, frozen in place",
                "snap": "WFR->TI, snapped + frozen proposal",
                "snaponly": "WFR->TI, snapped"}[kind]
-        col = {"inplace": "#c0392b", "snap": "#16a085", "snaponly": "#2980b9"}[kind]
-        runs.append((f"{lab} @{int(m.group(2)):.0g}", b, col, "--"))
-    fig, ax = plt.subplots(figsize=(4.4, 2.8))
+        ts = int(m.group(2))
+        col = {("inplace", 25000): "#c0392b", ("snap", 100000): "#2980b9",
+               ("snap", 400000): "#16a085",
+               ("snaponly", 100000): "#8e44ad"}.get((kind, ts), "#7f8c8d")
+        runs.append((f"{lab} @{ts:.0g}", b, col, "--"))
+    fig, ax = plt.subplots(figsize=(4.6, 2.8))
     for lab, f, col, ls in runs:
         p = os.path.join(CAM, f)
         if not os.path.exists(p):
@@ -366,7 +369,10 @@ def fig_switch(out, floor=0.0127):
     ax.text(ax.get_xlim()[0] * 1.1, floor * 1.06, "estimator floor", fontsize=6)
     ax.set_xlabel("force evaluations"); ax.set_ylabel(r"$e_F$ (kcal/mol)")
     ax.set_title("does switching transport off restore the rate?", loc="left")
-    ax.legend(frameon=False, fontsize=5.8, loc="lower left")
+    ax.legend(frameon=False, fontsize=5.6, loc="center left",
+              bbox_to_anchor=(1.02, 0.5))
+    ax.text(0.02, 0.04, "dashed = post-switch-only estimator", fontsize=5.6,
+            transform=ax.transAxes)
     fig.savefig(out + ".png"); fig.savefig(out + ".pdf"); plt.close(fig)
 
 

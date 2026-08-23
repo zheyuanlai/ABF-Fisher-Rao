@@ -104,6 +104,7 @@ Force evaluations at 4x: 1.07e+08.
 | wfr_lmap | 0.0710 | -0.059 | bias floor |
 | wfr_qref | 0.0835 | -0.007 | bias floor |
 | wfr_shake | 0.1003 | -0.081 | bias floor |
+| opes | 0.1728 | -0.135 | partly bias-limited |
 | wfr_lref | 0.2917 | +1.612 | bias floor |
 | wfr_flow_y | 1.2622 | -0.000 | bias floor |
 | fr_only | 1.2622 | +0.000 | bias floor |
@@ -188,6 +189,7 @@ Force evaluations at 4x: 1.07e+08.
 | ti_cold | 2.9799 | -0.266 | partly bias-limited |
 | wfr_rot | 3.3245 | -0.200 | partly bias-limited |
 | wfr_shake | 3.3573 | -0.588 | still converging |
+| opes | 4.6904 | -0.462 | still converging |
 | wfr_qref | 7.3293 | +0.479 | bias floor |
 | abf | 8.7071 | -0.373 | still converging |
 | wfr_yref | 15.2039 | +0.005 | bias floor |
@@ -202,6 +204,55 @@ Force evaluations at 4x: 1.07e+08.
 | RC-WFR + Metropolis y-move, oracle proposal | both | 0.0214 | 0.0244 | nan | nan | 0.840 |
 | stratified constrained TI (cold) | - | 0.0469 | 0.0647 | nan | nan | 0.000 |
 | ABF, multiple walkers | - | 0.0383 | 0.0750 | nan | nan | 0.000 |
+
+## Switch campaign: does turning transport off restore the rate?
+
+| arm | estimator | 1.1e+08 | 4.3e+08 | late slope |
+|---|---|---|---|---|
+| persistent RC-WFR | all deposits | 0.0228 | 0.0208 | -0.044 |
+| ABF | all deposits | 0.0322 | 0.0227 | -0.231 |
+| stratified TI, cold | all deposits | 0.0363 | 0.0284 | -0.253 |
+| RC-WFR, naive lift | all deposits | 0.0448 | 0.0437 | -0.088 |
+| OPES / ABP | all deposits | 0.1719 | 0.1571 | -0.056 |
+| WFR->TI, frozen in place, @2e+04 steps (fe 7.3e+06) | all deposits | 0.0380 | 0.0411 | +0.050 |
+| WFR->TI, frozen in place, @2e+04 steps (fe 7.3e+06) | **post-switch only** | 0.0387 | 0.0412 | +0.030 |
+| WFR->TI, snapped + frozen proposal, @1e+05 steps (fe 2.9e+07) | all deposits | 0.0282 | 0.0221 | -0.220 |
+| WFR->TI, snapped + frozen proposal, @1e+05 steps (fe 2.9e+07) | **post-switch only** | 0.0339 | 0.0220 | -0.318 |
+| WFR->TI, snapped only, @1e+05 steps (fe 2.9e+07) | all deposits | 0.0282 | 0.0221 | -0.220 |
+| WFR->TI, snapped only, @1e+05 steps (fe 2.9e+07) | **post-switch only** | 0.0339 | 0.0220 | -0.318 |
+| WFR->TI, snapped + frozen proposal, @4e+05 steps (fe 1.2e+08) | all deposits | 0.0228 | 0.0212 | -0.081 |
+| WFR->TI, snapped + frozen proposal, @4e+05 steps (fe 1.2e+08) | **post-switch only** | 0.0228 | 0.0232 | -0.484 |
+
+### Paired change vs persistent RC-WFR (median, 95% bootstrap CI)
+
+| switch | estimator | budget | change in e_F |
+|---|---|---|---|
+| frozen in place @2e+04 | all | 1.1e+08 | **+76.3%** [+39.2, +198.1] |
+| frozen in place @2e+04 | all | 4.3e+08 | **+84.3%** [+40.5, +128.5] |
+| frozen in place @2e+04 | **post-switch** | 1.1e+08 | **+77.4%** [+46.1, +213.0] |
+| frozen in place @2e+04 | **post-switch** | 4.3e+08 | **+84.9%** [+44.6, +132.3] |
+| snapped + frozen proposal @1e+05 | all | 1.1e+08 | **+32.9%** [+15.9, +47.4] |
+| snapped + frozen proposal @1e+05 | all | 4.3e+08 | **+6.8%** [+4.1, +18.1] |
+| snapped + frozen proposal @1e+05 | **post-switch** | 1.1e+08 | **+48.9%** [+31.2, +77.5] |
+| snapped + frozen proposal @1e+05 | **post-switch** | 4.3e+08 | **+9.5%** [+2.7, +20.1] |
+| snapped only @1e+05 | all | 1.1e+08 | **+32.9%** [+15.9, +47.4] |
+| snapped only @1e+05 | all | 4.3e+08 | **+6.8%** [+4.1, +18.1] |
+| snapped only @1e+05 | **post-switch** | 1.1e+08 | **+48.9%** [+31.2, +77.5] |
+| snapped only @1e+05 | **post-switch** | 4.3e+08 | **+9.5%** [+2.7, +20.1] |
+| snapped + frozen proposal @4e+05 | all | 1.1e+08 | +0.0% [-0.0, +0.0] |
+| snapped + frozen proposal @4e+05 | all | 4.3e+08 | +1.9% [-9.6, +7.2] |
+| snapped + frozen proposal @4e+05 | **post-switch** | 1.1e+08 | +0.0% [-0.0, +0.0] |
+| snapped + frozen proposal @4e+05 | **post-switch** | 4.3e+08 | +13.3% [-3.0, +18.3] |
+
+## Alanine, z = (phi, psi): the complete-coordinate control (kJ/mol)
+
+| arm | e_F | I_F | curl | coverage | vs stratified TI |
+|---|---|---|---|---|---|
+| stratified constrained TI, cold | 0.254 | 0.385 | 0.052 | 1.000 | - |
+| RC-WFR (W + Fisher-Rao) | 0.337 | 0.582 | 0.046 | 0.786 | **+31.5%** [+5.2, +61.6] |
+| RC-WFR, W only | 0.561 | 3.878 | 0.082 | 0.727 | **+114.5%** [+85.0, +147.6] |
+| RC-WFR -> TI, switch @5e4 | 0.354 | 0.588 | 0.067 | 0.794 | **+40.6%** [+25.6, +67.6] |
+| ABF, multiple walkers | 43.603 | 43.710 | 0.508 | 0.083 | **+17188.6%** [+15480.0, +20138.8] |
 
 ## Slow-mode ranking predicted from the run's own statistics
 

@@ -235,3 +235,71 @@ def test_alanine_forcefield_parity():
     import json
     r = json.load(open("results/mol/gate1/ALA_ff_parity.json"))
     assert r["max_rel_E"] < 1e-8 and r["max_rel_F"] < 1e-7
+
+
+# --- two-dimensional reaction coordinates ---------------------------------
+def _g2(bcx="periodic", nx=97, ny=97, wx=math.pi):
+    from rcwfr.grid import Grid1D
+    from rcwfr.mol.grid2d import Grid2D
+    return Grid2D(Grid1D(-wx, wx, nx, -wx, wx, bcx),
+                  Grid1D(-math.pi, math.pi, ny, -math.pi, math.pi, "periodic"))
+
+
+def test_poisson_potential_is_exact_on_a_known_field():
+    """F is the least-squares potential of the sampled mean force; on a field that
+    IS a gradient it must return that potential to machine precision."""
+    from rcwfr.mol.grid2d import gauge_l2_2d, poisson_potential
+    g = _g2()
+    X, Y = g.axes(DEV, DT)
+    XX, YY = X.view(-1, 1), Y.view(1, -1)
+    F = (2.0 * torch.cos(XX) + 1.3 * torch.sin(2 * YY)
+         + 0.7 * torch.cos(XX - YY)).unsqueeze(0)
+    fx = (-2.0 * torch.sin(XX) - 0.7 * torch.sin(XX - YY)).expand_as(F[0]).unsqueeze(0)
+    fy = (2.6 * torch.cos(2 * YY) + 0.7 * torch.sin(XX - YY)).expand_as(F[0]).unsqueeze(0)
+    Fh, curl = poisson_potential(torch.stack([fx, fy], -1), g)
+    assert float(gauge_l2_2d(Fh, F, g.mask(DEV, DT))) < 1e-12
+    assert float(curl) < 1e-12
+
+
+def test_curl_is_reported_not_absorbed():
+    """A non-gradient component cannot be explained by any F, so it must show up
+    in curl_frac and must NOT contaminate the recovered potential."""
+    from rcwfr.mol.grid2d import gauge_l2_2d, poisson_potential
+    g = _g2()
+    X, Y = g.axes(DEV, DT)
+    XX, YY = X.view(-1, 1), Y.view(1, -1)
+    F = (2.0 * torch.cos(XX) + 1.3 * torch.sin(2 * YY)).unsqueeze(0)
+    fx = (-2.0 * torch.sin(XX)).expand_as(F[0]).unsqueeze(0)
+    fy = (2.6 * torch.cos(2 * YY)).expand_as(F[0]).unsqueeze(0)
+    cx = fx - 0.5 * torch.sin(YY).expand_as(fx[0]).unsqueeze(0)
+    cy = fy + 0.5 * torch.sin(XX).expand_as(fy[0]).unsqueeze(0)
+    Fh, curl = poisson_potential(torch.stack([cx, cy], -1), g)
+    assert float(gauge_l2_2d(Fh, F, g.mask(DEV, DT))) < 1e-12
+    assert float(curl) > 0.1
+
+
+def test_reflecting_axis_uses_the_neumann_extension():
+    from rcwfr.mol.grid2d import gauge_l2_2d, poisson_potential
+    g = _g2("reflect", nx=97, wx=1.4)
+    X, Y = g.axes(DEV, DT)
+    XX, YY = X.view(-1, 1), Y.view(1, -1)
+    k = math.pi / 2.8
+    F = (2.0 * torch.cos(k * (XX + 1.4)) + 1.3 * torch.sin(2 * YY)).unsqueeze(0)
+    fx = (-2.0 * k * torch.sin(k * (XX + 1.4))).expand_as(F[0]).unsqueeze(0)
+    fy = (2.6 * torch.cos(2 * YY)).expand_as(F[0]).unsqueeze(0)
+    Fh, _ = poisson_potential(torch.stack([fx, fy], -1), g)
+    assert float(gauge_l2_2d(Fh, F, g.mask(DEV, DT))) < 1e-3
+
+
+def test_snap_at_switch_makes_the_windows_uniform(pen):
+    """The switch is only useful if stage B is a genuine stratification; check
+    the replicas really land on an evenly spaced grid."""
+    from rcwfr.mol.engines import MolCfg, run_constrained
+    cfg = MolCfg(N=128, n_steps=6000, n_cond=20, dep_every=20, save_every=3000,
+                 n_eq=1000, init="point", w_mode="sde", fr_rule="fr", kappa=0.6,
+                 theta=0.3, lift="ymh_learned", t_switch=3000, snap_at_switch=True)
+    out = run_constrained(pen, cfg, 2, seed=11)
+    z = out["z_final"][..., 0]
+    d = torch.diff(torch.sort(z, dim=1).values, dim=1)
+    expect = pen.grid.volume / cfg.N
+    assert float((d - expect).abs().max()) < 1e-9, float((d - expect).abs().max())

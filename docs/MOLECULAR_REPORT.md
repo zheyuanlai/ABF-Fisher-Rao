@@ -138,6 +138,63 @@ is worth a factor two -- the corrected floor is 0.021 against the naive lift's
 0.044. The marginal half remains, and it sets a budget, measured at a few times
 1e8 force evaluations here, beyond which plain adaptive biasing wins.**
 
+### 6. ...and the marginal half is removable too, by switching transport off
+
+Run RC-WFR as an initialiser rather than as the whole algorithm: at `t_switch`,
+stop transporting, **snap the replicas onto a uniform window grid**, freeze the
+learned proposal, and continue as ordinary stratified constrained TI, estimating
+from post-switch samples only.
+
+| | at 1.1e8 | at 4.3e8 | late-time rate |
+|---|---|---|---|
+| persistent RC-WFR | 0.0228 | 0.0208 | -0.044, parked |
+| switched at 4e5 steps | 0.0228 | 0.0232 | **-0.484, statistical** |
+| switched at 1e5 steps | 0.0339 | 0.0220 | -0.318 |
+| switched, frozen IN PLACE at 2.5e4 | 0.0387 | 0.0412 | +0.030, worse floor |
+
+The late switch is identical to persistent RC-WFR up to its switch point and
+then converges at the pure statistical rate instead of parking. The **snapping
+is the whole fix**: an ablation that snaps without freezing the proposal
+reproduces the snapped result to 3e-12. Freezing the replicas where transport
+happened to leave them is an uneven stratification, and because the same set is
+reused for the entire production stage that unevenness never averages away.
+
+So the honest claim upgrades from *"speed at practical budgets"* to
+
+> **RC-WFR is a fast adaptive initialiser for an asymptotically unbiased
+> constrained free-energy estimator, and `t_switch` is the dial.**
+
+### 7. What the advantage actually is
+
+With `z = (phi, psi)` -- alanine's hidden torsion promoted into the reaction
+coordinate -- RC-WFR **loses** to plain stratified constrained TI, by
+**+31.5%** [+5.2, +61.6]. The advantage measured everywhere else is
+hidden-mode repair, not reaction-coordinate transport for its own sake.
+
+That also relocates Fisher-Rao. On a one-dimensional torsion removing it changes
+nothing (-6.5%, noise): one period of a torsion has no discovery problem for
+birth-death to solve. On the two-torus with a cold start, removing it more than
+doubles the error (+114.5% vs stratified TI, against +31.5% with it). The
+relative roles of W and FR are problem-dependent, and this campaign now has one
+molecular example of each.
+
+### 8. Which mode to promote: a rule, tested five times
+
+`S_k tau_k^2` -- conditional sensitivity to `z` times the square of the
+relaxation time, both measurable from a run's own output before any arm is run:
+
+| mode | `S_k tau_k^2` | measured reduction in `e_F` | significant |
+|---|---|---|---|
+| heptane `phi2` | 7.1e8 | **58.1%** | yes |
+| hexane `phi2` | 2.6e8 | **44.3%** | yes |
+| heptane `phi3` | 2.6e7 | -9.7% | no |
+| heptane `phi4` | 1.7e7 | -0.2% | no |
+| hexane `phi3` | 6.8e6 | -29.1% | no |
+
+Heptane's three candidate torsions all relax at the SAME rate (9.7e4, 9.4e4,
+8.5e4 steps), so only coupling varies -- and only the coupled one is worth
+promoting. The rule separates the two groups by an order of magnitude.
+
 ## Where the numbers come from
 
 * `MOLECULAR_PLAN.md` — systems, gates, arms, preregistered predictions

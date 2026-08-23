@@ -54,8 +54,12 @@ def main():
             ref_runs[nm] = curve(p)
     sw = {}
     for p in sorted(glob.glob(os.path.join(a.dir, f"{a.system}_{a.arm}_sw*.npz"))):
-        ts = int(re.search(r"_sw(\d+)\.npz$", p).group(1))
-        sw[ts] = p
+        m = re.search(r"_sw(snaponly|snap)?(\d+)\.npz$", p)
+        if m is None:
+            continue
+        kind = {None: "frozen in place", "snap": "snapped + frozen proposal",
+                "snaponly": "snapped only"}[m.group(1)]
+        sw[(int(m.group(2)), kind)] = p
 
     hdr = " | ".join(f"{b:.2g}" for b in budgets)
     print(f"| arm | estimator | {hdr} | late slope |")
@@ -64,13 +68,13 @@ def main():
         cells = [f"{np.median(at(fe, e, b)[1]):.4f}" for b in budgets]
         print(f"| {nm} | all deposits | " + " | ".join(cells)
               + f" | {slope(fe, e):+.3f} |")
-    for ts, p in sw.items():
+    for (ts, kind), p in sorted(sw.items()):
         fe, e, d = curve(p, "e_F")
         _, ep, _ = curve(p, "e_F_prod")
         fsw = float(d["fe_switch"]) if "fe_switch" in d else 0.0
         for lab, v in (("all deposits", e), ("**post-switch only**", ep)):
             cells = [f"{np.median(at(fe, v, b)[1]):.4f}" for b in budgets]
-            print(f"| WFR->TI, switch at {ts:.0g} steps (fe {fsw:.2g}) | {lab} | "
+            print(f"| WFR->TI, {kind}, @{ts:.0g} steps (fe {fsw:.2g}) | {lab} | "
                   + " | ".join(cells) + f" | {slope(fe, v):+.3f} |")
     print()
     if "persistent RC-WFR" in ref_runs and sw:
@@ -78,7 +82,7 @@ def main():
         print("| switch | estimator | budget | change in e_F |")
         print("|---|---|---|---|")
         fe0, e0, _ = ref_runs["persistent RC-WFR"]
-        for ts, p in sw.items():
+        for (ts, kind), p in sorted(sw.items()):
             fe, e, _ = curve(p, "e_F")
             _, ep, _ = curve(p, "e_F_prod")
             for lab, v in (("all", e), ("**post-switch**", ep)):
@@ -86,8 +90,8 @@ def main():
                     i, vi = at(fe, v, b); j, vj = at(fe0, e0, b)
                     m, lo, hi = paired_bootstrap(rel_change(vi, vj))
                     star = "**" if lo * hi > 0 else ""
-                    print(f"| {ts:.0g} | {lab} | {b:.2g} | {star}{100*m:+.1f}%{star} "
-                          f"[{100*lo:+.1f}, {100*hi:+.1f}] |")
+                    print(f"| {kind} @{ts:.0g} | {lab} | {b:.2g} | "
+                          f"{star}{100*m:+.1f}%{star} [{100*lo:+.1f}, {100*hi:+.1f}] |")
 
 
 if __name__ == "__main__":
