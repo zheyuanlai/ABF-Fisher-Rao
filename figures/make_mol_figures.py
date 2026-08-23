@@ -376,6 +376,51 @@ def fig_switch(out, floor=0.0127):
     fig.savefig(out + ".png"); fig.savefig(out + ".pdf"); plt.close(fig)
 
 
+def fig_floor(out, npz=None, fit=None):
+    """What the ~0.020 plateau is made of: time step, bandwidth, statistics.
+
+    Left panel plots e_F against h at each bandwidth with the analytic smoothing
+    floor drawn as a dashed line of the matching colour -- a curve that lies ON
+    its own dashed line has no error left except smoothing.  Right panel is the
+    reference-free self-difference, which needs no reference and therefore
+    cannot be contaminated by the reference's own discretisation bias.
+    """
+    npz = npz or os.path.join(ROOT, "results", "mol", "floor", "BUT_floor_n257.npz")
+    fit = fit or os.path.join(ROOT, "results", "mol", "floor", "BUT_floor_fit.json")
+    if not (os.path.exists(npz) and os.path.exists(fit)):
+        return
+    d, J = np.load(npz), json.load(open(fit))
+    hs, bws = np.array(J["h"]), np.array(J["bw"])
+    eF, B = np.array(J["e_F"]), np.array(J["smoothing_floor"])
+    cols = ["#c0392b", "#e67e22", "#2980b9"]
+    fig, ax = plt.subplots(1, 2, figsize=(6.6, 2.5))
+    for j, bw in enumerate(bws):
+        c = cols[j % len(cols)]
+        ax[0].loglog(hs, eF[:, j], "o-", color=c, label=f"$b_{{mf}}$ = {bw:g}")
+        ax[0].axhline(B[j], color=c, ls="--", lw=0.8, alpha=0.7)
+    ax[0].axhline(0.020, color="k", ls=":", lw=1.0)
+    ax[0].text(hs.max(), 0.021, "campaign plateau", fontsize=6, ha="right", va="bottom")
+    ax[0].set_xlabel("time step $h$"); ax[0].set_ylabel("$e_F$ (kcal/mol)")
+    ax[0].set_title("butane, warm constrained TI\n(dashed = analytic smoothing floor)")
+    ax[0].legend(frameon=False)
+    sd = np.array(J["self_diff_vs_hmin"])
+    m = sd > 0
+    ax[1].loglog(hs[m], sd[m], "s-", color="#111111", label=r"$\|F(h)-F(h_{min})\|$")
+    if m.sum() >= 2:
+        pf = np.polyfit(np.log(hs[m]), np.log(sd[m]), 1)
+        xs = np.array([hs.min(), hs.max()])
+        ax[1].loglog(xs, np.exp(pf[1]) * xs ** pf[0], color="#888888", ls="--", lw=0.9,
+                     label=f"slope {pf[0]:.2f}")
+    if "reference_own_h_bias" in J:
+        ax[1].axhline(J["reference_own_h_bias"], color="#16a085", ls=":", lw=1.1,
+                      label="reference's own $h$-bias")
+    ax[1].set_xlabel("time step $h$"); ax[1].set_ylabel("kcal/mol")
+    ax[1].set_title("reference-free: the arm against itself")
+    ax[1].legend(frameon=False)
+    fig.tight_layout()
+    fig.savefig(out + ".png"); fig.savefig(out + ".pdf"); plt.close(fig)
+
+
 if __name__ == "__main__":
     os.makedirs(os.path.join(HERE), exist_ok=True)
     fig_profiles(os.path.join(HERE, "figMOL1_systems"))
@@ -393,6 +438,7 @@ if __name__ == "__main__":
     fig_2d(os.path.join(HERE, "figMOL8_alanine2d"))
     fig_selection_rule(os.path.join(HERE, "figMOL10_selection"))
     fig_switch(os.path.join(HERE, "figMOL9_switch"))
+    fig_floor(os.path.join(HERE, "figMOL11_floor"))
     if os.path.exists(os.path.join(CAM, "HEX_wfr_ymh_hex_p12.npz")):
         fig_hexane(os.path.join(HERE, "figMOL6_hexane"))
     if load("confirm", "wfr_rot", "ALA") is not None:

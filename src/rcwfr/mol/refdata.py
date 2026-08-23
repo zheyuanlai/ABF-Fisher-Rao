@@ -88,10 +88,12 @@ def load_reference(path, grid: Grid1D, y_grid: Grid1D, device, dtype, k=0,
 
     T = lambda a: torch.as_tensor(a, device=device, dtype=dtype)
     lp = path.replace("_ref.npz", "_conflib.npz")
+    if lp == path:                      # not a "<sys>_ref.npz" name: no library
+        lp = ""
     out = {"F_ref": T(F_ref).unsqueeze(0), "Fp_ref": T(Fp_ref).unsqueeze(0),
            "F_blocks": T(Fb), "F_sd": T(blk_sd), "beta": beta,
            "centers": ctr, "gz": grid}
-    if os.path.exists(lp):
+    if lp and os.path.exists(lp):
         L = np.load(lp)
         out["conflib"] = torch.as_tensor(L["lib"], device=device, dtype=torch.float32)
         out["conffill"] = torch.as_tensor(L["fill"], device=device, dtype=torch.long)

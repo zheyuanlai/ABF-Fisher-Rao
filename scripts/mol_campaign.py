@@ -99,6 +99,7 @@ DEFAULTS = dict(system="PEN", arm=None, seeds=8, seed0=1000, N=256, steps=100_00
                 snap_windows=0, auto_switch=False, eps_snap=0.0,
                 eps_learn=0.0, eps_ens=0.0,
                 fr_jitter=0.0, dep_every=20, save_every=5_000, n_eq=2_000,
+                h=None, ngrid=None,
                 tag="", out="results/mol/campaign")
 
 
@@ -118,9 +119,14 @@ def run_one(**kw):
     """
     a = _NS({**DEFAULTS, **kw})
     dev, dt = torch.device("cuda"), torch.float64
-    key = a.system
+    key = (a.system, a.h, a.ngrid)
     if key not in _CACHE:
-        sy = S.REGISTRY[a.system](dev, dt)
+        sy_kw = {}
+        if a.h is not None:
+            sy_kw["h"] = a.h
+        if a.ngrid is not None:
+            sy_kw["n_grid"] = a.ngrid
+        sy = S.REGISTRY[a.system](dev, dt, **sy_kw)
         tip = f"results/mol/ref/{a.system}_tiref.npz"
         cnd = f"results/mol/ref_cond/{a.system}_tiref.npz"
         ref = load_reference(f"results/mol/ref/{a.system}_ref.npz", sy.grid,
@@ -230,6 +236,9 @@ def main():
     ap.add_argument("--dep-every", type=int, default=20)
     ap.add_argument("--save-every", type=int, default=5_000)
     ap.add_argument("--n-eq", type=int, default=2_000)
+    ap.add_argument("--h", type=float, default=None,
+                    help="integrator step; the campaign default carries O(h) bias")
+    ap.add_argument("--ngrid", type=int, default=None)
     ap.add_argument("--tag", default="")
     ap.add_argument("--out", default="results/mol/campaign")
     a = ap.parse_args()

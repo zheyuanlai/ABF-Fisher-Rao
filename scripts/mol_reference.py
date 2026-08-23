@@ -39,12 +39,16 @@ def main():
     ap.add_argument("--hist-every", type=int, default=25)
     ap.add_argument("--mf-every", type=int, default=250)
     ap.add_argument("--seed", type=int, default=20260822)
+    ap.add_argument("--h", type=float, default=None,
+                    help="integrator step; the reference carries its own O(h) bias")
+    ap.add_argument("--suffix", default="")
     ap.add_argument("--out", default="results/mol/ref")
     a = ap.parse_args()
 
     dev, dt = torch.device("cuda"), torch.float64
     torch.manual_seed(a.seed)
-    sy = S.REGISTRY[a.system](dev, dt)
+    sy = (S.REGISTRY[a.system](dev, dt) if a.h is None
+          else S.REGISTRY[a.system](dev, dt, h=a.h))
     top, beta, h = sy.top, sy.beta, sy.h
     nt = top.tor_idx.shape[0]
     cvs = [TorsionCV(top.tor_idx[k:k + 1], top.mass, shift=sy.cv.shift)
@@ -130,7 +134,7 @@ def main():
 
     os.makedirs(a.out, exist_ok=True)
     edges = np.linspace(-math.pi, math.pi, nb + 1)
-    p = os.path.join(a.out, f"{a.system}_ref.npz")
+    p = os.path.join(a.out, f"{a.system}_ref{a.suffix}.npz")
     np.savez_compressed(
         p, centers=0.5 * (edges[1:] + edges[:-1]),
         H1=H1.cpu().numpy(), H2=(H2.cpu().numpy() if H2 is not None else np.zeros((0, 0, 0))),
