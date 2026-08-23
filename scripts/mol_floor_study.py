@@ -36,6 +36,8 @@ from rcwfr.estimators import MeanForceAccumulator, gauge_l2
 from rcwfr.grid import Grid1D
 from rcwfr.mol import systems as S
 from rcwfr.mol.dynamics import constrained_step
+from rcwfr.mol.engines import _invcdf
+from rcwfr.mol.lift import ReferenceFiberCDF
 from rcwfr.mol.refdata import load_reference
 
 
@@ -53,6 +55,10 @@ def main():
     ap.add_argument("--dep-every", type=int, default=20)
     ap.add_argument("--seed", type=int, default=31337)
     ap.add_argument("--ref", default=None)
+    ap.add_argument("--warm", action="store_true",
+                    help="draw the fiber torsions from the reference conditional; "
+                         "required whenever the fiber holds a SLOW mode, since a "
+                         "delta start would otherwise be relaxing, not equilibrated")
     ap.add_argument("--out", default="results/mol/floor")
     a = ap.parse_args()
     hs = [float(x) for x in a.hs.split(",")]
@@ -78,6 +84,11 @@ def main():
         z = zs.unsqueeze(0).expand(a.rows, a.N).contiguous()
         phis = torch.full((a.rows, a.N, nt), sy.y0, device=dev, dtype=dt)
         phis[..., 0] = z
+        if a.warm and nt > 1:
+            tab = ReferenceFiberCDF(a.rows, ref["gz"], sy.y_grid or g, dev, dt,
+                                    ref["H2"])
+            u = torch.rand((a.rows, a.N), device=dev, dtype=dt)
+            phis[..., 1] = _invcdf(tab, z, u)
         q = sy.ideal(phis.reshape(-1, nt)).reshape(a.rows, a.N, top.n_atoms, 3)
         z = z.unsqueeze(-1)
         step = torch.compile(lambda q, z: constrained_step(top, cv, q, z, h, beta,

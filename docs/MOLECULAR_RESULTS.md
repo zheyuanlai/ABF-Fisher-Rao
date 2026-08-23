@@ -952,3 +952,105 @@ invisible.
 
 Reproduced by `scripts/mol_floor_study.py` and `scripts/mol_floor_fit.py`;
 figure `figures/figMOL11_floor.png`.
+
+## 21. M3: the three arms at a convention where the floor is 0.005, not 0.020
+
+Section 20 showed the number every constrained arm converged to was the
+estimator's kernel plus the constrained integrator's time step.  That makes the
+whole long-budget comparison worth running again at a convention where those two
+terms are small: `h` = 1e-3 instead of 2e-3, `b_mf` = 0.02 instead of 0.05, a
+257-node grid instead of 129.  If RC-WFR carries a transport bias of its own, it
+has roughly 0.015 kcal/mol of newly exposed room to appear in.
+
+Three arms only.  **Warm stratified TI** is the practical ceiling -- uniform
+windows, oracle initial conditional, no transport.  **Cold stratified TI** is the
+same estimator with nothing to help it.  **RC-WFR** is the method, persistent,
+with the learned Metropolis fiber move.  Pentane, 16 seeds, `N` = 1024 windows,
+3.2e6 steps.  Window count went from 256 to 1024 because the loop is launch-bound
+and 1024 windows cost the same wall time as 256 -- four times the force
+evaluations for free -- so all three arms get a budget deep enough to reach a
+floor rather than merely approach one.
+
+| arm | 8.6e8 fe | 1.7e9 fe | 3.4e9 fe | late slope |
+|---|---|---|---|---|
+| stratified TI, warm (ceiling) | 0.0114 | 0.0093 | **0.0084** | +0.024 |
+| RC-WFR + Metropolis y-move (learned) | 0.0088 | 0.0088 | **0.0087** | -0.037 |
+| stratified TI, cold | 0.0210 | 0.0124 | **0.0102** | -0.302 |
+
+Paired, 16 seeds, negative = first arm better:
+
+| contrast | 8.6e8 fe | 1.7e9 fe | 3.4e9 fe |
+|---|---|---|---|
+| RC-WFR vs cold TI | **-56.2%** [-64.4, -49.5] | **-31.7%** [-38.5, -13.9] | **-11.6%** [-20.9, -4.3] |
+| RC-WFR vs warm TI | **-28.5%** [-39.0, -10.1] | -5.5% [-14.3, +46.3] | +5.6% [-11.9, +24.8] |
+| warm TI vs cold TI | -39.1% [-49.5, -18.7] | -32.3% [-42.1, -13.6] | -18.2% [-27.4, -8.5] |
+
+**Everything moved down and the ordering held.**  The shared 0.020 is gone: the
+ceiling arm now sits at 0.0084 and the cold arm at 0.0102, a factor 2.4 below
+where every constrained arm used to stop.
+
+**No transport bias appeared in the room that was opened.**  At the largest
+budget RC-WFR is level with the warm-TI ceiling, +5.6% with an interval spanning
+zero.  This is the measurement the asymptotic-bias claim needed and never had:
+with the numerical floor lowered by a factor 2.4, an RC-WFR-specific bias of even
+0.008 would have shown as a clear separation from the ceiling arm.  None is
+visible.
+
+**And RC-WFR is at its floor from the first save.**  0.0088 at 8.6e8 and 0.0087
+at 3.4e9 -- flat across a factor 4 in budget, while warm TI needs the whole run
+to come down to the same place and cold TI is still descending at -0.302 when it
+stops.  The advantage is entirely at the front of the budget axis: -28.5% against
+the ceiling arm at 8.6e8, nothing at 3.4e9.  That is the honest shape of the
+claim, and it is the same shape as before -- only now it is measured against a
+floor that is not doing the work.
+
+The mechanism is unchanged: the conditional error is **0.0003 nats** for RC-WFR
+against **0.0268** for both TI arms, a factor 90.
+
+### 21.1 What the remaining 0.008 is, and what it is not
+
+Splitting each arm's final error into the part that varies between seeds and the
+part every seed shares:
+
+| arm | `e_F` | varies between seeds | shared by all seeds |
+|---|---|---|---|
+| stratified TI, warm | 0.00845 | 0.00578 | 0.00616 |
+| RC-WFR | 0.00869 | **0.00167** | 0.00853 |
+| stratified TI, cold | 0.01015 | 0.00565 | 0.00843 |
+
+**RC-WFR's seed-to-seed scatter is 3.5x smaller than either TI arm's.**  Its
+error is almost entirely common-mode: given the same budget, different seeds
+return nearly the same profile.  Transport plus birth-death is doing something a
+stratified estimator does not, and reproducibility is the clearest place it shows.
+
+Of the common-mode part, three terms are measured independently and account for
+0.0029 in quadrature: kernel smoothing at this bandwidth and grid (0.00200), the
+reference's 180-bin resolution followed by interpolation onto a 257-node grid
+(0.00196, measured by sampling a smooth profile at the reference's own bin
+centres and interpolating back), and the reference's own statistical error
+(0.00085, from its 8 independent blocks).
+
+That leaves ~0.006-0.008 unaccounted, and it is **not** a single shared offset:
+
+| | kcal/mol |
+|---|---|
+| warm TI vs the reference | 0.00611 |
+| RC-WFR vs the reference | 0.00883 |
+| cold TI vs the reference | 0.00930 |
+| warm TI vs cold TI | 0.00382 |
+| warm TI vs RC-WFR | 0.00609 |
+| RC-WFR vs cold TI | 0.00463 |
+
+The arms differ from **each other** by 0.004-0.006, which is three to four times
+the statistical error of a row mean (0.0058/sqrt(16) = 0.0014).  So part of the
+residual is arm-dependent rather than a common reference offset.  The most likely
+candidate, and the one this campaign has not measured, is that the smoothing
+floor of section 20 was computed for a **uniform** window density: the
+Nadaraya-Watson ratio carries an extra O(b_mf^2) term proportional to the
+gradient of the sampling density, and RC-WFR's windows are equidistributed by
+transport rather than placed on a grid.  That is a concrete, cheap next
+measurement -- vary `b_mf` at fixed `h` on each arm separately and see whether
+the arm-to-arm difference scales as `b_mf^2` -- and it is left undone here
+deliberately, at the campaign's agreed stop.
+
+Figure `figures/figMOL12_M3.png`; report `scripts/mol_M3_report.py`.

@@ -432,6 +432,71 @@ def fig_floor(out, npz=None, fit=None):
     fig.savefig(out + ".png"); fig.savefig(out + ".pdf"); plt.close(fig)
 
 
+def fig_M3(out, tag="M3", system="PEN"):
+    """M3: the three arms at the convention where the floor is ~0.005, not 0.020.
+
+    Left panel is the budget curve.  Right panel splits each arm's final error
+    into the part that varies between seeds (statistical) and the part every
+    seed shares, with the three independently measured non-statistical terms --
+    kernel smoothing, the reference's 180-bin resolution, the reference's own
+    noise -- drawn as the portion of the common-mode part that is accounted for.
+    """
+    arms = ["ti_warm", "wfr_lmh", "ti_cold"]
+    D = {a: load(tag, a, system) for a in arms}
+    D = {k: v for k, v in D.items() if v is not None}
+    if len(D) < 2:
+        return
+    import math as _m
+    fig, ax = plt.subplots(1, 2, figsize=(6.8, 2.6))
+    for a in arms:
+        if a not in D:
+            continue
+        fe, e = D[a]["fe"], np.median(D[a]["e_F"], axis=-1)
+        q1, q3 = np.percentile(D[a]["e_F"], [25, 75], axis=-1)
+        ax[0].fill_between(fe, q1, q3, color=C.get(a, "#888"), alpha=0.16, lw=0)
+        ax[0].loglog(fe, e, color=C.get(a, "#888"), label=LBL.get(a, a))
+    ax[0].axhline(0.0200, color="k", ls=":", lw=1.0)
+    ax[0].text(ax[0].get_xlim()[1], 0.0207, "old plateau", fontsize=6,
+               ha="right", va="bottom")
+    ax[0].set_xlabel("force evaluations"); ax[0].set_ylabel("$e_F$ (kcal/mol)")
+    ax[0].set_title("pentane at $h$=1e-3, $b_{mf}$=0.02, $n$=257")
+    ax[0].legend(frameon=False, fontsize=6)
+
+    # accounted non-statistical terms, each measured on its own.  Errors combine
+    # in QUADRATURE, so the bars are squared -- only then does stacking add up.
+    ACC = 0.00200 ** 2 + 0.00196 ** 2 + 0.00085 ** 2
+    SHORT = {"ti_warm": "TI warm", "wfr_lmh": "RC-WFR", "ti_cold": "TI cold"}
+    labs, st, cm = [], [], []
+    for a in arms:
+        if a not in D:
+            continue
+        F = D[a]["F"][-1]
+        Fb = F - F.mean(0, keepdims=True)
+        R = F.shape[0]
+        per = np.sqrt((Fb ** 2).mean(-1)) * _m.sqrt(R / (R - 1))
+        stat = float(np.median(per))
+        eF = float(np.median(D[a]["e_F"][-1]))
+        labs.append(SHORT.get(a, a))
+        st.append(stat ** 2); cm.append(max(eF ** 2 - stat ** 2, 0))
+    x, sc = np.arange(len(labs)), 1e5
+    st = np.array(st) * sc; cm = np.array(cm) * sc
+    ax[1].bar(x, st, 0.55, color="#95a5a6", label="varies between seeds")
+    ax[1].bar(x, cm, 0.55, bottom=st, color="#34495e", label="shared by all seeds")
+    ax[1].axhline(ACC * sc, color="#e67e22", ls="--", lw=1.1,
+                  label="accounted: kernel, reference bins, reference noise")
+    for xi, (a, b) in enumerate(zip(st, cm)):
+        ax[1].text(xi, a + b, f"{_m.sqrt((a+b)/sc):.4f}", ha="center", va="bottom",
+                   fontsize=6)
+    ax[1].set_xticks(x); ax[1].set_xticklabels(labs, fontsize=7)
+    ax[1].set_ylim(0, 1.25 * (st + cm).max())
+    ax[1].set_ylabel(r"$e_F^2$  ($10^{-5}$ (kcal/mol)$^2$)")
+    ax[1].set_title("what is left at 3.4e9 force evaluations\n"
+                    "(squared, so the parts add)")
+    ax[1].legend(frameon=False, fontsize=5.5, loc="upper center")
+    fig.tight_layout()
+    fig.savefig(out + ".png"); fig.savefig(out + ".pdf"); plt.close(fig)
+
+
 if __name__ == "__main__":
     os.makedirs(os.path.join(HERE), exist_ok=True)
     fig_profiles(os.path.join(HERE, "figMOL1_systems"))
@@ -450,6 +515,7 @@ if __name__ == "__main__":
     fig_selection_rule(os.path.join(HERE, "figMOL10_selection"))
     fig_switch(os.path.join(HERE, "figMOL9_switch"))
     fig_floor(os.path.join(HERE, "figMOL11_floor"))
+    fig_M3(os.path.join(HERE, "figMOL12_M3"))
     if os.path.exists(os.path.join(CAM, "HEX_wfr_ymh_hex_p12.npz")):
         fig_hexane(os.path.join(HERE, "figMOL6_hexane"))
     if load("confirm", "wfr_rot", "ALA") is not None:
