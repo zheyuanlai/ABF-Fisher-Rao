@@ -799,3 +799,126 @@ Both RC-WFR arms are on their bias floors; both baselines are still converging.
 The corrected arm's floor (0.021) is **half** the naive lift's (0.044), and it
 is 1.6 estimator floors -- while its conditional error over the same run fell to
 0.0014 nats.  The fiber is solved; the marginal is not.
+
+## 20. What the 0.020 plateau is made of
+
+Every constrained arm -- persistent RC-WFR, the switched arm, the arm with no
+transport at all -- converged to about `e_F = 0.020` kcal/mol and stopped.  Two
+arms differing by a factor **100** in conditional error (0.089 against 0.0008
+nats) reached the same number.  That is not what a method-dependent bias looks
+like, so the plateau was measured directly instead of being attributed.
+
+The test system is butane, because it has no hidden slow mode: its fiber is
+bonds and angles, which relax in ~1e3 steps.  The arm is warm stratified
+constrained TI -- no transport, no exploration, nothing that could confound a
+numerical measurement.  `h` is swept over `{2e-3, 1e-3, 5e-4, 2.5e-4}` at a
+**fixed physical time** of 400 (so `n_steps` and the deposit interval both scale
+as `1/h`, holding the statistical term still while the discretisation term
+moves), and three bandwidths are accumulated from the SAME trajectory at each
+`h`, since the bandwidth changes only the estimator.  `N = 1024` windows, 8 rows,
+a 257-node grid.
+
+### 20.1 The measurement
+
+`e_F` against the unbiased-MD reference (median over rows, kcal/mol):
+
+| `h` | `b_mf` = 0.08 | 0.04 | 0.02 |
+|---|---|---|---|
+| 2.0e-3 | 0.03313 | 0.01579 | 0.01474 |
+| 1.0e-3 | 0.03109 | 0.00864 | 0.00556 |
+| 5.0e-4 | 0.03069 | 0.00886 | 0.00525 |
+| 2.5e-4 | 0.03077 | 0.00878 | 0.00607 |
+
+### 20.2 The decomposition, with no fitted parameters
+
+The **smoothing** term is not fitted.  It is computed by differentiating the
+reference and putting it back through the estimator's own pipeline -- the same
+Nadaraya-Watson kernel on the same grid, then the same trapezoid integration --
+and comparing the smoothed reconstruction against the unsmoothed one.  Taking
+the difference of two reconstructions rather than comparing to `F_ref` cancels
+both the reference's noise and the differentiate/re-integrate mismatch, leaving
+only what the kernel did:
+
+| grid | `b_mf`=0.08 | 0.05 | 0.04 | 0.02 |
+|---|---|---|---|---|
+| n=129 | 0.03155 | **0.01243** | 0.00797 | 0.00108 |
+| n=257 | 0.03158 | 0.01244 | 0.00798 | 0.00200 |
+| n=513 | 0.03156 | 0.01244 | 0.00798 | 0.00200 |
+
+It is grid-independent from n=129 up: at these bandwidths the kernel, not the
+grid, sets the resolution.
+
+The **statistical** term is the row scatter, which is the statistical part of a
+single row's `e_F` (not of the row mean): 0.0047-0.0055 at this budget.
+
+Removing both leaves the **discretisation** term:
+
+| `h` | `b_mf`=0.08 | 0.04 | 0.02 |
+|---|---|---|---|
+| 2.0e-3 | 0.00846 | 0.01250 | 0.01353 |
+| 1.0e-3 | 0.0 | 0.0 | 0.00230 |
+| 5.0e-4 | 0.0 | 0.0 | 0.00053 |
+| 2.5e-4 | 0.0 | 0.0 | 0.00297 |
+
+**The check the decomposition could have failed.**  At `b_mf = 0.08` the
+measured `e_F` (0.0331) IS the analytic smoothing floor (0.0316) to three
+digits at every `h`, and the residual after removing it is exactly zero from
+`h = 1e-3` down.  Nothing was tuned to make that happen.
+
+### 20.3 The same answer without any reference
+
+`e_F` is measured against a reference that is itself unbiased MD at `h = 2e-3`,
+so it carries an O(h) error of its own.  Shrinking `h` in the constrained arm
+alone would then make it converge AWAY from the reference.  Rather than assume
+that away, the arm is also compared to itself:
+
+| `h` | `‖F(h) - F(h_min)‖` |
+|---|---|
+| 2.0e-3 | 0.01326 |
+| 1.0e-3 | 0.00315 |
+| 5.0e-4 | 0.00273 |
+| 2.5e-4 | 0 (by construction) |
+
+No reference appears anywhere in that column, and it agrees with the
+reference-based discretisation term (0.01353) to 0.0003.  Only the largest `h`
+clears the 0.0048 noise floor, so the order is bounded rather than fitted:
+**p > 1.5**, consistent with the drop by a factor 4.2 across a factor 2 in `h`.
+
+### 20.4 The reference's own time-step bias, measured
+
+Butane's reference was rerun as unbiased MD at `h = 5e-4`, four times finer:
+
+    ‖F_ref(h=2e-3) - F_ref(h=5e-4)‖ = 0.00181 kcal/mol
+    block standard errors:            0.00090 and 0.00081
+
+So the reference's discretisation bias is barely above its own statistical
+error, and **eight times smaller** than the constrained arm's bias at the same
+step.  Every existing reference in this campaign stands.  The asymmetry is the
+informative part: unconstrained overdamped Langevin at `h = 2e-3` is essentially
+converged, while the same step through the **projection** is not.  The excess
+belongs to the constrained integrator specifically.
+
+### 20.5 The plateau, reconstructed
+
+The campaign ran at `h = 2e-3`, `b_mf = 0.05`, `n = 129`.  Its two measured
+numerical terms are
+
+    smoothing               0.01243
+    constrained integrator  0.01326
+    quadrature sum          0.01818     before any statistical error
+
+against an observed plateau of ~0.020.  **The number every constrained arm
+converged to was the estimator and the integrator.**  That is why arms differing
+by a factor 100 in conditional error shared it, and it is the last piece of the
+withdrawn asymptotic-bias claim (section 19, `SWITCH_CAMPAIGN.md`).
+
+### 20.6 Gate A
+
+At `h = 1e-3`, `b_mf = 0.02`, `n = 257`, butane reaches **0.0056**, of which
+0.0047 is statistical and 0.0020 smoothing -- leaving no detectable bias, a
+factor 3.6 under the plateau.  The floor is not a property of the method, and
+lowering it costs a factor 2 in force evaluations per unit physical time and
+nothing else.
+
+Reproduced by `scripts/mol_floor_study.py` and `scripts/mol_floor_fit.py`;
+figure `figures/figMOL11_floor.png`.
