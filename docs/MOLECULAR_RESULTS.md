@@ -1146,3 +1146,78 @@ on a 257-node grid is covered by that assumption.
 
 Scripts `scripts/mol_floor_study.py --warm`, `scripts/mol_floor_fit.py`,
 `scripts/mol_reference.py --h`.
+
+## 23. The last named candidate, tested and refuted
+
+Sections 21.1 and 22 both ended by naming the same suspect for the residual
+~0.0035: the smoothing floor was computed for a **uniform** sampling density,
+but the estimator is a Nadaraya-Watson ratio whose O(b^2) bias is
+
+    (b^2 / 2) [ f''  +  2 f' rho'/rho ],
+
+and only the first term survives when `rho` is flat.  The second is real
+whenever the windows are unevenly spread -- which they always are, because the
+deposit carries the Fixman weight `(det G)^{-1/2}` and that varies along `z`
+even for windows placed on a perfect grid.  RC-WFR's windows are equidistributed
+by transport rather than placed, so its `rho` differs again, which made this the
+natural explanation for arms differing from each other.
+
+Rather than leave it named, it was measured.  The engine now records the
+estimator's own denominator -- the smoothed, Fixman-weighted sampling density it
+divides by -- and the floor was recomputed with each arm's actual `rho` in place
+of the uniform assumption:
+
+| arm | `b_mf`=0.04 | 0.02 | 0.01 |
+|---|---|---|---|
+| stratified TI, warm | 0.00811 | 0.00263 | 0.00055 |
+| RC-WFR | 0.00805 | 0.00202 | 0.00027 |
+| stratified TI, cold | 0.00811 | 0.00263 | 0.00055 |
+| *uniform-density assumption* | *0.00799* | *0.00200* | *0.00027* |
+
+The extra error the density gradient contributes, in quadrature:
+
+| arm | `b_mf`=0.04 | 0.02 | 0.01 |
+|---|---|---|---|
+| stratified TI, warm and cold | 0.00137 | 0.00170 | 0.00048 |
+| RC-WFR | 0.00099 | **0.00025** | 0.00003 |
+
+**The hypothesis is refuted.**  At the working bandwidth the density term is
+0.0017 for the TI arms and 0.0003 for RC-WFR -- far too small to be the 0.0035
+residual, and far too small to be the 0.004-0.006 by which the arms differ from
+each other.  Feeding the corrected kernel term back into section 22.2's itemised
+floor moves the accounting from 86% to **89%** of the squared error and the
+unaccounted part from 0.00351 to 0.00306.  It is a real term; it is not the
+answer.
+
+Two things fall out of the measurement anyway.  RC-WFR's b^2 scaling is clean
+(ratio 3.99 against a predicted 4 between `b_mf` 0.04 and 0.02), which is a
+check that what is being computed is the kernel bias and not something else.
+And **RC-WFR's effective sampling density is the more uniform one** -- its
+density term is seven times smaller than the grid-stratified arms'.  Placing
+windows on a perfect grid does not give a flat sampling density once the Fixman
+weight is applied; transport-equidistributed windows happen to compensate.  That
+is a small effect here, but it is the opposite of what was assumed.
+
+### 23.1 Where the accounting stands, and where it stops
+
+Pentane warm constrained TI, `h` = 1e-3, `b_mf` = 0.02, `n` = 257:
+
+| term | kcal/mol | how it was obtained |
+|---|---|---|
+| statistics | 0.00772 | row scatter, de-biased |
+| estimator kernel, measured density | 0.00263 | section 23 |
+| reference 180-bin resolution | 0.00196 | resample-and-return on a smooth profile |
+| reference's own time step | 0.00238 | reference rerun 4x finer |
+| reference block noise | 0.00085 | its 8 independent blocks |
+| **quadrature of known terms** | **0.00876** | |
+| observed | 0.00928 | |
+| unaccounted | **0.00306** | |
+
+The unaccounted part is smaller than every individual term except statistics,
+and it is within the uncertainty of a subtraction whose largest input is itself
+a statistical estimate.  Four candidate explanations have now been tested and
+three carry real but insufficient weight (kernel, reference resolution,
+reference time step); the fourth, the constrained integrator, is excluded
+outright by section 22.  **This campaign does not resolve the remaining 0.003
+and stops here rather than pursuing it**, because at this level the measurement
+would need a better reference before it could need a better method.

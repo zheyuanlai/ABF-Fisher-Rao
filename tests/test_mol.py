@@ -340,3 +340,25 @@ def test_smoothing_floor_falls_like_the_square_of_the_bandwidth():
     assert v[0] > v[1] > v[2] > 0
     for a, b in zip(v[:-1], v[1:]):
         assert 3.5 < a / b < 4.5, v
+
+
+def test_a_flat_sampling_density_reproduces_the_uniform_floor_exactly():
+    """The density-aware floor must collapse onto the plain one when rho is flat.
+
+    Section 23 uses the difference between the two to REFUTE a hypothesis, and a
+    negative result is only as good as the check that the extra argument is
+    doing anything at all.  Two failure modes are covered: a constant rho of any
+    scale must give exactly the uniform answer (so normalisation is right), and
+    a genuinely varying rho must give a different one (so rho is not ignored).
+    """
+    from rcwfr.estimators import smoothing_floor
+    dev, dt = DEV, torch.float64
+    g = Grid1D(-math.pi, math.pi, 513, -math.pi, math.pi, "periodic")
+    x = g.x(dev, dt)
+    F = (2.0 * torch.cos(2 * x) + 0.5 * torch.cos(3 * x)).unsqueeze(0)
+    base = float(smoothing_floor(g, F, 0.05)[0])
+    for c in (1.0, 7.3, 1e-4):
+        flat = torch.full_like(F, c)
+        assert abs(float(smoothing_floor(g, F, 0.05, rho=flat)[0]) - base) < 1e-12
+    tilted = (1.0 + 0.5 * torch.sin(x)).unsqueeze(0)
+    assert abs(float(smoothing_floor(g, F, 0.05, rho=tilted)[0]) - base) > 1e-5

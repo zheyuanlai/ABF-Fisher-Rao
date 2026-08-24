@@ -177,6 +177,8 @@ def run_one(**kw):
                         fe_switch=float(out.get("fe_switch", 0.0)),
                         diag=(out["diag"].cpu().numpy() if "diag" in out
                               else np.zeros((0, 0, 3))),
+                        dens=(out["dens"].cpu().numpy() if "dens" in out
+                              else np.zeros((0, 0))),
                         cfg_grid=np.array(grid_cfg), **sc)
     with open(os.path.join(a.out, name + ".json"), "w") as f:
         json.dump({"arm": a.arm, "system": a.system, "wall_s": wall,

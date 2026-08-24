@@ -1,0 +1,25 @@
+PEN_ti_warm_dens: e_F=0.0179 e_Fprod=0.0179 I_F=0.0000 dcond=0.0210 cov=1.000 fe=2.15e+08 wall=293s
+PEN_wfr_lmh_dens: e_F=0.0137 e_Fprod=0.0137 I_F=0.0000 dcond=0.0002 cov=1.000 fe=2.35e+08 wall=318s
+PEN_ti_cold_dens: e_F=0.0552 e_Fprod=0.0552 I_F=0.0000 dcond=0.0883 cov=1.000 fe=2.15e+08 wall=279s
+# PEN: the estimator floor with each arm's OWN sampling density
+
+| arm | b_mf=0.04 | b_mf=0.02 | b_mf=0.01 | uniform-rho floor |
+|---|---|---|---|---|
+| ti_warm | 0.00811 | 0.00263 | 0.00055 | 0.00799 / 0.00200 / 0.00027 |
+| wfr_lmh | 0.00805 | 0.00202 | 0.00027 | 0.00799 / 0.00200 / 0.00027 |
+| ti_cold | 0.00811 | 0.00263 | 0.00055 | 0.00799 / 0.00200 / 0.00027 |
+
+extra error from the density gradient alone (quadrature difference):
+
+| arm | b_mf=0.04 | b_mf=0.02 | b_mf=0.01 |
+|---|---|---|---|
+| ti_warm | 0.00137 | 0.00170 | 0.00048 |
+| wfr_lmh | 0.00099 | 0.00025 | 0.00003 |
+| ti_cold | 0.00137 | 0.00170 | 0.00048 |
+
+ratio between successive bandwidths (b^2 scaling predicts 4):
+  ti_warm   0.80  3.52
+  wfr_lmh   3.99  7.41
+  ti_cold   0.80  3.52
+
+wrote results/mol/floor2/density_floor.json

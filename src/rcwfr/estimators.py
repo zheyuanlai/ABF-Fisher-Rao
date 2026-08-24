@@ -71,7 +71,7 @@ def gauge_l2_profile(F_hat, F_ref, eval_mask):
     return d - d[:, eval_mask].mean(dim=1, keepdim=True)
 
 
-def smoothing_floor(grid: Grid1D, F_ref, bw, eval_mask=None):
+def smoothing_floor(grid: Grid1D, F_ref, bw, eval_mask=None, rho=None):
     """The L2 error a PERFECT mean-force estimator still makes at this bandwidth.
 
     The kernel in `MeanForceAccumulator` is a bias as well as a variance
@@ -83,14 +83,23 @@ def smoothing_floor(grid: Grid1D, F_ref, bw, eval_mask=None):
     The comparison is against the UNSMOOTHED reconstruction rather than against
     `F_ref` itself, so the reference's noise and the differentiate/re-integrate
     mismatch both cancel and what is left is only what the kernel did.
+
+    `rho` is the sampling density the ratio actually divides by -- the
+    accumulator's own `S0`, which carries the Fixman weight and the window
+    placement.  The O(bw^2) bias is `(bw^2/2)[f'' + 2 f' rho'/rho]`, so leaving
+    `rho` at None keeps only the first term and assumes the windows are evenly
+    spread.  They never are exactly, and for a transported population they are
+    not spread the same way as for a placed one.
     """
     dev, dt = F_ref.device, F_ref.dtype
     m = grid.eval_mask(dev, dt) if eval_mask is None else eval_mask
     F = F_ref if F_ref.dim() == 2 else F_ref.unsqueeze(0)
     fr = central_diff(F, grid.dx, grid.bc)
     K, r = gaussian_kernel(bw, grid.dx, dev, dt)
-    num = smooth(fr, K, r, grid.dx, grid.bc)
-    den = smooth(torch.ones_like(fr), K, r, grid.dx, grid.bc)
+    w = (torch.ones_like(fr) if rho is None
+         else rho / rho.mean(dim=-1, keepdim=True).clamp_min(EPS))
+    num = smooth(w * fr, K, r, grid.dx, grid.bc)
+    den = smooth(w, K, r, grid.dx, grid.bc)
 
     def gauge(v):
         return v - v[:, m].mean(dim=1, keepdim=True)

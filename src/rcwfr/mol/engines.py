@@ -585,6 +585,12 @@ def run_constrained(sy, cfg: MolCfg, rows: int, seed: int, ref=None,
             anc = ar.clone()
             si += 1
     out["z_final"], out["q_final"] = z, q
+    # The estimator's own denominator.  It is the SAMPLING DENSITY the
+    # Nadaraya-Watson ratio divides by, including the Fixman weight, so it is
+    # what the smoothing-floor calculation has to use instead of assuming the
+    # windows are uniformly spread.
+    out["dens"] = acc.counts()
+    out["dens_prod"] = acc_prod.counts()
     if diag:
         out["diag"] = torch.stack(diag, 0)          # (n_checks, rows, 3)
     if Hjt is not None:

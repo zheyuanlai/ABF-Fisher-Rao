@@ -115,10 +115,49 @@ Four things this phase establishes that the toy phase could not:
   independence Metropolis move on the slow torsion is *exact whatever the
   proposal is* -- the learned conditional sets only the acceptance rate.
 
-The honest caveat is unchanged from the toy phase and is stated in the report:
-the baselines are unbiased and RC-WFR is not, so this is a **speed** result at
-practical budgets.  Extrapolating the fitted convergence rates one decade puts
-the crossover with ABF at ~3.4x the largest budget run here.
+### The plateau was the convention, not the method
+
+Every constrained arm used to stop near `e_F` = 0.020 whatever it did, which was
+read as RC-WFR's transport bias.  It was not.  Measured on butane with warm
+constrained TI -- no transport, no exploration, no hidden mode -- the estimator's
+kernel at `b_mf` = 0.05 contributes 0.01243 and the constrained integrator at
+`h` = 2e-3 contributes 0.01326, for **0.01818** in quadrature with nothing
+fitted.  Rerunning the pentane comparison at `h` = 1e-3, `b_mf` = 0.02 and a
+257-node grid, 16 seeds, 1024 windows, to 3.4e9 force evaluations:
+
+| arm | 8.6e8 fe | 1.7e9 fe | 3.4e9 fe |
+|---|---|---|---|
+| stratified TI, warm (oracle-init ceiling) | 0.0114 | 0.0093 | **0.0084** |
+| RC-WFR + Metropolis y-move | 0.0088 | 0.0088 | **0.0087** |
+| stratified TI, cold | 0.0210 | 0.0124 | **0.0102** |
+
+Lowering the floor by 2.4x opened ~0.015 kcal/mol in which an RC-WFR-specific
+bias could have appeared.  **None did**: at the largest budget RC-WFR is level
+with the ceiling arm (+5.6% [-11.9, +24.8]), and it is flat from its first save
+while both TI arms need the whole run to arrive.
+
+## The claim, frozen
+
+> **Reaction-coordinate WFR is a fast population-level equilibration mechanism
+> for free-energy calculation with an INCOMPLETE reaction coordinate.** Its
+> practical molecular success depends on pairing reaction-coordinate transport
+> with an *exact* Metropolis-corrected conditional move for the slow fiber
+> modes; learned proposals are fine, uncorrected ones are worse than useless.
+> In that regime it reaches the statistical-error floor substantially earlier
+> than cold stratified TI (**-56.2%** [-64.4, -49.5] at 8.6e8 force evaluations)
+> and than an oracle-warm-started TI ceiling (**-28.5%** [-39.0, -10.1]), while
+> becoming statistically level with that ceiling at long budget. Once the
+> relevant slow modes are promoted into the reaction coordinate itself, ordinary
+> stratification is preferable (**+31.5%** [+5.2, +61.6] against it on the
+> two-torsion control).
+
+**What that claim does not cover.** The adaptive-biasing comparison (ABF, OPES,
+ABP) was made at the *old* convention, where the shared 0.020 floor was
+comparable to the differences being measured: **-33.1%** vs ABF at 1e8 force
+evaluations and **-8.1%** at 4.1e8.  Those arms were not rerun at the lower
+floor, so the ABF/OPES margins above should be read as measured-at-that-floor,
+not as settled.  Re-deriving them is the first thing to do if this becomes a
+paper.
 
 Full account: [`docs/MOLECULAR_REPORT.md`](docs/MOLECULAR_REPORT.md). **Start there.**
 

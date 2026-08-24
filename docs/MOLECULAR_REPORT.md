@@ -1,8 +1,37 @@
 # Does reaction-coordinate WFR survive the move to molecules?
 
 **Short answer: the mechanism transfers, sharpens, and acquires a fix the toy
-phase could not have found — but the honest claim is speed at practical budgets,
-not accuracy at unlimited budget.**
+phase could not have found. The apparent accuracy ceiling turned out to be the
+measurement convention rather than the method, and once it was removed the
+method proved unbiased.**
+
+## The claim, frozen
+
+> **Reaction-coordinate WFR is a fast population-level equilibration mechanism
+> for free-energy calculation with an INCOMPLETE reaction coordinate.** Its
+> practical molecular success depends on pairing reaction-coordinate transport
+> with an *exact* Metropolis-corrected conditional move for the slow fiber
+> modes; learned proposals are fine, uncorrected ones are worse than useless.
+> In that regime it reaches the statistical-error floor substantially earlier
+> than cold stratified TI (**-56.2%** [-64.4, -49.5] at 8.6e8 force evaluations)
+> and than an oracle-warm-started TI ceiling (**-28.5%** [-39.0, -10.1]), while
+> becoming statistically level with that ceiling at long budget. Once the
+> relevant slow modes are promoted into the reaction coordinate itself, ordinary
+> stratification is preferable (**+31.5%** [+5.2, +61.6] against it on the
+> two-torsion control).
+
+Three limits on that claim, stated up front rather than at the end.
+
+* **The adaptive-biasing margins are from the old convention.** ABF, OPES and
+  ABP were run at `h` = 2e-3, `b_mf` = 0.05, `n` = 129, where the shared 0.020
+  numerical floor was comparable to the differences being measured: -33.1% vs
+  ABF at 1e8 force evaluations, -8.1% at 4.1e8. They were not rerun at the lower
+  floor. Read them as measured-at-that-floor, not as settled.
+* **Everything here is one reaction coordinate on a small molecule in vacuum**,
+  plus one two-dimensional control. Solvated and ionic systems were planned and
+  deliberately not run.
+* **A residual 0.003 kcal/mol in the floor is unexplained**, after four
+  candidates were tested and three found real but insufficient (section 6c).
 
 The toy phase (`MANIFOLD_FORMULATION.md`) concluded that RC-WFR's error lives in
 the *lift*: how a configuration correctly distributed on `Sigma(z)` is carried to
@@ -236,6 +265,38 @@ the reference's own noise).  The rest is arm-DEPENDENT -- the arms differ from
 each other by 0.004-0.006 against a row mean's 0.0014 -- so it is not a common
 reference offset.  The likely cause is named in `MOLECULAR_RESULTS.md` section
 21.1 and deliberately left unmeasured.
+
+### 6c. The floor that replaced it, itemised — and one candidate refuted
+
+The new floor is 0.0093 on pentane, and it is not a bias. Halving `h` again from
+1e-3 changes nothing (self-difference 0.0027 against a 0.0042 noise floor) and
+halving `b_mf` from 0.02 to 0.01 moves `e_F` by 0.00008. Itemised:
+
+| term | kcal/mol | how it was obtained |
+|---|---|---|
+| statistics | 0.00772 | row scatter, de-biased |
+| estimator kernel, at the measured sampling density | 0.00263 | section 23 |
+| reference 180-bin resolution | 0.00196 | resample-and-return on a smooth profile |
+| reference's own time step | 0.00238 | the reference rerun 4x finer |
+| reference block noise | 0.00085 | its 8 independent blocks |
+| **quadrature of known terms** | **0.00876** | |
+| observed | 0.00928 | |
+| unaccounted | 0.00306 | |
+
+Known terms carry **89% of the squared error**, dominated by ordinary statistics.
+
+The leading suspect for the rest was that the kernel's floor had been computed
+for a *uniform* sampling density, while the Fixman weight makes even
+grid-placed windows uneven and RC-WFR's windows are equidistributed by transport
+instead. **It was measured and refuted.** With each arm's actual density the
+extra term is 0.0017 for the TI arms and **0.0003** for RC-WFR — far too small
+to be the 0.003 residual or the 0.004–0.006 by which the arms differ.
+
+It also came back the opposite way round from the assumption: **RC-WFR's
+effective sampling density is the more uniform one**, by a factor seven.
+Placing windows on a perfect grid does not give a flat sampling density once the
+Fixman weight is applied; transport-equidistributed windows happen to
+compensate.
 
 ### 7. What the advantage actually is
 
