@@ -500,6 +500,48 @@ records what that number measures.
 clone policies, evaluation scopes, mechanism/advancement thresholds, Track P, the
 offline benchmark and the downstream ladder are all unchanged.
 
+**Amendment 3 (2026-08-25, before any v3 scientific run) — the FR-time/θ mapping
+is frozen; "matched Δτ/θ" is now exactly defined.**
+
+v3.1 specified the offline benchmark at "matched Δτ/θ" without saying how the
+two are related. θ is *not* Fisher–Rao time. The exact solution of the flow for
+fixed q is p_τ ∝ p₀^{e^{−τ}} q^{1−e^{−τ}}, so with the FT parameterization
+p⁺ ∝ p^{1−θ} q^{θ},
+
+    θ = 1 − exp(−τ)          τ = −log(1 − θ)
+
+and the matched FT dose for a BD step of length Δτ_BD is
+
+    θ_matched = 1 − exp(−Δτ_BD),     **not**   θ = Δτ_BD.
+
+The two agree to O(Δτ²) but diverge at the doses this campaign uses: the
+relative error of the naive identification is 2.5 % at Δτ = 0.05, 10.3 % at
+Δτ = 0.2, 27.1 % at Δτ = 0.5 and 58.2 % at Δτ = 1.0.
+
+The same mapping fixes the composition law, which becomes a sharp unit test that
+the exponent has not been reversed:
+
+    T_{θ₂}(T_{θ₁}[p]) = T_{θ₁₂}[p],   θ₁₂ = 1 − (1−θ₁)(1−θ₂) = θ₁ + θ₂ − θ₁θ₂
+
+verified numerically to 2.2e-16, against 1.4e-1 for the naive θ₁ + θ₂.
+
+Binding: every dose-matched offline BD/FT comparison uses θ = 1 − exp(−Δτ_BD).
+The online arms are unaffected — P-BD is parameterized by p_max and P-FT by the
+ESS governor, and v3.1 already forbids reading the online pair as a dose-matched
+contrast. No arm, parameter or threshold changes.
+
+**ESS monotonicity is a theorem, not an assumption (gate strengthened).** With
+a_i = log q(z_i) − log p̂(z_i) and Z(s) = Σ_i e^{s a_i}, the governor's ESS is
+
+    ESS(θ) = Z(θ)² / Z(2θ),     d/dθ log ESS = 2[m(θ) − m(2θ)],  m(s) = Z′(s)/Z(s)
+
+and m′(s) = Var_{w(s)}(a) ≥ 0, so m is non-decreasing, m(2θ) ≥ m(θ) for θ ≥ 0,
+and **ESS is non-increasing on [0,1]** for any fixed cloud. The numerical
+monotonicity gate is retained, but a violation is now an engineering anomaly
+(numerical pathology) rather than a property of the cloud, and the bisection's
+grid-scan fallback must therefore **log loudly** whenever it fires rather than
+silently substituting a scan.
+
 ## Revision log
 
 **v3.1 (2026-08-25), six corrections to the v3.0 draft, all adopted:**
