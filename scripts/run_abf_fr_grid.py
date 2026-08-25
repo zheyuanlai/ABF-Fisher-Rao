@@ -97,20 +97,27 @@ def build_specs_for_stage(cfg, stage, seeds, stage_root):
     seen = set()
     # Always include the ABF-only baseline for matched-seed comparisons.
     for seed in seeds:
-        specs.append(RunSpec("abf_only", "none", seed, 0.0,
-                             float(cfg["fr"]["eta_values"][0]), 0.0, 1))
+        specs.append(RunSpec(
+            method="abf_only", target_type="none", seed=int(seed),
+            gamma=0.0, eta=float(cfg["fr"]["eta_values"][0]),
+            burnin_fraction=0.0, fr_every=1, stop_fraction=1.0))
     for _, r in best.iterrows():
         if r["method"] == "abf_only":
             continue
-        key = (r["method"], r["target_type"], float(r["gamma"]), float(r["eta"]),
-               float(r["burnin_fraction"]), int(r["fr_every"]))
+        key = (
+            r["method"], r["target_type"], float(r["gamma"]), float(r["eta"]),
+            float(r["burnin_fraction"]),
+            float(r.get("stop_fraction", 1.0)), int(r["fr_every"]))
         if key in seen:
             continue
         seen.add(key)
         for seed in seeds:
-            specs.append(RunSpec(r["method"], r["target_type"], seed,
-                                 float(r["gamma"]), float(r["eta"]),
-                                 float(r["burnin_fraction"]), int(r["fr_every"])))
+            specs.append(RunSpec(
+                method=r["method"], target_type=r["target_type"],
+                seed=int(seed), gamma=float(r["gamma"]), eta=float(r["eta"]),
+                burnin_fraction=float(r["burnin_fraction"]),
+                fr_every=int(r["fr_every"]),
+                stop_fraction=float(r.get("stop_fraction", 1.0))))
     return specs
 
 
@@ -131,6 +138,7 @@ def simulate_one(spec: RunSpec, cfg, x_grid, ref, ev):
         min_count=float(abf.get("min_count", 1.0)),
         ema_alpha=float(abf.get("ema_alpha", 0.05)),
         gamma=float(spec.gamma), burnin_fraction=float(spec.burnin_fraction),
+        stop_fraction=float(spec.stop_fraction),
         ramp_fraction=float(fr.get("ramp_fraction", 0.1)),
         fr_every=int(spec.fr_every),
         score_clip=fr.get("score_clip", 5.0),
@@ -138,9 +146,16 @@ def simulate_one(spec: RunSpec, cfg, x_grid, ref, ev):
         x_init_mode=sim.get("x_init_mode", "mixed"),
         y_init_mode=sim.get("y_init_mode", "mixed"),
         x_barrier=ev.x_barrier,
+        observation_order=abf.get(
+            "observation_order", "pre_propagation"),
+        update_every=int(abf.get("update_every", 1)),
+        x_tilt=float(cfg.get("potential", {}).get("x_tilt", 0.0)),
+        interval_scaled_clock=bool(fr.get("interval_scaled_clock", False)),
         rng_init=rng_init, rng_noise=rng_noise, rng_fr=rng_fr,
     )
-    summary = metrics.final_summary(diag, x_grid, ref["F_ref"], ref["Fprime_ref"], ev)
+    summary = metrics.final_summary(
+        diag, x_grid, ref["F_ref"], ref["Fprime_ref"], ev,
+        p_ref=ref.get("p_ref"))
     return diag, summary
 
 
@@ -156,17 +171,27 @@ def summarize_configs(final_df):
     """Aggregate per-run final metrics over seeds, grouped by config."""
     rows = []
     keys = ["config_id", "method", "target_type", "gamma", "eta",
-            "burnin_fraction", "fr_every"]
+            "burnin_fraction", "stop_fraction", "fr_every"]
     for cid, g in final_df.groupby("config_id"):
         row = {k: g[k].iloc[0] for k in keys}
         row["n_seeds"] = len(g)
         for col in ["final_l2_F", "final_l2_Fprime", "integrated_l2_F",
                     "integrated_l2_Fprime", "final_marginal_l2_uniform",
-                    "final_marginal_l2_target", "mean_fr_event_fraction",
-                    "max_fr_event_fraction", "barrier_crossings",
-                    "frac_left", "frac_barrier", "frac_right"]:
-            row[f"median_{col}"] = float(np.nanmedian(g[col]))
-            row[f"iqr_{col}"] = _iqr(g[col])
+                    "final_marginal_l2_target",
+                    "final_marginal_l2_physical_ref",
+                    "integrated_marginal_l2_physical_ref",
+                    "final_deltaF_error", "integrated_deltaF_error",
+                    "final_barrier_height_error",
+                    "integrated_barrier_height_error",
+                    "mean_fr_event_fraction", "max_fr_event_fraction",
+                    "barrier_crossings", "frac_left", "frac_barrier",
+                    "frac_right", "final_ancestor_ess",
+                    "final_max_clone_multiplicity",
+                    "final_max_clone_weight", "cumulative_fr_events",
+                    "cumulative_replacements"]:
+            if col in g:
+                row[f"median_{col}"] = float(np.nanmedian(g[col]))
+                row[f"iqr_{col}"] = _iqr(g[col])
         row["frac_nan"] = float(np.mean(g["any_nan"]))
         rows.append(row)
     return pd.DataFrame(rows)
@@ -182,7 +207,9 @@ def select_best_configs(config_df, cfg):
     """
     cap = float(cfg["fr"].get("max_event_fraction", 0.10))
     rows = []
-    for target in ["none", "estimated", "uniform", "oracle", "self"]:
+    for target in [
+            "none", "estimated", "uniform", "oracle", "self",
+            "physical", "physical_oracle"]:
         sub = config_df[config_df["target_type"] == target].copy()
         if sub.empty:
             continue
@@ -203,6 +230,7 @@ def select_best_configs(config_df, cfg):
                 method=r["method"], target_type=r["target_type"],
                 gamma=float(r["gamma"]), eta=float(r["eta"]),
                 burnin_fraction=float(r["burnin_fraction"]),
+                stop_fraction=float(r.get("stop_fraction", 1.0)),
                 fr_every=int(r["fr_every"]),
                 median_integrated_l2_F=float(r["median_integrated_l2_F"]),
                 median_final_l2_F=float(r["median_final_l2_F"]),
@@ -231,7 +259,9 @@ def main(argv=None):
     x_grid = reference.profile_grid(cfg)
     y_quad = np.linspace(cfg["domain"]["y_min"], cfg["domain"]["y_max"],
                          int(cfg["domain"]["ny_ref"]))
-    ref = reference.compute_reference(x_grid, y_quad, beta)
+    ref = reference.compute_reference(
+        x_grid, y_quad, beta,
+        x_tilt=float(cfg.get("potential", {}).get("x_tilt", 0.0)))
     ev = metrics.EvalConfig.from_domain(cfg["domain"])
 
     if not os.path.exists(os.path.join(io_utils.reference_dir(cfg),
@@ -272,14 +302,19 @@ def main(argv=None):
         meta = spec.to_row()
 
         # Per-snapshot long rows + FR event rows.
-        ts = metrics.time_series_metrics(diag, x_grid, ref["F_ref"],
-                                         ref["Fprime_ref"], ev)
+        ts = metrics.time_series_metrics(
+            diag, x_grid, ref["F_ref"], ref["Fprime_ref"], ev,
+            p_ref=ref.get("p_ref"))
         for r in ts:
             long_rows.append({**meta, **r})
-            fr_rows.append({**meta, **{k: r[k] for k in (
+            fr_keys = (
                 "step", "t", "gamma_eff", "fr_applied", "fr_event_fraction",
                 "fr_event_fraction_max", "fr_events_total", "score_mean",
-                "score_std", "score_min", "score_max", "n_unique_ancestors")}})
+                "score_std", "score_min", "score_max", "n_unique_ancestors",
+                "ancestor_ess", "max_clone_multiplicity", "max_clone_weight",
+                "cumulative_fr_events", "cumulative_replacements")
+            fr_rows.append({
+                **meta, **{key: r[key] for key in fr_keys if key in r}})
 
         # Final summary row.
         final_rows.append({**meta, **summary})
@@ -288,9 +323,13 @@ def main(argv=None):
         Fp = diag["Fprime_hat"][-1]; F = diag["F_hat"][-1]
         p = diag["p_hat_grid"][-1]; q = diag["q_target_grid"][-1]
         for j in range(len(x_grid)):
-            profile_rows.append({**meta, "x": float(x_grid[j]),
-                                 "Fprime_hat": float(Fp[j]), "F_hat": float(F[j]),
-                                 "p_hat": float(p[j]), "q_target": float(q[j])})
+            profile_rows.append({
+                **meta, "x": float(x_grid[j]),
+                "F_ref": float(ref["F_ref"][j]),
+                "Fprime_ref": float(ref["Fprime_ref"][j]),
+                "p_ref": float(ref["p_ref"][j]),
+                "Fprime_hat": float(Fp[j]), "F_hat": float(F[j]),
+                "p_hat": float(p[j]), "q_target": float(q[j])})
 
         # Conditional Y|X diagnostics.
         snap_idx = None if cond_idx is None else list(range(len(diag["steps"])))
@@ -312,17 +351,24 @@ def main(argv=None):
 
     checkpoint()
 
-    # Config aggregation + best-config selection (tuning/smoke only).
+    # Config aggregation; generic selection may be disabled by a preregistered study.
     if args.stage in ("smoke", "tuning") and final_rows:
         final_df = pd.DataFrame(final_rows)
         config_df = summarize_configs(final_df)
         config_df.to_csv(os.path.join(stage_root, "tuning_config_summary.csv"),
                          index=False)
-        best_df = select_best_configs(config_df, cfg)
-        best_df.to_csv(os.path.join(stage_root, "best_configs.csv"), index=False)
-        print(f"[run_abf_fr_grid] wrote tuning_config_summary.csv "
-              f"({len(config_df)} configs) and best_configs.csv "
-              f"({int(best_df['selected'].sum()) if len(best_df) else 0} selected)")
+        write_generic = bool(
+            cfg.get("selection", {}).get("write_generic_best", True))
+        if write_generic:
+            best_df = select_best_configs(config_df, cfg)
+            best_df.to_csv(
+                os.path.join(stage_root, "best_configs.csv"), index=False)
+            print(f"[run_abf_fr_grid] wrote tuning_config_summary.csv "
+                  f"({len(config_df)} configs) and best_configs.csv "
+                  f"({int(best_df['selected'].sum()) if len(best_df) else 0} selected)")
+        else:
+            print("[run_abf_fr_grid] wrote tuning_config_summary.csv; generic "
+                  "best-config selection disabled (preregistered gate required)")
 
     n_nan = int(pd.DataFrame(final_rows)["any_nan"].sum()) if final_rows else 0
     print(f"[run_abf_fr_grid] DONE  {len(specs)} runs in "

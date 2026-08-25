@@ -78,18 +78,24 @@ def check_gradient(cfg, device, dtype, n_points, checks):
          * (d["x_max"] - d["x_min"]) + d["x_min"])
     y = (torch.rand(n_points, generator=g, device=device, dtype=torch.float64)
          * (d["y_max"] - d["y_min"]) + d["y_min"])
+    x_tilt = float(cfg.get("potential", {}).get("x_tilt", 0.0))
     dVdx_a, dVdy_a = potentials.grad_potential_xy_torch(x, y)
+    dVdx_a = dVdx_a + x_tilt
     eps = 1e-5
-    dVdx_fd = (potentials.potential_xy_torch(x + eps, y)
-               - potentials.potential_xy_torch(x - eps, y)) / (2 * eps)
+    dVdx_fd = (
+        potentials.potential_xy_torch(x + eps, y) + x_tilt * (x + eps)
+        - potentials.potential_xy_torch(x - eps, y) - x_tilt * (x - eps)
+    ) / (2 * eps)
     dVdy_fd = (potentials.potential_xy_torch(x, y + eps)
                - potentials.potential_xy_torch(x, y - eps)) / (2 * eps)
     ex = (dVdx_a - dVdx_fd).abs(); ey = (dVdy_a - dVdy_fd).abs()
     # torch vs numpy potential/gradient at the same points.
     xn, yn = x.cpu().numpy(), y.cpu().numpy()
-    dV_np = potentials.potential_xy(xn, yn)
-    dnp = float(np.max(np.abs(dV_np - potentials.potential_xy_torch(x, y).cpu().numpy())))
+    dV_np = potentials.potential_xy(xn, yn) + x_tilt * xn
+    dV_t = potentials.potential_xy_torch(x, y) + x_tilt * x
+    dnp = float(np.max(np.abs(dV_np - dV_t.cpu().numpy())))
     gx_np, gy_np = potentials.grad_potential_xy(xn, yn)
+    gx_np = gx_np + x_tilt
     dgx = float(np.max(np.abs(gx_np - dVdx_a.cpu().numpy())))
     dgy = float(np.max(np.abs(gy_np - dVdy_a.cpu().numpy())))
 
@@ -118,13 +124,22 @@ def _run_numpy(spec, cfg, x_grid, ref, ev):
         eta=float(spec.eta), min_count=float(abf.get("min_count", 1.0)),
         ema_alpha=float(abf.get("ema_alpha", 0.05)), gamma=float(spec.gamma),
         burnin_fraction=float(spec.burnin_fraction),
-        ramp_fraction=float(fr.get("ramp_fraction", 0.1)), fr_every=int(spec.fr_every),
+        stop_fraction=float(spec.stop_fraction),
+        ramp_fraction=float(fr.get("ramp_fraction", 0.1)),
+        fr_every=int(spec.fr_every),
         score_clip=fr.get("score_clip", 5.0),
         max_event_fraction=fr.get("max_event_fraction", 0.10),
         x_init_mode=sim.get("x_init_mode", "mixed"),
         y_init_mode=sim.get("y_init_mode", "mixed"), x_barrier=ev.x_barrier,
+        observation_order=abf.get(
+            "observation_order", "pre_propagation"),
+        update_every=int(abf.get("update_every", 1)),
+        x_tilt=float(cfg.get("potential", {}).get("x_tilt", 0.0)),
+        interval_scaled_clock=bool(fr.get("interval_scaled_clock", False)),
         rng_init=r_init, rng_noise=r_noise, rng_fr=r_fr)
-    return diag, metrics.final_summary(diag, x_grid, ref["F_ref"], ref["Fprime_ref"], ev)
+    return diag, metrics.final_summary(
+        diag, x_grid, ref["F_ref"], ref["Fprime_ref"], ev,
+        p_ref=ref.get("p_ref"))
 
 
 def _run_torch(specs, cfg, x_grid, ref, ev, device, dtype, estimator="binned_smooth"):
@@ -132,8 +147,11 @@ def _run_torch(specs, cfg, x_grid, ref, ev, device, dtype, estimator="binned_smo
         specs, cfg=cfg, x_grid=x_grid, F_ref=ref["F_ref"],
         Fprime_ref=ref["Fprime_ref"], ev=ev, device=device, dtype=dtype,
         estimator=estimator, base_seed=0)
-    summaries = [metrics.final_summary(d, x_grid, ref["F_ref"], ref["Fprime_ref"], ev)
-                 for d in res.diags]
+    summaries = [
+        metrics.final_summary(
+            d, x_grid, ref["F_ref"], ref["Fprime_ref"], ev,
+            p_ref=ref.get("p_ref"))
+        for d in res.diags]
     return res, summaries
 
 
@@ -225,12 +243,15 @@ def check_binned_vs_kernel(cfg, x_grid, ref, ev, device, dtype, mask, checks):
     Yn = rng.uniform(cfg["domain"]["y_min"], cfg["domain"]["y_max"], (1, 400))
     X = _t.as_tensor(Xn, device=device, dtype=dtype)
     Y = _t.as_tensor(Yn, device=device, dtype=dtype)
-    num_k, den_k = simulation_torch._kernel_estimator(x_grid_t, X, Y, h)
+    x_tilt = float(cfg.get("potential", {}).get("x_tilt", 0.0))
+    num_k, den_k = simulation_torch._kernel_estimator(
+        x_grid_t, X, Y, h, x_tilt=x_tilt)
     Fp_k = (num_k / (den_k + min_count)).cpu().numpy()[0]
     k_h, r_h = tu.gaussian_kernel1d(h, dx, device, dtype)
     idx = tu.nearest_index(X, x0, dx, G)
     C = tu.scatter_grid(idx, G)
-    S = tu.scatter_grid(idx, G, _pot.dVdx_xy_torch(X, Y))
+    S = tu.scatter_grid(
+        idx, G, _pot.dVdx_xy_torch(X, Y) + x_tilt)
     Fp_b = (tu.smooth_grid(S, k_h, r_h, dx)
             / (tu.smooth_grid(C, k_h, r_h, dx) + min_count)).cpu().numpy()[0]
     static_diff = _l2_profile(Fp_b, Fp_k, x_grid, mask)

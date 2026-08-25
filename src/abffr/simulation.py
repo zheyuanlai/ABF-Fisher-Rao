@@ -20,6 +20,8 @@ The Fisher--Rao birth--death step (when active) nudges the particle x-marginal
 * estimated : q_t(x) proportional to exp(-beta (F_hat_target(x) - B_t(x)))
 * uniform   : q_t(x) = Uniform on the x-grid
 * oracle    : q_t(x) proportional to exp(-beta (F_ref(x) - B_t(x)))   [diagnostic]
+* physical  : q_t(x) proportional to exp(-beta Fhat_EMA_t(x))
+* physical_oracle : q_t(x) proportional to exp(-beta F_ref(x))          [diagnostic]
 * self      : q_t(x) = p_hat_t(x)   [negative control, score ~ 0]
 """
 from __future__ import annotations
@@ -100,19 +102,26 @@ def estimated_fr_target(x_grid, Fhat_target_grid, B_grid, beta, eps=1e-12):
     return q
 
 
+def physical_fr_target(x_grid, F_grid, beta):
+    """Normalized physical marginal proportional to exp(-beta F)."""
+    exponent = -float(beta) * np.asarray(F_grid, dtype=float)
+    exponent = exponent - np.max(exponent)
+    q = np.exp(exponent)
+    return q / np.maximum(np.trapezoid(q, x_grid), EPS)
+
+
 def uniform_fr_target(x_grid):
     """Uniform density on ``[x_grid[0], x_grid[-1]]``."""
     width = x_grid[-1] - x_grid[0]
     return np.full_like(x_grid, 1.0 / max(width, EPS))
 
 
-def fr_score(X, p_at_X, p_grid, q_grid, x_grid):
-    """Fisher--Rao score against a (grid-sampled) target ``q``.
+def fr_score(X, p_at_X, p_grid, q_grid, x_grid, score_clip=None):
+    """Mean-zero Fisher--Rao particle score against a grid target.
 
-    Renormalises ``p_grid`` and ``q_grid`` on ``x_grid`` so the baseline is a
-    proper KL divergence, then returns the mean-zero score::
-
-        S_i = log( p_hat(X_i) / q(X_i) ) - integral p_hat log(p_hat / q) dx.
+    The continuum KL centering is followed by particle-mean recentering. When
+    clipping is requested, clip/recenter is iterated to keep the fixed-population
+    discretisation mass preserving while bounding extreme scores.
     """
     Zp = np.maximum(np.trapezoid(p_grid, x_grid), EPS)
     Zq = np.maximum(np.trapezoid(q_grid, x_grid), EPS)
@@ -122,70 +131,62 @@ def fr_score(X, p_at_X, p_grid, q_grid, x_grid):
 
     q_part = np.maximum(np.interp(X, x_grid, q_g), EPS)
     log_ratio_grid = np.log(np.maximum(p_g, EPS)) - np.log(np.maximum(q_g, EPS))
-    baseline = np.trapezoid(p_g * log_ratio_grid, x_grid)  # KL(p || q)
-    log_ratio_part = np.log(np.maximum(p_part, EPS)) - np.log(q_part)
-    return log_ratio_part - baseline
+    baseline = np.trapezoid(p_g * log_ratio_grid, x_grid)
+    S = np.log(np.maximum(p_part, EPS)) - np.log(q_part) - baseline
+    S = S - np.mean(S)
+    if score_clip is not None:
+        for _ in range(3):
+            S = np.clip(S, -float(score_clip), float(score_clip))
+            S = S - np.mean(S)
+    return S
 
 
-def resample_fixed_N(X, Y, ancestors, S, gamma, dt, rng, max_event_fraction=None):
-    """Fixed-N Fisher--Rao birth--death resampling.
+def resample_fixed_N(X, Y, ancestors, S, gamma, dt, rng,
+                     max_event_fraction=None):
+    """Fixed-N death/clone resampling with a replacement-fraction cap.
 
-    ``S_i > 0`` -> die  with prob ``1 - exp(-gamma S_i dt)``
-    ``S_i < 0`` -> clone with prob ``1 - exp( gamma S_i dt)``
-
-    The whole particle ``(X_i, Y_i)`` (and its ancestor label) is cloned/killed.
-    Population size is restored to ``N`` by random top-up from survivors / random
-    trimming.  ``max_event_fraction`` caps the realised score-driven event
-    fraction by randomly subsampling deaths and births (gentle safety clip).
-
-    Returns ``(X_new, Y_new, ancestors_new, info)``.
+    Positive-score particles are death candidates. Each realised dead slot is
+    replaced by a clone sampled from the negative-score pool with probability
+    proportional to minus S. Source arrays are never mutated during sampling.
     """
     N = len(X)
-    u = rng.uniform(size=N)
+    positive = S > 0
+    p_death = np.where(
+        positive,
+        np.clip(1.0 - np.exp(-float(gamma) * S * float(dt)), 0.0, 1.0),
+        0.0,
+    )
+    die = positive & (rng.uniform(size=N) < p_death)
 
-    pos = S > 0
-    neg = S < 0
-    p_death = np.where(pos, np.clip(1.0 - np.exp(-gamma * S * dt), 0.0, 1.0), 0.0)
-    p_birth = np.where(neg, np.clip(1.0 - np.exp(gamma * S * dt), 0.0, 1.0), 0.0)
-
-    die = pos & (u < p_death)
-    clone = neg & (u < p_birth)
-
-    # Safety: cap the total number of score-driven events at max_event_fraction*N.
     if max_event_fraction is not None:
-        cap = int(np.floor(max_event_fraction * N))
-        n_events = int(die.sum() + clone.sum())
-        if cap >= 0 and n_events > cap:
-            die_idx = np.where(die)[0]
-            clone_idx = np.where(clone)[0]
-            # Keep events in proportion to their original counts.
-            keep_die = int(round(cap * len(die_idx) / max(n_events, 1)))
-            keep_clone = cap - keep_die
-            keep_die = min(keep_die, len(die_idx))
-            keep_clone = min(keep_clone, len(clone_idx))
-            die = np.zeros(N, dtype=bool)
-            clone = np.zeros(N, dtype=bool)
-            if keep_die > 0:
-                die[rng.choice(die_idx, size=keep_die, replace=False)] = True
-            if keep_clone > 0:
-                clone[rng.choice(clone_idx, size=keep_clone, replace=False)] = True
+        cap = int(np.floor(float(max_event_fraction) * N))
+        if cap <= 0:
+            die[:] = False
+        elif int(die.sum()) > cap:
+            chosen = rng.choice(np.flatnonzero(die), size=cap, replace=False)
+            die[:] = False
+            die[chosen] = True
 
-    n_die = int(die.sum())
-    n_clone = int(clone.sum())
+    birth_weights = np.where(S < 0, -S, 0.0)
+    total_birth_weight = float(np.sum(birth_weights))
+    if not np.isfinite(total_birth_weight) or total_birth_weight <= EPS:
+        die[:] = False
 
-    survivors = np.where(~die)[0]
-    clone_srcs = np.where(clone)[0]
-    new_idx = np.concatenate([survivors, clone_srcs]).astype(int)
+    dead = np.flatnonzero(die)
+    n_replace = int(dead.size)
+    X_new = np.asarray(X).copy()
+    Y_new = np.asarray(Y).copy()
+    ancestors_new = np.asarray(ancestors).copy()
+    if n_replace:
+        source = rng.choice(
+            N, size=n_replace, replace=True,
+            p=birth_weights / total_birth_weight)
+        X_new[dead] = np.asarray(X)[source]
+        Y_new[dead] = np.asarray(Y)[source]
+        ancestors_new[dead] = np.asarray(ancestors)[source]
 
-    if len(new_idx) < N:
-        extra = rng.choice(survivors, size=N - len(new_idx), replace=True)
-        new_idx = np.concatenate([new_idx, extra])
-    elif len(new_idx) > N:
-        keep = rng.choice(len(new_idx), size=N, replace=False)
-        new_idx = new_idx[keep]
-
-    info = dict(n_die=n_die, n_clone=n_clone, n_events=n_die + n_clone)
-    return X[new_idx], Y[new_idx], ancestors[new_idx], info
+    info = dict(n_die=n_replace, n_clone=n_replace, n_events=n_replace)
+    return X_new, Y_new, ancestors_new, info
 
 
 # --------------------------------------------------------------------------- #
@@ -237,6 +238,7 @@ def run_simulation(
     ema_alpha: float = 0.05,
     gamma: float = 0.0,
     burnin_fraction: float = 0.0,
+    stop_fraction: float = 1.0,
     ramp_fraction: float = 0.1,
     fr_every: int = 5,
     score_clip: Optional[float] = 5.0,
@@ -244,6 +246,10 @@ def run_simulation(
     x_init_mode: str = "mixed",
     y_init_mode: str = "mixed",
     x_barrier: float = 0.0,
+    observation_order: str = "pre_propagation",
+    update_every: int = 1,
+    x_tilt: float = 0.0,
+    interval_scaled_clock: bool = False,
     rng_init: Optional[np.random.Generator] = None,
     rng_noise: Optional[np.random.Generator] = None,
     rng_fr: Optional[np.random.Generator] = None,
@@ -251,18 +257,29 @@ def run_simulation(
     dVdx_func: Callable = potentials.dVdx_xy,
     dVdy_func: Callable = potentials.dVdy_xy,
 ) -> Dict:
-    """Run one ABF(+FR) simulation and return diagnostics.
+    """Run one ABF(+FR) simulation and return aligned diagnostics.
 
-    ``target_type`` is one of ``{"none", "estimated", "uniform", "oracle",
-    "self"}``.  ``"none"`` is plain ABF (no birth--death).
-
-    The returned dict contains per-snapshot time series (``steps``/``times`` and
-    aligned arrays) plus the final profiles and particle snapshots.
+    post_propagation implements the v2 estimator protection:
+    propagate -> accumulate -> optional FR. The legacy order remains available
+    for regression. FR is active on completed steps in
+    [burnin_fraction*n_steps, stop_fraction*n_steps).
     """
-    if target_type not in ("none", "estimated", "uniform", "oracle", "self"):
+    allowed = {
+        "none", "estimated", "uniform", "oracle", "self",
+        "physical", "physical_oracle",
+    }
+    if target_type not in allowed:
         raise ValueError(f"Unknown target_type {target_type!r}")
     if fr_every <= 0:
         raise ValueError("fr_every must be positive")
+    if update_every <= 0:
+        raise ValueError("update_every must be positive")
+    if observation_order not in {"pre_propagation", "post_propagation"}:
+        raise ValueError(
+            "observation_order must be 'pre_propagation' or 'post_propagation'")
+    if not 0.0 <= burnin_fraction <= stop_fraction <= 1.0:
+        raise ValueError(
+            "FR schedule must satisfy 0 <= burnin_fraction <= stop_fraction <= 1")
 
     if rng_init is None:
         rng_init = np.random.default_rng()
@@ -276,76 +293,151 @@ def run_simulation(
     n_grid = len(x_grid)
 
     fr_burnin = int(round(burnin_fraction * n_steps))
+    fr_stop = int(round(stop_fraction * n_steps))
     gamma_ramp_steps = int(round(ramp_fraction * n_steps))
     fr_active = (target_type != "none") and (gamma > 0.0)
+    ema_alpha_eff = 1.0 - (1.0 - float(ema_alpha)) ** int(update_every)
 
-    # Initial conditions (shared across methods for a given seed via rng_init).
     X = _init_positions(rng_init, n_particles, xmin, xmax, x_init_mode)
     Y = _init_positions(rng_init, n_particles, ymin, ymax, y_init_mode)
     ancestors = np.arange(n_particles)
     noise_scale = np.sqrt(2.0 * dt / beta)
 
-    # ABF running-average accumulators (kernel estimator on x).
     num_acc = np.zeros(n_grid)
     den_acc = np.zeros(n_grid)
-    Fhat_target_grid = np.zeros(n_grid)  # EMA of the integrated force estimate
+    Fprime_hat = np.zeros(n_grid)
+    F_hat = np.zeros(n_grid)
+    Fhat_target_grid = np.zeros(n_grid)
 
     diag = _empty_diag(target_type)
-
-    # Windowed FR accumulators (reset at every snapshot).
     win_events = 0
     win_fr_steps = 0
     win_event_fracs = []
     win_score_means, win_score_stds = [], []
     win_score_mins, win_score_maxs = [], []
-    barrier_crossings = 0  # cumulative, counted on Langevin proposals
+    cumulative_fr_events = 0
+    cumulative_replacements = 0
+    barrier_crossings = 0
     prev_sign = np.sign(X - x_barrier)
 
-    for step in range(n_steps):
-        # --- ABF mean-force estimate from the current particle batch -------- #
-        diff = x_grid[:, None] - X[None, :]
+    def accumulate(X_obs, Y_obs):
+        nonlocal num_acc, den_acc
+        diff = x_grid[:, None] - X_obs[None, :]
         weights = gaussian_kernel(diff, h)
-        num_acc += np.sum(weights * dVdx_func(X, Y)[None, :], axis=1)
+        force = dVdx_func(X_obs, Y_obs) + float(x_tilt)
+        num_acc += np.sum(weights * force[None, :], axis=1)
         den_acc += np.sum(weights, axis=1)
-        # Denominator regularisation: low-count bins shrink toward zero force.
-        # den_acc grows with the whole history, so min_count only matters in
-        # sparsely visited bins / early transients.
+
+    def update_profiles():
+        nonlocal Fprime_hat, F_hat, Fhat_target_grid
         Fprime_hat = num_acc / (den_acc + min_count + EPS)
-        F_hat = integrate_mean_force(Fprime_hat, x_grid)        # bias B_t(x)
+        F_hat = integrate_mean_force(Fprime_hat, x_grid)
+        Fhat_target_grid = (
+            (1.0 - ema_alpha_eff) * Fhat_target_grid
+            + ema_alpha_eff * F_hat)
+
+    def save_snapshot(completed_step, gamma_eff):
+        nonlocal win_events, win_fr_steps, win_event_fracs
+        nonlocal win_score_means, win_score_stds
+        nonlocal win_score_mins, win_score_maxs
+        p_hat_grid = kde_marginal(x_grid, X, xmin, xmax, eta)
+        idx0 = int(np.argmin(np.abs(x_grid)))
+        F_hat_centered = F_hat - F_hat[idx0]
+        q_save = _build_target(
+            target_type, x_grid, Fhat_target_grid, F_hat, beta,
+            X, xmin, xmax, eta, F_ref)
+        counts = np.bincount(ancestors, minlength=n_particles).astype(float)
+        ess = counts.sum() ** 2 / max(float(np.sum(counts ** 2)), 1.0)
+        max_mult = int(counts.max())
+        diag["steps"].append(int(completed_step))
+        diag["times"].append(float(completed_step * dt))
+        diag["Fprime_hat"].append(Fprime_hat.copy())
+        diag["F_hat"].append(F_hat_centered.copy())
+        diag["p_hat_grid"].append(p_hat_grid.copy())
+        diag["q_target_grid"].append(q_save.copy())
+        diag["X_snap"].append(X.copy())
+        diag["Y_snap"].append(Y.copy())
+        diag["barrier_crossings"].append(int(barrier_crossings))
+        diag["n_unique_ancestors"].append(int(np.count_nonzero(counts)))
+        diag["ancestor_ess"].append(float(ess))
+        diag["max_clone_multiplicity"].append(max_mult)
+        diag["max_clone_weight"].append(float(max_mult / n_particles))
+        diag["gamma_eff"].append(float(gamma_eff))
+        diag["fr_applied"].append(bool(win_fr_steps > 0))
+        diag["fr_event_fraction"].append(
+            float(np.mean(win_event_fracs)) if win_event_fracs else 0.0)
+        diag["fr_event_fraction_max"].append(
+            float(np.max(win_event_fracs)) if win_event_fracs else 0.0)
+        diag["fr_events_total"].append(int(win_events))
+        diag["score_mean"].append(
+            float(np.mean(win_score_means)) if win_score_means else np.nan)
+        diag["score_std"].append(
+            float(np.mean(win_score_stds)) if win_score_stds else np.nan)
+        diag["score_min"].append(
+            float(np.min(win_score_mins)) if win_score_mins else np.nan)
+        diag["score_max"].append(
+            float(np.max(win_score_maxs)) if win_score_maxs else np.nan)
+        diag["cumulative_fr_events"].append(int(cumulative_fr_events))
+        diag["cumulative_replacements"].append(int(cumulative_replacements))
+        win_events = 0
+        win_fr_steps = 0
+        win_event_fracs = []
+        win_score_means, win_score_stds = [], []
+        win_score_mins, win_score_maxs = [], []
+
+    # A genuine time-zero snapshot makes full-run AUCs cover [0, T].
+    save_snapshot(0, 0.0)
+
+    for step in range(n_steps):
+        next_step = step + 1
+
+        if observation_order == "pre_propagation":
+            accumulate(X, Y)
+            if step % update_every == 0:
+                update_profiles()
+
+        force_x = dVdx_func(X, Y) + float(x_tilt)
+        force_y = dVdy_func(X, Y)
         abf_at_X = np.interp(X, x_grid, Fprime_hat)
-
-        # EMA target free energy (used by the estimated FR target).
-        Fhat_target_grid = (1.0 - ema_alpha) * Fhat_target_grid + ema_alpha * F_hat
-
-        # --- Langevin + ABF proposal --------------------------------------- #
-        X_prop = X + (-dVdx_func(X, Y) + abf_at_X) * dt \
+        X_prop = X + (-force_x + abf_at_X) * dt \
             + noise_scale * rng_noise.standard_normal(n_particles)
-        Y_prop = Y + (-dVdy_func(X, Y)) * dt \
+        Y_prop = Y + (-force_y) * dt \
             + noise_scale * rng_noise.standard_normal(n_particles)
         X_prop = reflect_1d(X_prop, xmin, xmax)
         Y_prop = reflect_1d(Y_prop, ymin, ymax)
 
-        # Barrier crossings on the (genuine) Langevin move.
         new_sign = np.sign(X_prop - x_barrier)
         crossed = (new_sign != prev_sign) & (new_sign != 0) & (prev_sign != 0)
         barrier_crossings += int(np.count_nonzero(crossed))
 
-        # --- Fisher--Rao birth--death -------------------------------------- #
-        gamma_eff = gamma_schedule(step, gamma, fr_burnin, gamma_ramp_steps) if fr_active else 0.0
-        do_fr = (fr_active and step >= fr_burnin
-                 and ((step - fr_burnin) % fr_every == 0) and gamma_eff > 0.0)
+        if observation_order == "post_propagation":
+            accumulate(X_prop, Y_prop)
+            if next_step % update_every == 0:
+                update_profiles()
+
+        in_window = (
+            fr_active and fr_burnin <= next_step < fr_stop)
+        gamma_eff = (
+            gamma_schedule(next_step, gamma, fr_burnin, gamma_ramp_steps)
+            if in_window else 0.0)
+        do_fr = (
+            in_window
+            and ((next_step - fr_burnin) % fr_every == 0)
+            and gamma_eff > 0.0)
+
         if do_fr:
-            q_grid = _build_target(target_type, x_grid, Fhat_target_grid, F_hat,
-                                   beta, X_prop, xmin, xmax, eta, F_ref)
             p_grid = kde_marginal(x_grid, X_prop, xmin, xmax, eta)
             p_at_X = kde_marginal(X_prop, X_prop, xmin, xmax, eta)
-            S = fr_score(X_prop, p_at_X, p_grid, q_grid, x_grid)
-            if score_clip is not None:
-                S = np.clip(S, -score_clip, score_clip)
-            X_new, Y_new, ancestors, info = resample_fixed_N(
-                X_prop, Y_prop, ancestors, S, gamma_eff, dt, rng_fr,
+            q_grid = _build_target(
+                target_type, x_grid, Fhat_target_grid, F_hat, beta,
+                X_prop, xmin, xmax, eta, F_ref)
+            S = fr_score(
+                X_prop, p_at_X, p_grid, q_grid, x_grid,
+                score_clip=score_clip)
+            clock_dt = dt * fr_every if interval_scaled_clock else dt
+            X, Y, ancestors, info = resample_fixed_N(
+                X_prop, Y_prop, ancestors, S, gamma_eff, clock_dt, rng_fr,
                 max_event_fraction=max_event_fraction)
-            X, Y = X_new, Y_new
             win_events += info["n_events"]
             win_fr_steps += 1
             win_event_fracs.append(info["n_events"] / n_particles)
@@ -353,68 +445,42 @@ def run_simulation(
             win_score_stds.append(float(np.std(S)))
             win_score_mins.append(float(np.min(S)))
             win_score_maxs.append(float(np.max(S)))
+            cumulative_fr_events += 1
+            cumulative_replacements += info["n_events"]
         else:
             X, Y = X_prop, Y_prop
 
         prev_sign = np.sign(X - x_barrier)
 
-        # --- Snapshot ------------------------------------------------------- #
-        if step % eval_every == 0 or step == n_steps - 1:
-            p_hat_grid = kde_marginal(x_grid, X, xmin, xmax, eta)
-            idx0 = int(np.argmin(np.abs(x_grid)))
-            F_hat_centered = F_hat - F_hat[idx0]
-            q_save = _build_target(target_type, x_grid, Fhat_target_grid, F_hat,
-                                   beta, X, xmin, xmax, eta, F_ref)
-            diag["steps"].append(step)
-            diag["times"].append(step * dt)
-            diag["Fprime_hat"].append(Fprime_hat.copy())
-            diag["F_hat"].append(F_hat_centered.copy())
-            diag["p_hat_grid"].append(p_hat_grid.copy())
-            diag["q_target_grid"].append(q_save.copy())
-            diag["X_snap"].append(X.copy())
-            diag["Y_snap"].append(Y.copy())
-            diag["barrier_crossings"].append(int(barrier_crossings))
-            diag["n_unique_ancestors"].append(int(len(np.unique(ancestors))))
-            diag["gamma_eff"].append(float(gamma_eff))
-            # FR window aggregates (NaN-safe when no FR fired in the window).
-            diag["fr_applied"].append(bool(win_fr_steps > 0))
-            diag["fr_event_fraction"].append(
-                float(np.mean(win_event_fracs)) if win_event_fracs else 0.0)
-            diag["fr_event_fraction_max"].append(
-                float(np.max(win_event_fracs)) if win_event_fracs else 0.0)
-            diag["fr_events_total"].append(int(win_events))
-            diag["score_mean"].append(
-                float(np.mean(win_score_means)) if win_score_means else np.nan)
-            diag["score_std"].append(
-                float(np.mean(win_score_stds)) if win_score_stds else np.nan)
-            diag["score_min"].append(
-                float(np.min(win_score_mins)) if win_score_mins else np.nan)
-            diag["score_max"].append(
-                float(np.max(win_score_maxs)) if win_score_maxs else np.nan)
-            win_events = 0
-            win_fr_steps = 0
-            win_event_fracs = []
-            win_score_means, win_score_stds = [], []
-            win_score_mins, win_score_maxs = [], []
+        if next_step % eval_every == 0 or next_step == n_steps:
+            save_snapshot(next_step, gamma_eff)
 
     diag["fr_burnin"] = fr_burnin
+    diag["fr_stop"] = fr_stop
     diag["fr_every"] = int(fr_every)
     diag["n_steps"] = int(n_steps)
     diag["dt"] = float(dt)
+    diag["observation_order"] = observation_order
+    diag["interval_scaled_clock"] = bool(interval_scaled_clock)
+    diag["x_tilt"] = float(x_tilt)
     return diag
 
 
 def _build_target(target_type, x_grid, Fhat_target_grid, B_grid, beta,
                   X, xmin, xmax, eta, F_ref):
-    """Construct the (normalised) FR target density ``q`` on ``x_grid``."""
+    """Construct the normalized FR target density q on x_grid."""
     if target_type == "uniform":
         return uniform_fr_target(x_grid)
     if target_type == "oracle":
         return estimated_fr_target(x_grid, F_ref, B_grid, beta)
+    if target_type == "physical":
+        return physical_fr_target(x_grid, Fhat_target_grid, beta)
+    if target_type == "physical_oracle":
+        return physical_fr_target(x_grid, F_ref, beta)
     if target_type == "self":
         q = kde_marginal(x_grid, X, xmin, xmax, eta)
         return q / np.maximum(np.trapezoid(q, x_grid), EPS)
-    # default / "estimated" / "none"
+    # Legacy estimated target; none saves the same diagnostic grid.
     return estimated_fr_target(x_grid, Fhat_target_grid, B_grid, beta)
 
 
@@ -424,9 +490,11 @@ def _empty_diag(target_type):
         steps=[], times=[],
         Fprime_hat=[], F_hat=[], p_hat_grid=[], q_target_grid=[],
         X_snap=[], Y_snap=[],
-        barrier_crossings=[], n_unique_ancestors=[], gamma_eff=[],
+        barrier_crossings=[], n_unique_ancestors=[], ancestor_ess=[],
+        max_clone_multiplicity=[], max_clone_weight=[], gamma_eff=[],
         fr_applied=[], fr_event_fraction=[], fr_event_fraction_max=[],
         fr_events_total=[], score_mean=[], score_std=[], score_min=[], score_max=[],
+        cumulative_fr_events=[], cumulative_replacements=[],
     )
 
 
@@ -453,9 +521,21 @@ def abf_fr_oracle(**kwargs):
     return run_simulation(target_type="oracle", **kwargs)
 
 
+def abf_fr_physical(**kwargs):
+    kwargs.pop("target_type", None)
+    return run_simulation(target_type="physical", **kwargs)
+
+
+def abf_fr_physical_oracle(**kwargs):
+    kwargs.pop("target_type", None)
+    return run_simulation(target_type="physical_oracle", **kwargs)
+
+
 METHOD_DISPATCH = {
     "abf_only": abf_only,
     "abf_fr_estimated": abf_fr_estimated,
     "abf_fr_uniform": abf_fr_uniform,
     "abf_fr_oracle": abf_fr_oracle,
+    "abf_fr_physical": abf_fr_physical,
+    "abf_fr_physical_oracle": abf_fr_physical_oracle,
 }

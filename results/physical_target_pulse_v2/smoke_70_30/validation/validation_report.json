@@ -1,0 +1,83 @@
+{
+  "device": "cpu",
+  "dtype": "torch.float64",
+  "cuda_available": true,
+  "config": "configs/physical_target_pulse_v2_smoke.yaml",
+  "all_pass": true,
+  "checks": [
+    {
+      "name": "gradient_finite_difference",
+      "passed": true,
+      "max_fd_error": 7.521521183662117e-10,
+      "mean_fd_error_dx": 1.889900597774307e-10,
+      "mean_fd_error_dy": 1.910837091617888e-10,
+      "max_torch_vs_numpy_V": 7.105427357601002e-15,
+      "max_torch_vs_numpy_gradx": 3.552713678800501e-15,
+      "max_torch_vs_numpy_grady": 5.329070518200751e-15,
+      "tol": "max_fd<1e-3, torch_vs_numpy<1e-8"
+    },
+    {
+      "name": "numpy_vs_torch_cpu",
+      "passed": true,
+      "numpy_final_l2_F": 0.9000776370730182,
+      "torch_final_l2_F": 0.8761364616290437,
+      "numpy_final_l2_Fprime": 1.1912115726340973,
+      "torch_final_l2_Fprime": 1.190947166970536,
+      "tol": "same order of magnitude (0.2x-5x), no NaN"
+    },
+    {
+      "name": "torch_cpu_vs_cuda",
+      "passed": true,
+      "cpu_final_l2_F": 0.8761364616290437,
+      "gpu_final_l2_F": 0.7486382852947916,
+      "tol": "same order of magnitude, no NaN"
+    },
+    {
+      "name": "batch_size_invariance",
+      "passed": true,
+      "per_run": [
+        {
+          "seed": 0,
+          "bs1": 0.8761364616290437,
+          "bs4": 0.8761364616290437,
+          "same_order": true
+        },
+        {
+          "seed": 1,
+          "bs1": 0.9114586167575824,
+          "bs4": 0.9114586167575824,
+          "same_order": true
+        },
+        {
+          "seed": 2,
+          "bs1": 0.8889509158136941,
+          "bs4": 0.8889509158136941,
+          "same_order": true
+        },
+        {
+          "seed": 3,
+          "bs1": 1.0042331080800373,
+          "bs4": 1.0042331080800373,
+          "same_order": true
+        }
+      ],
+      "tol": "same order of magnitude per matched run (0.1x-10x)"
+    },
+    {
+      "name": "binned_smooth_vs_kernel_reference",
+      "passed": true,
+      "static_relative_Fprime_l2": 0.007865682609256545,
+      "static_Fprime_l2_diff": 0.04124992443351221,
+      "binned_final_l2_F": 0.8924348232058966,
+      "kernel_final_l2_F": 0.8923932844452735,
+      "tol": "static relative Fprime L2 < 0.10; final L2(F) same order"
+    },
+    {
+      "name": "fr_event_fraction_cap",
+      "passed": true,
+      "max_event_fraction": 0.02,
+      "cap": 0.1,
+      "tol": "max_fr_event_fraction <= cap + 1e-6"
+    }
+  ]
+}

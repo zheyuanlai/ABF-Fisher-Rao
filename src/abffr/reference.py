@@ -24,7 +24,8 @@ EPS = 1e-300
 
 def compute_reference(x_grid, y_grid, beta,
                       V_func=potentials.potential_xy,
-                      dVdx_func=potentials.dVdx_xy):
+                      dVdx_func=potentials.dVdx_xy,
+                      x_tilt: float = 0.0):
     """Compute reference profiles on ``x_grid`` using y-quadrature on ``y_grid``.
 
     Returns a dict with keys ``log_Z``, ``F_ref``, ``Fprime_ref``, ``p_ref``,
@@ -39,8 +40,8 @@ def compute_reference(x_grid, y_grid, beta,
     xx = x_grid[:, None]
     yy = y_grid[None, :]
 
-    phi = beta * V_func(xx, yy)               # beta V(x, y)
-    dvdx = dVdx_func(xx, yy)                   # dV/dx(x, y)
+    phi = beta * (V_func(xx, yy) + float(x_tilt) * xx)
+    dvdx = dVdx_func(xx, yy) + float(x_tilt)
 
     m = phi.min(axis=1, keepdims=True)        # per-x shift for stability
     w = np.exp(-(phi - m))                     # exp(-(beta V - m)) in [0, 1]
@@ -87,7 +88,8 @@ def build_reference_grid(cfg: Dict, beta: float):
         d["x_min"], d["x_max"], d["y_min"], d["y_max"],
         d["nx_ref"], d["ny_ref"],
     )
-    V_grid = potentials.potential_xy(XX, YY)
+    x_tilt = float(cfg.get("potential", {}).get("x_tilt", 0.0))
+    V_grid = potentials.potential_xy(XX, YY) + x_tilt * XX
     phi = beta * (V_grid - V_grid.min())
     rho = np.exp(-phi)
     norm = np.trapezoid(np.trapezoid(rho, x_grid, axis=1), y_grid)
@@ -122,7 +124,8 @@ def load_reference_for_run(cfg: Dict, require_csv: bool = True, logger=print):
     d = cfg["domain"]
     ny = int(d.get("ny_ref", 801))
     y_quad = np.linspace(d["y_min"], d["y_max"], ny)
-    ref = compute_reference(x_grid, y_quad, beta)
+    x_tilt = float(cfg.get("potential", {}).get("x_tilt", 0.0))
+    ref = compute_reference(x_grid, y_quad, beta, x_tilt=x_tilt)
 
     csv_path = os.path.join(io_utils.reference_dir(cfg), "reference_profile.csv")
     if not os.path.exists(csv_path):

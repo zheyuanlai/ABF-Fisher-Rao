@@ -50,7 +50,9 @@ def main(argv=None):
     # --- 1-D reference profiles on the reaction-coordinate grid ------------- #
     x_profile = reference.profile_grid(cfg)
     y_quad = np.linspace(domain["y_min"], domain["y_max"], int(domain["ny_ref"]))
-    ref = reference.compute_reference(x_profile, y_quad, beta)
+    x_tilt = float(cfg.get("potential", {}).get("x_tilt", 0.0))
+    ref = reference.compute_reference(
+        x_profile, y_quad, beta, x_tilt=x_tilt)
 
     df = pd.DataFrame(dict(
         x=x_profile,
@@ -96,8 +98,8 @@ def main(argv=None):
     print("[run_reference_2d] wrote:")
     for path in (csv_path, npz_path, f1, f2, f3, f4):
         print("   ", os.path.relpath(path))
-    print(f"[run_reference_2d] beta={beta}, profile grid={len(x_profile)} pts, "
-          f"y-quadrature={len(y_quad)} pts")
+    print(f"[run_reference_2d] beta={beta}, x_tilt={x_tilt:g}, "
+          f"profile grid={len(x_profile)} pts, y-quadrature={len(y_quad)} pts")
     print(f"[run_reference_2d] F_ref range=[{ref['F_ref'].min():.3f}, "
           f"{ref['F_ref'].max():.3f}], all finite="
           f"{bool(np.all(np.isfinite(ref['F_ref'])) and np.all(np.isfinite(ref['Fprime_ref'])))}")

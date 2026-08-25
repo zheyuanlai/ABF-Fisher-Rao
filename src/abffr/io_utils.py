@@ -169,13 +169,15 @@ class RunSpec:
     eta: float = 0.10
     burnin_fraction: float = 0.0
     fr_every: int = 5
+    stop_fraction: float = 1.0
     extra: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def config_id(self) -> str:
         """Identifier shared by all seeds of the same hyperparameter point."""
         return (f"{self.method}|tt={self.target_type}|g={self.gamma:g}"
-                f"|eta={self.eta:g}|bi={self.burnin_fraction:g}|fe={self.fr_every}")
+                f"|eta={self.eta:g}|bi={self.burnin_fraction:g}"
+                f"|sf={self.stop_fraction:g}|fe={self.fr_every}")
 
     @property
     def run_id(self) -> str:
@@ -191,17 +193,17 @@ class RunSpec:
             gamma=float(self.gamma),
             eta=float(self.eta),
             burnin_fraction=float(self.burnin_fraction),
+            stop_fraction=float(self.stop_fraction),
             fr_every=int(self.fr_every),
         )
 
 
 def build_run_specs(cfg: Dict[str, Any], seeds: List[int]) -> List[RunSpec]:
-    """Expand a config into the list of :class:`RunSpec` to simulate.
+    """Expand a config into simulation runs, including finite FR windows.
 
-    ``abf_only`` is run once per seed (no FR hyperparameters).  Each
-    ``abf_fr_*`` method is crossed with the FR hyperparameter grid.  The target
-    type is inferred from the method name and validated against
-    ``fr.target_types``.
+    If fr.duration_fractions is supplied, each stop is computed as
+    burnin_fraction + duration. Otherwise fr.stop_fractions is crossed directly.
+    Every schedule is validated before a run identifier is created.
     """
     method_to_target = {
         "abf_only": "none",
@@ -209,17 +211,27 @@ def build_run_specs(cfg: Dict[str, Any], seeds: List[int]) -> List[RunSpec]:
         "abf_fr_uniform": "uniform",
         "abf_fr_oracle": "oracle",
         "abf_fr_self": "self",
+        "abf_fr_physical": "physical",
+        "abf_fr_physical_oracle": "physical_oracle",
     }
     fr = cfg.get("fr", {})
-    allowed_targets = set(fr.get("target_types", ["estimated", "uniform", "oracle"]))
+    allowed_targets = set(fr.get(
+        "target_types",
+        ["estimated", "uniform", "oracle", "physical", "physical_oracle"]))
     gamma_values = list(fr.get("gamma_values", [0.02]))
-    eta_values = list(fr.get("eta_values", [cfg.get("abf", {}).get("eta", 0.10)]))
+    eta_values = list(fr.get(
+        "eta_values", [cfg.get("abf", {}).get("eta", 0.10)]))
     burnin_fractions = list(fr.get("burnin_fractions", [0.0]))
     fr_every_values = list(fr.get("fr_every_values", [5]))
 
-    # ABF-only uses a single eta for its diagnostic KDE; pick the first listed.
-    default_eta = eta_values[0] if eta_values else 0.10
+    durations = fr.get("duration_fractions")
+    if durations is not None:
+        durations = list(durations)
+        stop_fractions = None
+    else:
+        stop_fractions = list(fr.get("stop_fractions", [1.0]))
 
+    default_eta = eta_values[0] if eta_values else 0.10
     specs: List[RunSpec] = []
     for method in cfg.get("methods", ["abf_only"]):
         target = method_to_target.get(method)
@@ -227,21 +239,35 @@ def build_run_specs(cfg: Dict[str, Any], seeds: List[int]) -> List[RunSpec]:
             raise ValueError(f"Unknown method {method!r} in config.")
         if method == "abf_only":
             for seed in seeds:
-                specs.append(RunSpec(method=method, target_type="none", seed=seed,
-                                     gamma=0.0, eta=default_eta,
-                                     burnin_fraction=0.0, fr_every=1))
+                specs.append(RunSpec(
+                    method=method, target_type="none", seed=seed,
+                    gamma=0.0, eta=default_eta, burnin_fraction=0.0,
+                    fr_every=1, stop_fraction=1.0))
             continue
         if target not in allowed_targets:
-            # Method requested but its target type was disabled in fr.target_types.
             continue
+
         for gamma in gamma_values:
             for eta in eta_values:
-                for burnin in burnin_fractions:
-                    for fr_every in fr_every_values:
-                        for seed in seeds:
-                            specs.append(RunSpec(
-                                method=method, target_type=target, seed=seed,
-                                gamma=float(gamma), eta=float(eta),
-                                burnin_fraction=float(burnin), fr_every=int(fr_every),
-                            ))
+                for burnin_raw in burnin_fractions:
+                    burnin = float(burnin_raw)
+                    stops = (
+                        [burnin + float(duration) for duration in durations]
+                        if durations is not None else stop_fractions)
+                    for stop_raw in stops:
+                        stop = float(stop_raw)
+                        if not 0.0 <= burnin <= stop <= 1.0:
+                            raise ValueError(
+                                "FR schedule must satisfy "
+                                f"0 <= burnin_fraction ({burnin}) <= "
+                                f"stop_fraction ({stop}) <= 1")
+                        for fr_every in fr_every_values:
+                            for seed in seeds:
+                                specs.append(RunSpec(
+                                    method=method, target_type=target,
+                                    seed=int(seed), gamma=float(gamma),
+                                    eta=float(eta),
+                                    burnin_fraction=burnin,
+                                    fr_every=int(fr_every),
+                                    stop_fraction=stop))
     return specs

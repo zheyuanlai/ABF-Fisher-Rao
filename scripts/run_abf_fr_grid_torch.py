@@ -89,7 +89,8 @@ def _load_shard_specs(path):
     return [RunSpec(method=r["method"], target_type=r["target_type"],
                     seed=int(r["seed"]), gamma=float(r["gamma"]),
                     eta=float(r["eta"]), burnin_fraction=float(r["burnin_fraction"]),
-                    fr_every=int(r["fr_every"])) for r in runs]
+                    fr_every=int(r["fr_every"]),
+                    stop_fraction=float(r.get("stop_fraction", 1.0))) for r in runs]
 
 
 def main(argv=None):

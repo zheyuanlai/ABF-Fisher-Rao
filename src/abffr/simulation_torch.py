@@ -24,9 +24,10 @@ Two estimator modes are provided:
     The exact ``O(G*N)`` Nadaraya--Watson kernel estimator and reflected KDE,
     a faithful GPU port of the CPU engine, used to bound the binning error.
 
-A batch must share ``target_type``, ``eta``, ``fr_every`` and ``burnin_fraction``
-(so the FR firing schedule and smoothing bandwidth are common); ``gamma`` and
-``seed`` may vary per row.  Grouping is handled by :mod:`abffr.parallel`.
+A batch must share ``target_type``, ``eta``, ``fr_every``, ``burnin_fraction``
+and ``stop_fraction`` (so the FR firing schedule and smoothing bandwidth are
+common); ``gamma`` and ``seed`` may vary per row. Grouping is handled by
+:mod:`abffr.parallel`.
 """
 from __future__ import annotations
 
@@ -75,6 +76,49 @@ def _init_batch_positions(specs, n_particles, domain, x_mode, y_mode,
             torch.as_tensor(Y, device=device, dtype=dtype))
 
 
+class _MatchedNoiseBank:
+    """Chunked, configuration-independent Langevin variates.
+
+    Each seed owns one generator keyed only by (base_seed, seed). Repeated rows
+    with the same matched seed receive identical additive noise irrespective of
+    method, batch composition, row order, or sharding. Chunking avoids both a
+    Python RNG call per row/step and a full-run GPU buffer.
+    """
+
+    def __init__(self, specs, n_particles, n_steps, device, dtype, base_seed,
+                 chunk_steps=1024):
+        self.n_particles = int(n_particles)
+        self.n_steps = int(n_steps)
+        self.device = device
+        self.dtype = dtype
+        self.chunk_steps = max(int(chunk_steps), 1)
+        seeds = sorted({int(s.seed) for s in specs})
+        seed_to_row = {seed: i for i, seed in enumerate(seeds)}
+        self.row_index = torch.as_tensor(
+            [seed_to_row[int(s.seed)] for s in specs], device=device,
+            dtype=torch.long)
+        self.generators = [
+            tu.make_generator(tu.stable_seed("langevin", base_seed, seed), device)
+            for seed in seeds
+        ]
+        self.chunk = None
+        self.chunk_start = -1
+
+    def at(self, step):
+        if (self.chunk is None or step < self.chunk_start
+                or step >= self.chunk_start + self.chunk.shape[1]):
+            length = min(self.chunk_steps, self.n_steps - int(step))
+            self.chunk = torch.stack([
+                torch.randn((length, 2, self.n_particles), generator=g,
+                            device=self.device, dtype=self.dtype)
+                for g in self.generators
+            ], dim=0)
+            self.chunk_start = int(step)
+        noise = self.chunk.index_select(
+            0, self.row_index)[:, step - self.chunk_start]
+        return noise[:, 0], noise[:, 1]
+
+
 def _empty_diag(target_type):
     return dict(
         target_type=target_type,
@@ -84,13 +128,13 @@ def _empty_diag(target_type):
         barrier_crossings=[], n_unique_ancestors=[], gamma_eff=[],
         fr_applied=[], fr_event_fraction=[], fr_event_fraction_max=[],
         fr_events_total=[], score_mean=[], score_std=[], score_min=[],
-        score_max=[],
-        # GPU-only extra ancestor diagnostics (optional columns downstream).
-        ancestor_ess=[], max_clone_multiplicity=[], target_l2=[],
+        score_max=[], cumulative_fr_events=[], cumulative_replacements=[],
+        ancestor_ess=[], max_clone_multiplicity=[], max_clone_weight=[],
+        target_l2=[],
     )
 
 
-def _kernel_estimator(x_grid_t, X, Y, h):
+def _kernel_estimator(x_grid_t, X, Y, h, x_tilt=0.0):
     """Exact O(G*N) Nadaraya--Watson contribution for one step (per row).
 
     Returns ``(num_contrib, den_contrib)`` each ``(B, G)`` matching the CPU
@@ -99,7 +143,7 @@ def _kernel_estimator(x_grid_t, X, Y, h):
     # (B, G, N): kernel of every grid node against every particle.
     diff = x_grid_t.view(1, -1, 1) - X.unsqueeze(1)
     w = torch.exp(-0.5 * (diff / h) ** 2) / (h * np.sqrt(2.0 * np.pi))
-    dvdx = potentials.dVdx_xy_torch(X, Y)
+    dvdx = potentials.dVdx_xy_torch(X, Y) + float(x_tilt)
     return (w * dvdx.unsqueeze(1)).sum(-1), w.sum(-1)
 
 
@@ -121,19 +165,28 @@ def _kde_reflected(x_grid_t, X, eta, xmin, xmax):
 # --------------------------------------------------------------------------- #
 def _build_target(target_type, Fhat_target, B_grid, F_ref_grid, p_hat,
                   beta, dx, width):
-    """Batched FR target ``q`` (``(B, G)``, normalised on the grid)."""
+    """Build a normalized batched FR target on the reaction-coordinate grid."""
+    allowed = {"none", "estimated", "uniform", "oracle", "self",
+               "physical", "physical_oracle"}
+    if target_type not in allowed:
+        raise ValueError(f"Unknown target_type {target_type!r}")
     if target_type == "uniform":
         B, G = p_hat.shape
         return torch.full((B, G), 1.0 / max(width, EPS),
                           device=p_hat.device, dtype=p_hat.dtype)
     if target_type == "self":
         return tu.normalize_density(p_hat, dx)
-    # estimated / oracle: q ~ exp(-beta (F_target - B)), normalised.
-    F_target = F_ref_grid if target_type == "oracle" else Fhat_target
-    exponent = -beta * (F_target - B_grid)
+
+    uses_oracle = target_type in {"oracle", "physical_oracle"}
+    F_target = F_ref_grid.expand_as(p_hat) if uses_oracle else Fhat_target
+    if target_type in {"physical", "physical_oracle"}:
+        exponent = -beta * F_target
+    else:
+        exponent = -beta * (F_target - B_grid)
     exponent = exponent - exponent.max(dim=1, keepdim=True).values
-    q = torch.exp(exponent)
-    q = tu.normalize_density(q, dx)
+    q = tu.normalize_density(torch.exp(exponent), dx)
+    if target_type in {"physical", "physical_oracle"}:
+        return q
     q = q.clamp_min(EPS)
     return tu.normalize_density(q, dx)
 
@@ -150,72 +203,64 @@ def _fr_score(X, p_hat, q_grid, x0, dx, beta, score_clip):
     p_part = tu.interp1d(p_g, X, x0, dx).clamp_min(EPS)
     q_part = tu.interp1d(q_g, X, x0, dx).clamp_min(EPS)
     S = torch.log(p_part) - torch.log(q_part) - baseline
+    S = S - S.mean(dim=1, keepdim=True)
     if score_clip is not None:
-        S = S.clamp(-float(score_clip), float(score_clip))
+        for _ in range(3):
+            S = S.clamp(-float(score_clip), float(score_clip))
+            S = S - S.mean(dim=1, keepdim=True)
     return S
 
 
-def _resample(X, Y, ancestors, S, gamma_eff, dt, max_event_fraction, gen,
-              jitter, noise_scale):
-    """Vectorised fixed-N Fisher--Rao birth--death.
-
-    Per row: a particle with ``S_i > 0`` dies with prob ``1 - exp(-gamma S_i dt)``
-    (same as the CPU engine); each dead slot is overwritten by a *clone* sampled
-    from the under-represented pool ``{i : S_i < 0}`` with weights ``|S_i|``.
-    This keeps ``N`` fixed, is fully GPU-vectorised, and matches the study spec's
-    resampling design.  ``max_event_fraction`` caps the per-row replaced fraction
-    by randomly sub-sampling deaths.  Returns ``(X, Y, ancestors, num_deaths)``.
-
-    NB: this differs from the CPU ``resample_fixed_N`` (which allows
-    ``n_die != n_clone`` with a random top-up); both are gentle, capped
-    birth--death schemes and are validated to give same-order metrics.
-    """
+def _resample(X, Y, ancestors, S, gamma_eff, dt, max_event_fraction,
+              generators, jitter, noise_scale):
+    """Fixed-N birth--death with one independent FR stream per run."""
     B, N = X.shape
-    g_dt = (gamma_eff.unsqueeze(1) * dt)
-    pos = S > 0
-    neg = S < 0
-    p_death = torch.where(pos, (1.0 - torch.exp(-g_dt * S)).clamp(0.0, 1.0),
-                          torch.zeros_like(S))
-    u = torch.rand(S.shape, generator=gen, device=S.device, dtype=S.dtype)
-    die = pos & (u < p_death)
+    X_new, Y_new, anc_new = X.clone(), Y.clone(), ancestors.clone()
+    n_death = torch.zeros(B, device=X.device, dtype=torch.long)
+    cap = N if max_event_fraction is None else int(
+        np.floor(float(max_event_fraction) * N))
+    if cap <= 0:
+        return X_new, Y_new, anc_new, n_death
 
-    # Cap deaths per row at floor(max_event_fraction * N) via random sub-sample.
-    if max_event_fraction is not None:
-        cap = int(np.floor(float(max_event_fraction) * N))
-        if cap <= 0:
-            die = torch.zeros_like(die)
-        else:
-            key = torch.where(die, torch.rand(S.shape, generator=gen,
-                                              device=S.device, dtype=S.dtype),
-                              torch.full_like(S, float("inf")))
-            sorted_key, _ = torch.sort(key, dim=1)
-            thresh = sorted_key[:, min(cap - 1, N - 1)].unsqueeze(1)
-            die = die & (key <= thresh)
-
-    # Birth pool: under-represented particles weighted by |S| (= -S for neg).
-    w_birth = torch.where(neg, -S, torch.zeros_like(S))
-    has_birth = w_birth.sum(dim=1) > 0
-    # Rows with no birth candidates cannot resample: cancel their deaths.
-    die = die & has_birth.unsqueeze(1)
-    # Safe weights for multinomial (rows without births fall back to uniform but
-    # have no deaths to fill, so the draw is unused).
-    w_safe = torch.where(has_birth.unsqueeze(1), w_birth,
-                         torch.ones_like(w_birth))
-    sources = torch.multinomial(w_safe, N, replacement=True, generator=gen)
-
-    identity = torch.arange(N, device=X.device).expand(B, N)
-    gather_idx = torch.where(die, sources, identity)
-
-    X_new = torch.gather(X, 1, gather_idx)
-    Y_new = torch.gather(Y, 1, gather_idx)
-    anc_new = torch.gather(ancestors, 1, gather_idx)
-    if jitter and jitter > 0.0:
-        born = die
-        X_new = X_new + born * jitter * noise_scale * torch.randn(
-            X.shape, generator=gen, device=X.device, dtype=X.dtype)
-        Y_new = Y_new + born * jitter * noise_scale * torch.randn(
-            Y.shape, generator=gen, device=Y.device, dtype=Y.dtype)
-    return X_new, Y_new, anc_new, die.sum(dim=1)
+    for b, gen in enumerate(generators):
+        if float(gamma_eff[b].detach().cpu()) <= 0.0:
+            continue
+        score = S[b]
+        positive = score > 0
+        birth_weight = torch.where(score < 0, -score, torch.zeros_like(score))
+        if not bool((birth_weight.sum() > EPS).detach().cpu()):
+            continue
+        prob = torch.where(
+            positive,
+            (1.0 - torch.exp(
+                -gamma_eff[b] * float(dt) * score)).clamp(0.0, 1.0),
+            torch.zeros_like(score))
+        die = torch.nonzero(
+            positive & (torch.rand((N,), generator=gen, device=X.device,
+                                   dtype=X.dtype) < prob),
+            as_tuple=False).flatten()
+        if die.numel() > cap:
+            die = die[torch.randperm(
+                die.numel(), generator=gen, device=X.device)[:cap]]
+        n = int(die.numel())
+        if n == 0:
+            continue
+        source = torch.multinomial(
+            birth_weight, n, replacement=True, generator=gen)
+        X_new[b, die] = X[b, source]
+        Y_new[b, die] = Y[b, source]
+        anc_new[b, die] = ancestors[b, source]
+        if jitter and jitter > 0.0:
+            X_new[b, die] += (
+                jitter * noise_scale
+                * torch.randn((n,), generator=gen, device=X.device,
+                              dtype=X.dtype))
+            Y_new[b, die] += (
+                jitter * noise_scale
+                * torch.randn((n,), generator=gen, device=Y.device,
+                              dtype=Y.dtype))
+        n_death[b] = n
+    return X_new, Y_new, anc_new, n_death
 
 
 # --------------------------------------------------------------------------- #
@@ -234,19 +279,23 @@ def run_batch(
     estimator: str = "binned_smooth",
     base_seed: int = 0,
 ) -> BatchResult:
-    """Simulate a batch of runs sharing (target_type, eta, fr_every, burnin)."""
+    """Simulate one schedule-homogeneous batch of independent runs."""
     if not specs:
         return BatchResult([], 0.0, str(device))
     target_type = specs[0].target_type
     eta = float(specs[0].eta)
     fr_every = int(specs[0].fr_every)
     burnin_fraction = float(specs[0].burnin_fraction)
-    for s in specs:  # invariant guarded by the batching layer
-        if (s.target_type, float(s.eta), int(s.fr_every),
-                float(s.burnin_fraction)) != (
-                target_type, eta, fr_every, burnin_fraction):
-            raise ValueError("run_batch requires a (target_type, eta, fr_every, "
-                             "burnin_fraction)-homogeneous batch.")
+    stop_fraction = float(getattr(specs[0], "stop_fraction", 1.0))
+    if not 0.0 <= burnin_fraction <= stop_fraction <= 1.0:
+        raise ValueError("FR schedule must satisfy 0 <= burnin <= stop <= 1")
+    for s in specs:
+        key = (s.target_type, float(s.eta), int(s.fr_every),
+               float(s.burnin_fraction),
+               float(getattr(s, "stop_fraction", 1.0)))
+        if key != (target_type, eta, fr_every, burnin_fraction, stop_fraction):
+            raise ValueError(
+                "run_batch requires a target/eta/every/on/off-homogeneous batch")
 
     sim = cfg["simulation"]
     abf = cfg["abf"]
@@ -274,6 +323,13 @@ def run_batch(
     score_clip = fr.get("score_clip", 5.0)
     max_event_fraction = fr.get("max_event_fraction", 0.10)
     jitter = float(fr.get("jitter", 0.0))
+    interval_scaled_clock = bool(fr.get("interval_scaled_clock", False))
+    noise_chunk_steps = int(fr.get("noise_chunk_steps", 1024))
+    observation_order = abf.get("observation_order", "pre_propagation")
+    if observation_order not in {"pre_propagation", "post_propagation"}:
+        raise ValueError(
+            "abf.observation_order must be pre_propagation or post_propagation")
+    x_tilt = float(cfg.get("potential", {}).get("x_tilt", 0.0))
     x_init_mode = sim.get("x_init_mode", "mixed")
     y_init_mode = sim.get("y_init_mode", "mixed")
     x_barrier = float(getattr(ev, "x_barrier", 0.0))
@@ -288,6 +344,7 @@ def run_batch(
 
     fr_enabled = (target_type != "none")
     fr_burnin = int(round(burnin_fraction * n_steps))
+    fr_stop = int(round(stop_fraction * n_steps))
     ramp_steps = int(round(ramp_fraction * n_steps))
     gamma_vec = torch.as_tensor([float(s.gamma) for s in specs], device=device,
                                 dtype=dtype)
@@ -297,14 +354,17 @@ def run_batch(
     k_eta, r_eta = tu.gaussian_kernel1d(eta, dx, device, dtype)
     use_kernel_ref = (estimator == "kernel_reference")
 
-    # RNG: per-row matched initial conditions; one reproducible noise stream for
-    # the whole batch (seeded from the batch's run_ids, so results are
-    # deterministic given the config). See module/README notes on RNG.
-    gen = tu.make_generator(
-        tu.stable_seed(base_seed, *[s.run_id for s in specs]), device)
     X, Y = _init_batch_positions(specs, n_particles, domain, x_init_mode,
                                  y_init_mode, device, dtype)
-    ancestors = torch.arange(n_particles, device=device).expand(B, n_particles).contiguous()
+    noise_bank = _MatchedNoiseBank(
+        specs, n_particles, n_steps, device, dtype, base_seed,
+        chunk_steps=noise_chunk_steps)
+    fr_generators = [
+        tu.make_generator(tu.stable_seed("fr", base_seed, s.run_id), device)
+        for s in specs
+    ]
+    ancestors = torch.arange(
+        n_particles, device=device).expand(B, n_particles).contiguous()
     noise_scale = float(np.sqrt(2.0 * dt / beta))
 
     # ABF accumulators and current grid estimates.
@@ -327,6 +387,8 @@ def run_batch(
     win_smin = torch.full((B,), float("inf"), device=device, dtype=dtype)
     win_smax = torch.full((B,), float("-inf"), device=device, dtype=dtype)
     win_target_l2 = torch.zeros(B, device=device, dtype=dtype)
+    cumulative_fr_events = torch.zeros(B, device=device, dtype=torch.long)
+    cumulative_replacements = torch.zeros(B, device=device, dtype=torch.long)
 
     diags = [_empty_diag(target_type) for _ in range(B)]
 
@@ -350,100 +412,146 @@ def run_batch(
             p = tu.smooth_grid(hist, k_eta, r_eta, dx) / n_particles
         return tu.normalize_density(p, dx)
 
+    p_initial = current_p_hat(X)
+    q_initial = _build_target(
+        target_type, Fhat_target, F_hat, F_ref_t,
+        p_initial, beta, dx, width)
+    zero_gamma = torch.zeros_like(gamma_vec)
+    _record_snapshot(
+        diags, 0, 0.0, Fprime_hat, F_hat, p_initial, q_initial,
+        X, Y, ancestors, barrier_crossings, zero_gamma,
+        win_n, win_events, win_frac_sum, win_frac_max, win_smean_sum,
+        win_sstd_sum, win_smin, win_smax, win_target_l2,
+        cumulative_fr_events, cumulative_replacements, n_particles)
+
     t0 = time.time()
     for step in range(n_steps):
-        dvdx = potentials.dVdx_xy_torch(X, Y)
+        next_step = step + 1
+        dvdx = potentials.dVdx_xy_torch(X, Y) + x_tilt
         dvdy = potentials.dVdy_xy_torch(X, Y)
 
-        # --- ABF accumulation (every step, from current X, Y) --------------- #
-        if use_kernel_ref:
-            num_c, den_c = _kernel_estimator(x_grid_t, X, Y, h)
-            S_acc += num_c
-            C_acc += den_c
-        else:
-            idx = tu.nearest_index(X, x0, dx, G)
-            C_acc += tu.scatter_grid(idx, G)
-            S_acc += tu.scatter_grid(idx, G, dvdx)
+        if observation_order == "pre_propagation":
+            if use_kernel_ref:
+                num_c, den_c = _kernel_estimator(
+                    x_grid_t, X, Y, h, x_tilt=x_tilt)
+                S_acc += num_c
+                C_acc += den_c
+            else:
+                idx = tu.nearest_index(X, x0, dx, G)
+                C_acc += tu.scatter_grid(idx, G)
+                S_acc += tu.scatter_grid(idx, G, dvdx)
+            if step % update_every == 0:
+                recompute_grid()
+                Fhat_target = (
+                    (1.0 - ema_alpha_eff) * Fhat_target
+                    + ema_alpha_eff * F_hat)
 
-        if step % update_every == 0:
-            recompute_grid()
-            Fhat_target = (1.0 - ema_alpha_eff) * Fhat_target + ema_alpha_eff * F_hat
-
-        # --- Langevin + ABF proposal --------------------------------------- #
         abf_at_X = tu.interp1d(Fprime_hat, X, x0, dx)
-        noise_x = torch.randn(X.shape, generator=gen, device=device, dtype=dtype)
-        noise_y = torch.randn(Y.shape, generator=gen, device=device, dtype=dtype)
-        X_prop = tu.reflect_into(X + (-dvdx + abf_at_X) * dt + noise_scale * noise_x,
-                                 xmin, xmax)
-        Y_prop = tu.reflect_into(Y + (-dvdy) * dt + noise_scale * noise_y,
-                                 ymin, ymax)
+        noise_x, noise_y = noise_bank.at(step)
+        X_prop = tu.reflect_into(
+            X + (-dvdx + abf_at_X) * dt + noise_scale * noise_x,
+            xmin, xmax)
+        Y_prop = tu.reflect_into(
+            Y + (-dvdy) * dt + noise_scale * noise_y,
+            ymin, ymax)
         tu.assert_finite("X_prop", X_prop)
         tu.assert_finite("Y_prop", Y_prop)
 
-        # --- Barrier crossings on the Langevin move ------------------------ #
         new_sign = torch.sign(X_prop - x_barrier)
         crossed = (new_sign != prev_sign) & (new_sign != 0) & (prev_sign != 0)
         barrier_crossings += crossed.sum(dim=1)
 
-        # --- Fisher--Rao birth--death -------------------------------------- #
-        gamma_pos = (step > fr_burnin) if ramp_steps > 0 else (step >= fr_burnin)
-        do_fr = (fr_enabled and step >= fr_burnin
-                 and ((step - fr_burnin) % fr_every == 0) and gamma_pos)
-        if fr_enabled:
-            s_ramp = max((step - fr_burnin) / ramp_steps, 0.0) if ramp_steps > 0 else None
-            if step < fr_burnin:
-                gamma_eff = torch.zeros_like(gamma_vec)
-            elif ramp_steps <= 0:
+        if observation_order == "post_propagation":
+            if use_kernel_ref:
+                num_c, den_c = _kernel_estimator(
+                    x_grid_t, X_prop, Y_prop, h, x_tilt=x_tilt)
+                S_acc += num_c
+                C_acc += den_c
+            else:
+                dvdx_prop = potentials.dVdx_xy_torch(X_prop, Y_prop) + x_tilt
+                idx = tu.nearest_index(X_prop, x0, dx, G)
+                C_acc += tu.scatter_grid(idx, G)
+                S_acc += tu.scatter_grid(idx, G, dvdx_prop)
+            if next_step % update_every == 0:
+                recompute_grid()
+                Fhat_target = (
+                    (1.0 - ema_alpha_eff) * Fhat_target
+                    + ema_alpha_eff * F_hat)
+
+        in_window = (
+            fr_enabled and fr_burnin <= next_step < fr_stop)
+        do_fr = (
+            in_window
+            and ((next_step - fr_burnin) % fr_every == 0))
+        if in_window:
+            if ramp_steps <= 0:
                 gamma_eff = gamma_vec
             else:
+                s_ramp = max(
+                    (next_step - fr_burnin) / ramp_steps, 0.0)
                 gamma_eff = gamma_vec * (1.0 - np.exp(-s_ramp))
         else:
             gamma_eff = torch.zeros_like(gamma_vec)
 
-        if do_fr:
+        active = gamma_eff > 0
+        if do_fr and bool(active.any().detach().cpu()):
             p_hat = current_p_hat(X_prop)
-            q_grid = _build_target(target_type, Fhat_target, F_hat, F_ref_t,
-                                   p_hat, beta, dx, width)
-            S = _fr_score(X_prop, p_hat, q_grid, x0, dx, beta, score_clip)
+            q_grid = _build_target(
+                target_type, Fhat_target, F_hat, F_ref_t,
+                p_hat, beta, dx, width)
+            S = _fr_score(
+                X_prop, p_hat, q_grid, x0, dx, beta, score_clip)
+            clock_dt = dt * fr_every if interval_scaled_clock else dt
             X, Y, ancestors, ndeath = _resample(
-                X_prop, Y_prop, ancestors, S, gamma_eff, dt,
-                max_event_fraction, gen, jitter, noise_scale)
-            # Windowed diagnostics.
+                X_prop, Y_prop, ancestors, S, gamma_eff, clock_dt,
+                max_event_fraction, fr_generators, jitter, noise_scale)
+
+            active_i = active.to(torch.long)
+            active_f = active.to(dtype)
             frac = ndeath.to(dtype) / n_particles
-            win_n += 1
+            win_n += active_i
             win_events += ndeath
             win_frac_sum += frac
             win_frac_max = torch.maximum(win_frac_max, frac)
-            win_smean_sum += S.mean(dim=1)
-            win_sstd_sum += S.std(dim=1)
-            win_smin = torch.minimum(win_smin, S.amin(dim=1))
-            win_smax = torch.maximum(win_smax, S.amax(dim=1))
-            win_target_l2 += _marginal_l2(p_hat, q_grid, dx)
+            win_smean_sum += S.mean(dim=1) * active_f
+            win_sstd_sum += S.std(dim=1) * active_f
+            win_smin = torch.where(
+                active, torch.minimum(win_smin, S.amin(dim=1)), win_smin)
+            win_smax = torch.where(
+                active, torch.maximum(win_smax, S.amax(dim=1)), win_smax)
+            win_target_l2 += _marginal_l2(
+                p_hat, q_grid, dx) * active_f
+            cumulative_fr_events += active_i
+            cumulative_replacements += ndeath
         else:
             X, Y = X_prop, Y_prop
 
         prev_sign = torch.sign(X - x_barrier)
 
-        # --- Snapshot ------------------------------------------------------- #
-        if step % eval_every == 0 or step == n_steps - 1:
-            recompute_grid()
+        if next_step % eval_every == 0 or next_step == n_steps:
+            if observation_order == "pre_propagation":
+                recompute_grid()
             p_snap = current_p_hat(X)
-            q_snap = _build_target(target_type, Fhat_target, F_hat, F_ref_t,
-                                   p_snap, beta, dx, width)
+            q_snap = _build_target(
+                target_type, Fhat_target, F_hat, F_ref_t,
+                p_snap, beta, dx, width)
             _record_snapshot(
-                diags, step, step * dt, Fprime_hat, F_hat, p_snap, q_snap,
-                X, Y, ancestors, barrier_crossings, gamma_eff,
-                win_n, win_events, win_frac_sum, win_frac_max, win_smean_sum,
-                win_sstd_sum, win_smin, win_smax, win_target_l2, n_particles)
-            # reset window
+                diags, next_step, next_step * dt, Fprime_hat, F_hat,
+                p_snap, q_snap, X, Y, ancestors, barrier_crossings,
+                gamma_eff, win_n, win_events, win_frac_sum, win_frac_max,
+                win_smean_sum, win_sstd_sum, win_smin, win_smax,
+                win_target_l2, cumulative_fr_events,
+                cumulative_replacements, n_particles)
             win_n = torch.zeros(B, device=device, dtype=torch.long)
             win_events = torch.zeros(B, device=device, dtype=torch.long)
             win_frac_sum = torch.zeros(B, device=device, dtype=dtype)
             win_frac_max = torch.zeros(B, device=device, dtype=dtype)
             win_smean_sum = torch.zeros(B, device=device, dtype=dtype)
             win_sstd_sum = torch.zeros(B, device=device, dtype=dtype)
-            win_smin = torch.full((B,), float("inf"), device=device, dtype=dtype)
-            win_smax = torch.full((B,), float("-inf"), device=device, dtype=dtype)
+            win_smin = torch.full(
+                (B,), float("inf"), device=device, dtype=dtype)
+            win_smax = torch.full(
+                (B,), float("-inf"), device=device, dtype=dtype)
             win_target_l2 = torch.zeros(B, device=device, dtype=dtype)
 
     if device.type == "cuda":
@@ -452,9 +560,13 @@ def run_batch(
 
     for d in diags:
         d["fr_burnin"] = fr_burnin
+        d["fr_stop"] = fr_stop
         d["fr_every"] = int(fr_every)
         d["n_steps"] = int(n_steps)
         d["dt"] = float(dt)
+        d["observation_order"] = observation_order
+        d["interval_scaled_clock"] = interval_scaled_clock
+        d["x_tilt"] = x_tilt
     return BatchResult(diags, runtime, str(device))
 
 
@@ -469,7 +581,8 @@ def _marginal_l2(p_hat, q_grid, dx):
 def _record_snapshot(diags, step, t, Fprime_hat, F_hat, p_snap, q_snap, X, Y,
                      ancestors, barrier_crossings, gamma_eff, win_n, win_events,
                      win_frac_sum, win_frac_max, win_smean_sum, win_sstd_sum,
-                     win_smin, win_smax, win_target_l2, n_particles):
+                     win_smin, win_smax, win_target_l2, cumulative_fr_events,
+                     cumulative_replacements, n_particles):
     """Move per-row snapshot data to numpy and append to each run's diag.
 
     This is the *only* GPU->CPU transfer inside the time loop and it happens at
@@ -493,6 +606,8 @@ def _record_snapshot(diags, step, t, Fprime_hat, F_hat, p_snap, q_snap, X, Y,
     wmin = win_smin.detach().cpu().numpy()
     wmax = win_smax.detach().cpu().numpy()
     wtl = win_target_l2.detach().cpu().numpy()
+    cfe = cumulative_fr_events.detach().cpu().numpy()
+    crep = cumulative_replacements.detach().cpu().numpy()
 
     for b, d in enumerate(diags):
         nfr = int(wn[b])
@@ -507,6 +622,7 @@ def _record_snapshot(diags, step, t, Fprime_hat, F_hat, p_snap, q_snap, X, Y,
         d["n_unique_ancestors"].append(int((counts > 0).sum()))
         d["ancestor_ess"].append(float(nz.sum() ** 2 / np.maximum((nz ** 2).sum(), 1.0)))
         d["max_clone_multiplicity"].append(int(counts.max()))
+        d["max_clone_weight"].append(float(counts.max() / n_particles))
         d["gamma_eff"].append(float(ge[b]))
         d["fr_applied"].append(bool(nfr > 0))
         d["fr_event_fraction"].append(float(wfs[b] / nfr) if nfr else 0.0)
@@ -517,3 +633,5 @@ def _record_snapshot(diags, step, t, Fprime_hat, F_hat, p_snap, q_snap, X, Y,
         d["score_min"].append(float(wmin[b]) if nfr else float("nan"))
         d["score_max"].append(float(wmax[b]) if nfr else float("nan"))
         d["target_l2"].append(float(wtl[b] / nfr) if nfr else float("nan"))
+        d["cumulative_fr_events"].append(int(cfe[b]))
+        d["cumulative_replacements"].append(int(crep[b]))

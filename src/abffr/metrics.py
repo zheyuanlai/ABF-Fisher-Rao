@@ -101,6 +101,68 @@ def marginal_l2_to_target(p_grid: np.ndarray, q_grid: np.ndarray,
     return float(np.sqrt(np.trapezoid((p - q) ** 2, xa) / width))
 
 
+
+def marginal_l2_to_physical_ref(p_grid: np.ndarray, p_ref: np.ndarray,
+                                x_grid: np.ndarray, mask: np.ndarray) -> float:
+    """Full-domain L2 distance to the independent physical RC reference.
+
+    The physical marginal is a distribution on the complete reaction-coordinate
+    domain.  Unlike the legacy target diagnostic, this metric must retain mass
+    allocation near the edge strips rather than condition and renormalise on the
+    interior ABF evaluation mask.  ``mask`` is accepted for API compatibility.
+    """
+    del mask
+    x = np.asarray(x_grid, dtype=float)
+    p = np.asarray(p_grid, dtype=float)
+    q = np.asarray(p_ref, dtype=float)
+    p = p / max(np.trapezoid(p, x), 1e-300)
+    q = q / max(np.trapezoid(q, x), 1e-300)
+    width = x[-1] - x[0]
+    if width <= 0:
+        return float(np.sqrt(np.mean((p - q) ** 2)))
+    return float(np.sqrt(np.trapezoid((p - q) ** 2, x) / width))
+
+
+def free_energy_landmark_errors(
+        F_hat: np.ndarray, F_ref: np.ndarray, x_grid: np.ndarray,
+        mask: np.ndarray, x_barrier: float = 0.0) -> Dict[str, float]:
+    """Evaluation-only unequal-basin and barrier-height errors.
+
+    Reference minima are selected independently on either side of x_barrier;
+    the reference maximum between them defines the intervening barrier. These
+    landmarks are never exposed to the dynamics or FR target.
+    """
+    left = np.flatnonzero(mask & (x_grid < x_barrier))
+    right = np.flatnonzero(mask & (x_grid > x_barrier))
+    if left.size == 0 or right.size == 0:
+        return dict(
+            deltaF_hat=float("nan"), deltaF_ref=float("nan"),
+            deltaF_error=float("nan"),
+            barrier_height_error=float("nan"))
+    i_left = int(left[np.argmin(F_ref[left])])
+    i_right = int(right[np.argmin(F_ref[right])])
+    lo, hi = sorted((i_left, i_right))
+    between = np.arange(lo, hi + 1)
+    i_barrier = int(between[np.argmax(F_ref[between])])
+
+    delta_hat = float(F_hat[i_right] - F_hat[i_left])
+    delta_ref = float(F_ref[i_right] - F_ref[i_left])
+    barrier_hat = np.array([
+        F_hat[i_barrier] - F_hat[i_left],
+        F_hat[i_barrier] - F_hat[i_right],
+    ], dtype=float)
+    barrier_ref = np.array([
+        F_ref[i_barrier] - F_ref[i_left],
+        F_ref[i_barrier] - F_ref[i_right],
+    ], dtype=float)
+    return dict(
+        deltaF_hat=delta_hat,
+        deltaF_ref=delta_ref,
+        deltaF_error=float(abs(delta_hat - delta_ref)),
+        barrier_height_error=float(np.sqrt(np.mean(
+            (barrier_hat - barrier_ref) ** 2))),
+    )
+
 def region_fractions(X: np.ndarray, ev: EvalConfig) -> Dict[str, float]:
     """Fraction of particles in the left basin, barrier and right basin."""
     X = np.asarray(X, dtype=float)
@@ -118,22 +180,35 @@ def region_fractions(X: np.ndarray, ev: EvalConfig) -> Dict[str, float]:
 
 
 def time_series_metrics(diag: Dict, x_grid: np.ndarray, F_ref: np.ndarray,
-                        Fprime_ref: np.ndarray, ev: EvalConfig) -> List[Dict]:
-    """Per-snapshot metrics for one run (long format)."""
+                        Fprime_ref: np.ndarray, ev: EvalConfig,
+                        p_ref: np.ndarray = None) -> List[Dict]:
+    """Per-snapshot independently referenced metrics in long format."""
     mask = ev.eval_mask(x_grid)
     rows = []
+    optional = {
+        "ancestor_ess": float,
+        "max_clone_multiplicity": int,
+        "max_clone_weight": float,
+        "cumulative_fr_events": int,
+        "cumulative_replacements": int,
+    }
     for k, step in enumerate(diag["steps"]):
         F_hat = diag["F_hat"][k]
         Fp_hat = diag["Fprime_hat"][k]
         p_hat = diag["p_hat_grid"][k]
         q = diag["q_target_grid"][k]
-        rows.append(dict(
+        landmarks = free_energy_landmark_errors(
+            F_hat, F_ref, x_grid, mask, x_barrier=ev.x_barrier)
+        row = dict(
             step=int(step),
             t=float(diag["times"][k]),
             l2_F=l2_error_F(F_hat, F_ref, x_grid, mask),
             l2_Fprime=l2_error_Fprime(Fp_hat, Fprime_ref, x_grid, mask),
             marginal_l2_uniform=marginal_l2_to_uniform(p_hat, x_grid, mask),
             marginal_l2_target=marginal_l2_to_target(p_hat, q, x_grid, mask),
+            marginal_l2_physical_ref=(
+                marginal_l2_to_physical_ref(p_hat, p_ref, x_grid, mask)
+                if p_ref is not None else float("nan")),
             barrier_crossings=int(diag["barrier_crossings"][k]),
             n_unique_ancestors=int(diag["n_unique_ancestors"][k]),
             gamma_eff=float(diag["gamma_eff"][k]),
@@ -145,22 +220,32 @@ def time_series_metrics(diag: Dict, x_grid: np.ndarray, F_ref: np.ndarray,
             score_std=float(diag["score_std"][k]),
             score_min=float(diag["score_min"][k]),
             score_max=float(diag["score_max"][k]),
-        ))
+            **landmarks,
+        )
+        for key, cast in optional.items():
+            if key in diag and k < len(diag[key]):
+                row[key] = cast(diag[key][k])
+        rows.append(row)
     return rows
 
 
 def final_summary(diag: Dict, x_grid: np.ndarray, F_ref: np.ndarray,
-                  Fprime_ref: np.ndarray, ev: EvalConfig) -> Dict:
-    """Final-time + time-integrated metrics for one run."""
-    mask = ev.eval_mask(x_grid)
-    ts = time_series_metrics(diag, x_grid, F_ref, Fprime_ref, ev)
+                  Fprime_ref: np.ndarray, ev: EvalConfig,
+                  p_ref: np.ndarray = None) -> Dict:
+    """Final-time and full-run integrated metrics for one run."""
+    ts = time_series_metrics(
+        diag, x_grid, F_ref, Fprime_ref, ev, p_ref=p_ref)
     l2_F_series = [r["l2_F"] for r in ts]
     l2_Fp_series = [r["l2_Fprime"] for r in ts]
+    physical_series = [r["marginal_l2_physical_ref"] for r in ts]
+    deltaF_series = [r["deltaF_error"] for r in ts]
+    barrier_series = [r["barrier_height_error"] for r in ts]
     times = [r["t"] for r in ts]
 
     final = ts[-1]
     regions = region_fractions(diag["X_snap"][-1], ev)
     fr_fracs = [r["fr_event_fraction"] for r in ts if r["fr_applied"]]
+    integrated_physical = integrated_l2_over_time(physical_series, times)
     out = dict(
         final_l2_F=final["l2_F"],
         final_l2_Fprime=final["l2_Fprime"],
@@ -168,12 +253,35 @@ def final_summary(diag: Dict, x_grid: np.ndarray, F_ref: np.ndarray,
         integrated_l2_Fprime=integrated_l2_over_time(l2_Fp_series, times),
         final_marginal_l2_uniform=final["marginal_l2_uniform"],
         final_marginal_l2_target=final["marginal_l2_target"],
+        final_marginal_l2_physical_ref=final["marginal_l2_physical_ref"],
+        integrated_marginal_l2_physical_ref=integrated_physical,
+        final_deltaF_error=final["deltaF_error"],
+        integrated_deltaF_error=integrated_l2_over_time(
+            deltaF_series, times),
+        final_barrier_height_error=final["barrier_height_error"],
+        integrated_barrier_height_error=integrated_l2_over_time(
+            barrier_series, times),
+        deltaF_ref=final["deltaF_ref"],
         barrier_crossings=int(final["barrier_crossings"]),
         n_unique_ancestors=int(final["n_unique_ancestors"]),
         mean_fr_event_fraction=float(np.mean(fr_fracs)) if fr_fracs else 0.0,
         max_fr_event_fraction=float(np.max(
             [r["fr_event_fraction_max"] for r in ts])) if ts else 0.0,
-        any_nan=bool(not np.isfinite(final["l2_F"]) or not np.isfinite(final["l2_Fprime"])),
+        any_nan=bool(
+            not np.isfinite(final["l2_F"])
+            or not np.isfinite(final["l2_Fprime"])
+            or (p_ref is not None and (
+                not np.isfinite(final["marginal_l2_physical_ref"])
+                or not np.isfinite(integrated_physical)))),
     )
+    for source, dest, cast in [
+        ("ancestor_ess", "final_ancestor_ess", float),
+        ("max_clone_multiplicity", "final_max_clone_multiplicity", int),
+        ("max_clone_weight", "final_max_clone_weight", float),
+        ("cumulative_fr_events", "cumulative_fr_events", int),
+        ("cumulative_replacements", "cumulative_replacements", int),
+    ]:
+        if source in final:
+            out[dest] = cast(final[source])
     out.update(regions)
     return out

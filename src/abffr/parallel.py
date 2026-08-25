@@ -12,8 +12,7 @@ Resumption
 Each run has a unique ``run_id``.  A finished run drops a marker
 ``<stage>/completed/<safe_run_id>.done``; a crashed run drops
 ``<stage>/failed/<safe_run_id>.json`` with the error and config.  On restart,
-completed run_ids (markers *and* any rows already in the final-summary CSV) are
-skipped unless ``force=True``.  Each process writes tag-suffixed CSVs
+only run ids with post-flush completion markers are skipped unless forced. Partial CSV rows without a marker are rerun and later deduplicated. Each process writes tag-suffixed CSVs
 (``<prefix>_<kind>__<tag>.csv``); :func:`merge_stage_csvs` concatenates the tags
 into the canonical ``<prefix>_<kind>.csv`` (deduped by ``run_id``) for the
 plotting/table scripts.
@@ -78,13 +77,10 @@ def prepare_stage(cfg: Dict, stage: str, require_csv: bool = True, logger=print
 # Batching
 # --------------------------------------------------------------------------- #
 def batch_key(spec: RunSpec):
-    """Runs are batched within a common (target_type, eta, fr_every, burnin).
-
-    These four must be constant inside a batch so the FR firing schedule and the
-    smoothing bandwidth are shared; ``gamma`` and ``seed`` vary per row.
-    """
-    return (spec.target_type, float(spec.eta), int(spec.fr_every),
-            float(spec.burnin_fraction))
+    """Batch runs with a common target, smoothing, cadence, onset and stop."""
+    return (
+        spec.target_type, float(spec.eta), int(spec.fr_every),
+        float(spec.burnin_fraction), float(spec.stop_fraction))
 
 
 def build_batches(specs: List[RunSpec], batch_size: int) -> List[List[RunSpec]]:
@@ -116,22 +112,22 @@ def failed_dir(stage_root: str) -> str:
 
 
 def load_completed(stage_root: str, prefix: str) -> set:
-    """Set of run_ids already finished (markers + rows in any final CSV)."""
+    """Return run ids with post-flush completion markers.
+
+    CSV rows alone are not proof of completion because a crash can occur between
+    atomically replacing different CSV kinds. A marker is written only after
+    every kind has flushed, so marker-only resume is conservative and complete.
+    """
+    del prefix
     done = set()
     cdir = os.path.join(stage_root, "completed")
     if os.path.isdir(cdir):
-        for p in glob.glob(os.path.join(cdir, "*.done")):
+        for path in glob.glob(os.path.join(cdir, "*.done")):
             try:
-                with open(p) as fh:
+                with open(path) as fh:
                     done.add(json.load(fh)["run_id"])
             except Exception:
                 pass
-    for path in glob.glob(os.path.join(stage_root, f"{prefix}_final_summary*.csv")):
-        try:
-            df = pd.read_csv(path, usecols=["run_id"])
-            done.update(df["run_id"].astype(str).tolist())
-        except Exception:
-            pass
     return done
 
 
@@ -152,66 +148,91 @@ def _write_failure(stage_root: str, spec: RunSpec, err: str) -> None:
 # --------------------------------------------------------------------------- #
 def _rows_for_run(spec: RunSpec, diag: Dict, cfg: Dict, x_grid, ref, ev,
                   runtime_seconds: float, conditional: str):
+    """Assemble durable CSV payloads for one completed GPU run."""
     meta = spec.to_row()
     h = float(cfg["abf"]["h"])
     ramp_fraction = float(cfg.get("fr", {}).get("ramp_fraction", 0.1))
     beta = float(cfg["simulation"]["beta"])
+    p_ref = ref.get("p_ref")
 
-    ts = metrics.time_series_metrics(diag, x_grid, ref["F_ref"], ref["Fprime_ref"], ev)
+    ts = metrics.time_series_metrics(
+        diag, x_grid, ref["F_ref"], ref["Fprime_ref"], ev, p_ref=p_ref)
     long_rows, fr_rows = [], []
-    for k, r in enumerate(ts):
+    for k, row in enumerate(ts):
         rf = metrics.region_fractions(diag["X_snap"][k], ev)
         long_rows.append({
-            **meta, **r, "h": h, "ramp_fraction": ramp_fraction,
-            # Study-spec aliases for the same quantities.
-            "x_l2_to_target": r["marginal_l2_target"],
-            "x_l2_to_uniform": r["marginal_l2_uniform"],
-            "fr_score_std": r["score_std"], "fr_score_max": r["score_max"],
-            "left_frac": rf["frac_left"], "barrier_frac": rf["frac_barrier"],
+            **meta, **row, "h": h, "ramp_fraction": ramp_fraction,
+            "x_l2_to_target": row["marginal_l2_target"],
+            "x_l2_to_uniform": row["marginal_l2_uniform"],
+            "x_l2_to_physical_ref": row["marginal_l2_physical_ref"],
+            "fr_score_std": row["score_std"],
+            "fr_score_max": row["score_max"],
+            "left_frac": rf["frac_left"],
+            "barrier_frac": rf["frac_barrier"],
             "right_frac": rf["frac_right"],
         })
-        fr_rows.append({
+        fr_row = {
             **meta,
-            "step": r["step"], "t": r["t"], "gamma_eff": r["gamma_eff"],
-            "fr_applied": r["fr_applied"],
-            "fr_event_fraction": r["fr_event_fraction"],
-            "fr_event_fraction_max": r["fr_event_fraction_max"],
-            "fr_events_total": r["fr_events_total"],
+            "step": row["step"], "t": row["t"],
+            "gamma_eff": row["gamma_eff"],
+            "fr_applied": row["fr_applied"],
+            "fr_event_fraction": row["fr_event_fraction"],
+            "fr_event_fraction_max": row["fr_event_fraction_max"],
+            "fr_events_total": row["fr_events_total"],
             "num_deaths": int(diag["fr_events_total"][k]),
             "num_births": int(diag["fr_events_total"][k]),
-            "event_fraction": r["fr_event_fraction"],
-            "score_mean": r["score_mean"], "score_std": r["score_std"],
-            "score_min": r["score_min"], "score_max": r["score_max"],
-            "target_l2": float(diag["target_l2"][k]),
-            "n_unique_ancestors": r["n_unique_ancestors"],
-            "ancestor_ess": float(diag["ancestor_ess"][k]),
-            "max_clone_multiplicity": int(diag["max_clone_multiplicity"][k]),
-        })
+            "event_fraction": row["fr_event_fraction"],
+            "score_mean": row["score_mean"],
+            "score_std": row["score_std"],
+            "score_min": row["score_min"],
+            "score_max": row["score_max"],
+            "target_l2": (
+                float(diag["target_l2"][k])
+                if "target_l2" in diag else float("nan")),
+            "n_unique_ancestors": row["n_unique_ancestors"],
+        }
+        for key in [
+            "ancestor_ess", "max_clone_multiplicity", "max_clone_weight",
+            "cumulative_fr_events", "cumulative_replacements",
+        ]:
+            if key in row:
+                fr_row[key] = row[key]
+        fr_rows.append(fr_row)
 
-    summary = metrics.final_summary(diag, x_grid, ref["F_ref"], ref["Fprime_ref"], ev)
-    final_row = {**meta, **summary, "runtime_seconds": float(runtime_seconds),
-                 "total_barrier_crossings": int(summary["barrier_crossings"])}
+    summary = metrics.final_summary(
+        diag, x_grid, ref["F_ref"], ref["Fprime_ref"], ev, p_ref=p_ref)
+    final_row = {
+        **meta, **summary, "runtime_seconds": float(runtime_seconds),
+        "total_barrier_crossings": int(summary["barrier_crossings"]),
+    }
 
-    Fp = diag["Fprime_hat"][-1]; F = diag["F_hat"][-1]
-    p = diag["p_hat_grid"][-1]; q = diag["q_target_grid"][-1]
+    Fp = diag["Fprime_hat"][-1]
+    F = diag["F_hat"][-1]
+    p = diag["p_hat_grid"][-1]
+    q = diag["q_target_grid"][-1]
     profile_rows = []
     for j in range(len(x_grid)):
         profile_rows.append({
             **meta, "x": float(x_grid[j]),
-            "F_ref": float(ref["F_ref"][j]), "Fprime_ref": float(ref["Fprime_ref"][j]),
+            "F_ref": float(ref["F_ref"][j]),
+            "Fprime_ref": float(ref["Fprime_ref"][j]),
+            "p_ref": (
+                float(p_ref[j]) if p_ref is not None else float("nan")),
             "Fprime_hat": float(Fp[j]), "F_hat": float(F[j]),
             "p_hat": float(p[j]), "q_target": float(q[j]),
             "p_hat_x": float(p[j]), "target_x": float(q[j]),
         })
 
-    cmeta = dict(method=spec.method, target_type=spec.target_type, seed=int(spec.seed))
+    cmeta = dict(
+        method=spec.method, target_type=spec.target_type, seed=int(spec.seed))
     snap_idx = None if conditional == "final" else list(range(len(diag["steps"])))
     cond_rows = diagnostics.conditional_diagnostics(
         diag, cmeta, beta, cfg["domain"], snapshot_indices=snap_idx)
 
-    return dict(runs_long=long_rows, final_summary=[final_row],
-                profiles=profile_rows, fr_events=fr_rows,
-                conditional_diagnostics=cond_rows), summary
+    return dict(
+        runs_long=long_rows, final_summary=[final_row],
+        profiles=profile_rows, fr_events=fr_rows,
+        conditional_diagnostics=cond_rows), summary
 
 
 # --------------------------------------------------------------------------- #
@@ -243,9 +264,16 @@ class _CsvBuffer:
             self.rows[k].extend(rows)
 
     def flush(self) -> None:
+        """Atomically replace each process-local CSV after a complete write."""
         for k in CSV_KINDS:
-            if self.rows[k]:
-                pd.DataFrame(self.rows[k]).to_csv(self._path(k), index=False)
+            if not self.rows[k]:
+                continue
+            path = self._path(k)
+            tmp = path + ".tmp"
+            pd.DataFrame(self.rows[k]).to_csv(tmp, index=False)
+            with open(tmp, "rb") as fh:
+                os.fsync(fh.fileno())
+            os.replace(tmp, path)
 
 
 # --------------------------------------------------------------------------- #
@@ -303,18 +331,26 @@ def run_specs(
             continue
 
         per_run_runtime = res.runtime_seconds / max(len(batch), 1)
+        pending = []
         for spec, diag in zip(batch, res.diags):
             try:
                 payload, summary = _rows_for_run(
-                    spec, diag, cfg, x_grid, ref, ev, per_run_runtime, conditional)
+                    spec, diag, cfg, x_grid, ref, ev,
+                    per_run_runtime, conditional)
                 buf.extend(payload)
-                _write_marker(stage_root, spec, summary)
-                n_done += 1
-                n_nan += int(bool(summary.get("any_nan")))
+                pending.append((spec, summary))
             except Exception as exc:
-                _write_failure(stage_root, spec, f"{exc}\n{traceback.format_exc()}")
+                _write_failure(
+                    stage_root, spec, f"{exc}\n{traceback.format_exc()}")
                 n_failed += 1
+
+        # Result rows must reach an atomically replaced CSV before any marker
+        # can make a run eligible for resume skipping.
         buf.flush()
+        for spec, summary in pending:
+            _write_marker(stage_root, spec, summary)
+            n_done += 1
+            n_nan += int(bool(summary.get("any_nan")))
         logger(f"[parallel] batch {bi+1}/{len(batches)} done "
                f"({len(batch)} runs, {res.runtime_seconds:.1f}s, "
                f"{res.runtime_seconds/max(len(batch),1):.2f}s/run); "
@@ -360,60 +396,88 @@ def _iqr(s):
 
 
 def summarize_configs(final_df: pd.DataFrame) -> pd.DataFrame:
-    """Per-config median/IQR over seeds (mirrors the CPU runner)."""
+    """Per-config median/IQR over matched seeds."""
     rows = []
-    keys = ["config_id", "method", "target_type", "gamma", "eta",
-            "burnin_fraction", "fr_every"]
-    for cid, g in final_df.groupby("config_id"):
-        row = {k: g[k].iloc[0] for k in keys}
-        row["n_seeds"] = len(g)
-        for col in ["final_l2_F", "final_l2_Fprime", "integrated_l2_F",
-                    "integrated_l2_Fprime", "final_marginal_l2_uniform",
-                    "final_marginal_l2_target", "mean_fr_event_fraction",
-                    "max_fr_event_fraction", "barrier_crossings",
-                    "frac_left", "frac_barrier", "frac_right"]:
-            if col in g:
-                row[f"median_{col}"] = float(np.nanmedian(g[col]))
-                row[f"iqr_{col}"] = _iqr(g[col])
-        row["frac_nan"] = float(np.mean(g["any_nan"])) if "any_nan" in g else 0.0
+    keys = [
+        "config_id", "method", "target_type", "gamma", "eta",
+        "burnin_fraction", "stop_fraction", "fr_every",
+    ]
+    aggregate = [
+        "final_l2_F", "final_l2_Fprime", "integrated_l2_F",
+        "integrated_l2_Fprime", "final_marginal_l2_uniform",
+        "final_marginal_l2_target", "final_marginal_l2_physical_ref",
+        "integrated_marginal_l2_physical_ref", "final_deltaF_error",
+        "integrated_deltaF_error", "final_barrier_height_error",
+        "integrated_barrier_height_error", "mean_fr_event_fraction",
+        "max_fr_event_fraction", "barrier_crossings", "frac_left",
+        "frac_barrier", "frac_right", "final_ancestor_ess",
+        "final_max_clone_multiplicity", "final_max_clone_weight",
+        "cumulative_fr_events", "cumulative_replacements",
+    ]
+    for _, group in final_df.groupby("config_id"):
+        row = {
+            key: (
+                group[key].iloc[0] if key in group
+                else (1.0 if key == "stop_fraction" else float("nan")))
+            for key in keys
+        }
+        row["n_seeds"] = len(group)
+        for col in aggregate:
+            if col in group:
+                row[f"median_{col}"] = float(np.nanmedian(group[col]))
+                row[f"iqr_{col}"] = _iqr(group[col])
+        row["frac_nan"] = (
+            float(np.mean(group["any_nan"])) if "any_nan" in group else 0.0)
         rows.append(row)
     return pd.DataFrame(rows)
 
 
 def select_best_configs(config_df: pd.DataFrame, cfg: Dict) -> pd.DataFrame:
-    """Best config per target type by median integrated L2(F) (mirror CPU)."""
+    """Compatibility selector; preregistered pilot gating is done separately."""
     cap = float(cfg.get("fr", {}).get("max_event_fraction", 0.10))
     rows = []
-    for target in ["none", "estimated", "uniform", "oracle", "self"]:
+    targets = [
+        "none", "estimated", "uniform", "oracle", "self",
+        "physical", "physical_oracle",
+    ]
+    for target in targets:
         sub = config_df[config_df["target_type"] == target].copy()
         if sub.empty:
             continue
         passed = (
             (sub.get("frac_nan", 0.0) == 0.0)
             & (sub.get("median_mean_fr_event_fraction", 0.0) <= cap + 1e-9)
-            & (sub.get("median_max_fr_event_fraction", 0.0) <= 1.5 * cap + 1e-9)
+            & (sub.get("median_max_fr_event_fraction", 0.0)
+               <= 1.5 * cap + 1e-9)
         )
         sub["passed_safety"] = passed
         pool = sub[passed] if passed.any() else sub
         pool = pool.sort_values(
-            ["median_integrated_l2_F", "median_final_l2_F"]).reset_index(drop=True)
-        for rank, (_, r) in enumerate(pool.iterrows(), start=1):
+            ["median_integrated_l2_F", "median_final_l2_F"]).reset_index(
+                drop=True)
+        for rank, (_, row) in enumerate(pool.iterrows(), start=1):
             rows.append(dict(
                 rank_within_target=rank, selected=(rank == 1),
-                method=r["method"], target_type=r["target_type"],
-                gamma=float(r["gamma"]), eta=float(r["eta"]),
-                burnin_fraction=float(r["burnin_fraction"]), fr_every=int(r["fr_every"]),
-                median_integrated_l2_F=float(r["median_integrated_l2_F"]),
-                median_final_l2_F=float(r["median_final_l2_F"]),
-                median_final_l2_Fprime=float(r["median_final_l2_Fprime"]),
-                median_mean_fr_event_fraction=float(r["median_mean_fr_event_fraction"]),
-                passed_safety=bool(r["passed_safety"]), n_seeds=int(r["n_seeds"]),
+                method=row["method"], target_type=row["target_type"],
+                gamma=float(row["gamma"]), eta=float(row["eta"]),
+                burnin_fraction=float(row["burnin_fraction"]),
+                stop_fraction=float(row.get("stop_fraction", 1.0)),
+                fr_every=int(row["fr_every"]),
+                median_integrated_l2_F=float(
+                    row["median_integrated_l2_F"]),
+                median_final_l2_F=float(row["median_final_l2_F"]),
+                median_final_l2_Fprime=float(
+                    row["median_final_l2_Fprime"]),
+                median_mean_fr_event_fraction=float(
+                    row["median_mean_fr_event_fraction"]),
+                passed_safety=bool(row["passed_safety"]),
+                n_seeds=int(row["n_seeds"]),
             ))
     return pd.DataFrame(rows)
 
 
 def write_config_summaries(stage_root: str, prefix: str, cfg: Dict, logger=print):
-    """Write ``<prefix>_config_summary.csv`` and ``best_configs.csv`` if possible."""
+    """Write the config summary and, when authorized, a generic best-config file."""
     path = os.path.join(stage_root, f"{prefix}_final_summary.csv")
     if not os.path.exists(path):
         logger(f"[parallel] {os.path.relpath(path)} missing; skipping config summary.")
@@ -423,6 +487,13 @@ def write_config_summaries(stage_root: str, prefix: str, cfg: Dict, logger=print
         return
     config_df = summarize_configs(final_df)
     config_df.to_csv(os.path.join(stage_root, f"{prefix}_config_summary.csv"), index=False)
+    write_generic = bool(
+        cfg.get("selection", {}).get("write_generic_best", True))
+    if not write_generic:
+        logger(
+            f"[parallel] wrote {prefix}_config_summary.csv ({len(config_df)} configs); "
+            "generic best-config selection disabled (preregistered gate required)")
+        return
     best_df = select_best_configs(config_df, cfg)
     best_df.to_csv(os.path.join(stage_root, "best_configs.csv"), index=False)
     logger(f"[parallel] wrote {prefix}_config_summary.csv ({len(config_df)} configs) "

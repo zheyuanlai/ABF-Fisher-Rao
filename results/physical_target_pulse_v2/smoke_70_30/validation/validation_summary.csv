@@ -1,0 +1,7 @@
+check,passed,skipped,detail
+gradient_finite_difference,True,False,"max_fd<1e-3, torch_vs_numpy<1e-8"
+numpy_vs_torch_cpu,True,False,"same order of magnitude (0.2x-5x), no NaN"
+torch_cpu_vs_cuda,True,False,"same order of magnitude, no NaN"
+batch_size_invariance,True,False,same order of magnitude per matched run (0.1x-10x)
+binned_smooth_vs_kernel_reference,True,False,static relative Fprime L2 < 0.10; final L2(F) same order
+fr_event_fraction_cap,True,False,max_fr_event_fraction <= cap + 1e-6
