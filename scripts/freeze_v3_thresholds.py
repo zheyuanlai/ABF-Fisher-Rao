@@ -89,6 +89,9 @@ def main(argv=None):
         git_commit=_git_commit(),
         created_utc=dt.datetime.now(dt.timezone.utc).isoformat(),
         frozen_before_fr=True,
+        # Amendment 5: the sequencing travels with the numbers.
+        offline_fr_benchmark_viewed_before_freeze=True,
+        online_fr_results_viewed_before_freeze=False,
         note=("Computed from plain-ABF median curves only. Never overwrite: the "
               "value of these numbers is that they could not have been chosen "
               "with knowledge of any FR result."))

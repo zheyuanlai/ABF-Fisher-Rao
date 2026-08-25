@@ -603,6 +603,38 @@ because the damage happened early. That is not a contradiction in the protocol;
 it is why v3.1 requires self-limitation and genealogy safety as separate
 conditions.
 
+**Amendment 5 (2026-08-25, before the plain-ABF threshold stage) — threshold-
+freezing sequence, recorded rather than reinterpreted.**
+
+v3.1 states that the accuracy thresholds are frozen "before any FR curve is
+viewed". The offline one-step FR discretization benchmark (Q-D) has now been
+completed and inspected, so that phrase is **no longer literally satisfied** if
+it is read to include the offline benchmark. It is recorded here rather than
+reinterpreted.
+
+What was and was not seen:
+
+- **Seen:** one-step operator outputs on frozen clouds -- KL drop, C_gene,
+  across-seed variance, W1, genealogy statistics for BD-standard, BD-paired and
+  FT at matched dose.
+- **Not seen:** any online Track-P or Track-C FR trajectory, time-to-accuracy
+  curve, or endpoint. None has been generated.
+
+Why this does not compromise the thresholds: eps_{F,1}, eps_{F,2}, eps_{F',1}
+and eps_{F',2} are determined mechanically from the plain-ABF median error
+curves at the two already-frozen budget fractions (0.60, 0.80) on scope R12.
+There is no tunable choice through which knowledge of a one-step discretization
+result could move them.
+
+**Binding from this amendment until the threshold artifact is written:** no
+online FR scientific run may be generated or inspected. The artifact itself
+carries the sequencing in two fields --
+`offline_fr_benchmark_viewed_before_freeze: true` and
+`online_fr_results_viewed_before_freeze: false` -- so the provenance travels
+with the numbers rather than living only in this document.
+
+No threshold, arm, parameter or gate changes.
+
 ## Implementation appendix A (frozen 2026-08-25, before the infrastructure runs)
 
 Clarifications that make already-frozen text unambiguous. They add no arm, no
