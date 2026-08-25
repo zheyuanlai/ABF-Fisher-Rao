@@ -542,6 +542,67 @@ monotonicity gate is retained, but a violation is now an engineering anomaly
 grid-scan fallback must therefore **log loudly** whenever it fires rather than
 silently substituting a scan.
 
+**Amendment 4 (2026-08-25, before any v3 scientific run) — two interpretive
+corrections, and diagnostics-only logging at every FR opportunity.**
+
+**4a. rho implies no genealogy bound.** The ESS governor constrains the current
+particle *weights*, ESS_w = 1/sum_i w_i^2. The genealogy gate measures mass
+aggregated by initial ancestor, W_a = sum_{i: anc(i)=a} w_i and
+ESS_anc = 1/sum_a W_a^2. These are different objects: with all K particles
+descended from one ancestor but uniform weights, ESS_w = K while ESS_anc = 1
+(verified). Even one realistic FT step at rho = 0.85 was measured to leave
+ESS_w/K = 0.850 but ESS_anc/K = 0.762. Therefore any statement of the form
+"rho^m is the worst case" is a **compounding heuristic with no bound behind
+it**, and must be labelled as such. The correct statement:
+
+> rho controls the violence of one FT weighting step and provides no cumulative
+> genealogy guarantee.
+
+This strengthens rather than weakens the frozen design: the governor is
+deliberately local, and genealogy safety is an independent global gate. Both
+remain separately required.
+
+**4b. Residual FR dose is not a readout of ||F - A_t||.** Amendment 2's
+interpretive note on P3 said the residual dose floor measures the carrier error.
+That is wrong as stated and is corrected here. The measured FR discrepancy
+carries three contributions:
+
+    FR discrepancy = carrier error (F - A_t)
+                   + finite-time physical non-equilibrium
+                   + finite-K / KDE fluctuation
+
+Even at A_t = F exactly, a finite ensemble at finite time does not satisfy
+p_hat_t = q_t. P3 is therefore to be read as:
+
+> As A_t -> F the *systematic* target-bias inconsistency disappears, so the FR
+> dose should decay toward a finite-sampling noise floor.
+
+The registered >= 5x decay threshold is unchanged.
+
+**4c. Diagnostics-only logging (never gates).** Because this toy has F_ref, the
+three contributions above can be separated after the fact. Logged at every FR
+opportunity, for diagnosis only and never entering selection:
+
+- carrier error e_A(t) = ||A_t - F_ref - c_t||_{L2(R12)} at the optimal gauge c_t;
+- consistency mismatch D_cons(t) = KL(p*_{B_t} || q_t) with
+  p*_{B_t} propto exp(-beta(F_ref + B_t)) -- the exact Amendment-2 residue;
+- KL(p_hat || q) immediately before and after the FR operator;
+- FT: theta_t, ESS_w/K, R_t/K;  BD: dtau_t, Q_0.90(|S_t|), mean and max event
+  probability, R_t/K;
+- both: ESS_anc/K and w_max before and after, and the **genealogy retention
+  factor** G_t = ESS_anc^+ / ESS_anc^-.
+
+G_t distinguishes ancestry lost to a few catastrophic early events from mild
+persistent coalescence -- mechanistically very different, and indistinguishable
+from the endpoint value alone.
+
+**4d. Genealogy damage is irreversible.** Once two ancestral lineages coalesce
+through selection, later dose decay cannot recreate them. A candidate may
+therefore show a textbook theta_t -> 0 curve and still fail the genealogy gate
+because the damage happened early. That is not a contradiction in the protocol;
+it is why v3.1 requires self-limitation and genealogy safety as separate
+conditions.
+
 ## Implementation appendix A (frozen 2026-08-25, before the infrastructure runs)
 
 Clarifications that make already-frozen text unambiguous. They add no arm, no

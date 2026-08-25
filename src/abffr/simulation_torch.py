@@ -56,6 +56,7 @@ class BatchResult:
     runtime_seconds: float     # wall-clock for the whole batch
     device: str
     fr_opportunities: Optional[List[int]] = None   # v3: exact firing steps
+    v3_events: Optional[List[Dict]] = None         # Amendment 4c diagnostics
 
 
 # --------------------------------------------------------------------------- #
@@ -137,6 +138,11 @@ def _empty_diag(target_type):
         score_max=[], cumulative_fr_events=[], cumulative_replacements=[],
         ancestor_ess=[], max_clone_multiplicity=[], max_clone_weight=[],
         target_l2=[], score_clipped_fraction=[],
+        v3_theta=[], v3_ess_w_frac=[], v3_dtau=[], v3_q90_absS=[],
+        v3_p_event_mean=[], v3_p_event_max=[], v3_repl_frac=[],
+        v3_kl_before=[], v3_kl_after=[], v3_ess_anc_before=[],
+        v3_ess_anc_after=[], v3_wmax_before=[], v3_wmax_after=[],
+        v3_retention=[], v3_carrier_err=[], v3_dcons=[],
         **{f"score_raw_{lab}": [] for lab in SCORE_QUANTILE_LABELS},
         **{f"score_applied_{lab}": [] for lab in SCORE_QUANTILE_LABELS},
     )
@@ -405,6 +411,7 @@ def run_batch(
     hold = torch.zeros((B, n_particles), device=device, dtype=torch.long)
     held_out_active = (scheme is not None and v3_clone_policy == "holdout")
     v3_opportunities = []          # asserted as a whole array by the A.3 gate
+    v3_rows = []                   # Amendment 4c per-opportunity diagnostics
     ancestors = torch.arange(
         n_particles, device=device).expand(B, n_particles).contiguous()
     noise_scale = float(np.sqrt(2.0 * dt / beta))
@@ -601,18 +608,35 @@ def run_batch(
             log_q_part = torch.log(
                 tu.interp1d(q_grid, X_prop, x0, dx).clamp_min(EPS))
 
+            kl_before = _kl_grid(p_hat, q_grid, dx)
+            ess_anc_b, wmax_b = _anc_stats(ancestors, n_particles)
+
             X_new, Y_new = X_prop.clone(), Y_prop.clone()
             anc_new, hold_new = ancestors.clone(), hold.clone()
             ndeath = torch.zeros(B, device=device, dtype=torch.long)
             S_all = torch.zeros_like(X_prop)
+            th_b = torch.zeros(B, device=device, dtype=dtype)
+            essw_b = torch.zeros(B, device=device, dtype=dtype)
+            dtau_b = torch.zeros(B, device=device, dtype=dtype)
+            q90_b = torch.zeros(B, device=device, dtype=dtype)
+            pev_mean_b = torch.zeros(B, device=device, dtype=dtype)
+            pev_max_b = torch.zeros(B, device=device, dtype=dtype)
             for b in range(B):
                 score = fr_v3.FRScore(log_p=log_p_part[b], log_q=log_q_part[b])
                 S_all[b] = score.S
                 if v3_operator == "bd":
                     dtau = fr_v3.bd_timestep(score, v3_p_max)
                     src, _ = fr_v3.bd_standard(score, dtau, fr_generators[b])
+                    p_event = 1.0 - torch.exp(-score.S.abs() * dtau)
+                    dtau_b[b] = dtau
+                    q90_b[b] = torch.quantile(score.S.abs(), 0.90)
+                    pev_mean_b[b] = p_event.mean()
+                    pev_max_b[b] = p_event.max()
                 else:
-                    src, _, _ = fr_v3.ft_step(score, v3_rho, fr_generators[b])
+                    src, theta_b, essw = fr_v3.ft_step(
+                        score, v3_rho, fr_generators[b])
+                    th_b[b] = theta_b
+                    essw_b[b] = essw / n_particles
                 is_clone = fr_v3.clone_mask(src)
                 X_new[b] = X_prop[b][src]
                 Y_new[b] = Y_prop[b][src]
@@ -627,6 +651,34 @@ def run_batch(
                         X_new[b][is_clone], oracle_generators[b])
                 ndeath[b] = fr_v3.replacement_count(src, n_particles)
             X, Y, ancestors, hold = X_new, Y_new, anc_new, hold_new
+
+            kl_after = _kl_grid(current_p_hat(X), q_grid, dx)
+            ess_anc_a, wmax_a = _anc_stats(ancestors, n_particles)
+            # Amendment 4c: carrier error and the exact consistency residue.
+            F_ref_b = F_ref_t.expand(B, G)
+            gauge = (F_hat - F_ref_b).mean(dim=1, keepdim=True)
+            carrier_err = torch.sqrt(
+                tu.trapezoid((F_hat - F_ref_b - gauge) ** 2, dx).clamp_min(0.0))
+            beta_B = scheme.force_family.beta_bias_potential(F_hat, beta)
+            p_star = fam.stationary_marginal(F_ref_b, beta_B, beta, dx)
+            dcons = _kl_grid(p_star, q_grid, dx)
+            v3_rows.append(dict(
+                step=int(next_step),
+                theta=th_b.detach().cpu().numpy().copy(),
+                ess_w=essw_b.detach().cpu().numpy().copy(),
+                dtau=dtau_b.detach().cpu().numpy().copy(),
+                q90=q90_b.detach().cpu().numpy().copy(),
+                pev_mean=pev_mean_b.detach().cpu().numpy().copy(),
+                pev_max=pev_max_b.detach().cpu().numpy().copy(),
+                repl=ndeath.detach().cpu().numpy().copy(),
+                kl_before=kl_before.detach().cpu().numpy().copy(),
+                kl_after=kl_after.detach().cpu().numpy().copy(),
+                ess_anc_before=ess_anc_b.detach().cpu().numpy().copy(),
+                ess_anc_after=ess_anc_a.detach().cpu().numpy().copy(),
+                wmax_before=wmax_b.detach().cpu().numpy().copy(),
+                wmax_after=wmax_a.detach().cpu().numpy().copy(),
+                carrier_err=carrier_err.detach().cpu().numpy().copy(),
+                dcons=dcons.detach().cpu().numpy().copy()))
 
             ones = torch.ones(B, device=device, dtype=dtype)
             frac = ndeath.to(dtype) / n_particles
@@ -748,7 +800,32 @@ def run_batch(
         d["interval_scaled_clock"] = interval_scaled_clock
         d["x_tilt"] = x_tilt
     return BatchResult(diags, runtime, str(device),
-                       fr_opportunities=v3_opportunities)
+                       fr_opportunities=v3_opportunities,
+                       v3_events=v3_rows)
+
+
+def _kl_grid(p_hat, q_grid, dx):
+    """KL(p || q) on the profile grid, per row."""
+    p = p_hat.clamp_min(EPS)
+    q = q_grid.clamp_min(EPS)
+    return tu.trapezoid(p * (torch.log(p) - torch.log(q)), dx)
+
+
+def _anc_stats(ancestors, n_particles):
+    """(ESS_anc / K, w_max) per row -- the genealogy pair, aggregated by ancestor.
+
+    Amendment 4a: this is a different object from the weight ESS the governor
+    controls, and rho places no bound on it.
+    """
+    B = ancestors.shape[0]
+    ess = torch.zeros(B, device=ancestors.device, dtype=torch.float64)
+    wmax = torch.zeros(B, device=ancestors.device, dtype=torch.float64)
+    for b in range(B):
+        c = torch.bincount(ancestors[b], minlength=n_particles).double()
+        w = c / float(n_particles)
+        ess[b] = 1.0 / (w * w).sum().clamp_min(EPS)
+        wmax[b] = w.max()
+    return ess / float(n_particles), wmax
 
 
 def _marginal_l2(p_hat, q_grid, dx):
