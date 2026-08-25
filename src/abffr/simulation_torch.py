@@ -38,7 +38,9 @@ from typing import Dict, List, Optional
 import numpy as np
 import torch
 
-from . import family as fam, fr_v3, potentials, torch_utils as tu
+from . import (family as fam, fibre_diagnostics as fib, fr_v3,
+               persistent_mass as pmass, potentials, representation as rep,
+               torch_utils as tu)
 from .io_utils import RunSpec, make_rng_streams
 from .simulation import _init_positions  # reuse CPU init for matched seeds
 
@@ -57,6 +59,7 @@ class BatchResult:
     device: str
     fr_opportunities: Optional[List[int]] = None   # v3: exact firing steps
     v3_events: Optional[List[Dict]] = None         # Amendment 4c diagnostics
+    v4_events: Optional[List[Dict]] = None         # v4-A mass/representation
 
 
 # --------------------------------------------------------------------------- #
@@ -414,10 +417,28 @@ def run_batch(
         tu.make_generator(tu.stable_seed("oracle", base_seed, s.run_id), device)
         for s in specs
     ]
+    # --- v4-A mass sidecar ---------------------------------------------------
+    # The bias comes from the v3 block, so an arm's bias is identical to its
+    # control's by construction.  This block adds only the mass process.
+    v4cfg = cfg.get("v4", {}) or {}
+    v4_on = bool(v4cfg.get("enabled", False))
+    v4_arm = int(v4cfg.get("arm", 4))            # 3 = never resample, 4 = triggered
+    v4_theta = float(v4cfg.get("theta", 1.0))
+    v4_rho = float(v4cfg.get("rho_resample", 0.5))
+    v4_hold = int(v4cfg.get("hold_steps", 500))
+    if v4_on and v3_operator != "none":
+        raise ValueError("v4-A replaces the v3 FR operator; set v3.operator=none")
+    if v4_on and scheme is None:
+        raise ValueError("v4-A needs the v3 block for its bias family")
+    masses = [pmass.PersistentMass(n_particles, device=device, dtype=dtype)
+              for _ in range(B)] if v4_on else []
+    v4_rows = []
+
     v3_burn = int(round(v3_burnin_fraction * n_steps))
     v3_stop = int(round(v3_stop_fraction * n_steps))
     hold = torch.zeros((B, n_particles), device=device, dtype=torch.long)
-    held_out_active = (scheme is not None and v3_clone_policy == "holdout")
+    held_out_active = ((scheme is not None and v3_clone_policy == "holdout")
+                       or bool(cfg.get("v4", {}) and cfg["v4"].get("enabled")))
     v3_opportunities = []          # asserted as a whole array by the A.3 gate
     v3_rows = []                   # Amendment 4c per-opportunity diagnostics
     ancestors = torch.arange(
@@ -598,6 +619,67 @@ def run_batch(
         else:
             gamma_eff = torch.zeros_like(gamma_vec)
 
+        do_fr_v4 = (
+            v4_on
+            and v3_burn <= next_step <= v3_stop
+            and ((next_step - v3_burn) % v3_stride == 0))
+        if do_fr_v4:
+            # Oracle target: q propto exp(-beta(F_ref + B_t)) (v4-A holds the
+            # target fixed at the oracle so target error cannot excuse an
+            # operator failure).
+            beta_B = scheme.force_family.beta_bias_potential(F_hat, beta)
+            log_q_grid = -(beta * F_ref_t.expand(B, G) + beta_B)
+            log_q_grid = log_q_grid - log_q_grid.max(dim=1, keepdim=True).values
+            X_new, Y_new = X_prop.clone(), Y_prop.clone()
+            anc_new, hold_new = ancestors.clone(), hold.clone()
+            for b in range(B):
+                zb = X_prop[b]
+                m = masses[b]
+                log_q_at = tu.interp1d(log_q_grid[b:b + 1], zb.view(1, -1),
+                                       x0, dx).view(-1)
+                log_p_at = m.log_density_at(zb, eta)
+                ess_before = m.ess()
+                # MASS ONLY: no positions move, no accumulator is touched.
+                m.fr_update(log_q_at, log_p_at, theta=v4_theta)
+                ess_after = m.ess()
+                row = dict(step=int(next_step), row=b,
+                           ess_w_before=ess_before / n_particles,
+                           ess_w_after=ess_after / n_particles,
+                           w_max_after=m.w_max(),
+                           log_w_span=float(m.log_w.max() - m.log_w.min()),
+                           would_resample=bool(m.needs_resample(v4_rho)),
+                           resampled=False, n_replacements=0)
+                ess_anc_mass, m_max = m.mass_ancestry(anc_new[b])
+                row.update(ess_anc_mass=ess_anc_mass / n_particles, m_max=m_max)
+                # Arm 3 never resamples, whatever the degeneracy (frozen).
+                if v4_arm == 4 and m.needs_resample(v4_rho):
+                    probe = torch.tensor([-1.05, 0.0, 1.0], dtype=dtype,
+                                         device=device)
+                    row["fibre_ess_before"] = float(
+                        m.fibre_ess(zb, probe, h).min())
+                    xb = zb.detach().cpu().numpy()
+                    yb = Y_prop[b].detach().cpu().numpy()
+                    row.update({f"pre_{k}": v for k, v in
+                                fib.fibre_report(xb, yb, beta).items()})
+                    r = rep.resample(m.weights, fr_generators[b])
+                    X_new[b] = X_prop[b][r.src]
+                    Y_new[b] = Y_prop[b][r.src]
+                    anc_new[b] = ancestors[b][r.src]
+                    hold_new[b] = rep.apply_holdout(hold[b], r.src, r.is_clone,
+                                                    v4_hold)
+                    m.take_indices(r.src)
+                    m.reset_uniform()
+                    row.update(resampled=True, n_replacements=r.n_replacements)
+                    row.update({f"post_{k}": v for k, v in
+                                fib.fibre_report(X_new[b].detach().cpu().numpy(),
+                                                 Y_new[b].detach().cpu().numpy(),
+                                                 beta).items()})
+                ess_c, c_max = rep.count_ancestry(anc_new[b], n_particles)
+                row.update(ess_anc_count=ess_c / n_particles, c_max=c_max)
+                v4_rows.append(row)
+            X, Y, ancestors, hold = X_new, Y_new, anc_new, hold_new
+            cumulative_fr_events += torch.ones(B, device=device, dtype=torch.long)
+
         # v3 opportunities: Appendix A.3 includes BOTH endpoints of the window.
         do_fr_v3 = (
             v3_operator != "none"
@@ -747,7 +829,9 @@ def run_batch(
                 p_hat, q_grid, dx) * active_f
             cumulative_fr_events += active_i
             cumulative_replacements += ndeath
-        elif scheme is None:
+        elif scheme is None and not v4_on:
+            X, Y = X_prop, Y_prop
+        elif v4_on and not do_fr_v4:
             X, Y = X_prop, Y_prop
 
         if held_out_active:
@@ -809,7 +893,7 @@ def run_batch(
         d["x_tilt"] = x_tilt
     return BatchResult(diags, runtime, str(device),
                        fr_opportunities=v3_opportunities,
-                       v3_events=v3_rows)
+                       v3_events=v3_rows, v4_events=v4_rows)
 
 
 def _kl_grid(p_hat, q_grid, dx):

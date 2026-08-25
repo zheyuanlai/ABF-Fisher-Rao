@@ -137,6 +137,31 @@ class PersistentMass:
             d.ess_anc_mass, d.m_max = self.mass_ancestry(ancestors)
         return d
 
+    # -- within-fibre localization (diagnostic only) ------------------------
+    def log_fibre_ess(self, z: torch.Tensor, z_eval: torch.Tensor,
+                      h: float) -> torch.Tensor:
+        """``log ESS_fibre(z*)`` for ``u_i = w_i K_h(z* - xi_i)``, per evaluation point.
+
+        ``ESS_fibre = (sum_i u_i)^2 / sum_i u_i^2``, computed as
+        ``2 LSE(log u) - LSE(2 log u)`` so it survives the weight spreads that
+        make this diagnostic worth having.
+
+        Why it exists: keeping ``w`` out of the ABF estimator removes the direct
+        bias, but a *resampling* converts a path-dependent mass distribution back
+        into an actual physical population.  Two replicas at the same ``xi`` with
+        different fibre coordinates and very different weights can be selected
+        against each other, perturbing the realized conditional law even though
+        no weight ever entered a force accumulator.  This measures how few
+        replicas actually carry the mass near each ``z``.
+        """
+        d = (z_eval.unsqueeze(1) - z.unsqueeze(0)) / h
+        log_u = self.log_w.unsqueeze(0) - 0.5 * d * d
+        return 2.0 * logsumexp(log_u, dim=1) - logsumexp(2.0 * log_u, dim=1)
+
+    def fibre_ess(self, z: torch.Tensor, z_eval: torch.Tensor,
+                  h: float) -> torch.Tensor:
+        return torch.exp(self.log_fibre_ess(z, z_eval, h))
+
     # -- the representation trigger (decision only; it does not resample) ---
     def needs_resample(self, rho_resample: float) -> bool:
         """Degeneracy-triggered, never called "conditional" in this project:
