@@ -156,7 +156,9 @@ def _rows_for_run(spec: RunSpec, diag: Dict, cfg: Dict, x_grid, ref, ev,
     p_ref = ref.get("p_ref")
 
     ts = metrics.time_series_metrics(
-        diag, x_grid, ref["F_ref"], ref["Fprime_ref"], ev, p_ref=p_ref)
+        diag, x_grid, ref["F_ref"], ref["Fprime_ref"], ev, p_ref=p_ref,
+        scopes=metrics.evaluation_scopes(
+            x_grid, ref["F_ref"], float(cfg["simulation"]["beta"]), ev))
     long_rows, fr_rows = [], []
     for k, row in enumerate(ts):
         rf = metrics.region_fractions(diag["X_snap"][k], ev)

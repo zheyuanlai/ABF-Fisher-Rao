@@ -37,6 +37,30 @@ class EvalConfig:
         return (x_grid >= self.eval_x_min) & (x_grid <= self.eval_x_max)
 
 
+def thermal_scope_mask(F_ref: np.ndarray, beta: float,
+                       c_kt: float) -> np.ndarray:
+    """``{z : beta (F_ref(z) - min F_ref) <= c_kt}`` -- dimensionless scope.
+
+    The v3 primary scope R12 (c_kt = 12) is defined by the reference free
+    energy, not by x-limits, so that it means the same thing at another
+    temperature.  Post-hoc and evaluation-only: no algorithm may read it.
+    """
+    F = np.asarray(F_ref, dtype=float)
+    return beta * (F - np.nanmin(F)) <= float(c_kt)
+
+
+def evaluation_scopes(x_grid: np.ndarray, F_ref: np.ndarray, beta: float,
+                      ev: "EvalConfig") -> Dict[str, np.ndarray]:
+    """The frozen v3 evaluation scopes, as name -> boolean mask."""
+    x = np.asarray(x_grid, dtype=float)
+    return {
+        "R12": thermal_scope_mask(F_ref, beta, 12.0),      # primary
+        "full": np.ones_like(x, dtype=bool),                # secondary
+        "legacy": ev.eval_mask(x),                          # v2 comparability
+        "barrier": np.abs(x - ev.x_barrier) <= 0.4,         # reported separately
+    }
+
+
 def center(profile: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
     """Return ``profile - mean(profile)`` (mean taken over ``mask`` if given)."""
     profile = np.asarray(profile, dtype=float)
@@ -181,8 +205,15 @@ def region_fractions(X: np.ndarray, ev: EvalConfig) -> Dict[str, float]:
 
 def time_series_metrics(diag: Dict, x_grid: np.ndarray, F_ref: np.ndarray,
                         Fprime_ref: np.ndarray, ev: EvalConfig,
-                        p_ref: np.ndarray = None) -> List[Dict]:
-    """Per-snapshot independently referenced metrics in long format."""
+                        p_ref: np.ndarray = None,
+                        scopes: Dict[str, np.ndarray] = None) -> List[Dict]:
+    """Per-snapshot independently referenced metrics in long format.
+
+    ``scopes`` adds ``l2_F_<name>`` / ``l2_Fprime_<name>`` columns for each
+    named mask.  The v3 primary endpoint is the R12 scope, which is *not* the
+    default evaluation mask; freezing thresholds on the wrong scope is exactly
+    the kind of error no derivation check would catch.
+    """
     mask = ev.eval_mask(x_grid)
     rows = []
     optional = {
@@ -226,6 +257,12 @@ def time_series_metrics(diag: Dict, x_grid: np.ndarray, F_ref: np.ndarray,
             score_max=float(diag["score_max"][k]),
             **landmarks,
         )
+        for name, smask in (scopes or {}).items():
+            if not smask.any():
+                raise ValueError(f"evaluation scope {name!r} is empty")
+            row[f"l2_F_{name}"] = l2_error_F(F_hat, F_ref, x_grid, smask)
+            row[f"l2_Fprime_{name}"] = l2_error_Fprime(
+                Fp_hat, Fprime_ref, x_grid, smask)
         for key, cast in optional.items():
             if key in diag and k < len(diag[key]):
                 row[key] = cast(diag[key][k])

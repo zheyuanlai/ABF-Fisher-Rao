@@ -64,7 +64,12 @@ def main(argv=None):
 
     n_steps = int(df["step"].max())
     thresholds = {}
-    for observable, col in (("F", "l2_F"), ("Fprime", "l2_Fprime")):
+    # The frozen primary scope is R12, NOT the engine's default evaluation mask.
+    for observable, col in (("F", "l2_F_R12"), ("Fprime", "l2_Fprime_R12")):
+        if col not in df.columns:
+            raise ValueError(
+                f"{col} absent: these runs predate the scoped metrics, so "
+                f"freezing from them would silently use the wrong scope")
         med = df.groupby("step")[col].median()
         for i, frac in enumerate(BUDGET_FRACTIONS, start=1):
             target_step = int(round(frac * n_steps))

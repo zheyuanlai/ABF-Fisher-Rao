@@ -1,0 +1,57 @@
+{
+  "thresholds": {
+    "eps_F_1": {
+      "value": 0.05404413984204964,
+      "budget_fraction": 0.6,
+      "step": 30000,
+      "frame_index": 60
+    },
+    "eps_F_2": {
+      "value": 0.03947409346008515,
+      "budget_fraction": 0.8,
+      "step": 40000,
+      "frame_index": 80
+    },
+    "eps_Fprime_1": {
+      "value": 0.141510659562104,
+      "budget_fraction": 0.6,
+      "step": 30000,
+      "frame_index": 60
+    },
+    "eps_Fprime_2": {
+      "value": 0.1218886248218597,
+      "budget_fraction": 0.8,
+      "step": 40000,
+      "frame_index": 80
+    }
+  },
+  "scope": "R12",
+  "observables": [
+    "F",
+    "Fprime"
+  ],
+  "budget_fractions": [
+    0.6,
+    0.8
+  ],
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "n_steps": 50000,
+  "source_csv": "results/v3/plain_abf/production_gpu/production_gpu_runs_long.csv",
+  "source_sha256": "7f50cb61b1e9a1d93be4ebbc4e4da422928c9bf0f8598f6edfe09acdfa65c361",
+  "analysis_script_sha256": "516c45ad59886876c56cd01756199115189e3ca16007f1c22148911bff81f120",
+  "git_commit": "1f461ad57f167370d5507403919d7440d9e729b5",
+  "created_utc": "2026-08-25T13:29:57.354488+00:00",
+  "frozen_before_fr": true,
+  "offline_fr_benchmark_viewed_before_freeze": true,
+  "online_fr_results_viewed_before_freeze": false,
+  "note": "Computed from plain-ABF median curves only. Never overwrite: the value of these numbers is that they could not have been chosen with knowledge of any FR result."
+}
