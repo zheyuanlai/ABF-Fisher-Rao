@@ -126,6 +126,37 @@ def bd_standard(score: FRScore, dtau: float,
     return src, int(fired.numel())
 
 
+def bd_paired(score: FRScore, dtau: float,
+              generator: torch.Generator) -> Tuple[torch.Tensor, int]:
+    """Paired birth--death tau-leap.  **Offline benchmark only** (v3.1 Q-D).
+
+    Deaths are drawn from S+ and births are placed with weight max(-S, 0),
+    matched 1:1, rather than the standard scheme's uniformly chosen partner.
+    Its mean-field limit is the same flow -- with mean-centered scores
+    E[S+] = E[S-], so -p S+ + p S- = -p S -- and placing births where the flow
+    wants them should cost less variance than placing them uniformly.  It is a
+    third discretization, not the standard one, and it never runs online.
+    """
+    K = score.S.numel()
+    src = torch.arange(K, device=score.S.device)
+    if dtau <= 0.0:
+        return src, 0
+    S = score.S
+    prob = torch.where(S > 0, 1.0 - torch.exp(-S * dtau),
+                       torch.zeros_like(S))
+    draw = torch.rand(K, generator=generator, device=S.device, dtype=S.dtype)
+    die = torch.nonzero(draw < prob, as_tuple=False).flatten()
+    if die.numel() == 0:
+        return src, 0
+    birth_w = (-S).clamp_min(0.0)
+    if float(birth_w.sum()) <= 1e-12:
+        return src, 0
+    parents = torch.multinomial(birth_w, die.numel(), replacement=True,
+                                generator=generator)
+    src[die] = src[parents]
+    return src, int(die.numel())
+
+
 def ess_of_theta(a: torch.Tensor, theta: float) -> float:
     """``ESS(theta) = 1 / sum_i w_i^2`` for ``w propto exp(theta * a)``.
 
@@ -213,6 +244,23 @@ def ft_step(score: FRScore, rho: float, generator: torch.Generator,
     w = torch.exp(logw)
     w = w / w.sum()
     return systematic_resample(w, generator), theta, ess
+
+
+def ft_step_fixed(score: FRScore, theta: float,
+                  generator: torch.Generator) -> torch.Tensor:
+    """FT at a *prescribed* theta, for dose-matched comparison (Appendix A.2).
+
+    The online arms use :func:`ft_step` with the ESS governor; this variant
+    exists so BD and FT can be given the same nominal FR time offline.
+    """
+    K = score.log_p.numel()
+    if theta <= 0.0:
+        return torch.arange(K, device=score.log_p.device)
+    logw = theta * score.a
+    logw = logw - logw.max()
+    w = torch.exp(logw)
+    w = w / w.sum()
+    return systematic_resample(w, generator)
 
 
 def theta_from_dtau(dtau: float) -> float:

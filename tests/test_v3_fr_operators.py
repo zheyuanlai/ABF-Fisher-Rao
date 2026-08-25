@@ -288,3 +288,52 @@ def test_bd_and_ft_share_the_same_src_contract():
         assert src.shape == (K,)
         assert int(src.min()) >= 0 and int(src.max()) < K
         np.testing.assert_allclose(X[src].numpy(), src.numpy().astype(float))
+
+
+# ------------------------------------------- offline-only variants (Q-D)
+def test_bd_paired_targets_the_same_flow_as_bd_standard():
+    """BD-paired is a third discretization of the SAME flow, not another flow.
+
+    With mean-centered scores E[S+] = E[S-], so placing deaths from S+ and
+    births with weight max(-S,0) gives -p S+ + p S- = -p S in the mean field --
+    the same generator BD-standard has.  It is offline-only precisely because
+    it is not the reference scheme.
+    """
+    K = 256
+    s = _cloud(K=K, seed=5, spread=1.0)
+    phi = s.S.clone()
+    predicted = -K / (K - 1) * float((phi * s.S).mean())
+    dtau, trials = 0.02, 20000
+    total = 0.0
+    for t in range(trials):
+        src, _ = fr_v3.bd_paired(s, dtau, generator=_gen(60000 + t))
+        total += float(phi[src].mean() - phi.mean())
+    assert (total / trials / dtau) == pytest.approx(predicted, rel=0.08)
+
+
+def test_ft_step_fixed_matches_the_governor_at_the_governor_s_theta():
+    K = 128
+    s = _cloud(K=K, seed=9, spread=1.4)
+    theta = fr_v3.ess_governor(s.a, 0.85, K)
+    src_gov, theta_gov, _ = fr_v3.ft_step(s, 0.85, _gen(71))
+    src_fix = fr_v3.ft_step_fixed(s, theta, _gen(71))
+    assert theta_gov == pytest.approx(theta)
+    np.testing.assert_array_equal(src_gov.numpy(), src_fix.numpy())
+
+
+def test_ft_step_fixed_is_the_identity_at_theta_zero():
+    K = 64
+    s = _cloud(K=K, seed=15)
+    src = fr_v3.ft_step_fixed(s, 0.0, _gen(73))
+    np.testing.assert_array_equal(src.numpy(), np.arange(K))
+
+
+def test_matched_dose_uses_the_amendment_3_mapping_not_dtau():
+    """Appendix A.2: offline FT dose is 1 - exp(-dtau), never dtau itself."""
+    s = _cloud(K=256, seed=17, spread=1.1)
+    for p_max in (0.02, 0.05, 0.10):
+        dtau = fr_v3.bd_timestep(s, p_max)
+        theta = fr_v3.theta_from_dtau(dtau)
+        assert theta < dtau                      # strictly, for dtau > 0
+        assert theta == pytest.approx(1.0 - math.exp(-dtau))
+        assert fr_v3.dtau_from_theta(theta) == pytest.approx(dtau)
