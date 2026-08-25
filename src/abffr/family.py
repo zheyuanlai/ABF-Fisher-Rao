@@ -198,3 +198,32 @@ def tempered(gamma_wt: float, with_fr: bool = True) -> Scheme:
 def consistent_physical() -> Scheme:
     fam = Family("physical")
     return Scheme("consistent_physical", fam, fam)
+
+
+def family_from_config(spec: Optional[dict]) -> Optional[Family]:
+    """Build a :class:`Family` from a config block, or ``None``."""
+    if not spec:
+        return None
+    spec = dict(spec)
+    kind = spec.pop("kind")
+    return Family(kind=kind, **spec)
+
+
+def scheme_from_config(v3: Optional[dict]) -> Optional[Scheme]:
+    """Build the arm's :class:`Scheme` from the campaign config.
+
+    ``target_family`` defaults to the force family, which is what makes an arm
+    consistent; Track P sets it explicitly to a different family, and that is
+    the only place in the campaign where the two differ.  The engine asks this
+    object for every bias/target quantity so no family formula is ever written
+    outside :mod:`abffr.family`.
+    """
+    if not v3 or not v3.get("enabled", False):
+        return None
+    force = family_from_config(v3.get("family"))
+    if force is None:
+        raise ValueError("v3.family is required when v3.enabled is true")
+    target = family_from_config(v3.get("target_family"))
+    if target is None and v3.get("operator", "none") != "none":
+        target = force                       # consistent arm
+    return Scheme(v3.get("name", "v3"), force, target)

@@ -38,7 +38,7 @@ from typing import Dict, List, Optional
 import numpy as np
 import torch
 
-from . import potentials, torch_utils as tu
+from . import family as fam, fr_v3, potentials, torch_utils as tu
 from .io_utils import RunSpec, make_rng_streams
 from .simulation import _init_positions  # reuse CPU init for matched seeds
 
@@ -55,6 +55,7 @@ class BatchResult:
     diags: List[Dict]          # one CPU-style diag dict per row
     runtime_seconds: float     # wall-clock for the whole batch
     device: str
+    fr_opportunities: Optional[List[int]] = None   # v3: exact firing steps
 
 
 # --------------------------------------------------------------------------- #
@@ -336,6 +337,20 @@ def run_batch(
     # ``update_every`` steps would slow the EMA; use the matched decay.
     ema_alpha_eff = 1.0 - (1.0 - ema_alpha) ** update_every
 
+    # v3 arm (docs/V3_PREREGISTRATION.md).  When absent every line below that
+    # tests ``scheme is None`` takes the frozen v2 path unchanged.
+    v3cfg = cfg.get("v3", {}) or {}
+    scheme = fam.scheme_from_config(v3cfg)
+    v3_operator = v3cfg.get("operator", "none") if scheme is not None else "none"
+    v3_rho = float(v3cfg.get("rho", 0.85))
+    v3_p_max = float(v3cfg.get("p_max", 0.05))
+    v3_stride = int(v3cfg.get("fr_stride", 500))
+    v3_clone_policy = v3cfg.get("clone_policy", "exact")
+    v3_hold_steps = int(v3cfg.get("hold_steps", 500))
+    v3_oracle_target = bool(v3cfg.get("oracle_target", False))
+    if v3_clone_policy not in {"exact", "holdout", "oracle_refresh"}:
+        raise ValueError(f"unknown v3.clone_policy: {v3_clone_policy!r}")
+
     ramp_fraction = float(fr.get("ramp_fraction", 0.1))
     score_clip = fr.get("score_clip", 5.0)
     max_event_fraction = fr.get("max_event_fraction", 0.10)
@@ -380,9 +395,41 @@ def run_batch(
         tu.make_generator(tu.stable_seed("fr", base_seed, s.run_id), device)
         for s in specs
     ]
+    # Appendix A.6: a third, independent stream.  The MD bank stays keyed by
+    # (seed, step, slot) alone, so FR changes which configuration occupies a
+    # slot but never which Langevin variates that slot will receive.
+    oracle_generators = [
+        tu.make_generator(tu.stable_seed("oracle", base_seed, s.run_id), device)
+        for s in specs
+    ]
+    hold = torch.zeros((B, n_particles), device=device, dtype=torch.long)
+    held_out_active = (scheme is not None and v3_clone_policy == "holdout")
+    v3_opportunities = []          # asserted as a whole array by the A.3 gate
     ancestors = torch.arange(
         n_particles, device=device).expand(B, n_particles).contiguous()
     noise_scale = float(np.sqrt(2.0 * dt / beta))
+
+    oracle_refresh_y = None
+    if scheme is not None and v3_clone_policy == "oracle_refresh":
+        # Grid inverse-CDF for pi(y | x) prop exp(-beta V(x, y)).  The x-tilt is
+        # a function of x alone, so it cancels in the conditional.
+        ny_cond = int(v3cfg.get("oracle_ny", 401))
+        y_cond = torch.linspace(ymin, ymax, ny_cond, device=device, dtype=dtype)
+        logw = -beta * potentials.potential_xy_torch(
+            x_grid_t.view(G, 1).expand(G, ny_cond),
+            y_cond.view(1, ny_cond).expand(G, ny_cond))
+        logw = logw - logw.max(dim=1, keepdim=True).values
+        w_cond = torch.exp(logw)
+        cdf_cond = torch.cumsum(w_cond, dim=1)
+        cdf_cond = (cdf_cond / cdf_cond[:, -1:].clamp_min(EPS)).contiguous()
+
+        def oracle_refresh_y(x_children, generator):
+            ix = tu.nearest_index(x_children.view(1, -1), x0, dx, G).view(-1)
+            u = torch.rand(x_children.numel(), generator=generator,
+                           device=device, dtype=dtype)
+            j = torch.searchsorted(
+                cdf_cond[ix], u.unsqueeze(1)).view(-1).clamp_max(ny_cond - 1)
+            return y_cond[j]
 
     # ABF accumulators and current grid estimates.
     C_acc = torch.zeros((B, G), device=device, dtype=dtype)
@@ -414,6 +461,11 @@ def run_batch(
 
     diags = [_empty_diag(target_type) for _ in range(B)]
 
+    # One-slot cell holding the applied bias-force grid, refreshed with the
+    # estimator.  Starts at zero exactly as the v2 path does, since F_hat is
+    # zero before the first update and every family multiplier is finite.
+    nonlocal_bias = [torch.zeros((B, G), device=device, dtype=dtype)]
+
     def recompute_grid():
         nonlocal Fprime_hat, F_hat
         if use_kernel_ref:
@@ -425,6 +477,12 @@ def run_batch(
             den_s = tu.smooth_grid(C_acc, k_h, r_h, dx)
             Fprime_hat = num_s / (den_s + min_count + EPS)
         F_hat = tu.center_at_index(tu.cumulative_trapezoid(Fprime_hat, dx), idx0)
+        # v3 carrier: A_t is exactly this F_hat, and the applied bias force is
+        # A' * (1 - g'(A)).  The multiplier comes from the Scheme; no family
+        # formula is written in this module.
+        nonlocal_bias[0] = (
+            Fprime_hat if scheme is None
+            else Fprime_hat * scheme.force_family.bias_force_multiplier(F_hat, beta))
 
     def current_p_hat(Xc):
         if use_kernel_ref:
@@ -469,7 +527,8 @@ def run_batch(
                     (1.0 - ema_alpha_eff) * Fhat_target
                     + ema_alpha_eff * F_hat)
 
-        abf_at_X = tu.interp1d(Fprime_hat, X, x0, dx)
+        bias_grid = Fprime_hat if scheme is None else nonlocal_bias[0]
+        abf_at_X = tu.interp1d(bias_grid, X, x0, dx)
         noise_x, noise_y = noise_bank.at(step)
         X_prop = tu.reflect_into(
             X + (-dvdx + abf_at_X) * dt + noise_scale * noise_x,
@@ -493,8 +552,16 @@ def run_batch(
             else:
                 dvdx_prop = potentials.dVdx_xy_torch(X_prop, Y_prop) + x_tilt
                 idx = tu.nearest_index(X_prop, x0, dx, G)
-                C_acc += tu.scatter_grid(idx, G)
-                S_acc += tu.scatter_grid(idx, G, dvdx_prop)
+                if held_out_active:
+                    # A.4: a held-out replica propagates normally but deposits
+                    # nothing.  FR never touches the accumulators directly; it
+                    # only changes which configurations are eligible to speak.
+                    elig = (hold == 0).to(dtype)
+                    C_acc += tu.scatter_grid(idx, G, elig)
+                    S_acc += tu.scatter_grid(idx, G, dvdx_prop * elig)
+                else:
+                    C_acc += tu.scatter_grid(idx, G)
+                    S_acc += tu.scatter_grid(idx, G, dvdx_prop)
             if next_step % update_every == 0:
                 recompute_grid()
                 Fhat_target = (
@@ -516,8 +583,74 @@ def run_batch(
         else:
             gamma_eff = torch.zeros_like(gamma_vec)
 
+        # v3 opportunities: Appendix A.3 includes BOTH endpoints of the window.
+        do_fr_v3 = (
+            v3_operator != "none"
+            and fr_burnin <= next_step <= fr_stop
+            and ((next_step - fr_burnin) % v3_stride == 0))
+        if do_fr_v3:
+            v3_opportunities.append(int(next_step))
+            p_hat = current_p_hat(X_prop)
+            if v3_oracle_target:
+                q_grid = fam.oracle_target(
+                    F_ref_t.expand(B, G), F_hat, scheme.target_family, beta, dx)
+            else:
+                q_grid = scheme.target_family.target(F_hat, beta, dx)
+            log_p_part = torch.log(
+                tu.interp1d(p_hat, X_prop, x0, dx).clamp_min(EPS))
+            log_q_part = torch.log(
+                tu.interp1d(q_grid, X_prop, x0, dx).clamp_min(EPS))
+
+            X_new, Y_new = X_prop.clone(), Y_prop.clone()
+            anc_new, hold_new = ancestors.clone(), hold.clone()
+            ndeath = torch.zeros(B, device=device, dtype=torch.long)
+            S_all = torch.zeros_like(X_prop)
+            for b in range(B):
+                score = fr_v3.FRScore(log_p=log_p_part[b], log_q=log_q_part[b])
+                S_all[b] = score.S
+                if v3_operator == "bd":
+                    dtau = fr_v3.bd_timestep(score, v3_p_max)
+                    src, _ = fr_v3.bd_standard(score, dtau, fr_generators[b])
+                else:
+                    src, _, _ = fr_v3.ft_step(score, v3_rho, fr_generators[b])
+                is_clone = fr_v3.clone_mask(src)
+                X_new[b] = X_prop[b][src]
+                Y_new[b] = Y_prop[b][src]
+                anc_new[b] = ancestors[b][src]
+                hold_new[b] = (
+                    fr_v3.apply_holdout(hold[b], src, is_clone, v3_hold_steps)
+                    if v3_clone_policy == "holdout" else hold[b][src])
+                if v3_clone_policy == "oracle_refresh" and bool(is_clone.any()):
+                    # A.5: the fibre coordinate only.  x, ancestry and the
+                    # offspring count are left exactly as FR set them.
+                    Y_new[b][is_clone] = oracle_refresh_y(
+                        X_new[b][is_clone], oracle_generators[b])
+                ndeath[b] = fr_v3.replacement_count(src, n_particles)
+            X, Y, ancestors, hold = X_new, Y_new, anc_new, hold_new
+
+            ones = torch.ones(B, device=device, dtype=dtype)
+            frac = ndeath.to(dtype) / n_particles
+            win_n += torch.ones(B, device=device, dtype=torch.long)
+            win_events += ndeath
+            win_frac_sum += frac
+            win_frac_max = torch.maximum(win_frac_max, frac)
+            win_smean_sum += S_all.mean(dim=1)
+            win_sstd_sum += S_all.std(dim=1)
+            win_smin = torch.minimum(win_smin, S_all.amin(dim=1))
+            win_smax = torch.maximum(win_smax, S_all.amax(dim=1))
+            win_sq_raw += _score_quantiles(S_all, q_levels)
+            win_sq_app += _score_quantiles(S_all, q_levels)   # v3 never clips
+            win_target_l2 += _marginal_l2(p_hat, q_grid, dx) * ones
+            cumulative_fr_events += torch.ones(B, device=device,
+                                               dtype=torch.long)
+            cumulative_replacements += ndeath
+        elif scheme is not None:
+            X, Y = X_prop, Y_prop
+
         active = gamma_eff > 0
-        if do_fr and bool(active.any().detach().cpu()):
+        if scheme is not None:
+            pass                        # v3 arms never take the v2 FR path
+        elif do_fr and bool(active.any().detach().cpu()):
             p_hat = current_p_hat(X_prop)
             q_grid = _build_target(
                 target_type, Fhat_target, F_hat, F_ref_t,
@@ -554,8 +687,11 @@ def run_batch(
                 p_hat, q_grid, dx) * active_f
             cumulative_fr_events += active_i
             cumulative_replacements += ndeath
-        else:
+        elif scheme is None:
             X, Y = X_prop, Y_prop
+
+        if held_out_active:
+            hold = (hold - 1).clamp_min(0)     # A.4: decrement after depositing
 
         prev_sign = torch.sign(X - x_barrier)
 
@@ -563,9 +699,16 @@ def run_batch(
             if observation_order == "pre_propagation":
                 recompute_grid()
             p_snap = current_p_hat(X)
-            q_snap = _build_target(
-                target_type, Fhat_target, F_hat, F_ref_t,
-                p_snap, beta, dx, width)
+            if scheme is not None and scheme.target_family is not None:
+                q_snap = (
+                    fam.oracle_target(F_ref_t.expand(B, G), F_hat,
+                                      scheme.target_family, beta, dx)
+                    if v3_oracle_target
+                    else scheme.target_family.target(F_hat, beta, dx))
+            else:
+                q_snap = _build_target(
+                    target_type, Fhat_target, F_hat, F_ref_t,
+                    p_snap, beta, dx, width)
             _record_snapshot(
                 diags, next_step, next_step * dt, Fprime_hat, F_hat,
                 p_snap, q_snap, X, Y, ancestors, barrier_crossings,
@@ -604,7 +747,8 @@ def run_batch(
         d["observation_order"] = observation_order
         d["interval_scaled_clock"] = interval_scaled_clock
         d["x_tilt"] = x_tilt
-    return BatchResult(diags, runtime, str(device))
+    return BatchResult(diags, runtime, str(device),
+                       fr_opportunities=v3_opportunities)
 
 
 def _marginal_l2(p_hat, q_grid, dx):
