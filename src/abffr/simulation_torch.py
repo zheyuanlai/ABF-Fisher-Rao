@@ -138,11 +138,9 @@ def _empty_diag(target_type):
         score_max=[], cumulative_fr_events=[], cumulative_replacements=[],
         ancestor_ess=[], max_clone_multiplicity=[], max_clone_weight=[],
         target_l2=[], score_clipped_fraction=[],
-        v3_theta=[], v3_ess_w_frac=[], v3_dtau=[], v3_q90_absS=[],
-        v3_p_event_mean=[], v3_p_event_max=[], v3_repl_frac=[],
-        v3_kl_before=[], v3_kl_after=[], v3_ess_anc_before=[],
-        v3_ess_anc_after=[], v3_wmax_before=[], v3_wmax_after=[],
-        v3_retention=[], v3_carrier_err=[], v3_dcons=[],
+        # The Amendment 4c per-opportunity diagnostics are NOT snapshot columns:
+        # they live one row per FR opportunity in the v3_events CSV.  Declaring
+        # them here advertised a schema that was always empty.
         **{f"score_raw_{lab}": [] for lab in SCORE_QUANTILE_LABELS},
         **{f"score_applied_{lab}": [] for lab in SCORE_QUANTILE_LABELS},
     )

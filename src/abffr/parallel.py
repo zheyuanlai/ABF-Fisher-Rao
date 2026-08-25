@@ -38,7 +38,7 @@ from . import (diagnostics, io_utils, metrics, reference, simulation_torch,
 from .io_utils import RunSpec
 
 CSV_KINDS = ("runs_long", "final_summary", "profiles", "fr_events",
-             "conditional_diagnostics")
+             "conditional_diagnostics", "v3_events")
 
 # Columns that uniquely identify a row of each CSV kind, used to de-duplicate
 # when merging tag-suffixed shard CSVs (a profile has one row per (run, x); a
@@ -49,6 +49,8 @@ DEDUP_SUBSET = {
     "final_summary": ["run_id"],
     "profiles": ["run_id", "x"],
     "fr_events": ["run_id", "step"],
+    # Amendment 4c: one row per FR opportunity per run.
+    "v3_events": ["run_id", "step"],
     # conditional_diagnostics rows carry only (method, target_type, seed) as
     # identity (not the full config), so several configs share a key -- like the
     # CPU runner we keep them all (plotting averages over them); no dedup.
@@ -146,8 +148,42 @@ def _write_failure(stage_root: str, spec: RunSpec, err: str) -> None:
 # --------------------------------------------------------------------------- #
 # Row assembly (reuses metrics.py / diagnostics.py, like the CPU runner)
 # --------------------------------------------------------------------------- #
+def _v3_event_rows(meta: Dict, events, b: int):
+    """Amendment 4c per-opportunity diagnostics for batch row ``b``.
+
+    Computed in the engine since Amendment 4c but previously discarded here, so
+    theta, the consistency residue and the carrier error never reached disk.
+    Retention is recomputed from the two ancestral ESS values rather than stored
+    separately, so the CSV cannot carry a G_t that disagrees with them.
+    """
+    rows = []
+    for e in (events or []):
+        before = float(e["ess_anc_before"][b])
+        after = float(e["ess_anc_after"][b])
+        rows.append({
+            **meta, "step": int(e["step"]),
+            "theta": float(e["theta"][b]),
+            "ess_w_frac": float(e["ess_w"][b]),
+            "dtau": float(e["dtau"][b]),
+            "q90_absS": float(e["q90"][b]),
+            "p_event_mean": float(e["pev_mean"][b]),
+            "p_event_max": float(e["pev_max"][b]),
+            "replacements": int(e["repl"][b]),
+            "kl_before": float(e["kl_before"][b]),
+            "kl_after": float(e["kl_after"][b]),
+            "ess_anc_before": before, "ess_anc_after": after,
+            "wmax_before": float(e["wmax_before"][b]),
+            "wmax_after": float(e["wmax_after"][b]),
+            "retention": after / before if before > 0 else float("nan"),
+            "carrier_err": float(e["carrier_err"][b]),
+            "dcons": float(e["dcons"][b]),
+        })
+    return rows
+
+
 def _rows_for_run(spec: RunSpec, diag: Dict, cfg: Dict, x_grid, ref, ev,
-                  runtime_seconds: float, conditional: str):
+                  runtime_seconds: float, conditional: str,
+                  v3_events=None, batch_index: int = 0):
     """Assemble durable CSV payloads for one completed GPU run."""
     meta = spec.to_row()
     h = float(cfg["abf"]["h"])
@@ -237,7 +273,8 @@ def _rows_for_run(spec: RunSpec, diag: Dict, cfg: Dict, x_grid, ref, ev,
     return dict(
         runs_long=long_rows, final_summary=[final_row],
         profiles=profile_rows, fr_events=fr_rows,
-        conditional_diagnostics=cond_rows), summary
+        conditional_diagnostics=cond_rows,
+        v3_events=_v3_event_rows(meta, v3_events, batch_index)), summary
 
 
 # --------------------------------------------------------------------------- #
@@ -337,11 +374,12 @@ def run_specs(
 
         per_run_runtime = res.runtime_seconds / max(len(batch), 1)
         pending = []
-        for spec, diag in zip(batch, res.diags):
+        for b, (spec, diag) in enumerate(zip(batch, res.diags)):
             try:
                 payload, summary = _rows_for_run(
                     spec, diag, cfg, x_grid, ref, ev,
-                    per_run_runtime, conditional)
+                    per_run_runtime, conditional,
+                    v3_events=getattr(res, "v3_events", None), batch_index=b)
                 buf.extend(payload)
                 pending.append((spec, summary))
             except Exception as exc:
