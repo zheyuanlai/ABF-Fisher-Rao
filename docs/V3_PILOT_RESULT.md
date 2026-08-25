@@ -20,6 +20,15 @@ At ε_F,2, median over 8 matched seeds:
 | C_tempered8 + FT ρ=0.85 | 1.327 | 0.599 | 0.828 |
 | C_flat + FT ρ=0.85 | 1.000 | 0.828 | 0.828 |
 
+**These three medians do not factorize, and must not be presented as if they
+do.** The identity R_total = R_shape × R_FR is exact *per seed* — verified on all
+8 seeds — but median(XY) ≠ median(X)·median(Y): for capped-12,
+1.617 × 0.583 = 0.943 against a reported median R_total of 1.000. Amendment 6c
+is a per-seed decomposition plus a reporting order, not an algebraic identity
+between the three summary numbers. The registered statistic is the median and it
+stays. As a purely descriptive companion, geometric means of the paired ratios do
+factorize exactly: 2.086 × 0.548 = 1.144.
+
 The one-line summary the campaign was built to be able to make:
 
 > **Capping the bias is a large, real gain. Adding Fisher–Rao reallocation
@@ -68,17 +77,37 @@ deployable arm:
 | seeds censored at ε_F,2 | 6/8 | **0/8** | 3/8 |
 | dose decay | 1.02 | 1.01 | — |
 | ancestral ESS/K | 0.141 | 0.152 | 1 |
+| replacements | 1201 | 1123 | 0 |
 
-With a correct target, the *same* FR operator at the *same* dose halves the final
-error instead of doubling it. The genealogy still collapses and the dose still
-does not decay — so those are properties of the operator and schedule — but the
-**accuracy damage is caused by target-estimation error**, not by reallocation.
+What is held fixed is the **operator, the governor parameter ρ, the opportunity
+schedule, and the applied-bias construction**; only the target construction
+changes. It is *not* the same dose — changing q changes the FT weights, and the
+realized replacement counts differ (1201 vs 1123). Claiming matched dose would
+require verifying the θ_t and ESS trajectories, which this campaign did not
+persist (see the known gap below).
 
-The mechanism is a feedback loop the design did not break: a poor F̂ builds a
-poor target, FR moves particles toward it, the relocated particles make F̂ worse.
+The correct conclusion is therefore:
+
+> **Wrong-target FR reallocation causes the accuracy damage**, and target
+> construction is load-bearing for it.
+
+Not "target error rather than reallocation": reallocation is precisely the
+mechanism by which an erroneous target corrupts A_t, and with a correct target
+the same kind of reallocation *improves* accuracy substantially. The proposed
+feedback loop — poor F̂ → poor target → FR movement → worse F̂ — is consistent
+with these endpoints but is not yet demonstrated causally; the diagnostic replay
+below is what would show it in time order.
+
 Consistency was defined against the *current estimate*, and Amendment 2 already
 established that this equals the physical stationary marginal only as A_t → F.
-This pilot measures what that gap costs when FR acts on it.
+
+Note also that this finite-time target error is **independent of g**: with
+B_t = g(A_t) − A_t and q_t ∝ exp(−βg(A_t)),
+log(p*_{B_t}/q_t) = −β[F − A_t] + const. Moving between capped, tempered and
+physical cannot repair it. And because the target exponentiates the carrier,
+q_t/q_t^oracle ∝ exp(−β(A_t − F)): an estimate accurate enough to serve as a
+force bias can still be far too inaccurate to serve as an exponentiated
+population target. That is plausibly the deepest lesson of this pilot.
 
 This is the same signature as the entropy-dominant bottleneck study's
 target-limited result: the oracle target gains where the deployable one does not.
@@ -125,6 +154,20 @@ candidate fails on 2–4 *independent* grounds (dose decay, genealogy, final
 non-inferiority on R₁₂, barrier) with condition 7 removed entirely. Recorded so
 that a future protocol either sets that bound from a pilot control or scopes it
 to the family it can meaningfully constrain.
+
+## Two independent failure modes, not one
+
+The oracle arm separates them cleanly:
+
+1. **Accuracy failure — target feedback.** Driven by F − A_t, independent of the
+   family member g, and removed entirely by an oracle target.
+2. **Finite-particle selection failure — genealogy.** *Not* removed by the oracle
+   target: dose decay stays ≈ 1.0 and ancestral ESS/K ≈ 0.15 even when accuracy
+   is excellent.
+
+A perfect deployable target estimator would therefore be expected to yield
+excellent F and a still-failed genealogy gate. Any successful successor has to
+solve both.
 
 ## What this licenses
 
