@@ -635,6 +635,64 @@ with the numbers rather than living only in this document.
 
 No threshold, arm, parameter or gate changes.
 
+**Amendment 6 (2026-08-25, before any online FR result exists) — right-censoring
+convention for tau_eps, and the baseline/control arms are pilot arms.**
+
+**6a. Censoring.** v3.1 defines
+tau_eps = min{n : e(m) <= eps for all m in [n, n + 5 frames]} but does not say
+what happens when a seed never sustains accuracy. With eps_Fprime_2 = 0.121889
+that is a live possibility, and the convention must be fixed before anyone can
+see which arm gets censored.
+
+Saved frames are indexed 0..100 (every 500 steps to n_steps = 50 000). The
+5-frame persistence window requires a start index n <= 95, so
+
+    n_max      = 95        (latest valid start)
+    tau_censor = 96        (one fixed index strictly after n_max)
+
+and the restricted hitting time is
+
+    tau~_eps = tau_eps          if sustained accuracy is reached
+             = tau_censor       otherwise
+
+with every speedup computed from the restricted times,
+S_eps = tau~_eps(reference) / tau~_eps(method), and the hit indicator
+H_eps = 1{threshold actually reached} retained and reported separately for both
+arms of every pair.
+
+The four cases behave sensibly: reference censored / method hits gives S > 1;
+reference hits / method censored gives S < 1; both censored gives S = 1 and is
+explicitly flagged; both hit is the ordinary comparison.
+
+**Pairs in which either arm is censored are never dropped.** Dropping them would
+condition the comparison on each arm's own survivors, which is the same
+ratio/population defect that required complete-case handling in the offline
+benchmark. Every reported median states how many of its pairs were censored.
+
+**6b. Arm accounting.** The plain-ABF runs used to freeze the thresholds *are*
+the pilot's baseline arm -- same K = 256, same seeds 0..7, same 50 000 steps,
+same matched noise -- not a separate calibration dataset. Likewise the three
+same-bias no-FR runs are the pilot's Track-C control arms. The remaining work is
+therefore **17 configurations**, not a fresh 21:
+
+    1 baseline (complete) + 3 controls + 17 remaining = 21
+
+This also guarantees one definitive ABF trajectory per seed against which every
+paired comparison is made.
+
+**6c. Analysis order for Track C (no new gate).** Report the factorization
+before the headline, for each family and threshold:
+
+    R_shape = tau~(ABF)      / tau~(C_noFR)      bias-shaping effect
+    R_FR    = tau~(C_noFR)   / tau~(C_FR)        incremental Fisher-Rao effect
+    R_total = tau~(ABF)      / tau~(C_FR)  =  R_shape * R_FR
+
+R_total alone is not a licensed conclusion about Fisher-Rao. A result such as
+R_total = 1.15 with R_shape = 1.13 and R_FR = 1.018 is numerically a 15 %
+acceleration and scientifically a statement about capping the bias, not about
+FR. The advancement gate already requires the C_noFR comparison; this fixes the
+reporting order so the headline cannot swallow the decomposition.
+
 ## Implementation appendix A (frozen 2026-08-25, before the infrastructure runs)
 
 Clarifications that make already-frozen text unambiguous. They add no arm, no
