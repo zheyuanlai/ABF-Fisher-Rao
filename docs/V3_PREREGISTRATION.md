@@ -542,6 +542,80 @@ monotonicity gate is retained, but a violation is now an engineering anomaly
 grid-scan fallback must therefore **log loudly** whenever it fires rather than
 silently substituting a scan.
 
+## Implementation appendix A (frozen 2026-08-25, before the infrastructure runs)
+
+Clarifications that make already-frozen text unambiguous. They add no arm, no
+parameter and no threshold, and are recorded here because each of them could
+otherwise be settled *after* seeing data.
+
+**A.1 Offline cloud sampling — no post-hoc selection.** v3.1 says "~50 clouds
+across seeds and times". Frozen exactly as
+
+    4 seeds x 2 infrastructure families x 6 normalized times = 48 clouds
+
+with the two families being plain ABF and C-capped(c_cut = 12) at K = 1024, and
+the six normalized times fixed in advance at
+
+    t/T = 0.15, 0.30, 0.45, 0.60, 0.75, 0.90
+
+identical for both families. Clouds are never selected, weighted or dropped on
+the basis of their KL, score shape or any benchmark outcome. Q-D is a
+preregistered prediction (P6), so choosing "representative" clouds after
+inspecting them would decide the prediction it is meant to test.
+
+**A.2 Offline dose set.** Every offline comparison is run at the three
+registered online BD strengths, p_max ∈ {0.02, 0.05, 0.10}. For each cloud the
+FR time is
+
+    dtau(p_max) = -log(1 - p_max) / Q_0.90(|S|)
+
+computed from that cloud's own score, and the matched FT dose is Amendment 3's
+
+    theta(p_max) = 1 - exp(-dtau(p_max)).
+
+BD-standard, BD-paired and FT therefore represent the same nominal FR time on
+every cloud, which is what makes P6 interpretable.
+
+**A.3 FR opportunity indices.** With n_steps = 50 000 and the window [0.2T, 0.8T]
+at stride L_FR = 500, the opportunity set is exactly
+
+    J_FR = {10000, 10500, ..., 40000},   |J_FR| = 61
+
+both endpoints included. FR fires *after* the propagation and estimator update
+of that step, per the frozen backbone order. The schedule gate asserts this
+entire index array, not merely "no events outside the window" — that weaker
+assertion passes for a first event at 10500, a missing event at 40000, or a
+stride applied to estimator updates instead of physical steps.
+
+**A.4 Hold-out counter semantics.** h_i in {0, ..., L_hold} per slot. At each
+physical step the slot propagates normally; if h_i > 0 its observation is not
+deposited in the ABF accumulators; then h_i is decremented. So h_i = L_hold
+excludes exactly the next L_hold propagated observations. Under FT, one
+descendant per parent is the continuation and inherits the parent's remaining
+counter; the other N_j - 1 descendants are new clones and receive a fresh
+L_hold, including clones of an already-held-out replica.
+
+**A.5 Oracle refresh acts only on the fibre.** A new clone from parent
+(x_j, y_j) keeps x_child = x_j exactly and draws y_child ~ pi(y | x_j). It must
+not move x, change the FR offspring count, change ancestry, or deposit an ABF
+observation at the instant of refresh; the child becomes estimator information
+only after a physical propagation, subject to its clone policy.
+
+**A.6 Three independent random streams.** Physical noise is keyed by
+(seed, physical step, slot) and by nothing else — not ancestry, not FR event
+count, not the number of FR draws consumed, not method, not batch or shard
+layout. FR randomness (event Bernoullis, event ordering, uniform partners,
+systematic-resampling offset) is keyed by (seed, opportunity, draw). Oracle
+refresh uses a third stream keyed by (seed, opportunity, child slot). The
+invariant under test:
+
+> FR may change which configuration occupies slot i, but never which future
+> Langevin variates belong to slot i.
+
+The regression gate generates the MD noise bank once with FR disabled and once
+after consuming a large number of FR and oracle draws, and requires the two to
+be *exactly* equal.
+
 ## Revision log
 
 **v3.1 (2026-08-25), six corrections to the v3.0 draft, all adopted:**

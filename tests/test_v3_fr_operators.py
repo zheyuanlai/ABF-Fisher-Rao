@@ -82,49 +82,65 @@ def test_bd_sign_convention_overrepresented_dies_underrepresented_clones():
 
 
 # ---------------------------------------------------------------- gate 4
-def test_bd_weak_generator_matches_the_continuum_drift():
-    """E[d phi]/dtau must equal the FR drift, testing sign, partner choice and rate.
+def test_bd_small_step_generator_identity_converges_first_order():
+    """BD must reproduce the FR generator in the small-step limit.
 
-    The exact one-step expectation of the implemented scheme is derived as
-    follows.  To first order in dtau particle i fires with probability
-    |S_i| dtau; if S_i > 0 slot i takes a uniform partner's content, and if
-    S_i < 0 a uniform partner takes slot i's content, so
+    This is a *weak-generator / small-step* identity, not an exact finite-step
+    law.  To first order in dtau particle i fires with probability |S_i| dtau;
+    if S_i > 0 slot i takes a uniform partner's content and if S_i < 0 a uniform
+    partner takes slot i's, so
 
         E[d sum(phi)] = dtau * sum_i S_i * (mean_{-i}(phi) - phi_i)
                       = dtau * K/(K-1) * sum_i S_i * (mean(phi) - phi_i)
-                      = -dtau * K/(K-1) * sum_i S_i phi_i        (since sum_i S_i = 0)
+                      = -dtau * K/(K-1) * sum_i S_i phi_i     (since sum_i S_i = 0)
 
-    hence E[d mean(phi)]/dtau = -K/(K-1) * mean(phi S).  That is the continuum
-    drift -E_p[phi S] times an explicit finite-K factor, and it is what the
-    scheme must reproduce.
+    hence
 
-    phi = S is used as the observable because it maximizes the signal-to-noise
-    of the estimator; with a weakly correlated phi the Monte-Carlo error swamps
-    a 50% rate error, which is how the first version of this gate passed on its
-    absolute tolerance while measuring almost nothing.
+        E[d mean(phi)] / dtau  ->  -K/(K-1) * mean(phi S)     as dtau -> 0,
+
+    the continuum drift -E_p[phi S] times an explicit finite-K factor.  At finite
+    dtau this is only the leading term: the event probability itself is
+    1 - exp(-|S_i| dtau), and accepted events are executed sequentially so later
+    events act on a cloud earlier ones already changed.  Both corrections are
+    O(dtau), which is exactly what the ladder below measures.
+
+    phi = S maximizes the estimator's signal-to-noise.  With a weakly correlated
+    phi the Monte-Carlo error swamps even a 50% rate error -- the first version
+    of this gate passed on an absolute tolerance worth 60% of the signal while
+    measuring essentially nothing.
     """
     K = 96
     s = _cloud(K=K, seed=3, spread=0.8)
     phi = s.S.clone()
-    exact = -K / (K - 1) * float((phi * s.S).mean())
+    predicted = -K / (K - 1) * float((phi * s.S).mean())
     continuum = -float((phi * s.S).mean())
-    assert exact == pytest.approx(continuum, rel=0.02)     # finite-K factor is small
+    assert predicted == pytest.approx(continuum, rel=0.02)   # finite-K factor is small
 
-    dtau, trials = 5e-3, 40000
-    total = 0.0
-    for t in range(trials):
-        src, _ = fr_v3.bd_standard(s, dtau, generator=_gen(7000 + t))
-        total += float(phi[src].mean() - phi.mean())
-    measured = total / trials / dtau
-    assert measured == pytest.approx(exact, rel=0.05)
+    def ratio(dtau, trials, offset):
+        total = 0.0
+        for t in range(trials):
+            src, _ = fr_v3.bd_standard(s, dtau, generator=_gen(offset + t))
+            total += float(phi[src].mean() - phi.mean())
+        return (total / trials / dtau) / predicted
 
-    # Directional power: with p and q exchanged the drift must reverse.
-    flipped = fr_v3.FRScore(log_p=s.log_q, log_q=s.log_p)
+    ladder = [(0.2, 12000), (0.1, 20000), (0.05, 30000), (0.025, 40000)]
+    errors = [abs(ratio(dtau, trials, 31000) - 1.0) for dtau, trials in ladder]
+
+    # The identity is a limit, so the gate is convergence, not a single number.
+    assert errors[0] > 0.10, "coarsest step must resolve discretization error"
+    for i in range(len(errors) - 1):
+        assert errors[i + 1] < errors[i] + 0.01, f"not converging: {errors}"
+    assert errors[-1] < 0.05, f"finest step off the generator: {errors}"
+    # First order: three halvings of dtau should shrink the error several-fold.
+    assert errors[0] / max(errors[-1], 1e-9) > 3.0, f"not first order: {errors}"
+
+    # Directional power: exchanging p and q must reverse the drift.
     total = 0.0
     for t in range(4000):
-        src, _ = fr_v3.bd_standard(flipped, dtau, generator=_gen(90000 + t))
+        src, _ = fr_v3.bd_standard(fr_v3.FRScore(log_p=s.log_q, log_q=s.log_p),
+                                   0.05, generator=_gen(90000 + t))
         total += float(phi[src].mean() - phi.mean())
-    assert (total / 4000 / dtau) > 0.5 * abs(exact)
+    assert (total / 4000 / 0.05) > 0.5 * abs(predicted)
 
 
 # ---------------------------------------------------------------- gate 5
