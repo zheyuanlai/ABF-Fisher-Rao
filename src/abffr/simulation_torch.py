@@ -354,6 +354,14 @@ def run_batch(
     v3_clone_policy = v3cfg.get("clone_policy", "exact")
     v3_hold_steps = int(v3cfg.get("hold_steps", 500))
     v3_oracle_target = bool(v3cfg.get("oracle_target", False))
+    # The v3 window is owned by the v3 block, NOT by the RunSpec.  io_utils
+    # hardcodes burnin_fraction=0 / stop_fraction=1 for the ``abf_only`` method,
+    # so reading the window from the spec silently gave every v3 arm the whole
+    # run instead of [0.2T, 0.8T].
+    v3_burnin_fraction = float(v3cfg.get("burnin_fraction", 0.2))
+    v3_stop_fraction = float(v3cfg.get("stop_fraction", 0.8))
+    if not 0.0 <= v3_burnin_fraction <= v3_stop_fraction <= 1.0:
+        raise ValueError("v3 window must satisfy 0 <= burnin <= stop <= 1")
     if v3_clone_policy not in {"exact", "holdout", "oracle_refresh"}:
         raise ValueError(f"unknown v3.clone_policy: {v3_clone_policy!r}")
 
@@ -408,6 +416,8 @@ def run_batch(
         tu.make_generator(tu.stable_seed("oracle", base_seed, s.run_id), device)
         for s in specs
     ]
+    v3_burn = int(round(v3_burnin_fraction * n_steps))
+    v3_stop = int(round(v3_stop_fraction * n_steps))
     hold = torch.zeros((B, n_particles), device=device, dtype=torch.long)
     held_out_active = (scheme is not None and v3_clone_policy == "holdout")
     v3_opportunities = []          # asserted as a whole array by the A.3 gate
@@ -593,8 +603,8 @@ def run_batch(
         # v3 opportunities: Appendix A.3 includes BOTH endpoints of the window.
         do_fr_v3 = (
             v3_operator != "none"
-            and fr_burnin <= next_step <= fr_stop
-            and ((next_step - fr_burnin) % v3_stride == 0))
+            and v3_burn <= next_step <= v3_stop
+            and ((next_step - v3_burn) % v3_stride == 0))
         if do_fr_v3:
             v3_opportunities.append(int(next_step))
             p_hat = current_p_hat(X_prop)

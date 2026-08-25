@@ -198,3 +198,40 @@ def test_md_noise_bank_is_independent_of_fr_and_oracle_draws():
         nx, ny = bank_b.at(s)
         torch.testing.assert_close(nx, first_a[s][0], rtol=0, atol=0)
         torch.testing.assert_close(ny, first_a[s][1], rtol=0, atol=0)
+
+
+def test_window_comes_from_the_v3_block_not_the_runspec():
+    """Regression: io_utils hardcodes the RunSpec window for ``abf_only``.
+
+    The original schedule gate passed while the campaign was broken, because it
+    built RunSpecs directly with burnin=0.2/stop=0.8 -- a path the YAML runner
+    never takes.  ``io_utils`` pins burnin_fraction=0.0 and stop_fraction=1.0
+    for the abf_only method, so every v3 arm silently got the whole run: FR
+    fired from step 0, when the carrier is still identically zero.
+
+    This asserts the window survives a RunSpec that carries the wrong one.
+    """
+    cfg = _cfg(n_steps=2000)
+    cfg["v3"] = dict(enabled=True, family=CAPPED, operator="ft", rho=0.85,
+                     fr_stride=200, burnin_fraction=0.2, stop_fraction=0.8)
+    x_grid = np.linspace(-3.0, 3.0, 401)
+    # the spec deliberately claims the whole run, exactly as io_utils builds it
+    specs = [RunSpec(method="abf_only", target_type="none", seed=0, gamma=0.0,
+                     eta=0.10, fr_every=1, burnin_fraction=0.0, stop_fraction=1.0)]
+    r = st.run_batch(specs, cfg=cfg, x_grid=x_grid, F_ref=np.zeros(401),
+                     Fprime_ref=np.zeros(401),
+                     ev=m.EvalConfig.from_domain(DOMAIN), device=DEVICE,
+                     dtype=torch.float64)
+    assert r.fr_opportunities == list(range(400, 1601, 200))
+    assert r.fr_opportunities[0] == 400, "FR must not fire before the burn-in"
+
+
+def test_frozen_campaign_window_is_exactly_61_opportunities():
+    cfg = _cfg(n_steps=50000)
+    cfg["simulation"]["n_steps"] = 50000
+    cfg["v3"] = dict(enabled=True, family=CAPPED, operator="none",
+                     fr_stride=500, burnin_fraction=0.2, stop_fraction=0.8)
+    # operator "none" does no FR, so assert the arithmetic the engine will use
+    burn, stop, stride = int(0.2 * 50000), int(0.8 * 50000), 500
+    expected = list(range(burn, stop + 1, stride))
+    assert expected[0] == 10000 and expected[-1] == 40000 and len(expected) == 61

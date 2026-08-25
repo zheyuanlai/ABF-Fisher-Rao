@@ -147,7 +147,10 @@ def main(argv=None):
         if sel and name not in sel and role not in sel and track not in sel:
             continue
         has_fr = v3.get("operator", "none") != "none"
-        v3full = dict(enabled=True, name=name, fr_stride=500, **v3)
+        # The window lives in the v3 block: io_utils hardcodes the RunSpec's
+        # burnin/stop for the abf_only method, so it cannot carry the schedule.
+        v3full = dict(enabled=True, name=name, fr_stride=500,
+                      burnin_fraction=0.2, stop_fraction=0.8, **v3)
         cfg_path = pathlib.Path(f"configs/v3_arm_{name}.yaml")
         cfg_path.write_text(TEMPLATE.format(
             name=name, track=track, role=role, n_particles=npart,
