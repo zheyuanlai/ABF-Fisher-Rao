@@ -1,9 +1,9 @@
-# v4-A: genealogy-safe Fisher–Rao under an oracle target — DRAFT v2
+# v4-A: genealogy-safe Fisher–Rao under an oracle target
 
 ## Material Passport
 
 - Artifact type: code-experiment protocol
-- Status: **DRAFT v2 for red-line — not frozen; no scientific run until approved**
+- Status: **FROZEN 2026-08-25, before any v4 run.** Changes require a numbered amendment.
 - Date drafted: 2026-08-25
 - Predecessor: `docs/V3_POST_MORTEM.md` (v3 closed, 0/11 candidates passed)
 - Revision: draft v1's Gate 0 proposed a *weighted* ABF estimator; that is
@@ -120,10 +120,13 @@ engineering failure, not a result.
   1e-5 tolerance on profiles. Only the sidecar weights may differ.
 - **0C — equal-weight reduction.** With w_i = 1/K the weighted KDE reproduces the
   v3 FR density estimate exactly.
-- **0D — resampling is representation-consistent.** For a fixed weighted cloud,
+- **0D — log-space invariance.** Adding any constant C to every log weight leaves
+  w, p̂_w, ESS_w and the next FR update unchanged. Tested at score ranges far
+  beyond the measured 8 × 10⁶ ratio — up to 1000 nats.
+- **0E — resampling is representation-consistent.** For a fixed weighted cloud,
   E[(1/K) Σ_j φ(q_j⁺)] = Σ_i w_i φ(q_i) over test observables, within
   Monte-Carlo tolerance.
-- **0E — no information from clones.** Immediately after a triggered resampling,
+- **0F — no information from clones.** Immediately after a triggered resampling,
   Δ(ABF accumulators) = 0; extra children contribute only after L_hold steps.
 
 ## Genealogy metrics: count *and* mass
@@ -143,9 +146,13 @@ Both are reported for every arm, always as a pair.
 
 **Mechanism-positive** — arm 4 must satisfy all of:
 
-1. **N_resample ≤ 12** (≥ 5× fewer representation resets than arm 2's 61).
+1. **N_resample ≤ 12** on ≥ 6/8 seeds (≥ 5× fewer representation resets than arm 2's 61).
 2. **Count genealogy:** ESS_anc^count/K ≥ 0.5 and c_max ≤ 0.10, on ≥ 6/8 seeds.
 3. **Mass genealogy:** ESS_anc^mass/K ≥ 0.5 and m_max ≤ 0.10, on ≥ 6/8 seeds.
+
+   Both are evaluated at the **final** frame, not as a minimum over time. The
+   trigger fires *after* particle ESS crosses 0.5K, so a minimum-over-time
+   condition at the same threshold would be structurally self-contradictory.
 4. **No harm vs capped-12 no-FR** on R₁₂: final e_F ≤ 1.05 × and final e_F′ ≤ 1.05 ×.
 5. **FR still adds something:** S at ε_F,2 ≥ 1.05 versus capped-12 no-FR,
    favorable on ≥ 6/8 seeds.
@@ -181,11 +188,63 @@ no-FR control, is the arm that exposes the intrinsic regrowth mechanism without
 genealogy loss. Whether representation alters regrowth in arm 4 is measured, not
 predicted.
 
-## Open for red-line
+## Arm 3 has no stopping rule
 
-1. Should arm 3 carry a stopping rule if its mass degeneracy becomes so extreme
-   that p̂_w is numerically meaningless, or does it run to T regardless as a pure
-   diagnostic?
-2. Does ESS_w for the resampling trigger use the same η-KDE-free definition
-   (1/Σw²) throughout, or should it be computed after a normalization guard when
-   weights underflow?
+Arm 3 exists to answer: *what happens to FR probability mass if it is never
+converted into genealogy?* It therefore runs the full 50 000 steps regardless of
+how degenerate its weights become. ESS_w/K → 10⁻² or one replica carrying 99 % of
+the mass is **the result**, not an engineering failure: it would show the v3
+degeneracy moving from ancestry into mass. The only abort condition is genuine
+numerical pathology (non-finite log weights), and that fails closed.
+
+Recorded instead of stopping, using arm 4's own threshold so the two are
+comparable:
+
+    T_deg  = min{ t : ESS_w(t) < 0.50 K }     "when arm 4 would have resampled"
+    T_0.1  = min{ t : ESS_w(t) < 0.10 K }     descriptive only, not a parameter
+    min_t ESS_w(t)/K ,  max_{i,t} w_i(t)
+
+## All mass arithmetic is in log space
+
+The scientific state is **log w**, never normalized w. Every update renormalizes
+by log-sum-exp so that LSE(ℓ) = 0 and every log w ≤ 0:
+
+    ESS_w   = exp( − LSE(2ℓ) )          w_max = exp( max_i ℓ_i )
+
+both safe to exponentiate since ESS_w ∈ [1, K] and max ℓ ∈ [−log K, 0]. The
+weighted marginal is likewise a log-sum-exp,
+log p̂_w(z_i) = LSE_j [ ℓ_j + log K_η(z_i − z_j) ], never a float sum of w·K, and
+the oracle target stays in log form. At θ = 1 the update is simply
+
+    ℓ_i⁺ = ℓ_i + log q_t(z_i) − log p̂_w(z_i)
+
+followed by one normalization. **log p̂_w is only ever required up to an additive
+constant**, because the normalization that follows absorbs it — which is what
+lets the weighted grid density be built from max-shifted weights and reduce
+*exactly* to the v3 construction at equal weights.
+
+No ε floor is introduced: the Gaussian KDE is positive and every particle
+contributes its own self-kernel. If a required log quantity is non-finite, **fail
+closed** — never clip it to a plausible value.
+
+
+## Implementation order (binding)
+
+1. A standalone `PersistentMass` object owning **only** {log w_i}: log-sum-exp
+   normalization, weighted KDE in log space, the FR mass update, particle ESS,
+   count/mass ancestry, the trigger condition, and reset-to-uniform. It holds
+   **no reference to any ABF accumulator**, so the architecture enforces the
+   mathematics rather than relying on discipline.
+2. Cloud-level tests of that object.
+3. Wire it into the engine as a sidecar; a separate module owns resampling.
+   Only the orchestration layer connects physical dynamics, mass, and
+   representation.
+4. **Gate 0B is the decisive pre-science experiment.** Run arm 3 first. Expect
+   its trajectories and F̂ to match capped-12 no-FR while ESS_w/K → 0. That
+   simultaneous outcome validates the decomposition: probability mass can
+   degenerate dramatically without changing physical information, until we
+   choose to alter its representation.
+5. Only after Gate 0B passes may arm 4 run.
+
+v4-B is not touched. If v4-A fails even with an oracle target and persistent
+weights, the problem is deeper than target estimation or resampling frequency.
