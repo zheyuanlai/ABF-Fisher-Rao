@@ -191,7 +191,11 @@ def time_series_metrics(diag: Dict, x_grid: np.ndarray, F_ref: np.ndarray,
         "max_clone_weight": float,
         "cumulative_fr_events": int,
         "cumulative_replacements": int,
+        "score_clipped_fraction": float,
     }
+    for _lab in ("q01", "q10", "q50", "q90", "q99"):
+        optional[f"score_raw_{_lab}"] = float
+        optional[f"score_applied_{_lab}"] = float
     for k, step in enumerate(diag["steps"]):
         F_hat = diag["F_hat"][k]
         Fp_hat = diag["Fprime_hat"][k]

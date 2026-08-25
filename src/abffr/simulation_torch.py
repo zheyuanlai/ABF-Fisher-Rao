@@ -44,6 +44,11 @@ from .simulation import _init_positions  # reuse CPU init for matched seeds
 
 EPS = 1e-12
 
+# Score-shape diagnostics: levels and their column suffixes stay paired here so
+# the recorded quantile cannot drift from its label.
+SCORE_QUANTILE_LEVELS = (0.01, 0.10, 0.50, 0.90, 0.99)
+SCORE_QUANTILE_LABELS = ("q01", "q10", "q50", "q90", "q99")
+
 
 @dataclass
 class BatchResult:
@@ -130,7 +135,9 @@ def _empty_diag(target_type):
         fr_events_total=[], score_mean=[], score_std=[], score_min=[],
         score_max=[], cumulative_fr_events=[], cumulative_replacements=[],
         ancestor_ess=[], max_clone_multiplicity=[], max_clone_weight=[],
-        target_l2=[],
+        target_l2=[], score_clipped_fraction=[],
+        **{f"score_raw_{lab}": [] for lab in SCORE_QUANTILE_LABELS},
+        **{f"score_applied_{lab}": [] for lab in SCORE_QUANTILE_LABELS},
     )
 
 
@@ -191,8 +198,17 @@ def _build_target(target_type, Fhat_target, B_grid, F_ref_grid, p_hat,
     return tu.normalize_density(q, dx)
 
 
+def _score_quantiles(S, levels):
+    """Per-row quantiles of a ``(B, N)`` score, returned as ``(B, len(levels))``."""
+    return torch.quantile(S, levels, dim=1).transpose(0, 1)
+
+
 def _fr_score(X, p_hat, q_grid, x0, dx, beta, score_clip):
-    """Batched Fisher--Rao score (mean-zero), matching ``simulation.fr_score``."""
+    """Batched Fisher--Rao score (mean-zero), matching ``simulation.fr_score``.
+
+    Returns ``(S, S_raw)``. ``S_raw`` is the mean-centered score before any
+    clipping; only the diagnostics read it.
+    """
     Zp = tu.trapezoid(p_hat, dx).clamp_min(EPS).unsqueeze(1)
     Zq = tu.trapezoid(q_grid, dx).clamp_min(EPS).unsqueeze(1)
     p_g = p_hat / Zp
@@ -204,11 +220,12 @@ def _fr_score(X, p_hat, q_grid, x0, dx, beta, score_clip):
     q_part = tu.interp1d(q_g, X, x0, dx).clamp_min(EPS)
     S = torch.log(p_part) - torch.log(q_part) - baseline
     S = S - S.mean(dim=1, keepdim=True)
+    S_raw = S
     if score_clip is not None:
         for _ in range(3):
             S = S.clamp(-float(score_clip), float(score_clip))
             S = S - S.mean(dim=1, keepdim=True)
-    return S
+    return S, S_raw
 
 
 def _resample(X, Y, ancestors, S, gamma_eff, dt, max_event_fraction,
@@ -386,6 +403,11 @@ def run_batch(
     win_sstd_sum = torch.zeros(B, device=device, dtype=dtype)
     win_smin = torch.full((B,), float("inf"), device=device, dtype=dtype)
     win_smax = torch.full((B,), float("-inf"), device=device, dtype=dtype)
+    q_levels = torch.tensor(
+        SCORE_QUANTILE_LEVELS, device=device, dtype=dtype)
+    win_sq_raw = torch.zeros((B, q_levels.numel()), device=device, dtype=dtype)
+    win_sq_app = torch.zeros((B, q_levels.numel()), device=device, dtype=dtype)
+    win_clip_sum = torch.zeros(B, device=device, dtype=dtype)
     win_target_l2 = torch.zeros(B, device=device, dtype=dtype)
     cumulative_fr_events = torch.zeros(B, device=device, dtype=torch.long)
     cumulative_replacements = torch.zeros(B, device=device, dtype=torch.long)
@@ -421,7 +443,8 @@ def run_batch(
         diags, 0, 0.0, Fprime_hat, F_hat, p_initial, q_initial,
         X, Y, ancestors, barrier_crossings, zero_gamma,
         win_n, win_events, win_frac_sum, win_frac_max, win_smean_sum,
-        win_sstd_sum, win_smin, win_smax, win_target_l2,
+        win_sstd_sum, win_smin, win_smax, win_sq_raw, win_sq_app,
+        win_clip_sum, win_target_l2,
         cumulative_fr_events, cumulative_replacements, n_particles)
 
     t0 = time.time()
@@ -499,7 +522,7 @@ def run_batch(
             q_grid = _build_target(
                 target_type, Fhat_target, F_hat, F_ref_t,
                 p_hat, beta, dx, width)
-            S = _fr_score(
+            S, S_raw = _fr_score(
                 X_prop, p_hat, q_grid, x0, dx, beta, score_clip)
             clock_dt = dt * fr_every if interval_scaled_clock else dt
             X, Y, ancestors, ndeath = _resample(
@@ -519,6 +542,14 @@ def run_batch(
                 active, torch.minimum(win_smin, S.amin(dim=1)), win_smin)
             win_smax = torch.where(
                 active, torch.maximum(win_smax, S.amax(dim=1)), win_smax)
+            win_sq_raw += _score_quantiles(
+                S_raw, q_levels) * active_f.unsqueeze(1)
+            win_sq_app += _score_quantiles(
+                S, q_levels) * active_f.unsqueeze(1)
+            if score_clip is not None:
+                win_clip_sum += (
+                    S_raw.abs() > float(score_clip)
+                ).to(dtype).mean(dim=1) * active_f
             win_target_l2 += _marginal_l2(
                 p_hat, q_grid, dx) * active_f
             cumulative_fr_events += active_i
@@ -540,6 +571,7 @@ def run_batch(
                 p_snap, q_snap, X, Y, ancestors, barrier_crossings,
                 gamma_eff, win_n, win_events, win_frac_sum, win_frac_max,
                 win_smean_sum, win_sstd_sum, win_smin, win_smax,
+                win_sq_raw, win_sq_app, win_clip_sum,
                 win_target_l2, cumulative_fr_events,
                 cumulative_replacements, n_particles)
             win_n = torch.zeros(B, device=device, dtype=torch.long)
@@ -552,6 +584,11 @@ def run_batch(
                 (B,), float("inf"), device=device, dtype=dtype)
             win_smax = torch.full(
                 (B,), float("-inf"), device=device, dtype=dtype)
+            win_sq_raw = torch.zeros(
+                (B, q_levels.numel()), device=device, dtype=dtype)
+            win_sq_app = torch.zeros(
+                (B, q_levels.numel()), device=device, dtype=dtype)
+            win_clip_sum = torch.zeros(B, device=device, dtype=dtype)
             win_target_l2 = torch.zeros(B, device=device, dtype=dtype)
 
     if device.type == "cuda":
@@ -581,7 +618,8 @@ def _marginal_l2(p_hat, q_grid, dx):
 def _record_snapshot(diags, step, t, Fprime_hat, F_hat, p_snap, q_snap, X, Y,
                      ancestors, barrier_crossings, gamma_eff, win_n, win_events,
                      win_frac_sum, win_frac_max, win_smean_sum, win_sstd_sum,
-                     win_smin, win_smax, win_target_l2, cumulative_fr_events,
+                     win_smin, win_smax, win_sq_raw, win_sq_app, win_clip_sum,
+                     win_target_l2, cumulative_fr_events,
                      cumulative_replacements, n_particles):
     """Move per-row snapshot data to numpy and append to each run's diag.
 
@@ -605,6 +643,9 @@ def _record_snapshot(diags, step, t, Fprime_hat, F_hat, p_snap, q_snap, X, Y,
     wss = win_sstd_sum.detach().cpu().numpy()
     wmin = win_smin.detach().cpu().numpy()
     wmax = win_smax.detach().cpu().numpy()
+    wqr = win_sq_raw.detach().cpu().numpy()
+    wqa = win_sq_app.detach().cpu().numpy()
+    wcf = win_clip_sum.detach().cpu().numpy()
     wtl = win_target_l2.detach().cpu().numpy()
     cfe = cumulative_fr_events.detach().cpu().numpy()
     crep = cumulative_replacements.detach().cpu().numpy()
@@ -632,6 +673,13 @@ def _record_snapshot(diags, step, t, Fprime_hat, F_hat, p_snap, q_snap, X, Y,
         d["score_std"].append(float(wss[b] / nfr) if nfr else float("nan"))
         d["score_min"].append(float(wmin[b]) if nfr else float("nan"))
         d["score_max"].append(float(wmax[b]) if nfr else float("nan"))
+        for j, lab in enumerate(SCORE_QUANTILE_LABELS):
+            d[f"score_raw_{lab}"].append(
+                float(wqr[b, j] / nfr) if nfr else float("nan"))
+            d[f"score_applied_{lab}"].append(
+                float(wqa[b, j] / nfr) if nfr else float("nan"))
+        d["score_clipped_fraction"].append(
+            float(wcf[b] / nfr) if nfr else float("nan"))
         d["target_l2"].append(float(wtl[b] / nfr) if nfr else float("nan"))
         d["cumulative_fr_events"].append(int(cfe[b]))
         d["cumulative_replacements"].append(int(crep[b]))

@@ -194,6 +194,9 @@ def _rows_for_run(spec: RunSpec, diag: Dict, cfg: Dict, x_grid, ref, ev,
         for key in [
             "ancestor_ess", "max_clone_multiplicity", "max_clone_weight",
             "cumulative_fr_events", "cumulative_replacements",
+            "score_clipped_fraction",
+            *[f"score_raw_{q}" for q in ("q01", "q10", "q50", "q90", "q99")],
+            *[f"score_applied_{q}" for q in ("q01", "q10", "q50", "q90", "q99")],
         ]:
             if key in row:
                 fr_row[key] = row[key]

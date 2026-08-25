@@ -145,8 +145,9 @@ def test_cpu_and_torch_physical_target_scores_agree_componentwise():
     pt = simulation_torch._kde_reflected(xt, Xt, 0.22, -3.0, 3.0)
     qt = simulation_torch._build_target(
         "physical", Ft, Bt, Ft, pt, 4.0, dx, 6.0)
-    score_torch = simulation_torch._fr_score(
-        Xt, pt, qt, -3.0, dx, 4.0, 3.0)[0].numpy()
+    score_torch_all, _ = simulation_torch._fr_score(
+        Xt, pt, qt, -3.0, dx, 4.0, 3.0)
+    score_torch = score_torch_all[0].numpy()
 
     assert float(tu.trapezoid(qt, dx)[0]) == pytest.approx(1.0, abs=1e-12)
     np.testing.assert_allclose(qt[0].numpy(), q, rtol=2e-11, atol=2e-12)
@@ -461,9 +462,9 @@ def test_binned_and_kernel_physical_targets_and_scores_agree():
         "physical", F_k, zeros, F_k, p_k, 4.0, dx, 6.0)
     q_b = simulation_torch._build_target(
         "physical", F_b, zeros, F_b, p_b, 4.0, dx, 6.0)
-    score_k = simulation_torch._fr_score(
+    score_k, _ = simulation_torch._fr_score(
         X, p_k, q_k, x0, dx, 4.0, 5.0)
-    score_b = simulation_torch._fr_score(
+    score_b, _ = simulation_torch._fr_score(
         X, p_b, q_b, x0, dx, 4.0, 5.0)
 
     q_rms = torch.sqrt(tu.trapezoid((q_b - q_k) ** 2, dx) / 6.0)
