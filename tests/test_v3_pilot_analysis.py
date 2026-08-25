@@ -131,3 +131,80 @@ def test_dose_decay_measures_first_quarter_against_last():
                  for s, c in zip(steps, cum)]
     ratio = ap.dose_decay(pd.DataFrame(rows))
     assert ratio == pytest.approx(10.0, rel=0.2)      # 20 -> 2
+
+
+# --------------------------------------------------------------- frozen gates
+def _passing_candidate():
+    """A Track-C candidate that clears every frozen condition, by a margin."""
+    rec = dict(dose_decay=8.0,
+               seeds_ess_ok=8, median_ess_frac=0.70,
+               seeds_wmax_ok=8, median_wmax=0.05,
+               final_ratio_F_R12=0.90, final_ratio_Fp_R12=0.95,
+               seeds_noninferior_F_R12=8, seeds_noninferior_Fp_R12=8,
+               final_ratio_Fp_barrier=1.00, final_ratio_F_full=1.00,
+               SvsCtrl_F_2=1.20, SvsCtrl_Fprime_2=1.20,
+               favCtrl_F_2=8, favCtrl_Fprime_2=8,
+               fav_F_2=8, fav_Fprime_2=8)
+    for o in ("F", "Fprime"):
+        for i in ("1", "2"):
+            rec[f"S_{o}_{i}"] = 1.30
+    return rec
+
+
+def test_a_fully_passing_candidate_passes_both_tiers():
+    g = ap.apply_gates(_passing_candidate(), "C", "candidate")
+    assert g["mechanism_positive"] is True
+    assert g["advancement_positive"] is True
+
+
+@pytest.mark.parametrize("field,value", [
+    ("dose_decay", 4.99),               # just under the 5x decay requirement
+    ("median_ess_frac", 0.4999),        # just under the genealogy floor
+    ("seeds_ess_ok", 5),                # one seed short of 6/8
+    ("median_wmax", 0.1001),            # just over the clone-weight cap
+    ("seeds_wmax_ok", 5),
+    ("final_ratio_F_R12", 1.0501),      # just over non-inferiority
+    ("final_ratio_Fp_R12", 1.0501),
+    ("final_ratio_Fp_barrier", 1.1001), # just over the barrier cap
+    ("SvsCtrl_F_2", 1.0499),            # just under the vs-control requirement
+    ("SvsCtrl_Fprime_2", 1.0499),
+    ("favCtrl_F_2", 5),
+])
+def test_each_mechanism_condition_is_load_bearing_at_its_boundary(field, value):
+    rec = _passing_candidate(); rec[field] = value
+    g = ap.apply_gates(rec, "C", "candidate")
+    assert g["mechanism_positive"] is False, f"{field}={value} should fail"
+    # a Track-C candidate cannot advance without being mechanism-positive
+    assert g["advancement_positive"] is False
+
+
+@pytest.mark.parametrize("field,value", [
+    ("S_F_1", 1.0999), ("S_F_2", 1.0999),
+    ("S_Fprime_1", 1.0999), ("S_Fprime_2", 1.0999),
+    ("fav_F_2", 5), ("fav_Fprime_2", 5),
+    ("seeds_noninferior_F_R12", 5),
+    ("final_ratio_F_full", 1.2501),     # tail-sacrifice cap
+])
+def test_each_advancement_condition_is_load_bearing(field, value):
+    rec = _passing_candidate(); rec[field] = value
+    assert ap.apply_gates(rec, "C", "candidate")["advancement_positive"] is False
+
+
+def test_missing_components_fail_closed():
+    """No-data must never read as a pass."""
+    for field in ("dose_decay", "median_ess_frac", "SvsCtrl_F_2", "S_F_1"):
+        rec = _passing_candidate(); rec[field] = float("nan")
+        g = ap.apply_gates(rec, "C", "candidate")
+        assert not g["advancement_positive"]
+    empty = ap.apply_gates({}, "C", "candidate")
+    assert empty["advancement_positive"] is False
+    assert empty["mechanism_positive"] is False
+
+
+def test_track_p_is_not_subject_to_the_mechanism_tier():
+    """Track P has no same-bias control; it is judged against plain ABF alone."""
+    rec = _passing_candidate()
+    rec.pop("SvsCtrl_F_2"); rec.pop("SvsCtrl_Fprime_2")
+    g = ap.apply_gates(rec, "P", "candidate")
+    assert g["mechanism_positive"] is None       # not applicable, not False
+    assert g["advancement_positive"] is True

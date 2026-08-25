@@ -99,6 +99,53 @@ def retention_trajectory(df: pd.DataFrame, burnin=0.2, stop=0.8) -> list[float]:
     return [float(v) for v in m if np.isfinite(v)]
 
 
+def apply_gates(rec: dict, track: str, role: str) -> dict:
+    """The frozen mechanism-positive and advancement-positive conditions.
+
+    Every condition is conjunctive and every inequality direction is pinned by a
+    boundary test.  NaN fails closed: a missing component can never read as a
+    pass, which is the no-data-reads-as-PASS class from this project's history.
+    """
+    def ok(v, cmp, bound):
+        if v is None or (isinstance(v, float) and np.isnan(v)):
+            return False
+        return (v >= bound) if cmp == "ge" else (v <= bound)
+
+    gen = (ok(rec.get("seeds_ess_ok"), "ge", FAVORABLE_REQUIRED)
+           and ok(rec.get("median_ess_frac"), "ge", 0.5)
+           and ok(rec.get("seeds_wmax_ok"), "ge", FAVORABLE_REQUIRED)
+           and ok(rec.get("median_wmax"), "le", 0.10))
+    noninf = (ok(rec.get("final_ratio_F_R12"), "le", 1.05)
+              and ok(rec.get("final_ratio_Fp_R12"), "le", 1.05))
+    barrier = ok(rec.get("final_ratio_Fp_barrier"), "le", 1.10)
+
+    # mechanism-positive: Track C candidates only, judged against the control
+    mech = None
+    if track == "C" and role == "candidate":
+        mech = (ok(rec.get("dose_decay"), "ge", 5.0)
+                and gen and noninf and barrier
+                and ok(rec.get("SvsCtrl_F_2"), "ge", 1.05)
+                and ok(rec.get("SvsCtrl_Fprime_2"), "ge", 1.05)
+                and ok(rec.get("favCtrl_F_2"), "ge", FAVORABLE_REQUIRED)
+                and ok(rec.get("favCtrl_Fprime_2"), "ge", FAVORABLE_REQUIRED))
+
+    adv = (all(ok(rec.get(f"S_{o}_{i}"), "ge", 1.10)
+               for o in ("F", "Fprime") for i in ("1", "2"))
+           and ok(rec.get("fav_F_2"), "ge", FAVORABLE_REQUIRED)
+           and ok(rec.get("fav_Fprime_2"), "ge", FAVORABLE_REQUIRED)
+           and noninf
+           and ok(rec.get("seeds_noninferior_F_R12"), "ge", FAVORABLE_REQUIRED)
+           and ok(rec.get("seeds_noninferior_Fp_R12"), "ge", FAVORABLE_REQUIRED)
+           and barrier and gen
+           and ok(rec.get("final_ratio_F_full"), "le", 1.25))
+    if track == "C" and role == "candidate":
+        adv = adv and bool(mech)
+
+    return dict(passes_genealogy=gen, passes_noninferiority=noninf,
+                passes_barrier=barrier, mechanism_positive=mech,
+                advancement_positive=bool(adv))
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--manifest", default="results/v3/arms/arm_manifest.json")
@@ -184,12 +231,19 @@ def main(argv=None):
         rec["seeds_wmax_ok"] = int((f_arm["max_clone_weight"] <= 0.10).sum())
         rec["dose_decay"] = dose_decay(df)
         rec["replacements"] = float(f_arm["cumulative_replacements"].median())
+        meta = next((a for a in arms if a["arm"] == name), {})
+        rec["track"], rec["role"] = meta.get("track", "?"), meta.get("role", "?")
+        rec.update(apply_gates(rec, rec["track"], rec["role"]))
         rows.append(rec)
 
     out = pathlib.Path(args.out); out.mkdir(parents=True, exist_ok=True)
     res = pd.DataFrame(rows)
     res.to_csv(out / "v3_pilot_gates.csv", index=False)
     print(f"\nwrote {out/'v3_pilot_gates.csv'} ({len(res)} arms)")
+    cand = res[res.role == "candidate"]
+    print(f"\ncandidates: {len(cand)}   "
+          f"mechanism-positive: {int(cand.mechanism_positive.fillna(False).sum())}   "
+          f"advancement-positive: {int(cand.advancement_positive.sum())}")
 
     ret = {n: retention_trajectory(d) for n, d in frames.items()
            if n != "plain_abf" and d["cumulative_replacements"].max() > 0}
