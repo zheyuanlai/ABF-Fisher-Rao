@@ -1,0 +1,60 @@
+# Stage 0 forensic closeout of v2 (frozen v3.1 prereg). Not a method search.
+experiment_name: physical_target_stage0_clipinf
+output_root: results/physical_target_pulse_v2/stage0/clipinf
+backend: torch
+device: cuda
+dtype: float64
+batch_size_configs: 24
+
+selection:
+  write_generic_best: false
+
+potential:
+  x_tilt: 0.1021665783
+
+domain:
+  x_min: -3.0
+  x_max: 3.0
+  y_min: -2.5
+  y_max: 3.5
+  nx_ref: 801
+  ny_ref: 801
+  nx_profile: 401
+
+simulation:
+  beta: 4.0
+  dt: 0.002
+  n_particles: 256
+  n_steps: 50000
+  eval_every: 500
+  seeds: [0, 1, 2, 3, 4, 5, 6, 7]
+  x_init_mode: uniform
+  y_init_mode: uniform
+
+abf:
+  estimator: binned_smooth
+  observation_order: post_propagation
+  h: 0.05
+  update_every: 10
+  min_count: 1.0
+  ema_alpha: 0.05
+
+fr:
+  enabled: true
+  target_types: [physical]
+  gamma_values: [0.10]
+  eta_values: [0.10]
+  burnin_fractions: [0.20]
+  duration_fractions: [0.10]
+  ramp_fraction: 0.0
+  fr_every_values: [100]
+  interval_scaled_clock: true
+  score_clip: null
+  max_event_fraction: 0.10
+  target_ema_alpha: 0.05
+  jitter: 0.0
+  noise_chunk_steps: 1000
+
+methods:
+  - abf_only
+  - abf_fr_physical
