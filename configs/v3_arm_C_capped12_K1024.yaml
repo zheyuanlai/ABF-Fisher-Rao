@@ -50,7 +50,7 @@ fr:
   fr_every_values: [1]
   noise_chunk_steps: 1000
 
-v3: {"enabled": true, "name": "C_capped12_K1024", "fr_stride": 500, "family": {"kind": "capped", "c_cut": 12.0, "sharpness": 2.0}, "operator": "ft", "rho": 0.85}
+v3: {"enabled": true, "name": "C_capped12_K1024", "fr_stride": 500, "burnin_fraction": 0.2, "stop_fraction": 0.8, "family": {"kind": "capped", "c_cut": 12.0, "sharpness": 2.0}, "operator": "ft", "rho": 0.85}
 
 methods:
   - abf_only

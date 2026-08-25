@@ -50,7 +50,7 @@ fr:
   fr_every_values: [1]
   noise_chunk_steps: 1000
 
-v3: {"enabled": true, "name": "C_tempered8_FT_rho0.85", "fr_stride": 500, "family": {"kind": "tempered", "gamma_wt": 8.0}, "operator": "ft", "rho": 0.85}
+v3: {"enabled": true, "name": "C_tempered8_FT_rho0.85", "fr_stride": 500, "burnin_fraction": 0.2, "stop_fraction": 0.8, "family": {"kind": "tempered", "gamma_wt": 8.0}, "operator": "ft", "rho": 0.85}
 
 methods:
   - abf_only

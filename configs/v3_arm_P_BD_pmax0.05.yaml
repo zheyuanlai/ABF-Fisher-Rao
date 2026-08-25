@@ -50,7 +50,7 @@ fr:
   fr_every_values: [1]
   noise_chunk_steps: 1000
 
-v3: {"enabled": true, "name": "P_BD_pmax0.05", "fr_stride": 500, "family": {"kind": "flat"}, "target_family": {"kind": "physical"}, "operator": "bd", "p_max": 0.05}
+v3: {"enabled": true, "name": "P_BD_pmax0.05", "fr_stride": 500, "burnin_fraction": 0.2, "stop_fraction": 0.8, "family": {"kind": "flat"}, "target_family": {"kind": "physical"}, "operator": "bd", "p_max": 0.05}
 
 methods:
   - abf_only

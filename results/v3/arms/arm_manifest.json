@@ -2,369 +2,6 @@
   "n_arms": 20,
   "arms": [
     {
-      "arm": "P_BD_pmax0.02",
-      "track": "P",
-      "role": "candidate",
-      "config": "configs/v3_arm_P_BD_pmax0.02.yaml",
-      "output_root": "results/v3/arms/P_BD_pmax0.02",
-      "n_particles": 256,
-      "has_fr": true,
-      "v3": {
-        "enabled": true,
-        "name": "P_BD_pmax0.02",
-        "fr_stride": 500,
-        "family": {
-          "kind": "flat"
-        },
-        "target_family": {
-          "kind": "physical"
-        },
-        "operator": "bd",
-        "p_max": 0.02
-      }
-    },
-    {
-      "arm": "P_BD_pmax0.05",
-      "track": "P",
-      "role": "candidate",
-      "config": "configs/v3_arm_P_BD_pmax0.05.yaml",
-      "output_root": "results/v3/arms/P_BD_pmax0.05",
-      "n_particles": 256,
-      "has_fr": true,
-      "v3": {
-        "enabled": true,
-        "name": "P_BD_pmax0.05",
-        "fr_stride": 500,
-        "family": {
-          "kind": "flat"
-        },
-        "target_family": {
-          "kind": "physical"
-        },
-        "operator": "bd",
-        "p_max": 0.05
-      }
-    },
-    {
-      "arm": "P_BD_pmax0.10",
-      "track": "P",
-      "role": "candidate",
-      "config": "configs/v3_arm_P_BD_pmax0.10.yaml",
-      "output_root": "results/v3/arms/P_BD_pmax0.10",
-      "n_particles": 256,
-      "has_fr": true,
-      "v3": {
-        "enabled": true,
-        "name": "P_BD_pmax0.10",
-        "fr_stride": 500,
-        "family": {
-          "kind": "flat"
-        },
-        "target_family": {
-          "kind": "physical"
-        },
-        "operator": "bd",
-        "p_max": 0.1
-      }
-    },
-    {
-      "arm": "P_FT_rho0.70",
-      "track": "P",
-      "role": "candidate",
-      "config": "configs/v3_arm_P_FT_rho0.70.yaml",
-      "output_root": "results/v3/arms/P_FT_rho0.70",
-      "n_particles": 256,
-      "has_fr": true,
-      "v3": {
-        "enabled": true,
-        "name": "P_FT_rho0.70",
-        "fr_stride": 500,
-        "family": {
-          "kind": "flat"
-        },
-        "target_family": {
-          "kind": "physical"
-        },
-        "operator": "ft",
-        "rho": 0.7
-      }
-    },
-    {
-      "arm": "P_FT_rho0.85",
-      "track": "P",
-      "role": "candidate",
-      "config": "configs/v3_arm_P_FT_rho0.85.yaml",
-      "output_root": "results/v3/arms/P_FT_rho0.85",
-      "n_particles": 256,
-      "has_fr": true,
-      "v3": {
-        "enabled": true,
-        "name": "P_FT_rho0.85",
-        "fr_stride": 500,
-        "family": {
-          "kind": "flat"
-        },
-        "target_family": {
-          "kind": "physical"
-        },
-        "operator": "ft",
-        "rho": 0.85
-      }
-    },
-    {
-      "arm": "P_oracle_target",
-      "track": "P",
-      "role": "diagnostic",
-      "config": "configs/v3_arm_P_oracle_target.yaml",
-      "output_root": "results/v3/arms/P_oracle_target",
-      "n_particles": 256,
-      "has_fr": true,
-      "v3": {
-        "enabled": true,
-        "name": "P_oracle_target",
-        "fr_stride": 500,
-        "family": {
-          "kind": "flat"
-        },
-        "target_family": {
-          "kind": "physical"
-        },
-        "operator": "ft",
-        "rho": 0.85,
-        "oracle_target": true
-      }
-    },
-    {
-      "arm": "C_capped8_FT_rho0.70",
-      "track": "C",
-      "role": "candidate",
-      "config": "configs/v3_arm_C_capped8_FT_rho0.70.yaml",
-      "output_root": "results/v3/arms/C_capped8_FT_rho0.70",
-      "n_particles": 256,
-      "has_fr": true,
-      "v3": {
-        "enabled": true,
-        "name": "C_capped8_FT_rho0.70",
-        "fr_stride": 500,
-        "family": {
-          "kind": "capped",
-          "c_cut": 8.0,
-          "sharpness": 2.0
-        },
-        "operator": "ft",
-        "rho": 0.7
-      }
-    },
-    {
-      "arm": "C_capped8_FT_rho0.85",
-      "track": "C",
-      "role": "candidate",
-      "config": "configs/v3_arm_C_capped8_FT_rho0.85.yaml",
-      "output_root": "results/v3/arms/C_capped8_FT_rho0.85",
-      "n_particles": 256,
-      "has_fr": true,
-      "v3": {
-        "enabled": true,
-        "name": "C_capped8_FT_rho0.85",
-        "fr_stride": 500,
-        "family": {
-          "kind": "capped",
-          "c_cut": 8.0,
-          "sharpness": 2.0
-        },
-        "operator": "ft",
-        "rho": 0.85
-      }
-    },
-    {
-      "arm": "C_capped12_FT_rho0.70",
-      "track": "C",
-      "role": "candidate",
-      "config": "configs/v3_arm_C_capped12_FT_rho0.70.yaml",
-      "output_root": "results/v3/arms/C_capped12_FT_rho0.70",
-      "n_particles": 256,
-      "has_fr": true,
-      "v3": {
-        "enabled": true,
-        "name": "C_capped12_FT_rho0.70",
-        "fr_stride": 500,
-        "family": {
-          "kind": "capped",
-          "c_cut": 12.0,
-          "sharpness": 2.0
-        },
-        "operator": "ft",
-        "rho": 0.7
-      }
-    },
-    {
-      "arm": "C_capped12_FT_rho0.85",
-      "track": "C",
-      "role": "candidate",
-      "config": "configs/v3_arm_C_capped12_FT_rho0.85.yaml",
-      "output_root": "results/v3/arms/C_capped12_FT_rho0.85",
-      "n_particles": 256,
-      "has_fr": true,
-      "v3": {
-        "enabled": true,
-        "name": "C_capped12_FT_rho0.85",
-        "fr_stride": 500,
-        "family": {
-          "kind": "capped",
-          "c_cut": 12.0,
-          "sharpness": 2.0
-        },
-        "operator": "ft",
-        "rho": 0.85
-      }
-    },
-    {
-      "arm": "C_tempered8_FT_rho0.85",
-      "track": "C",
-      "role": "candidate",
-      "config": "configs/v3_arm_C_tempered8_FT_rho0.85.yaml",
-      "output_root": "results/v3/arms/C_tempered8_FT_rho0.85",
-      "n_particles": 256,
-      "has_fr": true,
-      "v3": {
-        "enabled": true,
-        "name": "C_tempered8_FT_rho0.85",
-        "fr_stride": 500,
-        "family": {
-          "kind": "tempered",
-          "gamma_wt": 8.0
-        },
-        "operator": "ft",
-        "rho": 0.85
-      }
-    },
-    {
-      "arm": "C_flat_FT_rho0.85",
-      "track": "C",
-      "role": "candidate",
-      "config": "configs/v3_arm_C_flat_FT_rho0.85.yaml",
-      "output_root": "results/v3/arms/C_flat_FT_rho0.85",
-      "n_particles": 256,
-      "has_fr": true,
-      "v3": {
-        "enabled": true,
-        "name": "C_flat_FT_rho0.85",
-        "fr_stride": 500,
-        "family": {
-          "kind": "flat"
-        },
-        "operator": "ft",
-        "rho": 0.85
-      }
-    },
-    {
-      "arm": "C_capped12_oracle_target",
-      "track": "C",
-      "role": "diagnostic",
-      "config": "configs/v3_arm_C_capped12_oracle_target.yaml",
-      "output_root": "results/v3/arms/C_capped12_oracle_target",
-      "n_particles": 256,
-      "has_fr": true,
-      "v3": {
-        "enabled": true,
-        "name": "C_capped12_oracle_target",
-        "fr_stride": 500,
-        "family": {
-          "kind": "capped",
-          "c_cut": 12.0,
-          "sharpness": 2.0
-        },
-        "operator": "ft",
-        "rho": 0.85,
-        "oracle_target": true
-      }
-    },
-    {
-      "arm": "C_capped12_holdout",
-      "track": "C",
-      "role": "diagnostic",
-      "config": "configs/v3_arm_C_capped12_holdout.yaml",
-      "output_root": "results/v3/arms/C_capped12_holdout",
-      "n_particles": 256,
-      "has_fr": true,
-      "v3": {
-        "enabled": true,
-        "name": "C_capped12_holdout",
-        "fr_stride": 500,
-        "family": {
-          "kind": "capped",
-          "c_cut": 12.0,
-          "sharpness": 2.0
-        },
-        "operator": "ft",
-        "rho": 0.85,
-        "clone_policy": "holdout",
-        "hold_steps": 500
-      }
-    },
-    {
-      "arm": "C_capped12_oracle_refresh",
-      "track": "C",
-      "role": "diagnostic",
-      "config": "configs/v3_arm_C_capped12_oracle_refresh.yaml",
-      "output_root": "results/v3/arms/C_capped12_oracle_refresh",
-      "n_particles": 256,
-      "has_fr": true,
-      "v3": {
-        "enabled": true,
-        "name": "C_capped12_oracle_refresh",
-        "fr_stride": 500,
-        "family": {
-          "kind": "capped",
-          "c_cut": 12.0,
-          "sharpness": 2.0
-        },
-        "operator": "ft",
-        "rho": 0.85,
-        "clone_policy": "oracle_refresh"
-      }
-    },
-    {
-      "arm": "C_capped12_K1024",
-      "track": "C",
-      "role": "diagnostic",
-      "config": "configs/v3_arm_C_capped12_K1024.yaml",
-      "output_root": "results/v3/arms/C_capped12_K1024",
-      "n_particles": 1024,
-      "has_fr": true,
-      "v3": {
-        "enabled": true,
-        "name": "C_capped12_K1024",
-        "fr_stride": 500,
-        "family": {
-          "kind": "capped",
-          "c_cut": 12.0,
-          "sharpness": 2.0
-        },
-        "operator": "ft",
-        "rho": 0.85
-      }
-    },
-    {
-      "arm": "bridge_consistent_physical",
-      "track": "bridge",
-      "role": "diagnostic",
-      "config": "configs/v3_arm_bridge_consistent_physical.yaml",
-      "output_root": "results/v3/arms/bridge_consistent_physical",
-      "n_particles": 256,
-      "has_fr": true,
-      "v3": {
-        "enabled": true,
-        "name": "bridge_consistent_physical",
-        "fr_stride": 500,
-        "family": {
-          "kind": "physical"
-        },
-        "operator": "ft",
-        "rho": 0.85
-      }
-    },
-    {
       "arm": "C_capped8_noFR",
       "track": "C",
       "role": "control",
@@ -421,6 +58,403 @@
           "gamma_wt": 8.0
         },
         "operator": "none"
+      }
+    },
+    {
+      "arm": "P_BD_pmax0.02",
+      "track": "P",
+      "role": "candidate",
+      "config": "configs/v3_arm_P_BD_pmax0.02.yaml",
+      "output_root": "results/v3/arms/P_BD_pmax0.02",
+      "n_particles": 256,
+      "has_fr": true,
+      "v3": {
+        "enabled": true,
+        "name": "P_BD_pmax0.02",
+        "fr_stride": 500,
+        "burnin_fraction": 0.2,
+        "stop_fraction": 0.8,
+        "family": {
+          "kind": "flat"
+        },
+        "target_family": {
+          "kind": "physical"
+        },
+        "operator": "bd",
+        "p_max": 0.02
+      }
+    },
+    {
+      "arm": "P_BD_pmax0.05",
+      "track": "P",
+      "role": "candidate",
+      "config": "configs/v3_arm_P_BD_pmax0.05.yaml",
+      "output_root": "results/v3/arms/P_BD_pmax0.05",
+      "n_particles": 256,
+      "has_fr": true,
+      "v3": {
+        "enabled": true,
+        "name": "P_BD_pmax0.05",
+        "fr_stride": 500,
+        "burnin_fraction": 0.2,
+        "stop_fraction": 0.8,
+        "family": {
+          "kind": "flat"
+        },
+        "target_family": {
+          "kind": "physical"
+        },
+        "operator": "bd",
+        "p_max": 0.05
+      }
+    },
+    {
+      "arm": "P_BD_pmax0.10",
+      "track": "P",
+      "role": "candidate",
+      "config": "configs/v3_arm_P_BD_pmax0.10.yaml",
+      "output_root": "results/v3/arms/P_BD_pmax0.10",
+      "n_particles": 256,
+      "has_fr": true,
+      "v3": {
+        "enabled": true,
+        "name": "P_BD_pmax0.10",
+        "fr_stride": 500,
+        "burnin_fraction": 0.2,
+        "stop_fraction": 0.8,
+        "family": {
+          "kind": "flat"
+        },
+        "target_family": {
+          "kind": "physical"
+        },
+        "operator": "bd",
+        "p_max": 0.1
+      }
+    },
+    {
+      "arm": "P_FT_rho0.70",
+      "track": "P",
+      "role": "candidate",
+      "config": "configs/v3_arm_P_FT_rho0.70.yaml",
+      "output_root": "results/v3/arms/P_FT_rho0.70",
+      "n_particles": 256,
+      "has_fr": true,
+      "v3": {
+        "enabled": true,
+        "name": "P_FT_rho0.70",
+        "fr_stride": 500,
+        "burnin_fraction": 0.2,
+        "stop_fraction": 0.8,
+        "family": {
+          "kind": "flat"
+        },
+        "target_family": {
+          "kind": "physical"
+        },
+        "operator": "ft",
+        "rho": 0.7
+      }
+    },
+    {
+      "arm": "P_FT_rho0.85",
+      "track": "P",
+      "role": "candidate",
+      "config": "configs/v3_arm_P_FT_rho0.85.yaml",
+      "output_root": "results/v3/arms/P_FT_rho0.85",
+      "n_particles": 256,
+      "has_fr": true,
+      "v3": {
+        "enabled": true,
+        "name": "P_FT_rho0.85",
+        "fr_stride": 500,
+        "burnin_fraction": 0.2,
+        "stop_fraction": 0.8,
+        "family": {
+          "kind": "flat"
+        },
+        "target_family": {
+          "kind": "physical"
+        },
+        "operator": "ft",
+        "rho": 0.85
+      }
+    },
+    {
+      "arm": "P_oracle_target",
+      "track": "P",
+      "role": "diagnostic",
+      "config": "configs/v3_arm_P_oracle_target.yaml",
+      "output_root": "results/v3/arms/P_oracle_target",
+      "n_particles": 256,
+      "has_fr": true,
+      "v3": {
+        "enabled": true,
+        "name": "P_oracle_target",
+        "fr_stride": 500,
+        "burnin_fraction": 0.2,
+        "stop_fraction": 0.8,
+        "family": {
+          "kind": "flat"
+        },
+        "target_family": {
+          "kind": "physical"
+        },
+        "operator": "ft",
+        "rho": 0.85,
+        "oracle_target": true
+      }
+    },
+    {
+      "arm": "C_capped8_FT_rho0.70",
+      "track": "C",
+      "role": "candidate",
+      "config": "configs/v3_arm_C_capped8_FT_rho0.70.yaml",
+      "output_root": "results/v3/arms/C_capped8_FT_rho0.70",
+      "n_particles": 256,
+      "has_fr": true,
+      "v3": {
+        "enabled": true,
+        "name": "C_capped8_FT_rho0.70",
+        "fr_stride": 500,
+        "burnin_fraction": 0.2,
+        "stop_fraction": 0.8,
+        "family": {
+          "kind": "capped",
+          "c_cut": 8.0,
+          "sharpness": 2.0
+        },
+        "operator": "ft",
+        "rho": 0.7
+      }
+    },
+    {
+      "arm": "C_capped8_FT_rho0.85",
+      "track": "C",
+      "role": "candidate",
+      "config": "configs/v3_arm_C_capped8_FT_rho0.85.yaml",
+      "output_root": "results/v3/arms/C_capped8_FT_rho0.85",
+      "n_particles": 256,
+      "has_fr": true,
+      "v3": {
+        "enabled": true,
+        "name": "C_capped8_FT_rho0.85",
+        "fr_stride": 500,
+        "burnin_fraction": 0.2,
+        "stop_fraction": 0.8,
+        "family": {
+          "kind": "capped",
+          "c_cut": 8.0,
+          "sharpness": 2.0
+        },
+        "operator": "ft",
+        "rho": 0.85
+      }
+    },
+    {
+      "arm": "C_capped12_FT_rho0.70",
+      "track": "C",
+      "role": "candidate",
+      "config": "configs/v3_arm_C_capped12_FT_rho0.70.yaml",
+      "output_root": "results/v3/arms/C_capped12_FT_rho0.70",
+      "n_particles": 256,
+      "has_fr": true,
+      "v3": {
+        "enabled": true,
+        "name": "C_capped12_FT_rho0.70",
+        "fr_stride": 500,
+        "burnin_fraction": 0.2,
+        "stop_fraction": 0.8,
+        "family": {
+          "kind": "capped",
+          "c_cut": 12.0,
+          "sharpness": 2.0
+        },
+        "operator": "ft",
+        "rho": 0.7
+      }
+    },
+    {
+      "arm": "C_capped12_FT_rho0.85",
+      "track": "C",
+      "role": "candidate",
+      "config": "configs/v3_arm_C_capped12_FT_rho0.85.yaml",
+      "output_root": "results/v3/arms/C_capped12_FT_rho0.85",
+      "n_particles": 256,
+      "has_fr": true,
+      "v3": {
+        "enabled": true,
+        "name": "C_capped12_FT_rho0.85",
+        "fr_stride": 500,
+        "burnin_fraction": 0.2,
+        "stop_fraction": 0.8,
+        "family": {
+          "kind": "capped",
+          "c_cut": 12.0,
+          "sharpness": 2.0
+        },
+        "operator": "ft",
+        "rho": 0.85
+      }
+    },
+    {
+      "arm": "C_tempered8_FT_rho0.85",
+      "track": "C",
+      "role": "candidate",
+      "config": "configs/v3_arm_C_tempered8_FT_rho0.85.yaml",
+      "output_root": "results/v3/arms/C_tempered8_FT_rho0.85",
+      "n_particles": 256,
+      "has_fr": true,
+      "v3": {
+        "enabled": true,
+        "name": "C_tempered8_FT_rho0.85",
+        "fr_stride": 500,
+        "burnin_fraction": 0.2,
+        "stop_fraction": 0.8,
+        "family": {
+          "kind": "tempered",
+          "gamma_wt": 8.0
+        },
+        "operator": "ft",
+        "rho": 0.85
+      }
+    },
+    {
+      "arm": "C_flat_FT_rho0.85",
+      "track": "C",
+      "role": "candidate",
+      "config": "configs/v3_arm_C_flat_FT_rho0.85.yaml",
+      "output_root": "results/v3/arms/C_flat_FT_rho0.85",
+      "n_particles": 256,
+      "has_fr": true,
+      "v3": {
+        "enabled": true,
+        "name": "C_flat_FT_rho0.85",
+        "fr_stride": 500,
+        "burnin_fraction": 0.2,
+        "stop_fraction": 0.8,
+        "family": {
+          "kind": "flat"
+        },
+        "operator": "ft",
+        "rho": 0.85
+      }
+    },
+    {
+      "arm": "C_capped12_oracle_target",
+      "track": "C",
+      "role": "diagnostic",
+      "config": "configs/v3_arm_C_capped12_oracle_target.yaml",
+      "output_root": "results/v3/arms/C_capped12_oracle_target",
+      "n_particles": 256,
+      "has_fr": true,
+      "v3": {
+        "enabled": true,
+        "name": "C_capped12_oracle_target",
+        "fr_stride": 500,
+        "burnin_fraction": 0.2,
+        "stop_fraction": 0.8,
+        "family": {
+          "kind": "capped",
+          "c_cut": 12.0,
+          "sharpness": 2.0
+        },
+        "operator": "ft",
+        "rho": 0.85,
+        "oracle_target": true
+      }
+    },
+    {
+      "arm": "C_capped12_holdout",
+      "track": "C",
+      "role": "diagnostic",
+      "config": "configs/v3_arm_C_capped12_holdout.yaml",
+      "output_root": "results/v3/arms/C_capped12_holdout",
+      "n_particles": 256,
+      "has_fr": true,
+      "v3": {
+        "enabled": true,
+        "name": "C_capped12_holdout",
+        "fr_stride": 500,
+        "burnin_fraction": 0.2,
+        "stop_fraction": 0.8,
+        "family": {
+          "kind": "capped",
+          "c_cut": 12.0,
+          "sharpness": 2.0
+        },
+        "operator": "ft",
+        "rho": 0.85,
+        "clone_policy": "holdout",
+        "hold_steps": 500
+      }
+    },
+    {
+      "arm": "C_capped12_oracle_refresh",
+      "track": "C",
+      "role": "diagnostic",
+      "config": "configs/v3_arm_C_capped12_oracle_refresh.yaml",
+      "output_root": "results/v3/arms/C_capped12_oracle_refresh",
+      "n_particles": 256,
+      "has_fr": true,
+      "v3": {
+        "enabled": true,
+        "name": "C_capped12_oracle_refresh",
+        "fr_stride": 500,
+        "burnin_fraction": 0.2,
+        "stop_fraction": 0.8,
+        "family": {
+          "kind": "capped",
+          "c_cut": 12.0,
+          "sharpness": 2.0
+        },
+        "operator": "ft",
+        "rho": 0.85,
+        "clone_policy": "oracle_refresh"
+      }
+    },
+    {
+      "arm": "C_capped12_K1024",
+      "track": "C",
+      "role": "diagnostic",
+      "config": "configs/v3_arm_C_capped12_K1024.yaml",
+      "output_root": "results/v3/arms/C_capped12_K1024",
+      "n_particles": 1024,
+      "has_fr": true,
+      "v3": {
+        "enabled": true,
+        "name": "C_capped12_K1024",
+        "fr_stride": 500,
+        "burnin_fraction": 0.2,
+        "stop_fraction": 0.8,
+        "family": {
+          "kind": "capped",
+          "c_cut": 12.0,
+          "sharpness": 2.0
+        },
+        "operator": "ft",
+        "rho": 0.85
+      }
+    },
+    {
+      "arm": "bridge_consistent_physical",
+      "track": "bridge",
+      "role": "diagnostic",
+      "config": "configs/v3_arm_bridge_consistent_physical.yaml",
+      "output_root": "results/v3/arms/bridge_consistent_physical",
+      "n_particles": 256,
+      "has_fr": true,
+      "v3": {
+        "enabled": true,
+        "name": "bridge_consistent_physical",
+        "fr_stride": 500,
+        "burnin_fraction": 0.2,
+        "stop_fraction": 0.8,
+        "family": {
+          "kind": "physical"
+        },
+        "operator": "ft",
+        "rho": 0.85
       }
     }
   ]

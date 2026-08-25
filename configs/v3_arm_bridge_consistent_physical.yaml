@@ -50,7 +50,7 @@ fr:
   fr_every_values: [1]
   noise_chunk_steps: 1000
 
-v3: {"enabled": true, "name": "bridge_consistent_physical", "fr_stride": 500, "family": {"kind": "physical"}, "operator": "ft", "rho": 0.85}
+v3: {"enabled": true, "name": "bridge_consistent_physical", "fr_stride": 500, "burnin_fraction": 0.2, "stop_fraction": 0.8, "family": {"kind": "physical"}, "operator": "ft", "rho": 0.85}
 
 methods:
   - abf_only
