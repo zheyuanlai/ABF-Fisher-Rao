@@ -29,7 +29,9 @@ therefore neither confirmed nor refuted physical-target FR.
   F and F′ without genealogical collapse?
 - **Q-C (Track C — the consistency-corrected family):** does Fisher–Rao
   reallocation toward a target that is *exactly the stationary marginal of the
-  applied bias* accelerate convergence relative to the same-bias no-FR control,
+  applied bias* **[wording superseded by Amendment 2: consistent under the
+  current estimate, physically consistent asymptotically as A_t → F]**
+  accelerate convergence relative to the same-bias no-FR control,
   without genealogical collapse?
 - **Q-D (discretization):** for the same FR flow, which finite-K realization
   best preserves the continuum contraction per unit genealogy cost?
@@ -59,7 +61,10 @@ the source of the v3.0 inconsistency. One carrier, no EMA.
 
 so that q_t is *exactly* exp[−β(A_t + B_t)], the frozen-bias marginal under the
 current estimate. Both the force and the target are functionals of the same A_t,
-which is what makes the consistency exact rather than approximate. Gauge: A_t is
+which is what makes the consistency exact rather than approximate.
+**[Superseded by Amendment 2: this is exactness *in the estimated model*. The
+true stationary marginal is p* ∝ q_t · exp[−β(F − A_t)], equal to q_t only as
+A_t → F. Track P's mismatch, by contrast, survives a perfect estimator.]** Gauge: A_t is
 defined up to an additive constant; the force is a derivative and the target is
 normalized, so no gauge convention is needed except inside g (see below, where g
 is written in terms of A_t − min A_t).
@@ -422,6 +427,78 @@ Consequences, binding on this campaign:
    which of the two halves it means.
 3. This does not affect paired comparisons: arms share Langevin variates per
    seed, and the paired differences under study are 10^3–10^5 times this noise.
+
+**Amendment 2 (2026-08-25, before any v3 scientific run) — "exact stationary
+consistency" overstated; the consistency gate as frozen would fail correct code.**
+
+The family law states q_t ∝ exp[−β g(A_t)] with B_t = g(A_t) − A_t, and v3.1
+described q_t as "exactly the stationary marginal of the applied bias". That is
+exact only *in the estimated model*. Under a frozen bias B_t the true stationary
+marginal involves the true free energy F:
+
+    p*_{B_t}(z) ∝ exp[−β(F(z) + B_t(z))]
+               = exp[−β g(A_t(z))] · exp[−β(F(z) − A_t(z))]
+               ∝ q_t(z) · exp[−β(F(z) − A_t(z))]
+
+so **p*_{B_t} = q_t if and only if A_t = F + const.** The correct statement is:
+
+> Track C is *algebraically consistent with its current estimate* at every
+> instant, and *physically consistent asymptotically* as A_t → F.
+
+Verified numerically on the reference profile: with A = F_ref, max|p* − q| =
+5.6e-16; with a perturbed carrier A = F_ref + 0.3·sin(2.1x) + 0.15·cos(3.7x),
+max|p* − q| = 0.28 while the corrected identity above holds to 6.7e-16.
+
+**This is not a weakening of the Track P / Track C distinction.** For Track P the
+applied bias is B = −A_t, so even at A_t = F exactly the stationary marginal is
+uniform while the target is exp(−βF): the conflict survives a perfect estimator
+(verified: discrepancy 1.81 at A = F_ref). Track C's residual mismatch vanishes as
+the estimate converges; Track P's does not. Stage 0 already demonstrated this
+experimentally — its oracle-target arm, which removes estimation error entirely,
+was as harmful at the endpoint as the estimated one (final F′ ratio 1.379).
+
+**Gate replacement.** New-for-v3 engineering gate 1 (the consistency gate) is
+withdrawn as stated — a correct implementation with an imperfect frozen carrier
+would fail it, which is this project's "spec error faithfully implemented"
+defect class. It is replaced by two physical-stationarity gates, both Track C
+only, both required:
+
+- **Gate 1A (arbitrary frozen carrier).** For any frozen A and B = g(A) − A, a
+  long no-FR run must converge to
+  p_expected(z) ∝ exp[−β(F_ref(z) + B(z))], normalized on the profile grid.
+  This tests the biased-dynamics implementation itself.
+- **Gate 1B (oracle carrier).** Setting A = F_ref gives B = g(F_ref) − F_ref and
+  hence p*_B = q exactly. A long no-FR run must converge to q within tolerance.
+  This tests the family's intended asymptotic consistency.
+
+The algebraic family-law gate (new-for-v3 gate 2) is retained unchanged: it tests
+the code's algebra, whereas 1A/1B test physical stationarity. Track P remains
+excluded from all three; its mismatch is the object of Q-P.
+
+**`C-oracle-target` redefined.** To isolate *target*-estimation error alone, the
+Track-C oracle arm keeps the candidate's own estimated bias B_t and oracles only
+the target:
+
+    q_t^oracle(z) ∝ exp[−β(F_ref(z) + B_t(z))]      (= q_t · exp[−β(F_ref − A_t)])
+
+i.e. the true stationary marginal of the bias actually applied. Replacing A_t by
+F_ref inside *both* the bias and the target would change two things at once and
+is not what this diagnostic is for.
+
+Note that the two oracle arms now mean deliberately different things, and this is
+correct: **P-oracle-target** oracles the *idea's* target (exp(−βF_ref), the
+mismatch tested with a perfect target, unchanged from v3.1), while
+**C-oracle-target** oracles the *achievable* target. Neither enters selection.
+
+**Interpretive refinement to P3 (no threshold change).** Because the mismatch is
+only asymptotically zero, the FR dose under Track C should decay *as the
+estimator converges*, not to zero immediately; the residual dose floor is a
+readout of ‖F − A_t‖. The registered ≥5× decay threshold is unchanged; this
+records what that number measures.
+
+**No other change.** The 21 arms, c_cut ∈ {8,12}, γ_wt = 8, L_FR = 500, ρ, p_max,
+clone policies, evaluation scopes, mechanism/advancement thresholds, Track P, the
+offline benchmark and the downstream ladder are all unchanged.
 
 ## Revision log
 
