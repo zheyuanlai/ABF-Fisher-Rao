@@ -1,0 +1,482 @@
+"""Stage 0 engineering gates for the q-r decoupling campaign.
+
+Frozen protocol: ``docs/QR_DECOUPLING_PREREGISTRATION.md``.
+
+These gates must all pass before any scientific run.  They test the properties
+the campaign's conclusions rest on -- not that the code runs, but that the
+objects mean what the preregistration says they mean:
+
+  0A  no-reference architecture: the allocation modules cannot read the truth
+  0B  mass projection is exact and fibre-constant
+  0C  the ESS constraint interpolates A4b -> r = q, and rho = 1 recovers r = q
+  0E  balanced offspring minimises the genealogy cost exactly
+  0F  cell resampling is conditionally unbiased and never moves a configuration
+  0G  empty cells stay empty: resampling cannot invent undiscovered support
+  0H  leverage is pure geometry, vanishes off-mask, and is strongly non-uniform
+
+Run: CUDA_VISIBLE_DEVICES="" python -m pytest tests/test_qr_decoupling.py -q
+"""
+import itertools
+import os
+import sys
+
+import numpy as np
+import pytest
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
+
+from abffr import allocation as al                                    # noqa: E402
+from abffr import balanced_representation as br                       # noqa: E402
+from abffr import cell_mass as cm                                     # noqa: E402
+from abffr import information as inf                                  # noqa: E402
+
+CLEAN_V2_GRID = np.linspace(-3.0, 3.0, 401)
+CLEAN_V2_MASK = (CLEAN_V2_GRID >= -2.5) & (CLEAN_V2_GRID <= 2.5)
+
+
+# --------------------------------------------------------------------------- #
+# Gate 0A -- no-reference architecture
+# --------------------------------------------------------------------------- #
+ALLOCATION_MODULES = ("abffr.allocation", "abffr.balanced_representation",
+                      "abffr.information", "abffr.cell_mass")
+
+
+def test_gate_0A_allocation_modules_cannot_reach_the_reference():
+    """The allocation path must not import the truth, transitively.
+
+    Checked on the import graph, not on the source text: a docstring that
+    *discusses* why the reference is excluded is not a leak, and a gate that
+    cannot tell the two apart would train us to stop writing the explanation.
+    """
+    import ast
+    import importlib
+
+    def imports_of(mod_name):
+        mod = importlib.import_module(mod_name)
+        tree = ast.parse(open(mod.__file__).read())
+        out = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                out.update(a.name for a in node.names)
+            elif isinstance(node, ast.ImportFrom):
+                base = "abffr" if node.level and node.module is None else node.module
+                if node.level and node.module:
+                    base = f"abffr.{node.module}"
+                out.add(base or "")
+                out.update(f"{base}.{a.name}" for a in node.names)
+        return out
+
+    seen, frontier = set(), list(ALLOCATION_MODULES)
+    while frontier:
+        name = frontier.pop()
+        if name in seen:
+            continue
+        seen.add(name)
+        for imp in imports_of(name):
+            assert "reference" not in imp, f"{name} imports {imp}"
+            if imp.startswith("abffr.") and imp.count(".") == 1:
+                try:
+                    importlib.import_module(imp)
+                except ImportError:
+                    continue                 # a symbol, not a submodule
+                frontier.append(imp)
+
+
+def test_gate_0A_evaluation_scope_is_geometry_not_free_energy():
+    """The leverage is derived from the mask, so the mask may not be thermal.
+
+    Under a scope such as R12 the mask is a function of ``F_ref``, which would
+    make ``a_j`` -- and therefore the whole allocation -- an oracle quantity.
+    Fixing the evaluation window by geometry is what keeps A4/A5 deployable, so
+    it is a structural requirement of the campaign and not a matter of taste.
+    """
+    import inspect
+    sig = inspect.signature(al.leverage)
+    assert list(sig.parameters) == ["x_grid", "mask"]
+    a = al.leverage(CLEAN_V2_GRID, CLEAN_V2_MASK)
+    shifted = al.leverage(CLEAN_V2_GRID, (CLEAN_V2_GRID >= -2.0)
+                          & (CLEAN_V2_GRID <= 2.0))
+    assert not np.allclose(a, shifted), "the mask must actually determine a_j"
+
+
+# --------------------------------------------------------------------------- #
+# Gate 0H -- leverage is geometry
+# --------------------------------------------------------------------------- #
+def test_gate_0H_leverage_vanishes_outside_the_mask():
+    a = al.leverage(CLEAN_V2_GRID, CLEAN_V2_MASK)
+    assert np.all(a >= 0.0)
+    assert np.allclose(a[~CLEAN_V2_MASK], 0.0, atol=1e-24), (
+        "bins downstream of the mask never enter F there, and bins upstream "
+        "shift it by a constant the centring removes")
+
+
+def test_gate_0H_leverage_is_strongly_nonuniform():
+    """The tie prediction must not be stated against uniform.
+
+    ``a`` alone spreads the optimal allocation over an order of magnitude, so
+    ``r ∝ sqrt(a Gamma)`` differs from count balancing even at flat ``Gamma``.
+    This is why the campaign separates A4a (leverage only) from A4b.
+    """
+    a = al.leverage(CLEAN_V2_GRID, CLEAN_V2_MASK)
+    J = 32
+    edges = np.linspace(-3.0, 3.0, J + 1)
+    cell = np.clip(np.digitize(CLEAN_V2_GRID, edges) - 1, 0, J - 1)
+    g = al.cell_reduce(a, cell, J)
+    r = al.r_neyman(g)
+    live = r > 0
+    assert r[live].max() / r[live].min() > 5.0
+    assert (~live).sum() >= 2, "cells fully outside the mask should ask for none"
+
+
+def test_gate_0H_leverage_is_translation_invariant():
+    """Shifting the grid and mask together may not change the leverage."""
+    a0 = al.leverage(CLEAN_V2_GRID, CLEAN_V2_MASK)
+    a1 = al.leverage(CLEAN_V2_GRID + 7.5, CLEAN_V2_MASK)
+    assert np.allclose(a0, a1, rtol=1e-10, atol=1e-30)
+
+
+def test_leverage_matches_direct_monte_carlo_risk():
+    """``sum_j a_j v_j`` must reproduce the metric applied to noisy profiles.
+
+    The leverage is only meaningful if it is the same number the endpoint would
+    report, so it is checked against the endpoint rather than against itself.
+    """
+    x = np.linspace(-3.0, 3.0, 121)
+    mask = (x >= -2.0) & (x <= 2.0)
+    dx = x[1] - x[0]
+    rng = np.random.default_rng(0)
+    v = rng.uniform(0.5, 2.0, size=x.size)          # per-bin mean-force variance
+
+    a = al.leverage(x, mask)
+    predicted = float(np.sum(a * v))
+
+    xa, idx = x[mask], np.flatnonzero(mask)
+    L = xa[-1] - xa[0]
+    errs = []
+    for _ in range(4000):
+        d = rng.normal(0.0, np.sqrt(v))
+        e = np.concatenate([[0.0], np.cumsum(0.5 * dx * (d[1:] + d[:-1]))])
+        e = e[idx] - e[idx].mean()
+        errs.append(np.trapezoid(e ** 2, xa) / L)
+    empirical = float(np.mean(errs))
+    assert abs(predicted - empirical) / predicted < 0.05, (predicted, empirical)
+
+
+# --------------------------------------------------------------------------- #
+# Gate 0B -- mass projection
+# --------------------------------------------------------------------------- #
+def test_gate_0B_projection_reproduces_cell_mass_exactly():
+    J = 16
+    mass = cm.CellMass(n_cells=J)
+    rng = np.random.default_rng(1)
+    mass.fr_step(np.log(rng.dirichlet(np.ones(J))))
+    cell = rng.integers(0, J, size=256)
+    w = mass.project(cell)
+
+    live = np.bincount(cell, minlength=J) > 0
+    got = np.array([w[cell == j].sum() for j in range(J)])
+    want = np.where(live, mass.mass, 0.0)
+    want = want / want.sum()
+    assert np.allclose(got, want, rtol=1e-14, atol=1e-16)
+    assert abs(w.sum() - 1.0) < 1e-14
+
+
+def test_gate_0C_weights_are_constant_on_a_cell():
+    """Fibre constancy: no path-dependent weight may reach the estimator."""
+    J = 8
+    mass = cm.CellMass(n_cells=J)
+    rng = np.random.default_rng(2)
+    for _ in range(20):                              # a long FR history
+        mass.fr_step(np.log(rng.dirichlet(np.ones(J))))
+    cell = rng.integers(0, J, size=200)
+    w = mass.project(cell)
+    for j in range(J):
+        wj = w[cell == j]
+        if wj.size > 1:
+            assert np.allclose(wj, wj[0], rtol=0, atol=1e-18)
+
+
+def test_fr_step_with_theta_one_is_projection_and_is_idempotent():
+    J = 12
+    rng = np.random.default_rng(3)
+    q = rng.dirichlet(np.ones(J))
+    mass = cm.CellMass(n_cells=J, theta=1.0)
+    mass.fr_step(np.log(q))
+    assert np.allclose(mass.mass, q, rtol=1e-12)
+    mass.fr_step(np.log(q))
+    assert np.allclose(mass.mass, q, rtol=1e-12)
+
+
+def test_fr_step_with_theta_below_one_moves_partway_in_log_space():
+    J = 6
+    rng = np.random.default_rng(4)
+    q = rng.dirichlet(np.ones(J))
+    mass = cm.CellMass(n_cells=J, theta=0.4)
+    p0 = mass.mass.copy()
+    mass.fr_step(np.log(q))
+    got = np.log(mass.mass)
+    want = 0.6 * np.log(p0) + 0.4 * np.log(q)
+    assert np.allclose(got - got.mean(), want - want.mean(), rtol=1e-12)
+
+
+# --------------------------------------------------------------------------- #
+# Gate 0C -- the ESS-constrained family
+# --------------------------------------------------------------------------- #
+def test_gate_0C_rho_one_recovers_r_equals_q():
+    """clean-v2's equal-weight birth--death is this family's rho = 1 corner."""
+    rng = np.random.default_rng(5)
+    J = 24
+    q = rng.dirichlet(np.ones(J) * 0.7)
+    g = rng.uniform(0.1, 4.0, size=J)
+    out = al.r_ess_constrained(g, q, rho=1.0)
+    assert np.allclose(out.r, q / q.sum(), rtol=2e-3, atol=2e-4)
+
+
+def test_gate_0C_constraint_is_met_and_risk_is_weakly_worse_than_A4b():
+    """A5 is A4b under an extra constraint, so it cannot win the endpoint."""
+    rng = np.random.default_rng(6)
+    J = 32
+    q = rng.dirichlet(np.ones(J) * 0.5)
+    g = rng.uniform(0.05, 5.0, size=J)
+    free = al.r_neyman(g)
+    for rho in (0.3, 0.5, 0.7):
+        out = al.r_ess_constrained(g, q, rho=rho)
+        assert abs(out.r.sum() - 1.0) < 1e-12
+        assert out.ess_fraction >= rho - 1e-6
+        assert al.predicted_risk(g, out.r) >= al.predicted_risk(g, free) - 1e-12
+
+
+def test_gate_0C_inactive_constraint_returns_the_neyman_optimum():
+    J = 10
+    q = np.full(J, 1.0 / J)
+    g = np.full(J, 2.0)
+    out = al.r_ess_constrained(g, q, rho=0.5)
+    assert not out.constraint_active and out.lam == 0.0
+    assert np.allclose(out.r, al.r_uniform(J))
+
+
+def test_mass_ess_matches_its_particle_definition():
+    rng = np.random.default_rng(7)
+    J, K = 12, 480
+    q = rng.dirichlet(np.ones(J))
+    r = rng.dirichlet(np.ones(J) * 3.0)
+    counts = al.desired_counts(r, K)
+    r_real = counts / K
+    w = np.repeat(q / np.maximum(counts, 1), counts)     # w_i = q_j / n_j
+    w = w / w.sum()
+    assert abs(al.mass_ess_fraction(q, r_real) - 1.0 / (K * np.sum(w ** 2))) < 1e-9
+
+
+# --------------------------------------------------------------------------- #
+# Gate 0E -- minimum-genealogy offspring
+# --------------------------------------------------------------------------- #
+@pytest.mark.parametrize("n_parents", range(1, 8))
+@pytest.mark.parametrize("n_children", range(1, 13))
+def test_gate_0E_balanced_offspring_is_the_exact_minimiser(n_parents, n_children):
+    """Enumerate every integer multiplicity vector and check we hit the floor."""
+    m = br.balanced_offspring(n_parents, n_children)
+    assert m.sum() == n_children and m.size == n_parents
+    best = min(
+        br.duplicate_pairs(np.array(c))
+        for c in itertools.product(range(n_children + 1), repeat=n_parents)
+        if sum(c) == n_children)
+    assert br.duplicate_pairs(m) == best
+
+
+def test_rejuvenation_time_scales_with_measured_mixing():
+    """A slow cell must hold its clones longer than a fast one."""
+    fast = br.rejuvenation_steps(D=40, n_children=8, tau=0.1, dt=0.002)
+    slow = br.rejuvenation_steps(D=40, n_children=8, tau=1.6, dt=0.002)
+    assert slow > fast > 0
+    assert abs(slow / fast - 16.0) < 0.1
+    assert br.rejuvenation_steps(D=0, n_children=8, tau=1.0, dt=0.002) == 0
+
+
+# --------------------------------------------------------------------------- #
+# Gates 0F / 0G -- resampling
+# --------------------------------------------------------------------------- #
+def test_gate_0G_empty_cells_are_never_populated():
+    """Reallocation establishes; it does not discover."""
+    J = 6
+    r = np.full(J, 1.0 / J)
+    occupied = np.array([True, True, False, False, True, True])
+    counts = al.desired_counts(r, 100, occupied=occupied)
+    assert counts.sum() == 100
+    assert counts[~occupied].sum() == 0
+
+    cell = np.repeat([0, 1, 4, 5], 25)
+    out = br.resample_cells(cell, counts, np.random.default_rng(8))
+    assert np.all(cell[out.src] == np.repeat(np.arange(J), counts))
+
+
+def test_gate_0G_assigning_an_empty_cell_is_an_error_not_a_silent_fix():
+    cell = np.array([0, 0, 1, 1])
+    with pytest.raises(ValueError, match="undiscovered support"):
+        br.resample_cells(cell, np.array([2, 0, 2]), np.random.default_rng(9))
+
+
+def test_gate_0F_resampling_never_moves_a_configuration_between_cells():
+    rng = np.random.default_rng(10)
+    J, K = 8, 128
+    cell = rng.integers(0, J, size=K)
+    occupied = np.bincount(cell, minlength=J) > 0
+    r = al.apply_floor(al.r_neyman(rng.uniform(0.1, 3.0, size=J)))
+    counts = al.desired_counts(r, K, occupied=occupied)
+    out = br.resample_cells(cell, counts, rng)
+    assert np.array_equal(np.bincount(cell[out.src], minlength=J), counts)
+
+
+def test_gate_0F_cell_conditional_law_is_preserved_in_expectation():
+    """Repeated resampling must not shift the within-cell empirical mean.
+
+    This is the property the mean force is an expectation over: if selection
+    inside a cell correlated with the force, the estimator would be biased and
+    no amount of downstream care would recover it.
+    """
+    rng = np.random.default_rng(11)
+    J, K = 4, 64
+    cell = np.repeat(np.arange(J), K // J)
+    f = rng.normal(size=K)
+    counts = np.array([24, 8, 24, 8])
+
+    before = np.array([f[cell == j].mean() for j in range(J)])
+    acc = np.zeros(J)
+    n_rep = 3000
+    for _ in range(n_rep):
+        out = br.resample_cells(cell, counts, rng)
+        fr_ = f[out.src]
+        cr = cell[out.src]
+        acc += np.array([fr_[cr == j].mean() for j in range(J)])
+    after = acc / n_rep
+    se = np.array([f[cell == j].std(ddof=1) / np.sqrt(n_rep) for j in range(J)])
+    assert np.all(np.abs(after - before) < 5.0 * se + 1e-12)
+
+
+def test_resample_benefit_is_zero_when_already_optimal():
+    g = np.array([1.0, 4.0, 9.0, 16.0])
+    r_star = al.r_neyman(g)
+    assert abs(br.resample_benefit(g, r_star, r_star)) < 1e-12
+    assert br.resample_benefit(g, al.r_uniform(4), r_star) > 0.0
+
+
+# --------------------------------------------------------------------------- #
+# The difficulty estimator
+# --------------------------------------------------------------------------- #
+def _ar1_gamma(phi: float) -> float:
+    """Asymptotic variance of AR(1) with unit innovations: sigma_x^2 * tau_int.
+
+    ``sigma_x^2 = 1/(1-phi^2)`` and ``tau_int = (1+phi)/(1-phi)``, so the product
+    is ``1/(1-phi)^2`` -- not ``(1+phi)/(1-phi)``, which omits the stationary
+    variance and is the version that is easy to write down from memory.
+    """
+    return 1.0 / (1.0 - phi) ** 2
+
+
+def _run_ar1(phis, n_blocks, block_len, seed):
+    rng = np.random.default_rng(seed)
+    phis = np.asarray(phis, dtype=float)
+    acc = inf.BlockAccumulator(n_cells=phis.size, n_blocks=n_blocks)
+    state = np.zeros(phis.size)
+    for _ in range(500):                                  # burn in to stationarity
+        state = phis * state + rng.normal(size=phis.size)
+    for _ in range(n_blocks):
+        for _ in range(block_len):
+            state = phis * state + rng.normal(size=phis.size)
+            acc.observe(np.arange(phis.size), state)
+        acc.close_block()
+    return acc
+
+
+def test_gamma_hat_recovers_a_known_asymptotic_variance():
+    """AR(1) with Gamma = 1/(1-phi)^2, given enough blocks to resolve it."""
+    phi = 0.8
+    acc = _run_ar1(np.full(3, phi), n_blocks=200, block_len=2000, seed=12)
+    got = inf.gamma_hat(acc, shrink=0.0)
+    want = _ar1_gamma(phi)
+    assert np.all(np.abs(got / want - 1.0) < 0.20), (got, want)
+
+
+def test_gamma_hat_at_ten_blocks_is_noisy_enough_to_need_shrinkage():
+    """B = 10 gives ~47% relative error on a variance; record it, do not hide it.
+
+    The campaign's block budget is a real limitation of the allocator, and the
+    number belongs in a gate rather than in a caveat nobody re-derives.  It is
+    also what the shrinkage exists for: an unshrunk Gamma_hat at this budget
+    hands the allocator dispersion that looks exactly like heterogeneity.
+    """
+    phi = 0.8
+    want = _ar1_gamma(phi)
+    spread = []
+    for seed in range(40):
+        acc = _run_ar1(np.full(1, phi), n_blocks=10, block_len=2000, seed=100 + seed)
+        spread.append(inf.gamma_hat(acc, shrink=0.0)[0] / want)
+    spread = np.array(spread)
+    assert abs(np.median(spread) - 1.0) < 0.25, np.median(spread)
+    assert spread.std() > 0.25, "if this is small the shrinkage is unnecessary"
+
+    flat = _run_ar1(np.full(24, phi), n_blocks=10, block_len=2000, seed=99)
+    raw = inf.gamma_hat(flat, shrink=0.0)
+    shrunk = inf.gamma_hat(flat, shrink=inf.SHRINK_WEIGHT)
+    disp = lambda v: float(np.max(v) / np.min(v))          # noqa: E731
+    assert disp(shrunk) < disp(raw), (disp(raw), disp(shrunk))
+
+
+def test_gamma_hat_is_biased_low_when_blocks_are_shorter_than_tau():
+    """The anti-detection failure: under-measuring difficulty where it is worst.
+
+    tau_int for AR(1) is (1+phi)/(1-phi) steps; at phi = 0.99 that is 199, so a
+    20-step block cannot see it.  Batch means then report the slow cell as
+    *easier* than it is -- and an allocator following that estimate would move
+    replicas away from exactly the cells that need them.  Stage 1B measures the
+    block-length ratio before any allocation arm is allowed to run.
+    """
+    phi = 0.99
+    want = _ar1_gamma(phi)
+    short = inf.gamma_hat(_run_ar1(np.full(4, phi), 10, 20, seed=21), shrink=0.0)
+    long = inf.gamma_hat(_run_ar1(np.full(4, phi), 10, 20000, seed=21), shrink=0.0)
+    assert np.median(short) < 0.2 * want
+    assert 0.4 * want < np.median(long) < 2.0 * want
+
+
+def test_gamma_hat_ranks_cells_by_true_difficulty():
+    """The allocator needs the ordering more than the absolute scale."""
+    rng = np.random.default_rng(13)
+    phis = np.array([0.0, 0.5, 0.9])
+    acc = inf.BlockAccumulator(n_cells=3, n_blocks=10)
+    state = np.zeros(3)
+    for _ in range(10):
+        for _ in range(4000):
+            state = phis * state + rng.normal(0.0, 1.0, size=3)
+            acc.observe(np.arange(3), state)
+        acc.close_block()
+    got = inf.gamma_hat(acc, shrink=0.0)
+    assert got[0] < got[1] < got[2]
+
+
+def test_gamma_hat_falls_back_to_pooled_not_zero_for_unmeasured_cells():
+    """An unmeasured cell must not read as 'costless to ignore'."""
+    acc = inf.BlockAccumulator(n_cells=4, n_blocks=10)
+    rng = np.random.default_rng(14)
+    for _ in range(6):
+        acc.observe(np.array([0, 1, 2]), rng.normal(size=3))
+        acc.close_block()
+    got = inf.gamma_hat(acc)
+    assert np.all(np.isfinite(got)) and np.all(got > 0)
+
+
+def test_block_length_adequacy_flags_an_under_resolved_slow_cell():
+    """The 16x kappa spread is exactly what a fixed block length can miss."""
+    rep = inf.block_length_adequacy(500, 0.002, np.array([0.05, 0.1, 1.6]))
+    assert rep["block_time"] == 1.0
+    assert rep["ratio_min"] < 1.0 and rep["n_cells_below_10"] >= 1
+
+
+# --------------------------------------------------------------------------- #
+# The shared floor
+# --------------------------------------------------------------------------- #
+def test_floor_is_a_mixture_and_binds_on_every_arm_alike():
+    J = 32
+    r = al.apply_floor(al.r_neyman(np.concatenate([np.zeros(4), np.ones(J - 4)])))
+    assert abs(r.sum() - 1.0) < 1e-14
+    assert r.min() >= al.FLOOR_FRACTION / J - 1e-15
+    assert np.allclose(al.apply_floor(al.r_uniform(J)), al.r_uniform(J))
