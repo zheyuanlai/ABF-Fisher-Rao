@@ -186,3 +186,45 @@ def test_freezing_refuses_to_invent_a_threshold_from_no_data():
 def test_accel_cost_is_undefined_without_turnover():
     assert np.isnan(accel.accel_cost(1.5, 0.0))
     assert accel.accel_cost(1.5, 0.25) == pytest.approx(2.0)
+
+
+def _spd(s_val, cens_arm=0, cens_base=0, n=8):
+    return accel.Speedup(s=s_val, mean_base=1.0, mean_arm=1.0, n_base=n,
+                         n_arm=n, n_censored_base=cens_base,
+                         n_censored_arm=cens_arm)
+
+
+# --------------------------------------------------------------------------- #
+# The Stage-2 screen must see censoring too -- selection filters on it
+# --------------------------------------------------------------------------- #
+def test_pilot_screen_refuses_a_cell_inflated_by_arm_censoring():
+    """Selection filters on ``promising``, so a screen blind to censoring sends
+    an inflated cell to 96 fresh runs and only finds out at the verdict."""
+    fp = [_spd(1.2), _spd(1.2)]
+    assert accel.pilot_promising([_spd(1.6), _spd(1.5)], fp)
+    # Same ratios, but the arm failed to converge more often than the baseline.
+    tainted = [_spd(1.6), _spd(1.5, cens_arm=3, cens_base=1)]
+    assert not accel.pilot_promising(tainted, fp)
+    # More BASELINE censoring deflates S, so it is not disqualifying.
+    assert accel.pilot_promising([_spd(1.6), _spd(1.5, cens_arm=1, cens_base=3)],
+                                 fp)
+
+
+def test_pilot_screen_and_verdict_apply_the_same_censoring_rule():
+    """Two predicates that disagree about censoring is a latent selection bug."""
+    inflated = [_spd(1.6, cens_arm=4, cens_base=0),
+                _spd(1.5, cens_arm=4, cens_base=0)]
+    fp = [_spd(1.2), _spd(1.2)]
+    assert not accel.pilot_promising(inflated, fp)
+    for v in inflated:
+        v.ci_lo, v.ci_hi, v.n_boot = 1.3, 1.9, 10
+    assert not accel.confirms(inflated, fp)
+
+
+def test_pilot_screen_still_enforces_the_numeric_thresholds():
+    fp = [_spd(1.2), _spd(1.2)]
+    assert not accel.pilot_promising([_spd(1.6), _spd(1.1)], fp)     # S_F,2 low
+    assert not accel.pilot_promising([_spd(1.6), _spd(1.5)],
+                                     [_spd(1.05), _spd(1.05)])        # F' weak
+    assert not accel.pilot_promising([_spd(1.6), _spd(1.5)],
+                                     [_spd(1.2), _spd(0.9)])          # slowdown

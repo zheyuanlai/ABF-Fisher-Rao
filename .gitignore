@@ -79,3 +79,11 @@ results/wca_representative/summaries/adaptive_fr_event_log.csv
 
 # Claude Code session state and worktrees -- not project content
 .claude/
+
+# clean-v2: keep the merged CSVs and the frozen JSON artifacts, not the
+# per-process tag-suffixed shards or the bulky per-run profile dumps.
+results/clean_v2/**/*__*.csv
+results/clean_v2/**/completed/
+results/clean_v2/**/*_profiles.csv
+results/clean_v2/**/*_conditional_diagnostics.csv
+results/clean_v2/identity/

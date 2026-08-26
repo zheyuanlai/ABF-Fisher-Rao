@@ -285,20 +285,29 @@ PILOT_MIN_S_FPRIME = 1.10     # at least one F' threshold
 SLOWDOWN_S = 0.95             # below this counts as a clear slowdown
 
 
-def pilot_promising(s_F: Sequence[float], s_Fp: Sequence[float]) -> bool:
+def pilot_promising(s_F: Sequence[Speedup], s_Fp: Sequence[Speedup]) -> bool:
     """Stage-2 screen: a schedule worth carrying into fresh seeds.
 
     Acceleration-first by construction -- final error and AUC appear nowhere.
     Both free-energy thresholds must clear ``1.15``; the mean force must clear
     ``1.10`` at *one* threshold and must not show a clear slowdown at the other.
+
+    It takes :class:`Speedup` objects rather than bare numbers for the same
+    reason :func:`confirms` does, and it applies the same censoring refusal.
+    A screen that sees only the ratio can pass a cell whose ``S^(T)`` is
+    inflated by the arm failing to converge -- and because selection filters on
+    this predicate, that cell would then win the pilot and be sent to fresh
+    seeds.  The Stage-3 verdict would catch it a hundred runs too late.
     """
     if len(s_F) != 2 or len(s_Fp) != 2:
         raise ValueError("both thresholds are required for the pilot screen")
-    if not all(np.isfinite(v) and v >= PILOT_MIN_S_F for v in s_F):
+    if any(v.censoring_inflates for v in s_F):
         return False
-    if not any(np.isfinite(v) and v >= PILOT_MIN_S_FPRIME for v in s_Fp):
+    if not all(np.isfinite(v.s) and v.s >= PILOT_MIN_S_F for v in s_F):
         return False
-    return not any(np.isfinite(v) and v < SLOWDOWN_S for v in s_Fp)
+    if not any(np.isfinite(v.s) and v.s >= PILOT_MIN_S_FPRIME for v in s_Fp):
+        return False
+    return not any(np.isfinite(v.s) and v.s < SLOWDOWN_S for v in s_Fp)
 
 
 def confirms(s_F: Sequence[Speedup], s_Fp: Sequence[Speedup]) -> bool:

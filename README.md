@@ -85,8 +85,12 @@ result sets.
 
 **Frozen protocol: [`docs/CLEAN_V2_PREREGISTRATION.md`](docs/CLEAN_V2_PREREGISTRATION.md).**
 
-The v2 and v3 campaigns asked whether ABF+FR is a better *estimator* and
-answered no. Clean-v2 asks a different question, and it is the live one:
+v2 already stated a finite-time acceleration claim. What went wrong was
+narrower: its endpoint hierarchy still leaned on integrated and final `L2` error,
+and its operator was not birth--death (a score clip discarded 55% of the score and
+an event cap silently changed the dose). v3 then moved the question to whether
+ABF and FR can share a *stationary* distribution and answered no. Clean-v2
+returns to v2's question and sharpens it:
 
 > After a pure-ABF burn-in, can periodic birth--death Fisher--Rao pulses toward
 > the **unflattened physical marginal** `q_t propto exp(-beta A_t)` make ABF

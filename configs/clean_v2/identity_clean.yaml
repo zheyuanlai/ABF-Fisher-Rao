@@ -1,0 +1,61 @@
+# Clean-v2 engineering artifact, NOT scientific data.
+# Gate A at production scale: a gamma = 0 physical arm alongside plain
+# ABF.  The gamma = 0 arm never enters the FR branch, so it is identical
+# by construction and its residual IS the measured GPU non-determinism
+# floor.  Analysed by scripts/verify_clean_v2_identity.py.
+experiment_name: clean_v2_identity_clean
+output_root: results/clean_v2/identity/clean
+backend: torch
+device: cuda
+dtype: float64
+batch_size_configs: 4
+clean_v2:
+  enabled: true
+selection:
+  write_generic_best: false
+potential:
+  x_tilt: 0.1021665783
+domain:
+  x_min: -3.0
+  x_max: 3.0
+  y_min: -2.5
+  y_max: 3.5
+  nx_ref: 801
+  ny_ref: 801
+  nx_profile: 401
+simulation:
+  beta: 4.0
+  dt: 0.002
+  n_particles: 256
+  n_steps: 50000
+  eval_every: 500
+  seeds:
+  - 1000
+  - 1001
+  x_init_mode: uniform
+  y_init_mode: uniform
+abf:
+  estimator: binned_smooth
+  observation_order: post_propagation
+  h: 0.05
+  update_every: 10
+  min_count: 1.0
+fr:
+  enabled: true
+  target_types:
+  - physical
+  gamma_values:
+  - 0.0
+  eta_values:
+  - 0.1
+  burnin_fractions:
+  - 0.2
+  duration_fractions:
+  - 0.6
+  fr_every_values:
+  - 500
+  interval_scaled_clock: true
+  noise_chunk_steps: 1000
+methods:
+- abf_only
+- abf_fr_physical

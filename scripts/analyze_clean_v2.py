@@ -163,8 +163,9 @@ def main(argv=None):
                 row[f"hit_{label}_{k+1}_base"] = d["hit_fraction_base"]
                 row[f"hit_{label}_{k+1}_arm"] = d["hit_fraction_arm"]
                 row[f"inflated_{label}_{k+1}"] = d["censoring_inflates"]
-        row["promising"] = accel.pilot_promising(
-            [row["S_F_1"], row["S_F_2"]], [row["S_Fprime_1"], row["S_Fprime_2"]])
+        # Speedup objects, not bare ratios: the screen must see censoring, or an
+        # inflated cell wins selection and reaches fresh seeds.
+        row["promising"] = accel.pilot_promising(sp_F, sp_Fp)
         row["confirmed"] = accel.confirms(sp_F, sp_Fp)
         row["C_accel"] = accel.accel_cost(row["S_F_2"], rf)
         # Safety diagnostics only -- these rank nothing.

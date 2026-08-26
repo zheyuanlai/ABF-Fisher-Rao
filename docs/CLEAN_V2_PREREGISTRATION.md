@@ -32,8 +32,26 @@
    clean-v2 returns to and sharpens that question rather than replacing it.
 6. Gate A repeated at production scale on GPU, and the `abf.ema_alpha` removal
    shown to be a target change and not an estimator change (section 5).
-7. A turnover-matched sham was considered and deliberately excluded, with the
-   attribution cost stated (section 9).
+7. A turnover-matched sham was considered and deliberately excluded. The
+   exclusion stands; its stated justification was **corrected** -- the sham is
+   perfectly runnable from the algorithm's own estimated scores, and the real
+   reason is scope: this campaign tests efficacy, not a causal decomposition
+   (section 9).
+8. **Logic fix:** `pilot_promising` was blind to censoring while `confirms` was
+   not, so an inflated Stage-2 cell could have won selection and been sent to
+   fresh seeds. It now takes `Speedup` objects and applies the same censoring
+   refusal (section 8).
+9. The Stage-2 dose table was labelled "expected events per replica" but held the
+   **integrated hazard** `gamma T_FR |S|`. Each replica fires at most once per
+   opportunity, so with 30 opportunities the stated "120 expected events" was not
+   merely approximate but impossible. Section 7 now gives
+   `E[N] = N_opp (1 - exp(-gamma |S| L_FR dt))` per cell, and notes that the
+   matched-dose approximation holds in R12 and breaks in the walls.
+10. The boundary-extension rule was **deleted** rather than formalised: it was
+    circular, and no code implemented it. A boundary winner is now reported as
+    boundary-limited and taken to fresh seeds unchanged (section 9).
+11. `--ignore-screen` no longer writes Stage 3/4 configs. It previously claimed
+    not to authorise a confirmation run while creating the files that start one.
 
 ---
 
@@ -246,9 +264,9 @@ in `l2_F` over 50k steps while discrete counters stayed exact.
 
 | quantity | seed 1000 | seed 1001 |
 | --- | --- | --- |
-| max abs delta `l2_F` (R12) | `7.2e-8` | `3.5e-7` |
-| max abs delta `l2_F'` (R12) | `1.4e-7` | `6.5e-7` |
-| max abs delta `F'` on the profile grid | `5.8e-6` | `5.9e-6` |
+| max abs delta `l2_F` (R12) | `1.64e-07` | `2.30e-07` |
+| max abs delta `l2_F'` (R12) | `4.01e-07` | `6.18e-07` |
+| max abs delta `F'` on the profile grid | `4.08e-06` | `5.38e-06` |
 | FR events / replacements | 0 / 0 | 0 / 0 |
 
 The discrete counters are exactly zero and the continuous residuals sit at the
@@ -261,12 +279,22 @@ in this protocol is judged.
 forbids `abf.ema_alpha`, so it must be shown that this removed a *target*, not an
 *estimator*. Running `abf_only` at the same seed under a clean-v2 config and
 under a legacy config still carrying `abf.ema_alpha = 0.05`, `fr.score_clip = 5`
-and `fr.max_event_fraction = 0.10` gives, at production scale on GPU, max abs
-delta `8.2e-7` in the error metrics and `9.8e-6` in `F'` on the profile grid --
-the same order as the `gamma = 0` floor above -- and **bit-for-bit equality on
-CPU** (`test_removing_ema_alpha_did_not_change_the_abf_estimator`). Those knobs
-only ever fed `Fhat_target`, which only ever fed the FR target, and never the
+and `fr.max_event_fraction = 0.10` gives, at production scale on GPU, max abs delta `3.2e-07` in
+`l2_F` (R12) and `9.5e-06` in `F'` on the profile grid --
+against a measured floor of `5.4e-06`, so within 2x of it -- and
+**bit-for-bit equality on CPU**
+(`test_removing_ema_alpha_did_not_change_the_abf_estimator`). Those knobs only
+ever fed `Fhat_target`, which only ever fed the FR target, and never the
 accumulators, `F'`, `F` or the applied bias.
+
+Both checks are **reproducible from committed configs and stored as data**, not
+only as prose: `configs/clean_v2/identity_clean.yaml` and `identity_legacy.yaml`
+produce the runs, `scripts/verify_clean_v2_identity.py` emits
+`results/clean_v2/identity_checks.json`, and the script exits non-zero if the FR
+counters are not exactly zero or the `ema` delta exceeds twice the measured
+floor. Re-running gives numbers of the same order but not the same digits, which
+is the point: the floor is a property of the engine, so it is measured on every
+run rather than hard-coded.
 
 ---
 
@@ -377,15 +405,40 @@ Seed blocks are disjoint by stage, so "fresh seeds" in Stage 3 is literally true
 Stage 2 grid: `fr_every` in {100, 500, 1000} x `gamma` in
 **{0.002, 0.01, 0.05}**. Nothing else varies.
 
-`gamma` is log-spaced over 25x deliberately. The integrated FR dose is
-`gamma * T_FR = 60 gamma` (the clock is interval-scaled, so `L_FR` does not change
-it), which over the active window gives a replica in R12 (`|S| ~ 3`) about
-0.36 / 1.8 / 9.0 expected events and one in the high-`F` wall strips (`|S| ~ 40`)
-about 4.8 / 24 / 120. Per-pulse probabilities at the sparsest interval run
-0.15 -> 0.98 for a wall replica and 0.012 -> 0.26 for an R12 replica. The pilot is
-therefore a genuine dose-response scan, from "barely touches the thermally
-relevant region" to "heavy churn", rather than three neighbouring points that
-could all sit on the same side of the optimum.
+`gamma` is log-spaced over 25x deliberately, so the pilot is a genuine
+dose-response scan -- from "barely touches the thermally relevant region" to
+"heavy churn" -- rather than three neighbouring points that could all sit on the
+same side of the optimum.
+
+What the interval-scaled clock matches across `L_FR` is the **integrated hazard**
+`gamma T_FR |S|`, not the expected number of events. Each replica fires at most
+once per opportunity, so with `N_opp` opportunities the expected count is
+
+```
+E[N_events] = N_opp * (1 - exp(-gamma |S| L_FR dt)),      N_opp = 300 / 60 / 30
+```
+
+for `L_FR` = 100 / 500 / 1000. The two agree only while the per-pulse probability
+is small. Expected events per replica over the active window:
+
+| `gamma` | hazard `gamma T_FR \|S\|` | R12 (`\|S\| ~ 3`), L = 100 / 500 / 1000 | walls (`\|S\| ~ 40`), L = 100 / 500 / 1000 |
+| --- | --- | --- | --- |
+| 0.002 | 0.36 / 4.8 | 0.36 / 0.36 / 0.36 | 4.8 / 4.6 / 4.4 |
+| 0.01 | 1.8 / 24 | 1.79 / 1.77 / 1.75 | 23.1 / 19.8 / 16.5 |
+| 0.05 | 9.0 / 120 | 8.87 / 8.36 / 7.78 | 98.9 / 51.9 / 29.5 |
+
+In R12 -- where the primary endpoint lives -- the matched-dose approximation is
+excellent: at most 12% spread across `L_FR` at the strongest `gamma`, and 0.4% at
+the middle one. It breaks in the wall strips, where per-pulse probabilities
+saturate (`1 - exp(-4) = 0.98` at `gamma = 0.05`, `L = 1000`) and the sparse
+schedules therefore cannot evacuate the walls as thoroughly as the frequent ones
+at the same nominal dose: 98.9 against 29.5 events.
+
+That is a property of the birth--death tau-leap, not a defect, and it is worth
+stating because it means **`L_FR` is a clean frequent-weak/sparse-strong axis
+inside R12 and additionally a realised-turnover axis outside it.** A wall-driven
+difference between `L_FR` cells should be read that way rather than as a pure
+scheduling effect.
 
 This replaces an earlier `{0.02, 0.05, 0.10}`, which the engineering measurements
 in section 9 showed would have been saturated (`P ~ 1` for wall replicas) in most
@@ -410,9 +463,17 @@ into existence.
 
 ### Stage-2 screen (`accel.pilot_promising`)
 
-A schedule is promising if `S_{F,1} >= 1.15` **and** `S_{F,2} >= 1.15`, at least
-one of `S_{F',1}, S_{F',2}` is `>= 1.10`, and neither `F'` speedup falls below
-`0.95`. Final error and AUC appear nowhere in this screen.
+A schedule is promising if `S^(T)_{F,1} >= 1.15` **and** `S^(T)_{F,2} >= 1.15`,
+at least one of `S^(T)_{F',1}, S^(T)_{F',2}` is `>= 1.10`, neither `F'` speedup
+falls below `0.95`, **and neither free-energy threshold has more arm censoring
+than baseline censoring**. Final error and AUC appear nowhere in this screen.
+
+The censoring condition is the same one the Stage-3 verdict applies, and it is
+here for a specific reason: selection filters on this predicate, so a screen
+blind to censoring would let a cell whose `S^(T)` is inflated by the arm failing
+to converge win the pilot and consume 96 fresh runs before the verdict caught it.
+`pilot_promising` therefore takes `Speedup` objects, exactly as `confirms` does,
+and the two predicates cannot drift apart about what censoring means.
 
 ### Selection (`accel.rank_key`)
 
@@ -491,31 +552,50 @@ not a contingency but a deferred correction, and it would read to any reader as
 to `{0.002, 0.01, 0.05}` **before any scientific run**, and the escape hatch is
 gone.
 
-What replaces it is symmetric and applies whichever way the pilot goes: **if the
-selected schedule sits at either end of the `gamma` range, the dose-response is
-unresolved**, and exactly one extension of the grid in that direction (a further
-factor of 5) is permitted before selection -- at either end, declared here, with
-the same target, operator and window. An extension is reported as part of the
-pilot, never as a rescue, and never after Stage 3 seeds are seen.
+**Nothing replaces it: the grid does not get extended.** An earlier draft
+allowed one factor-of-5 extension if the winner landed on a `gamma` boundary.
+That rule was circular -- selection is what identifies the boundary case, and the
+selector writes the Stage-3 config in the same step -- and no code implemented
+it, which is precisely the "prose describing behaviour the code cannot perform"
+defect this protocol exists to avoid.
 
-**No turnover-matched sham.** A score-permuted sham -- same score distribution,
-same expected turnover, directions scrambled -- would separate "directed
-Fisher--Rao reallocation" from "generic clone/delete churn". It is deliberately
-**not** in this campaign. The reason is that it is not an alternative anybody
-could run: constructing it requires the true per-particle score assignment, and
-in practice the shape of the reaction-coordinate free energy is exactly what is
-unknown. Fisher--Rao is the only reallocation rule available to a real user, so
-the comparison that matters is FR against *no reallocation*, which is the plain-ABF
-baseline this campaign already runs.
+The frozen rule is simpler: **if the selected schedule sits at `gamma = 0.002` or
+`gamma = 0.05`, report the dose optimum as boundary-limited, freeze that winner,
+and take it to fresh seeds unchanged.** `select_clean_v2_schedule.py` prints this
+and records `gamma_at_grid_edge` in `selected_schedule.json`. This campaign tests
+whether the method accelerates, not where the optimal `gamma` is; a boundary
+winner is a reported limitation, not a reason to search further.
 
-The cost of that choice must be stated in any paper rather than left implicit: a
-positive result attributes acceleration to **intermittent physical-target FR as a
-package**, and does not on its own separate directed reallocation from generic
-population turnover. Two things partly stand in. The `gamma` x `L_FR` grid is a
-dose-response scan, so acceleration that varies structurally with FR dose is
-harder to explain by undirected churn than a single positive cell would be. And
-the oracle arm varies the target's *direction* while holding the turnover
-mechanism fixed. Neither is a sham, and neither is claimed to be.
+**No turnover-matched sham -- a scope decision, not a feasibility one.** A
+score-permuted sham (`S~_i = S_{pi(i)}`: same score distribution, same
+positive/negative counts, same expected turnover, directions scrambled) would
+separate "directed Fisher--Rao reallocation" from "generic clone/delete churn".
+It is deliberately **not** in this campaign.
+
+The reason is scope, and it must be stated that way. **This campaign tests
+efficacy, not a causal decomposition of the acceleration.** The claim under test
+is "ABF + intermittent physical-target FR reaches a prescribed accuracy faster
+than ABF", and the essential comparison for that claim is plain ABF, which is
+already the baseline. A sham is also not a competing method: nobody would deploy
+a permuted-score resampler, so it does not belong to the set of things a user
+chooses between.
+
+An earlier draft argued that a sham *could not be constructed* because it needs
+the true per-particle score assignment. **That was wrong** and is withdrawn: the
+algorithm computes `S_i` itself from `log phat` and `beta A_t`, so those
+estimated scores could plainly be permuted. The sham is runnable; it is simply
+out of scope here.
+
+The cost must be stated in any paper rather than left implicit: a positive result
+attributes acceleration to **intermittent physical-target FR as a package**, and
+does not on its own separate directed reallocation from generic population
+turnover. Two things partly stand in, and neither is a substitute. The
+`gamma` x `L_FR` grid is a dose-response scan, so acceleration varying
+structurally with FR dose is harder to explain by undirected churn than a single
+positive cell would be; and the oracle arm varies the target's *direction* while
+holding the turnover mechanism fixed. If a full attribution is later wanted, the
+score-permuted sham is the right instrument and would be its own preregistered
+study.
 
 **Censoring pressure.** If the frozen thresholds are hit by only a minority of
 seeds within `T`, `S_eps` is dominated by restriction at `T` and loses
