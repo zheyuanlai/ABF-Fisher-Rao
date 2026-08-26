@@ -140,15 +140,15 @@ def main(argv=None):
     for fig_no, col, eps, label in (
             (1, f"l2_F_{scope}", eps_F, r"$e_F(t)$"),
             (3, f"l2_Fprime_{scope}", eps_Fp, r"$e_{F'}(t)$")):
-        fig, ax = plt.subplots(figsize=(6.8, 4.2))
+        fig, ax = plt.subplots(
+            figsize=(9.2 if len(series) > 3 else 6.8, 4.2))
         multi = [g for g in series if not g[3]]
         for j, (m, cid, sub, single) in enumerate(series):
             style = dict(ARM_STYLE[m])
             if not single:
                 r = sub.iloc[0]
-                style["label"] = (f"{style['label']}  "
-                                  f"($\\gamma$={r['gamma']:g}, "
-                                  f"$L$={int(r['fr_every'])})")
+                style["label"] = (f"FR  $\\gamma$={r['gamma']:g}, "
+                                  f"$L$={int(r['fr_every'])}")
                 style["alpha"] = 0.85
             _band(ax, sub, col, style, band=single,
                   alpha=style.pop("alpha", 1.0))
@@ -169,7 +169,13 @@ def main(argv=None):
         ax.set_ylabel(label + f"   [scope {scope}]")
         ax.set_title("Free-energy convergence" if fig_no == 1
                      else "Mean-force convergence", loc="left", fontsize=11)
-        ax.legend(fontsize=8, frameon=False, loc="lower left")
+        n_series = len(series)
+        if n_series > 3:
+            ax.legend(fontsize=7.5, frameon=False, loc="center left",
+                      bbox_to_anchor=(1.01, 0.5),
+                      title=f"{n_series} schedules", title_fontsize=8)
+        else:
+            ax.legend(fontsize=8, frameon=False, loc="lower left")
         ax.grid(alpha=0.15, lw=0.5)
         fig.tight_layout()
         for ext in ("png", "pdf"):
