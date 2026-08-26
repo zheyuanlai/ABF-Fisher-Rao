@@ -161,6 +161,7 @@ the import graph.
 | 0F | resampling never moves a configuration between cells; cell-conditional mean preserved |
 | 0G | empty cells stay empty; assigning one is an error, not a silent fix |
 | 0H | leverage vanishes off-mask, is translation-invariant, and matches a Monte-Carlo risk to 5% |
+| 0I | κ ≤ 1 in every cell; the implemented integrator samples `exp(-βV)` at fixed `x`; K3 relocates difficulty rather than rescaling it |
 
 Not yet written: **0D**, the mass-only identity `A2 ≡ A0`, which needs the engine
 wiring. Run identity pairs **in one process** -- the engine is not bitwise
@@ -173,20 +174,46 @@ update_every=10, eval_every=500`. Cells `J=32` equal width. Seeds 5100-5115
 (16 ABF-only per κ-cell). Thresholds `ε₁, ε₂` = median ABF `e_F` at `0.4T, 0.6T`;
 `τ_ε` needs 3 consecutive frames; every run goes to full `T`.
 
-**1B -- is `Γ̂` usable?** Against `Γ_ref` from 4 seeds × 4T. Report rank
-correlation, multiplicative error, top-cell overlap. Two hard stops:
+**1B -- is `Γ̂` usable?** This gate has already fired once, before any
+scientific run, and it changed the estimator.
 
-- Batch means are **biased low when the block is shorter than `τ_int`**, and
-  worst exactly where difficulty is highest -- the anti-detection failure mode.
-  The κ-family varies `τ` by 16× *on purpose*, so `W=5000/B=10` is a guess that
-  may be wrong for the slow cells. **Measure `τ̂_j` first and set the block length
-  from it.** `information.block_length_adequacy` reports the ratio.
-- `B=10` gives ~47% relative error on a variance (checked in Stage 0). Shrinkage
-  is frozen at 0.3 toward the pooled value; unshrunk `Γ̂` hands the allocator
-  dispersion shaped like heterogeneity.
+Measured on the campaign's own potential (fixed `x`, hidden channel isolated):
+`τ ≈ 0.19` time units at `κ=1`, `1.12` at `κ=1/4`, `4.73` at `κ=1/16`; in-run
+`x`-motion turns a cell over ~4× faster, so the slow end sits near `1.2` time
+units. Batch means need a block ≫ `τ` **and** `B` of them: `B=10 × 10τ ≈ 60000`
+steps against a **50000-step run**. The frozen `W=5000/B=10` budget was short by
+more than an order of magnitude, and short in the direction that **hides**
+difficulty rather than inventing it.
 
-If `Γ̂` cannot see the K2/K3 difficulty inversion, **do not run A4b/A5.** That is
-an estimator failure, not a method failure, and fixing it is Stage 1 work.
+Simulated at exactly that budget (`τ ∈ {30,120,480}` steps, 8 replicas/cell,
+3000-step window), median over 12 realisations:
+
+| estimator | recovers, of a true 16× spread |
+| --- | --- |
+| batch means, `B=10` | **2.7×** |
+| `Γ = σ² τ`, decomposed | **13.1×** |
+
+So the estimator is **`Γ̂_j = σ̂²_j τ̂_j`**. The two factors need different amounts
+of data and the decomposition exploits that: `σ̂²` is an instantaneous spread
+across the replicas in a cell (no window, error does not grow with `τ`, residuals
+taken against `F̂'` at each replica's own position so a steep mean force is not
+charged to noise); `τ̂` is a shape parameter fitted by **bias-corrected lag-1
+AR(1) regression**, which for a relaxing hidden coordinate is the MLE. Fitting
+`log ρ_k` against lag was tried and rejected: the sample autocorrelation carries
+a downward bias ≈ `2τ/n` that is roughly constant in the lag, which steepens the
+fitted decay and reports the hard cell as easy (16× came back as 5.8×).
+
+Only *ratios* of `Γ̂` reach the allocator, so the factor of 2 in the asymptotic
+variance is deliberately not carried. A cell that cannot be fitted returns NaN
+and is filled from the pooled median -- never a small number, because "unmeasured"
+and "easy" must not look alike. Single-cell estimates remain noisy at `n/τ ≈ 6`
+(±30%); the frozen shrinkage of 0.3 damps it, and it degrades toward *uniform*
+allocation rather than toward an actively wrong one.
+
+Still to do in 1B: validate `Γ̂` against `Γ_ref` from 4 seeds × 4T on the real
+engine -- rank correlation, multiplicative error, top-cell overlap. If `Γ̂` cannot
+see the K2/K3 difficulty inversion there, **do not run A4b/A5.** That is an
+estimator failure, not a method failure, and fixing it is Stage 1 work.
 
 **1C -- is the diagonal `Cov(f̂)` assumption sound?** The ABF estimator smooths
 with `h=0.05` against a cell width of 0.1875, so cross-cell correlation should be
@@ -199,6 +226,24 @@ covariance-aware allocation and `r* ∝ sqrt(aΓ)` may not be quoted as exact.
 alone leaves the invariant density -- and hence `F` and `q_phys` -- unchanged
 while moving conditional mixing. `κ_a(z) = exp(a h(z))` with `h` a fixed
 sinusoid the algorithm never sees; `a ∈ {0, log4, log16, -log16}` = K0/K1/K2/K3.
+
+The invariance is exact, and stronger than "the stationary distribution happens
+to come out the same": the Fokker--Planck flux of `e^{-βV}` vanishes *pointwise*
+in each coordinate, `∂_yV ρ + β^{-1}∂_yρ = 0`, so multiplying the `y`-flux by any
+positive `κ` leaves it zero. There is no cancellation to check and no dependence
+on the shape of `h`.
+
+That exactness carries one implementation constraint, and it is the reason `κ`
+is written as a function of the reaction coordinate alone. **`κ` may depend on
+`x` but never on the hidden coordinate `y`.** With `κ(x)` the Itô term
+`∂_yy[(κ/β)ρ]` equals `∂_y[(κ/β)∂_yρ]` and the flux form holds; with `κ(x,y)` it
+does not, and the residual drift `β^{-1}∂_yκ` moves `F` -- which would make the
+instrument a confound of exactly the kind it was built to remove. **Gate 0I**
+therefore tests the *implemented integrator*, not the continuum statement: Euler
+stepping and wall reflection are `O(dt)` approximations, so the κ-difference in
+`F` is judged against the seed-to-seed spread at fixed `κ`, and the same runs
+must show `τ` actually splitting -- an instrument that preserves `F` by failing
+to change anything would pass half a gate.
 
 Arms: **A0** plain ABF · **A1** legacy physical BD (failure control) · **A2**
 mass-only (identity gate) · **A3** count balancing · **A4a** `sqrt(a)` · **A4b**

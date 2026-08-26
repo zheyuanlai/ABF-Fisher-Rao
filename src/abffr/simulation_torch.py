@@ -39,7 +39,7 @@ import numpy as np
 import torch
 
 from . import (clean_v2 as cv2, family as fam, fibre_diagnostics as fib,
-               fr_v3, persistent_mass as pmass, potentials,
+               fr_v3, kappa_family as kfam, persistent_mass as pmass, potentials,
                representation as rep, torch_utils as tu)
 from .io_utils import RunSpec, make_rng_streams
 from .simulation import _init_positions  # reuse CPU init for matched seeds
@@ -397,6 +397,10 @@ def run_batch(
         raise ValueError(
             "abf.observation_order must be pre_propagation or post_propagation")
     x_tilt = float(cfg.get("potential", {}).get("x_tilt", 0.0))
+    # Hidden-coordinate mobility for the kappa-family instrument.  a == 0 is the
+    # unmodified engine and takes the identical arithmetic path, so a K0 run is
+    # bit-for-bit the clean-v2 run rather than one multiplied by a float 1.0.
+    kappa_a, kappa_shift = kfam.cell_from_config(cfg)
     x_init_mode = sim.get("x_init_mode", "mixed")
     y_init_mode = sim.get("y_init_mode", "mixed")
     x_barrier = float(getattr(ev, "x_barrier", 0.0))
@@ -619,9 +623,21 @@ def run_batch(
         X_prop = tu.reflect_into(
             X + (-dvdx + abf_at_X) * dt + noise_scale * noise_x,
             xmin, xmax)
-        Y_prop = tu.reflect_into(
-            Y + (-dvdy) * dt + noise_scale * noise_y,
-            ymin, ymax)
+        # kappa is evaluated at the PRE-step X and never at Y: with kappa(x)
+        # the Ito term keeps the flux form that makes exp(-beta V) -- and hence
+        # F -- exactly invariant, and with kappa(x, y) it would not.  Scaling
+        # drift by kappa and noise by sqrt(kappa) is the mobility form; scaling
+        # only one of them would change the temperature of the hidden coordinate.
+        kap = kfam.kappa_at_torch(X, kappa_a, kappa_shift)
+        if kap is None:
+            Y_prop = tu.reflect_into(
+                Y + (-dvdy) * dt + noise_scale * noise_y,
+                ymin, ymax)
+        else:
+            Y_prop = tu.reflect_into(
+                Y + (-kap * dvdy) * dt
+                + torch.sqrt(kap) * noise_scale * noise_y,
+                ymin, ymax)
         tu.assert_finite("X_prop", X_prop)
         tu.assert_finite("Y_prop", Y_prop)
 

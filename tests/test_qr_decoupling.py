@@ -480,3 +480,122 @@ def test_floor_is_a_mixture_and_binds_on_every_arm_alike():
     assert abs(r.sum() - 1.0) < 1e-14
     assert r.min() >= al.FLOOR_FRACTION / J - 1e-15
     assert np.allclose(al.apply_floor(al.r_uniform(J)), al.r_uniform(J))
+
+
+# --------------------------------------------------------------------------- #
+# The decomposed estimator, and why the campaign needs it
+# --------------------------------------------------------------------------- #
+def _ou_cells(taus_steps, n_steps, n_part, seed, sigma=1.0):
+    """Independent OU walkers per cell: rho_1 = exp(-1/tau), known Gamma."""
+    rng = np.random.default_rng(seed)
+    taus_steps = np.asarray(taus_steps, dtype=float)
+    J = taus_steps.size
+    phi = np.exp(-1.0 / taus_steps)
+    state = rng.normal(size=(J, n_part)) * sigma
+    cell = np.repeat(np.arange(J), n_part)
+    for _ in range(n_steps):
+        state = phi[:, None] * state + np.sqrt(1.0 - phi[:, None] ** 2) * \
+            rng.normal(size=(J, n_part)) * sigma
+        yield cell, state.reshape(-1)
+
+
+def _estimate_both(taus, n_steps, n_part, seed, n_blocks=10):
+    """Run one realisation through both estimators on the same observations."""
+    acc = inf.BlockAccumulator(n_cells=taus.size, n_blocks=n_blocks)
+    hist = inf.MeanForceHistory(n_cells=taus.size, capacity=400)
+    s2 = np.zeros(taus.size)
+    n_obs = 0
+    block = n_steps // n_blocks
+    for t, (cell, f) in enumerate(_ou_cells(taus, n_steps, n_part, seed)):
+        acc.observe(cell, f)
+        if t % 10 == 0:                             # ABF update_every = 10
+            hist.push(cell, f)
+            s2 += inf.conditional_force_variance(cell, f, np.zeros_like(f),
+                                                 taus.size)
+            n_obs += 1
+        if (t + 1) % block == 0:
+            acc.close_block()
+    dec = inf.gamma_hat_decomposed(
+        s2 / n_obs, inf.tau_from_lag1(hist, obs_interval=10.0), shrink=0.0)
+    return inf.gamma_hat(acc, shrink=0.0), dec
+
+
+def test_decomposed_estimator_beats_batch_means_at_the_campaign_budget():
+    """The measurement that forced this: tau up to ~480 steps, window ~3000.
+
+    Batch means need a block long against tau *and* B of them; the
+    decomposition needs a few tau to fit a decay and no window at all for the
+    variance.  Judged on the median over realisations, because a single
+    realisation at ``n/tau ~ 6`` is noisy for either estimator and it is the
+    systematic recovery of the spread, not one draw, that decides whether the
+    allocator can see heterogeneity at all.
+    """
+    taus = np.array([30.0, 120.0, 480.0])           # 16x spread, as K2/K3 build
+    truth = 16.0
+    bms, decs = [], []
+    for seed in range(12):
+        bm, dec = _estimate_both(taus, 3000, 8, seed=17 + seed)
+        bms.append(bm[-1] / bm[0])
+        decs.append(dec[-1] / dec[0])
+    bm_med, dec_med = float(np.median(bms)), float(np.median(decs))
+
+    assert dec_med > bm_med, (
+        f"batch means recovered {bm_med:.1f}x of the true {truth:.0f}x, "
+        f"decomposition {dec_med:.1f}x -- the decomposition must be the better "
+        f"estimator at this budget or there is no reason to prefer it")
+    assert dec_med > 0.5 * truth, (
+        f"decomposition recovered only {dec_med:.1f}x of {truth:.0f}x; the "
+        f"allocator cannot follow a signal it cannot see")
+
+
+def test_decomposed_estimator_is_unbiased_given_enough_samples():
+    """Separate the estimator's bias from its variance, and gate the bias.
+
+    At the campaign budget a single cell estimate is noisy -- which is what the
+    frozen shrinkage exists to damp, and which errs toward uniform allocation
+    rather than toward an actively wrong one.  What must not be true is a
+    systematic error, so the median is checked where samples are plentiful.
+    """
+    taus = np.array([30.0, 120.0])
+    got = np.median([_estimate_both(taus, 30_000, 8, seed=40 + s)[1]
+                     for s in range(9)], axis=0)
+    assert 0.75 < (got[1] / got[0]) / 4.0 < 1.3, got
+
+
+def test_batch_means_understates_the_hard_cell_at_this_budget():
+    """Name the failure direction: it hides difficulty, it does not invent it."""
+    taus = np.array([30.0, 480.0])
+    acc = inf.BlockAccumulator(n_cells=2, n_blocks=10)
+    for t, (cell, f) in enumerate(_ou_cells(taus, 3000, 8, seed=18)):
+        acc.observe(cell, f)
+        if (t + 1) % 300 == 0:
+            acc.close_block()
+    bm = inf.gamma_hat(acc, shrink=0.0)
+    assert bm[1] / bm[0] < 16.0 * 0.6, (
+        f"recovered {bm[1]/bm[0]:.1f}x of a true 16x -- if this ever passes "
+        f"comfortably, the block budget is adequate and this gate is stale")
+
+
+def test_tau_fit_reports_nothing_rather_than_something_small():
+    """'Unmeasured' and 'easy' must not look alike to the allocator."""
+    hist = inf.MeanForceHistory(n_cells=2, capacity=400)
+    rng = np.random.default_rng(19)
+    for _ in range(10):                            # far too few samples
+        hist.push(np.array([0, 1]), rng.normal(size=2))
+    assert np.all(np.isnan(inf.tau_from_lag1(hist, obs_interval=10.0)))
+    filled = inf.gamma_hat_decomposed(np.array([1.0, 1.0]),
+                                      np.array([np.nan, np.nan]))
+    assert np.all(np.isfinite(filled)) and np.all(filled > 0)
+
+
+def test_conditional_variance_does_not_charge_a_steep_mean_force_to_noise():
+    """Residuals are taken against F' at each replica's own position."""
+    rng = np.random.default_rng(20)
+    cell = np.zeros(400, dtype=int)
+    trend = np.linspace(-5.0, 5.0, 400)            # F' varies across the cell
+    noise = rng.normal(0.0, 0.5, 400)
+    naive = inf.conditional_force_variance(cell, trend + noise,
+                                           np.zeros(400), 1)[0]
+    corrected = inf.conditional_force_variance(cell, trend + noise, trend, 1)[0]
+    assert corrected < 0.5 * naive
+    assert abs(corrected - 0.25) < 0.05

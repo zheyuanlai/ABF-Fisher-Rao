@@ -151,3 +151,156 @@ def block_length_adequacy(block_steps: int, dt: float,
         "tau_max": float(np.max(tau)),
         "n_cells_below_10": int(np.sum(ratio < 10.0)),
     }
+
+
+# --------------------------------------------------------------------------- #
+# The sample-efficient estimator that the measured tau forced
+# --------------------------------------------------------------------------- #
+#
+# Measured on the campaign's own potential (fixed x, hidden-coordinate channel
+# isolated): tau at the slow end of a 16x kappa cell is ~4.7 time units at fixed
+# x, and ~1.2 after x-motion turns the cell population over.  Batch means need a
+# block much longer than tau AND B blocks of it, so B = 10 blocks of 10 tau is
+# 60000 steps against a 50000-step run.  The frozen W = 5000 / B = 10 budget is
+# short by more than an order of magnitude, and short in the direction that
+# hides difficulty rather than inventing it.
+#
+# The decomposition Gamma = sigma^2 tau is far cheaper than the product is,
+# because the two factors need different amounts of data:
+#
+#   sigma^2  is an *instantaneous* spread across the replicas in a cell.  It
+#            needs no window at all, and its error does not grow with tau.
+#   tau      is a *shape* parameter of the autocorrelation.  Fitting a decay
+#            needs a few tau of series; summing one, as batch means implicitly
+#            does, needs tens of tau times B.
+#
+# So this estimator buys roughly an order of magnitude in window at the cost of
+# one assumption -- that the slow mode is approximately a single exponential,
+# which is what a relaxing hidden coordinate is.  Stage 1B validates it against
+# the long-run Gamma_ref exactly as it would validate batch means; if the acf is
+# not close to exponential the fit reports poor quality and the cell falls back.
+
+
+def conditional_force_variance(cell_index: np.ndarray, force: np.ndarray,
+                               mean_force_at: np.ndarray, n_cells: int,
+                               eligible: Optional[np.ndarray] = None) -> np.ndarray:
+    """``sigma^2_j`` from the residual spread of eligible replicas in each cell.
+
+    The residual is taken against the current ``Fhat'`` *at each replica's own
+    position*, not against the cell mean: a cell is 0.1875 wide and the mean
+    force varies across it, so a raw within-cell variance would charge that
+    systematic variation to the noise and inflate difficulty wherever ``F'`` is
+    steep -- which is a landscape feature, not a statistical one.
+    """
+    cell_index = np.asarray(cell_index, dtype=int)
+    resid = np.asarray(force, dtype=float) - np.asarray(mean_force_at, dtype=float)
+    if eligible is not None:
+        keep = np.asarray(eligible, dtype=bool)
+        cell_index, resid = cell_index[keep], resid[keep]
+    s2 = np.zeros(int(n_cells))
+    cnt = np.zeros(int(n_cells))
+    np.add.at(s2, cell_index, resid ** 2)
+    np.add.at(cnt, cell_index, 1.0)
+    out = np.where(cnt > 1, s2 / np.maximum(cnt - 1.0, 1.0), np.nan)
+    ok = np.isfinite(out) & (out > 0)
+    return np.where(ok, out, float(np.median(out[ok])) if ok.any() else 1.0)
+
+
+@dataclass
+class MeanForceHistory:
+    """Ring buffer of per-cell mean force, for the autocorrelation fit."""
+
+    n_cells: int
+    capacity: int = 400
+
+    def __post_init__(self):
+        self._buf: List[np.ndarray] = []
+
+    def push(self, cell_index: np.ndarray, force: np.ndarray,
+             eligible: Optional[np.ndarray] = None) -> None:
+        cell_index = np.asarray(cell_index, dtype=int)
+        force = np.asarray(force, dtype=float)
+        if eligible is not None:
+            keep = np.asarray(eligible, dtype=bool)
+            cell_index, force = cell_index[keep], force[keep]
+        s = np.zeros(self.n_cells)
+        c = np.zeros(self.n_cells)
+        np.add.at(s, cell_index, force)
+        np.add.at(c, cell_index, 1.0)
+        self._buf.append(np.where(c > 0, s / np.maximum(c, 1e-300), np.nan))
+        if len(self._buf) > self.capacity:
+            self._buf.pop(0)
+
+    @property
+    def n_samples(self) -> int:
+        return len(self._buf)
+
+    def series(self) -> np.ndarray:
+        return np.vstack(self._buf) if self._buf else np.zeros((0, self.n_cells))
+
+
+def tau_from_lag1(hist: MeanForceHistory, obs_interval: float,
+                  min_samples: int = 40) -> np.ndarray:
+    """Integrated autocorrelation time per cell, by bias-corrected AR(1) fit.
+
+    The obvious estimator -- fit ``log rho_k`` against lag -- fails at this
+    campaign's budget, and it was worth measuring why.  The sample
+    autocorrelation carries a downward bias of about ``2 tau / n`` that is
+    roughly *constant in the lag*, so for a slow cell (``tau = 48`` observations
+    from ``n = 300``) it subtracts ~0.32 from every ``rho_k``.  That does not
+    merely add noise: it steepens the fitted decay, and the estimator reports
+    the hard cell as easy.  A 16x spread came back as 5.8x.
+
+    For a relaxing hidden coordinate the slow mode is a single exponential, and
+    for that model the lag-1 regression is the maximum-likelihood estimator --
+    it uses every sample once instead of spending the series on high lags where
+    the bias dominates the signal.  Kendall's correction
+    ``phi + (1 + 3 phi) / n`` removes the known small-sample bias of the OLS
+    coefficient, which is the same order as the effect being measured.
+
+    Returns NaN where the fit is not usable, never a small number: "we could not
+    measure this cell" and "this cell is easy" must not look alike to the
+    allocator.
+    """
+    S = hist.series()
+    if S.shape[0] < min_samples:
+        return np.full(hist.n_cells, np.nan)
+    out = np.full(hist.n_cells, np.nan)
+
+    for j in range(hist.n_cells):
+        v = S[:, j]
+        v = v[np.isfinite(v)]
+        n = v.size
+        if n < min_samples:
+            continue
+        v = v - v.mean()
+        denom = float(v[:-1] @ v[:-1])
+        if denom <= 0:
+            continue
+        phi = float(v[1:] @ v[:-1]) / denom
+        phi = phi + (1.0 + 3.0 * phi) / n          # Kendall small-sample bias
+        if not (0.0 < phi < 1.0):
+            continue                                # white noise, or unresolved
+        out[j] = (-1.0 / np.log(phi)) * float(obs_interval)
+    return out
+
+
+def gamma_hat_decomposed(sigma2: np.ndarray, tau: np.ndarray,
+                         shrink: float = SHRINK_WEIGHT) -> np.ndarray:
+    """``Gamma_j = sigma^2_j tau_j``, with unmeasured ``tau`` filled by median.
+
+    Only *ratios* across cells reach the allocator (``r ∝ sqrt(a Gamma)`` is
+    scale-free), so the factor of 2 in the definition of the asymptotic variance
+    is deliberately not carried here -- a global constant that cannot change any
+    allocation is a constant that should not be able to introduce a units bug.
+    """
+    sigma2 = np.asarray(sigma2, dtype=float)
+    tau = np.asarray(tau, dtype=float)
+    ok = np.isfinite(tau) & (tau > 0)
+    tau = np.where(ok, tau, float(np.median(tau[ok])) if ok.any() else 1.0)
+    raw = np.maximum(sigma2, 0.0) * tau
+    good = np.isfinite(raw) & (raw > 0)
+    pooled = float(np.exp(np.mean(np.log(raw[good])))) if good.any() else 1.0
+    out = np.where(good, raw, pooled)
+    s = float(np.clip(shrink, 0.0, 1.0))
+    return (1.0 - s) * out + s * pooled
