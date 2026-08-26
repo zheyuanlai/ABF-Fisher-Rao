@@ -1,0 +1,68 @@
+# Clean-v2 Stage 2: the 3 x 3 schedule pilot plus the matched plain-ABF
+# baseline.  10 configs x 8 seeds = 80 runs.  Only two things vary: L_FR
+# (fr_every) and gamma.  The target, the operator, the burn-in and the switch-off
+# are frozen and are not pilot degrees of freedom.
+#
+# gamma is log-spaced over 25x on purpose.  The integrated FR dose is
+# gamma * T_FR = 60 * gamma (the clock is interval-scaled), so over the window a
+# replica in R12 (|S| ~ 3) sees 0.36 / 1.8 / 9.0 expected events and one in the
+# high-F wall strips (|S| ~ 40) sees 4.8 / 24 / 120.  That makes the pilot a real
+# dose-response scan spanning "barely touches R12" to "heavy churn", rather than
+# three neighbouring points that could all sit on the same side of the optimum.
+# Frozen protocol: docs/CLEAN_V2_PREREGISTRATION.md
+experiment_name: clean_v2_stage2_pilot
+output_root: results/clean_v2/stage2_pilot
+backend: torch
+device: cuda
+dtype: float64
+batch_size_configs: 24
+
+clean_v2:
+  enabled: true
+
+selection:
+  write_generic_best: false
+
+potential:
+  x_tilt: 0.1021665783
+
+domain:
+  x_min: -3.0
+  x_max: 3.0
+  y_min: -2.5
+  y_max: 3.5
+  nx_ref: 801
+  ny_ref: 801
+  nx_profile: 401
+
+simulation:
+  beta: 4.0
+  dt: 0.002
+  n_particles: 256
+  n_steps: 50000
+  eval_every: 500
+  seeds: [2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007]
+  x_init_mode: uniform
+  y_init_mode: uniform
+
+abf:
+  estimator: binned_smooth
+  observation_order: post_propagation
+  h: 0.05
+  update_every: 10
+  min_count: 1.0
+
+fr:
+  enabled: true
+  target_types: [physical]
+  gamma_values: [0.002, 0.01, 0.05]
+  eta_values: [0.10]
+  burnin_fractions: [0.20]
+  duration_fractions: [0.60]
+  fr_every_values: [100, 500, 1000]
+  interval_scaled_clock: true
+  noise_chunk_steps: 1000
+
+methods:
+  - abf_only
+  - abf_fr_physical

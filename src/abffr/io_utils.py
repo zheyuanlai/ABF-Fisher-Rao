@@ -33,6 +33,14 @@ STAGE_TO_DIR = {
     "smoke_gpu": "tuning_gpu",
     "tuning_gpu": "tuning_gpu",
     "production_gpu": "production_gpu",
+    # clean-v2 campaign stages (docs/CLEAN_V2_PREREGISTRATION.md).  Each stage
+    # config carries its own ``output_root``, so the sub-directory just names
+    # the stage rather than a tuning/production role.
+    "gates": "gates",
+    "calibration": "calibration",
+    "pilot": "pilot",
+    "confirmation": "confirmation",
+    "long_horizon": "long_horizon",
 }
 STAGE_TO_FIGDIR = {
     "smoke": "figures_tuning",
@@ -41,6 +49,11 @@ STAGE_TO_FIGDIR = {
     "smoke_gpu": "figures_tuning_gpu",
     "tuning_gpu": "figures_tuning_gpu",
     "production_gpu": "figures_production_gpu",
+    "gates": "figures_gates",
+    "calibration": "figures_calibration",
+    "pilot": "figures_pilot",
+    "confirmation": "figures_confirmation",
+    "long_horizon": "figures_long_horizon",
 }
 
 

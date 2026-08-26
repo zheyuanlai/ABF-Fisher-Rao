@@ -1,3 +1,7 @@
+> **RETIRED 2026-08-26.** Superseded by `docs/CLEAN_V2_PREREGISTRATION.md`.
+> The persistent-mass sidecar is closed. Kept as the record; the clean-v2
+> config gate refuses any config carrying a `v4:` block.
+
 # v4-A: genealogy-safe Fisher–Rao under an oracle target
 
 ## Material Passport

@@ -1,0 +1,60 @@
+# Clean-v2 Stage 1: plain-ABF calibration.  Its ONLY product is the frozen
+# accuracy thresholds (scripts/freeze_clean_v2_thresholds.py), which must be
+# written before any FR run is inspected.
+# Frozen protocol: docs/CLEAN_V2_PREREGISTRATION.md
+experiment_name: clean_v2_stage1_calibration
+output_root: results/clean_v2/stage1_calibration
+backend: torch
+device: cuda
+dtype: float64
+batch_size_configs: 16
+
+clean_v2:
+  enabled: true
+
+selection:
+  write_generic_best: false
+
+potential:
+  x_tilt: 0.1021665783
+
+domain:
+  x_min: -3.0
+  x_max: 3.0
+  y_min: -2.5
+  y_max: 3.5
+  nx_ref: 801
+  ny_ref: 801
+  nx_profile: 401
+
+simulation:
+  beta: 4.0
+  dt: 0.002
+  n_particles: 256
+  n_steps: 50000
+  eval_every: 500
+  seeds: [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007,
+          1008, 1009, 1010, 1011, 1012, 1013, 1014, 1015]
+  x_init_mode: uniform
+  y_init_mode: uniform
+
+abf:
+  estimator: binned_smooth
+  observation_order: post_propagation
+  h: 0.05
+  update_every: 10
+  min_count: 1.0
+
+fr:
+  enabled: false
+  target_types: [physical]
+  gamma_values: []
+  eta_values: [0.10]
+  burnin_fractions: [0.20]
+  duration_fractions: [0.60]
+  fr_every_values: [500]
+  interval_scaled_clock: true
+  noise_chunk_steps: 1000
+
+methods:
+  - abf_only

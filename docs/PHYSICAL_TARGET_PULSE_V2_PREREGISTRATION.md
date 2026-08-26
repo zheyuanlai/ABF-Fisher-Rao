@@ -1,3 +1,10 @@
+> **SUPERSEDED 2026-08-26** by `docs/CLEAN_V2_PREREGISTRATION.md`, which
+> keeps this document's delayed-on/temporary-off framing and its physical
+> target, and changes three things: the target is the current ABF estimate
+> `A_t` rather than an EMA; the score is never clipped and the event count
+> is never capped; and the endpoint is time-to-accuracy rather than final
+> error. See `docs/V2_POST_MORTEM.md` for why.
+
 # Physical-target pulse v2: preregistered toy campaign
 
 ## Material Passport

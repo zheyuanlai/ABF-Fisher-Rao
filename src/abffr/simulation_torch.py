@@ -38,9 +38,9 @@ from typing import Dict, List, Optional
 import numpy as np
 import torch
 
-from . import (family as fam, fibre_diagnostics as fib, fr_v3,
-               persistent_mass as pmass, potentials, representation as rep,
-               torch_utils as tu)
+from . import (clean_v2 as cv2, family as fam, fibre_diagnostics as fib,
+               fr_v3, persistent_mass as pmass, potentials,
+               representation as rep, torch_utils as tu)
 from .io_utils import RunSpec, make_rng_streams
 from .simulation import _init_positions  # reuse CPU init for matched seeds
 
@@ -60,6 +60,7 @@ class BatchResult:
     fr_opportunities: Optional[List[int]] = None   # v3: exact firing steps
     v3_events: Optional[List[Dict]] = None         # Amendment 4c diagnostics
     v4_events: Optional[List[Dict]] = None         # v4-A mass/representation
+    clean_events: Optional[List[Dict]] = None      # clean-v2 per-FR-pulse rows
 
 
 # --------------------------------------------------------------------------- #
@@ -371,6 +372,25 @@ def run_batch(
     max_event_fraction = fr.get("max_event_fraction", 0.10)
     jitter = float(fr.get("jitter", 0.0))
     interval_scaled_clock = bool(fr.get("interval_scaled_clock", False))
+
+    # --- clean-v2 (docs/CLEAN_V2_PREREGISTRATION.md) -------------------------
+    # ``from_config`` validates first, and it *rejects* rather than defaults:
+    # a config carrying score_clip / max_event_fraction / target_ema_alpha, or a
+    # v3/v4 block, cannot reach this line.  The assignments below therefore
+    # restate a guarantee rather than establish one -- but they make the retired
+    # knobs unreachable from the clean path even if the config gate is edited.
+    clean = cv2.from_config(cfg)
+    if clean is not None:
+        assert scheme is None, "clean-v2 and the v3 bias family are exclusive"
+        if target_type not in cv2.TARGETS:
+            raise ValueError(
+                f"clean_v2 admits only {list(cv2.TARGETS)}; got {target_type!r}")
+        score_clip = None
+        max_event_fraction = None
+        jitter = 0.0
+        ramp_fraction = 0.0     # consumed by ramp_steps below -> gamma_eff = gamma
+        interval_scaled_clock = True
+
     noise_chunk_steps = int(fr.get("noise_chunk_steps", 1024))
     observation_order = abf.get("observation_order", "pre_propagation")
     if observation_order not in {"pre_propagation", "post_propagation"}:
@@ -430,6 +450,8 @@ def run_batch(
         raise ValueError("v4-A replaces the v3 FR operator; set v3.operator=none")
     if v4_on and scheme is None:
         raise ValueError("v4-A needs the v3 block for its bias family")
+    if v4_on and clean is not None:
+        raise ValueError("clean-v2 replaces the v4-A mass sidecar")
     masses = [pmass.PersistentMass(n_particles, device=device, dtype=dtype)
               for _ in range(B)] if v4_on else []
     v4_rows = []
@@ -528,10 +550,37 @@ def run_batch(
             p = tu.smooth_grid(hist, k_eta, r_eta, dx) / n_particles
         return tu.normalize_density(p, dx)
 
+    def carrier_A():
+        """``A_t`` for the clean-v2 target: the running ABF estimate itself.
+
+        ``physical_oracle`` substitutes ``F_ref``.  That arm is a diagnostic --
+        it answers "is A_t already accurate enough by t_burn to build the
+        physical target?" -- and is never a candidate method.
+        """
+        return F_ref_t.expand(B, G) if target_type == "physical_oracle" else F_hat
+
+    def render_target(p_snap):
+        """``q_t`` on the profile grid, for diagnostics and figures only.
+
+        The clean-v2 algorithm never evaluates a normalised target: it works
+        from ``log phat + beta A`` at particle positions.  For ``abf_only`` this
+        renders the target the baseline's own estimate would imply, which is
+        what makes the mechanism panel comparable across arms; nothing consumes
+        it.
+        """
+        if clean is not None:
+            return cv2.target_grid(carrier_A(), beta, dx)
+        if scheme is not None and scheme.target_family is not None:
+            return (fam.oracle_target(F_ref_t.expand(B, G), F_hat,
+                                      scheme.target_family, beta, dx)
+                    if v3_oracle_target
+                    else scheme.target_family.target(F_hat, beta, dx))
+        return _build_target(target_type, Fhat_target, F_hat, F_ref_t,
+                             p_snap, beta, dx, width)
+
+    clean_rows = []
     p_initial = current_p_hat(X)
-    q_initial = _build_target(
-        target_type, Fhat_target, F_hat, F_ref_t,
-        p_initial, beta, dx, width)
+    q_initial = render_target(p_initial)
     zero_gamma = torch.zeros_like(gamma_vec)
     _record_snapshot(
         diags, 0, 0.0, Fprime_hat, F_hat, p_initial, q_initial,
@@ -559,9 +608,10 @@ def run_batch(
                 S_acc += tu.scatter_grid(idx, G, dvdx)
             if step % update_every == 0:
                 recompute_grid()
-                Fhat_target = (
-                    (1.0 - ema_alpha_eff) * Fhat_target
-                    + ema_alpha_eff * F_hat)
+                if clean is None:       # clean-v2 targets A_t itself, not an EMA
+                    Fhat_target = (
+                        (1.0 - ema_alpha_eff) * Fhat_target
+                        + ema_alpha_eff * F_hat)
 
         bias_grid = Fprime_hat if scheme is None else nonlocal_bias[0]
         abf_at_X = tu.interp1d(bias_grid, X, x0, dx)
@@ -600,9 +650,10 @@ def run_batch(
                     S_acc += tu.scatter_grid(idx, G, dvdx_prop)
             if next_step % update_every == 0:
                 recompute_grid()
-                Fhat_target = (
-                    (1.0 - ema_alpha_eff) * Fhat_target
-                    + ema_alpha_eff * F_hat)
+                if clean is None:       # clean-v2 targets A_t itself, not an EMA
+                    Fhat_target = (
+                        (1.0 - ema_alpha_eff) * Fhat_target
+                        + ema_alpha_eff * F_hat)
 
         in_window = (
             fr_enabled and fr_burnin <= next_step < fr_stop)
@@ -790,7 +841,95 @@ def run_batch(
             X, Y = X_prop, Y_prop
 
         active = gamma_eff > 0
-        if scheme is not None:
+        if clean is not None:
+            # ---- clean-v2 pulse: physical target, standard birth--death ----
+            # Order matters and is frozen: the ABF accumulators were already
+            # fed from (X_prop, Y_prop) above, so a replica created here
+            # deposits nothing at this step.  A clone is not an observation; it
+            # first speaks after its next physical propagation (Gate B).
+            if do_fr and bool(active.any().detach().cpu()):
+                p_hat = current_p_hat(X_prop)
+                A_grid = carrier_A()
+                S_all, log_p_at, log_q_at, floored = cv2.score(
+                    p_hat, A_grid, X_prop, x0, dx, beta)
+                q_grid = cv2.target_grid(A_grid, beta, dx)   # diagnostics only
+                kl_before = _kl_grid(p_hat, q_grid, dx)
+                ess_anc_b, wmax_b = _anc_stats(ancestors, n_particles)
+
+                X_new, Y_new = X_prop.clone(), Y_prop.clone()
+                anc_new = ancestors.clone()
+                ndeath = torch.zeros(B, device=device, dtype=torch.long)
+                dtau_b = torch.zeros(B, device=device, dtype=dtype)
+                pev_mean_b = torch.zeros(B, device=device, dtype=dtype)
+                pev_max_b = torch.zeros(B, device=device, dtype=dtype)
+                gamma_list = gamma_eff.detach().cpu().tolist()
+                active_list = active.detach().cpu().tolist()
+                for b in range(B):
+                    if not active_list[b]:
+                        continue
+                    dtau_eff = cv2.dtau(gamma_list[b], fr_every, dt)
+                    p_event = cv2.event_probability(S_all[b], dtau_eff)
+                    dtau_b[b] = dtau_eff
+                    pev_mean_b[b] = p_event.mean()
+                    pev_max_b[b] = p_event.max()
+                    # The operator is fr_v3.bd_standard, unchanged: uncapped
+                    # probability, uniformly chosen partner, fixed population.
+                    src, _ = fr_v3.bd_standard(
+                        cv2.row_score(log_p_at[b], log_q_at[b]), dtau_eff,
+                        fr_generators[b])
+                    X_new[b] = X_prop[b][src]
+                    Y_new[b] = Y_prop[b][src]
+                    anc_new[b] = ancestors[b][src]
+                    ndeath[b] = fr_v3.replacement_count(src, n_particles)
+                X, Y, ancestors = X_new, Y_new, anc_new
+
+                kl_after = _kl_grid(current_p_hat(X), q_grid, dx)
+                ess_anc_a, wmax_a = _anc_stats(ancestors, n_particles)
+                active_i = active.to(torch.long)
+                active_f = active.to(dtype)
+                frac = ndeath.to(dtype) / n_particles
+                s_min = S_all.amin(dim=1)
+                s_max = S_all.amax(dim=1)
+                sq = _score_quantiles(S_all, q_levels)
+                win_n += active_i
+                win_events += ndeath
+                win_frac_sum += frac
+                win_frac_max = torch.maximum(win_frac_max, frac)
+                win_smean_sum += S_all.mean(dim=1) * active_f
+                win_sstd_sum += S_all.std(dim=1) * active_f
+                win_smin = torch.where(
+                    active, torch.minimum(win_smin, s_min), win_smin)
+                win_smax = torch.where(
+                    active, torch.maximum(win_smax, s_max), win_smax)
+                # Gate D: raw and applied are the *same* tensor, not two
+                # tensors that happen to agree, and win_clip_sum is left at
+                # zero because nothing clips.
+                win_sq_raw += sq * active_f.unsqueeze(1)
+                win_sq_app += sq * active_f.unsqueeze(1)
+                win_target_l2 += _marginal_l2(p_hat, q_grid, dx) * active_f
+                cumulative_fr_events += active_i
+                cumulative_replacements += ndeath
+
+                def _np(t):
+                    return t.detach().cpu().numpy().copy()
+
+                row = dict(
+                    step=int(next_step), t=float(next_step * dt),
+                    dtau=_np(dtau_b), p_event_mean=_np(pev_mean_b),
+                    p_event_max=_np(pev_max_b), repl=_np(ndeath),
+                    event_fraction=_np(frac),
+                    s_min=_np(s_min), s_max=_np(s_max),
+                    s_absmax=_np(S_all.abs().amax(dim=1)),
+                    kl_before=_np(kl_before), kl_after=_np(kl_after),
+                    ess_anc_before=_np(ess_anc_b), ess_anc_after=_np(ess_anc_a),
+                    wmax_before=_np(wmax_b), wmax_after=_np(wmax_a),
+                    logp_floored_fraction=_np(floored))
+                for j, lab in enumerate(SCORE_QUANTILE_LABELS):
+                    row[f"s_{lab}"] = _np(sq[:, j])
+                clean_rows.append(row)
+            else:
+                X, Y = X_prop, Y_prop
+        elif scheme is not None:
             pass                        # v3 arms never take the v2 FR path
         elif do_fr and bool(active.any().detach().cpu()):
             p_hat = current_p_hat(X_prop)
@@ -843,16 +982,7 @@ def run_batch(
             if observation_order == "pre_propagation":
                 recompute_grid()
             p_snap = current_p_hat(X)
-            if scheme is not None and scheme.target_family is not None:
-                q_snap = (
-                    fam.oracle_target(F_ref_t.expand(B, G), F_hat,
-                                      scheme.target_family, beta, dx)
-                    if v3_oracle_target
-                    else scheme.target_family.target(F_hat, beta, dx))
-            else:
-                q_snap = _build_target(
-                    target_type, Fhat_target, F_hat, F_ref_t,
-                    p_snap, beta, dx, width)
+            q_snap = render_target(p_snap)
             _record_snapshot(
                 diags, next_step, next_step * dt, Fprime_hat, F_hat,
                 p_snap, q_snap, X, Y, ancestors, barrier_crossings,
@@ -891,9 +1021,22 @@ def run_batch(
         d["observation_order"] = observation_order
         d["interval_scaled_clock"] = interval_scaled_clock
         d["x_tilt"] = x_tilt
+        d["clean_v2"] = clean is not None
+        d["score_clip"] = score_clip
+        d["max_event_fraction"] = max_event_fraction
+        if clean is not None:
+            # The schedule as *specified*, so a gate can compare it with the
+            # opportunities the engine actually took rather than trust either.
+            # ``abf_only`` has no FR schedule at all -- io_utils gives it the
+            # whole run at stride 1, and materialising that as a list of every
+            # step would advertise a schedule the arm does not have.
+            d["fr_firing_steps"] = (
+                cv2.firing_steps(n_steps, burnin_fraction, stop_fraction,
+                                 fr_every) if fr_enabled else [])
     return BatchResult(diags, runtime, str(device),
                        fr_opportunities=v3_opportunities,
-                       v3_events=v3_rows, v4_events=v4_rows)
+                       v3_events=v3_rows, v4_events=v4_rows,
+                       clean_events=clean_rows)
 
 
 def _kl_grid(p_hat, q_grid, dx):

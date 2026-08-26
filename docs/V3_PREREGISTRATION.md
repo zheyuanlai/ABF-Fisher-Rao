@@ -1,3 +1,9 @@
+> **RETIRED 2026-08-26.** Superseded by `docs/CLEAN_V2_PREREGISTRATION.md`.
+> The v3 target family (capped / tempered / consistent), the finite-time FR
+> step, the ESS governor and the clone policies are closed; see
+> `docs/V3_POST_MORTEM.md`. Kept as the record of a negative result -- the
+> clean-v2 config gate refuses any config carrying a `v3:` block.
+
 # v3.1: Consistent-target ABF–FR — preregistered two-track toy campaign
 
 ## Material Passport

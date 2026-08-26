@@ -38,7 +38,7 @@ from . import (diagnostics, io_utils, metrics, reference, simulation_torch,
 from .io_utils import RunSpec
 
 CSV_KINDS = ("runs_long", "final_summary", "profiles", "fr_events",
-             "conditional_diagnostics", "v3_events")
+             "conditional_diagnostics", "v3_events", "fr_pulses")
 
 # Columns that uniquely identify a row of each CSV kind, used to de-duplicate
 # when merging tag-suffixed shard CSVs (a profile has one row per (run, x); a
@@ -51,6 +51,9 @@ DEDUP_SUBSET = {
     "fr_events": ["run_id", "step"],
     # Amendment 4c: one row per FR opportunity per run.
     "v3_events": ["run_id", "step"],
+    # clean-v2: one row per FR *pulse* per run (Gates D/E and the genealogy
+    # appendix read this and nothing else).
+    "fr_pulses": ["run_id", "step"],
     # conditional_diagnostics rows carry only (method, target_type, seed) as
     # identity (not the full config), so several configs share a key -- like the
     # CPU runner we keep them all (plotting averages over them); no dedup.
@@ -181,9 +184,56 @@ def _v3_event_rows(meta: Dict, events, b: int):
     return rows
 
 
+def _clean_event_rows(meta: Dict, events, b: int):
+    """One row per clean-v2 FR pulse for batch row ``b``.
+
+    Everything a gate needs to check that the operator ran as written lives
+    here: the reaction time actually used, the event probabilities it produced
+    (uncapped, so ``p_event_max`` may sit near 1 and that is faithful rather
+    than a fault), the raw score spread, and the genealogy paid for the move.
+    ``logp_floored_fraction`` must be 0: a non-zero value means ``log phat`` hit
+    its NaN backstop, which at particle positions should be impossible.
+    """
+    rows = []
+    for e in (events or []):
+        # The engine records one entry per batched opportunity, and a batch may
+        # mix an FR run with its own gamma = 0 control.  dtau = gamma L dt is
+        # zero exactly for the inactive rows, so filtering on it keeps
+        # ``fr_pulses`` a table of pulses that actually happened -- counting its
+        # rows must not over-report the FR dose.
+        if float(e["dtau"][b]) <= 0.0:
+            continue
+        before = float(e["ess_anc_before"][b])
+        after = float(e["ess_anc_after"][b])
+        row = {
+            **meta, "step": int(e["step"]), "t": float(e["t"]),
+            "dtau": float(e["dtau"][b]),
+            "p_event_mean": float(e["p_event_mean"][b]),
+            "p_event_max": float(e["p_event_max"][b]),
+            "replacements": int(e["repl"][b]),
+            "event_fraction": float(e["event_fraction"][b]),
+            "s_min": float(e["s_min"][b]), "s_max": float(e["s_max"][b]),
+            "s_absmax": float(e["s_absmax"][b]),
+            "s_span": float(e["s_max"][b]) - float(e["s_min"][b]),
+            "kl_before": float(e["kl_before"][b]),
+            "kl_after": float(e["kl_after"][b]),
+            "ess_anc_before": before, "ess_anc_after": after,
+            "wmax_before": float(e["wmax_before"][b]),
+            "wmax_after": float(e["wmax_after"][b]),
+            "retention": after / before if before > 0 else float("nan"),
+            "logp_floored_fraction": float(e["logp_floored_fraction"][b]),
+        }
+        for lab in ("q01", "q10", "q50", "q90", "q99"):
+            key = f"s_{lab}"
+            if key in e:
+                row[key] = float(e[key][b])
+        rows.append(row)
+    return rows
+
+
 def _rows_for_run(spec: RunSpec, diag: Dict, cfg: Dict, x_grid, ref, ev,
                   runtime_seconds: float, conditional: str,
-                  v3_events=None, batch_index: int = 0):
+                  v3_events=None, batch_index: int = 0, clean_events=None):
     """Assemble durable CSV payloads for one completed GPU run."""
     meta = spec.to_row()
     h = float(cfg["abf"]["h"])
@@ -274,7 +324,8 @@ def _rows_for_run(spec: RunSpec, diag: Dict, cfg: Dict, x_grid, ref, ev,
         runs_long=long_rows, final_summary=[final_row],
         profiles=profile_rows, fr_events=fr_rows,
         conditional_diagnostics=cond_rows,
-        v3_events=_v3_event_rows(meta, v3_events, batch_index)), summary
+        v3_events=_v3_event_rows(meta, v3_events, batch_index),
+        fr_pulses=_clean_event_rows(meta, clean_events, batch_index)), summary
 
 
 # --------------------------------------------------------------------------- #
@@ -379,7 +430,8 @@ def run_specs(
                 payload, summary = _rows_for_run(
                     spec, diag, cfg, x_grid, ref, ev,
                     per_run_runtime, conditional,
-                    v3_events=getattr(res, "v3_events", None), batch_index=b)
+                    v3_events=getattr(res, "v3_events", None), batch_index=b,
+                    clean_events=getattr(res, "clean_events", None))
                 buf.extend(payload)
                 pending.append((spec, summary))
             except Exception as exc:

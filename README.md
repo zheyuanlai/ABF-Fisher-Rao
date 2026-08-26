@@ -81,6 +81,86 @@ III are `scripts/analyze_*.py` / `scripts/plot_*.py`, and `report/README.md`
 documents how the manuscript figures and numbers are regenerated from all three
 result sets.
 
+## Clean-v2: intermittent Fisher--Rao as an ABF **accelerator** (live campaign)
+
+**Frozen protocol: [`docs/CLEAN_V2_PREREGISTRATION.md`](docs/CLEAN_V2_PREREGISTRATION.md).**
+
+The v2 and v3 campaigns asked whether ABF+FR is a better *estimator* and
+answered no. Clean-v2 asks a different question, and it is the live one:
+
+> After a pure-ABF burn-in, can periodic birth--death Fisher--Rao pulses toward
+> the **unflattened physical marginal** `q_t propto exp(-beta A_t)` make ABF
+> reach a prescribed free-energy accuracy in **less physical simulation time**?
+
+FR is switched off before the end of every run, so the arm and its baseline are
+the same plain-ABF algorithm over the final segment and the long-time limit is
+ABF's by construction. The headline quantity is the **restricted** time-to-accuracy
+ratio at horizon `T`,
+`S^(T) = E[min(tau^ABF, T)] / E[min(tau^{ABF+FR}, T)]`, **not** the final L2 error
+-- plain ABF is convergent, so an accelerator's advantage is *supposed* to shrink.
+Restriction is not unconditionally conservative (censoring the *arm* inflates
+`S^(T)`), so every ratio ships with the hit fraction `P(tau <= T)` on each side and
+a threshold with more arm censoring than baseline censoring cannot carry a verdict.
+
+Three phases, two knobs, one target:
+
+```
+[0, 0.2T)      pure ABF                       (exp(-beta A_t) is not yet credible)
+[0.2T, 0.8T)   ABF + one BD pulse every L_FR steps
+[0.8T, T]      pure ABF again
+```
+
+`S_i = log phat_t(z_i) + beta A_t(z_i) - mean_j(...)`, computed in log space so
+the target is never exponentiated or normalised; the operator is
+`fr_v3.bd_standard` with `P_i = 1 - exp(-gamma |S_i| L_FR dt)`, uncapped, fixed
+population. The only scientific knobs are `L_FR in {100, 500, 1000}` and
+`gamma in {0.002, 0.01, 0.05}` -- log-spaced over 25x, so the pilot is a
+dose-response scan rather than three neighbouring points.
+
+**What was removed, and is now *rejected* rather than defaulted:**
+`fr.score_clip` (it truncated 55% of v2's scores, compressing a 27-nat span to
+8), `fr.max_event_fraction` (it bound and silently changed the FR dose),
+`fr.target_ema_alpha` / `abf.ema_alpha` (ABF is already a cumulative estimator),
+and the `v3:`/`v4:` blocks. A clean-v2 config carrying any of those keys is
+refused at load, so "the knob is gone" is a property of the file on disk.
+
+| Piece | Where |
+| --- | --- |
+| algorithm (target, score, schedule, config gate) | `src/abffr/clean_v2.py` |
+| endpoint (tau, censoring, S_eps, decision rules) | `src/abffr/accel.py` |
+| engine wiring | `src/abffr/simulation_torch.py` (the `clean is not None` path) |
+| gates | `tests/test_clean_v2_gates.py`, `tests/test_clean_v2_accel.py` |
+| stage configs | `configs/clean_v2/` |
+| run / freeze / analyse / select / plot | `scripts/run_clean_v2.py`, `scripts/freeze_clean_v2_thresholds.py`, `scripts/analyze_clean_v2.py`, `scripts/select_clean_v2_schedule.py`, `scripts/plot_clean_v2.py` |
+
+```bash
+# gates first -- no scientific run may start until these pass
+python -m pytest tests/test_clean_v2_gates.py tests/test_clean_v2_accel.py -q
+
+# Stage 1: plain ABF, then freeze the accuracy thresholds (write-once)
+python scripts/run_reference_2d.py --config configs/clean_v2/stage1_calibration.yaml
+python scripts/run_clean_v2.py --config configs/clean_v2/stage1_calibration.yaml --stage calibration
+python scripts/freeze_clean_v2_thresholds.py \
+    --stage-root results/clean_v2/stage1_calibration/calibration \
+    --out results/clean_v2/thresholds.json
+
+# Stage 2: the 3x3 (L_FR, gamma) map, then selection
+python scripts/run_reference_2d.py --config configs/clean_v2/stage2_pilot.yaml
+python scripts/run_clean_v2.py --config configs/clean_v2/stage2_pilot.yaml --stage pilot
+python scripts/analyze_clean_v2.py --stage-root results/clean_v2/stage2_pilot/pilot \
+    --thresholds results/clean_v2/thresholds.json --screen pilot
+python scripts/select_clean_v2_schedule.py \
+    --acceleration results/clean_v2/stage2_pilot/pilot/acceleration.csv
+```
+
+`configs/clean_v2/stage3_confirmation.yaml` and `stage4_long_horizon.yaml` are
+**not in the repository**: `select_clean_v2_schedule.py` writes them from the
+pilot, so a confirmation config cannot exist before the pilot has spoken.
+
+The v3 and v4-A code, configs and preregistrations are kept as the record of a
+closed negative result and are marked RETIRED at the top of each file. They are
+unreachable from the clean-v2 path.
+
 ## Case I: 2D ABF-FR Fisher--Rao Ablation Study
 
 ### Scientific goal
