@@ -661,3 +661,53 @@ def test_occupancy_chi2_ignores_cells_the_target_leaves_empty():
     counts = np.array([10, 0, 10])
     want = np.array([10, 0, 10])
     assert br.occupancy_chi2(counts, want) == 0.0
+
+
+# --------------------------------------------------------------------------- #
+# The dead band: deciding whether to move and how far are different questions
+# --------------------------------------------------------------------------- #
+def _leverage_target(J=32, K=256):
+    x = np.linspace(-3.0, 3.0, 401)
+    mask = (x >= -2.5) & (x <= 2.5)
+    cg = np.clip(np.digitize(x, np.linspace(-3.0, 3.0, J + 1)) - 1, 0, J - 1)
+    a = al.cell_reduce(al.leverage(x, mask), cg, J)
+    return al.desired_counts(al.apply_floor(al.r_neyman(a)), K)
+
+
+def test_deadband_absorbs_noise_but_still_moves_a_real_deviation():
+    """Most of an exact snap's cost is fluctuation, not misallocation."""
+    rng = np.random.default_rng(3)
+    K = 256
+    target = _leverage_target(K=K)
+
+    on_target = [np.abs(al.deadband_counts(n, target) - n).sum() / 2
+                 for n in (rng.multinomial(K, target / K) for _ in range(300))]
+    exact = [np.abs(target - n).sum() / 2
+             for n in (rng.multinomial(K, target / K) for _ in range(300))]
+    assert np.mean(on_target) < 0.4 * np.mean(exact), (
+        f"dead band moved {np.mean(on_target):.1f} against an exact snap's "
+        f"{np.mean(exact):.1f}; it is not absorbing the noise")
+
+    flat = al.desired_counts(al.apply_floor(al.r_uniform(target.size)), K)
+    moved = np.abs(al.deadband_counts(flat, target) - flat).sum() / 2
+    assert moved > 3 * np.mean(on_target), (
+        "a genuinely misallocated population must still be moved")
+
+
+def test_deadband_preserves_the_population_exactly():
+    rng = np.random.default_rng(4)
+    K = 256
+    target = _leverage_target(K=K)
+    for _ in range(50):
+        n = rng.multinomial(K, np.full(target.size, 1.0 / target.size))
+        out = al.deadband_counts(n, target)
+        assert out.sum() == K, out.sum()
+        assert np.all(out >= 0)
+
+
+def test_deadband_never_populates_a_cell_the_target_excludes():
+    """The empty-support rule must survive the shrinkage."""
+    counts = np.array([10, 10, 10, 10])
+    target = np.array([20, 20, 0, 0])
+    out = al.deadband_counts(counts, target)
+    assert out.sum() == 40 and out[2] == 0 and out[3] == 0

@@ -133,7 +133,10 @@ def test_every_allocation_arm_runs_and_reports_its_decisions(arm):
 
 def test_A5_reports_the_multiplier_and_holds_its_ess_floor():
     res = _run(_cfg("A5", rho=0.5, benefit_threshold=0.0))
-    rows = [r for r in res.qr_events if r.get("ess_predicted") == r.get("ess_predicted")]
+    # Opportunities skipped by the cooldown never computed an allocation, so
+    # they carry no ESS to report.
+    rows = [r for r in res.qr_events
+            if "ess_predicted" in r and np.isfinite(r["ess_predicted"])]
     assert rows, "A5 must report the ESS it achieved"
     assert all(r["ess_predicted"] >= 0.5 - 1e-6 for r in rows)
     assert any(r["lam"] > 0.0 for r in rows), (
@@ -196,3 +199,84 @@ def test_qr_refuses_the_observation_order_it_cannot_read():
     cfg["abf"]["observation_order"] = "pre_propagation"
     with pytest.raises(ValueError, match="post_propagation"):
         _run(cfg)
+
+
+def test_resampling_never_lands_on_unrejuvenated_clones():
+    """The cooldown, and the failure it was measured against.
+
+    Before it, A4b fired at 22 of 24 opportunities and drove ancestor ESS to 8
+    of 256: r* jitters with the noise in Gamma_hat, the occupancy test fires
+    every time, and genealogy compounds because each resampling lands on clones
+    that are not yet independent.  The rejuvenation bound already says how long
+    that is, so the cooldown introduces no new parameter.
+    """
+    res = _run(_cfg("A4b", n_steps=4000, benefit_threshold=0.0))
+    rows = res.qr_events
+    fired = [r for r in rows if r["resampled"]]
+    assert fired, "nothing resampled, so the cooldown cannot be observed"
+    for r in fired:
+        later = [q for q in rows if q["step"] > r["step"]]
+        inside = [q for q in later if q["step"] < r["cooldown_until"]]
+        assert not any(q["resampled"] for q in inside), (
+            f"a resampling at {r['step']} was followed by another before its "
+            f"clones finished rejuvenating at {r['cooldown_until']}")
+
+
+# --------------------------------------------------------------------------- #
+# A6 -- the allocation held by the bias instead of by birth-death
+# --------------------------------------------------------------------------- #
+@pytest.mark.parametrize("arm", ["A6a", "A6b"])
+def test_bias_held_arms_never_resample_and_keep_their_genealogy(arm):
+    """A6 pays no genealogy at all: that is the entire point of it."""
+    res = _run(_cfg(arm, n_steps=3000))
+    rows = res.qr_events
+    assert rows, "A6 must still take opportunities, to refresh the increment"
+    assert not any(r["resampled"] for r in rows)
+    anc = np.asarray(res.diags[0]["ancestor_ess"], dtype=float)
+    assert anc[-1] == pytest.approx(anc[0]), (
+        "ancestor ESS moved without a resampling")
+
+
+def test_bias_held_arm_carries_the_same_r_star_as_its_birth_death_twin():
+    """A6a and A4a must differ in mechanism only, never in target.
+
+    If the targets differed, a margin between them would not isolate the
+    question A6 exists to ask.
+    """
+    a4 = _run(_cfg("A4a", n_steps=3000, benefit_threshold=0.0))
+    a6 = _run(_cfg("A6a", n_steps=3000))
+    r4 = [r["r_star"] for r in a4.qr_events if "r_star" in r]
+    r6 = [r["r_star"] for r in a6.qr_events if "r_star" in r]
+    assert r4 and r6
+    assert np.allclose(r4[0], r6[0], rtol=1e-12), "same r*, different mechanism"
+
+
+def test_bias_increment_is_the_gradient_of_log_r_over_beta():
+    """The increment must be the force that makes r* stationary, not a fudge.
+
+    ``p ∝ exp(-beta(F - A))`` with ``A = Fhat + log r*/beta`` gives ``p ∝ r*``;
+    the engine adds a *force*, so the term is ``d/dz log r* / beta``.
+    """
+    x = np.linspace(-3.0, 3.0, 401)
+    arm = qra.QRArm(qra.QRConfig(arm="A6a", n_cells=16), 64, x,
+                    (x >= -2.5) & (x <= 2.5), BETA, 0.002, 10)
+    r = np.exp(-0.5 * np.linspace(-1.0, 1.0, 16))
+    r = r / r.sum()
+    inc = arm.bias_increment(r)
+    centres = 0.5 * (arm.edges[1:] + arm.edges[:-1])
+    want = np.gradient(np.interp(x, centres, np.log(r)), x) / BETA
+    assert np.allclose(inc, want, rtol=1e-12)
+    assert inc.shape == x.shape
+
+
+def test_bias_held_arm_actually_moves_the_occupancy():
+    """A gate that could not fail: A6 must change where the replicas are."""
+    a0 = _run(_cfg(None, n_steps=3000))
+    a6 = _run(_cfg("A6a", n_steps=3000))
+    x0 = np.asarray(a0.diags[0]["X_snap"])[-1]
+    x6 = np.asarray(a6.diags[0]["X_snap"])[-1]
+    edges = np.linspace(-3.0, 3.0, 17)
+    o0 = np.bincount(np.clip(np.digitize(x0, edges) - 1, 0, 15), minlength=16)
+    o6 = np.bincount(np.clip(np.digitize(x6, edges) - 1, 0, 15), minlength=16)
+    tv = 0.5 * np.abs(o0 / o0.sum() - o6 / o6.sum()).sum()
+    assert tv > 0.05, f"the bias increment moved the occupancy by only {tv:.3f}"

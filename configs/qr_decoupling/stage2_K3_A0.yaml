@@ -1,0 +1,50 @@
+# q-r Stage 2, decisive: arm A0 on kappa cell K3.
+# Every allocation setting below is shared by A3/A4a/A4b/A5 -- ONLY r differs.
+# See configs/qr_decoupling/_backbone.md.
+# Frozen protocol: docs/QR_DECOUPLING_PREREGISTRATION.md
+experiment_name: qr_stage2_K3_A0
+output_root: results/qr_decoupling/stage2/K3/A0
+backend: torch
+device: cuda
+dtype: float64
+batch_size_configs: 16
+
+methods: [abf_only]
+
+selection:
+  write_generic_best: false
+
+potential:
+  x_tilt: 0.1021665783
+
+domain:
+  x_min: -3.0
+  x_max: 3.0
+  y_min: -2.5
+  y_max: 3.5
+  nx_ref: 801
+  ny_ref: 801
+  nx_profile: 401
+
+kappa:
+  cell: K3
+
+simulation:
+  beta: 4.0
+  dt: 0.002
+  n_particles: 256
+  n_steps: 50000
+  eval_every: 500
+  seeds: [5200, 5201, 5202, 5203, 5204, 5205, 5206, 5207, 5208, 5209, 5210, 5211, 5212, 5213, 5214, 5215, 5216, 5217, 5218, 5219, 5220, 5221, 5222, 5223, 5224, 5225, 5226, 5227, 5228, 5229, 5230, 5231]
+  x_init_mode: uniform
+  y_init_mode: uniform
+
+abf:
+  estimator: binned_smooth
+  observation_order: post_propagation
+  h: 0.05
+  update_every: 10
+  min_count: 1.0
+
+fr:
+  enabled: false

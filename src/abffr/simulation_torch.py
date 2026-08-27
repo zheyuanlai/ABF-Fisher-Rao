@@ -39,8 +39,9 @@ import numpy as np
 import torch
 
 from . import (clean_v2 as cv2, family as fam, fibre_diagnostics as fib,
-               fr_v3, kappa_family as kfam, persistent_mass as pmass, potentials,
-               qr_arms as qra, representation as rep, torch_utils as tu)
+               fr_v3, information as inf, kappa_family as kfam,
+               persistent_mass as pmass, potentials, qr_arms as qra,
+               representation as rep, torch_utils as tu)
 from .io_utils import RunSpec, make_rng_streams
 from .simulation import _init_positions  # reuse CPU init for matched seeds
 
@@ -496,6 +497,11 @@ def run_batch(
                   obs_interval=update_every)
         for _ in range(B)] if qr_cfg is not None else []
     qr_rows = []
+    # A6 holds its allocation with the bias instead of with birth-death, so the
+    # engine carries an extra force term.  Zero for every other arm, and for A6
+    # until the first opportunity sets it.
+    qr_bias_extra = (torch.zeros((B, G), device=device, dtype=dtype)
+                     if qr_cfg is not None else None)
     qr_firing = (set(int(v) for v in qra.firing_steps(n_steps, qr_cfg))
                  if qr_cfg is not None else set())
     qr_generators = [
@@ -661,6 +667,12 @@ def run_batch(
                         + ema_alpha_eff * F_hat)
 
         bias_grid = Fprime_hat if scheme is None else nonlocal_bias[0]
+        if qr_bias_extra is not None:
+            # p(z) propto exp(-beta(F - A)), so A = Fhat + log r*/beta makes r*
+            # the stationary occupancy.  The term is a function of z alone, so
+            # the fibre conditional -- and therefore the mean-force estimator --
+            # is untouched, exactly as for the ABF bias itself.
+            bias_grid = bias_grid + qr_bias_extra
         abf_at_X = tu.interp1d(bias_grid, X, x0, dx)
         noise_x, noise_y = noise_bank.at(step)
         X_prop = tu.reflect_into(
@@ -1058,6 +1070,9 @@ def run_batch(
                     int(next_step), _xs[b], _A[b], qr_generators[b])
                 dec.row["row"] = b
                 qr_rows.append(dec.row)
+                if dec.bias_increment is not None:
+                    qr_bias_extra[b] = torch.as_tensor(
+                        dec.bias_increment, device=device, dtype=dtype)
                 if dec.src is None:
                     continue
                 src_t = torch.as_tensor(dec.src, device=device,
@@ -1112,6 +1127,19 @@ def run_batch(
         torch.cuda.synchronize()
     runtime = time.time() - t0
 
+    for b, d in enumerate(diags):
+        if qr_cfg is not None:
+            # The mechanism panel and the Stage-1B validation both need the
+            # allocation the arm actually ended on, not a reconstruction of it.
+            arm_b = qr_arms_list[b]
+            d["qr_firing_steps"] = sorted(qr_firing)
+            d["qr_n_cells"] = int(qr_cfg.n_cells)
+            d["qr_a_cell"] = arm_b.a_cell.tolist()
+            d["qr_gamma_final"] = arm_b.gamma_hat().tolist()
+            d["qr_q_final"] = arm_b.mass.mass.tolist()
+            d["qr_tau_final"] = inf.tau_from_lag1(
+                arm_b.hist,
+                obs_interval=float(update_every) * dt).tolist()
     for d in diags:
         d["fr_burnin"] = fr_burnin
         d["fr_stop"] = fr_stop
@@ -1123,9 +1151,6 @@ def run_batch(
         d["x_tilt"] = x_tilt
         d["clean_v2"] = clean is not None
         d["qr_arm"] = qr_cfg.arm if qr_cfg is not None else "A0"
-        if qr_cfg is not None:
-            d["qr_firing_steps"] = sorted(qr_firing)
-            d["qr_n_cells"] = int(qr_cfg.n_cells)
         d["score_clip"] = score_clip
         d["max_event_fraction"] = max_event_fraction
         if clean is not None:

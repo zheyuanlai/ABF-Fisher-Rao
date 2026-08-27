@@ -247,6 +247,55 @@ def predicted_risk(g: np.ndarray, r: np.ndarray) -> float:
     return float(np.sum(g[live] / r[live]))
 
 
+def deadband_counts(counts: np.ndarray, target: np.ndarray,
+                    z: float = 1.0) -> np.ndarray:
+    """Move counts toward ``target`` but only by the part noise cannot explain.
+
+    Deciding *whether* to reallocate and deciding *how far* are separate
+    questions, and the occupancy test only answers the first.  A resampler that
+    snaps counts to the target exactly also corrects the multinomial
+    fluctuation, and that correction is most of the work: measured on this
+    campaign's geometry, restoring an allocation that had decayed by ~6% in
+    total variation cost ~27% of the population in replacements, because the
+    other 21% was noise being chased.
+
+    Each cell's move is shrunk by ``z sqrt(n*)`` -- one standard deviation of
+    the count it is aiming at -- so a deviation inside the noise band is left
+    alone and one outside it is moved only to the band's edge.  The residual is
+    repaired by largest remainder so the population is still exactly ``K``.
+    """
+    counts = np.asarray(counts, dtype=float)
+    target = np.asarray(target, dtype=float)
+    K = int(round(counts.sum()))
+    move = target - counts
+    band = float(z) * np.sqrt(np.maximum(target, 1.0))
+    shrunk = np.sign(move) * np.maximum(np.abs(move) - band, 0.0)
+    adjusted = counts + shrunk
+    adjusted = np.maximum(adjusted, 0.0)
+    adjusted[target <= 0] = 0.0
+
+    total = adjusted.sum()
+    if total <= 0:
+        return counts.astype(int)
+    adjusted = adjusted * (K / total)
+    base = np.floor(adjusted).astype(int)
+    short = K - int(base.sum())
+    if short > 0:
+        order = np.argsort(-(adjusted - base), kind="stable")
+        eligible = [j for j in order if target[j] > 0]
+        for j in eligible[:short]:
+            base[j] += 1
+    elif short < 0:
+        order = np.argsort(adjusted - base, kind="stable")
+        for j in order:
+            if short == 0:
+                break
+            if base[j] > 0:
+                base[j] -= 1
+                short += 1
+    return base
+
+
 def desired_counts(r: np.ndarray, n_particles: int,
                    occupied: Optional[np.ndarray] = None) -> np.ndarray:
     """Integer target counts summing to ``K``, by largest-remainder.
