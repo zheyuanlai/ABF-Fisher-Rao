@@ -244,9 +244,23 @@ A0 occupancy with a completely different shape. Ancestor ESS stays at N for ever
 system (gate G0.3, checked end to end). The claim that a replica density can be held by an
 adaptive bias instead of by genealogy is now confirmed on two engine families.
 
-**fig6** shows why A6c loses: its target is pulled toward `q ∝ exp(−βÂ)`, which is peaked in the
-potential wells, and away from the information optimum, which is peaked on the flanks where the
-force noise lives. The two objects genuinely disagree in these systems.
+**fig6 is the mechanism figure the project has been trying to draw for four campaigns**, and it
+puts a number on the thesis. The two objects the campaign set out to separate are not merely
+different, they are on different scales entirely:
+
+| System | dynamic range of `q` (FR mass) | dynamic range of `r*` | TV(q, r*) | λ |
+|---|---:|---:|---:|---:|
+| β=4 | **1.4 × 10¹⁶** | 10.7 | 0.780 | 8.5e-4 |
+| β=8 | **1.8 × 10¹⁹** | 8.1 | 0.774 | 7.2e-4 |
+| gateway | **2.7 × 10¹³** | 16.1 | 0.775 | 1.2e-4 |
+
+`q ∝ exp(−βÂ)` on a 10–20 kT barrier is two near-delta functions in the wells and 10⁻¹⁰ at the
+barrier top; the information-optimal `r*` varies by less than a factor of 20 across the whole
+domain. **Where probability mass should be and where sampling effort should go differ by thirteen
+to nineteen orders of magnitude**, at a total variation of 0.78. Equal-weight birth–death imposed
+`r = q`; asking for `ESS_M/K ≥ 0.5` asks for a weakened version of the same identification, and
+that is why A6c pays what it pays. This is the clearest statement the project has produced of why
+the two objects had to be decoupled, and it is a measurement rather than an argument.
 
 ---
 
