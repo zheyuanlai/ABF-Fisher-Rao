@@ -321,6 +321,43 @@ Report `D_r(t) = ‖r_empirical(t) - r*_t‖_TV`, ancestor ESS, `N_replacements`
 birth--death repeatedly pays to oppose the natural dynamics. If it replicates,
 A4a/A4b are permanently demoted.
 
+### Stage 0.5 result (run 2026-08-27, 8 paired seeds, 50k steps)
+
+**H7 confirmed in both cells.** Identical `r*`, differing only in realisation;
+paired bootstrap on shared seeds:
+
+| cell | pair | birth--death | bias | ratio | 95% CI | ancestor ESS (bd) | replacements |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| K0 | A4a/A6a | 0.1358 | **0.0193** | **6.55** | [5.25, 7.76] | 30.4 | 446 |
+| K0 | A4b/A6b | 0.2116 | **0.0235** | **8.58** | [7.30, 11.79] | **4.2** | 2383 |
+| K2 | A4a/A6a | 0.2572 | **0.1085** | **2.67** | [2.33, 3.78] | 45.2 | 212 |
+| K2 | A4b/A6b | 0.3363 | **0.0493** | **7.08** | [5.58, 9.93] | **6.3** | 1536 |
+
+**A4a and A4b are hereby demoted to mechanism controls permanently.** No further
+tuning of their resampling frequency, cadence or gate.
+
+**And the κ-family produced the two-sided pattern it was built for.** A6a vs A6b
+differ only in whether `Γ̂` enters the allocation:
+
+| cell | `Γ` | A6a | A6b | A6a/A6b | 95% CI | reading |
+| --- | --- | --- | --- | --- | --- | --- |
+| K0 | flat | 0.0193 | 0.0235 | 0.94 | [0.74, 1.14] | tie -- nothing for the difficulty channel to find |
+| K2 | 16× spread | 0.1085 | **0.0493** | **2.09** | [1.29, 3.32] | the difficulty channel pays |
+
+A theory that predicts its own ties is much harder to fish, and this is that
+prediction coming out right before the confirmatory stage rather than after it.
+
+**The safety metric attenuates but does not overturn it.** On K2, A6b's
+full-domain error (0.0705) is 1.43× its primary (0.0493), so some of the margin
+does come from spending nothing where the window does not score. But A6b's
+full-domain error still beats A6a's full-domain error (0.1044) by 1.48×, so H2's
+direction survives the confound at roughly two-thirds the apparent size. Both
+numbers are reported; the primary alone would overstate the effect.
+
+**Status: exploratory.** Final error, not the frozen time-to-accuracy endpoint;
+8 seeds, not 32; A6c not included. Stage 2 remains the confirmatory test and
+none of these numbers may be used to select an arm.
+
 ## Stage 2 -- the decisive κ-family experiment
 
 `dY = -κ(X) ∂_y V dt + sqrt(2κ(X)/β) dW`, `κ_a(z) = exp(a(h(z)-1)/2)` with `h` a
