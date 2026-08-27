@@ -182,7 +182,8 @@ class ConstrainedAllocation:
 
 def r_ess_constrained(g: np.ndarray, q: np.ndarray, rho: float,
                       tol: float = 1e-10,
-                      max_iter: int = 200) -> ConstrainedAllocation:
+                      max_iter: int = 200,
+                      floor_fraction: Optional[float] = None) -> ConstrainedAllocation:
     """A5 -- ``r ∝ sqrt(g + lam q^2)`` with ``lam`` set so ``ESS_w / K >= rho``.
 
     ``lam = 0`` recovers A4b and ``lam -> infinity`` recovers ``r = q``, which is
@@ -193,6 +194,20 @@ def r_ess_constrained(g: np.ndarray, q: np.ndarray, rho: float,
     predicted risk is *weakly worse* -- A5 cannot beat A4b on the free-energy
     endpoint except through model error or noise.  The constraint buys fidelity
     of the physical-mass representation, which is a separate reported endpoint.
+
+    ``floor_fraction`` moves the shared floor *inside* the solve.  It has to be
+    there: the floor mixes the answer with uniform, which lowers ``ESS_w``, so a
+    solve that ignores it returns a ``lam`` whose constraint the *applied*
+    allocation does not meet -- measured at 0.420 against a stated 0.500 on this
+    campaign's own geometry.  Reporting the pre-floor number is worse than
+    missing the bound, because the diagnostic then certifies a fidelity the run
+    never had.  ``None`` keeps the unfloored behaviour, so the q-r campaign's
+    arithmetic is not retroactively changed by this argument's existence.
+
+    The floored constraint is always satisfiable: as ``lam -> inf`` the target
+    tends to ``(1-eps) q + eps/J`` and ``sum_j q_j^2 / ((1-eps) q_j) = 1/(1-eps)``
+    bounds ``ESS_w >= 1 - eps`` from below, which at the frozen ``eps = 0.25`` is
+    0.75 -- above any ``rho`` this protocol uses.
     """
     g = np.maximum(np.asarray(g, dtype=float), 0.0)
     q = np.asarray(q, dtype=float)
@@ -204,7 +219,8 @@ def r_ess_constrained(g: np.ndarray, q: np.ndarray, rho: float,
     qn = q / q.sum() if q.sum() > 0 else np.full(q.size, 1.0 / q.size)
 
     def alloc(lam: float) -> np.ndarray:
-        return r_neyman(g + lam * qn ** 2)
+        r = r_neyman(g + lam * qn ** 2)
+        return r if floor_fraction is None else apply_floor(r, floor_fraction)
 
     r0 = alloc(0.0)
     ess0 = mass_ess_fraction(qn, r0)

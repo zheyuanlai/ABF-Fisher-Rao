@@ -1,0 +1,61 @@
+{
+  "system": "eb_beta4",
+  "phase": "pilot",
+  "seeds": [
+    200,
+    201,
+    202,
+    203,
+    204,
+    205,
+    206,
+    207
+  ],
+  "arms": [
+    "A0",
+    "A6b",
+    "A6c"
+  ],
+  "config": {
+    "beta": 4.0,
+    "H": 2.5,
+    "omega_out": 1.0,
+    "omega_in": 25.0,
+    "s": 0.25,
+    "gamma": 15.0,
+    "N": 256,
+    "dt": 0.001,
+    "n_steps": 40000,
+    "save_every": 400,
+    "h": 0.07,
+    "min_count": 1.0,
+    "eta": 0.1,
+    "fr_every": 10,
+    "fr_burnin": 0,
+    "ramp_fraction": 0.1,
+    "target_ema_rate": 0.005,
+    "score_clip": 3.0,
+    "max_event_fraction": 0.08,
+    "ess_window_steps": 4000
+  },
+  "io_cfg": {
+    "n_cells": 32,
+    "obs_every": 1,
+    "opportunity_every": 500,
+    "burnin_fraction": 0.2,
+    "stop_fraction": 0.8,
+    "history_capacity": 600,
+    "floor_fraction": 0.25,
+    "rho": 0.5,
+    "theta": 1.0,
+    "shrink": 0.3,
+    "tau_min_samples": 40
+  },
+  "wall_seconds": 52.46279501914978,
+  "commit": "3e6851efe6ca8e858bd4f48ad3c53acd5d106bfb",
+  "tree_dirty": true,
+  "host": "atlas",
+  "cuda_visible_devices": "2",
+  "torch": "2.12.1+cu130",
+  "utc": "2026-08-27T17:33:24Z"
+}

@@ -65,6 +65,7 @@ import numpy as np
 import torch
 
 import eb_abffr_core as eb
+from abffr import io_abf
 from eb_abffr_core import (  # noqa: F401  (re-exported for scripts/tests)
     DEVICE, DTYPE, EPS, N_GRID, XMIN, XMAX,
     binned_density, build_grid, cumtrapz, domega_of, dU_of, gaussian_kernel,
@@ -167,7 +168,16 @@ SHAM_PRACTICAL = Method("sham_practical", use_fr=True, target_mode="none", sham=
                         shadows="fr_estimated")
 SHAM = SHAM_ORACLE          # backwards-compatible alias for the calibration artifacts
 
-METHODS = {m.name: m for m in (ABF, FR_ORACLE, FR_ESTIMATED, SHAM_ORACLE, SHAM_PRACTICAL)}
+#: IO-ABF arms.  ``use_fr=False`` and ``target_mode="none"`` on all three, so the
+#: birth--death block never fires and ``io_a0`` runs the accepted ``abf`` path.
+IO_A0 = Method("io_a0", use_fr=False, target_mode="none")
+IO_A6B = Method("io_a6b", use_fr=False, target_mode="none")
+IO_A6C = Method("io_a6c", use_fr=False, target_mode="none")
+IO_METHODS = (IO_A0, IO_A6B, IO_A6C)
+IO_ARMS = ("A0", "A6b", "A6c")
+
+METHODS = {m.name: m for m in (ABF, FR_ORACLE, FR_ESTIMATED, SHAM_ORACLE,
+                               SHAM_PRACTICAL, IO_A0, IO_A6B, IO_A6C)}
 
 
 def assert_no_oracle_leakage(methods: Sequence[Method]) -> None:
@@ -459,7 +469,8 @@ class BatchSpec:
 
 
 def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
-                   noise_seed_base=2000, fr_seed_base=3000, progress=None):
+                   noise_seed_base=2000, fr_seed_base=3000, progress=None,
+                   io: "eb.IOSpec | None" = None):
     """Run ``B`` (config, seed) rows x ``M`` methods, flattened to ``R = B*M``.
 
     Methods inside one B-row share initial conditions and Langevin noise, so an arm and its
@@ -560,6 +571,20 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     tot_clone = torch.zeros(R, device=device, dtype=dtype)
     n_fr_apply = 0
 
+    # --- IO-ABF, identical wiring to eb_abffr_core -----------------------------
+    # Guarded end to end, so io=None leaves the accepted gateway sampler running
+    # the arithmetic that produced its accepted artifacts.
+    io_alloc, io_firing, ts_l2f_full, io_final = None, set(), None, None
+    if io is not None:
+        assert len(io.arms) == M, "one IO arm per method column"
+        arms_R = [io.arms[m] for b in range(B) for m in range(M)]
+        beta_R = np.array([cfgs[b].beta for b in range(B) for _ in range(M)])
+        io_alloc = io_abf.IOAllocator(arms_R, x_grid, eval_mask, beta_R, dt,
+                                      io.cfg, device=device, dtype=dtype)
+        io_firing = set(int(v) for v in io_abf.firing_steps(n_steps, io.cfg))
+        ts_l2f_full = torch.zeros((R, n_saves), device=device, dtype=dtype)
+        full_mask = torch.ones_like(eval_mask)
+
     for step in range(n_steps):
         if ess_window > 0 and step % ess_window == 0:
             anc = torch.arange(N, device=device).unsqueeze(0).expand(R, N).clone()
@@ -577,11 +602,19 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
         Bbias = Bbias - Bbias[:, idx0:idx0 + 1]
         F_target = (1.0 - ema) * F_target + ema * Bbias
 
+        if io_alloc is not None:
+            if step % io.cfg.obs_every == 0:
+                io_alloc.observe(X, fx, interp1d(X, Fp, dx))
+            if step in io_firing:
+                io_alloc.refresh(step, X, Bbias)
+
         zx = torch.randn((B, N), device=device, dtype=dtype,
                          generator=gen_n).repeat_interleave(M, dim=0)
         zy = torch.randn((B, N), device=device, dtype=dtype,
                          generator=gen_n).repeat_interleave(M, dim=0)
         bias_force = interp1d(X, Fp, dx)
+        if io_alloc is not None:
+            bias_force = bias_force + io_alloc.bias_force_at(X)
         Xp = reflect_into(X + (-fx + bias_force) * dt + noise_amp * zx, XMIN, XMAX)
         Yp = Y + (-fy) * dt + noise_amp * zy
 
@@ -625,6 +658,10 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
             for k in range(3):
                 ts_P[:, save_ptr, k] = (plab == k).to(dtype).mean(dim=1)
             ts_Q[:, save_ptr] = bias_aware_target(F_ref, Bbias, glab, beta)
+            if io_alloc is not None:
+                Bf = Bbias - Bbias.mean(dim=1, keepdim=True)
+                Rf = F_ref - F_ref.mean(dim=1, keepdim=True)
+                ts_l2f_full[:, save_ptr] = l2_error(Bf, Rf, full_mask)
             save_ptr += 1
         if progress is not None and step % progress == 0:
             print(f"    step {step}/{n_steps}", flush=True)
@@ -636,6 +673,8 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     worst = float((tot_P - 1.0).abs().max())
     assert worst < 1e-9, f"observed region fractions do not sum to 1 (worst {worst:.3e})"
 
+    if io_alloc is not None:
+        io_final = io_alloc.final_state(with_series=bool(io.keep_series))
     return _finalize(locals())
 
 
@@ -750,6 +789,13 @@ def _finalize(L):
     def npy(t):
         return t.detach().cpu().numpy()
 
+    io_alloc = L.get("io_alloc")
+    io_final = L.get("io_final")
+    io_by_run = {}
+    if io_alloc is not None:
+        for row in io_alloc.rows:
+            io_by_run.setdefault(row["run"], []).append(row)
+
     Bc = L["Bbias"] - L["Bbias"][:, eval_mask].mean(dim=1, keepdim=True)
     ts_l2f, ts_l2fp = L["ts_l2f"], L["ts_l2fp"]
     seg_w = torch.tensor(np.diff(t_axis), device=ts_l2f.device, dtype=ts_l2f.dtype)
@@ -788,5 +834,30 @@ def _finalize(L):
                 (rec["n_die"] + rec["n_clone"]) / max(rec["n_fr_apply"] * N, 1)
                 if use_fr else 0.0)
             rec.update(hit_and_establish(P[:, 2], Q[:, 2], t_axis))
+            if io_alloc is not None:
+                rec["io_arm"] = io_alloc.arms[r]
+                rec["l2_f_full_t"] = npy(L["ts_l2f_full"][r])
+                rec["final_l2_f_full"] = float(L["ts_l2f_full"][r, -1])
+                rec["io_a_cell"] = io_final["a_cell"]
+                rec["io_cell_edges"] = io_final["cell_edges"]
+                for k in ("sigma2", "tau", "gamma", "q"):
+                    rec[f"io_{k}"] = io_final[k][r]
+                if "series" in io_final:
+                    rec["io_series"] = io_final["series"][r]
+                    rec["io_obs_every"] = int(io_final["obs_every"][0])
+                rows_r = io_by_run.get(r, [])
+                rec["io_steps"] = np.array([x["step"] for x in rows_r], dtype=int)
+                for key in ("r_star", "occupancy", "sigma2", "tau", "gamma", "q"):
+                    rec[f"io_{key}_t"] = (np.array([x[key] for x in rows_r], dtype=float)
+                                          if rows_r else np.zeros((0, 0)))
+                for key in ("lam", "ess_predicted", "mass_ess_at_occupancy",
+                            "valid_tau_fraction"):
+                    rec[f"io_{key}_t"] = (np.array([x[key] for x in rows_r], dtype=float)
+                                          if rows_r else np.zeros(0))
+                if rows_r and "tv_to_unconstrained" in rows_r[0]:
+                    for key in ("tv_to_unconstrained", "mass_ess_unconstrained"):
+                        rec[f"io_{key}_t"] = np.array([x[key] for x in rows_r], dtype=float)
+                    rec["io_r_star_unconstrained_t"] = np.array(
+                        [x["r_star_unconstrained"] for x in rows_r], dtype=float)
             recs.append(rec)
     return recs

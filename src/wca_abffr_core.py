@@ -25,7 +25,7 @@ import json
 import math
 import os
 import time
-from dataclasses import dataclass, replace, asdict
+from dataclasses import dataclass, replace, asdict, fields
 
 import numpy as np
 import torch
@@ -935,7 +935,7 @@ def assert_no_oracle_leakage(method, oracle_free_energy):
 @torch.inference_mode()
 def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                     oracle_free_energy=None, collect_diagnostics=True, verbose=True,
-                    track_crossings=False, replay_counts=None):
+                    track_crossings=False, replay_counts=None, io=None):
     """Run one sampler on the GPU.
 
     method in {abf, fr_estimated, fr_uniform, fr_oracle}. The FR target is built
@@ -1051,6 +1051,22 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                              "ancestor_ess", "n_unique_ancestor", "max_ancestor_frac",
                              "repl_cumulative"]}
 
+    # --- IO-ABF, read-only for the A0 arm ------------------------------------
+    # ``io`` is an (arm, IOConfig) pair.  With arm == "A0" nothing is added to any
+    # force: the allocator only *watches* the same (z, f_local) stream the ABF
+    # estimator consumes, which is what makes the Gamma screening a measurement
+    # on plain ABF trajectories rather than on perturbed ones.  With io=None the
+    # loop below is byte-identical to the accepted sampler.
+    io_alloc, io_firing = None, set()
+    if io is not None:
+        from abffr import io_abf as _ioa
+        _mask = torch.as_tensor(eval_window_mask_np(to_numpy(grid), sim),
+                                device=engine.device)
+        io_alloc = _ioa.IOAllocator([io["arm"]], grid, _mask,
+                                    np.array([params.beta]), sim.dt, io["cfg"],
+                                    device=engine.device, dtype=engine.dtype)
+        io_firing = set(int(v) for v in _ioa.firing_steps(sim.n_steps, io["cfg"]))
+
     t0 = time.perf_counter()
     for step in range(sim.n_steps + 1):
         forces_raw = engine.force(q, compute_energy=False)
@@ -1095,6 +1111,20 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                 r = sim.target_ema_rate
                 F_target_ema = (1.0 - r) * F_target_ema + r * A_hat
             F_target_ema = normalize_profile_zero_at_midpoint_torch(F_target_ema, grid)
+
+        if io_alloc is not None:
+            if step % io["cfg"].obs_every == 0:
+                _fp_at = bias_estimator.evaluate(z)
+                io_alloc.observe(z.view(1, -1), f_local.view(1, -1),
+                                 _fp_at.view(1, -1))
+            if step in io_firing:
+                io_alloc.refresh(step, z.view(1, -1),
+                                 current_bias_profile.view(1, -1))
+            if io["arm"] in _ioa.ALLOCATING:
+                # B_t(z) = A_hat_t(z) + beta^-1 log r*_t(z).  Added to the applied
+                # bias force only; the mean-force accumulator above never sees it.
+                abf_at_z = abf_at_z + abf_scale * io_alloc.bias_force_at(
+                    z.view(1, -1)).view(-1)
 
         transport = clip_forces(add_abf_force(q, forces_physical, abf_at_z, params), params.force_clip)
         transport = clip_forces(add_reaction_coordinate_wall_force(q, transport, z, sim, params), params.force_clip)
@@ -1305,6 +1335,26 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
     # The §3.3 gate statistic. NaN for `abf`, which has no genealogy at all.
     diag["min_ancestor_ess_window"] = (float(min_ess_window) if is_fr else float("nan"))
     diag["ess_window_steps"] = int(_win)
+    if io_alloc is not None:
+        fs = io_alloc.final_state(with_series=bool(io.get("keep_series", False)))
+        if "series" in fs:
+            diag["io_series"] = fs["series"][0]
+            diag["io_obs_every"] = int(fs["obs_every"][0])
+        diag["io_arm"] = io["arm"]
+        diag["io_a_cell"] = fs["a_cell"]
+        diag["io_cell_edges"] = fs["cell_edges"]
+        for k in ("sigma2", "tau", "gamma", "q"):
+            diag[f"io_{k}"] = fs[k][0]
+        rows = io_alloc.rows
+        diag["io_steps"] = np.array([r["step"] for r in rows], dtype=int)
+        for k in ("r_star", "occupancy", "sigma2", "tau", "gamma", "q"):
+            diag[f"io_{k}_t"] = (np.array([r[k] for r in rows], dtype=float)
+                                 if rows else np.zeros((0, 0)))
+        for k in ("lam", "ess_predicted", "valid_tau_fraction"):
+            diag[f"io_{k}_t"] = (np.array([r[k] for r in rows], dtype=float)
+                                 if rows else np.zeros(0))
+        diag["io_cfg"] = json.dumps({f.name: getattr(io["cfg"], f.name)
+                                     for f in fields(io["cfg"])})
     if verbose:
         extra = f", replacements {total_replacement_events}" if is_fr else ""
         print(f"{method:13s}: {diag['runtime_seconds']:.1f}s{extra}")

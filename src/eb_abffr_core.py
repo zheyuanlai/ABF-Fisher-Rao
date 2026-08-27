@@ -42,6 +42,8 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+from abffr import io_abf
+
 EPS = 1e-30
 
 # -----------------------------------------------------------------------------
@@ -117,7 +119,17 @@ FR_ESTIMATED = MethodSpec("fr_estimated", use_fr=True, target_mode="estimated")
 FR_UNIFORM = MethodSpec("fr_uniform", use_fr=True, target_mode="uniform")
 FR_ORACLE = MethodSpec("fr_oracle", use_fr=True, target_mode="oracle")
 
-METHOD_REGISTRY = {m.name: m for m in (ABF, FR_ESTIMATED, FR_UNIFORM, FR_ORACLE)}
+#: IO-ABF arms.  All three carry ``use_fr=False`` and ``target_mode="none"``:
+#: the birth--death block never fires for them, so ``io_a0`` runs *exactly* the
+#: accepted ``abf`` code path and G0.1 is an identity rather than a tolerance.
+IO_A0 = MethodSpec("io_a0", use_fr=False, target_mode="none")
+IO_A6B = MethodSpec("io_a6b", use_fr=False, target_mode="none")
+IO_A6C = MethodSpec("io_a6c", use_fr=False, target_mode="none")
+IO_METHODS = (IO_A0, IO_A6B, IO_A6C)
+IO_ARMS = ("A0", "A6b", "A6c")
+
+METHOD_REGISTRY = {m.name: m for m in (ABF, FR_ESTIMATED, FR_UNIFORM, FR_ORACLE,
+                                       IO_A0, IO_A6B, IO_A6C)}
 
 
 def assert_no_oracle_leakage(methods: Sequence[MethodSpec]) -> None:
@@ -357,6 +369,24 @@ def fr_resample_indices(S, fr_mask, g, dt_fr, cap, gen):
 # -----------------------------------------------------------------------------
 # the batched simulation
 # -----------------------------------------------------------------------------
+@dataclass(frozen=True)
+class IOSpec:
+    """Attach IO-ABF to a batched call.  Absent means the engine is untouched.
+
+    ``arms`` is aligned with ``BatchSpec.methods``: one IO arm per M-column, so
+    A0 and its candidates are *rows of the same batch* and therefore share
+    initial conditions and the Langevin noise stream exactly.  Pairing an arm
+    against a control run in a separate call would compare across noise
+    realisations, which is what the endpoint's paired bootstrap assumes away.
+    """
+    arms: Sequence[str]
+    cfg: "io_abf.IOConfig"
+    #: Return the raw mean-force history.  Only the R-OBS probe needs it, and it
+    #: is off by default so a confirmatory record does not carry 600 x J floats
+    #: per run that nothing reads.
+    keep_series: bool = False
+
+
 @dataclass
 class BatchSpec:
     """A batched call: B (config, seed) rows x M methods (flattened to R=B*M).
@@ -403,7 +433,8 @@ def init_conditions_batched(seeds, N, beta_b, omega_out_b, omega_in_b, s_b, devi
 
 
 def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
-                   noise_seed_base=2000, fr_seed_base=3000, progress=None):
+                   noise_seed_base=2000, fr_seed_base=3000, progress=None,
+                   io: "IOSpec | None" = None):
     """Run all (config, method) pairs for one seed. Returns a dict of results.
 
     Uniform-across-batch (asserted): N, dt, n_steps, save_every, fr_every,
@@ -493,6 +524,22 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     tot_clone = torch.zeros(R, device=device, dtype=dtype)
     n_fr_apply = 0
 
+    # --- IO-ABF: information-optimal allocation, held by the bias --------------
+    # Everything below is guarded, so with io=None the loop is literally the code
+    # that produced the accepted artifacts -- no multiply-by-one path, no extra
+    # tensor in the arithmetic, and no randomness consumed either way (IO-ABF
+    # never resamples, so it draws nothing at all).
+    io_alloc, io_firing, ts_l2f_full, io_final = None, set(), None, None
+    if io is not None:
+        assert len(io.arms) == M, "one IO arm per method column"
+        arms_R = [io.arms[m] for b in range(B) for m in range(M)]
+        beta_R = np.array([cfgs[b].beta for b in range(B) for _ in range(M)])
+        io_alloc = io_abf.IOAllocator(arms_R, x_grid, eval_mask, beta_R, dt,
+                                      io.cfg, device=device, dtype=dtype)
+        io_firing = set(int(v) for v in io_abf.firing_steps(n_steps, io.cfg))
+        ts_l2f_full = torch.zeros((R, n_saves), device=device, dtype=dtype)
+        full_mask = torch.ones_like(eval_mask)
+
     xg = x_grid  # (G,)
     for step in range(n_steps):
         # ---- windowed ancestor-ESS: reset lineage labels at window starts ----
@@ -513,10 +560,24 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
         Bbias = Bbias - Bbias[:, idx0:idx0 + 1]
         F_target = (1.0 - ema) * F_target + ema * Bbias
 
+        # ---- IO-ABF: same observation stream the accumulator just saw --------
+        if io_alloc is not None:
+            if step % io.cfg.obs_every == 0:
+                io_alloc.observe(X, fx, interp1d(X, Fp, dx))
+            if step in io_firing:
+                # A_grid is the RUNNING ABF free energy.  It reaches only the
+                # Fisher-Rao mass; the target r* reads geometry and Gamma_hat.
+                io_alloc.refresh(step, X, Bbias)
+
         # ---- Langevin step (noise shared across methods via B-block broadcast) ----
         zx = torch.randn((B, N), device=device, dtype=dtype, generator=gen_n).repeat_interleave(M, dim=0)
         zy = torch.randn((B, N), device=device, dtype=dtype, generator=gen_n).repeat_interleave(M, dim=0)
         bias_force = interp1d(X, Fp, dx)              # applied ABF mean force at X
+        if io_alloc is not None:
+            # B_t(z) = A_hat_t(z) + beta^-1 log r*_t(z).  Zero for every A0 row
+            # and for every row before the first opportunity, so the arms share
+            # their burn-in exactly rather than approximately.
+            bias_force = bias_force + io_alloc.bias_force_at(X)
         Xp = reflect_into(X + (-fx + bias_force) * dt + noise_amp * zx, XMIN, XMAX)
         Yp = Y + (-fy) * dt + noise_amp * zy
 
@@ -561,10 +622,19 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
             ts_l2f[:, save_ptr] = l2_error(Bc, F_ref, eval_mask)
             ts_l2fp[:, save_ptr] = l2_error(Fp, Fp_ref, eval_mask)
             ts_ess[:, save_ptr] = ancestor_ess(anc, N)
+            if io_alloc is not None:
+                # Reported alongside the primary metric because the leverage a(z)
+                # is zero outside the mask: without this, "the arm abandoned the
+                # unscored region" and "the arm converged" look the same.
+                Bf = Bbias - Bbias.mean(dim=1, keepdim=True)
+                Rf = F_ref - F_ref.mean(dim=1, keepdim=True)
+                ts_l2f_full[:, save_ptr] = l2_error(Bf, Rf, full_mask)
             save_ptr += 1
         if progress is not None and step % progress == 0:
-            print(f"    seed {spec.seed} step {step}/{n_steps}", flush=True)
+            print(f"    step {step}/{n_steps}", flush=True)
 
+    if io_alloc is not None:
+        io_final = io_alloc.final_state(with_series=bool(io.keep_series))
     return _finalize(locals())
 
 
@@ -637,6 +707,14 @@ def _finalize(L):
     q_final = fr_target_from(F_target, Bbias, beta, dx)
     cond = conditional_variance_diagnostics(X, Y, beta, oout, oin, sw)
 
+    io_alloc = L.get("io_alloc")
+    io_final = L.get("io_final")
+    ts_l2f_full = L.get("ts_l2f_full")
+    io_by_run = {}
+    if io_alloc is not None:
+        for row in io_alloc.rows:
+            io_by_run.setdefault(row["run"], []).append(row)
+
     ts_l2f = L["ts_l2f"]; ts_l2fp = L["ts_l2fp"]; ts_ess = L["ts_ess"]
     t_axis = np.array([st * dt for st in save_steps])
     # integrated L2(F) over time via trapezoid on the save grid
@@ -687,5 +765,35 @@ def _finalize(L):
                 "cond_abs_err": npy(cond["cond_abs_err"][r]),
                 "cond_count": npy(cond["cond_count"][r]),
             }
+            if io_alloc is not None:
+                rec["io_arm"] = io_alloc.arms[r]
+                rec["l2_f_full_t"] = npy(ts_l2f_full[r])
+                rec["final_l2_f_full"] = float(ts_l2f_full[r, -1])
+                rec["io_a_cell"] = io_final["a_cell"]
+                rec["io_cell_edges"] = io_final["cell_edges"]
+                rec["io_sigma2"] = io_final["sigma2"][r]
+                rec["io_tau"] = io_final["tau"][r]
+                rec["io_gamma"] = io_final["gamma"][r]
+                rec["io_q"] = io_final["q"][r]
+                if "series" in io_final:
+                    rec["io_series"] = io_final["series"][r]
+                    rec["io_obs_every"] = int(io_final["obs_every"][0])
+                rows_r = io_by_run.get(r, [])
+                rec["io_steps"] = np.array([x["step"] for x in rows_r], dtype=int)
+                for key in ("r_star", "occupancy", "sigma2", "tau", "gamma", "q"):
+                    rec[f"io_{key}_t"] = (
+                        np.array([x[key] for x in rows_r], dtype=float)
+                        if rows_r else np.zeros((0, 0)))
+                for key in ("lam", "ess_predicted", "mass_ess_at_occupancy",
+                            "valid_tau_fraction"):
+                    rec[f"io_{key}_t"] = (
+                        np.array([x[key] for x in rows_r], dtype=float)
+                        if rows_r else np.zeros(0))
+                if rows_r and "tv_to_unconstrained" in rows_r[0]:
+                    for key in ("tv_to_unconstrained", "mass_ess_unconstrained"):
+                        rec[f"io_{key}_t"] = np.array(
+                            [x[key] for x in rows_r], dtype=float)
+                    rec["io_r_star_unconstrained_t"] = np.array(
+                        [x["r_star_unconstrained"] for x in rows_r], dtype=float)
             recs.append(rec)
     return recs

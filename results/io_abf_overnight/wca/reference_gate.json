@@ -1,0 +1,60 @@
+{
+  "cached_path": "cache/wca_ti_reference.npz",
+  "hp_path": "results/v2_validity_audits/wca_hp_reference/wca_hp_reference.npz",
+  "cached_exists": true,
+  "hp_exists": true,
+  "physics": {
+    "n_dim": 10,
+    "a": 1.5,
+    "sigma": 1.0,
+    "epsilon": 1.0,
+    "h": 2.0,
+    "w": 2.0,
+    "beta": 1.0
+  },
+  "grid": {
+    "z_min": -0.2,
+    "z_max": 1.2,
+    "n_grid": 160
+  },
+  "eval_mask": {
+    "lo": 0.0,
+    "hi": 1.0,
+    "n_points": 114
+  },
+  "checks": {
+    "physics_match": true,
+    "grid_match": true,
+    "l2_reference_shift_on_eval_mask": 0.018041231763750873,
+    "l2_reference_shift_reported_by_audit": 0.06082312489669788,
+    "max_abs_mean_force_delta": 19.094558715820312,
+    "Fprime_at_0.25_new_vs_cached": [
+      0.6009930372238159,
+      2.0943608466905097
+    ],
+    "sigma_of_that_discrepancy": 24.779027013372744,
+    "hp_n_z": 41,
+    "hp_z_spacing": 0.03500000387430191,
+    "eval_grid_spacing": 0.008805031446540879,
+    "hp_points_per_eval_point": 3.9750004400100036,
+    "hp_dense_enough_for_pointwise_Fprime": false,
+    "case_ix_abf_error": 0.0901,
+    "case_ix_effect_size": 0.02056983,
+    "shift_over_effect": 2.9569094589842444
+  },
+  "blocking": [
+    "HP reference has 41 z-values at spacing 0.035 against an evaluation grid at 0.0088; F' is interpolated by a factor 4.0 and the audit itself states a denser build is needed to quote a corrected F' pointwise",
+    "the reference correction (0.0608) is 3.0x the effect size it would be used to score"
+  ],
+  "hp_cell": {
+    "n_dim": 10,
+    "a": 1.5,
+    "sigma": 1.0,
+    "epsilon": 1.0,
+    "h": 2.0,
+    "w": 2.0,
+    "beta": 1.0
+  },
+  "verdict": "FAIL",
+  "consequence": "A0 diagnostics only; no WCA speedup may be reported tonight."
+}
