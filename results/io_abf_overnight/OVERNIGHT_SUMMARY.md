@@ -293,6 +293,29 @@ STATUS_WCA_SCREENING
 
 ---
 
+## 8b. The pilots, and a winner's-curse note
+
+The 8-seed pilots were implementation checks only and **no algorithm change followed any of
+them**, as preregistered. All clean: 0 non-finite finals in 72 pilot runs, valid-τ 0.77–1.00,
+occupancy sane, no leakage.
+
+| System | arm | S(ε₂) | hit | final/A0 | valid-τ | NaN |
+|---|---|---:|---:|---:|---:|---:|
+| β=4 | A6b | 2.147 | 1.000 | 0.642 | 0.946 | 0 |
+| β=4 | A6c | 0.871 | 0.625 | 1.602 | 0.940 | 0 |
+| β=8 | A6b | 1.435 | 1.000 | 0.887 | 0.805 | 0 |
+| β=8 | A6c | 0.789 | 0.125 | 1.408 | 0.774 | 0 |
+| gateway | A6b | 1.600 | 1.000 | 0.908 | 0.997 | 0 |
+| gateway | A6c | 0.718 | 0.000 | 1.857 | 0.992 | 0 |
+
+Every direction survived to the confirmatory. But **every magnitude shrank** — A6b went
+2.147 → 1.694, 1.435 → 1.395, 1.600 → 1.366 on fresh seeds, and A6c 0.871 → 0.810, 0.789 → 0.757,
+0.718 → 0.652. Three of three in the same direction is a small sample, but it is the shape of a
+winner's curse and it is exactly what the fresh confirmatory block exists to catch. **Had the
+pilot been reported as the result, all three speedups would have been overstated by 3–27 %.**
+
+---
+
 ## 9. Engineering gates — all pass, and one found a real defect
 
 | Gate | Check | Result |

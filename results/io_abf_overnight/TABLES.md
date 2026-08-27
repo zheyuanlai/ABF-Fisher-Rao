@@ -21,3 +21,6 @@
 | Bottleneck beta=4 | 0.0745 | 5.49 | 73.7 | 0.000995 | 0.00367 | 3.7 | 0.000574 | 0.0118 | 20.6 | 0.999 | 0.981 | sigma2 |
 | Bottleneck beta=8 | 0.0911 | 1.68 | 18.4 | 0.00175 | 0.00686 | 3.9 | 0.000603 | 0.00751 | 12.5 | 0.867 | 0.980 | sigma2 |
 | Entropic gateway | 0.00143 | 0.93 | 648.5 | 0.00384 | 0.00731 | 1.9 | 3.93e-05 | 0.0049 | 124.7 | 0.998 | 0.992 | sigma2 |
+| WCA dimer (A0 only) | 1.94e+03 | 3.88e+03 | 2.0 | 0.000465 | 0.000778 | 1.7 | 1.48 | 2.49 | 1.7 | 0.696 | — | both |
+
+WCA row is a **diagnostic only** (2 A0 seeds): its reference gate failed, so no speedup is reported for it.
