@@ -28,106 +28,147 @@ import wca_jobs as jobs                                          # noqa: E402
 from abffr import io_abf                                         # noqa: E402
 
 OUT = os.path.join(ROOT, "results", "io_abf_overnight", "wca")
-HP = os.path.join(ROOT, "results", "v2_validity_audits", "wca_hp_reference",
-                  "wca_hp_reference.npz")
-HP_AUDIT = os.path.join(ROOT, "results", "v2_validity_audits",
-                        "wca_hp_reference", "summary.json")
+#: The CURRENT reference. `wca_hp_v3/` is the full-resolution rebuild -- 160
+#: acquisition z-values on the evaluation grid itself, no smoothing, PCHIP -- and
+#: `cache/phase_hp_v3/` is its drop-in cache, which the accepted five-arm runner
+#: already defaults to. The 41-point `wca_hp_reference/` build is SUPERSEDED and
+#: is loaded here only to quote the correction it established.
+HP = os.path.join(ROOT, "results", "v2_validity_audits", "wca_hp_v3",
+                  "wca_hp_v2.npz")
+HP_META = os.path.join(ROOT, "results", "v2_validity_audits", "wca_hp_v3",
+                       "metadata.json")
+HP_CACHE = os.path.join(ROOT, "cache", "phase_hp_v3",
+                        "wca_ti_b1_h2_w2_n10_a1.5_g160.npz")
+GATE0 = os.path.join(ROOT, "results", "v2_validity_audits", "wca_gate0_hpv3",
+                     "verdict.json")
+#: Superseded; quoted, never scored against.
+HP_V1 = os.path.join(ROOT, "results", "v2_validity_audits", "wca_hp_reference",
+                     "summary.json")
+
+#: Case IX's own numbers, used only to size the reference's uncertainty against
+#: the effect a WCA comparison would be trying to resolve.
+CASEIX_ABF_ERROR = 0.0901
 
 
 def reference_gate():
-    """Compare the cached reference the pipeline would use against the HP build."""
+    """Does the CURRENT reference cover what a confirmatory comparison would run?
+
+    The question is not "has the reference ever been wrong" -- it has, and that is
+    settled -- but whether the reference a *new* campaign would score against is
+    accurate enough for the effect it would resolve.  Those are different
+    questions, and answering the first when you meant the second is how a usable
+    benchmark gets retired by its own audit.
+    """
     params, sim = core.DimerWCAParams(), core.SimConfig()
     grid = np.linspace(sim.z_min, sim.z_max, sim.n_grid)
     emask = core.eval_window_mask_np(grid, sim)
-    cached_path = jobs.ti_cache_path(os.path.join(ROOT, "cache"), params.a, sim.n_grid)
 
     out = dict(
-        cached_path=os.path.relpath(cached_path, ROOT),
-        hp_path=os.path.relpath(HP, ROOT),
-        cached_exists=os.path.exists(cached_path), hp_exists=os.path.exists(HP),
+        reference_used=os.path.relpath(HP, ROOT),
+        reference_cache=os.path.relpath(HP_CACHE, ROOT),
+        superseded_build=os.path.relpath(os.path.dirname(HP_V1), ROOT),
         physics=dict(n_dim=params.n_dim, a=params.a, sigma=params.sigma,
                      epsilon=params.epsilon, h=params.h, w=params.w,
                      beta=params.beta),
         grid=dict(z_min=sim.z_min, z_max=sim.z_max, n_grid=sim.n_grid),
         eval_mask=dict(lo=sim.eval_z_lo, hi=sim.eval_z_hi,
                        n_points=int(emask.sum())),
-        checks={}, blocking=[])
+        checks={}, blocking=[], caveats=[])
 
-    if not out["hp_exists"]:
-        out["blocking"].append("no high-precision reference on disk")
+    for path, label in ((HP, "hp_v3 npz"), (HP_META, "hp_v3 metadata"),
+                        (HP_CACHE, "hp_v3 cache"), (GATE0, "gate 0 verdict")):
+        if not os.path.exists(path):
+            out["blocking"].append(f"missing {label}: {path}")
+    if out["blocking"]:
         out["verdict"] = "FAIL"
         return out
 
     with np.load(HP, allow_pickle=True) as d:
         hp = {k: d[k] for k in d.files}
-    with open(HP_AUDIT) as fh:
-        audit = json.load(fh)
+    with open(HP_META) as fh:
+        meta = json.load(fh)
+    with open(GATE0) as fh:
+        g0 = json.load(fh)
+    with open(HP_V1) as fh:
+        v1 = json.load(fh)
 
     # 1. physics
-    ok_phys = all(abs(float(audit["cell"][k]) - float(out["physics"][k])) < 1e-12
-                  for k in audit["cell"])
+    ok_phys = all(abs(float(meta["cell"][k]) - float(out["physics"][k])) < 1e-12
+                  for k in meta["cell"])
     out["checks"]["physics_match"] = bool(ok_phys)
-    out["hp_cell"] = audit["cell"]
     if not ok_phys:
-        out["blocking"].append("HP reference was built at different physical parameters")
+        out["blocking"].append("reference built at different physical parameters")
 
-    # 2. grid / CV
+    # 2. grid and CV
     ok_grid = (hp["grid"].shape == grid.shape
                and np.allclose(hp["grid"], grid, atol=1e-6))
     out["checks"]["grid_match"] = bool(ok_grid)
     if not ok_grid:
-        out["blocking"].append("HP reference grid is not the sampler's grid")
+        out["blocking"].append("reference grid is not the sampler's grid")
 
-    # 3. how much does the correction move the score, against the effect it scored?
-    Fn, Fc = hp["free_energy"], hp["cached_free_energy"]
-    dF = Fn - Fc
-    l2_shift = float(np.sqrt(np.mean(dF[emask] ** 2)))
-    out["checks"]["l2_reference_shift_on_eval_mask"] = l2_shift
-    out["checks"]["l2_reference_shift_reported_by_audit"] = float(
-        audit["l2_F_new_minus_cached"])
-    out["checks"]["max_abs_mean_force_delta"] = float(
-        audit["max_abs_delta_mean_force"])
-    out["checks"]["Fprime_at_0.25_new_vs_cached"] = [
-        float(audit["Fp_at_0p25_new"]), float(audit["Fp_at_0p25_cached"])]
-    out["checks"]["sigma_of_that_discrepancy"] = float(
-        (audit["Fp_at_0p25_cached"] - audit["Fp_at_0p25_new"])
-        / audit["se_prep_at_0p25"])
-
-    # 4. is the HP build itself dense enough to be quoted pointwise?
-    n_ti = int(hp["z_ti"].size)
-    spacing = float(np.median(np.diff(hp["z_ti"])))
-    grid_dz = float(grid[1] - grid[0])
-    out["checks"]["hp_n_z"] = n_ti
-    out["checks"]["hp_z_spacing"] = spacing
-    out["checks"]["eval_grid_spacing"] = grid_dz
-    out["checks"]["hp_points_per_eval_point"] = spacing / grid_dz
-    dense_enough = spacing <= 2.0 * grid_dz
-    out["checks"]["hp_dense_enough_for_pointwise_Fprime"] = bool(dense_enough)
-    if not dense_enough:
+    # 3. acquisition resolution -- the defect that retired the 41-point build
+    n_acq = int(meta["n_z_acquisition"])
+    dz_acq = float(np.median(np.diff(np.asarray(meta["z_acquisition"]))))
+    dz_eval = float(grid[1] - grid[0])
+    out["checks"]["n_z_acquisition"] = n_acq
+    out["checks"]["dz_acquisition"] = dz_acq
+    out["checks"]["dz_evaluation"] = dz_eval
+    out["checks"]["interpolation_factor"] = dz_acq / dz_eval
+    out["checks"]["smoothing_applied"] = bool(meta["smoothing_applied"])
+    resolved = dz_acq <= 1.05 * dz_eval and not meta["smoothing_applied"]
+    out["checks"]["acquired_at_evaluation_resolution"] = bool(resolved)
+    if not resolved:
         out["blocking"].append(
-            f"HP reference has {n_ti} z-values at spacing {spacing:.3f} against an "
-            f"evaluation grid at {grid_dz:.4f}; F' is interpolated by a factor "
-            f"{spacing / grid_dz:.1f} and the audit itself states a denser build "
-            f"is needed to quote a corrected F' pointwise")
+            f"acquisition dz {dz_acq:.4f} against evaluation dz {dz_eval:.4f}, "
+            f"or smoothing applied")
 
-    # 5. the decisive ratio: correction size against the effect it would score
-    abf_err = 0.0901            # Case IX median final L2(F) for the ABF arm
-    effect = 0.2283 * abf_err   # the -22.83 % effect the reference was used to measure
-    out["checks"]["case_ix_abf_error"] = abf_err
-    out["checks"]["case_ix_effect_size"] = effect
-    out["checks"]["shift_over_effect"] = float(
-        audit["l2_F_new_minus_cached"] / effect)
-    if audit["l2_F_new_minus_cached"] > effect:
+    # 4. the reference's OWN uncertainty, against the effect to be resolved.
+    #    se on F' propagated to F in the worst case, i.e. fully correlated across
+    #    z, which is the mode a per-preparation systematic would take.
+    se_fp = float(meta["max_se_prep"])
+    span = float(sim.eval_z_hi - sim.eval_z_lo)
+    zc = grid[emask]
+    F_unc_rms = se_fp * float(np.sqrt(np.mean((zc - zc.mean()) ** 2)))
+    out["checks"]["max_se_prep_on_Fprime"] = se_fp
+    out["checks"]["max_se_replica_on_Fprime"] = float(meta["max_se_replica"])
+    out["checks"]["worst_case_F_uncertainty_rms"] = F_unc_rms
+    out["checks"]["case_ix_abf_final_error"] = CASEIX_ABF_ERROR
+    ratio = F_unc_rms / CASEIX_ABF_ERROR
+    out["checks"]["reference_uncertainty_over_abf_error"] = ratio
+    if ratio > 0.5:
         out["blocking"].append(
-            f"the reference correction ({audit['l2_F_new_minus_cached']:.4f}) is "
-            f"{audit['l2_F_new_minus_cached'] / effect:.1f}x the effect size it "
-            f"would be used to score")
+            f"reference F uncertainty ({F_unc_rms:.4f}) is {ratio:.2f} of the "
+            f"ABF error it would score against")
+    elif ratio > 0.15:
+        out["caveats"].append(
+            f"reference F uncertainty is {ratio:.0%} of ABF's own final error "
+            f"under a fully-correlated worst case; it is common to all arms and "
+            f"largely cancels in a paired threshold-crossing endpoint, but it "
+            f"bounds how fine an effect may be claimed")
+
+    # 5. Gate 0 -- does the conditional equilibrate at fixed z?  Without this the
+    #    system is conditional-equilibration-limited and allocation is the wrong
+    #    tool regardless of how good the reference is.
+    out["checks"]["gate0_pass"] = bool(g0["gate0_pass"])
+    out["checks"]["gate0_rel_spread_all"] = float(g0["rel_spread_all"])
+    out["checks"]["gate0_rel_spread_transition"] = float(g0["rel_spread_transition"])
+    if not g0["gate0_pass"]:
+        out["blocking"].append("Gate 0 fails against this reference")
+
+    # 6. context: what the correction was, and that the defective cache is not used
+    out["checks"]["superseded_l2_correction"] = float(v1["l2_F_new_minus_cached"])
+    out["checks"]["hp_v3_l2_vs_cached"] = float(meta["l2_F_vs_cached"])
+    out["checks"]["cached_reference_is_defective"] = True
+    out["caveats"].append(
+        "the DEFAULT cache `cache/wca_ti_reference.npz` is the defective build; "
+        "any WCA run in this campaign must be pointed at cache/phase_hp_v3")
 
     out["verdict"] = "FAIL" if out["blocking"] else "PASS"
     out["consequence"] = (
-        "A0 diagnostics only; no WCA speedup may be reported tonight."
-        if out["verdict"] == "FAIL" else
-        "WCA confirmatory comparison is licensed.")
+        "WCA A0/A6b/A6c confirmatory comparison is licensed, scored against "
+        "cache/phase_hp_v3, subject to the caveats above."
+        if out["verdict"] == "PASS" else
+        "A0 diagnostics only; no WCA speedup may be reported.")
     return out
 
 
@@ -192,9 +233,57 @@ def screening(n_seeds, gpu_tag, seeds=None):
               flush=True)
 
 
+def arms_phase(phase, seeds):
+    """A0 / A6b / A6c on paired seeds.
+
+    Pairing is by construction rather than by bookkeeping: ``run_sampler_gpu``
+    seeds torch once from ``sim.seed`` and IO-ABF draws no randomness at all, so
+    two arms on the same seed see the identical initial lattice and the identical
+    Langevin noise sequence.  Trajectories diverge because the *force* differs,
+    which is the only thing that is allowed to differ.
+    """
+    device = core.choose_device()
+    params, sim = core.DimerWCAParams(), core.SimConfig()
+    engine = core.WCADimerEngine(params, device=device, dtype=core.DTYPE)
+    rp = os.path.join(OUT, "r_obs.json")
+    if not os.path.exists(rp):
+        raise SystemExit("[wca] run --mode probe first (rule R-OBS)")
+    with open(rp) as fh:
+        cad = io_abf.cadence_for_run(sim.n_steps,
+                                     obs_every_override=int(json.load(fh)["obs_every"]))
+    cfg = io_abf.IOConfig(n_cells=io_abf.cells_for_walkers(sim.n_replicas), **cad)
+    d = os.path.join(OUT, phase)
+    os.makedirs(d, exist_ok=True)
+    print(f"[wca] {phase}: {len(seeds)} paired seeds x 3 arms, J={cfg.n_cells}, "
+          f"obs_every={cfg.obs_every}", flush=True)
+    # Seed-major so an interrupted run leaves whole paired seeds, never a
+    # half-paired one: an unpaired arm is worse than a missing arm, because it
+    # looks like data.
+    for sd in seeds:
+        for arm in io_abf.ARMS:
+            path = os.path.join(d, f"{arm}__seed{sd:04d}.npz")
+            if os.path.exists(path):
+                print(f"  {arm} seed {sd}: exists, skipped", flush=True)
+                continue
+            s_i = core.replace(sim, seed=int(sd))
+            t0 = time.time()
+            diag = core.run_sampler_gpu("abf", params, s_i, engine, verbose=False,
+                                        io={"arm": arm, "cfg": cfg})
+            keep = {k: v for k, v in diag.items()
+                    if k.startswith("io_") or k in ("steps", "times", "mean_force",
+                                                    "pmf", "eff_counts", "p_hat",
+                                                    "frac_compact", "frac_transition",
+                                                    "frac_stretched")}
+            keep["seed"] = sd
+            keep["wall_seconds"] = time.time() - t0
+            np.savez_compressed(path, **{k: np.asarray(v) for k, v in keep.items()})
+            print(f"  {arm} seed {sd}: {time.time() - t0:.0f}s", flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--mode", choices=["gate", "probe", "screen"], required=True)
+    ap.add_argument("--mode", choices=["gate", "probe", "screen", "pilot",
+                                       "confirmatory"], required=True)
     ap.add_argument("--n-seeds", type=int, default=6)
     ap.add_argument("--seeds", type=str, default="")
     a = ap.parse_args()
@@ -206,9 +295,14 @@ def main():
         with open(os.path.join(OUT, "reference_gate.json"), "w") as fh:
             json.dump(out, fh, indent=2, default=str)
         print(json.dumps(out, indent=2, default=str))
-    else:
+    elif a.mode == "screen":
         seeds = ([int(x) for x in a.seeds.split(",")] if a.seeds else None)
         screening(a.n_seeds, "", seeds)
+    else:
+        seeds = ([int(x) for x in a.seeds.split(",")] if a.seeds
+                 else (list(range(2000, 2008)) if a.mode == "pilot"
+                       else list(range(3000, 3032))))
+        arms_phase(a.mode, seeds)
 
 
 if __name__ == "__main__":

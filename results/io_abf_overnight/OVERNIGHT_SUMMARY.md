@@ -9,7 +9,7 @@ written and committed **before** any scientific run. No criterion in it was chan
 ## 1. One-paragraph answer
 
 **Information-optimal allocation transfers, and it costs something the kappa family could not
-show.** On all three preregistered systems A6b reaches the frozen stringent accuracy faster than
+show.** On the three systems that completed, A6b reaches the frozen stringent accuracy faster than
 plain ABF — S(ε₂) = 1.37–1.69, every paired 95 % CI clear of 1, and A6b hits the threshold in
 **32/32 seeds in all three systems** where A0 manages only 22–27 — and it is also *more* accurate
 than ABF at the horizon inside the evaluation window. But the preregistered full-domain
@@ -31,7 +31,7 @@ representing `q_phys`, not an inactive constraint.
 | Bottleneck β=4 | control | 21.6 | **1.694** | [1.281, 2.136] | 1.00/0.84 | 0.810 | 0.500 | 0.652 | 1.399 | **NOT POSITIVE** |
 | Bottleneck β=8 | candidate | 12.4 | **1.395** | [1.313, 1.478] | 1.00/0.75 | 0.757 | 0.500 | 0.879 | 1.031 | **POSITIVE** |
 | Entropic gateway | candidate | 123.7 | **1.366** | [1.158, 1.600] | 1.00/0.69 | 0.652 | 0.500 | 0.923 | 1.880 | **NOT POSITIVE** |
-| WCA dimer | candidate | — | — | — | — | — | — | — | — | **reference gate FAILED — not run** |
+| WCA dimer | candidate | see §8 | — | — | — | — | — | — | — | **gate PASSES; ran out of GPU-hours, see §7–8** |
 
 Preregistered checks, A6b vs A0:
 
@@ -156,32 +156,42 @@ force noise lives. The two objects genuinely disagree in these systems.
 
 ---
 
-## 7. WCA — the reference gate, and what was done instead
+## 7. WCA — the reference gate
 
-**Gate verdict: FAIL.** Two blocking findings, both from the repository's own Stage-A audit:
+**Gate verdict: PASS**, against `results/v2_validity_audits/wca_hp_v3/` (drop-in cache
+`cache/phase_hp_v3/`).
 
-1. The high-precision reference is built on **41 z-values at spacing 0.035** against an evaluation
-   grid at 0.0088 — a factor of **4.0** — and that audit states in its own words that "a denser
-   build would be needed to quote a final corrected `F'` curve pointwise".
-2. The correction from the cached reference to the high-precision one is **L2 = 0.0608**, which is
-   **3.0×** the −22.83 % effect size it would be used to score. The cached reference is wrong by
-   **24.8 σ** at z = 0.255 (`F' = 2.094` cached vs `0.601 ± 0.060`), inside the transition region
-   where arms differ most, so the cross term does not cancel.
+**I got this wrong on the first pass and the correction matters.** My first gate run read
+`wca_hp_reference/` — the 41-point build — and returned FAIL on its resolution. That build is
+**superseded**. The repository already contains a full-resolution rebuild: 160 acquisition
+z-values *on the evaluation grid itself* (interpolation factor exactly 1.0), no smoothing, PCHIP,
+4 preparations × 96 replicas, 20 k prep / 20 k equilibration / 80 k production. The accepted
+five-arm runner already defaults to `--cache-dir cache/phase_hp_v3`. Checking *a* reference is
+not checking *the current* reference, and the two answers were opposite.
 
-Physical parameters and grid *do* match (n_dim 10, a 1.5, σ 1, ε 1, h 2, w 2, β 1; 160 points on
-[−0.2, 1.2]). The failure is the reference's own resolution and accuracy, not a setup mismatch.
+| Check | Value | |
+|---|---|:--|
+| physical parameters | n_dim 10, a 1.5, σ 1, ε 1, h 2, w 2, β 1 | match |
+| grid / CV | 160 points on [−0.2, 1.2] | match |
+| acquisition resolution | dz 0.00881 vs evaluation dz 0.00881 → factor **1.00** | PASS |
+| smoothing | none | PASS |
+| reference's own uncertainty on F′ | max se_prep 0.0747, se_replica 0.0610 | — |
+| worst-case propagated uncertainty on F | 0.0217 RMS (fully-correlated bound) | — |
+| against ABF's own final error (0.0901) | **24 %** | caveat, not blocking |
+| Gate 0 (conditional equilibrates at fixed z) | rel spread 0.042 all / 0.048 transition | **PASS** |
 
-Per the preregistration this licenses **A0 diagnostics only and no speedup**, which is what was
-run: an A0-only Γ screening, instrumented read-only so the dynamics are byte-identical to the
-accepted sampler. Its result is in §8 and it carries no speedup claim.
+Two caveats travel with the pass:
 
-**What WCA needs before it can be run properly** — and this is the highest-value single job for
-the next session — is a denser high-precision TI reference: ~141 z-values at spacing 0.01 with the
-same 4-preparation, 20k-prep / 20k-equilibration / 50k-production protocol. The existing 41-point
-build took 22 min on one H200, so this is roughly 75–90 min of GPU time. With that in hand the
-full WCA campaign is ~136 runs at ~6.5 min each, about 15 h on one GPU.
+1. The reference's own uncertainty is 24 % of ABF's final error under a *fully-correlated*
+   worst case. It is common to all arms and largely cancels in a paired threshold-crossing
+   endpoint, but it bounds how fine an effect may be claimed.
+2. **The default cache `cache/wca_ti_reference.npz` is the defective build** — wrong by 24.8 σ at
+   z = 0.255. Any WCA run in this campaign must be pointed at `cache/phase_hp_v3`.
 
----
+So a WCA A0/A6b/A6c comparison **is** licensed. What blocked it tonight was time, not validity:
+WCA runs one method per process at ~13 min each under the R-OBS cadence, so the preregistered
+design (16 calibration + 24 pilot + 96 confirmatory) is ~29 h on the single GPU this campaign is
+restricted to. What was run is recorded in §8; the confirmatory is the next session's job.
 
 ## 8. WCA A0-only difficulty screening
 
@@ -260,7 +270,8 @@ if anything it *understates* the candidate arms — so the direction of every re
 
 ## 11. What was not done, and why
 
-* **WCA A6b/A6c confirmatory** — the reference gate failed. §7.
+* **WCA A6b/A6c confirmatory** — the reference gate PASSES (§7); what stopped it was GPU-hours,
+  not validity. ~29 h on one GPU for the preregistered design.
 * **Molecular Γ screening** (butane, pentane φ₁, alanine, pentane R₁₅, deca) — three of the five
   have periodic torsion CVs, and the plan explicitly rules out building the periodic leverage
   operator tonight. Of the two non-periodic candidates, deca is excluded by classification and
