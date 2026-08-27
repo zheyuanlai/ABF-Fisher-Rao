@@ -121,7 +121,117 @@ def report(phase="screening"):
     return out
 
 
+# --------------------------------------------------------------------------- #
+# paired arms: the same endpoint as the batched systems, on WCA's own records
+# --------------------------------------------------------------------------- #
+def arms_report(phase="pilot"):
+    """A0 / A6b / A6c on the frozen thresholds, scored against hp_v3.
+
+    The thresholds come from the A0 calibration report and are **read**, never
+    recomputed: the whole point of freezing them in a separate phase is that a
+    later phase cannot see a candidate result while choosing them.
+    """
+    sys.path.insert(0, os.path.join(ROOT, "scripts"))
+    from analyze_io_abf import (hitting_time, restricted, speedup,
+                                paired_bootstrap)                # noqa: E402
+
+    cal = os.path.join(OUT, "analysis", "screening_report.json")
+    if not os.path.exists(cal):
+        raise SystemExit("[wca] no frozen thresholds; run the A0 calibration first")
+    with open(cal) as fh:
+        thr = json.load(fh)
+
+    sim = core.SimConfig()
+    ref = reference()
+    grid, emask = ref["grid"], core.eval_window_mask_np(ref["grid"], sim)
+    full = np.ones_like(emask, dtype=bool)
+
+    by = {}
+    for path in sorted(glob.glob(os.path.join(OUT, phase, "*.npz"))):
+        with np.load(path, allow_pickle=True) as d:
+            r = {k: d[k] for k in d.files}
+        pmf = np.asarray(r["pmf"], dtype=float)
+        e = np.array([core.profile_l2_error_np(
+            core.align_additive_constant_np(pmf[i], ref["free_energy"], grid, emask),
+            ref["free_energy"], grid, emask) for i in range(pmf.shape[0])])
+        ef = np.array([core.profile_l2_error_np(
+            core.align_additive_constant_np(pmf[i], ref["free_energy"], grid, full),
+            ref["free_energy"], grid, full) for i in range(pmf.shape[0])])
+        by.setdefault(str(r["io_arm"]), {})[int(r["seed"])] = dict(
+            t=np.asarray(r["times"], float), e=e, ef=ef, rec=r)
+
+    if "A0" not in by:
+        raise SystemExit(f"[wca/{phase}] no A0 rows")
+    seeds = sorted(set.intersection(*[set(v) for v in by.values()]))
+    if not seeds:
+        raise SystemExit(f"[wca/{phase}] no seed is present for every arm")
+    t = by["A0"][seeds[0]]["t"]
+    T = float(t[-1])
+    eps1, eps2 = float(thr["eps1"]), float(thr["eps2"])
+
+    tab = {}
+    for arm, d in by.items():
+        E = np.stack([d[s]["e"] for s in seeds])
+        EF = np.stack([d[s]["ef"] for s in seeds])
+        tab[arm] = dict(
+            tau1=np.array([hitting_time(t, E[i], eps1) for i in range(len(seeds))]),
+            tau2=np.array([hitting_time(t, E[i], eps2) for i in range(len(seeds))]),
+            final=E[:, -1], final_full=EF[:, -1], E=E, EF=EF)
+
+    ref_row = tab["A0"]
+    out = dict(system="wca", phase=phase, n_seeds=len(seeds), seeds=seeds, T=T,
+               eps1=eps1, eps2=eps2,
+               gamma_unresolved=bool(thr["gamma_unresolved"]),
+               R_gamma=thr["R_gamma"]["ratio"],
+               reference=os.path.relpath(REF, ROOT), arms={})
+    for arm, r in tab.items():
+        rec = dict(arm=arm)
+        for lab, key in (("eps1", "tau1"), ("eps2", "tau2")):
+            S = speedup(ref_row[key], r[key], T)
+            lo, hi = paired_bootstrap(ref_row[key], r[key], T)
+            rec[f"S_{lab}"] = S
+            rec[f"S_{lab}_ci"] = [lo, hi]
+            rec[f"hit_{lab}"] = float(np.mean(np.isfinite(r[key])))
+        rec["final_median"] = float(np.median(r["final"]))
+        rec["final_full_median"] = float(np.median(r["final_full"]))
+        rec["final_ratio_to_A0"] = float(np.median(r["final"]) / np.median(ref_row["final"]))
+        rec["final_full_ratio_to_A0"] = float(
+            np.median(r["final_full"]) / np.median(ref_row["final_full"]))
+        # threshold-free view, the statistic section 3b of the summary prefers
+        frac = [0.2, 0.4, 0.6, 0.8, 1.0]
+        idx = [int(np.argmin(np.abs(t - f * T))) for f in frac]
+        rec["ratio_at_fractions"] = {
+            f"{f:.1f}": float(np.median(r["E"][:, k]) / np.median(ref_row["E"][:, k]))
+            for f, k in zip(frac, idx)}
+        out["arms"][arm] = rec
+
+    if "A6b" in out["arms"]:
+        a = out["arms"]["A6b"]
+        checks = dict(
+            speedup_at_least_1_15=bool(a["S_eps2"] >= 1.15),
+            ci_lower_above_1=bool(a["S_eps2_ci"][0] > 1.0),
+            censoring_not_worse=bool(a["hit_eps2"] >= out["arms"]["A0"]["hit_eps2"] - 0.05),
+            final_within_10pct=bool(a["final_ratio_to_A0"] <= 1.10),
+            final_full_within_10pct=bool(a["final_full_ratio_to_A0"] <= 1.10))
+        out["verdict_checks"] = checks
+        out["verdict"] = "POSITIVE" if all(checks.values()) else "NOT POSITIVE"
+        # the registered pre-candidate prediction, checked mechanically
+        out["prediction_check"] = dict(
+            registered="ratio at horizon >= 0.92 (leverage-only, not difficulty)",
+            observed=a["ratio_at_fractions"]["1.0"],
+            holds=bool(a["ratio_at_fractions"]["1.0"] >= 0.92),
+            falsifier="ratio < 0.65 would mean the gain does not follow Gamma",
+            falsified=bool(a["ratio_at_fractions"]["1.0"] < 0.65))
+
+    os.makedirs(os.path.join(OUT, "analysis"), exist_ok=True)
+    with open(os.path.join(OUT, "analysis", f"{phase}_endpoint.json"), "w") as fh:
+        json.dump(out, fh, indent=2, default=str)
+    print(json.dumps(out, indent=2, default=str))
+    return out
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--phase", default="screening")
-    report(ap.parse_args().phase)
+    a = ap.parse_args()
+    (report if a.phase == "screening" else arms_report)(a.phase)
