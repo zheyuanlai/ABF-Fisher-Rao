@@ -430,6 +430,71 @@ narrower and must be stated that way:
 > without landscape knowledge**; and reconcile it optimally with a **separate physical
 > Fisher--Rao mass**.
 
+## Stage 2 Phase 1 result -- confirmatory, 32 seeds, K0/K2/K3
+
+Preregistered endpoint: restricted time-to-accuracy, three consecutive frames
+under threshold, paired bootstrap. No censoring veto triggered anywhere -- the
+candidates were censored *less* than the baseline, which also makes every
+speedup below a lower bound (a baseline capped at `T` understates how much
+slower it really is).
+
+| contrast | K0 `ε₁`/`ε₂` | K2 `ε₁`/`ε₂` | K3 `ε₁`/`ε₂` |
+| --- | --- | --- | --- |
+| A6a/A0 | 1.23 / 1.34 | 1.13 / 1.18 | 1.16 / 1.18 |
+| **A6b/A0** | **1.55 / 1.87** | **1.60 / 1.80** | **1.61 / 1.84** |
+| A6c/A0 | 1.43 / 1.62 | 1.46 / 1.52 | 1.58 / 1.74 |
+| **A6b/A6a** | **1.27 / 1.39** | **1.41 / 1.52** | **1.38 / 1.56** |
+| A6c/A6b | 0.92 / 0.87 | 0.91 / 0.85 | 0.98 / 0.95 |
+
+**H3 passes decisively.** `A6b/A0` is 1.55-1.87 in every cell, every CI far above
+the 1.15 bar.
+
+**H2 passes on its stated terms** -- K2 1.41/1.52, K3 1.38/1.56, CIs clear of 1.
+
+**H1 is falsified, and its premise was wrong.** K0 gives `A6b/A6a` = 1.27 [1.22,
+1.31] and 1.39 [1.34, 1.45], not the predicted [0.95, 1.05]. The reason is in
+our own Stage-1B data: the **measured `Γ_ref` spread on K0 is 99.5×**. K0 was
+never a flat-`Γ` control -- it is only a cell with no *added* heterogeneity, and
+the potential's own conditional difficulty already varies by two orders of
+magnitude. So the difficulty channel had plenty to find there, and finding it is
+the correct behaviour.
+
+This weakens the κ-family as a *discriminator*, and the weakening should be
+stated rather than absorbed. All three cells carry large spread (99.5 / 153.8 /
+174.5), so K2/K3 against K0 is a **dose-response** contrast, not
+presence-versus-absence. The dose-response does run the right way -- K0 1.27-1.39
+against K2 1.41-1.52 and K3 1.38-1.56 -- but a genuine tie prediction would need
+a cell whose `Γ` is verified flat, which this family does not contain. **Do not
+quote H1 as a passed tie test; it was never testable as written.**
+
+It also shows why the exploratory stage may not decide anything: Stage 0.5 on K0
+(8 seeds, final error) gave `A6a/A6b` = 0.94, the opposite sign to the
+confirmatory 1.27-1.39 on the frozen endpoint.
+
+**H4 fails on two cells of three.** Retention `(S_A6c/A0 - 1)/(S_A6b/A0 - 1)`:
+
+| cell | `ε₁` | `ε₂` | |
+| --- | --- | --- | --- |
+| K0 | 78.1% | 71.6% | FAIL |
+| K2 | 76.9% | 65.3% | FAIL |
+| K3 | 95.7% | 88.4% | PASS |
+
+**But Fisher--Rao is genuinely load-bearing in A6c.** `P(λ>0) = 1.000` in all three
+cells, `TV(r_A6c, r_A6b)` = 0.25-0.26, mass ESS 0.500 constrained against
+0.090-0.112 unconstrained. The constraint is active at every opportunity and
+moves the allocation substantially, so A6c's performance *can* be attributed to
+the mass layer -- which is exactly the attribution the diagnostic was
+preregistered to decide, and it decides in favour.
+
+**Reading against the decision tree: this is Outcome B, not A.** Information-optimal
+allocation accelerates ABF strongly and reproducibly (`A6b/A0` up to 1.87×), and
+insisting on a faithful physical mass costs **roughly a quarter to a third of
+that gain** on two cells of three. A6c is not useless -- it still beats plain ABF
+by 1.43-1.74× while holding `ESS_M/K ≥ 0.5`, where the unconstrained arm sits at
+0.09-0.11. But it does not clear the preregistered viability bar, so the honest
+headline is that the strongest method here is **information-optimal ABF**, with
+the Fisher--Rao mass available as a priced option rather than as free.
+
 ## Stages 3-5 -- only on Q2-A
 
 3. Metastable quartic (old Example 2) + entropic gateway. Arms A0/A3/A4b/A5,
