@@ -128,11 +128,17 @@ in the flat part of the curve.
 
 ## 4. Q1–Q4, as preregistered
 
-**Q1 — does estimator-risk allocation accelerate ABF?** Yes, and reproducibly. S(ε₂) =
-1.37–1.69 with every CI above 1, on 32 fresh paired seeds per system, and the censoring goes the
-*helpful* way: A6b reaches the stringent threshold in 32/32 seeds in all three systems where A0
-reaches it in 27, 24 and 22. Because a censored A0 seed is charged exactly the horizon rather than
-the longer time it would really have needed, the quoted speedups are conservative.
+**Q1 — does estimator-risk allocation accelerate ABF?** **It improves ABF, reproducibly and in
+every system; whether "accelerate" is the right word is settled by §3b, and the answer there is
+"partly".** On the frozen endpoint, S(ε₂) = 1.37–1.69 with every CI above 1 on 32 fresh paired
+seeds per system, and the censoring goes the *helpful* way: A6b reaches the stringent threshold in
+32/32 seeds in all three systems where A0 reaches it in 27, 24 and 22, and a censored A0 seed is
+charged only the horizon rather than the longer time it would really have needed, so the quoted
+speedups are conservative *as speedups on that endpoint*. But ε₂ sits within 0.8–3.7 % of A0's own
+asymptote, so most of that number is the asymptote gap rather than a rate difference. The
+threshold-free reading is that the error ratio starts at exactly 1.000 when the allocation window
+opens and falls monotonically to 0.652 / 0.879 / 0.923 without ever reversing. **Both statements
+are true and the second is the one to build on.**
 
 **Q2 — what does keeping the physical mass cost?** More than all of the gain. A6c runs at
 0.65–0.81× plain ABF and its final error is 1.45–1.88× A0's. Retention `R_retain` is **negative in
@@ -192,6 +198,39 @@ almost no cross-cell information and Γ = σ²τ is a σ² map wearing a product
 real property of these benchmarks, not an estimator failure — but it means **this campaign did not
 test the τ half of the theory at all.** Γ is also very stable in time: Spearman(Γ early, Γ late) =
 0.98–0.99, so the allocator is not chasing its own noise.
+
+---
+
+## 5b. The gateway question: is the slow region the expensive region?
+
+The protocol asks specifically whether the gateway's slow-establishment region coincides with high
+`a(z)Γ(z)` — and warns that if it does not, the old gateway FR positive was not an IO mechanism
+and that has to be accepted. Measured on A0:
+
+| System | share of total `aΓ` in the constriction (\|z\| < 0.5) | share of domain | enrichment | top cells by `aΓ` |
+|---|---:|---:|---:|---|
+| **Gateway** | **97.7 %** | 25 % | **3.91×** | z = ±0.169, ±0.281 |
+| Bottleneck β=8 | 27.0 % | 25 % | 1.08× | z = ±0.506, ±0.619 |
+
+**On the gateway the answer is yes, and emphatically.** Nearly all of the information cost sits in
+the constriction, on its immediate shoulders at |z| ≈ 0.17–0.28 with a dip exactly at z = 0 — which
+is where `ω'` is largest and the `ω ω' y²` force term has its variance. The premise the theory
+rests on, that the region which is slow to establish is the region that is statistically expensive,
+holds in the system built to be establishment-limited.
+
+**But this does not show that the old gateway mFR positive was the IO mechanism, and the honest
+reading is that it probably was not.** The two arms aim at different objects: the mFR target is
+`q ∝ exp(−β(F_target − B))`, a *flattening* target that puts no special weight on the
+constriction, while `r*` here is sharply peaked on the constriction shoulders and at the shared
+floor almost everywhere else. Co-location of the *difficulty* with the constriction is not
+co-location of the two *targets*. Settling it needs the old mFR arm's realised occupancy measured
+against `r*` on the same seeds, which this campaign did not run. **Recorded as open, not as
+confirmation.**
+
+The contrast with β=8 is worth keeping. Same potential family, and its `aΓ` is essentially flat
+(1.08× enrichment): its Γ peaks on the *flanks* at |z| ≈ 0.5 and at the walls near |z| ≈ 1.3, not
+at the constriction. A narrow, severe gateway (s = 0.10, r = 32) concentrates difficulty; a wide,
+mild one (s = 0.25, ω_in = 25 at β = 8) spreads it. That is the axis a follow-up should sweep.
 
 ---
 
