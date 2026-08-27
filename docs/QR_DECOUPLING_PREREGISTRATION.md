@@ -210,10 +210,26 @@ and "easy" must not look alike. Single-cell estimates remain noisy at `n/τ ≈ 
 (±30%); the frozen shrinkage of 0.3 damps it, and it degrades toward *uniform*
 allocation rather than toward an actively wrong one.
 
-Still to do in 1B: validate `Γ̂` against `Γ_ref` from 4 seeds × 4T on the real
-engine -- rank correlation, multiplicative error, top-cell overlap. If `Γ̂` cannot
-see the K2/K3 difficulty inversion there, **do not run A4b/A5.** That is an
-estimator failure, not a method failure, and fixing it is Stage 1 work.
+**1B result (run 2026-08-27, 32 cells, 50k against 200k references, K=256, 4
+seeds). VERDICT: GO.**
+
+| cell | Spearman vs `Γ_ref` | median mult. error | top-cell overlap | spread recovered |
+| --- | --- | --- | --- | --- |
+| K0 | 0.984 | 0.118 | 1.000 | 78.9 / 99.5 = 79% |
+| K2 | 0.976 | 0.106 | 1.000 | 97.3 / 153.8 = 63% |
+| K3 | 0.976 | 0.088 | 1.000 | 87.7 / 174.5 = 50% |
+
+**K2 vs mirrored K3 rank correlation: 0.980.** The estimator sees the difficulty
+inversion, so the hard stop is cleared and A4b/A5/A6b/A6c may run.
+
+One bias to carry forward, and it is not neutral: `Γ̂` **systematically compresses
+the difficulty range**, and the compression grows with the range itself -- 79% of
+the reference spread recovered on K0, 63% on K2, 50% on K3. The direction is the
+safe one, since under-measuring difficulty pulls the allocation toward uniform
+rather than toward a confidently wrong profile. But it means any measured H2
+effect is a **lower bound** on what an exact `Γ` would deliver, and a null H2
+result could not be read as "difficulty does not matter" without checking whether
+the residual spread was large enough to act on.
 
 **1C -- is the diagonal `Cov(f̂)` assumption sound?** The ABF estimator smooths
 with `h=0.05` against a cell width of 0.1875, so cross-cell correlation should be
