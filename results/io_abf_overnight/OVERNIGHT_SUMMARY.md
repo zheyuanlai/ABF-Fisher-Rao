@@ -289,7 +289,47 @@ restricted to. What was run is recorded in §8; the confirmatory is the next ses
 
 ## 8. WCA A0-only difficulty screening
 
-STATUS_WCA_SCREENING
+**In progress at the time of writing** — 2 of 16 A0 calibration seeds complete, the remainder
+running on GPU 3, then the 8-seed paired pilot. Scored against `cache/phase_hp_v3`, never the
+default cache. What is already clear from the partial calibration, and why it matters:
+
+| | WCA (n=2) | β=4 | β=8 | gateway |
+|---|---:|---:|---:|---:|
+| R_σ² | **2.00** | 73.7 | 18.4 | 648.5 |
+| R_τ | **1.67** | 3.7 | 3.9 | 1.9 |
+| R_Γ | **1.68** | 20.6 | 12.5 | 124.7 |
+| valid-τ | **0.696** | 0.999 | 0.867 | 0.998 |
+| ρ_s(Γ early, late) | **0.674** | 0.981 | 0.980 | 0.992 |
+| e_A(T) median | 0.0747 | 0.0491 | 0.2064 | 0.0105 |
+
+**WCA's difficulty is nearly homogeneous, and that changes what its candidate arms test.** The
+decisive statistic is not R_Γ but whether Γ moves the target at all. Computing both targets from
+A0 data alone — the full `r* ∝ sqrt(aΓ̂)` and the pure-geometry `r* ∝ sqrt(a)`, both floored:
+
+| System | R_Γ | TV(r_aΓ, r_a) | max ratio |
+|---|---:|---:|---:|
+| β=4 | 20.1 | 0.199 | 2.03 |
+| β=8 | 11.1 | 0.158 | 1.92 |
+| gateway | 113.7 | 0.341 | 3.20 |
+| **WCA** | **1.56** | **0.016** | **1.08** |
+
+On WCA the information-optimal target **is** the pure-leverage target, to within 1.6 % total
+variation. So the WCA arm tests the *static geometric* half of the theory, not the difficulty half.
+A prediction to that effect — A6b should improve *less* there, error ratio ≥ 0.92 at the horizon —
+is registered in `wca/PREDICTION_BEFORE_CANDIDATES.md`, written with two A0 records on disk and no
+candidate run started, so it is checkable rather than retrofitted.
+
+**A hard measurement limit, stated with the flatness rather than after it.** WCA's τ is
+4.9e-4–1.0e-3 time units against a timestep of 2.0e-3 — a quarter to a half of *one step*. The
+lag-1 AR(1) fit is in its `φ → 0` failure mode and 30 % of scored cells return no valid fit, so the
+system is heading for the **`Gamma unresolved`** mark. No cadence fixes this; you cannot sample
+faster than `dt`. The σ² half *is* solidly measured and spans only 2.0×, so the defensible claim is
+"WCA's conditional force noise is nearly homogeneous and its correlation time is unmeasurable at
+this timestep" — **not** "WCA has flat Γ". The estimator will not be adjusted to rescue it.
+
+One thing WCA does better than the other three: its error is still falling at 0.6 T (final 0.0747
+against ε₂ = 0.0814, 8 % below rather than 0.8–3.7 %), so its time-to-accuracy endpoint is *less*
+degenerate than theirs — see §3b.
 
 ---
 
