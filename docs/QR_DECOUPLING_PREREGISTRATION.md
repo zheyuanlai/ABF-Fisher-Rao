@@ -247,9 +247,68 @@ to change anything would pass half a gate.
 
 Arms: **A0** plain ABF · **A1** legacy physical BD (failure control) · **A2**
 mass-only (identity gate) · **A3** count balancing · **A4a** `sqrt(a)` · **A4b**
-`sqrt(aΓ̂)` · **A5** `sqrt(aΓ̂+λq²)`, `ρ=0.5`. A3/A4a/A4b/A5 share one resampler,
-one gate, one floor, one rejuvenation rule and one RNG split; only `r*` differs.
-32 paired seeds (5200-5231). K0/K2/K3 confirmatory, K1 secondary dose.
+`sqrt(aΓ̂)` · **A5** `sqrt(aΓ̂+λq²)`, `ρ=0.5` · **A6a/A6b** the same `r*` as
+A4a/A4b, held by the **bias** instead of by birth--death. A3/A4a/A4b/A5 share
+one resampler, one gate, one floor, one rejuvenation rule and one RNG split;
+only `r*` differs. 32 paired seeds (5200-5231). K0/K2/K3 confirmatory, K1
+secondary dose.
+
+### Why A6 was added, and what it changes
+
+A replica density is exactly what a bias potential controls. Sampling under
+`A(z)` gives `p(z) ∝ exp(-β(F-A))`, so `A = F̂ + β⁻¹ log r*` makes `r*` the
+**stationary** occupancy -- no cloning, no genealogy, no leak between
+opportunities -- and the extra term is a function of `z` alone, so the fibre
+conditional and the mean-force estimator are untouched by the same invariance
+that licenses ABF itself.
+
+Three measurements forced it, each correcting the previous guess:
+
+1. The occupancy gate stopped the arms fighting count noise, but A4b still fired
+   at 22 of 24 opportunities and drove ancestor ESS to **8 of 256**.
+2. The allocation is **not** erased between opportunities -- imposed under the
+   exact bias it recovers only **36%** of the way back to equilibrium in 500
+   steps -- so leakage is not the explanation.
+3. Opportunity-to-opportunity drift in `r*` is **0.000** TV for A4a and 6% of
+   the target-occupancy gap for A4b, while the gap holds at 0.18-0.29. **The
+   target is stable.** The dynamics pull the population off it continuously and
+   birth--death buys a fraction back each time, at a genealogy cost it never
+   recovers.
+
+First smoke -- **one seed, 20k steps, final `e_F` rather than time-to-accuracy.
+Directional, not a verdict, and explicitly not a basis for selecting an arm:**
+
+| arm | mechanism | `e_F(T)` K0 | `e_F(T)` K2 | resamplings (K0) | ancestor ESS (K0) |
+| --- | --- | --- | --- | --- | --- |
+| A0 | none | 0.1238 | 0.2307 | 0 | 256 |
+| A3 | birth--death | 0.1502 | 0.2469 | 1 | 209 |
+| A4a | birth--death | 0.2102 | 0.2501 | 10 | 71 |
+| **A6a** | **bias** | **0.0789** | **0.1894** | 0 | 256 |
+| A4b | birth--death | 0.2675 | 0.2678 | 21 | 8 |
+| **A6b** | **bias** | **0.0527** | **0.0964** | 0 | 256 |
+
+Carrying an **identical** `r*`, the two mechanisms land on opposite sides of
+plain ABF, in both κ cells. And A6b beats A6a by 33% in K0 but **49% in K2** --
+the difficulty channel pays more where difficulty actually varies, which is the
+direction H2 predicts.
+
+One thing the table also says, and it is not comfortable: A6b's **mass ESS is
+0.000** in K2. The arm that wins does not represent `q_phys` at all. That is
+Case Q2-B arriving early, and the project-identity question it raises is live
+rather than hypothetical -- there is no bias-held counterpart to A5 yet.
+
+So the campaign's question sharpens:
+
+> **H7.** If a birth--death arm cannot beat the bias-held arm carrying the same
+> `r*`, then reallocation buys nothing a bias cannot, and what is left for it
+> lives in **establishment** -- moving mass into a newly discovered region
+> faster than diffusion can -- not in allocation. A4a vs A6a and A4b vs A6b are
+> the contrasts that decide this, because they hold `r*` and the information
+> fixed and vary only the mechanism.
+
+**Declared asymmetry, unchanged and now more important:** A3/A4/A5/A6 are told
+the evaluation window (through `a_j`); A0 cannot use it. Part of any margin over
+A0 is that extra input. The mechanism contrasts above are free of it.
 
 Primary `S^(T)_ε = E[min(τ^base,T)] / E[min(τ^method,T)]`, paired bootstrap,
 `P(τ≤T)` reported per arm. **If the candidate is censored more than its baseline,
