@@ -154,6 +154,13 @@ def test_A4a_needs_no_difficulty_estimator_and_A4b_does():
     arm.observe(np.zeros(4), np.zeros(4), np.zeros(4))
     assert arm._s2_n == 0, "A4a must not pay for an estimator it does not read"
 
+    # A2 does run it, and changes nothing else: that is what makes it the
+    # Stage-1B instrument rather than a second allocation arm.
+    a2 = qra.QRArm(qra.QRConfig(arm="A2"), 64, np.linspace(-3.0, 3.0, 161),
+                   np.ones(161, dtype=bool), BETA, 0.002, 10)
+    a2.observe(np.zeros(4), np.zeros(4), np.zeros(4))
+    assert a2._s2_n == 1
+
 
 def test_benefit_gate_can_suppress_a_resampling():
     """An opportunity is not an obligation."""

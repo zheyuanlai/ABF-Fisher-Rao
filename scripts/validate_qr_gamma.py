@@ -17,6 +17,9 @@ and it never reaches a candidate.
 
 ``Gamma_hat``: exactly what an arm would see mid-run -- the decomposed
 ``sigma^2 tau`` estimator reading the same eligible stream the accumulator does.
+Measured on **A2**, which runs the estimator and changes nothing else, so the
+validation is not comparing an estimator against dynamics it has itself
+perturbed.
 
 Reported
 --------
@@ -81,7 +84,7 @@ def run(cfg, seeds, x, ref, device):
 
 def gamma_reference(cell, x, ref, device, n_steps, n_particles, n_cells, seeds):
     """Long-run difficulty, offline.  Never reaches a candidate."""
-    cfg = base_cfg(cell, n_steps, n_particles, arm="A4b", n_cells=n_cells)
+    cfg = base_cfg(cell, n_steps, n_particles, arm="A2", n_cells=n_cells)
     cfg["qr"]["history_capacity"] = 100_000        # the whole run, for the fit
     res = run(cfg, seeds, x, ref, device)
     return res
@@ -116,7 +119,7 @@ def main():
     prof = {}
     for cell in ("K0", "K2", "K3"):
         short = run(base_cfg(cell, args.short_steps, args.particles,
-                             arm="A4b", n_cells=args.n_cells),
+                             arm="A2", n_cells=args.n_cells),
                     args.seeds, x, ref, device)
         long = gamma_reference(cell, x, ref, device, args.long_steps,
                                args.particles, args.n_cells, args.seeds)

@@ -93,8 +93,12 @@ MASS_ONLY = ("A2",)
 #: They never resample, so they pay no genealogy at all.
 BIAS_HELD = ("A6a", "A6b", "A6c")
 
-#: Arms that read the online difficulty estimator.
-USES_GAMMA = ("A4b", "A5", "A6b", "A6c")
+#: Arms that run the online difficulty estimator.  A2 is here not because it
+#: allocates -- it never changes a count -- but because it is the Stage-1B
+#: instrument: it measures Gamma_hat along *exactly* plain-ABF trajectories, so
+#: the validation compares the estimator against its reference without the
+#: arm under test having perturbed the dynamics it is measuring.
+USES_GAMMA = ("A2", "A4b", "A5", "A6b", "A6c")
 
 
 @dataclass
