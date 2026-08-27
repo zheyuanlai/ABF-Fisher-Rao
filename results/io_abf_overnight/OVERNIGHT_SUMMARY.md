@@ -83,6 +83,49 @@ knob that governs the trade — and it was deliberately **not** touched tonight.
 
 ---
 
+## 3b. What S(ε₂) is actually measuring — read this before quoting the speedups
+
+The frozen threshold is `ε₂ = median e_A(0.6 T)` from A0 calibration. On all three systems the ABF
+error curve has **already plateaued well before 0.6 T**, so ε₂ lands essentially *on* A0's own
+asymptote:
+
+| System | ε₂ | A0 final | A6b final | A0 final relative to ε₂ |
+|---|---:|---:|---:|---:|
+| β=4 | 0.05100 | 0.04911 | 0.03205 | **−3.7 %** |
+| β=8 | 0.21211 | 0.20637 | 0.18149 | **−2.7 %** |
+| gateway | 0.01063 | 0.01055 | 0.00973 | **−0.8 %** |
+
+So `τ(ε₂)` for A0 is "when does A0 first sit three frames at its own asymptote" — a fragile,
+noise-dominated quantity — while A6b, whose asymptote is 7–35 % lower, crosses early and in every
+seed. That is exactly the 32/32-vs-22/32 hit pattern, and it means **S(ε₂) is largely a
+re-expression of the asymptote gap rather than an independent measurement of rate.** The three
+speedups order the same way as the three final-accuracy ratios (1.694/0.652, 1.395/0.879,
+1.366/0.923), which is what one would expect if they are the same fact seen twice.
+
+The cleaner statistic is the error ratio at fixed times, which needs no threshold:
+
+| t / T | 0.2 | 0.3 | 0.4 | 0.5 | 0.6 | 0.7 | 0.8 | 0.9 | 1.0 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| β=4 | 1.000 | 0.787 | 0.712 | 0.702 | 0.676 | 0.676 | 0.659 | 0.653 | 0.652 |
+| β=8 | 1.000 | 1.001 | 0.980 | 0.960 | 0.950 | 0.927 | 0.909 | 0.892 | 0.879 |
+| gateway | 1.000 | 0.999 | 0.962 | 0.983 | 0.954 | 0.932 | 0.921 | 0.928 | 0.923 |
+
+Two things to take from it. The ratio is **exactly 1.000 at 0.2 T** in every system, which is the
+allocation window opening — the arms really do share their burn-in identically, so nothing before
+that point can be confounding the comparison. And the advantage then **grows monotonically and
+never reverses**, in contrast to the transient-gain-then-reversal signature that v2, v3 and
+clean-v2 all produced. On this evidence the honest claim is *"IO-ABF reaches a better free energy
+inside the scored window, and the advantage widens with time"* rather than *"IO-ABF converges
+1.4–1.7× faster"*. The preregistered endpoint stays the headline because it was frozen, but it
+should be quoted with this paragraph attached.
+
+A cleaner endpoint for the next campaign: set ε from a **fraction of the horizon at which the
+curve is still falling**, or use the time-integrated error, or run long enough that 0.6 T is not
+already asymptotic. All three thresholds here were frozen honestly and all three turned out to sit
+in the flat part of the curve.
+
+---
+
 ## 4. Q1–Q4, as preregistered
 
 **Q1 — does estimator-risk allocation accelerate ABF?** Yes, and reproducibly. S(ε₂) =
