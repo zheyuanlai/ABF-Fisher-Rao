@@ -93,7 +93,19 @@ the longer time it would really have needed, the quoted speedups are conservativ
 
 **Q2 — what does keeping the physical mass cost?** More than all of the gain. A6c runs at
 0.65–0.81× plain ABF and its final error is 1.45–1.88× A0's. Retention `R_retain` is **negative in
-all three systems** (−0.27, −0.61, −0.95). This is not an inactive constraint being blamed for
+all three systems** (−0.27, −0.61, −0.95) — though the ratio is the wrong statistic to read here,
+because it varies mostly through its denominator. The *absolute* cost is much steadier:
+`S_A6c − 1` is −0.19, −0.24, −0.35 while `S_A6b − 1` is +0.69, +0.40, +0.37. **A6c lands in about
+the same place regardless of how much A6b gained**, which is what one expects if the constraint,
+not the difficulty map, is what sets its target.
+
+Why it is this expensive is visible in the mechanism: `q ∝ exp(−βÂ)` on a 10–20 kT barrier is
+nearly two delta functions in the wells, and demanding `ESS_M/K ≥ 0.5` against a target that
+peaked forces `r` to be nearly as peaked. That is close to the *unbiased* occupancy — precisely
+the allocation ABF exists to escape. **ρ = 0.5 is a far more aggressive fidelity demand on a tall
+barrier than the same number was on the kappa family**, and that, not a defect, is the most likely
+reason Stage 2's 61–78 % retention does not survive the transfer. ρ was not swept, as preregistered;
+the ρ–speed Pareto curve is a clean next experiment, not a rescue of this one. This is not an inactive constraint being blamed for
 noise: P(λ > 0) = 1.000 at every opportunity in every system, mass ESS is pinned at exactly 0.500
 against 0.137–0.156 unconstrained, and TV(r_A6c, r_A6b) = 0.28–0.30. **Fisher–Rao is load-bearing
 in A6c and what it does is harmful to the free-energy endpoint.** The Stage-2 kappa result — that
