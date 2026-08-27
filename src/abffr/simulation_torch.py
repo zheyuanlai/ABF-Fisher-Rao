@@ -40,7 +40,7 @@ import torch
 
 from . import (clean_v2 as cv2, family as fam, fibre_diagnostics as fib,
                fr_v3, kappa_family as kfam, persistent_mass as pmass, potentials,
-               representation as rep, torch_utils as tu)
+               qr_arms as qra, representation as rep, torch_utils as tu)
 from .io_utils import RunSpec, make_rng_streams
 from .simulation import _init_positions  # reuse CPU init for matched seeds
 
@@ -61,6 +61,7 @@ class BatchResult:
     v3_events: Optional[List[Dict]] = None         # Amendment 4c diagnostics
     v4_events: Optional[List[Dict]] = None         # v4-A mass/representation
     clean_events: Optional[List[Dict]] = None      # clean-v2 per-FR-pulse rows
+    qr_events: Optional[List[Dict]] = None         # q-r arms per-opportunity
 
 
 # --------------------------------------------------------------------------- #
@@ -380,6 +381,29 @@ def run_batch(
     # restate a guarantee rather than establish one -- but they make the retired
     # knobs unreachable from the clean path even if the config gate is edited.
     clean = cv2.from_config(cfg)
+
+    # --- q-r decoupling arms: read and validate before anything is allocated --
+    qr_cfg = qra.config_from_dict(cfg)
+    if qr_cfg is not None:
+        for other, on in (("v3.operator != none",
+                           (cfg.get("v3", {}) or {}).get("operator", "none")
+                           not in (None, "none")),
+                          ("v4.enabled",
+                           bool((cfg.get("v4", {}) or {}).get("enabled", False))),
+                          ("clean_v2.enabled", clean is not None)):
+            if on:
+                raise ValueError(
+                    f"the qr arms replace {other}; run one allocation scheme "
+                    f"per run or a margin is unattributable")
+        if abf.get("observation_order", "pre_propagation") != "post_propagation":
+            raise ValueError(
+                "the qr arms read the same observation stream the accumulator "
+                "does, which the engine only builds on the post_propagation "
+                "path; set abf.observation_order: post_propagation")
+        if abf.get("estimator", "binned_smooth") == "kernel_reference":
+            raise ValueError(
+                "the qr arms need per-replica force observations, which the "
+                "kernel_reference estimator does not produce")
     if clean is not None:
         assert scheme is None, "clean-v2 and the v3 bias family are exclusive"
         if target_type not in cv2.TARGETS:
@@ -460,11 +484,30 @@ def run_batch(
               for _ in range(B)] if v4_on else []
     v4_rows = []
 
+    # --- q-r decoupling arms -------------------------------------------------
+    # A0 is qr absent.  A2 touches only the mass and consumes no randomness, so
+    # it is trajectory-identical to A0 by construction; A3/A4a/A4b/A5 differ
+    # from one another in r and in nothing else.
+    _eval_margin = float(cfg.get("evaluation", {}).get("margin", 0.5))
+    qr_mask_np = ((x_grid >= xmin + _eval_margin)
+                  & (x_grid <= xmax - _eval_margin))
+    qr_arms_list = [
+        qra.QRArm(qr_cfg, n_particles, x_grid, qr_mask_np, beta, dt,
+                  obs_interval=update_every)
+        for _ in range(B)] if qr_cfg is not None else []
+    qr_rows = []
+    qr_firing = (set(int(v) for v in qra.firing_steps(n_steps, qr_cfg))
+                 if qr_cfg is not None else set())
+    qr_generators = [
+        np.random.default_rng(tu.stable_seed("qr", base_seed, s.run_id) % (2**63))
+        for s in specs]
+
     v3_burn = int(round(v3_burnin_fraction * n_steps))
     v3_stop = int(round(v3_stop_fraction * n_steps))
     hold = torch.zeros((B, n_particles), device=device, dtype=torch.long)
     held_out_active = ((scheme is not None and v3_clone_policy == "holdout")
-                       or bool(cfg.get("v4", {}) and cfg["v4"].get("enabled")))
+                       or bool(cfg.get("v4", {}) and cfg["v4"].get("enabled"))
+                       or qr_cfg is not None)
     v3_opportunities = []          # asserted as a whole array by the A.3 gate
     v3_rows = []                   # Amendment 4c per-opportunity diagnostics
     ancestors = torch.arange(
@@ -664,6 +707,19 @@ def run_batch(
                 else:
                     C_acc += tu.scatter_grid(idx, G)
                     S_acc += tu.scatter_grid(idx, G, dvdx_prop)
+                if qr_cfg is not None and next_step % update_every == 0:
+                    # Same observations, same eligibility: a clone that may not
+                    # speak to the accumulator may not speak to Gamma_hat
+                    # either, or "cloned -> measures harder -> cloned again"
+                    # closes into the v3 oracle-flip shape.
+                    _fp_at = tu.interp1d(Fprime_hat, X_prop, x0, dx)
+                    _xs = X_prop.detach().cpu().numpy()
+                    _fs = dvdx_prop.detach().cpu().numpy()
+                    _ps = _fp_at.detach().cpu().numpy()
+                    _el = (hold == 0).detach().cpu().numpy()
+                    for _b in range(B):
+                        qr_arms_list[_b].observe(_xs[_b], _fs[_b], _ps[_b],
+                                                 _el[_b])
             if next_step % update_every == 0:
                 recompute_grid()
                 if clean is None:       # clean-v2 targets A_t itself, not an EMA
@@ -989,6 +1045,34 @@ def run_batch(
         elif v4_on and not do_fr_v4:
             X, Y = X_prop, Y_prop
 
+        if qr_cfg is not None and int(next_step) in qr_firing:
+            # Runs after the pass-through chain above has set X, Y and after
+            # this step's deposit, so a clone can never contribute the
+            # observation that justified creating it.
+            _A = F_hat.detach().cpu().numpy()
+            _xs = X.detach().cpu().numpy()
+            X_new, Y_new = X.clone(), Y.clone()
+            anc_new, hold_new = ancestors.clone(), hold.clone()
+            for b in range(B):
+                dec = qr_arms_list[b].opportunity(
+                    int(next_step), _xs[b], _A[b], qr_generators[b])
+                dec.row["row"] = b
+                qr_rows.append(dec.row)
+                if dec.src is None:
+                    continue
+                src_t = torch.as_tensor(dec.src, device=device,
+                                        dtype=torch.long)
+                X_new[b] = X[b][src_t]
+                Y_new[b] = Y[b][src_t]
+                anc_new[b] = ancestors[b][src_t]
+                hold_new[b] = torch.maximum(
+                    hold[b][src_t],
+                    torch.as_tensor(dec.hold, device=device, dtype=torch.long))
+                cumulative_replacements[b] += int(dec.row["n_replacements"])
+            X, Y, ancestors, hold = X_new, Y_new, anc_new, hold_new
+            cumulative_fr_events += torch.ones(B, device=device,
+                                               dtype=torch.long)
+
         if held_out_active:
             hold = (hold - 1).clamp_min(0)     # A.4: decrement after depositing
 
@@ -1038,6 +1122,10 @@ def run_batch(
         d["interval_scaled_clock"] = interval_scaled_clock
         d["x_tilt"] = x_tilt
         d["clean_v2"] = clean is not None
+        d["qr_arm"] = qr_cfg.arm if qr_cfg is not None else "A0"
+        if qr_cfg is not None:
+            d["qr_firing_steps"] = sorted(qr_firing)
+            d["qr_n_cells"] = int(qr_cfg.n_cells)
         d["score_clip"] = score_clip
         d["max_event_fraction"] = max_event_fraction
         if clean is not None:
@@ -1052,7 +1140,7 @@ def run_batch(
     return BatchResult(diags, runtime, str(device),
                        fr_opportunities=v3_opportunities,
                        v3_events=v3_rows, v4_events=v4_rows,
-                       clean_events=clean_rows)
+                       clean_events=clean_rows, qr_events=qr_rows)
 
 
 def _kl_grid(p_hat, q_grid, dx):

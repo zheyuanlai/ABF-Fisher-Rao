@@ -151,6 +151,33 @@ def resample_cells(cell_of_particle: np.ndarray, target_counts: np.ndarray,
                         duplicate_pairs=float(D_total), n_replacements=int(n_repl))
 
 
+def occupancy_chi2(counts: np.ndarray, target_counts: np.ndarray) -> float:
+    """``sum_j (n_j - n*_j)^2 / n*_j`` divided by the number of live cells.
+
+    The benefit statistic alone cannot gate, and the reason is worth stating
+    because it is not obvious.  ``sum_j g_j / r_j`` is convex in ``r``, so a
+    population that follows the target *exactly* still shows an apparent gain
+    from being equalised -- Jensen, not misallocation.  Measured on this
+    campaign's geometry (J = 32, K = 256, ~8 replicas per cell, counts drawn
+    from the target itself): median apparent benefit **0.136**, clearing a 0.10
+    gate **84%** of the time.  A gate that fires on five opportunities out of
+    eight is not a gate, and the genealogy it spends is real even though the
+    misallocation it corrects is not.
+
+    This statistic asks the prior question -- is the occupancy inconsistent with
+    the target *beyond sampling noise*?  Under multinomial fluctuation about the
+    target its expectation is 1 per live cell, so a threshold is a
+    dimensionless multiple of noise rather than a tuned quantity.
+    """
+    counts = np.asarray(counts, dtype=float)
+    target = np.asarray(target_counts, dtype=float)
+    live = target > 0
+    if not live.any():
+        return 0.0
+    return float(np.sum((counts[live] - target[live]) ** 2 / target[live])
+                 / live.sum())
+
+
 def resample_benefit(g: np.ndarray, r_now: np.ndarray,
                      r_star: np.ndarray) -> float:
     """Relative predicted risk reduction, ``(R_now - R_star) / R_now``.

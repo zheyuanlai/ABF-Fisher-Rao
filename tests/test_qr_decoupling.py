@@ -599,3 +599,65 @@ def test_conditional_variance_does_not_charge_a_steep_mean_force_to_noise():
     corrected = inf.conditional_force_variance(cell, trend + noise, trend, 1)[0]
     assert corrected < 0.5 * naive
     assert abs(corrected - 0.25) < 0.05
+
+
+# --------------------------------------------------------------------------- #
+# The occupancy gate: why the benefit statistic cannot gate on its own
+# --------------------------------------------------------------------------- #
+def test_benefit_statistic_fires_on_pure_sampling_noise():
+    """The defect the chi-square gate exists to fix, stated as a measurement.
+
+    ``sum_j g_j / r_j`` is convex, so a population drawn *from the target
+    itself* still shows an apparent gain from being equalised.  At this
+    campaign's geometry that apparent gain clears the 0.10 benefit gate most of
+    the time -- and the genealogy it would spend is real even though the
+    misallocation it corrects is not.
+    """
+    rng = np.random.default_rng(0)
+    J, K = 32, 256
+    r = al.apply_floor(al.r_uniform(J))
+    g = np.ones(J)
+    fired = np.mean([br.resample_benefit(g, rng.multinomial(K, r) / K, r) > 0.10
+                     for _ in range(400)])
+    assert fired > 0.5, (
+        f"only {fired:.2f} of on-target populations cleared the benefit gate; "
+        f"if this is ever small the chi-square gate is no longer needed")
+
+
+def test_occupancy_chi2_separates_noise_from_misallocation():
+    """Checked on the arms' real profiles, not on an invented skew.
+
+    The floor compresses an aggressive allocation a long way, so a
+    plausible-looking synthetic target can sit inside the noise while the
+    campaign's actual ones do not.  The realistic comparison is a population
+    that ABF has already flattened against each arm's target.
+
+    A3's target *is* roughly what ABF produces, so count balancing stands down
+    once the marginal is flat -- which is the correct adaptive behaviour and
+    not a defect: it intervenes early, when the population is not yet flat, and
+    stops paying genealogy when there is nothing left to fix.
+    """
+    J, K = 32, 256
+    x = np.linspace(-3.0, 3.0, 401)
+    mask = (x >= -2.5) & (x <= 2.5)
+    cell_of_grid = np.clip(np.digitize(x, np.linspace(-3.0, 3.0, J + 1)) - 1,
+                           0, J - 1)
+    a = al.cell_reduce(al.leverage(x, mask), cell_of_grid, J)
+    rng = np.random.default_rng(2)
+    flat = al.apply_floor(al.r_uniform(J))
+
+    def chi2_of(target):
+        want = al.desired_counts(al.apply_floor(target), K)
+        return float(np.median([br.occupancy_chi2(rng.multinomial(K, flat), want)
+                                for _ in range(300)]))
+
+    assert chi2_of(al.r_uniform(J)) < 2.0, "A3 must stand down on a flat marginal"
+    assert chi2_of(al.r_neyman(a)) > 3.0, "A4a must clear the gate"
+    assert chi2_of(al.r_neyman(a * np.linspace(1.0, 16.0, J))) > 3.0, (
+        "A4b must clear the gate")
+
+
+def test_occupancy_chi2_ignores_cells_the_target_leaves_empty():
+    counts = np.array([10, 0, 10])
+    want = np.array([10, 0, 10])
+    assert br.occupancy_chi2(counts, want) == 0.0
