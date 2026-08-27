@@ -711,3 +711,24 @@ def test_deadband_never_populates_a_cell_the_target_excludes():
     target = np.array([20, 20, 0, 0])
     out = al.deadband_counts(counts, target)
     assert out.sum() == 40 and out[2] == 0 and out[3] == 0
+
+
+def test_leverage_has_the_brownian_bridge_closed_form():
+    """``a(s) ∝ (s-L)(R-s)/(R-L)^2`` -- not a numerical accident.
+
+    The centred cumulative integral of an uncorrelated mean-force error is a
+    Brownian bridge on the evaluation window, and a bridge's pointwise variance
+    is exactly ``s(1-s)``.  So the leverage vanishing at the window edges and
+    peaking in the interior is a property of the endpoint's definition, not an
+    artefact of the grid -- which is what licenses quoting it as theory.
+    """
+    x = np.linspace(-3.0, 3.0, 401)
+    mask = (x >= -2.5) & (x <= 2.5)
+    a = al.leverage(x, mask)
+    L, R = x[mask][0], x[mask][-1]
+    bridge = np.where(mask, (x - L) * (R - x) / (R - L) ** 2, 0.0)
+    live = mask & (a > 0)
+    scale = np.sum(a[live] * bridge[live]) / np.sum(bridge[live] ** 2)
+    rel = np.abs(a[live] - scale * bridge[live]) / a[live].max()
+    assert rel.max() < 0.01, rel.max()
+    assert np.corrcoef(a[live], bridge[live])[0, 1] > 0.9999

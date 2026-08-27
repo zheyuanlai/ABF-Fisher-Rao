@@ -280,3 +280,43 @@ def test_bias_held_arm_actually_moves_the_occupancy():
     o6 = np.bincount(np.clip(np.digitize(x6, edges) - 1, 0, 15), minlength=16)
     tv = 0.5 * np.abs(o0 / o0.sum() - o6 / o6.sum()).sum()
     assert tv > 0.05, f"the bias increment moved the occupancy by only {tv:.3f}"
+
+
+# --------------------------------------------------------------------------- #
+# A6c -- the main candidate, and whether Fisher-Rao is actually doing anything
+# --------------------------------------------------------------------------- #
+def test_A6c_holds_its_mass_ess_floor_without_resampling():
+    res = _run(_cfg("A6c", n_steps=4000, rho=0.5))
+    rows = [r for r in res.qr_events if "fr_active" in r]
+    assert rows and not any(r["resampled"] for r in rows)
+    assert all(r["ess_predicted"] >= 0.5 - 1e-6 for r in rows)
+
+
+def test_A6c_records_whether_fisher_rao_was_active_at_all():
+    """The diagnostic that decides what an A6c win may be attributed to.
+
+    If ``lambda`` is zero almost always then ``r_A6c == r_A6b`` and the mass
+    layer contributed nothing, however well A6c performs.  A campaign that could
+    not tell those apart would be free to credit Fisher-Rao for a result it had
+    no part in.
+    """
+    res = _run(_cfg("A6c", n_steps=4000, rho=0.5))
+    rows = [r for r in res.qr_events if "fr_active" in r]
+    for key in ("fr_active", "tv_to_unconstrained", "mass_ess_unconstrained"):
+        assert all(key in r for r in rows), key
+    assert np.mean([r["fr_active"] for r in rows]) > 0.0, (
+        "the constraint never bound; A6c is A6b here and must be reported so")
+    assert np.mean([r["mass_ess_unconstrained"] for r in rows]) < 0.5, (
+        "if the unconstrained arm already meets rho, the constraint is vacuous")
+
+
+def test_A6c_is_more_constrained_than_A6b_and_says_so():
+    """A6c > A6b is not a hypothesis anyone should hold -- it is backwards."""
+    a6b = _run(_cfg("A6b", n_steps=3000))
+    a6c = _run(_cfg("A6c", n_steps=3000, rho=0.5))
+    rb = np.array([r["r_star"] for r in a6b.qr_events if "r_star" in r])
+    rc = np.array([r["r_star"] for r in a6c.qr_events if "r_star" in r])
+    n = min(len(rb), len(rc))
+    assert n > 0 and np.mean(
+        [0.5 * np.abs(rb[i] - rc[i]).sum() for i in range(n)]) > 0.01, (
+        "A6c and A6b produced the same allocation; the constraint is inactive")

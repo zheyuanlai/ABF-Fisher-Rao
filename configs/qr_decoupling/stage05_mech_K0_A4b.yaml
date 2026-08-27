@@ -1,0 +1,66 @@
+# q-r Stage 0.5 MECHANISM REPLICATION (Amendment 1): same r*, different
+# realisation.  8 fresh matched seeds; A4 and A6 differ ONLY in mechanism.
+# q-r Stage 0.5: arm A4b on kappa cell K0.
+# Every allocation setting below is shared by A3/A4a/A4b/A5 -- ONLY r differs.
+# See configs/qr_decoupling/_backbone.md.
+# Frozen protocol: docs/QR_DECOUPLING_PREREGISTRATION.md
+experiment_name: qr_stage05_mech_K0_A4b
+output_root: results/qr_decoupling/stage05_mechanism/K0/A4b
+backend: torch
+device: cuda
+dtype: float64
+batch_size_configs: 16
+
+methods: [abf_only]
+
+selection:
+  write_generic_best: false
+
+potential:
+  x_tilt: 0.1021665783
+
+domain:
+  x_min: -3.0
+  x_max: 3.0
+  y_min: -2.5
+  y_max: 3.5
+  nx_ref: 801
+  ny_ref: 801
+  nx_profile: 401
+
+kappa:
+  cell: K0
+
+simulation:
+  beta: 4.0
+  dt: 0.002
+  n_particles: 256
+  n_steps: 50000
+  eval_every: 500
+  seeds: [5300, 5301, 5302, 5303, 5304, 5305, 5306, 5307]
+  x_init_mode: uniform
+  y_init_mode: uniform
+
+abf:
+  estimator: binned_smooth
+  observation_order: post_propagation
+  h: 0.05
+  update_every: 10
+  min_count: 1.0
+
+fr:
+  enabled: false
+
+qr:
+  enabled: true
+  arm: A4b
+  n_cells: 32
+  opportunity_every: 500
+  burnin_fraction: 0.20
+  stop_fraction: 0.80
+  floor_fraction: 0.25
+  chi2_threshold: 2.0
+  benefit_threshold: 0.10
+  eps_gene: 0.1
+  history_capacity: 400
+  theta: 1.0

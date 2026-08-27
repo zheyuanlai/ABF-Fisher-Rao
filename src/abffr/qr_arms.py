@@ -18,6 +18,24 @@ The arms, and what differs between them::
     A5    r ∝ sqrt(a Gamma_hat + lam q^2)       ESS-constrained, rho frozen
     A6a   the same r as A4a, held by the BIAS instead of by birth--death
     A6b   the same r as A4b, held by the BIAS instead of by birth--death
+    A6c   r ∝ sqrt(a Gamma_hat + lam M^2), bias-held -- the main candidate
+
+A6c is where the Fisher--Rao layer earns its place.  ``M`` is the FR mass after
+the exact finite-time step ``M^+ ∝ M^(1-theta) q^theta``, and the constraint
+asks that the replica population still represent it at ``ESS_M / K >= rho``.  So
+the three objects stay separate and each answers its own question::
+
+    Fisher--Rao  ->  M_t     what probability mass each region should carry
+    Neyman       ->  r*_t    where physical trajectories should spend effort
+    adaptive bias->  p ~ r*  how that allocation is actually realised
+
+A6c solves a *more constrained* problem than A6b, so ``A6c > A6b`` is not a
+hypothesis anyone should hold -- it is backwards.  The question is how much
+acceleration survives the constraint, and whether the constraint is active at
+all: if ``lambda_t = 0`` almost always then ``r_A6c == r_A6b`` and Fisher--Rao
+contributed nothing, however well A6c performs.  That is why ``lambda_t``,
+``TV(r_A6c, r_A6b)`` and the unconstrained mass ESS are recorded on every
+opportunity rather than reconstructed afterwards.
 
 Why A6 exists
 -------------
@@ -66,17 +84,17 @@ from . import cell_mass as cm
 from . import information as inf
 
 #: Arms this module implements.  A0 is "not enabled", which is why it is absent.
-ARMS = ("A2", "A3", "A4a", "A4b", "A5", "A6a", "A6b")
+ARMS = ("A2", "A3", "A4a", "A4b", "A5", "A6a", "A6b", "A6c")
 
 #: Arms that never change replica counts.
 MASS_ONLY = ("A2",)
 
 #: Arms that hold their allocation with the bias rather than with birth--death.
 #: They never resample, so they pay no genealogy at all.
-BIAS_HELD = ("A6a", "A6b")
+BIAS_HELD = ("A6a", "A6b", "A6c")
 
 #: Arms that read the online difficulty estimator.
-USES_GAMMA = ("A4b", "A5", "A6b")
+USES_GAMMA = ("A4b", "A5", "A6b", "A6c")
 
 
 @dataclass
@@ -214,6 +232,11 @@ class QRArm:
             g = self.a_cell * self.gamma_hat()
             return (al.apply_floor(al.r_neyman(g), self.cfg.floor_fraction),
                     0.0, float("nan"))
+        if arm == "A6c":
+            g = self.a_cell * self.gamma_hat()
+            out = al.r_ess_constrained(g, q_cell, rho=float(self.cfg.rho))
+            return (al.apply_floor(out.r, self.cfg.floor_fraction),
+                    out.lam, out.ess_fraction)
         if arm == "A3":
             r, lam, ess = al.r_uniform(self.J), 0.0, float("nan")
         elif arm == "A4a":
@@ -271,9 +294,22 @@ class QRArm:
         if self.cfg.arm in BIAS_HELD:
             # The allocation is held by the bias, so an "opportunity" here only
             # refreshes the increment.  Nothing is cloned and nothing is killed.
-            r_target, _, _ = self.r_star(q_cell)
+            r_target, lam, ess_pred = self.r_star(q_cell)
             row["r_star"] = r_target.tolist()
             row["occupancy"] = (counts / self.K).tolist()
+            row["lam"] = float(lam)
+            row["ess_predicted"] = float(ess_pred)
+            if self.cfg.arm == "A6c":
+                # Is Fisher--Rao doing anything?  If the constraint is inactive
+                # then A6c IS A6b and no result of A6c's may be attributed to
+                # the mass layer, however well it performs.
+                free = al.apply_floor(
+                    al.r_neyman(self.a_cell * self.gamma_hat()),
+                    self.cfg.floor_fraction)
+                row["fr_active"] = bool(lam > 0.0)
+                row["tv_to_unconstrained"] = float(
+                    0.5 * np.abs(r_target - free).sum())
+                row["mass_ess_unconstrained"] = al.mass_ess_fraction(q_cell, free)
             self.rows.append(row)
             return QRDecision(row=row, bias_increment=self.bias_increment(r_target))
 

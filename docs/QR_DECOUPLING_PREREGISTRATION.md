@@ -220,49 +220,21 @@ with `h=0.05` against a cell width of 0.1875, so cross-cell correlation should b
 modest -- but report `‖Σ - diag Σ‖_F / ‖Σ‖_F`. If it is large, the theory owes a
 covariance-aware allocation and `r* ∝ sqrt(aΓ)` may not be quoted as exact.
 
-## Stage 2 -- the decisive κ-family experiment
+## Amendment 1 -- the mechanism changed, so the arms did
 
-`dY = -κ(X) ∂_y V dt + sqrt(2κ(X)/β) dW`. Mobility on the hidden coordinate
-alone leaves the invariant density -- and hence `F` and `q_phys` -- unchanged
-while moving conditional mixing. `κ_a(z) = exp(a h(z))` with `h` a fixed
-sinusoid the algorithm never sees; `a ∈ {0, log4, log16, -log16}` = K0/K1/K2/K3.
+`r*` says where physical trajectories should be. Birth--death was one way to put
+them there; it is not the natural one. Under a bias `A(z)` the marginal is
+`p_A ∝ exp(-β(F-A))`, so
 
-The invariance is exact, and stronger than "the stationary distribution happens
-to come out the same": the Fokker--Planck flux of `e^{-βV}` vanishes *pointwise*
-in each coordinate, `∂_yV ρ + β^{-1}∂_yρ = 0`, so multiplying the `y`-flux by any
-positive `κ` leaves it zero. There is no cancellation to check and no dependence
-on the shape of `h`.
+    A_t(z) = F̂_t(z) + β⁻¹ log r*_t(z)      ⟹      p_t(z) → r*_t(z)
 
-That exactness carries one implementation constraint, and it is the reason `κ`
-is written as a function of the reaction coordinate alone. **`κ` may depend on
-`x` but never on the hidden coordinate `y`.** With `κ(x)` the Itô term
-`∂_yy[(κ/β)ρ]` equals `∂_y[(κ/β)∂_yρ]` and the flux form holds; with `κ(x,y)` it
-does not, and the residual drift `β^{-1}∂_yκ` moves `F` -- which would make the
-instrument a confound of exactly the kind it was built to remove. **Gate 0I**
-therefore tests the *implemented integrator*, not the continuum statement: Euler
-stepping and wall reflection are `O(dt)` approximations, so the κ-difference in
-`F` is judged against the seed-to-seed spread at fixed `κ`, and the same runs
-must show `τ` actually splitting -- an instrument that preserves `F` by failing
-to change anything would pass half a gate.
+once `F̂_t ≈ F`. The allocation becomes the **stationary** state of the dynamics
+instead of something that has to be re-imposed against them, and because the
+added term depends on `z` alone the fibre conditional is unchanged --
+`μ_A(dx | ξ=z) = μ(dx | ξ=z)` -- so the ordinary unweighted ABF mean-force
+estimator stays justified. No cloning, no genealogy, no leak.
 
-Arms: **A0** plain ABF · **A1** legacy physical BD (failure control) · **A2**
-mass-only (identity gate) · **A3** count balancing · **A4a** `sqrt(a)` · **A4b**
-`sqrt(aΓ̂)` · **A5** `sqrt(aΓ̂+λq²)`, `ρ=0.5` · **A6a/A6b** the same `r*` as
-A4a/A4b, held by the **bias** instead of by birth--death. A3/A4a/A4b/A5 share
-one resampler, one gate, one floor, one rejuvenation rule and one RNG split;
-only `r*` differs. 32 paired seeds (5200-5231). K0/K2/K3 confirmatory, K1
-secondary dose.
-
-### Why A6 was added, and what it changes
-
-A replica density is exactly what a bias potential controls. Sampling under
-`A(z)` gives `p(z) ∝ exp(-β(F-A))`, so `A = F̂ + β⁻¹ log r*` makes `r*` the
-**stationary** occupancy -- no cloning, no genealogy, no leak between
-opportunities -- and the extra term is a function of `z` alone, so the fibre
-conditional and the mean-force estimator are untouched by the same invariance
-that licenses ABF itself.
-
-Three measurements forced it, each correcting the previous guess:
+Three measurements forced this, each correcting the previous guess:
 
 1. The occupancy gate stopped the arms fighting count noise, but A4b still fired
    at 22 of 24 opportunities and drove ancestor ESS to **8 of 256**.
@@ -275,10 +247,10 @@ Three measurements forced it, each correcting the previous guess:
    birth--death buys a fraction back each time, at a genealogy cost it never
    recovers.
 
-First smoke -- **one seed, 20k steps, final `e_F` rather than time-to-accuracy.
-Directional, not a verdict, and explicitly not a basis for selecting an arm:**
+Exploratory, one seed, 20k steps, final `e_F` rather than time-to-accuracy.
+**Directional, and explicitly not a basis for selecting an arm:**
 
-| arm | mechanism | `e_F(T)` K0 | `e_F(T)` K2 | resamplings (K0) | ancestor ESS (K0) |
+| arm | mechanism | K0 | K2 | resamplings (K0) | ancestor ESS (K0) |
 | --- | --- | --- | --- | --- | --- |
 | A0 | none | 0.1238 | 0.2307 | 0 | 256 |
 | A3 | birth--death | 0.1502 | 0.2469 | 1 | 209 |
@@ -287,28 +259,73 @@ Directional, not a verdict, and explicitly not a basis for selecting an arm:**
 | A4b | birth--death | 0.2675 | 0.2678 | 21 | 8 |
 | **A6b** | **bias** | **0.0527** | **0.0964** | 0 | 256 |
 
-Carrying an **identical** `r*`, the two mechanisms land on opposite sides of
-plain ABF, in both κ cells. And A6b beats A6a by 33% in K0 but **49% in K2** --
-the difficulty channel pays more where difficulty actually varies, which is the
-direction H2 predicts.
+### What this is NOT
 
-One thing the table also says, and it is not comfortable: A6b's **mass ESS is
-0.000** in K2. The arm that wins does not represent `q_phys` at all. That is
-Case Q2-B arriving early, and the project-identity question it raises is live
-rather than hypothetical -- there is no bias-held counterpart to A5 yet.
+**A6a and A6b are not Fisher--Rao particle reallocation.** They are
+information-optimal adaptive biasing: there is no reaction term, no birth or
+death, and no `q_phys`. The exploratory run makes the point itself -- A6b's mass
+ESS is **0.000** in K2, so the arm that wins does not represent the physical
+mass at all. Saying "we fixed Fisher--Rao by replacing birth--death with a bias"
+would be conceptually false.
 
-So the campaign's question sharpens:
+### A6c -- where Fisher--Rao earns its place
 
-> **H7.** If a birth--death arm cannot beat the bias-held arm carrying the same
-> `r*`, then reallocation buys nothing a bias cannot, and what is left for it
-> lives in **establishment** -- moving mass into a newly discovered region
-> faster than diffusion can -- not in allocation. A4a vs A6a and A4b vs A6b are
-> the contrasts that decide this, because they hold `r*` and the information
-> fixed and vary only the mechanism.
+Keep a genuine FR mass layer on cells with the exact finite-time step
+`M⁺ ∝ M^(1-θ) q^θ`, `q_t ∝ exp(-β F̂_t)`. Compute `g_j = a_j Γ̂_j`
+independently. Then require the replica population to still represent that mass:
 
-**Declared asymmetry, unchanged and now more important:** A3/A4/A5/A6 are told
-the evaluation window (through `a_j`); A0 cannot use it. Part of any margin over
-A0 is that extra input. The mechanism contrasts above are free of it.
+    min_r  Σ_j g_j / r_j      s.t.   Σ_j r_j = 1,   [Σ_j (M⁺_j)² / r_j]⁻¹ ≥ ρ
+
+    ⟹   r*_j ∝ sqrt( a_j Γ̂_j + λ_t (M⁺_j)² )
+
+realised through the same bias. Three objects, three questions:
+
+    Fisher--Rao   →  M_t     what probability mass each region should carry
+    Neyman        →  r*_t    where physical trajectories should spend effort
+    adaptive bias →  p ≈ r*  how that allocation is actually realised
+
+### Amended arm table
+
+| arm | desired `r` | realised by | role |
+| --- | --- | --- | --- |
+| A0 | uniform | ordinary ABF bias | baseline -- converged ABF *is* the uniform-`r` bias arm, so no separate one is needed |
+| A6a | `sqrt(a)` | bias | leverage only |
+| A6b | `sqrt(aΓ̂)` | bias | pure information optimum |
+| **A6c** | `sqrt(aΓ̂ + λM²)` | bias | **main candidate** |
+
+Mechanism controls only, never candidates: **A2** (mass-only identity, must equal
+A0), **A3** (legacy count balancing), **A4a**/**A4b** (identical `r` to A6a/A6b,
+birth--death realisation). **A4a and A4b are frozen: no further tuning of their
+resampling frequency.**
+
+### The leverage has a closed form
+
+`a(s) ∝ (s-L)(R-s)/(R-L)²` on the evaluation window, verified against the
+computed diagonal to 0.3% (correlation 0.9999993). The centred cumulative
+integral of an uncorrelated mean-force error is a Brownian bridge, and a
+bridge's pointwise variance is `s(1-s)`. So the leverage is a property of the
+endpoint's definition, not of the grid.
+
+**The confound this creates.** `a` vanishing at the window edges means A6a spends
+no effort where the metric does not score. Some of an A6a gain over A0 could be
+that alone. So **every A6 result reports both the primary `e_F` and a fixed
+full-domain `e_F`**, and the headline incremental claim is **A6b vs A6a**, which
+holds `a` fixed and varies only `Γ̂`.
+
+## Stage 0.5 -- the mechanism replication (runs before Stage 2)
+
+Same `r`, different realisation, 8 fresh matched seeds on K0 and K2:
+**A4a vs A6a** and **A4b vs A6b**, identical in every respect but mechanism.
+Report `D_r(t) = ‖r_empirical(t) - r*_t‖_TV`, ancestor ESS, `N_replacements`,
+`e_F(t)`. Prediction: the bias realisation tracks `r*` at no genealogy cost while
+birth--death repeatedly pays to oppose the natural dynamics. If it replicates,
+A4a/A4b are permanently demoted.
+
+## Stage 2 -- the decisive κ-family experiment
+
+`dY = -κ(X) ∂_y V dt + sqrt(2κ(X)/β) dW`, `κ_a(z) = exp(a(h(z)-1)/2)` with `h` a
+fixed sinusoid the algorithm never sees; K0/K1/K2/K3. 32 paired seeds
+(5200-5231). K0/K2/K3 confirmatory, K1 secondary dose.
 
 Primary `S^(T)_ε = E[min(τ^base,T)] / E[min(τ^method,T)]`, paired bootstrap,
 `P(τ≤T)` reported per arm. **If the candidate is censored more than its baseline,
@@ -316,19 +333,49 @@ that threshold cannot return a positive verdict** -- the clean-v2 amendment.
 
 | | Prediction |
 | --- | --- |
-| H1 | K0: `A4b ≈ A4a` within [0.95, 1.05]. Flat `Γ` ⇒ no information left to exploit. |
-| H2 | K2/K3: `A4b/A4a ≥ 1.10` and `A4b/A0 ≥ 1.15`, CI lower bound > 1 |
-| H3 | mirror: `r*_K3` mirrors `r*_K2` while `q` is unchanged -- allocation tracks difficulty, not density |
-| H4 | `A2 ≡ A0` on `F̂`. Otherwise mass leaked into the estimator; fail the campaign. |
-| H5 | `A5/A3 ≥ 1.10` **and** mass ESS ≥ 0.5 **and** `A5` retains ≥ 80% of A4b's margin over A0 |
-| H6 | A4a's margin does not relax back by `T` (the edge-evacuation confound) |
+| H1 | K0: `A6b ≈ A6a` within [0.95, 1.05]. Flat `Γ` ⇒ nothing left for the difficulty channel. The corrected "theory predicts its own tie" -- it is **not** stated against uniform, which `a` alone already beats. |
+| H2 | K2/K3: `S_{A6b/A6a} ≥ 1.10` at the stringent threshold, paired 95% CI lower bound > 1. **The cleanest test that `Γ̂` does useful work**, and what the κ-family was built for. |
+| H3 | `S_{A6b/A0} ≥ 1.15`. Secondary to H2: A6b carries both `a` and `Γ̂`, so this cannot separate them. |
+| H4 | A6c keeps `ESS_M/K ≥ ρ = 0.5` **by construction**, and retains `R_retain = (S_{A6c/A0}-1)/(S_{A6b/A0}-1) ≥ 0.8`. A6c solves a *more constrained* problem than A6b, so `A6c > A6b` is backwards and is not hypothesised. This is a viability criterion, not an optimality theorem. |
+| H5 | mirror: `r*_K3` mirrors `r*_K2` while `q` is unchanged -- allocation tracks difficulty, not density |
+| H6 | `A2 ≡ A0` on `F̂`. Otherwise mass leaked into the estimator; fail the campaign. |
+| H7 | mechanism: `A6a > A4a` and `A6b > A4b` at identical `r*` (Stage 0.5) |
 
-**Kill criteria.** Q2-A (`A4b > A4a > A3`, A5 holds ESS): continue. Q2-B (A4b
-wins, A5 does not): information allocation works, insisting on `q_phys` costs it
--- the method is variance-aware ABF and the project's identity must be restated.
-Q2-C (`A4b ≈ A4a` in K2/K3 with `Γ̂` validated in 1B): Neyman hypothesis
-falsified; stop. Q2-D (nothing beats A0): population reallocation does not buy
-finite-time ABF acceleration; **stop the direction -- no benchmark shopping.**
+### The FR-relevance diagnostic, and why it is preregistered
+
+Record `λ_t` on every opportunity. If `λ_t = 0` almost always then
+`r*_A6c = r*_A6b` and **Fisher--Rao contributed nothing, however well A6c
+performs.** So also report `P(λ_t > 0)`, `‖r_A6c - r_A6b‖_TV`, and A6b's
+unconstrained mass ESS. Measured on a short A6c run: `P(λ>0) = 1.00`,
+`TV = 0.162`, mass ESS 0.500 constrained against 0.199 unconstrained -- the
+constraint is strongly active, which is what makes K2 the informative cell.
+
+### Decision tree
+
+- **A.** `A6b > A6a > A0`, `A6c ≈ A6b`, `ESS_M/K ≥ 0.5`, `λ > 0`. Information-optimal
+  sampling accelerates ABF **and** the FR physical mass is retained cheaply. The
+  q/r-decoupled FR project survives.
+- **B.** `A6b > A6a > A0` but A6c loses most of the gain. Optimal allocation works and
+  `q_phys` representation conflicts with it. The strongest method is then not an FR
+  method; pivot to information-optimal ABF and say so.
+- **C.** `A6a > A0` but `A6b ≈ A6a`. The benefit is `a(z)`, not hidden difficulty --
+  metric-aware allocation, not a `Γ`-adaptive theory. Simpler, still real.
+- **D.** Fresh-seed A6a/A6b do not beat A0. The one-seed pilot misled us. **Stop before
+  molecular transfer.**
+
+### Novelty, stated before the result rather than after
+
+"Choose a target distribution and construct a bias that realises it" is **not** new:
+that is the framing of VES and OPES, and optimised-ensemble work has long used local
+dynamical difficulty to allocate effort toward hard regions. ABF has also been combined
+with further adaptive bias mechanisms (meta-eABF, WTM-eABF, FK-eABF). So the claim
+cannot be "we use another bias to make the RC marginal non-uniform." What may be new is
+narrower and must be stated that way:
+
+> derive the optimal replica marginal from the **actual free-energy estimator risk**,
+> including the leverage `a(z)` and the local difficulty `Γ(z)`; estimate it **online
+> without landscape knowledge**; and reconcile it optimally with a **separate physical
+> Fisher--Rao mass**.
 
 ## Stages 3-5 -- only on Q2-A
 

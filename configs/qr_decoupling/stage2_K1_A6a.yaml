@@ -1,9 +1,9 @@
-# q-r Stage 2, decisive: arm A5 on kappa cell K3.
+# q-r Stage 2, decisive: arm A4b on kappa cell K1.
 # Every allocation setting below is shared by A3/A4a/A4b/A5 -- ONLY r differs.
 # See configs/qr_decoupling/_backbone.md.
 # Frozen protocol: docs/QR_DECOUPLING_PREREGISTRATION.md
-experiment_name: qr_stage2_K3_A5
-output_root: results/qr_decoupling/stage2/K3/A5
+experiment_name: qr_stage2_K1_A6a
+output_root: results/qr_decoupling/stage2/K1/A6a
 backend: torch
 device: cuda
 dtype: float64
@@ -27,7 +27,7 @@ domain:
   nx_profile: 401
 
 kappa:
-  cell: K3
+  cell: K1
 
 simulation:
   beta: 4.0
@@ -51,7 +51,7 @@ fr:
 
 qr:
   enabled: true
-  arm: A5
+  arm: A6a
   n_cells: 32
   opportunity_every: 500
   burnin_fraction: 0.20
@@ -62,4 +62,3 @@ qr:
   eps_gene: 0.1
   history_capacity: 400
   theta: 1.0
-  rho: 0.5
