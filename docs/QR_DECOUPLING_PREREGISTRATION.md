@@ -430,70 +430,94 @@ narrower and must be stated that way:
 > without landscape knowledge**; and reconcile it optimally with a **separate physical
 > Fisher--Rao mass**.
 
-## Stage 2 Phase 1 result -- confirmatory, 32 seeds, K0/K2/K3
+## Stage 2 RESULT -- complete, 32 configs x 32 seeds = 1024 runs
 
 Preregistered endpoint: restricted time-to-accuracy, three consecutive frames
-under threshold, paired bootstrap. No censoring veto triggered anywhere -- the
-candidates were censored *less* than the baseline, which also makes every
-speedup below a lower bound (a baseline capped at `T` understates how much
-slower it really is).
+under a frozen threshold, paired bootstrap on shared seeds.
 
-| contrast | K0 `ε₁`/`ε₂` | K2 `ε₁`/`ε₂` | K3 `ε₁`/`ε₂` |
-| --- | --- | --- | --- |
-| A6a/A0 | 1.23 / 1.34 | 1.13 / 1.18 | 1.16 / 1.18 |
-| **A6b/A0** | **1.55 / 1.87** | **1.60 / 1.80** | **1.61 / 1.84** |
-| A6c/A0 | 1.43 / 1.62 | 1.46 / 1.52 | 1.58 / 1.74 |
-| **A6b/A6a** | **1.27 / 1.39** | **1.41 / 1.52** | **1.38 / 1.56** |
-| A6c/A6b | 0.92 / 0.87 | 0.91 / 0.85 | 0.98 / 0.95 |
+### Candidates -- every contrast faster in every cell
 
-**H3 passes decisively.** `A6b/A0` is 1.55-1.87 in every cell, every CI far above
-the 1.15 bar.
+| contrast | K0 `ε₁`/`ε₂` | K1 | K2 | K3 |
+| --- | --- | --- | --- | --- |
+| A6a/A0 | 1.23 / 1.34 | 1.20 / 1.27 | 1.13 / 1.18 | 1.16 / 1.18 |
+| **A6b/A0** | **1.55 / 1.87** | **1.57 / 1.86** | **1.60 / 1.80** | **1.61 / 1.84** |
+| A6c/A0 | 1.43 / 1.62 | 1.41 / 1.52 | 1.46 / 1.52 | 1.58 / 1.74 |
+| **A6b/A6a** | **1.27 / 1.39** | **1.32 / 1.47** | **1.41 / 1.52** | **1.38 / 1.56** |
 
-**H2 passes on its stated terms** -- K2 1.41/1.52, K3 1.38/1.56, CIs clear of 1.
+### Controls -- every birth--death arm slower, and more censored
 
-**H1 is falsified, and its premise was wrong.** K0 gives `A6b/A6a` = 1.27 [1.22,
-1.31] and 1.39 [1.34, 1.45], not the predicted [0.95, 1.05]. The reason is in
-our own Stage-1B data: the **measured `Γ_ref` spread on K0 is 99.5×**. K0 was
-never a flat-`Γ` control -- it is only a cell with no *added* heterogeneity, and
-the potential's own conditional difficulty already varies by two orders of
-magnitude. So the difficulty channel had plenty to find there, and finding it is
-the correct behaviour.
+| contrast | K0 | K1 | K2 | K3 | `P(hit)` at `ε₂` |
+| --- | --- | --- | --- | --- | --- |
+| A3/A0 | 0.84 / 0.78 | 0.78 / 0.74 | 0.78 / 0.79 | 0.64 / 0.74 | 0.03-0.62 vs base 0.72-0.97 |
+| A4a/A0 | 0.45 / 0.60 | 0.45 / 0.60 | 0.64 / 0.72 | 0.51 / 0.74 | **0.00-0.12** |
+| A4b/A0 | 0.45 / 0.60 | 0.44 / 0.60 | 0.61 / 0.71 | 0.50 / 0.74 | **0.00-0.09** |
 
-This weakens the κ-family as a *discriminator*, and the weakening should be
-stated rather than absorbed. All three cells carry large spread (99.5 / 153.8 /
-174.5), so K2/K3 against K0 is a **dose-response** contrast, not
-presence-versus-absence. The dose-response does run the right way -- K0 1.27-1.39
-against K2 1.41-1.52 and K3 1.38-1.56 -- but a genuine tie prediction would need
-a cell whose `Γ` is verified flat, which this family does not contain. **Do not
-quote H1 as a passed tie test; it was never testable as written.**
+The censoring veto is **asymmetric by preregistration** and this is why it
+matters: extra censoring in a candidate *flatters* it, since a run that never
+arrives has its `τ` capped at `T` rather than counted as the larger number it
+really is. So the veto blocks positives only, and these arms being both slower
+and more censored means the true slowdown is **larger** than the ratios show. At
+the stringent threshold A4a and A4b reach the accuracy in **0% of seeds** in
+K0/K1/K3.
 
-It also shows why the exploratory stage may not decide anything: Stage 0.5 on K0
-(8 seeds, final error) gave `A6a/A6b` = 0.94, the opposite sign to the
-confirmatory 1.27-1.39 on the frozen endpoint.
+### Verdict per hypothesis
 
-**H4 fails on two cells of three.** Retention `(S_A6c/A0 - 1)/(S_A6b/A0 - 1)`:
+| | outcome |
+| --- | --- |
+| **H3** `A6b/A0 ≥ 1.15` | **PASS**, all four cells, 1.55-1.87, every CI far clear |
+| **H2** K2/K3 `A6b/A6a ≥ 1.10` | **PASS**, 1.38-1.56, CIs clear of 1 |
+| **H1** K0 tie in [0.95, 1.05] | **FALSIFIED -- and untestable as written** (below) |
+| **H4** A6c retains ≥ 80% | **FAIL 3 of 4**: K0 78/72%, K1 71/61%, K2 77/65%; K3 96/88% PASS |
+| **H6** `A2 ≡ A0` | **PASS** (below) |
+| **H7** mechanism | **PASS** overwhelmingly -- birth--death 0.44-0.74× and censored more |
 
-| cell | `ε₁` | `ε₂` | |
-| --- | --- | --- | --- |
-| K0 | 78.1% | 71.6% | FAIL |
-| K2 | 76.9% | 65.3% | FAIL |
-| K3 | 95.7% | 88.4% | PASS |
+**H1 was never testable.** K0's *measured* `Γ_ref` spread is **99.5×** (Stage 1B).
+K0 is not a flat-`Γ` control, only a cell with no *added* heterogeneity; the
+potential's own conditional difficulty already spans two orders of magnitude. All
+four cells carry large spread (99.5 / 153.8 / 174.5), so K2/K3 against K0 is a
+**dose-response** contrast, not presence-versus-absence. The dose-response runs
+the right way (K0 1.27-1.39 against K2 1.41-1.52), but **H1 must not be quoted as
+a passed tie test.** A real tie prediction needs a cell with `Γ` verified flat,
+which this family does not contain -- that is the design's one genuine gap.
 
-**But Fisher--Rao is genuinely load-bearing in A6c.** `P(λ>0) = 1.000` in all three
-cells, `TV(r_A6c, r_A6b)` = 0.25-0.26, mass ESS 0.500 constrained against
-0.090-0.112 unconstrained. The constraint is active at every opportunity and
-moves the allocation substantially, so A6c's performance *can* be attributed to
-the mass layer -- which is exactly the attribution the diagnostic was
-preregistered to decide, and it decides in favour.
+Related: Stage 0.5 on K0 gave `A6a/A6b` = 0.94, the *opposite sign* to the
+confirmatory 1.27-1.39. The exploratory stage decided nothing, as designed.
 
-**Reading against the decision tree: this is Outcome B, not A.** Information-optimal
-allocation accelerates ABF strongly and reproducibly (`A6b/A0` up to 1.87×), and
-insisting on a faithful physical mass costs **roughly a quarter to a third of
-that gain** on two cells of three. A6c is not useless -- it still beats plain ABF
-by 1.43-1.74× while holding `ESS_M/K ≥ 0.5`, where the unconstrained arm sits at
-0.09-0.11. But it does not clear the preregistered viability bar, so the honest
-headline is that the strongest method here is **information-optimal ABF**, with
-the Fisher--Rao mass available as a priced option rather than as free.
+**H6 passes, and the check that establishes it is the control, not the number.**
+Across processes on GPU, `A2` differs from `A0` by 1.41e-06 in `e_F`. Re-running
+`A0` against *itself* in a second process differs by 1.13e-06 -- the same order.
+The difference is GPU cross-process non-determinism, not a mass leak, and the
+in-process Gate 0D remains bit-exact. A number alone could not have separated
+those two explanations.
+
+**Fisher--Rao is load-bearing in A6c.** `P(λ>0) = 1.000` in all four cells,
+`TV(r_A6c, r_A6b)` = 0.25-0.26, mass ESS 0.500 against 0.090-0.112 unconstrained.
+The constraint binds at every opportunity, so A6c's performance genuinely
+belongs to the mass layer. The attribution diagnostic decided in favour -- A6c
+simply does not clear the viability bar.
+
+**Full-domain safety metric.** `A6b` on K2 shows the largest window effect
+(primary 0.0549, full-domain 0.0739, ratio 1.35), so it does concentrate effort
+where the metric scores. But A6b's full-domain error still beats A0's
+full-domain error (0.1372) by 1.86×, so the conclusion survives the confound.
+
+### Reading against the decision tree: **Outcome B**
+
+`A6b > A6a > A0` everywhere, and A6c holds `ESS_M ≥ 0.5` with `λ > 0` -- but it
+retains only 61-78% of A6b's margin on three cells of four. So:
+
+> Optimal replica allocation accelerates ABF strongly and reproducibly, and
+> representing the physical `q_phys` alongside it **costs roughly a quarter to
+> two fifths of that gain.**
+
+Per the tree, the honest conclusion is that the strongest method here is
+**information-optimal ABF**, with the Fisher--Rao mass a priced option rather
+than free. The project's identity should be restated rather than the FR framing
+defended. And the novelty claim stated before the result stands unchanged: not
+"a bias makes the marginal non-uniform" -- which is VES/OPES framing -- but
+deriving `r*` from the actual estimator risk including `a(z)` and `Γ(z)`,
+estimating it online with no landscape knowledge, and pricing its conflict with
+a physical Fisher--Rao mass.
 
 ## Stages 3-5 -- only on Q2-A
 

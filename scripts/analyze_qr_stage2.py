@@ -85,12 +85,21 @@ def main():
             for key in ("eps_1", "eps_2"):
                 eps = thr[cell][key]
                 S, lo, hi, pb, pm, n = restricted_speedup(base, meth, eps, T)
-                if pm < pb - 1e-9:
-                    verdict = "NO VERDICT (candidate censored more)"
-                elif lo > 1.0:
-                    verdict = "faster"
+                # The veto is ASYMMETRIC by preregistration: extra censoring in
+                # the candidate flatters it, because a run that never arrives
+                # has its tau capped at T instead of counted as the larger
+                # number it really is.  So it can only block a POSITIVE.  A
+                # candidate that is both slower and more censored is worse than
+                # the ratio says, and refusing to report that would be the veto
+                # working against its own purpose.
+                censored_more = pm < pb - 1e-9
+                if lo > 1.0:
+                    verdict = ("NO VERDICT (censored more)" if censored_more
+                               else "faster")
                 elif hi < 1.0:
-                    verdict = "SLOWER"
+                    verdict = ("SLOWER" + (" (and censored more: the true "
+                                           "slowdown is larger)"
+                                           if censored_more else ""))
                 else:
                     verdict = "tie"
                 print(f"{cell:>5} {name:>10} {eps:7.4f} {S:7.3f} "
