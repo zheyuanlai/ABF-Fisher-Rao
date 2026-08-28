@@ -8,19 +8,22 @@ written and committed **before** any scientific run. No criterion in it was chan
 
 ## 1. One-paragraph answer
 
-**Information-optimal allocation transfers, and it costs something the kappa family could not
-show.** On the three systems that completed, A6b reaches the frozen stringent accuracy faster than
-plain ABF — S(ε₂) = 1.37–1.69, every paired 95 % CI clear of 1, and A6b hits the threshold in
-**32/32 seeds in all three systems** where A0 manages only 22–27 — and it is also *more* accurate
-than ABF at the horizon inside the evaluation window. But the preregistered full-domain
-correctness guard fails in two systems of three. The reason is not a bug: the leverage `a(z)` is
-exactly zero outside the evaluation mask, so `r* ∝ sqrt(a Γ)` assigns those cells only the shared
-floor, and their free energy degrades. **IO-ABF buys accuracy where the endpoint scores it by
-spending accuracy where it does not.** Only the entropic bottleneck at β = 8 clears the guard, so
-by the frozen rule it is the campaign's single POSITIVE. A6c — the same mechanism with the genuine
-Fisher–Rao mass constrained to ESS_M/K ≥ 0.5 — is **worse than plain ABF in every system**
-(S = 0.65–0.81), and Fisher–Rao is demonstrably load-bearing in it, so this is a real price on
-representing `q_phys`, not an inactive constraint.
+**Information-optimal allocation transfers to three systems of four, and both the way it pays and
+the way it breaks are now measured.** On the two entropic-bottleneck cells and the gateway, A6b
+reaches the frozen stringent accuracy faster than plain ABF — S(ε₂) = 1.37–1.69, every paired 95 %
+CI clear of 1, threshold reached in **32/32 seeds in all three** where A0 manages 22–27 — and it is
+also *more* accurate than ABF at the horizon inside the evaluation window. But the preregistered
+full-domain correctness guard fails in two of those three: the leverage `a(z)` is exactly zero
+outside the evaluation mask, so `r* ∝ sqrt(aΓ)` gives those cells only the shared floor and their
+free energy degrades. **IO-ABF buys accuracy where the endpoint scores it by spending accuracy
+where it does not.** Only the entropic bottleneck at β = 8 clears the guard, so by the frozen rule
+it is the campaign's single POSITIVE. On the fourth system, the WCA dimer, **A6b is 44 % *worse*
+than plain ABF** — and the reason is not the difficulty theory (which was inert there) but the
+realisation: the bias term `β⁻¹∇log r*` is unbounded and scales as 1/β, so at WCA's β = 1 it
+applies a force 2.35× the physical mean force. A6c — the same mechanism with the genuine
+Fisher–Rao mass constrained to ESS_M/K ≥ 0.5 — is **worse than plain ABF in all four systems**,
+with Fisher–Rao demonstrably load-bearing, so that is a real price on representing `q_phys`, not an
+inactive constraint.
 
 ---
 
@@ -31,7 +34,7 @@ representing `q_phys`, not an inactive constraint.
 | Bottleneck β=4 | control | 21.6 | **1.694** | [1.281, 2.136] | 1.00/0.84 | 0.810 | 0.500 | 0.652 | 1.399 | **NOT POSITIVE** |
 | Bottleneck β=8 | candidate | 12.4 | **1.395** | [1.313, 1.478] | 1.00/0.75 | 0.757 | 0.500 | 0.879 | 1.031 | **POSITIVE** |
 | Entropic gateway | candidate | 123.7 | **1.366** | [1.158, 1.600] | 1.00/0.69 | 0.652 | 0.500 | 0.923 | 1.880 | **NOT POSITIVE** |
-| WCA dimer | candidate | see §8 | — | — | — | — | — | — | — | **gate PASSES; ran out of GPU-hours, see §7–8** |
+| WCA dimer | candidate | 1.8 | *0.595* | *unpaired* | 0.00/0.92 | *0.595* | 0.500 | **1.441** | **1.708** | **NEGATIVE** (pilot, unpaired) |
 
 Preregistered checks, A6b vs A0:
 
@@ -369,6 +372,91 @@ elsewhere — the top of the same range, not a different regime. §3b's caveat a
 
 ---
 
+## 8a. The WCA pilot — a clear negative, and a defect it exposed in the engine
+
+**A6b and A6c are both substantially worse than plain ABF on the WCA dimer**, and this is the
+system the plan called the most important physical benchmark.
+
+| arm | n | e_A(T) median | IQR | full-domain | hit ε₂ | ratio to A0 | 95 % CI | Mann–Whitney |
+|---|---:|---:|---:|---:|---:|---:|:--:|---:|
+| A0 | 24 | 0.07593 | 0.00284 | 0.09273 | 22/24 | 1.000 | — | — |
+| **A6b** | 8 | 0.10945 | 0.00415 | 0.15887 | **0/8** | **1.441** | [1.412, 1.489] | p = 9.5e-08 |
+| **A6c** | 8 | 0.09733 | 0.00291 | 0.12499 | **0/8** | **1.282** | [1.253, 1.316] | p = 9.5e-08 |
+
+The error ratio is above 1 at every fraction of the horizon and grows: 1.111 / 1.288 / 1.353 /
+1.391 / 1.448 at t/T = 0.2 … 1.0. Note also that **A6c is *better* than A6b here** — the reverse of
+every other system. The ESS constraint pulls the target back toward `q`, partially undoing a
+reallocation that is doing harm.
+
+### The pairing did not hold, and that is an engine defect, not an analysis choice
+
+The 1.111 ratio at 0.2 T — where the allocation window has only just opened and the arms should
+still be identical — was the tell. Tested directly: **two runs of plain ABF with the same seed in
+the same process differ by 0.53 in the PMF.** The WCA sampler is not reproducible run to run at
+all, presumably through non-deterministic CUDA atomics in the force accumulation amplified by
+chaotic dynamics in float32. The instrumentation is *not* the cause — an A0-instrumented run
+differs from an uninstrumented one by 0.22, which is *less* than two uninstrumented runs differ
+from each other.
+
+So the WCA arms were never paired, and the paired bootstrap in `analyze_io_abf_wca.py` does not
+apply to them. **The table above is therefore the unpaired comparison**: 24 independent A0 runs
+(16 calibration + 8 pilot) against 8 each of A6b and A6c, Mann–Whitney and an unpaired bootstrap.
+The negative survives easily — plain ABF's own run-to-run spread is 10–90 % within [0.0730,
+0.0791], about ±4 %, against a 44 % degradation.
+
+> **This corrects a note in my own memory** which recorded WCA determinism as holding *within* a
+> process and failing only across processes. Measured tonight, it fails within a process too. Any
+> future WCA arm comparison must be analysed as unpaired, or the engine must be made deterministic
+> first.
+
+### Why it fails: the allocation force is unbounded, and it scales as 1/β
+
+The realisation is `B_t = Â_t + β⁻¹ log r*`, so the applied force carries `β⁻¹ ∇log r*`. **Nothing
+bounds that term, and it grows as β falls.** WCA runs at β = 1; the other three at β = 4, 8, 16.
+
+| System | β | rms alloc force | max alloc force | rms \|F′_ref\| | rms ratio | max ratio |
+|---|---:|---:|---:|---:|---:|---:|
+| β=4 | 4 | 0.620 | 1.330 | 13.617 | 0.046 | 0.098 |
+| β=8 | 8 | 0.421 | 1.292 | 13.552 | 0.031 | 0.095 |
+| gateway | 16 | 0.264 | 0.873 | 2.732 | 0.097 | 0.320 |
+| **WCA** | **1** | **4.813** | **16.864** | 7.179 | **0.670** | **2.349** |
+
+On the three systems where IO-ABF helped, the allocation is a 3–10 % perturbation of the physical
+mean force. **On WCA it is 67 % in RMS and 235 % at its peak** — it is not a reweighting of the
+sampling, it is the dominant force in the reaction coordinate. The target itself is unremarkable
+(`r*` spans 0.0078–0.0509 against a uniform 0.0312, a log-range of 1.88 over a domain of width
+1.4); what differs is that at β = 1 the same target costs sixteen times the force it would at
+β = 16.
+
+**This is a real gap in the method as specified, and it is the single most actionable result of the
+night.** The ABF part of the bias already carries `abf_force_clip = 40`; the allocation part
+carries nothing. A cap, or a β-aware limit on target sharpness, is the obvious fix — and it was
+deliberately **not** applied tonight, because inventing a knob after seeing the result is exactly
+what the preregistration forbids. It is the next experiment, not a rescue of this one.
+
+### The registered prediction, checked mechanically
+
+Registered before any candidate ran: *"A6b should improve less on WCA — error ratio at the horizon
+≥ 0.92"*, with *"ratio < 0.65 falsifies the mechanism"*. Observed: **1.448**. The stated one-sided
+bound is satisfied and the falsifier is not triggered, so the check formally passes — but **the
+spirit of the prediction failed**: I predicted a *modest gain* from the geometric factor alone and
+what happened was substantial *harm*. Recording it as a pass and moving on would be the wrong
+reading. What the prediction got right is that WCA behaves differently from the heterogeneous
+systems; what it missed is the direction, because it reasoned about the *target* and the damage
+came from the *force needed to realise it*.
+
+### What may and may not be concluded
+
+* WCA is marked **`Gamma unresolved`** (valid-τ 0.676), so this failure **may not be attributed to
+  the difficulty theory**. And it should not be: on WCA the IO target *is* the pure-leverage target
+  (TV 0.012), so the difficulty channel was inert and had nothing to fail at.
+* What did fail is the **realisation**: holding a geometric reallocation with the bias, at β = 1,
+  applied a force comparable to the physics.
+* This is a **pilot** (8 seeds per arm). Under the protocol a pilot is an implementation check and
+  no algorithm change follows it. The confirmatory was not run.
+
+---
+
 ## 8b. The pilots, and a winner's-curse note
 
 The 8-seed pilots were implementation checks only and **no algorithm change followed any of
@@ -463,8 +551,11 @@ if anything it *understates* the candidate arms — so the direction of every re
 
 ## 11. What was not done, and why
 
-* **WCA A6b/A6c confirmatory** — the reference gate PASSES (§7); what stopped it was GPU-hours,
-  not validity. ~29 h on one GPU for the preregistered design.
+* **WCA A6b/A6c confirmatory** — the reference gate passes and the A0 calibration and 8-seed
+  pilot both ran (§8, §8a); the 32-seed confirmatory is ~18 h more on one GPU. Given the pilot's
+  size and direction (44 % worse, p = 9.5e-08 unpaired) the confirmatory should not be run until
+  the unbounded-allocation-force problem in §8a is addressed — it would only measure the same
+  defect more precisely.
 * **Molecular Γ screening** (butane, pentane φ₁, alanine, pentane R₁₅, deca) — three of the five
   have periodic torsion CVs, and the plan explicitly rules out building the periodic leverage
   operator tonight. Of the two non-periodic candidates, deca is excluded by classification and

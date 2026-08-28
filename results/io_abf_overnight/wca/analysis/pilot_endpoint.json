@@ -1,0 +1,116 @@
+{
+  "system": "wca",
+  "phase": "pilot",
+  "n_seeds": 8,
+  "seeds": [
+    2000,
+    2001,
+    2002,
+    2003,
+    2004,
+    2005,
+    2006,
+    2007
+  ],
+  "T": 500.0,
+  "eps1": 0.08340175954949981,
+  "eps2": 0.07916607611543289,
+  "gamma_unresolved": true,
+  "R_gamma": 1.7887638405611685,
+  "reference": "cache/phase_hp_v3/wca_ti_b1_h2_w2_n10_a1.5_g160.npz",
+  "arms": {
+    "A0": {
+      "arm": "A0",
+      "S_eps1": 1.0,
+      "S_eps1_ci": [
+        1.0,
+        1.0
+      ],
+      "hit_eps1": 1.0,
+      "S_eps2": 1.0,
+      "S_eps2_ci": [
+        1.0,
+        1.0
+      ],
+      "hit_eps2": 0.875,
+      "final_median": 0.07558746794094681,
+      "final_full_median": 0.09301714194948887,
+      "final_ratio_to_A0": 1.0,
+      "final_full_ratio_to_A0": 1.0,
+      "ratio_at_fractions": {
+        "0.2": 1.0,
+        "0.4": 1.0,
+        "0.6": 1.0,
+        "0.8": 1.0,
+        "1.0": 1.0
+      }
+    },
+    "A6b": {
+      "arm": "A6b",
+      "S_eps1": 0.4575,
+      "S_eps1_ci": [
+        0.32125,
+        0.6037812499999996
+      ],
+      "hit_eps1": 0.0,
+      "S_eps2": 0.595,
+      "S_eps2_ci": [
+        0.4175,
+        0.78125
+      ],
+      "hit_eps2": 0.0,
+      "final_median": 0.10945034433631896,
+      "final_full_median": 0.15886637844863938,
+      "final_ratio_to_A0": 1.4479959088168919,
+      "final_full_ratio_to_A0": 1.707925820112906,
+      "ratio_at_fractions": {
+        "0.2": 1.1107343090565223,
+        "0.4": 1.288221948617503,
+        "0.6": 1.3526848672117342,
+        "0.8": 1.391329892731162,
+        "1.0": 1.4479959088168919
+      }
+    },
+    "A6c": {
+      "arm": "A6c",
+      "S_eps1": 0.4575,
+      "S_eps1_ci": [
+        0.32125,
+        0.6037812499999996
+      ],
+      "hit_eps1": 0.0,
+      "S_eps2": 0.595,
+      "S_eps2_ci": [
+        0.4175,
+        0.78125
+      ],
+      "hit_eps2": 0.0,
+      "final_median": 0.09733283444813429,
+      "final_full_median": 0.12499026182146214,
+      "final_ratio_to_A0": 1.2876848120402205,
+      "final_full_ratio_to_A0": 1.3437336301876017,
+      "ratio_at_fractions": {
+        "0.2": 0.9293868041319452,
+        "0.4": 1.170319842914406,
+        "0.6": 1.2247923240287064,
+        "0.8": 1.2507308825361796,
+        "1.0": 1.2876848120402205
+      }
+    }
+  },
+  "verdict_checks": {
+    "speedup_at_least_1_15": false,
+    "ci_lower_above_1": false,
+    "censoring_not_worse": false,
+    "final_within_10pct": false,
+    "final_full_within_10pct": false
+  },
+  "verdict": "NOT POSITIVE",
+  "prediction_check": {
+    "registered": "ratio at horizon >= 0.92 (leverage-only, not difficulty)",
+    "observed": 1.4479959088168919,
+    "holds": true,
+    "falsifier": "ratio < 0.65 would mean the gain does not follow Gamma",
+    "falsified": false
+  }
+}
