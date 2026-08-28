@@ -19,5 +19,7 @@ export CUDA_VISIBLE_DEVICES=3
   python -u scripts/run_prescribed_r.py --phase 4
   echo "--- prescribed-r analysis (phases 1/2/4 gates) ---"
   OMP_NUM_THREADS=8 python -u scripts/analyze_prescribed_r.py
+  echo "--- phase 5 model validation (physics only, no arms) ---"
+  python -u scripts/validate_tau_bench.py
   echo "=== mechanism chain done $(date -u +%FT%TZ) ==="
 } >> "$LOG" 2>&1
