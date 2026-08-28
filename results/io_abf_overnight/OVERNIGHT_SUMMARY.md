@@ -43,8 +43,17 @@ Preregistered checks, A6b vs A0:
 | Bottleneck β=4 | PASS | PASS | PASS | PASS | **FAIL** |
 | Bottleneck β=8 | PASS | PASS | PASS | PASS | PASS |
 | Entropic gateway | PASS | PASS | PASS | PASS | **FAIL** |
+| WCA dimer (pilot) | **FAIL** | **FAIL** | **FAIL** | **FAIL** | **FAIL** |
 
-Four of the five checks pass everywhere. The campaign turns entirely on the fifth.
+On the three systems where the allocation helps, four of the five checks pass everywhere and the
+campaign turns entirely on the fifth. WCA fails all five, for a reason that is neither the guard
+nor the difficulty theory — see §8a.
+
+WCA's row in the headline is italicised because the WCA engine is **not reproducible run to run**
+(§8a), so its arms are not paired and `S(ε₂)` and the paired CI do not apply to it. The
+defensible WCA numbers are the unpaired ones: A6b's error at the horizon is **1.441× A0's**
+(95 % CI [1.412, 1.489], Mann–Whitney p = 9.5e-08 against 24 independent A0 runs), and A6b reaches
+the frozen threshold in 0 of 8 runs against A0's 22 of 24.
 
 ---
 
