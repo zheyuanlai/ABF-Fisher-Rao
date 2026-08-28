@@ -30,11 +30,17 @@ import tau_bench_core as tb                                       # noqa: E402
 import eb_abffr_core as eb                                        # noqa: E402
 from abffr import io_abf                                          # noqa: E402
 
-OUT = os.path.join(ROOT, "results", "qr_mechanism", "phase5_arms")
 ARMS = ("A0", "A6a", "A6b")
 SEEDS = list(range(16))
-T_TOTAL = 160.0
-H_ABF, MIN_COUNT = 0.07, 1.0
+#: v2 design, after the v1 eta_bias gate FAILED at 0.9893: the kernel bias
+#: (prop h^4 in b'Qb) was ~90x the variance term (prop 1/h) at h = 0.07,
+#: T = 160.  h = 0.02 cuts b'Qb ~150x while raising variance ~3.5x, and T = 40
+#: raises variance 4x more: predicted eta_bias ~ 0.04.  The arms were never
+#: compared under v1 -- the gate stopped the analysis -- so this is benchmark
+#: design iteration, not tuning on a result.
+OUT = os.path.join(ROOT, "results", "qr_mechanism", "phase5_arms_v2")
+T_TOTAL = 40.0
+H_ABF, MIN_COUNT = 0.02, 1.0
 
 
 def main():
