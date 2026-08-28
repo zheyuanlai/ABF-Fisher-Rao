@@ -30,24 +30,11 @@ import tau_bench_core as tb                                       # noqa: E402
 import eb_abffr_core as eb                                        # noqa: E402
 from abffr import io_abf                                          # noqa: E402
 
+OUT = os.path.join(ROOT, "results", "qr_mechanism", "phase5_arms")
 ARMS = ("A0", "A6a", "A6b")
 SEEDS = list(range(16))
-#: v2 design, after the v1 eta_bias gate FAILED at 0.9893: the kernel bias
-#: (prop h^4 in b'Qb) was ~90x the variance term (prop 1/h) at h = 0.07,
-#: T = 160.  h = 0.02 cuts b'Qb ~150x while raising variance ~3.5x, and T = 40
-#: raises variance 4x more: predicted eta_bias ~ 0.04.
-#:
-#: Honest qualification: the v1 verdict PRINTED the per-arm decomposition before
-#: refusing the Neyman claim, so those numbers were visible when v2 was designed
-#: and this is not a blind iteration.  What v2's parameters were derived from is
-#: the A0 bias/variance SCALING alone (b'Qb ~ h^4; tr(Q Sigma) ~ 1/h and ~1/t),
-#: not the arm ranking -- and the v1 ranking (A6a lowest MSE, A6b lowest
-#: tr(Q Sigma)) is not what h = 0.02 and T = 40 were chosen to produce.  The v1
-#: artifacts stay at results/qr_mechanism/phase5_arms/, produced by this script
-#: as of commit e6c12cb.
-OUT = os.path.join(ROOT, "results", "qr_mechanism", "phase5_arms_v2")
-T_TOTAL = 40.0
-H_ABF, MIN_COUNT = 0.02, 1.0
+T_TOTAL = 160.0
+H_ABF, MIN_COUNT = 0.07, 1.0
 
 
 def main():

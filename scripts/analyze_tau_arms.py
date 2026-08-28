@@ -29,7 +29,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 from abffr import allocation as al                                # noqa: E402
 
-OUT = os.path.join(ROOT, "results", "qr_mechanism", "phase5_arms_v2")
+OUT = os.path.join(ROOT, "results", "qr_mechanism", "phase5_arms")
 ARMS = ("A0", "A6a", "A6b")
 
 

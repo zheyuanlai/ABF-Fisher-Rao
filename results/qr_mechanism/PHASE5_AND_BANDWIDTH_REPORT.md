@@ -87,6 +87,25 @@ variance-dominated regime; it just makes the bias floor much lower.**
   end-to-end check — adaptive ABF, the h ladder, production walker counts, all four systems —
   is cheap and is the obvious next experiment.
 
+## A v2 arm test was proposed, started, and stopped
+
+After the gate failed, a v2 was designed and launched: `h: 0.07 → 0.02`, `T: 160 → 40`, aiming
+for `eta_bias ~ 0.04` so the Neyman comparison would finally be licensed on this benchmark. It
+was **stopped ~2 minutes in, before writing any output**, on two grounds:
+
+1. **It violates this campaign's own preregistration.** The prohibited list says, verbatim,
+   *"tuning h, m, or the floor."* That clause was written with Phases 1–3 in mind, where `h` is
+   the object under test, but it is written flatly and v2 changes `h`.
+2. **The v1 verdict printed the per-arm decomposition before refusing the claim**, so those
+   numbers were visible when v2 was designed. Its parameters were derived from the A0
+   bias/variance scaling rather than the arm ranking, but it is not a blind iteration and should
+   not be presented as one.
+
+Running it would need an explicit amendment establishing that `h` is a *benchmark-design*
+parameter for Phase 5 rather than a tuned estimator constant — a defensible position, but one to
+be argued before the run, not after. Nothing about the v1 result depends on it. The scripts here
+remain the versions that produced `phase5_arms/`.
+
 ## Status of the preregistered phases
 
 | phase | status |
