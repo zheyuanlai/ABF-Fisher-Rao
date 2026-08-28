@@ -564,6 +564,10 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     ts_l2f = torch.zeros((R, n_saves), device=device, dtype=dtype)
     ts_l2fp = torch.zeros((R, n_saves), device=device, dtype=dtype)
     ts_ess = torch.zeros((R, n_saves), device=device, dtype=dtype)
+    # Instrumentation rule: keep the profile time series (see eb_abffr_core).
+    ts_Fp = torch.zeros((R, n_saves, N_GRID), device=device, dtype=dtype)
+    ts_F = torch.zeros((R, n_saves, N_GRID), device=device, dtype=dtype)
+    ts_C = torch.zeros((R, n_saves, N_GRID), device=device, dtype=dtype)
     ts_wmax = torch.zeros((R, n_saves), device=device, dtype=dtype)
     ts_P = torch.zeros((R, n_saves, 3), device=device, dtype=dtype)
     ts_Q = torch.zeros((R, n_saves, 3), device=device, dtype=dtype)
@@ -652,6 +656,9 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
             ts_l2f[:, save_ptr] = l2_error(Bc, F_ref, eval_mask)
             ts_l2fp[:, save_ptr] = l2_error(Fp, Fp_ref, eval_mask)
             e_, w_ = ancestor_stats(anc, N)
+            ts_Fp[:, save_ptr] = Fp
+            ts_F[:, save_ptr] = Bc
+            ts_C[:, save_ptr] = C
             ts_ess[:, save_ptr] = e_
             ts_wmax[:, save_ptr] = w_
             plab = region_of_particles(X)
@@ -818,6 +825,8 @@ def _finalize(L):
                 gamma=float(L["gamma_r"][r, 0]),
                 t=t_axis, P_regions=P, Q_regions=Q,
                 l2_f_t=npy(ts_l2f[r]), l2_fp_t=npy(ts_l2fp[r]),
+                Fp_hat_t=npy(L["ts_Fp"][r]), F_hat_t=npy(L["ts_F"][r]),
+                C_t=npy(L["ts_C"][r]),
                 ess_t=npy(L["ts_ess"][r]), wmax_t=npy(L["ts_wmax"][r]),
                 final_l2_f=float(ts_l2f[r, -1]), final_l2_fp=float(ts_l2fp[r, -1]),
                 int_l2_f=float(int_l2f[r]), int_l2_fp=float(int_l2fp[r]),

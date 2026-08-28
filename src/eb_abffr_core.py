@@ -519,6 +519,13 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     ts_l2f = torch.zeros((R, n_saves), device=device, dtype=dtype)
     ts_l2fp = torch.zeros((R, n_saves), device=device, dtype=dtype)
     ts_ess = torch.zeros((R, n_saves), device=device, dtype=dtype)
+    # Instrumentation rule (docs/MECHANISM_CAMPAIGN_PREREGISTRATION.md): keep the
+    # profile time series.  The risk-model audit could not be time-resolved on
+    # this engine because only the final profile survived; the bias model
+    # consumes cumulative exposure C_t, not the instantaneous occupancy.
+    ts_Fp = torch.zeros((R, n_saves, N_GRID), device=device, dtype=dtype)
+    ts_F = torch.zeros((R, n_saves, N_GRID), device=device, dtype=dtype)
+    ts_C = torch.zeros((R, n_saves, N_GRID), device=device, dtype=dtype)
     save_set = set(save_steps); save_ptr = 0
     tot_die = torch.zeros(R, device=device, dtype=dtype)
     tot_clone = torch.zeros(R, device=device, dtype=dtype)
@@ -622,6 +629,9 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
             ts_l2f[:, save_ptr] = l2_error(Bc, F_ref, eval_mask)
             ts_l2fp[:, save_ptr] = l2_error(Fp, Fp_ref, eval_mask)
             ts_ess[:, save_ptr] = ancestor_ess(anc, N)
+            ts_Fp[:, save_ptr] = Fp
+            ts_F[:, save_ptr] = Bc
+            ts_C[:, save_ptr] = C
             if io_alloc is not None:
                 # Reported alongside the primary metric because the leverage a(z)
                 # is zero outside the mask: without this, "the arm abandoned the
@@ -746,6 +756,9 @@ def _finalize(L):
                 "t": t_axis,
                 "l2_f_t": npy(ts_l2f[r]),
                 "l2_fp_t": npy(ts_l2fp[r]),
+                "Fp_hat_t": npy(L["ts_Fp"][r]),
+                "F_hat_t": npy(L["ts_F"][r]),
+                "C_t": npy(L["ts_C"][r]),
                 "ess_t": npy(ts_ess[r]),
                 "final_ess": float(ts_ess[r, -1]),
                 "x_grid": npy(x_grid),
