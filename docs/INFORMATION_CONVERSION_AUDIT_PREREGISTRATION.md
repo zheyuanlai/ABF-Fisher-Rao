@@ -278,3 +278,35 @@ and NaNs recorded; raw tables retained. Negative results are reported as negativ
 ## Amendments
 
 (append-only, timestamped, with reason)
+
+### Amendment 1 — 2026-08-28, after Stage 0A, BEFORE any Stage-0C/0D computation
+
+**Observation.** The frozen reference machinery returned `tau_max(eval)` = 0.096
+(K2) / 0.108 (K3) time units, so H = 49/55 steps and M/ΣC ≈ 0.5% of the
+checkpoint's accumulated observations. The campaign's own recorded one-off
+measurements (comment block in `abffr/information.py`, commit `a52e955`) put the
+slow-cell force decorrelation at ~4.7 time units at fixed x and ~1.2 with
+x-motion — an order of magnitude above the A2 cell-mean-series τ̂, which is
+shortened by cell-population turnover. The A2 τ̂ is validated as an input to
+Γ̂ = σ²τ̂; as an estimate of the *fibre* decorrelation the horizon rule intends,
+it is now known to be a large underestimate.
+
+**What does NOT change.** Stage 0D runs exactly as frozen: H from the A2
+machinery, the 0.10 gate, and the stop semantics. No FR runs if the frozen gate
+stops. No experimental arm, dose, target, or endpoint changes.
+
+**What is added (reported-only).** A sensitivity sidecar, computed from the
+already-saved Stage-0 checkpoint counts by pure arithmetic (no simulation of any
+experimental arm, no FR): `G_ideal(H')` on the horizon grid
+`H' ∈ {H_frozen, 250, 600, 1200, 2350, 6000}` steps, plus `H_fib` derived from a
+fixed-x fibre τ measured at the cell centres with the frozen AR(1) estimator
+(`information.tau_from_lag1` applied per-walker at fixed x — the frozen
+estimator, the Gate-0I sampling design). These numbers are attribution context
+for a possible `NO_FINITE_HORIZON_ALLOCATION_OPPORTUNITY` verdict — whether the
+stop means "no exploitable heterogeneity at this checkpoint" or "none within a
+horizon that is short by construction". They cannot change tonight's verdict,
+cannot license FR runs tonight, and are not inputs to any gate.
+
+**Reason recorded before the gate:** this amendment is written before any
+`C_j`, `pi*`, or `G_ideal` has been computed, so it cannot be outcome-contingent
+on the gate it annotates.
