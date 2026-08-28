@@ -44,18 +44,21 @@ def main():
     # equilibrate under the UNBIASED dynamics? No: bias with the exact A' so x
     # mixes across the wells; the conditional at fixed x is unaffected.
     dx = float(xg[1] - xg[0])
-    io_cfg = io_abf.IOConfig(n_cells=32, obs_every=5, opportunity_every=10_000)
+    # J = 16: cell width 0.225 puts t_cross ~ 0.10 ~ 12 tau_max.  obs_every = 10
+    # gives an observation interval of 1e-4 = tau_min / 5.
+    io_cfg = io_abf.IOConfig(n_cells=16, obs_every=10, opportunity_every=100_000,
+                             history_capacity=20_000)
     alloc = io_abf.IOAllocator(["A0"] * R, xg, emask,
                                np.full(R, cfg.beta), cfg.dt, io_cfg,
                                device=device, dtype=dtype)
-    n_steps = 60_000
+    n_steps = 200_000
     for step in range(n_steps):
         fx = tb.local_force(X, Y, cfg)
         fp_at = torch.zeros_like(X)
         # applied force: -dV/dx + A'(x)  (exact bias, so occupancy ~ uniform)
         ix = torch.clamp(torch.round((X - tb.XMIN) / dx).long(), 0, tb.N_GRID - 1)
         applied = -fx + Ap_ref[ix]
-        if step >= 20_000 and step % io_cfg.obs_every == 0:
+        if step >= 50_000 and step % io_cfg.obs_every == 0:
             alloc.observe(X, fx, fp_at * 0 + Ap_ref[ix])
         X, Y = tb.step_xy(X, Y, applied, cfg, gen, device, dtype)
 
@@ -64,7 +67,7 @@ def main():
     edges = alloc.edges
     centres = 0.5 * (edges[1:] + edges[:-1])
     kap_c = tb.kappa_of(torch.as_tensor(centres), cfg).numpy()
-    tau_true = 1.0 / (cfg.k * kap_c)
+    tau_true = np.array([cfg.tau_of_kappa(float(kk)) for kk in kap_c])
     scored = alloc.a_cell > 0
 
     # V1: sigma^2 constancy
@@ -88,8 +91,9 @@ def main():
           % (v1_spread, v1_level))
     print("V2  tau: spearman(hat, true) = %.3f, level ratio = %.3f, "
           "valid fraction = %.3f" % (v2_rho, v2_level, v2_validfrac))
+    tmin2, tmax2 = cfg.tau_range()
     print("    Gamma spread Q90/Q10 = %.2f (design: %.1f from tau alone)"
-          % (v_g_spread, math.exp(cfg.a_kappa)))
+          % (v_g_spread, tmax2 / tmin2))
     gates = dict(
         v1_sigma_flat=bool(v1_spread < 1.5),
         v1_sigma_level=bool(0.8 < v1_level < 1.2),
