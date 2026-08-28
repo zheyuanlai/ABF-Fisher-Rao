@@ -1,0 +1,43 @@
+{
+ "campaign": "information_conversion_audit",
+ "verdict": "NO_FINITE_HORIZON_ALLOCATION_OPPORTUNITY",
+ "frozen_horizon": {
+  "K2": {
+   "H": 49,
+   "tau_max_A2": 0.096,
+   "median_G_ideal": 0.052
+  },
+  "K3": {
+   "H": 55,
+   "tau_max_A2": 0.108,
+   "median_G_ideal": 0.0673
+  }
+ },
+ "gate": {
+  "rule": "median G_ideal < 0.10 in BOTH cells",
+  "fired": true
+ },
+ "fr_pulses_executed": 0,
+ "asymptotic_opportunity": {
+  "K2": 0.6526,
+  "K3": 0.6561
+ },
+ "amendment1_sensitivity": {
+  "note": "reported-only; cannot change the verdict or license FR",
+  "tau_fibre_max": {
+   "K2": 5.27,
+   "K3": 4.65
+  },
+  "H_fibre": {
+   "K2": 2635,
+   "K3": 2325
+  },
+  "median_G_ideal_at_H_fibre": {
+   "K2": 0.54,
+   "K3": 0.539
+  }
+ },
+ "independent_reanalysis": "SLSQP agrees with water-filling per seed to <2e-4",
+ "commit": "25c2279712bbd65ecb54f95790ade1dfc9e62bdf",
+ "when": "2026-08-28 18:41:00"
+}

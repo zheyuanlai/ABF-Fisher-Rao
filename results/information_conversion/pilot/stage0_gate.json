@@ -1,0 +1,141 @@
+{
+ "median_G_ideal": {
+  "K2": 0.051998840073289976,
+  "K3": 0.06727257773679246
+ },
+ "g_ideal_min": 0.1,
+ "receipt": {
+  "commit": "25c2279712bbd65ecb54f95790ade1dfc9e62bdf",
+  "torch": "2.12.0+cu130",
+  "cuda": "13.0",
+  "when": "2026-08-28 18:31:43",
+  "config": {
+   "campaign": "information_conversion_audit",
+   "base_commit": "c7b2d44",
+   "output_root": "results/information_conversion",
+   "cells": [
+    "K2",
+    "K3"
+   ],
+   "potential": {
+    "x_tilt": 0.1021665783
+   },
+   "domain": {
+    "x_min": -3.0,
+    "x_max": 3.0,
+    "y_min": -2.5,
+    "y_max": 3.5,
+    "nx_profile": 401,
+    "ny_ref": 801
+   },
+   "simulation": {
+    "beta": 4.0,
+    "dt": 0.002,
+    "n_particles": 256,
+    "burnin_steps": 10000,
+    "full_horizon_steps": 50000,
+    "eval_every": 500,
+    "x_init_mode": "uniform",
+    "y_init_mode": "uniform",
+    "dtype": "float64",
+    "noise_chunk_steps": 500
+   },
+   "abf": {
+    "estimator": "binned_smooth",
+    "observation_order": "post_propagation",
+    "h": 0.05,
+    "update_every": 10,
+    "min_count": 1.0
+   },
+   "kde": {
+    "eta": 0.1
+   },
+   "allocation": {
+    "n_cells": 32,
+    "eval_margin": 0.5,
+    "pi_floor": "per_particle"
+   },
+   "reference": {
+    "n_steps": 200000,
+    "seeds": [
+     5100,
+     5101,
+     5102,
+     5103
+    ],
+    "history_capacity": 100000,
+    "aggregate": "median"
+   },
+   "horizon": {
+    "rule": "ceil_tau_max_over_dt",
+    "tau_source": "reference_qr_tau_final_over_cells_with_positive_leverage",
+    "observations_per_replica_per_step": 1,
+    "M_rule": "K_times_H"
+   },
+   "gate_0d": {
+    "g_ideal_min": 0.1,
+    "rule": "stop_if_median_below_min_in_both_cells"
+   },
+   "pulse": {
+    "operator": "fr_v3.bd_standard",
+    "doses_p90": [
+     0.02,
+     0.05,
+     0.1,
+     0.2
+    ],
+    "quantile": 0.9,
+    "n_pulses": 1,
+    "score_clip": null,
+    "event_cap": null,
+    "jitter": 0.0,
+    "holdout": false,
+    "fr_stream": "stable_seed(\"fr-pulse\", 0, seed)"
+   },
+   "seeds": {
+    "pilot": [
+     8000,
+     8001,
+     8002,
+     8003,
+     8004,
+     8005,
+     8006,
+     8007
+    ],
+    "confirmation_start": 8100,
+    "confirmation_count": 32
+   },
+   "gates": {
+    "kl_ratio_max": 0.9,
+    "ancestor_ess_min": 0.9,
+    "tv_future_ratio_max": 0.9,
+    "risk_ratio_max": 0.9,
+    "risk_ratio_ci": "paired_bootstrap_upper_95_below_1",
+    "bootstrap_n": 10000,
+    "dose_selection": "smallest_p90_passing_all_gates_in_both_cells",
+    "fec_blind": true
+   },
+   "continuation": {
+    "enabled_only_after_mechanism_pass_in_both_cells": true,
+    "thresholds_file": "results/qr_decoupling/thresholds.json",
+    "stringent": "eps_2",
+    "secondary": "eps_1",
+    "tau_rule": "three_consecutive_frames",
+    "speedup": "restricted_mean_paired_bootstrap",
+    "practical_pass": {
+     "speedup_min": 1.15,
+     "ci_lower_above": 1.0,
+     "censoring": "no_extra",
+     "final_eF_ratio_max": 1.05
+    }
+   },
+   "execution": {
+    "conda_env": "abffr",
+    "device": "cuda",
+    "cuda_visible_devices": "2",
+    "single_process": true
+   }
+  }
+ }
+}
