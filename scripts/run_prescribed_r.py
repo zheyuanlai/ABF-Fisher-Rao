@@ -144,7 +144,7 @@ def run_block(alphaks, seeds, beta=8.0, h=0.07, min_count=1.0, n_steps=40_000,
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--phase", required=True,
-                    choices=["1", "2h", "2m", "4", "2h_fine"])
+                    choices=["1", "2h", "2m", "4", "2h_fine", "5n"])
     a = ap.parse_args()
     if a.phase == "1":
         run_block(PHASE1_TARGETS, SEEDS, tag="phase1")
@@ -157,6 +157,15 @@ def main():
         # optimum.  This extends it downward until the pseudocount floor bites.
         for h in (0.005, 0.01, 0.02):
             run_block([(2.0, 1), (0.0, 1)], SEEDS, h=h, tag=f"phase2_h{h:g}")
+    elif a.phase == "5n":
+        # Is there ANY accessible variance-dominated regime?  eta_bias moves
+        # only through v ~ 1/(N t); h moves both terms together (measured).
+        # Reducing N raises the variance share but also starves cells, which
+        # raises the pseudocount bias -- so whether eta_bias has a floor in N
+        # is the open structural question.  h and m stay frozen: this varies a
+        # BENCHMARK parameter, not an estimator constant.
+        for n in (8, 32, 128, 512, 2048):
+            run_block([(2.0, 1), (0.0, 1)], SEEDS, N=n, tag=f"phase5n_N{n}")
     elif a.phase == "2m":
         for m in (0.1, 10.0):          # 1.0 already covered by phase 1
             run_block([(2.0, 1), (0.0, 1)], SEEDS, min_count=m,

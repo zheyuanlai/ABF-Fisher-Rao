@@ -117,3 +117,67 @@ remain the versions that produced `phase5_arms/`.
 | 4 realizability | done — C_force ∝ β⁻² exact, TV flat, WCA bracketed |
 | 5 large-τ arm test | done — **gate failed; no Neyman claim; the failure is the result** |
 | 6 new allocator | **not started, and should not be until the bandwidth question is settled** |
+
+---
+
+# Addendum: is the variance-dominated regime reachable at all?
+
+The v2 arm test was killed as a prereg violation. Before considering an amendment, its premise
+was checked against the measured scaling — and it does not hold.
+
+## The v2 design had the variance sign backwards
+
+v2 assumed `b'Qb ~ h⁴` (falling fast) and `tr(QΣ) ~ 1/h` (**rising** as h falls), predicting
+η_bias ≈ 0.04 at h = 0.02, T = 40. The measured exponents are `b'Qb ~ h^3.67` and
+`tr(QΣ) ~ h^+2.97` — the variance **falls** with h too. Propagating the measured values:
+
+| h | T | b'Qb | tr(QΣ) | η_bias |
+|---:|---:|---:|---:|---:|
+| 0.07 | 160 | 2.86e-05 | 3.09e-07 | 0.9893 (measured) |
+| 0.07 | 40 | 2.86e-05 | 1.24e-06 | 0.9585 |
+| 0.02 | 160 | 2.88e-07 | 7.49e-09 | 0.9747 |
+| **0.02** | **40** | 2.88e-07 | 2.99e-08 | **0.9058** |
+
+So v2 would have landed at ≈ 0.91, not 0.04, and failed the same gate after ~30 min of GPU.
+Shrinking h shrinks both terms at similar rates, which is exactly what the bandwidth ladder
+already showed (η_bias ≥ 0.994 across a 28× range in h).
+
+## The only lever is `v ∝ 1/(N t)` — so N was swept, with h and m frozen
+
+Prescribed-r passive, EB potential, T = 40, h = 0.07, m = 1, target α=2,k=1, 16 seeds:
+
+| N | b'Qb | tr(QΣ) | total MSE | η_bias |
+|---:|---:|---:|---:|---:|
+| **8** | 6.415e-03 | 5.418e-03 | 1.183e-02 | **0.5422** |
+| 32 | 3.062e-03 | 4.954e-04 | 3.557e-03 | 0.8607 |
+| 128 | 2.424e-03 | 1.186e-04 | 2.543e-03 | 0.9534 |
+| 512 | 2.301e-03 | 3.374e-05 | 2.335e-03 | 0.9855 |
+| 2048 | 2.402e-03 | 9.135e-06 | 2.411e-03 | 0.9962 |
+| 4096 | 2.380e-03 | 2.281e-06 | 2.382e-03 | 0.9990 |
+
+`d log tr(QΣ)/d log N = −1.152` (near the Monte-Carlo −1, as expected), but
+**`d log b'Qb/d log N = −0.131`: the bias is not independent of N.** At N = 8 it has grown 2.7×
+above its large-N floor — the pseudocount/empty-cell channel switching on exactly where the
+variance share was supposed to be won. The two effects partially cancel.
+
+**Minimum η_bias over a 512× range in N is 0.542, at N = 8.** Reaching the 0.1 gate would need
+roughly ten times more variance again, i.e. sub-walker counts.
+
+## Conclusion, now established on three independent levers
+
+| lever | range swept | best η_bias reached |
+|---|---|---:|
+| time t | 0 → 160 (τ-benchmark) | 0.121, at t = 0 |
+| bandwidth h | 0.005 → 0.14 (28×) | 0.994 |
+| walkers N | 8 → 4096 (512×) | 0.542 |
+
+> **There is no accessible variance-dominated regime for the kernel-ABF free-energy endpoint.**
+> The Phase-5 gate is not merely unmet on the benchmarks tried — it is unreachable in principle
+> for this estimator, because every lever that raises the variance share either saturates or
+> raises the bias alongside it.
+
+The proportionate claim, stated carefully: at N = 8 the variance is still 46 % of the endpoint,
+so a variance-optimal allocation is *not* irrelevant there — it is simply never dominant, and the
+walker counts where its share is largest (N ≲ 32) are ones no production setting uses and where
+the pseudocount bias has itself grown 2–3×. `Σ_j a_j Γ_j / r_j` is a correct description of a
+term that this estimator never lets lead.
