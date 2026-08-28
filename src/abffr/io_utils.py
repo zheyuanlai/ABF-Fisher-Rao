@@ -219,6 +219,8 @@ def build_run_specs(cfg: Dict[str, Any], seeds: List[int]) -> List[RunSpec]:
     Every schedule is validated before a run identifier is created.
     """
     method_to_target = {
+        "abf_fr_information_oracle": "information_oracle",
+        "abf_fr_information_estimated": "information_estimated",
         "abf_only": "none",
         "abf_fr_estimated": "estimated",
         "abf_fr_uniform": "uniform",
@@ -230,7 +232,8 @@ def build_run_specs(cfg: Dict[str, Any], seeds: List[int]) -> List[RunSpec]:
     fr = cfg.get("fr", {})
     allowed_targets = set(fr.get(
         "target_types",
-        ["estimated", "uniform", "oracle", "physical", "physical_oracle"]))
+        ["estimated", "uniform", "oracle", "physical", "physical_oracle",
+         "information_oracle", "information_estimated"]))
     gamma_values = list(fr.get("gamma_values", [0.02]))
     eta_values = list(fr.get(
         "eta_values", [cfg.get("abf", {}).get("eta", 0.10)]))

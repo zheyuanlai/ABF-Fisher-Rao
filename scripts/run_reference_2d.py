@@ -2,7 +2,7 @@
 """Compute and plot the reference free energy / mean force for xi(x, y) = x.
 
 Outputs (under <output_root>/reference/):
-    reference_profile.csv      columns: x, F_ref, Fprime_ref, p_ref
+    reference_profile.csv      free energy, mean force, marginal, force moments
     reference_grid.npz         arrays:  x_grid, y_grid, V_grid, rho_grid
     fig_potential_contour.png
     fig_target_density.png
@@ -59,6 +59,8 @@ def main(argv=None):
         F_ref=ref["F_ref"],
         Fprime_ref=ref["Fprime_ref"],
         p_ref=ref["p_ref"],
+        force_second_moment_ref=ref["force_second_moment_ref"],
+        force_var_ref=ref["force_var_ref"],
     ))
     csv_path = os.path.join(out_dir, "reference_profile.csv")
     df.to_csv(csv_path, index=False)

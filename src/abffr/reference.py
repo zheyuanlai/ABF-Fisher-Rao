@@ -29,9 +29,12 @@ def compute_reference(x_grid, y_grid, beta,
     """Compute reference profiles on ``x_grid`` using y-quadrature on ``y_grid``.
 
     Returns a dict with keys ``log_Z``, ``F_ref``, ``Fprime_ref``, ``p_ref``,
-    all 1-D arrays on ``x_grid``.  ``F_ref`` is centred to have zero mean over
-    ``x_grid`` (the additive constant is fixed by the convention
-    ``F <- F - mean(F)``); ``p_ref`` integrates to 1 over ``x_grid``.
+    ``force_second_moment_ref`` and ``force_var_ref``, all 1-D arrays on
+    ``x_grid``.  The last two are the conditional second moment and variance
+    of the local force ``dV/dx`` at fixed reaction coordinate.  ``F_ref`` is
+    centred to have zero mean over ``x_grid`` (the additive constant is fixed
+    by the convention ``F <- F - mean(F)``); ``p_ref`` integrates to 1 over
+    ``x_grid``.
     """
     x_grid = np.asarray(x_grid, dtype=float)
     y_grid = np.asarray(y_grid, dtype=float)
@@ -53,6 +56,13 @@ def compute_reference(x_grid, y_grid, beta,
                   / np.maximum(Z_stab, EPS))
 
     F_ref = -(1.0 / beta) * log_Z
+    force_second_moment_ref = (
+        np.trapezoid(dvdx ** 2 * w, y_grid, axis=1)
+        / np.maximum(Z_stab, EPS))
+    # Roundoff can make E[f^2] - E[f]^2 very slightly negative.
+    force_var_ref = np.maximum(
+        force_second_moment_ref - Fprime_ref ** 2, 0.0)
+
     F_ref = F_ref - np.mean(F_ref)             # F <- F - mean(F)
 
     # Unbiased x-marginal p_ref(x) proportional to Z(x) = exp(log_Z).
@@ -60,7 +70,10 @@ def compute_reference(x_grid, y_grid, beta,
     p_unnorm = np.exp(lz)
     p_ref = p_unnorm / np.maximum(np.trapezoid(p_unnorm, x_grid), EPS)
 
-    return dict(log_Z=log_Z, F_ref=F_ref, Fprime_ref=Fprime_ref, p_ref=p_ref)
+    return dict(
+        log_Z=log_Z, F_ref=F_ref, Fprime_ref=Fprime_ref, p_ref=p_ref,
+        force_second_moment_ref=force_second_moment_ref,
+        force_var_ref=force_var_ref)
 
 
 def conditional_y_density(x0, y_grid, beta, V_func=potentials.potential_xy):

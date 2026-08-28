@@ -1,0 +1,70 @@
+# Oracle information-target campaign. The 0.016 dose below was selected by the
+# independent Stage-0 calibration receipt. The runner fails loudly if either
+# configured value differs from that receipt.
+experiment_name: information_target_oracle_campaign
+output_root: results/information_target/stage_a_campaign
+backend: torch
+device: cuda
+dtype: float64
+batch_size_configs: 24
+
+information_target:
+  enabled: true
+  kind: oracle_campaign
+  n_cells: 32
+  report_min: -2.5
+  report_max: 2.5
+  min_expected_particles_per_cell: 1.0
+  calibrated_gamma: 0.016
+  dose_receipt: results/information_target/stage0_dose_calibration/calibration/dose_selection.json
+  expected_firing_steps: [10000, 10500, 11000]
+
+selection:
+  write_generic_best: false
+
+potential:
+  x_tilt: 0.1021665783
+
+domain:
+  x_min: -3.0
+  x_max: 3.0
+  y_min: -2.5
+  y_max: 3.5
+  nx_ref: 801
+  ny_ref: 801
+  nx_profile: 401
+
+simulation:
+  beta: 4.0
+  dt: 0.002
+  n_particles: 256
+  n_steps: 50000
+  eval_every: 500
+  seeds: [7000, 7001, 7002, 7003, 7004, 7005, 7006, 7007,
+          7008, 7009, 7010, 7011, 7012, 7013, 7014, 7015,
+          7016, 7017, 7018, 7019, 7020, 7021, 7022, 7023,
+          7024, 7025, 7026, 7027, 7028, 7029, 7030, 7031]
+  x_init_mode: uniform
+  y_init_mode: uniform
+
+abf:
+  estimator: binned_smooth
+  observation_order: post_propagation
+  h: 0.05
+  update_every: 10
+  min_count: 1.0
+
+fr:
+  enabled: true
+  target_types: [information_oracle]
+  gamma_values: [0.016]
+  eta_values: [0.10]
+  burnin_fractions: [0.20]
+  duration_fractions: [0.03]
+  fr_every_values: [500]
+  interval_scaled_clock: true
+  noise_chunk_steps: 1000
+
+methods:
+  - abf_only
+  - abf_fr_information_oracle

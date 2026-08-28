@@ -1,0 +1,92 @@
+{
+  "protocol": "information_target_oracle_campaign",
+  "verdict": "INCONCLUSIVE",
+  "scope": "R12",
+  "n_matched_seeds": 32,
+  "gamma": 0.016,
+  "dtau_per_pulse": 0.016,
+  "pulse_steps": [
+    10000,
+    10500,
+    11000
+  ],
+  "gates": {
+    "acceleration_pass": false,
+    "endpoint_pass": false,
+    "genealogy_pass": true,
+    "mechanism_pass": true,
+    "target_risk_and_freeze_pass": true,
+    "pulse_count_pass": true,
+    "censoring_pass": false
+  },
+  "threshold_speedups": [
+    {
+      "metric": "F",
+      "threshold_index": 1,
+      "epsilon": 0.0962217459106232,
+      "n_matched_seeds": 32,
+      "speedup": 0.9599757428744694,
+      "ci_lo": 0.9439539242920031,
+      "ci_hi": 0.974176888315042,
+      "mean_restricted_tau_base": 49.46875,
+      "mean_restricted_tau_arm": 51.53125,
+      "censored_base": 0,
+      "censored_arm": 0,
+      "hit_fraction_base": 1.0,
+      "hit_fraction_arm": 1.0,
+      "censoring_inflates": false
+    },
+    {
+      "metric": "F",
+      "threshold_index": 2,
+      "epsilon": 0.0604620050908779,
+      "n_matched_seeds": 32,
+      "speedup": 0.9623837700760778,
+      "ci_lo": 0.9480569961628645,
+      "ci_hi": 0.9756192198751547,
+      "mean_restricted_tau_base": 71.15625,
+      "mean_restricted_tau_arm": 73.9375,
+      "censored_base": 4,
+      "censored_arm": 5,
+      "hit_fraction_base": 0.875,
+      "hit_fraction_arm": 0.84375,
+      "censoring_inflates": true
+    },
+    {
+      "metric": "Fprime",
+      "threshold_index": 1,
+      "epsilon": 0.2350570980761587,
+      "n_matched_seeds": 32,
+      "speedup": 0.9555829734731647,
+      "ci_lo": 0.940415964024733,
+      "ci_hi": 0.9707008321907704,
+      "mean_restricted_tau_base": 48.40625,
+      "mean_restricted_tau_arm": 50.65625,
+      "censored_base": 0,
+      "censored_arm": 0,
+      "hit_fraction_base": 1.0,
+      "hit_fraction_arm": 1.0,
+      "censoring_inflates": false
+    },
+    {
+      "metric": "Fprime",
+      "threshold_index": 2,
+      "epsilon": 0.15129764509616805,
+      "n_matched_seeds": 32,
+      "speedup": 0.9499561018437226,
+      "ci_lo": 0.9299827233136657,
+      "ci_hi": 0.9694247065850968,
+      "mean_restricted_tau_base": 67.625,
+      "mean_restricted_tau_arm": 71.1875,
+      "censored_base": 3,
+      "censored_arm": 5,
+      "hit_fraction_base": 0.90625,
+      "hit_fraction_arm": 0.84375,
+      "censoring_inflates": true
+    }
+  ],
+  "final_error_ratio": 1.0958116609478294,
+  "final_ancestor_ess_fraction": 0.9309214006135618,
+  "overall_median_kl_ratio": 0.9837586732425778,
+  "information_risk_ratio": 0.3460085634791387
+}

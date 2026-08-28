@@ -39,8 +39,8 @@ import numpy as np
 import torch
 
 from . import (clean_v2 as cv2, family as fam, fibre_diagnostics as fib,
-               fr_v3, persistent_mass as pmass, potentials,
-               representation as rep, torch_utils as tu)
+               fr_v3, information_target as it, persistent_mass as pmass,
+               potentials, representation as rep, torch_utils as tu)
 from .io_utils import RunSpec, make_rng_streams
 from .simulation import _init_positions  # reuse CPU init for matched seeds
 
@@ -300,6 +300,7 @@ def run_batch(
     F_ref: np.ndarray,
     Fprime_ref: np.ndarray,
     ev,
+    force_var_ref: Optional[np.ndarray] = None,
     device: torch.device,
     dtype: torch.dtype,
     estimator: str = "binned_smooth",
@@ -373,18 +374,28 @@ def run_batch(
     jitter = float(fr.get("jitter", 0.0))
     interval_scaled_clock = bool(fr.get("interval_scaled_clock", False))
 
-    # --- clean-v2 (docs/CLEAN_V2_PREREGISTRATION.md) -------------------------
-    # ``from_config`` validates first, and it *rejects* rather than defaults:
-    # a config carrying score_clip / max_event_fraction / target_ema_alpha, or a
-    # v3/v4 block, cannot reach this line.  The assignments below therefore
-    # restate a guarantee rather than establish one -- but they make the retired
-    # knobs unreachable from the clean path even if the config gate is edited.
+    # --- pulse--release protocols -------------------------------------------
+    # Validators reject clipping, event caps, ramps and competing v3/v4 paths
+    # before they can reach the shared standard-BD pulse implementation below.
     clean = cv2.from_config(cfg)
+    info = it.from_config(cfg)
+    if clean is not None and info is not None:
+        raise ValueError("clean_v2 and information_target are mutually exclusive")
+    pulse_release = clean is not None or info is not None
     if clean is not None:
         assert scheme is None, "clean-v2 and the v3 bias family are exclusive"
         if target_type not in cv2.TARGETS:
             raise ValueError(
                 f"clean_v2 admits only {list(cv2.TARGETS)}; got {target_type!r}")
+    if info is not None:
+        assert scheme is None, "information-target and v3 bias families are exclusive"
+        if target_type not in it.TARGETS:
+            raise ValueError(
+                f"information_target admits only {list(it.TARGETS)}; "
+                f"got {target_type!r}")
+        if target_type == "information_estimated" and estimator != "binned_smooth":
+            raise ValueError("online information target requires binned_smooth")
+    if pulse_release:
         score_clip = None
         max_event_fraction = None
         jitter = 0.0
@@ -412,6 +423,14 @@ def run_batch(
     fr_enabled = (target_type != "none")
     fr_burnin = int(round(burnin_fraction * n_steps))
     fr_stop = int(round(stop_fraction * n_steps))
+    force_var_ref_t = None
+    if force_var_ref is not None:
+        force_var_ref = np.asarray(force_var_ref, dtype=float)
+        if force_var_ref.shape != (G,) or np.any(~np.isfinite(force_var_ref)):
+            raise ValueError("force_var_ref must be finite on the profile grid")
+        force_var_ref_t = torch.as_tensor(
+            force_var_ref, device=device, dtype=dtype).view(1, G)
+
     ramp_steps = int(round(ramp_fraction * n_steps))
     gamma_vec = torch.as_tensor([float(s.gamma) for s in specs], device=device,
                                 dtype=dtype)
@@ -492,9 +511,11 @@ def run_batch(
     # ABF accumulators and current grid estimates.
     C_acc = torch.zeros((B, G), device=device, dtype=dtype)
     S_acc = torch.zeros((B, G), device=device, dtype=dtype)
+    Q_acc = torch.zeros((B, G), device=device, dtype=dtype)
     Fprime_hat = torch.zeros((B, G), device=device, dtype=dtype)
     F_hat = torch.zeros((B, G), device=device, dtype=dtype)
     Fhat_target = torch.zeros((B, G), device=device, dtype=dtype)
+    force_var_hat = torch.zeros((B, G), device=device, dtype=dtype)
 
     barrier_crossings = torch.zeros(B, device=device, dtype=torch.long)
     prev_sign = torch.sign(X - x_barrier)
@@ -525,7 +546,7 @@ def run_batch(
     nonlocal_bias = [torch.zeros((B, G), device=device, dtype=dtype)]
 
     def recompute_grid():
-        nonlocal Fprime_hat, F_hat
+        nonlocal Fprime_hat, F_hat, force_var_hat
         if use_kernel_ref:
             # S_acc / C_acc hold the exact kernel-accumulated numerator
             # (force-weighted) and denominator (weights); no smoothing needed.
@@ -534,6 +555,14 @@ def run_batch(
             num_s = tu.smooth_grid(S_acc, k_h, r_h, dx)
             den_s = tu.smooth_grid(C_acc, k_h, r_h, dx)
             Fprime_hat = num_s / (den_s + min_count + EPS)
+            if info is not None:
+                # Conditional moments use actual smoothed observation mass,
+                # not ABF's pseudocount. The target coverage floor handles
+                # low-information cells without biasing the moment itself.
+                q_s = tu.smooth_grid(Q_acc, k_h, r_h, dx)
+                mean_obs = num_s / (den_s + EPS)
+                force_var_hat = (
+                    q_s / (den_s + EPS) - mean_obs ** 2).clamp_min(0.0)
         F_hat = tu.center_at_index(tu.cumulative_trapezoid(Fprime_hat, dx), idx0)
         # v3 carrier: A_t is exactly this F_hat, and the applied bias force is
         # A' * (1 - g'(A)).  The multiplier comes from the Scheme; no family
@@ -549,6 +578,54 @@ def run_batch(
             hist = tu.scatter_grid(tu.nearest_index(Xc, x0, dx, G), G)
             p = tu.smooth_grid(hist, k_eta, r_eta, dx) / n_particles
         return tu.normalize_density(p, dx)
+
+    frozen_info_q = None
+    info_meta = None
+    info_leverage = None
+    if info is not None:
+        edges = np.linspace(xmin, xmax, info.n_cells + 1)
+        info_leverage = it.integration_leverage(
+            np.asarray(x_grid), edges, info.report_min, info.report_max)
+
+    def freeze_information_target():
+        """Construct the target once; later pulses reuse the same tensor."""
+        nonlocal frozen_info_q, info_meta
+        if frozen_info_q is not None or info is None or target_type == "none":
+            return
+        if target_type == "information_oracle":
+            if force_var_ref_t is None:
+                raise ValueError(
+                    "information_oracle requires force_var_ref from quadrature")
+            variance_rows = force_var_ref_t.expand(B, G)
+        elif target_type == "information_estimated":
+            variance_rows = force_var_hat
+        else:
+            raise ValueError(f"unknown information target {target_type!r}")
+
+        constructions = []
+        variance_np = variance_rows.detach().cpu().numpy()
+        for b in range(B):
+            constructions.append(it.build_target(
+                np.asarray(x_grid), variance_np[b], x_min=xmin, x_max=xmax,
+                n_cells=info.n_cells, report_min=info.report_min,
+                report_max=info.report_max, n_particles=n_particles,
+                min_expected_particles_per_cell=(
+                    info.min_expected_particles_per_cell),
+                leverage=info_leverage))
+        frozen_info_q = torch.as_tensor(
+            np.stack([c.density for c in constructions]),
+            device=device, dtype=dtype)
+        info_meta = dict(
+            masses=np.stack([c.masses for c in constructions]),
+            force_variance=np.stack([c.force_variance for c in constructions]),
+            leverage=np.stack([c.leverage for c in constructions]),
+            risk=np.asarray([c.risk for c in constructions]),
+            uniform_risk=np.asarray([c.uniform_risk for c in constructions]),
+            risk_ratio=np.asarray([c.risk_ratio for c in constructions]),
+        )
+
+    if info is not None and target_type == "information_oracle":
+        freeze_information_target()
 
     def carrier_A():
         """``A_t`` for the clean-v2 target: the running ABF estimate itself.
@@ -568,6 +645,10 @@ def run_batch(
         what makes the mechanism panel comparable across arms; nothing consumes
         it.
         """
+        if info is not None:
+            if frozen_info_q is not None:
+                return frozen_info_q
+            return torch.full((B, G), 1.0 / width, device=device, dtype=dtype)
         if clean is not None:
             return cv2.target_grid(carrier_A(), beta, dx)
         if scheme is not None and scheme.target_family is not None:
@@ -606,9 +687,11 @@ def run_batch(
                 idx = tu.nearest_index(X, x0, dx, G)
                 C_acc += tu.scatter_grid(idx, G)
                 S_acc += tu.scatter_grid(idx, G, dvdx)
+                if info is not None:
+                    Q_acc += tu.scatter_grid(idx, G, dvdx ** 2)
             if step % update_every == 0:
                 recompute_grid()
-                if clean is None:       # clean-v2 targets A_t itself, not an EMA
+                if not pulse_release:
                     Fhat_target = (
                         (1.0 - ema_alpha_eff) * Fhat_target
                         + ema_alpha_eff * F_hat)
@@ -645,12 +728,16 @@ def run_batch(
                     elig = (hold == 0).to(dtype)
                     C_acc += tu.scatter_grid(idx, G, elig)
                     S_acc += tu.scatter_grid(idx, G, dvdx_prop * elig)
+                    if info is not None:
+                        Q_acc += tu.scatter_grid(idx, G, dvdx_prop ** 2 * elig)
                 else:
                     C_acc += tu.scatter_grid(idx, G)
                     S_acc += tu.scatter_grid(idx, G, dvdx_prop)
+                    if info is not None:
+                        Q_acc += tu.scatter_grid(idx, G, dvdx_prop ** 2)
             if next_step % update_every == 0:
                 recompute_grid()
-                if clean is None:       # clean-v2 targets A_t itself, not an EMA
+                if not pulse_release:
                     Fhat_target = (
                         (1.0 - ema_alpha_eff) * Fhat_target
                         + ema_alpha_eff * F_hat)
@@ -841,18 +928,26 @@ def run_batch(
             X, Y = X_prop, Y_prop
 
         active = gamma_eff > 0
-        if clean is not None:
-            # ---- clean-v2 pulse: physical target, standard birth--death ----
+        if pulse_release:
+            # ---- frozen pulse target, standard birth--death ----------------
             # Order matters and is frozen: the ABF accumulators were already
             # fed from (X_prop, Y_prop) above, so a replica created here
             # deposits nothing at this step.  A clone is not an observation; it
             # first speaks after its next physical propagation (Gate B).
             if do_fr and bool(active.any().detach().cpu()):
                 p_hat = current_p_hat(X_prop)
-                A_grid = carrier_A()
-                S_all, log_p_at, log_q_at, floored = cv2.score(
-                    p_hat, A_grid, X_prop, x0, dx, beta)
-                q_grid = cv2.target_grid(A_grid, beta, dx)   # diagnostics only
+                if info is not None:
+                    freeze_information_target()
+                    q_grid = frozen_info_q
+                    S_all, log_p_at, log_q_at, floored = it.score(
+                        p_hat, q_grid, X_prop, x0, dx)
+                    row_score = it.row_score
+                else:
+                    A_grid = carrier_A()
+                    S_all, log_p_at, log_q_at, floored = cv2.score(
+                        p_hat, A_grid, X_prop, x0, dx, beta)
+                    q_grid = cv2.target_grid(A_grid, beta, dx)
+                    row_score = cv2.row_score
                 kl_before = _kl_grid(p_hat, q_grid, dx)
                 ess_anc_b, wmax_b = _anc_stats(ancestors, n_particles)
 
@@ -875,8 +970,8 @@ def run_batch(
                     # The operator is fr_v3.bd_standard, unchanged: uncapped
                     # probability, uniformly chosen partner, fixed population.
                     src, _ = fr_v3.bd_standard(
-                        cv2.row_score(log_p_at[b], log_q_at[b]), dtau_eff,
-                        fr_generators[b])
+                        row_score(log_p_at[b], log_q_at[b]),
+                        dtau_eff, fr_generators[b])
                     X_new[b] = X_prop[b][src]
                     Y_new[b] = Y_prop[b][src]
                     anc_new[b] = ancestors[b][src]
@@ -924,6 +1019,15 @@ def run_batch(
                     ess_anc_before=_np(ess_anc_b), ess_anc_after=_np(ess_anc_a),
                     wmax_before=_np(wmax_b), wmax_after=_np(wmax_a),
                     logp_floored_fraction=_np(floored))
+                if info_meta is not None:
+                    row.update(
+                        information_risk=info_meta["risk"].copy(),
+                        uniform_information_risk=(
+                            info_meta["uniform_risk"].copy()),
+                        information_risk_ratio=info_meta["risk_ratio"].copy(),
+                        q_cell_masses=info_meta["masses"].copy(),
+                        force_variance_cells=(
+                            info_meta["force_variance"].copy()))
                 for j, lab in enumerate(SCORE_QUANTILE_LABELS):
                     row[f"s_{lab}"] = _np(sq[:, j])
                 clean_rows.append(row)
@@ -1022,9 +1126,10 @@ def run_batch(
         d["interval_scaled_clock"] = interval_scaled_clock
         d["x_tilt"] = x_tilt
         d["clean_v2"] = clean is not None
+        d["information_target"] = info is not None
         d["score_clip"] = score_clip
         d["max_event_fraction"] = max_event_fraction
-        if clean is not None:
+        if pulse_release:
             # The schedule as *specified*, so a gate can compare it with the
             # opportunities the engine actually took rather than trust either.
             # ``abf_only`` has no FR schedule at all -- io_utils gives it the

@@ -1,0 +1,97 @@
+{
+  "protocol": "information_target_oracle_campaign",
+  "selection_uses_fec_outcomes": false,
+  "target_gate": "information_risk_ratio <= 1",
+  "source": "results/information_target/stage0_dose_calibration/calibration/calibration_fr_pulses.csv",
+  "criteria": {
+    "median_event_fraction": [
+      0.01,
+      0.05
+    ],
+    "max_median_kl_after_over_before": 0.99,
+    "min_kl_decrease_fraction": 0.625,
+    "min_median_single_pulse_ancestor_ess_fraction": 0.95,
+    "max_logp_floored_fraction": 0.0,
+    "tie_break": "smallest eligible gamma"
+  },
+  "summaries": [
+    {
+      "gamma": 0.001,
+      "dtau": 0.001,
+      "n_seeds": 8,
+      "median_event_fraction": 0.0,
+      "median_kl_ratio": 1.0,
+      "kl_decrease_fraction": 0.125,
+      "median_ess_after": 1.0,
+      "max_logp_floored_fraction": 0.0,
+      "eligible": false
+    },
+    {
+      "gamma": 0.002,
+      "dtau": 0.002,
+      "n_seeds": 8,
+      "median_event_fraction": 0.0,
+      "median_kl_ratio": 1.0,
+      "kl_decrease_fraction": 0.375,
+      "median_ess_after": 1.0,
+      "max_logp_floored_fraction": 0.0,
+      "eligible": false
+    },
+    {
+      "gamma": 0.004,
+      "dtau": 0.004,
+      "n_seeds": 8,
+      "median_event_fraction": 0.0,
+      "median_kl_ratio": 1.0,
+      "kl_decrease_fraction": 0.375,
+      "median_ess_after": 1.0,
+      "max_logp_floored_fraction": 0.0,
+      "eligible": false
+    },
+    {
+      "gamma": 0.008,
+      "dtau": 0.008,
+      "n_seeds": 8,
+      "median_event_fraction": 0.00390625,
+      "median_kl_ratio": 0.9936266050236562,
+      "kl_decrease_fraction": 0.75,
+      "median_ess_after": 0.992248062015504,
+      "max_logp_floored_fraction": 0.0,
+      "eligible": false
+    },
+    {
+      "gamma": 0.016,
+      "dtau": 0.016,
+      "n_seeds": 8,
+      "median_event_fraction": 0.017578125,
+      "median_kl_ratio": 0.9753277912756967,
+      "kl_decrease_fraction": 1.0,
+      "median_ess_after": 0.9660514923672818,
+      "max_logp_floored_fraction": 0.0,
+      "eligible": true
+    },
+    {
+      "gamma": 0.032,
+      "dtau": 0.032,
+      "n_seeds": 8,
+      "median_event_fraction": 0.025390625,
+      "median_kl_ratio": 0.9710555950583162,
+      "kl_decrease_fraction": 0.875,
+      "median_ess_after": 0.9516860143725815,
+      "max_logp_floored_fraction": 0.0,
+      "eligible": true
+    }
+  ],
+  "status": "SELECTED",
+  "selected": {
+    "gamma": 0.016,
+    "dtau": 0.016,
+    "n_seeds": 8,
+    "median_event_fraction": 0.017578125,
+    "median_kl_ratio": 0.9753277912756967,
+    "kl_decrease_fraction": 1.0,
+    "median_ess_after": 0.9660514923672818,
+    "max_logp_floored_fraction": 0.0,
+    "eligible": true
+  }
+}

@@ -53,6 +53,10 @@ docs/*
 !docs/CLEAN_V2_PREREGISTRATION.md
 # The result it produced, pinned next to it.
 !docs/CLEAN_V2_STAGE2_RESULT.md
+!docs/ORACLE_SHORT_BURST_PREREGISTRATION.md
+!docs/ORACLE_SHORT_BURST_STAGE_A_RESULT.md
+!docs/UNFLATTENED_TARGET_EVIDENCE_REVIEW.md
+!docs/INFORMATION_TARGET_PREREGISTRATION.md
 !docs/CLOSURE_deca_and_R15.md
 # A frozen system specification is a prereg by another name -- SPEC_methane_water.md is
 # referenced by Amendment 11 and declares itself frozen at the commit carrying it.
@@ -89,3 +93,17 @@ results/clean_v2/**/completed/
 results/clean_v2/**/*_profiles.csv
 results/clean_v2/**/*_conditional_diagnostics.csv
 results/clean_v2/identity/
+
+# Oracle short-burst: retain merged scientific tables and summaries, but not
+# per-process shards, completion markers, or bulky profile/conditional dumps.
+results/oracle_short_burst/**/*__*.csv
+results/oracle_short_burst/**/completed/
+results/oracle_short_burst/**/*_profiles.csv
+results/oracle_short_burst/**/*_conditional_diagnostics.csv
+
+# Information-target campaign: retain merged scientific tables and summaries,
+# but not process shards, completion markers, or bulky profile/conditional dumps.
+results/information_target/**/*__*.csv
+results/information_target/**/completed/
+results/information_target/**/*_profiles.csv
+results/information_target/**/*_conditional_diagnostics.csv

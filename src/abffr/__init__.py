@@ -12,6 +12,8 @@ from . import (  # noqa: F401
     diagnostics,
     io_utils,
     metrics,
+    oracle_short_burst,
+    information_target,
     plotting,
     potentials,
     reference,
@@ -30,6 +32,8 @@ __all__ = [
     # time-to-accuracy endpoint that replaced final-error selection.
     "clean_v2",
     "accel",
+    "oracle_short_burst",
+    "information_target",
 ]
 
 __version__ = "0.1.0"

@@ -223,6 +223,20 @@ def _clean_event_rows(meta: Dict, events, b: int):
             "retention": after / before if before > 0 else float("nan"),
             "logp_floored_fraction": float(e["logp_floored_fraction"][b]),
         }
+        if "information_risk" in e:
+            row.update(
+                information_risk=float(e["information_risk"][b]),
+                uniform_information_risk=float(
+                    e["uniform_information_risk"][b]),
+                information_risk_ratio=float(
+                    e["information_risk_ratio"][b]),
+            )
+            masses = np.asarray(e["q_cell_masses"][b], dtype=float)
+            variances = np.asarray(e["force_variance_cells"][b], dtype=float)
+            for j, value in enumerate(masses):
+                row[f"q_cell_{j:02d}"] = float(value)
+            for j, value in enumerate(variances):
+                row[f"force_var_cell_{j:02d}"] = float(value)
         for lab in ("q01", "q10", "q50", "q90", "q99"):
             key = f"s_{lab}"
             if key in e:
@@ -412,7 +426,9 @@ def run_specs(
         try:
             res = simulation_torch.run_batch(
                 batch, cfg=cfg, x_grid=x_grid, F_ref=ref["F_ref"],
-                Fprime_ref=ref["Fprime_ref"], ev=ev, device=device, dtype=dtype,
+                Fprime_ref=ref["Fprime_ref"],
+                force_var_ref=ref.get("force_var_ref"),
+                ev=ev, device=device, dtype=dtype,
                 estimator=estimator, base_seed=base_seed)
         except Exception as exc:  # whole-batch failure
             err = f"{exc}\n{traceback.format_exc()}"
