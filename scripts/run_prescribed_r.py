@@ -143,12 +143,19 @@ def run_block(alphaks, seeds, beta=8.0, h=0.07, min_count=1.0, n_steps=40_000,
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--phase", required=True, choices=["1", "2h", "2m", "4"])
+    ap.add_argument("--phase", required=True,
+                    choices=["1", "2h", "2m", "4", "2h_fine"])
     a = ap.parse_args()
     if a.phase == "1":
         run_block(PHASE1_TARGETS, SEEDS, tag="phase1")
     elif a.phase == "2h":
         for h in (0.035, 0.14):        # 0.07 already covered by phase 1
+            run_block([(2.0, 1), (0.0, 1)], SEEDS, h=h, tag=f"phase2_h{h:g}")
+    elif a.phase == "2h_fine":
+        # EXPLORATORY, not preregistered: the 0.035/0.07/0.14 ladder found both
+        # bias AND integrated variance rising with h, so it does not bracket the
+        # optimum.  This extends it downward until the pseudocount floor bites.
+        for h in (0.005, 0.01, 0.02):
             run_block([(2.0, 1), (0.0, 1)], SEEDS, h=h, tag=f"phase2_h{h:g}")
     elif a.phase == "2m":
         for m in (0.1, 10.0):          # 1.0 already covered by phase 1
