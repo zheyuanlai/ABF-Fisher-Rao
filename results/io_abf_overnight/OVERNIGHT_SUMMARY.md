@@ -392,11 +392,26 @@ reallocation that is doing harm.
 
 The 1.111 ratio at 0.2 T — where the allocation window has only just opened and the arms should
 still be identical — was the tell. Tested directly: **two runs of plain ABF with the same seed in
-the same process differ by 0.53 in the PMF.** The WCA sampler is not reproducible run to run at
-all, presumably through non-deterministic CUDA atomics in the force accumulation amplified by
-chaotic dynamics in float32. The instrumentation is *not* the cause — an A0-instrumented run
-differs from an uninstrumented one by 0.22, which is *less* than two uninstrumented runs differ
-from each other.
+the same process differ by 0.53 in the PMF** on a 250 k-step run. The instrumentation is *not* the
+cause — an A0-instrumented run differs from an uninstrumented one by 0.22, which is *less* than two
+uninstrumented runs differ from each other.
+
+Localised rather than guessed at. The **force kernel is exactly deterministic**: `engine.force(q)`
+called twice on identical `q` returns a bit-identical result (max difference 0.0), from the same
+engine object and from a fresh one. The divergence appears *downstream*, and it appears late and
+small before it grows:
+
+| step | 0 | 100 | 200 | 300 | 400 | 500 | 600 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| same engine object | 0 | 0 | 4.8e-7 | 4.8e-7 | 3.6e-4 | 1.5e-3 | 2.8e-2 |
+| fresh engine each | 0 | 0 | 1.6e-5 | 1.6e-4 | 2.1e-2 | 3.3e-2 | 8.6e-2 |
+
+Two runs stay bit-identical for ~100 steps, then separate at the **float32 ulp scale** and amplify
+chaotically. The engine runs in `float32`, and the accumulation downstream of the force — the
+kernel ABF estimator's scatter-add into the grid — is where a non-deterministic reduction order
+lives. **This refines rather than contradicts the recorded note in my memory**, which reported a
+passing bit-identity test inside one process: that test was on `forces.scatter_add_`, and the force
+path is indeed clean. The non-determinism is in the estimator, not the forces.
 
 So the WCA arms were never paired, and the paired bootstrap in `analyze_io_abf_wca.py` does not
 apply to them. **The table above is therefore the unpaired comparison**: 24 independent A0 runs
@@ -573,7 +588,7 @@ if anything it *understates* the candidate arms — so the direction of every re
 estimator was not touched after the pilot. The evaluation window was not changed. `A_ref` reached
 nothing that sets `a`, `r*` or the warm-up. The allocation cadence came from the structural rule
 plus rule R-OBS, both fixed before any candidate ran. No horizon was extended. No seed was
-deleted — 0 non-finite finals across 414 runs (408 scientific + 6 probe).
+deleted — 0 non-finite finals across 455 runs (414 on the batched systems, 41 on WCA).
 
 ## 13. Artifacts
 
