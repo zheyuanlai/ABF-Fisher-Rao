@@ -6,6 +6,13 @@ written and committed **before** any scientific run. No criterion in it was chan
 
 ---
 
+> **Superseded in part, 2026-08-28.** An offline audit
+> (`audit/RISK_MODEL_AUDIT.md`) shows the risk functional this campaign optimises accounts for
+> **0.01–0.74 %** of the measured endpoint error; the rest is finite-time mean-force bias, which
+> the derivation assumes away. Every measurement below stands, but the *attribution* of A6b's
+> gains and damage to variance reallocation does not: both are bias effects. Read §1–8 as
+> measurements, not as evidence about Neyman allocation.
+
 ## 1. One-paragraph answer
 
 **Information-optimal allocation transfers to three systems of four, and both the way it pays and
