@@ -1,0 +1,39 @@
+# Uniform-FR campaign, Stage 3: alanine dipeptide (vacuum, phi/psi).
+# ABF-sufficient neutrality control.  Two arms: abf vs fr_uniform.
+# The base block is inherited VERBATIM from configs/alanine/pilot.yaml -- dynamics,
+# estimator, and every FR knob (fr_rate 0.02 was frozen by the SAFETY calibration,
+# never on FES error).  The only changes: methods list and 16 seeds instead of 4.
+# Preregistration: docs/UNIFORM_FR_CAMPAIGN.md.
+experiment_name: uniform_fr_alanine
+output_root: results/uniform_campaign/alanine
+reference: results/alanine/reference/reference.npz
+stage: N2048_uniform
+base:
+  dt: 0.001
+  gamma: 1.0
+  temperature: 300.0
+  save_every: 1000
+  rng_seed: 20260903
+  init_equil_ps: 20.0
+  n_grid: 97
+  abf_bandwidth: 0.08
+  kde_bandwidth: 0.15
+  abf_min_count: 200.0
+  abf_force_clip: 200.0
+  project_every: 50
+  estimator_stride: 1
+  abf_warmup_steps: 5000
+  fr_start_steps: 20000        # 20 ps
+  fr_every: 500                # 0.5 ps
+  fr_rate: 0.02                # frozen by SAFETY calibration (cumulative event fraction 2.61%)
+  score_clip: 2.0
+  max_event_fraction: 0.05
+  lineage_reset_steps: 6000    # 6 ps age-aware window
+  n_steps: 100000              # 100 ps
+  n_replicas: 2048
+stages:
+  N2048_uniform:
+    methods: [abf, fr_uniform]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242

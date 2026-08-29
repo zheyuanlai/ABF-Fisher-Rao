@@ -58,6 +58,9 @@ def main():
     ap.add_argument("--kind", choices=("pilot", "production"), default="pilot")
     ap.add_argument("--reference", default="results/alanine/reference/reference.npz")
     ap.add_argument("--frozen", default=None, help="frozen-bias metrics json, if available")
+    ap.add_argument("--fr-arm", default="fr_oracle",
+                    help="the FR arm paired against abf (fr_oracle for the closed study; "
+                         "fr_uniform for the uniform-FR campaign)")
     a = ap.parse_args()
 
     ana = os.path.join(a.root, "analysis")
@@ -77,7 +80,7 @@ def main():
     kT = ref_meta["kT_kJ"]
     pack = build_masks(F_ref, kT)
     runs = load_runs(a.root, a.stage)
-    if set(runs) != {"abf", "fr_oracle"}:
+    if set(runs) != {"abf", a.fr_arm}:
         raise SystemExit(f"expected both arms, found {sorted(runs)}")
     n_grid = int(ref_meta["n_grid"])
     F_sm = smooth_reference(F_ref, 0.08, n_grid)
@@ -119,13 +122,13 @@ def main():
     stats, signs = {}, {}
     for wname in ("equilibrium", "uniform8", "uniform10"):
         k = f"int_eF_km_{wname}"
-        A, Bv = by("abf", k), by("fr_oracle", k)
+        A, Bv = by("abf", k), by(a.fr_arm, k)
         stats[wname] = paired_bootstrap(A, Bv)
         signs[wname] = float(np.sign(stats[wname]["median"]))
     kg = "final_egradF_equilibrium"
-    gstat = paired_bootstrap(by("abf", kg), by("fr_oracle", kg))
+    gstat = paired_bootstrap(by("abf", kg), by(a.fr_arm, kg))
 
-    fr_gen = [r for r in gen_rows if r["method"] == "fr_oracle"]
+    fr_gen = [r for r in gen_rows if r["method"] == a.fr_arm]
     ess_min = min(r["ess_age_min"] for r in fr_gen)
     wmax_max = max(r["wmax_max"] for r in fr_gen)
     ev_max = max(r["event_fraction"] for r in fr_gen)
@@ -165,7 +168,7 @@ def main():
     else:
         cls = "INCONCLUSIVE"
 
-    decision = dict(kind=a.kind, stage=a.stage, window_ps=a.window,
+    decision = dict(kind=a.kind, stage=a.stage, window_ps=a.window, fr_arm=a.fr_arm,
                     n_paired_seeds=int(prim["n"]),
                     primary_kernel_matched_integrated_FES=stats,
                     endpoint_mean_force=gstat, signs=signs,

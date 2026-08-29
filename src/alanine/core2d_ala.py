@@ -52,8 +52,8 @@ from .projection import clip_magnitude, require_odd_grid
 EPS = 1.0e-12
 TWO_PI = 2.0 * math.pi
 
-METHODS = ("abf", "fr_oracle")
-FR_METHODS = ("fr_oracle",)
+METHODS = ("abf", "fr_oracle", "fr_uniform")
+FR_METHODS = ("fr_oracle", "fr_uniform")
 
 
 @dataclass(frozen=True)
@@ -154,6 +154,13 @@ def _oracle_target(F_ref, B, beta, dz1, dz2):
     return q
 
 
+def _uniform_target(R, n, dz1, dz2, device, dtype):
+    """``q = 1/(2 pi)^2`` on the torus grid, ``(R, n, n)``.  Consults nothing: no reference,
+    no bias, no estimator state -- the uniform-FR campaign's whole point is that this target
+    is a constant of the algorithm (docs/UNIFORM_FR_CAMPAIGN.md)."""
+    return d2.normalize2(torch.ones(R, n, n, device=device, dtype=dtype), dz1, dz2)
+
+
 def _ancestor_stats_t(labels, N):
     """ESS / n_unique / max-fraction per seed, computed ON DEVICE (labels ``(R,N)``)."""
     R = labels.shape[0]
@@ -224,7 +231,7 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
                for r in range(R)]
 
     F_ref_t = None
-    if is_fr:
+    if method == "fr_oracle":
         F_ref_t = sanitize_reference(
             torch.as_tensor(reference_F, device=device, dtype=dtype), KB * sim.temperature)
 
@@ -267,7 +274,11 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
     diag = {k: [] for k in ("steps", "times", "pmf", "basin_frac", "ess_perm", "ess_age",
                             "n_unique", "wmax", "wmax_rare", "events_cum", "trust_frac",
                             "clip_frac", "temperature", "proj_resid", "curl_pre",
-                            "score_std", "score_absmax", "ess_age_rare")}
+                            "score_std", "score_absmax", "ess_age_rare",
+                            # uniform-FR campaign instrumentation: the walker marginal on the
+                            # (phi, psi) bin grid and its KL to the uniform torus density.
+                            # Pure reads of state already computed each step -- no RNG.
+                            "marg_hist", "kl_uniform")}
     if extra_angle_atoms is not None:
         # The per-walker basin label is saved alongside, so the omitted coordinate can be
         # checked CONDITIONALLY on the state.  Globally it is nearly useless: two states can
@@ -405,6 +416,14 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
             diag["curl_pre"].append(curl_pre.detach().cpu().numpy())
             diag["score_std"].append(score_std.detach().cpu().numpy())
             diag["score_absmax"].append(score_absmax.detach().cpu().numpy())
+            hist = torch.zeros(R, n * n, device=device, dtype=torch.float64)
+            hist.scatter_add_(1, (bi * n + bj).reshape(R, N),
+                              torch.ones(R, N, device=device, dtype=torch.float64))
+            p_bin = hist / hist.sum(1, keepdim=True).clamp_min(1.0)
+            kl_u = (p_bin * (torch.log(p_bin.clamp_min(EPS))
+                             + math.log(float(n * n)))).sum(1)
+            diag["marg_hist"].append(p_bin.reshape(R, n, n).to(torch.float32).cpu().numpy())
+            diag["kl_uniform"].append(kl_u.cpu().numpy())
             if extra_angle_atoms is not None:
                 diag["extra_angle"].append(
                     _dihedral_iupac_t(q.reshape(R * N, A, 3), extra_angle_atoms)
@@ -456,7 +475,9 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
                 z1 = torch.nan_to_num(phi[:, 0].reshape(R, N), 0.0, 0.0, 0.0)
                 z2 = torch.nan_to_num(phi[:, 1].reshape(R, N), 0.0, 0.0, 0.0)
                 p_hat = d2.kde2(z1, z2, Kk1, Kk2, n, n, dz1, dz2)
-                q_tgt = _oracle_target(F_ref_t, B, beta, dz1, dz2)
+                q_tgt = (_oracle_target(F_ref_t, B, beta, dz1, dz2)
+                         if method == "fr_oracle"
+                         else _uniform_target(R, n, dz1, dz2, device, dtype))
                 score, _ = d2.fr_score_2d(z1, z2, p_hat, q_tgt, g1c, g2c, dz1, dz2, sim.score_clip)
                 score_std = score.std(1)
                 score_absmax = score.abs().amax(1)

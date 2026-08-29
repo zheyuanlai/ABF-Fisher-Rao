@@ -1,0 +1,201 @@
+{
+  "prereg": "configs/uniform_campaign/gateway_prereg.json",
+  "n_pairs": 64,
+  "per_init": {
+    "left": {
+      "n": 32,
+      "d_int_pct": {
+        "median": -12.119340836208462,
+        "ci95": [
+          -14.226732432286031,
+          -8.567430430624992
+        ],
+        "wins": 31
+      },
+      "d_final_pct": {
+        "median": 11.067027842328502,
+        "ci95": [
+          9.22393323522008,
+          13.585058690483315
+        ],
+        "wins": 0
+      },
+      "d_frozen_pct": {
+        "median": -12.490835517119965,
+        "ci95": [
+          -17.551015331538444,
+          -3.2070359712836902
+        ],
+        "wins": 24
+      },
+      "health": {
+        "median_min_ess_frac": 0.3890582562182286,
+        "median_max_wmax": 0.011474609375,
+        "worst_min_ess_frac": 0.3096462050196553,
+        "worst_max_wmax": 0.02490234375,
+        "ok": true
+      },
+      "time_to_accuracy": {
+        "e0/2": {
+          "eps": 0.11149316216898345,
+          "tau_abf": 3.0,
+          "tau_uni": 2.4,
+          "speedup": 1.25,
+          "status": "ok"
+        },
+        "e0/4": {
+          "eps": 0.05574658108449172,
+          "tau_abf": 3.8000000000000003,
+          "tau_uni": 2.8000000000000003,
+          "speedup": 1.3571428571428572,
+          "status": "ok"
+        },
+        "e0/8": {
+          "eps": 0.02787329054224586,
+          "tau_abf": 5.0,
+          "tau_uni": 3.4000000000000004,
+          "speedup": 1.4705882352941175,
+          "status": "ok"
+        },
+        "abf_final": {
+          "eps": 0.010373353923294748,
+          "tau_abf": 25.400000000000002,
+          "tau_uni": Infinity,
+          "speedup": null,
+          "status": "arm_never"
+        }
+      },
+      "verdict": "ACCELERATION_POSITIVE"
+    },
+    "one_right": {
+      "n": 32,
+      "d_int_pct": {
+        "median": -11.604023322821963,
+        "ci95": [
+          -17.25024400047876,
+          -7.107985210931056
+        ],
+        "wins": 26
+      },
+      "d_final_pct": {
+        "median": 8.421023616343088,
+        "ci95": [
+          6.377949018460925,
+          11.401419328374423
+        ],
+        "wins": 1
+      },
+      "d_frozen_pct": {
+        "median": -6.711112542742724,
+        "ci95": [
+          -16.89390746135868,
+          -4.464378379011626
+        ],
+        "wins": 27
+      },
+      "health": {
+        "median_min_ess_frac": 0.3828320402689216,
+        "median_max_wmax": 0.01171875,
+        "worst_min_ess_frac": 0.1383596811241724,
+        "worst_max_wmax": 0.0498046875,
+        "ok": true
+      },
+      "time_to_accuracy": {
+        "e0/2": {
+          "eps": 0.11138387150429205,
+          "tau_abf": 1.4000000000000001,
+          "tau_uni": 1.4000000000000001,
+          "speedup": 1.0,
+          "status": "ok"
+        },
+        "e0/4": {
+          "eps": 0.055691935752146024,
+          "tau_abf": 2.4,
+          "tau_uni": 2.0,
+          "speedup": 1.2,
+          "status": "ok"
+        },
+        "e0/8": {
+          "eps": 0.027845967876073012,
+          "tau_abf": 4.6000000000000005,
+          "tau_uni": 3.0,
+          "speedup": 1.5333333333333334,
+          "status": "ok"
+        },
+        "abf_final": {
+          "eps": 0.010586626766448932,
+          "tau_abf": 39.9996,
+          "tau_uni": Infinity,
+          "speedup": null,
+          "status": "arm_never"
+        }
+      },
+      "verdict": "ACCELERATION_POSITIVE"
+    }
+  },
+  "pooled": {
+    "n": 64,
+    "d_int_pct": {
+      "median": -11.812764848086747,
+      "ci95": [
+        -14.089945886440802,
+        -9.314434879067147
+      ],
+      "wins": 57
+    },
+    "d_final_pct": {
+      "median": 9.821511631611706,
+      "ci95": [
+        8.152333980041254,
+        11.743401459180786
+      ],
+      "wins": 1
+    },
+    "d_frozen_pct": {
+      "median": -11.150041125765856,
+      "ci95": [
+        -16.492302570486384,
+        -4.903405522079478
+      ],
+      "wins": 51
+    },
+    "health": {
+      "median_min_ess_frac": 0.3873692405001703,
+      "median_max_wmax": 0.01171875,
+      "worst_min_ess_frac": 0.1383596811241724,
+      "worst_max_wmax": 0.0498046875,
+      "ok": true
+    },
+    "time_to_accuracy": {
+      "e0/2": {
+        "eps": 0.11149138532640335,
+        "tau_abf": 2.4,
+        "tau_uni": 2.0,
+        "speedup": 1.2,
+        "status": "ok"
+      },
+      "e0/4": {
+        "eps": 0.055745692663201674,
+        "tau_abf": 3.2,
+        "tau_uni": 2.4,
+        "speedup": 1.3333333333333335,
+        "status": "ok"
+      },
+      "e0/8": {
+        "eps": 0.027872846331600837,
+        "tau_abf": 4.6000000000000005,
+        "tau_uni": 3.2,
+        "speedup": 1.4375,
+        "status": "ok"
+      },
+      "abf_final": {
+        "eps": 0.010484615295395544,
+        "tau_abf": 27.6,
+        "tau_uni": Infinity,
+        "speedup": null,
+        "status": "arm_never"
+      }
+    },
+    "verdict": "ACCELERATION_POSITIVE"
+  }
+}

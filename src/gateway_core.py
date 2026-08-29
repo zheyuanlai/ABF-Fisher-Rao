@@ -157,6 +157,9 @@ class Method:
 ABF = Method("abf", use_fr=False, target_mode="none")
 FR_ORACLE = Method("fr_oracle", use_fr=True, target_mode="oracle")
 FR_ESTIMATED = Method("fr_estimated", use_fr=True, target_mode="estimated")
+# Uniform-target arm (uniform-FR campaign): the kernel's 'uniform' branch predates this
+# registration; the method itself was first exercised by docs/UNIFORM_FR_CAMPAIGN.md.
+FR_UNIFORM = Method("fr_uniform", use_fr=True, target_mode="uniform")
 # One sham per FR arm.  A single sham shadowing the oracle cannot attribute the *practical*
 # arm's gain: the two arms fire different numbers of events at different times (their targets
 # differ), so the oracle's shadow is not a matched control for the deployable method.  Each
@@ -167,7 +170,8 @@ SHAM_PRACTICAL = Method("sham_practical", use_fr=True, target_mode="none", sham=
                         shadows="fr_estimated")
 SHAM = SHAM_ORACLE          # backwards-compatible alias for the calibration artifacts
 
-METHODS = {m.name: m for m in (ABF, FR_ORACLE, FR_ESTIMATED, SHAM_ORACLE, SHAM_PRACTICAL)}
+METHODS = {m.name: m for m in (ABF, FR_ORACLE, FR_ESTIMATED, FR_UNIFORM,
+                               SHAM_ORACLE, SHAM_PRACTICAL)}
 
 
 def assert_no_oracle_leakage(methods: Sequence[Method]) -> None:
@@ -459,12 +463,18 @@ class BatchSpec:
 
 
 def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
-                   noise_seed_base=2000, fr_seed_base=3000, progress=None):
+                   noise_seed_base=2000, fr_seed_base=3000, progress=None,
+                   store_profiles=False):
     """Run ``B`` (config, seed) rows x ``M`` methods, flattened to ``R = B*M``.
 
     Methods inside one B-row share initial conditions and Langevin noise, so an arm and its
     controls are compared on the same trajectory realisation rather than across independent
     noise.
+
+    ``store_profiles`` additionally records, at every save step, the centered free-energy
+    profile, the mean-force profile, the KDE marginal density, and KL(p_t || uniform).  It
+    only *reads* state -- no RNG is consumed and no update is touched -- so runs with and
+    without it are bit-identical.
     """
     assert_no_oracle_leakage(spec.methods)
     cfgs, methods = list(spec.configs), list(spec.methods)
@@ -556,6 +566,11 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     ts_wmax = torch.zeros((R, n_saves), device=device, dtype=dtype)
     ts_P = torch.zeros((R, n_saves, 3), device=device, dtype=dtype)
     ts_Q = torch.zeros((R, n_saves, 3), device=device, dtype=dtype)
+    if store_profiles:
+        ts_F_prof = torch.zeros((R, n_saves, N_GRID), device=device, dtype=dtype)
+        ts_Fp_prof = torch.zeros((R, n_saves, N_GRID), device=device, dtype=dtype)
+        ts_phat = torch.zeros((R, n_saves, N_GRID), device=device, dtype=dtype)
+        ts_kl_uni = torch.zeros((R, n_saves), device=device, dtype=dtype)
     tot_die = torch.zeros(R, device=device, dtype=dtype)
     tot_clone = torch.zeros(R, device=device, dtype=dtype)
     n_fr_apply = 0
@@ -625,6 +640,15 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
             for k in range(3):
                 ts_P[:, save_ptr, k] = (plab == k).to(dtype).mean(dim=1)
             ts_Q[:, save_ptr] = bias_aware_target(F_ref, Bbias, glab, beta)
+            if store_profiles:
+                p_save = binned_density(X, k_eta, r_eta, dx)
+                q_u = 1.0 / (XMAX - XMIN)
+                ts_F_prof[:, save_ptr] = Bc
+                ts_Fp_prof[:, save_ptr] = Fp
+                ts_phat[:, save_ptr] = p_save
+                ts_kl_uni[:, save_ptr] = trapz(
+                    p_save * (torch.log(torch.clamp(p_save, min=EPS))
+                              - math.log(q_u)), dx)
             save_ptr += 1
         if progress is not None and step % progress == 0:
             print(f"    step {step}/{n_steps}", flush=True)
@@ -787,6 +811,11 @@ def _finalize(L):
             rec["repl_fraction"] = (
                 (rec["n_die"] + rec["n_clone"]) / max(rec["n_fr_apply"] * N, 1)
                 if use_fr else 0.0)
+            if L.get("store_profiles"):
+                rec["F_prof_t"] = npy(L["ts_F_prof"][r])
+                rec["Fp_prof_t"] = npy(L["ts_Fp_prof"][r])
+                rec["phat_t"] = npy(L["ts_phat"][r])
+                rec["kl_uniform_t"] = npy(L["ts_kl_uni"][r])
             rec.update(hit_and_establish(P[:, 2], Q[:, 2], t_axis))
             recs.append(rec)
     return recs
