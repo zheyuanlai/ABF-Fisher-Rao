@@ -1,0 +1,70 @@
+{
+  "n_pairs": 16,
+  "reference": {
+    "path": "results/uniform_campaign/lta/reference/reference_T300.npz",
+    "dF_barrier_kT": 10.766604434402941,
+    "dU_barrier_kT": 2.996080158234123,
+    "mTdS_barrier_kT": 7.770524276168819,
+    "entropic_fraction": 0.7217246926374825
+  },
+  "d_int_pct": {
+    "median": -0.2103450886072088,
+    "ci95": [
+      -2.9258453182180313,
+      0.7723920894626066
+    ],
+    "wins": 8
+  },
+  "d_final_pct": {
+    "median": 7.436740994109574,
+    "ci95": [
+      1.891894808623577,
+      18.1677452954012
+    ],
+    "wins": 3
+  },
+  "health": {
+    "median_min_ess_frac": 0.4830205874709415,
+    "median_max_wmax": 0.0068359375,
+    "worst_min_ess_frac": 0.45714285714285713,
+    "worst_max_wmax": 0.009765625,
+    "ok": true,
+    "convention": "median across seeds (gateway rule)"
+  },
+  "crossings": {
+    "abf": 43918,
+    "uni": 43814
+  },
+  "time_to_accuracy": {
+    "e0/2": {
+      "eps": 5.417097539644146,
+      "tau_abf": 0.6,
+      "tau_uni": 0.6,
+      "speedup": 1.0,
+      "status": "ok"
+    },
+    "e0/4": {
+      "eps": 2.708548769822073,
+      "tau_abf": 1.2,
+      "tau_uni": 1.2,
+      "speedup": 1.0,
+      "status": "ok"
+    },
+    "e0/8": {
+      "eps": 1.3542743849110366,
+      "tau_abf": 2.4,
+      "tau_uni": 2.4,
+      "speedup": 1.0,
+      "status": "ok"
+    },
+    "abf_final": {
+      "eps": 0.08827509061665681,
+      "tau_abf": 60.0,
+      "tau_uni": Infinity,
+      "speedup": null,
+      "status": "arm_never"
+    }
+  },
+  "verdict": "NEGATIVE_OR_UNSAFE",
+  "fr_rate": 0.2
+}

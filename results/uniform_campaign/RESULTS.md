@@ -11,7 +11,8 @@ closed studies, nothing tuned. Compute: GPU 3 (H200) only.
 |---|---|---|---|---|---|---|---|
 | Gateway (32 seeds × 2 inits) | establishment-limited toy | **−11.81%** [−14.09, −9.31] | 57/64 | **+9.82%** [+8.15, +11.74] | 1.20/1.33/1.44× (e0/2,4,8); never reaches ABF-final | pass (median conv. 0.387; worst seed 0.138) | **ACCELERATION_POSITIVE (transient)** |
 | WCA Case IX corrected (16 seeds) | establishment-limited molecular | **−21.91%** [−26.30, −19.04] | 16/16 | **−41.76%** [−45.01, −39.23] | 1.0/1.0/1.30×; ABF-final at t=65 vs 225 = **3.46×** | pass (0.142 ≥ 0.10; wmax 0.035) | **SAFE_ACCELERATOR** |
-| Alanine (16 seeds, N=2048) | ABF-sufficient atomistic control | _running_ | | | | | _pending_ |
+| Alanine (16 seeds, N=2048) | ABF-sufficient atomistic control | **+0.01%** [-0.01, +0.02] (kernel-matched) | 6/16 | ~0 | n/a | pass (0.962; wmax 0.003) | **EQUIVALENT** |
+| Ethane/LTA (16 labels, N=1024) | molecular ENTROPIC barrier (72%), but establishment-fast at this budget | **-0.21%** [-2.93, +0.77] | 8/16 | **+7.44%** [+1.89, +18.17] | 1.00/1.00/1.00x; never reaches ABF-final | pass (0.483; wmax 0.007) | **NEGATIVE_OR_UNSAFE (null accel, small final cost)** |
 
 Sign convention: negative = uniform-FR better/faster. Statistics: per-seed paired
 relative change, median, 10 000-resample bootstrap CI; τ per the convergence-atlas
@@ -59,11 +60,45 @@ Artifacts: `gateway/summary.json`, `gateway/comparison.csv`, `gateway/figures/`.
 Artifacts: `wca/summary.json`, `wca/comparison.csv`, `wca/figures/`,
 per-shard provenance in `wca/uniform/`.
 
-## Alanine (stage 3) — pending
+## Alanine (stage 3) — EQUIVALENT: the neutrality control behaves exactly as predicted
 
-Expected per prereg: neutral / self-throttling (ABF-sufficient control).
-To be filled in when the run and `analyze_alanine.py --fr-arm fr_uniform`
-complete.
+- Frozen oracle-pilot protocol, only the arm changed (`fr_uniform`, rate 0.02
+  safety-frozen); 16 paired seeds, N=2048, 100 ps, window 20-100 ps.
+- Kernel-matched primary endpoint: median **+0.01%**, CI [-0.01%, +0.02%] —
+  indistinguishable, like the closed oracle arm before it. All safety gates
+  pass (ess_age 0.962, wmax 0.003, events 0.12%/opportunity, zero clipping).
+- 5941 FR events fired and moved nothing: with the (phi,psi) marginal already
+  established by ABF, a uniform target has nothing to correct. This is the
+  self-throttling half of the regime-specific claim, on an atomistic system.
+
+Artifacts: `alanine/analysis/pilot_decision_N2048_uniform.json`, `alanine/figures/`.
+
+## Ethane/LTA (stage 4) — the entropic-barrier shortcut is falsified
+
+- New molecular system built and validated this campaign: TraPPE-UA ethane in
+  rigid all-silica LTA (IZA framework, invariants checked), CV = COM position
+  along the cage-center line. Independent umbrella/WHAM reference:
+  **dF = 10.77 kT with -T dS = 7.77 kT (72% entropic)**, split-half converged,
+  unbiased 196M-sample cross-check to 0.21 kJ/mol RMS. FR rate 0.20 frozen by
+  the safety-only ladder.
+- Two arms, 16 paired labels: Delta I_F **-0.21%** [-2.93, +0.77] (statistical
+  null), final **+7.44%** worse [+1.89, +18.17]; crossings identical
+  (43918 vs 43814); genealogy healthy throughout (ESS/N 0.48).
+- Mechanism reading: ABF alone reaches e0/8 by t=2.4 — BEFORE the
+  preregistered FR start (t=8). At N=1024 with 300k steps this cell is
+  **establishment-fast despite the strongly entropic barrier**, so uniform FR
+  has nothing to accelerate and leaves only the familiar small easy-cell
+  endpoint perturbation.
+- The refined claim the four systems support together: **what predicts a
+  uniform-FR benefit is establishment limitation, not the entropic character
+  of the barrier per se.** An entropy-dominated bottleneck helps only insofar
+  as it actually starves marginal establishment at the given budget — WCA's
+  does, LTA's (at this N and horizon) does not. A follow-up with an earlier FR
+  start or a starved budget would need a fresh preregistration; nothing was
+  re-run after seeing these numbers.
+
+Artifacts: `lta/summary.json`, `lta/comparison.csv`, `lta/figures/`,
+`lta/reference/` (decomposition), `lta/calibration/`.
 
 ## Existing-evidence context (no new runs; not confirmatory)
 
@@ -76,5 +111,20 @@ labeled on every figure). Consistent with the β-as-time-budget reading.
 
 "Proceed if ≥1 of {Gateway, WCA} is acceleration-positive with CI excluding
 zero and no genealogy collapse, and alanine shows no catastrophic degradation."
-Gateway and WCA both qualify; the gate is satisfied **conditional on the
-alanine control**, pending below.
+Gateway and WCA both qualified and alanine is clean, so the gate PASSED and
+Stage 4 (ethane/LTA) was run the same night — reference first, safety-only
+calibration second, two arms last. Its outcome is the null/negative above:
+informative, preregistered, and reported without adjustment.
+
+## Campaign verdict
+
+Uniform-target marginal FR is a **regime-specific establishment accelerator**:
+
+- WCA Case IX (establishment-limited molecular): **safe, persistent -21.9%**,
+  beating the EMA arm on its own cell — the estimator-free target wins.
+- Gateway (establishment-limited toy): same early acceleration as the EMA arm
+  (-11.8%), and the late reversal survives the target change — it is a
+  property of FR intervention there, not of target estimation.
+- Alanine (ABF-sufficient): exactly neutral.
+- LTA (entropic but establishment-fast): null acceleration, small final cost —
+  entropy alone does not predict benefit; establishment starvation does.
