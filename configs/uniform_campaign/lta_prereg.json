@@ -1,0 +1,69 @@
+{
+  "_comment": "Uniform-FR campaign, Stage 4 (ethane in rigid all-silica LTA). Frozen BEFORE the two-arm production run. The reference (umbrella+WHAM F(z), conditional U(z), entropy decomposition) is built first and independently; the FR rate is chosen by SAFETY-ONLY calibration (genealogy/event criteria, never any error metric).",
+  "_provenance": "docs/UNIFORM_FR_CAMPAIGN.md Stage 4. Do not edit after the production run starts.",
+  "system": {
+    "framework": "IZA DLS76-optimized all-silica LTA (cache/lta/LTA.cif), rigid, 2x2x2 pseudo-cells, a=11.919 A, box L=23.838 A, PBC; only framework O interacts",
+    "guest": "TraPPE-UA ethane: 2 CH3 beads, harmonic bond r0=1.54 A k=400 kJ/mol/A^2",
+    "cross_lj": {
+      "eps_over_kB_K": 93.0,
+      "sigma_A": 3.48,
+      "rc_A": 10.0,
+      "truncated_shifted": true,
+      "family": "TraPPE-zeolite (Dubbeldam et al.)"
+    },
+    "dynamics": "overdamped Langevin q += dt*F + sqrt(2 dt/beta) eta, dt=2e-4 (alkanes/WCA convention); equilibrium quantities are dynamics-independent",
+    "temperature_K": 300.0,
+    "cv": "phi = wrap((2 pi/a) x_COM); window plane at phi=0, alpha-cage centers at +-pi; z = phi a/(2 pi)"
+  },
+  "reference": {
+    "protocol": "40 umbrella windows on the circle, kappa=300 kJ/mol/rad^2, 256 replicas/window, 150k steps, 30k burn-in, sample every 25; histogram WHAM (180 bins); conditional U(z) from the same ensemble; unbiased 16384x300k cross-check",
+    "artifact": "results/uniform_campaign/lta/reference/reference_T300.npz",
+    "entropic_claim_rule": "the label 'entropic barrier' may be used only if -T dS >= 50% of dF at 300 K, measured from this artifact"
+  },
+  "arms": [
+    "abf",
+    "fr_uniform"
+  ],
+  "sampler": {
+    "n_replicas": 1024,
+    "n_steps": 300000,
+    "dt": 0.0002,
+    "save_every": 3000,
+    "n_grid": 180,
+    "abf_bandwidth": 0.05,
+    "kde_bandwidth": 0.1,
+    "abf_warmup_steps": 20000,
+    "abf_force_clip": 60.0,
+    "estimator_burn_in_steps": 20000,
+    "fr_start_steps": 40000,
+    "fr_every": 5,
+    "score_clip": 2.0,
+    "max_event_fraction": 0.02,
+    "target_ema_rate": 0.005
+  },
+  "fr_rate": {
+    "value": 0.2,
+    "rule": "largest rate from the ladder {0.02, 0.05, 0.10, 0.20} whose SHORT calibration run satisfies min ancestor ESS/N >= 0.30 AND max lineage share <= 0.05 (per-opportunity turnover is capped structurally by max_event_fraction=0.02; events/replica is reported, not gated); chosen WITHOUT reading e_F, I_F or tau; filled in by scripts/calibrate_lta_fr.py before production",
+    "calibration": "results/uniform_campaign/lta/calibration/fr_rate_selection.json",
+    "frozen_at": "2026-08-29, by the safety-only rule, before production"
+  },
+  "seeds": {
+    "first": 600,
+    "count": 16,
+    "note": "unused anywhere else in the repo"
+  },
+  "endpoints": "identical to the campaign-level rules in docs/UNIFORM_FR_CAMPAIGN.md: primary Delta I_F (trapezoid over saves, paired median, 10k bootstrap seed 20260829), final non-inferiority +5%, tau per atlas convention (persist 0.2 T), KL(p||uniform) mechanism series, genealogy floors as in the calibration rule",
+  "success_rule": {
+    "median_rel_change_pct_max": -10.0,
+    "ci95_upper_pct_max": 0.0,
+    "final_noninferiority_margin_pct": 5.0,
+    "ess_anc_over_N_min": 0.3,
+    "wmax_max": 0.05
+  },
+  "prohibited": [
+    "tuning any FR knob on an error metric",
+    "additional arms or targets",
+    "temperature sweep before the 300 K verdict",
+    "editing this file after production starts"
+  ]
+}
