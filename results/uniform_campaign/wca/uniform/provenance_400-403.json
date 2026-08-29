@@ -1,0 +1,41 @@
+{
+  "script": "run_uniform_wca.py",
+  "git_rev": "478f323344b4c4a93efb70a1cbc78a14d16b0f5c",
+  "host": "atlas",
+  "cuda_visible_devices": "3",
+  "config": "configs/wca_phase_diagram_production.yaml",
+  "stage": "uniform",
+  "cache_dir": "cache/phase_hp_v3",
+  "cell": {
+    "beta": 1.0,
+    "h": 2.0,
+    "w": 2.0,
+    "n_dim": 10,
+    "a": 1.5,
+    "sigma": 1.0,
+    "epsilon": 1.0
+  },
+  "fr_knobs": {
+    "fr_rate": 0.1,
+    "target_ema_rate": 0.005,
+    "max_event_fraction": 0.02,
+    "fr_every": 5,
+    "fr_start_steps": 20000,
+    "score_clip": 2.0
+  },
+  "n_steps": 120000,
+  "n_replicas": 1024,
+  "save_every": 2500,
+  "seeds": [
+    400,
+    401,
+    402,
+    403
+  ],
+  "arms": [
+    "abf",
+    "fr_uniform"
+  ],
+  "wall_seconds": 7295.872759819031,
+  "n_runs": 8
+}
