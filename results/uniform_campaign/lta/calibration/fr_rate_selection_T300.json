@@ -1,0 +1,40 @@
+{
+  "ladder": [
+    {
+      "rate": 0.02,
+      "ess_min": 0.9292196007259528,
+      "wmax_max": 0.00390625,
+      "events_per_replica": 0.03125,
+      "ok": true
+    },
+    {
+      "rate": 0.05,
+      "ess_min": 0.8561872909698997,
+      "wmax_max": 0.00390625,
+      "events_per_replica": 0.07470703125,
+      "ok": true
+    },
+    {
+      "rate": 0.1,
+      "ess_min": 0.735632183908046,
+      "wmax_max": 0.00390625,
+      "events_per_replica": 0.15185546875,
+      "ok": true
+    },
+    {
+      "rate": 0.2,
+      "ess_min": 0.5785310734463277,
+      "wmax_max": 0.005859375,
+      "events_per_replica": 0.28662109375,
+      "ok": true
+    }
+  ],
+  "selected": 0.2,
+  "temperature_K": 300.0,
+  "fr_start_steps": 20000,
+  "rule": {
+    "ess_min": 0.3,
+    "wmax_max": 0.05
+  },
+  "note": "Selected on genealogy safety only; no error metric was computed or read. Among safe rates the LARGEST is chosen so the mechanism is exercised."
+}

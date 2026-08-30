@@ -40,16 +40,47 @@ def git_rev():
 
 
 def main():
-    pre = json.load(open(PREREG))
-    sel = json.load(open(SELECTION))
-    rate = pre["fr_rate"]["value"]
-    assert rate is not None, "fr_rate not frozen: run calibrate_lta_fr.py first"
-    assert rate == sel["selected"], \
-        f"prereg rate {rate} != calibration selection {sel['selected']}"
-    assert pre["arms"] == ["abf", "fr_uniform"], "two arms exactly"
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--sweep-prereg", default=None,
+                    help="temperature-sweep prereg; requires --temperature")
+    ap.add_argument("--temperature", type=float, default=None)
+    a = ap.parse_args()
 
-    seeds = list(range(pre["seeds"]["first"],
-                       pre["seeds"]["first"] + pre["seeds"]["count"]))
+    if a.sweep_prereg is not None:
+        assert a.temperature is not None, "--temperature required with --sweep-prereg"
+        pre = json.load(open(a.sweep_prereg))
+        tkey = f"{a.temperature:g}"
+        pt = pre["per_T"][tkey]
+        sel_path = os.path.join(ROOT, "results/uniform_campaign/lta/calibration",
+                                f"fr_rate_selection_T{tkey}.json")
+        sel = json.load(open(sel_path))
+        rate = pt["fr_rate"]
+        assert rate is not None, f"fr_rate not frozen for T={tkey}: fill per_T first"
+        assert rate == sel["selected"], \
+            f"prereg rate {rate} != calibration selection {sel['selected']} (T={tkey})"
+        assert int(sel["fr_start_steps"]) == int(pre["sampler"]["fr_start_steps"]), \
+            "calibration ran under a different fr_start than this prereg"
+        seeds = list(range(pt["seeds_first"], pt["seeds_first"] + pre["seeds_count"]))
+        rng_seed = int(pt["rng_seed"])
+        temperature = float(a.temperature)
+        out_dir = os.path.join(ROOT, "results/uniform_campaign/lta",
+                               f"production_T{tkey}")
+        prereg_path = a.sweep_prereg
+    else:
+        pre = json.load(open(PREREG))
+        sel = json.load(open(SELECTION))
+        rate = pre["fr_rate"]["value"]
+        assert rate is not None, "fr_rate not frozen: run calibrate_lta_fr.py first"
+        assert rate == sel["selected"], \
+            f"prereg rate {rate} != calibration selection {sel['selected']}"
+        seeds = list(range(pre["seeds"]["first"],
+                           pre["seeds"]["first"] + pre["seeds"]["count"]))
+        rng_seed = RNG_SEED
+        temperature = pre["system"]["temperature_K"]
+        out_dir = OUT
+        prereg_path = PREREG
+    assert pre["arms"] == ["abf", "fr_uniform"], "two arms exactly"
     s = pre["sampler"]
     sim = LTASimConfig(n_steps=s["n_steps"], n_replicas=s["n_replicas"],
                        dt=s["dt"], save_every=s["save_every"], n_grid=s["n_grid"],
@@ -62,24 +93,25 @@ def main():
                        score_clip=s["score_clip"],
                        max_event_fraction=s["max_event_fraction"],
                        target_ema_rate=s["target_ema_rate"],
-                       fr_rate=float(rate), rng_seed=RNG_SEED)
+                       fr_rate=float(rate), rng_seed=rng_seed)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if torch.cuda.is_available():
         assert torch.cuda.device_count() == 1, "pin exactly one GPU"
-    params = LTAParams(temperature=pre["system"]["temperature_K"])
+    params = LTAParams(temperature=temperature)
     system = LTASystem(params, device, root=ROOT)
-    os.makedirs(OUT, exist_ok=True)
+    os.makedirs(out_dir, exist_ok=True)
 
-    print(f"UNIFORM-FR campaign, Stage 4 (ethane/LTA {pre['system']['temperature_K']:g} K)")
+    print(f"UNIFORM-FR campaign, LTA production (ethane/LTA {temperature:g} K)")
     print(f"  {len(seeds)} seed labels {seeds[0]}-{seeds[-1]}, N={sim.n_replicas}, "
-          f"{sim.n_steps} steps, fr_rate={rate} (safety-frozen), rng_seed={RNG_SEED}")
+          f"{sim.n_steps} steps, fr_start={s['fr_start_steps']}, fr_rate={rate} "
+          f"(safety-frozen), rng_seed={rng_seed}")
     print(f"  device={device} CUDA_VISIBLE_DEVICES="
           f"{os.environ.get('CUDA_VISIBLE_DEVICES', '')!r}\n", flush=True)
 
     t0 = time.time()
     for method in ("abf", "fr_uniform"):
-        path = os.path.join(OUT, f"{method}.npz")
+        path = os.path.join(out_dir, f"{method}.npz")
         if os.path.exists(path):
             print(f"  skip {method} (exists)", flush=True)
             continue
@@ -89,16 +121,16 @@ def main():
         payload = {k: v for k, v in out.items()
                    if isinstance(v, (np.ndarray, np.generic, int, float, str))}
         payload["meta"] = json.dumps(dict(
-            method=method, seeds=seeds, rng_seed=RNG_SEED, fr_rate=rate,
-            config_hash=sim.config_hash(), prereg=os.path.relpath(PREREG, ROOT),
+            method=method, seeds=seeds, rng_seed=rng_seed, fr_rate=rate,
+            config_hash=sim.config_hash(), prereg=os.path.relpath(prereg_path, ROOT),
             git_rev=git_rev(), host=socket.gethostname(),
             cuda_visible_devices=os.environ.get("CUDA_VISIBLE_DEVICES", ""),
-            temperature_K=pre["system"]["temperature_K"]))
+            temperature_K=temperature))
         tmp = path + ".tmp.npz"
         np.savez_compressed(tmp, **payload)
         os.replace(tmp, path)
         print(f"  wrote {path}", flush=True)
-    print(f"done in {(time.time() - t0) / 60:.1f} min -> {OUT}")
+    print(f"done in {(time.time() - t0) / 60:.1f} min -> {out_dir}")
 
 
 if __name__ == "__main__":

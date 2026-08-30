@@ -30,11 +30,21 @@ CAL_SEEDS = [900, 901]
 
 
 def main():
-    pre = json.load(open(PREREG))
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--prereg", default=PREREG,
+                    help="v1 prereg (default) or the temperature-sweep prereg")
+    ap.add_argument("--temperature", type=float, default=None,
+                    help="sweep mode: calibrate this T using the sweep prereg's sampler")
+    a = ap.parse_args()
+    pre = json.load(open(a.prereg))
     rule = pre["success_rule"]
+    temp = (a.temperature if a.temperature is not None
+            else pre["system"]["temperature_K"])
+    tag = f"_T{temp:g}" if a.temperature is not None else ""
     os.makedirs(OUT, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    params = LTAParams(temperature=pre["system"]["temperature_K"])
+    params = LTAParams(temperature=temp)
     system = LTASystem(params, device, root=ROOT)
 
     rows = []
@@ -51,7 +61,7 @@ def main():
                            fr_every=s["fr_every"], score_clip=s["score_clip"],
                            max_event_fraction=s["max_event_fraction"],
                            target_ema_rate=s["target_ema_rate"],
-                           fr_rate=rate, rng_seed=20260830)
+                           fr_rate=rate, rng_seed=20260830 + int(temp))
         out = run_sampler("fr_uniform", system, sim, seeds=CAL_SEEDS, verbose=False)
         ess = np.asarray(out["ancestor_ess"], dtype=float)      # (T, R)
         wmax = np.asarray(out["max_ancestor_frac"], dtype=float)
@@ -75,14 +85,16 @@ def main():
     safe = [r for r in rows if r["ok"]]
     sel = max(safe, key=lambda r: r["rate"]) if safe else None
     result = dict(ladder=rows, selected=(sel["rate"] if sel else None),
+                  temperature_K=temp, fr_start_steps=int(s["fr_start_steps"]),
                   rule=dict(ess_min=0.30, wmax_max=0.05),
                   note=("Selected on genealogy safety only; no error metric was "
                         "computed or read. Among safe rates the LARGEST is chosen "
                         "so the mechanism is exercised."))
-    with open(os.path.join(OUT, "fr_rate_selection.json"), "w") as fh:
+    out_name = f"fr_rate_selection{tag}.json"
+    with open(os.path.join(OUT, out_name), "w") as fh:
         json.dump(result, fh, indent=2)
-    print(f"selected fr_rate = {result['selected']}")
-    print(f"wrote {OUT}/fr_rate_selection.json")
+    print(f"selected fr_rate = {result['selected']} (T={temp:g} K)")
+    print(f"wrote {OUT}/{out_name}")
 
 
 if __name__ == "__main__":

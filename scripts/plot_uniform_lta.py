@@ -44,10 +44,24 @@ def med_iqr(a, axis):
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--temperature", type=float, default=None,
+                    help="sweep mode: read production_T{T}/ + reference_T{T}.npz, suffix figures")
+    a_cli = ap.parse_args()
+    global OUT
+    if a_cli.temperature is not None:
+        tkey = f"{a_cli.temperature:g}"
+        prod = os.path.join(ROOT, f"results/uniform_campaign/lta/production_T{tkey}")
+        ref_path = os.path.join(ROOT,
+                                f"results/uniform_campaign/lta/reference/reference_T{tkey}.npz")
+        suffix = f"_T{tkey}"
+    else:
+        prod, ref_path, suffix = PROD, REF, ""
     os.makedirs(OUT, exist_ok=True)
     apply_publication_style()
-    ref = np.load(REF, allow_pickle=True)
-    runs = {m: np.load(os.path.join(PROD, f"{m}.npz"), allow_pickle=True)
+    ref = np.load(ref_path, allow_pickle=True)
+    runs = {m: np.load(os.path.join(prod, f"{m}.npz"), allow_pickle=True)
             for m in ("abf", "fr_uniform")}
     grid = runs["abf"]["grid"]
     a = float(runs["abf"]["a_pseudo"])
@@ -56,7 +70,9 @@ def main():
     F_ref = circular_interp_ref(ref["F"], ref["grid_phi"], grid)
     Fp_ref = np.gradient(F_ref, grid)          # dF/dphi for the mean-force panel
     err = {m: error_series(np.asarray(runs[m]["pmf"], dtype=float), F_ref) for m in runs}
-    fr_start_t = t[np.searchsorted(np.asarray(runs["abf"]["steps"]), 40000)]
+    meta = json.loads(str(runs["abf"]["meta"]))
+    fr_start_steps = 20000 if "sweep" in str(meta.get("prereg", "")) else 40000
+    fr_start_t = t[np.searchsorted(np.asarray(runs["abf"]["steps"]), fr_start_steps)]
 
     # ---- convergence ----
     fig, ax = plt.subplots(figsize=(4.6, 3.0), layout="constrained")
@@ -68,9 +84,10 @@ def main():
     ax.set_yscale("log")
     ax.set_xlabel("t (BD units)")
     ax.set_ylabel(r"$e_F(t)$ (kJ/mol, full-circle RMS)")
-    ax.set_title("Ethane/LTA 300 K (16 paired seed labels, N=1024)", fontsize=9.5)
+    ttl = f"Ethane/LTA {float(ref['temperature']):g} K (16 paired seed labels, N=1024)"
+    ax.set_title(ttl, fontsize=9.5)
     ax.legend(frameon=False, fontsize=8)
-    save_figure(fig, os.path.join(OUT, "fig_lta_convergence"))
+    save_figure(fig, os.path.join(OUT, "fig_lta_convergence" + suffix))
     plt.close(fig)
 
     # ---- ratio ----
@@ -85,7 +102,7 @@ def main():
     ax.set_ylabel(r"$R_F(t) = e_F^{\rm uni}/e_F^{\rm abf}$")
     ax.set_title("below 1 = uniform mFR ahead", fontsize=9.5)
     ax.legend(frameon=False, fontsize=8)
-    save_figure(fig, os.path.join(OUT, "fig_lta_ratio"))
+    save_figure(fig, os.path.join(OUT, "fig_lta_ratio" + suffix))
     plt.close(fig)
 
     # ---- mechanism ----
@@ -110,7 +127,7 @@ def main():
     ax.set_xlabel("t"); ax.set_ylabel("population fraction")
     ax.set_yscale("log")
     ax.set_title("cage (solid) / window (dashed)", fontsize=9)
-    save_figure(fig, os.path.join(OUT, "fig_lta_mechanism"))
+    save_figure(fig, os.path.join(OUT, "fig_lta_mechanism" + suffix))
     plt.close(fig)
 
     # ---- genealogy ----
@@ -136,7 +153,7 @@ def main():
     axes[2].fill_between(t, lo, hi, color=C_UNI, alpha=0.18, lw=0)
     axes[2].set_xlabel("t"); axes[2].set_ylabel("cumulative events / N")
     fig.suptitle("Ethane/LTA genealogy (uniform arm)", fontsize=9.5)
-    save_figure(fig, os.path.join(OUT, "fig_lta_genealogy"))
+    save_figure(fig, os.path.join(OUT, "fig_lta_genealogy" + suffix))
     plt.close(fig)
 
     # ---- paired ----
@@ -156,7 +173,7 @@ def main():
         ax.set_ylabel(lab)
         ax.set_xlim(-0.3, 1.3)
     fig.suptitle("Ethane/LTA: paired per-seed endpoints (16 labels)", fontsize=9.5)
-    save_figure(fig, os.path.join(OUT, "fig_lta_paired"))
+    save_figure(fig, os.path.join(OUT, "fig_lta_paired" + suffix))
     plt.close(fig)
 
     # ---- profiles ----
@@ -186,7 +203,7 @@ def main():
     fig.suptitle("Ethane/LTA: F / mean force / xi-marginal convergence\n"
                  "(median over 16 seed labels; window at z=0, cages at $\\pm$a/2)",
                  fontsize=9.5)
-    save_figure(fig, os.path.join(OUT, "fig_lta_profiles"))
+    save_figure(fig, os.path.join(OUT, "fig_lta_profiles" + suffix))
     plt.close(fig)
     print(f"wrote figures -> {OUT}")
 

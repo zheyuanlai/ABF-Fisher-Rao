@@ -35,6 +35,9 @@ PI = math.pi
 OUT = os.path.join(ROOT, "results/uniform_campaign/lta/reference")
 
 # ---- frozen reference protocol (recorded into the artifact) ----
+# Defaults are the closed 300 K stage's values; the temperature-sweep prereg
+# (configs/uniform_campaign/lta_sweep_prereg.json) overrides kappa/steps/burn-in
+# per T on the command line, and those values are recorded into the artifact.
 N_WINDOWS = 40
 KAPPA = 300.0            # kJ/mol/rad^2  -> window sd ~ sqrt(kT/kappa) ~ 0.09 rad
 N_REP = 256
@@ -80,6 +83,12 @@ def barrier_stats(mids, F, a):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--temperature", type=float, default=300.0)
+    ap.add_argument("--kappa", type=float, default=KAPPA)
+    ap.add_argument("--n-steps", type=int, default=N_STEPS)
+    ap.add_argument("--burn-in", type=int, default=BURN_IN)
+    ap.add_argument("--n-rep", type=int, default=N_REP)
+    ap.add_argument("--seed", type=int, default=SEED)
+    ap.add_argument("--unbiased-steps", type=int, default=UNBIASED_STEPS)
     a = ap.parse_args()
 
     os.makedirs(OUT, exist_ok=True)
@@ -92,14 +101,14 @@ def main():
     print(f"LTA reference at T={a.temperature:g} K (kT={kT:.4f} kJ/mol), device={device}")
 
     centers = np.linspace(-PI, PI, N_WINDOWS, endpoint=False)
-    phis, us = run_umbrella(system, sim, centers, KAPPA, N_STEPS, N_REP,
-                            BURN_IN, SAMPLE_EVERY, SEED)
+    phis, us = run_umbrella(system, sim, centers, a.kappa, a.n_steps, a.n_rep,
+                            a.burn_in, SAMPLE_EVERY, a.seed)
 
-    mids, F_phi, p_phi, hist = wham_1d(phis, centers, KAPPA, beta, N_BINS)
+    mids, F_phi, p_phi, hist = wham_1d(phis, centers, a.kappa, beta, N_BINS)
     # split-half consistency of the barrier
     T2 = phis.shape[0] // 2
-    _, F_a, _, _ = wham_1d(phis[:T2], centers, KAPPA, beta, N_BINS)
-    _, F_b, _, _ = wham_1d(phis[T2:], centers, KAPPA, beta, N_BINS)
+    _, F_a, _, _ = wham_1d(phis[:T2], centers, a.kappa, beta, N_BINS)
+    _, F_b, _, _ = wham_1d(phis[T2:], centers, a.kappa, beta, N_BINS)
     dF = barrier_stats(mids, F_phi, system.a)
     dF_a = barrier_stats(mids, F_a, system.a)
     dF_b = barrier_stats(mids, F_b, system.a)
@@ -113,7 +122,7 @@ def main():
     mTdS = dF - dU                             # -T dS(barrier) = dF - dU
 
     # unbiased cross-check
-    hist_unb = unbiased_check(system, sim, UNBIASED_N, UNBIASED_STEPS, SEED + 7)
+    hist_unb = unbiased_check(system, sim, UNBIASED_N, a.unbiased_steps, a.seed + 7)
     with np.errstate(divide="ignore"):
         F_unb = -kT * np.log(hist_unb / max(hist_unb.sum(), 1))
     F_unb[hist_unb < 50] = np.nan
@@ -140,11 +149,11 @@ def main():
         a_pseudo=system.a, box=system.L, temperature=a.temperature, kT=kT,
         dF_barrier=dF, dU_barrier=dU, mTdS_barrier=mTdS,
         dF_split=[dF_a, dF_b],
-        protocol=json.dumps(dict(n_windows=N_WINDOWS, kappa=KAPPA, n_rep=N_REP,
-                                 n_steps=N_STEPS, burn_in=BURN_IN,
+        protocol=json.dumps(dict(n_windows=N_WINDOWS, kappa=a.kappa, n_rep=a.n_rep,
+                                 n_steps=a.n_steps, burn_in=a.burn_in,
                                  sample_every=SAMPLE_EVERY, n_bins=N_BINS,
-                                 seed=SEED, unbiased_n=UNBIASED_N,
-                                 unbiased_steps=UNBIASED_STEPS,
+                                 seed=a.seed, unbiased_n=UNBIASED_N,
+                                 unbiased_steps=a.unbiased_steps,
                                  params=dict(eps_go=params.eps_go,
                                              sigma_go=params.sigma_go,
                                              rc=params.rc, r0=params.r0_bond,

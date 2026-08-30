@@ -1,0 +1,72 @@
+{
+  "n_pairs": 16,
+  "temperature_K": 300.0,
+  "reference": {
+    "path": "results/uniform_campaign/lta/reference/reference_T300.npz",
+    "dF_barrier_kT": 10.766604434402941,
+    "dU_barrier_kT": 2.996080158234123,
+    "mTdS_barrier_kT": 7.770524276168819,
+    "entropic_fraction": 0.7217246926374825
+  },
+  "d_int_pct": {
+    "median": -14.838179671793384,
+    "ci95": [
+      -17.002428515133815,
+      -11.698065568886083
+    ],
+    "wins": 16
+  },
+  "d_final_pct": {
+    "median": -19.677625016959432,
+    "ci95": [
+      -25.110020352631246,
+      -7.003654556625579
+    ],
+    "wins": 14
+  },
+  "health": {
+    "median_min_ess_frac": 0.41847725882003994,
+    "median_max_wmax": 0.0087890625,
+    "worst_min_ess_frac": 0.3801039346696362,
+    "worst_max_wmax": 0.0126953125,
+    "ok": true,
+    "convention": "median across seeds (gateway rule)"
+  },
+  "crossings": {
+    "abf": 44107,
+    "uni": 45129
+  },
+  "time_to_accuracy": {
+    "e0/2": {
+      "eps": 5.48934602597573,
+      "tau_abf": 0.6,
+      "tau_uni": 0.6,
+      "speedup": 1.0,
+      "status": "ok"
+    },
+    "e0/4": {
+      "eps": 2.744673012987865,
+      "tau_abf": 1.2,
+      "tau_uni": 1.2,
+      "speedup": 1.0,
+      "status": "ok"
+    },
+    "e0/8": {
+      "eps": 1.3723365064939326,
+      "tau_abf": 2.4,
+      "tau_uni": 2.4,
+      "speedup": 1.0,
+      "status": "ok"
+    },
+    "abf_final": {
+      "eps": 0.08690477519105272,
+      "tau_abf": 60.0,
+      "tau_uni": 38.4,
+      "speedup": 1.5625,
+      "status": "ok"
+    }
+  },
+  "verdict": "SAFE_ACCELERATOR",
+  "fr_rate": 0.2,
+  "abf_tau_e0_8": 2.4
+}

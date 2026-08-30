@@ -65,10 +65,32 @@ def error_series(pmf, F_ref_on_grid):
 
 
 def main():
-    pre = json.load(open(PREREG))
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--sweep-prereg", default=None)
+    ap.add_argument("--temperature", type=float, default=None)
+    a = ap.parse_args()
+    if a.sweep_prereg is not None:
+        assert a.temperature is not None
+        pre = json.load(open(a.sweep_prereg))
+        tkey = f"{a.temperature:g}"
+        prod = os.path.join(ROOT, f"results/uniform_campaign/lta/production_T{tkey}")
+        ref_path = os.path.join(ROOT,
+                                f"results/uniform_campaign/lta/reference/reference_T{tkey}.npz")
+        out_json = os.path.join(OUT, f"summary_T{tkey}.json")
+        out_csv = os.path.join(OUT, f"comparison_T{tkey}.csv")
+        seeds_first = pre["per_T"][tkey]["seeds_first"]
+        rate_val = pre["per_T"][tkey]["fr_rate"]
+    else:
+        pre = json.load(open(PREREG))
+        prod, ref_path = PROD, REF
+        out_json = os.path.join(OUT, "summary.json")
+        out_csv = os.path.join(OUT, "comparison.csv")
+        seeds_first = 600
+        rate_val = pre["fr_rate"]["value"]
     rule = pre["success_rule"]
-    ref = np.load(REF, allow_pickle=True)
-    runs = {m: np.load(os.path.join(PROD, f"{m}.npz"), allow_pickle=True)
+    ref = np.load(ref_path, allow_pickle=True)
+    runs = {m: np.load(os.path.join(prod, f"{m}.npz"), allow_pickle=True)
             for m in ("abf", "fr_uniform")}
     grid_eng = runs["abf"]["grid"]
     F_ref = circular_interp_ref(ref["F"], ref["grid_phi"], grid_eng)
@@ -105,6 +127,9 @@ def main():
     N = int(pre["sampler"]["n_replicas"])
     steps = np.asarray(runs["fr_uniform"]["steps"])
     active = steps >= pre["sampler"]["fr_start_steps"]
+    # starvation measures for the sweep-level analysis: how established was the
+    # ABF arm when FR came on?  (crossings are cumulative per save in repl... use
+    # the abf arm's cage-crossing count series if present; fall back to totals)
     ess = np.asarray(runs["fr_uniform"]["ancestor_ess"], dtype=float)[active] / N
     wmax = np.asarray(runs["fr_uniform"]["max_ancestor_frac"], dtype=float)[active]
     ess_min_per_seed = np.nanmin(ess, axis=0)
@@ -123,7 +148,8 @@ def main():
     beta = 1.0 / float(ref["kT"])
     summary = dict(
         n_pairs=R,
-        reference=dict(path=os.path.relpath(REF, ROOT),
+        temperature_K=float(ref["temperature"]),
+        reference=dict(path=os.path.relpath(ref_path, ROOT),
                        dF_barrier_kT=float(ref["dF_barrier"]) * beta,
                        dU_barrier_kT=float(ref["dU_barrier"]) * beta,
                        mTdS_barrier_kT=float(ref["mTdS_barrier"]) * beta,
@@ -137,16 +163,17 @@ def main():
         crossings=dict(abf=int(np.asarray(runs["abf"]["n_cage_crossings"]).sum()),
                        uni=int(np.asarray(runs["fr_uniform"]["n_cage_crossings"]).sum())),
         time_to_accuracy=speed, verdict=verdict,
-        fr_rate=pre["fr_rate"]["value"])
-    with open(os.path.join(OUT, "summary.json"), "w") as fh:
+        fr_rate=rate_val,
+        abf_tau_e0_8=speed["e0/8"]["tau_abf"])
+    with open(out_json, "w") as fh:
         json.dump(summary, fh, indent=2, default=float)
     lines = ["seed,int_abf,int_uni,d_int_pct,final_abf,final_uni,d_final_pct,"
              "min_ess_uni,wmax_uni"]
     for r in range(R):
-        lines.append(f"{600 + r},{I['abf'][r]:.4f},{I['fr_uniform'][r]:.4f},"
+        lines.append(f"{seeds_first + r},{I['abf'][r]:.4f},{I['fr_uniform'][r]:.4f},"
                      f"{d_int[r]:.3f},{fin['abf'][r]:.5f},{fin['fr_uniform'][r]:.5f},"
                      f"{d_fin[r]:.3f},{ess_min_per_seed[r]:.4f},{wmax_max_per_seed[r]:.4f}")
-    with open(os.path.join(OUT, "comparison.csv"), "w") as fh:
+    with open(out_csv, "w") as fh:
         fh.write("\n".join(lines) + "\n")
 
     rf = summary["reference"]

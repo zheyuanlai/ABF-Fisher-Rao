@@ -128,3 +128,52 @@ Uniform-target marginal FR is a **regime-specific establishment accelerator**:
 - Alanine (ABF-sufficient): exactly neutral.
 - LTA (entropic but establishment-fast): null acceleration, small final cost —
   entropy alone does not predict benefit; establishment starvation does.
+
+## Stage 5 — LTA temperature sweep (v2 protocol): the predictor question, answered
+
+Fresh preregistration (`configs/uniform_campaign/lta_sweep_prereg.json`); one
+protocol change vs the closed v1 stage, applied uniformly at every T:
+fr_start = end of warmup (20k, was 40k). Per-T umbrella/WHAM references
+(split-half converged; kappa scaled to keep the window width T-independent),
+per-T safety-only rate ladders (80 K selected 0.10 -- its 0.20 rung failed the
+ESS floor; the others 0.20), 16 paired seed labels per T.
+
+| T (K) | dF (kT) | entropy share | fr_rate | Delta I_F | final | tau speedup | verdict |
+|---|---|---|---|---|---|---|---|
+| 300 | 10.8 | 72% | 0.20 | -14.84% [-17.00, -11.70] 16/16 | -19.68% | 1.56x | SAFE_ACCELERATOR |
+| 225 | 11.7 | 68% | 0.20 | -21.28% [-23.21, -18.13] 16/16 | -28.17% | 1.67x | SAFE_ACCELERATOR |
+| 150 | 13.5 | 61% | 0.20 | -31.92% [-33.45, -28.30] 16/16 | -56.31% | 2.56x | SAFE_ACCELERATOR |
+| 80  | 18.1 | 47% | 0.10 | -35.14% [-37.31, -32.71] 16/16 | -74.74% | 6.67x | ACCELERATION_POSITIVE* |
+
+*80 K: the largest acceleration in the campaign, but the median min ESS/N is
+0.257 < 0.30, so the SAFE label is withheld by the frozen rule.
+
+Findings:
+1. **The v1 300 K null was the late FR start, nothing else.** Under v2 the
+   same cell is a safe accelerator (-14.8%/-19.7%); FR arriving at t=4 instead
+   of t=8 catches the establishment tail that v1 missed. Both protocols were
+   preregistered; both are reported.
+2. **The preregistered predictor contrast resolves for starvation.** Benefit
+   grows monotonically as T falls while the entropy share FALLS 72% -> 47%:
+   the entropy hypothesis predicts the opposite direction and is refuted; the
+   starvation hypothesis (ABF's own window traffic: 2.69 -> 0.23 crossings per
+   replica; dF 10.8 -> 18.1 kT) predicts exactly what is observed.
+3. Mechanism signature: at 80 K the uniform arm nearly DOUBLES the cage
+   crossings (7081 vs 3840) while at 300 K the two arms are identical
+   (45129 vs 44107) -- FR generates extra window traffic exactly when ABF
+   alone cannot feed the window.
+4. Caveat, stated plainly: the temperature axis rescales diffusion as well as
+   the landscape, so it is a budget axis as much as a landscape axis (the
+   gateway campaign's beta lesson). Starvation is a budget-relative quantity,
+   so this does not weaken finding 2 -- but the sweep must not be sold as a
+   pure landscape effect.
+
+Related P1 result (R15 mid-beta, `configs/uniform_campaign/r15_midbeta_*`):
+the ABF-only screen found an intermediate window at beta 1.4/1.6 (convergence
+family only, mixing healthy, support intact) and the frozen selection rule
+qualified both cells -- yet the two-arm follow-up is NEUTRAL at both
+(+0.49%/+0.61% integrated, within +-1% everywhere). The window there lives in
+the conditional (torsions | R15), which marginal FR provably leaves untouched.
+Combined with the sweep: **the predictor is establishment starvation OF THE
+MARGINAL** -- necessary in LTA-low-T/WCA (marginal-limited, big wins), absent
+in R15 (conditional-limited, null).
