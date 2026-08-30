@@ -106,3 +106,97 @@ gates (crystal skeleton at the FF minimum; gate observable continuous).
 
 Throughput on the H200 (f64, chunk 1024): **5551 ns/day aggregate**, 0.75 GiB
 peak; saturated for B ≥ 1024, so one process per GPU is the right shape.
+
+---
+
+# Reference and Stage 0E (added after the umbrella reference completed)
+
+## The umbrella/WHAM reference — accepted
+
+64 windows × 64 replicas × 150 ps, all four acceptance gates passed with wide
+margins:
+
+| gate | value | threshold |
+|---|---|---|
+| split-half barrier | **0.015 kT** | < 0.3 |
+| split-half profile RMS | **0.026 kT** | < 0.3 |
+| adjacent-window overlap (circular) | 10 bins | ≥ 2 |
+| gate conditional split-half JS | **1e-4** | < 1e-3 |
+
+**ΔF‡ = 39.30 kJ/mol = 15.76 kT** (peak − min, the definition comparable to the
+literature), decomposing as ΔU‡ = 13.58 and −TΔS‡ = 20.35 kJ/mol, i.e.
+**60 % entropic** — qualitatively the anchor paper's finding that the barrier is
+entropic, with favourable host–guest and unfavourable host-deformation
+contributions opposing each other. No unsampled WHAM bins.
+
+**The profile is strongly asymmetric about the window** — F(+1 Å) = 39.3 vs
+F(−1 Å) = 19.7 — and this is real physics, not a mis-assignment. The ZIF-8
+6-ring has site symmetry 3m with no mirror in its own plane: three linkers
+present their ring C–H edge to the window (axially at +0.445 Å) and three
+present their methyl (at −1.449 Å), so the gate is *polar* along its normal.
+Two independent confirmations: a static rigid-framework scan sharing no code
+with the umbrella path reproduces the same polarity, and the two cage minima
+agree to 0.2 kJ/mol as symmetry requires. The two windows whose histograms sit
+furthest from their own centres (0.41–0.48 Å) are on the steepest part of the
+profile, and the displacement matches force/κ exactly.
+
+**p(A_gate | ξ) varies measurably across the gate band** (see
+`fig_zif8_reference_detail_T300`), and the gate at the window is open *wider*
+than the crystal value — induced fit. This is the empirical justification for
+amendment A1's ξ-resolved J_gate: an unresolved p(A_gate | |ξ| < band) mixes
+these curves with weights that mFR deliberately manipulates.
+
+## 0E — why the barrier is 39.3 and not the anchor paper's 24.2 kJ/mol
+
+Each candidate was **measured**, not asserted; each number is a 0 K relaxed
+(guest COM pinned, framework free) barrier, and the diagnostic carries a null
+control.
+
+| effect | measured | note |
+|---|---|---|
+| finite size, 1×1×1 vs 2×2×2 at fixed cutoff | **−0.60 kJ/mol** | null control (the rigid barrier, which *must* match) +0.29, PASS |
+| cutoff, 8.09 → 12 Å (in 2×2×2) | **−0.80 kJ/mol** | 12 Å is the anchor paper's value; only the 2×2×2 cell can hold it |
+| lattice, our 16.507 → their 16.595 Å | **−2.34 kJ/mol** | sensitivity over 16.507→16.991 is −5.57 kJ/mol |
+| **total accounted** | **≈ −3.7 kJ/mol** | leaves ≈ 11 kJ/mol unexplained |
+
+Both leading hypotheses were **refuted by measurement**. In particular the
+1×1×1 cell is *not* the problem: I expected a coherent gate-opening penalty
+(every symmetry-equivalent gate opening at once) and it is essentially absent
+at −0.6 kJ/mol. That justifies the production cell on evidence rather than
+convenience.
+
+**The leading remaining candidate is the host–guest cross terms.** The
+*framework* force field here is exactly the anchor paper's (Krokidas),
+validated term by term. The *host–guest* interaction is plain
+Lorentz–Berthelot between TraPPE-UA ethane and the Krokidas framework types —
+whereas Krokidas et al.'s stated contribution was host–guest parameters
+**DFT-tuned specifically for hydrocarbon diffusion through the ZIF-8 gate**,
+which is the very quantity at issue. Those cross terms live in the Krokidas
+2015 SI, which is ACS-blocked and could not be retrieved; they are not in the
+2017, 2018 or 2024 SIs that were.
+
+This deviation is declared in the preregistration from the outset, and the
+preregistration forbids tuning the lattice or any parameter to reproduce a
+literature barrier. **This stage is therefore a model system with a
+literature-exact framework force field and a constructed host–guest
+interaction** — the repo's standing convention for the sampling question. A
+higher barrier is a harder sampling problem, not a disqualification. Obtaining
+the Krokidas cross terms is the licensed next step *if* literature agreement
+becomes the goal; it needs a fresh reference and is out of scope here.
+
+### The diagnostic's own null control failed twice before it passed
+
+Worth recording, because it is why the numbers above can be trusted:
+
+1. The 1×1×1 and 2×2×2 builders independently picked ⟨111⟩ window variants with
+   **opposite gate polarity**, so a barrier defined by the sign of ξ was not
+   comparable across cells. Fixed by defining it as peak − min.
+2. The guest orientation came from a fixed set of lab-frame random directions.
+   At the window the energy is violently orientation-dependent, so each cell
+   sampled a *different* set relative to its own gate frame and the
+   "finite-size effect" was orientation-sampling noise — the null control was
+   off by 12.3 kJ/mol. Fixed by relaxing the guest orientation at fixed COM,
+   with the control put on the same footing.
+
+Both times a quantity that *must* be zero caught it. The script now refuses to
+report the finite-size number when its control fails.
