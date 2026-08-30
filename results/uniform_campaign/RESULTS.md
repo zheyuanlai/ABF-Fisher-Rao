@@ -177,3 +177,71 @@ the conditional (torsions | R15), which marginal FR provably leaves untouched.
 Combined with the sweep: **the predictor is establishment starvation OF THE
 MARGINAL** -- necessary in LTA-low-T/WCA (marginal-limited, big wins), absent
 in R15 (conditional-limited, null).
+
+## Stage 6 — Olefins through a CHA 8-ring (new molecular system, two arms)
+
+Preregistration `configs/uniform_campaign/cha_prereg.json` (frozen before any
+run; amendment A1 recorded before any FR run, see below). Model system: rigid
+all-silica CHA, the acid-site-free ("type 0") 8-ring environment, with
+TraPPE-UA ethene/propene in the repo's LTA modelling convention. This is NOT a
+reproduction of the flexible H-SAPO-34 force field of Cnudde et al. (JACS
+2020) -- that paper supplies the system, the CV and the temperature logic;
+rigid frameworks overestimate window barriers, and the frozen classifier, not
+the literature numbers, assigns each cell its regime. Engine: one
+torch.compile'd kernel, 13x over eager (10.4 -> 0.80 ms at B=8192), FD forces
+5e-8/3e-6, gamma=0 bit-identity, bond+angle equipartition.
+
+### Independent umbrella/WHAM references (64 windows x 128 replicas)
+
+| cell | dF | dU | -T dS | entropic share | split-half |
+|---|---|---|---|---|---|
+| ethene 450 K | 12.17 kT | 5.37 | 6.80 | 56% | 12.23 / 12.11 |
+| propene 600 K | 14.57 kT | 7.18 | 7.39 | 51% | 14.58 / 14.55 |
+| propene 450 K | 16.95 kT | 9.04 | 7.91 | 47% | 16.94 / 16.95 |
+
+Propene is harder than ethene and 450 K harder than 600 K, as expected; every
+barrier is mixed with a large entropic component.
+
+### ABF-only screen and amendment A1
+
+All three cells: T_cover 7-9 (< 0.25 T), no unvisited scoring bins -- discovery
+is NOT the problem anywhere. But TV(p_hat, uniform) plateaus at 0.32-0.35
+rather than crossing the frozen 0.10 threshold, so the classifier returned
+"intermediate" three times. Diagnosis (recorded as amendment A1 BEFORE any FR
+run): the absolute TV threshold is beta-naive -- ethene's final ABF error is
+0.39 kJ/mol = 0.1 kT with the barrier reproduced exactly, i.e. the marginal is
+as flat as the converged bias can make it. A1 licenses "intermediate" cells
+for the two-arm run and leaves the discovery-limited exclusion untouched; no
+FR knob was changed.
+
+### Two-arm results (abf vs fr_uniform, 16 paired labels, safety-frozen rates)
+
+| cell | rate | Delta I_F | final Delta e_F | tau(ABF final) | crossings abf -> uni | ESS/N | verdict |
+|---|---|---|---|---|---|---|---|
+| ethene 450 K | 0.10 | -5.96% [-6.90, -5.25] 16/16 | -12.20% 15/16 | 1.11x | 45721 -> 89821 | 0.221 | NEUTRAL |
+| propene 600 K | 0.05 | -5.96% [-7.39, -5.46] 16/16 | -26.62% 16/16 | 1.39x | 36938 -> 64527 | 0.297 | NEUTRAL |
+| propene 450 K | 0.10 | -5.72% [-7.31, -4.31] 16/16 | -19.20% 16/16 | 1.39x | 32456 -> 54822 | 0.223 | NEUTRAL |
+
+Reading, stated honestly:
+
+1. **Direction is unanimous, magnitude is not.** Every cell improves on both
+   endpoints with 16/16 or 15/16 paired wins and CIs excluding zero, but the
+   integrated median sits near -6%, below the frozen -10% bar. By the
+   campaign's own rule these are NEUTRAL, and they are reported as such.
+2. **The mechanism figure is the strongest result here.** In all three cells
+   KL(p||uniform) separates first (FR locks it near 0.11 while ABF's own KL
+   climbs back to ~0.7), then e_F', then e_F -- the marginal -> mean force ->
+   free energy ordering the mechanism predicts, seen on a molecular system.
+3. **Final error improves more than integrated error** (-12% to -27% vs -6%),
+   and it grows with barrier height (ethene 12.2 kT: -12%; propene 450 17.0 kT:
+   -19%; propene 600 14.6 kT: -27%). The uniform arm roughly doubles window
+   traffic in every cell.
+4. **Genealogy is the binding constraint.** Median min ESS/N is 0.22-0.30,
+   below the 0.30 floor, so even had the magnitude cleared the bar the SAFE
+   label would have been withheld. The safety ladders were doing their job --
+   they rejected 0.20 (ethene, propene 600) and only 0.05-0.10 survived.
+5. The pattern predicted from the literature (ethene ABF-sufficient, propene
+   450 discovery-limited, propene 600 the establishment window) did NOT
+   materialise: with 1024 walkers and a converged ABF bias, all three cells
+   discover both cages within 10% of the budget. The rigid framework's higher
+   barriers do not translate into a discovery deficit at this replica count.

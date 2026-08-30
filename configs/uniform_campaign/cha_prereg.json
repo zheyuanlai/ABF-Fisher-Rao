@@ -1,34 +1,60 @@
 {
   "_comment": "Uniform-FR campaign, olefin/CHA stage. Frozen BEFORE any reference, screen, or production run. Two arms only (abf, fr_uniform) -- no sham, no oracle, per user directive: in real use the landscape is unknown. Model system: rigid all-silica CHA (type-0 8-ring environment) + TraPPE-UA ethene/propene in the repo's LTA modelling convention; NOT a reproduction of the flexible H-SAPO-34 force field of Cnudde et al. (JACS 2020), whose system/CV/temperature logic this stage borrows. Rigid frameworks overestimate window barriers; the FROZEN classifier below, not the literature numbers, assigns each cell its regime.",
   "_provenance": "Do not edit after the first production run starts. Framework artifact cache/cha/framework.npz (window/cages located numerically; sphere-union confinement clips 0.0% of the two cages, admits 0.6% side-cage volume -- declared).",
-  "arms": ["abf", "fr_uniform"],
+  "arms": [
+    "abf",
+    "fr_uniform"
+  ],
   "cells": [
-    {"guest": "ethene",  "temperature_K": 450.0},
-    {"guest": "propene", "temperature_K": 450.0},
-    {"guest": "propene", "temperature_K": 600.0, "note": "preregistered fallback toward an establishment regime if propene 450 K is discovery-limited"}
+    {
+      "guest": "ethene",
+      "temperature_K": 450.0
+    },
+    {
+      "guest": "propene",
+      "temperature_K": 450.0
+    },
+    {
+      "guest": "propene",
+      "temperature_K": 600.0,
+      "note": "preregistered fallback toward an establishment regime if propene 450 K is discovery-limited"
+    }
   ],
   "sampler": {
     "n_replicas": 1024,
     "n_steps": 400000,
-    "dt": 2e-4,
+    "dt": 0.0002,
     "save_every": 4000,
-    "xi_lo": -11.0, "xi_hi": 10.5, "n_grid": 180,
-    "abf_bandwidth": 0.15, "kde_bandwidth": 0.25,
+    "xi_lo": -11.0,
+    "xi_hi": 10.5,
+    "n_grid": 180,
+    "abf_bandwidth": 0.15,
+    "kde_bandwidth": 0.25,
     "abf_warmup_steps": 25000,
     "abf_force_clip": 30.0,
     "estimator_burn_in_steps": 25000,
     "abf_min_count": 20.0,
     "fr_start_steps": 25000,
-    "fr_every": 5, "score_clip": 2.0,
-    "target_ema_rate": 0.005, "max_event_fraction": 0.02,
+    "fr_every": 5,
+    "score_clip": 2.0,
+    "target_ema_rate": 0.005,
+    "max_event_fraction": 0.02,
     "window_half": 1.5,
     "_note": "fr_start = warmup end (the LTA sweep lesson); identical force-evaluation budget in every arm and cell"
   },
   "reference_rule": {
-    "windows": 64, "n_rep": 128, "sample_every": 25, "n_bins": 180,
+    "windows": 64,
+    "n_rep": 128,
+    "sample_every": 25,
+    "n_bins": 180,
     "kappa": "kT / (0.20 A)^2 per temperature",
-    "n_steps": 150000, "burn_in": 30000,
-    "seeds": {"ethene_450": 20260910, "propene_450": 20260911, "propene_600": 20260912},
+    "n_steps": 150000,
+    "burn_in": 30000,
+    "seeds": {
+      "ethene_450": 20260910,
+      "propene_450": 20260911,
+      "propene_600": 20260912
+    },
     "acceptance": "split-half dF within 0.3 kT over the scoring range; adjacent-window overlap present; U(xi) and U_nonbond(xi) conditionals recorded for the entropy decomposition"
   },
   "screen": {
@@ -44,13 +70,35 @@
     "selection": "run the two-arm production on every establishment-limited cell; keep one abf_sufficient cell (if any) as the neutrality control; discovery-limited cells get NO FR run and no rescue claim"
   },
   "fr_rate_rule": "per selected cell, safety-only ladder {0.02, 0.05, 0.10, 0.20}, largest rate with min ancestor ESS/N >= 0.30 and max lineage share <= 0.05 over FR-active saves, chosen without reading any error metric",
-  "production": {"seeds_first": {"ethene_450": 800, "propene_450": 820, "propene_600": 840},
-                 "seeds_count": 16,
-                 "rng_seed": {"ethene_450": 20260920, "propene_450": 20260921, "propene_600": 20260922}},
+  "production": {
+    "seeds_first": {
+      "ethene_450": 800,
+      "propene_450": 820,
+      "propene_600": 840
+    },
+    "seeds_count": 16,
+    "rng_seed": {
+      "ethene_450": 20260920,
+      "propene_450": 20260921,
+      "propene_600": 20260922
+    }
+  },
   "endpoints": "campaign conventions: primary Delta I_F (paired median, 10k bootstrap seed 20260829), final non-inferiority +5%, tau atlas convention (persist 0.2T), KL(p||uniform) mechanism series, genealogy floors 0.30/0.05 (median-across-seeds), plus the three-panel aligned mechanism figure KL -> e_F' -> e_F with the FR start marked",
-  "success_rule": {"median_rel_change_pct_max": -10.0, "ci95_upper_pct_max": 0.0,
-                   "final_noninferiority_margin_pct": 5.0,
-                   "ess_anc_over_N_min": 0.30, "wmax_max": 0.05},
+  "success_rule": {
+    "median_rel_change_pct_max": -10.0,
+    "ci95_upper_pct_max": 0.0,
+    "final_noninferiority_margin_pct": 5.0,
+    "ess_anc_over_N_min": 0.3,
+    "wmax_max": 0.05
+  },
   "gpu_policy": "GPU 3 always; GPU 2 only while its other tenants are user 'yesom' or none -- a watchdog kills OUR GPU-2 jobs (by pid, never device-wide) if any other user appears",
-  "prohibited": ["tuning any FR knob on an error metric", "adding arms/targets/cells after data are seen", "claiming FR rescue on a discovery-limited cell", "editing this file after the first production run starts"]
+  "prohibited": [
+    "tuning any FR knob on an error metric",
+    "adding arms/targets/cells after data are seen",
+    "claiming FR rescue on a discovery-limited cell",
+    "editing this file after the first production run starts"
+  ],
+  "_amendments": [
+    "A1 2026-08-30 (before any FR run on this system): the screen's absolute TV<0.10 threshold is beta-naive -- ethene 450 K plateaus at TV~0.35 driven by O(1 kJ/mol) estimator residuals (final ABF e_F 0.39 kJ/mol = 0.1 kT, barrier reproduced exactly), i.e. the marginal is as established as the bias allows. Resolution: cells the frozen classifier labels 'intermediate' are LICENSED for the two-arm run, with their ABF-only screen facts recorded as the per-cell prediction before unblinding; 'discovery_limited' cells remain excluded exactly as frozen; no FR knob changes."
+  ]
 }

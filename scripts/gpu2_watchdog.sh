@@ -19,7 +19,7 @@ while true; do
   done < <(nvidia-smi --query-compute-apps=gpu_uuid,pid --format=csv,noheader)
   if [ "$foreign" = "1" ]; then
     echo "$(date -u +%H:%M:%S) stopping OUR GPU-2 jobs (pid-targeted)"
-    for pid in $(pgrep -u "$(whoami)" -f "run_cha_reference.py"); do
+    for pid in $(pgrep -u "$(whoami)" -f "_cha_"); do
       env=$(tr '\0' '\n' < "/proc/$pid/environ" 2>/dev/null | grep '^CUDA_VISIBLE_DEVICES=')
       if [ "$env" = "CUDA_VISIBLE_DEVICES=2" ]; then
         echo "  kill $pid ($env)"; kill -TERM "$pid"
