@@ -1,5 +1,14 @@
 # C60 execution state machine
 
+> **STUDY RE-SUSPENDED 2026-08-30 ~09:58 UTC by user directive** ("先kill掉吧，这个实验太复杂了
+> / 我们先close掉目前的实验"). The 2026-08-30 resume ran 12 minutes: build 1 relaunched from
+> the pinned worktree via the frozen campaign wrapper, revalidated the banked phase-A anchors
+> (48 wet / 33 dry), and re-entered phase B (cage drag); it was terminated there by a targeted
+> process-group kill (no device-clearing command), GPU 3 released clean. Still zero
+> verdict-bearing data; the resume clause below is UNCHANGED and was exercised successfully —
+> a future resume repeats it verbatim. Log: `results/c60/reference/campaign.log`
+> (the 2026-08-16 stub preserved as `campaign_v1_suspended.log`).
+
 > **STUDY SUSPENDED 2026-08-16 ~05:3x UTC by user directive** ("stop all C60 related
 > experiments; focus on interpreting other experiments"). Builds 1 and 2 stopped cleanly;
 > GPUs 2 and 3 released; no gate input or verdict-bearing quantity was ever produced, so the
