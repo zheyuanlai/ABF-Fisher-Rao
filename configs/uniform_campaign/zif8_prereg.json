@@ -1,0 +1,182 @@
+{
+  "_comment": "Uniform-FR campaign, ethane/ZIF-8 stage -- the campaign's FIRST FLEXIBLE-FRAMEWORK system. Frozen BEFORE any reference, screen, calibration or production run. TWO ARMS ONLY (abf, fr_uniform): no sham, no oracle, no estimated target, per standing user directive -- in a real molecular application nobody knows the reaction coordinate's landscape, so the uniform target is the only deployable one.",
+  "_why_this_system": "ZIF-8's 6MR window (3.4 A) is narrower than ethane, and passage is enabled by thermal linker motion: the framework gate is a PHYSICAL hidden slow coordinate. The stage therefore separates three clocks the campaign's predictor needs kept apart -- discovery (T_cover) != marginal establishment (T_marg) != conditional gate equilibration (T_gate). Marginal FR can only repair the middle one; the closed R15 pentane result says it cannot repair the third. This is the first system in the project where that distinction is measurable on real physics rather than a constructed toy.",
+  "_provenance": {
+    "structure": "cache/zif8/literature/zif8_raspa2_github.cif -- P1 conventional cell (276 atoms, a = 16.991 A) from Park et al., PNAS 2006, 103, 10186 (CSD FAWCEN), via numat/RASPA2.",
+    "force_field": "cache/zif8/literature/zif8_gromacs_aanik_atomtypes_ZIF-8_Krokidas.itp -- the KROKIDAS et al. (JPCC 2015, 119, 27028) flexible ZIF-8 force field, i.e. the force field OF THE ANCHOR PAPER (Schmidt, Cnudde, Van Speybroeck, Vanduyfhuys, JPCC 2024, 128, 18509), in the Anikeenko 2017 GROMACS adaptation.",
+    "topology_validation": "scripts/build_zif8_framework.py enumerates bonds/angles/dihedrals/1-4 pairs from CONNECTIVITY and asserts SET EQUALITY against the published 2x2x2 GROMACS topology: 2496 bonds, 4608 angles, 7296 propers, 6336 pairs -- all identical, and every published term resolves to the same parameter type. Composition Zn12 N48 C1_24 C2_48 C3_24 H2_48 H3_72, coordination and charge neutrality all asserted.",
+    "declared_deviations": [
+      "Electrostatics are damped-shifted-force (Fennell-Gezelter, alpha = 0.2 1/A) rather than Ewald; the model is DEFINED with DSF, it is not an approximation to something else. Cutoff rc = 0.49*a, the largest value the minimum-image convention permits in the 1x1x1 cell.",
+      "The rigid TraPPE-UA ethane bond is replaced by the repo's harmonic convention (k = 400 kJ/mol/A^2, r0 = 1.54 A); bond-length fluctuation sqrt(kT/k) ~ 0.08 A.",
+      "Host-guest LJ by Lorentz-Berthelot between TraPPE-UA CH3 (eps/kB 98 K, sigma 3.75 A) and the Krokidas framework types.",
+      "The CIF's ordered methyl rotamers are not body-centred (max 0.79 A on H3 only; every other atom type is exact). The methyl is a FREE ROTOR in this force field (all H3-C3-C1-N torsions have k = 0), so F(phi) is exactly periodic by symmetry and only the INSTANTANEOUS potential is not -- measured at ~0.001 kT.",
+      "Production uses the 1x1x1 conventional cell (276 atoms, 2 cages). The anchor paper used 2x2x2 for its force-field runs. This is a declared finite-size choice made for compute; the periodic images of the studied gate are correlated with it."
+    ]
+  },
+  "system": {
+    "guest": "one TraPPE-UA ethane at infinite dilution (no guest-guest physics this round)",
+    "temperature_K": 300.0,
+    "cell": "1x1x1 conventional cubic, lattice constant set by Stage 0A (<P> = 1 bar from the atomic virial), NOT tuned to reproduce any literature barrier",
+    "cv": "phi = wrap(2 pi xi / L), xi = (COM_ethane - win_center) . n, where win_center is the centroid of the 6 Zn of the gate and n its plane normal -- the SAME collective variable the anchor paper defines. L = |(a/2)(1,1,1)| is a LATTICE TRANSLATION, so xi is exactly periodic: the channel needs no axial walls, and cage -> window -> cage repeats. Evaluated on UNWRAPPED guest coordinates (the tube is longer than the minimum-image cube; a min-imaged CV would be wrong by up to 4.9 A -- measured).",
+    "confinement": "radial flat-bottom tube of radius R_tube about the gate axis on the guest COM (k = 100 kJ/mol/A^2). Measured: captures 98.9% of the guest-accessible cage volume, and every OTHER window out of the cage lies >1.5 A outside it. Identical in both arms AND in the reference.",
+    "hidden_gate": "DIAGNOSTIC ONLY, never biased, never seen by FR. A_gate = mean radial distance of the six bottleneck ring-H from the instantaneous Zn6 centroid (the 6-ring alternates: three linkers present their ring C-H edge, three their methyl); theta_gate = mean linker-plane tilt. A_gate is the same 6MR gate radius the anchor paper reports."
+  },
+  "arms": [
+    "abf",
+    "fr_uniform"
+  ],
+  "sampler": {
+    "dt": 0.0005,
+    "gamma": 1.0,
+    "n_steps": 600000,
+    "n_replicas": 384,
+    "save_every": 2000,
+    "n_grid": 96,
+    "abf_bandwidth_A": 0.2,
+    "kde_bandwidth_A": 0.3,
+    "abf_warmup_steps": 60000,
+    "abf_force_clip_A": 30.0,
+    "estimator_burn_in_steps": 60000,
+    "abf_min_count": 20.0,
+    "fr_start_steps": 60000,
+    "fr_every": 5,
+    "score_clip": 2.0,
+    "max_event_fraction": 0.02,
+    "window_half_A": 1.5,
+    "cage_half_A": 2.0,
+    "gate_every": 25,
+    "gate_band_A": 1.0,
+    "gate_lo": 2.0,
+    "gate_hi": 4.5,
+    "n_gate_bins": 40,
+    "_note": "fr_start = warmup end = estimator burn-in end (the LTA sweep lesson: starting FR after establishment has already happened erases the entire opportunity). Identical force-evaluation budget in every arm. dt and n_steps are the ONE pair of values the protocol allows to be revised, once each, from the recorded Stage-0C and screen outputs, BEFORE any FR run; the revision and its justification are appended to _resolved below."
+  },
+  "reference_rule": {
+    "method": "umbrella sampling on the circular CV + periodic WHAM, one independent BAOAB run per window",
+    "windows": 64,
+    "n_rep": 64,
+    "n_steps": 300000,
+    "burn_in": 60000,
+    "sample_every": 50,
+    "kappa_width_A": 0.2,
+    "seed": 20260940,
+    "accept_dF_kT": 0.3,
+    "accept_rms_kT": 0.3,
+    "accept_overlap_bins": 2,
+    "accept_gate_js": 0.02,
+    "acceptance": "split-half barrier within 0.3 kT; split-half profile RMS within 0.3 kT; adjacent-window overlap (circularly closed) >= 2 bins; AND the reference's own hidden-gate conditional at the window must be split-half converged (JS < 0.02) -- the reference is not accepted merely because WHAM returns a smooth curve, and it is not usable as the T_gate yardstick unless its OWN gate conditional has converged.",
+    "records": "F(xi), U(xi), U_hostguest(xi), -T dS = F - U, p(xi), and p_ref(A_gate | |xi| < gate_band_A)",
+    "min_u_counts": 100,
+    "min_gate_samples": 20000
+  },
+  "screen": {
+    "protocol": "ABF-ONLY, one run, 8 seed labels batched, the production sampler above. No FR arm exists at this stage; the classification alone licenses or refuses the two-arm run.",
+    "n_seeds": 8,
+    "rng_seed": 20260950,
+    "relative_fraction": 0.2,
+    "hold_frac": 0.1,
+    "cover_hold_frac": 0.05,
+    "gate_min_samples": 200,
+    "T_cover": "first save at which EVERY grid bin has been visited, sustained for cover_hold_frac*T",
+    "T_marg": "with J(t) = TV(p_t^xi, uniform), J_inf = median over the last 20% of the run and J_0 the first post-warmup value: first t with J(t) <= J_inf + 0.2 (J_0 - J_inf), sustained for 0.1 T. RELATIVE, not the CHA stage's absolute TV < 0.10 -- that threshold was beta-naive and needed an amendment, because a plateau set by O(1 kJ/mol) estimator residuals is not a failure to establish.",
+    "T_gate": "the same relative rule applied to J_gate(t) = JS( p_t(A_gate | |xi| < gate_band_A) || p_ref(A_gate | same band) ), with p_ref from the accepted umbrella reference.",
+    "classifier": {
+      "discovery_limited": "T_cover > 0.5 T or any bin never visited",
+      "conditional_limited": "T_gate > 0.5 T while xi has coverage",
+      "abf_sufficient": "T_cover, T_marg, T_gate all < 0.25 T",
+      "establishment_limited": "T_cover < 0.25 T and 0.25 T <= T_marg <= 0.8 T and T_gate < 0.25 T",
+      "otherwise": "intermediate -- reported, not forced into a box"
+    },
+    "licensed_verdicts": [
+      "establishment_limited",
+      "abf_sufficient",
+      "intermediate",
+      "conditional_limited"
+    ],
+    "_licensing_note": "establishment_limited is the main FR candidate; abf_sufficient is kept as the neutrality control; intermediate is licensed with its screen facts recorded as the per-cell prediction before unblinding (the CHA A1 amendment, adopted here from the start rather than after the fact). conditional_limited is ALSO licensed and is the scientifically most interesting outcome -- it is the R15 failure mode on real physics, and refusing to run it would leave the campaign's central negative prediction untested; the prediction 'marginal FR cannot repair it' is recorded HERE, before the data. discovery_limited gets NO FR run and NO rescue claim."
+  },
+  "fr_rate_rule": {
+    "ladder": [
+      0.005,
+      0.01,
+      0.02,
+      0.05,
+      0.1
+    ],
+    "n_seeds": 1,
+    "seed_first": 900,
+    "n_replicas": 256,
+    "rng_seed": 20260960,
+    "rule": "largest rate satisfying min ancestor ESS/N >= 0.30 AND max lineage share <= 0.05 AND event fraction <= max_event_fraction, over the FR-active saves, chosen WITHOUT reading any error metric and without loading the reference.",
+    "_horizon_note": "The ladder runs the FULL production horizon. The olefin/CHA stage calibrated at 150k steps, selected rate 0.10, and then production at 400k steps landed at ESS/N = 0.221 -- below the 0.30 floor its own calibration had certified. Ancestor collapse accumulates with the number of birth-death events, i.e. with the HORIZON, so a short ladder systematically over-certifies. run_zif8_uniform.py asserts the calibration horizon equals the production horizon."
+  },
+  "production": {
+    "seed_first": 800,
+    "n_seeds": 16,
+    "rng_seed": 20260970,
+    "pairing": "both arms in ONE process, sharing the init pool draw and the dynamics RNG stream; the FR stream is independent so that fr_rate = 0 reproduces ABF bit-for-bit (asserted in tests/test_zif8.py)"
+  },
+  "endpoints": {
+    "primary": "I_F = integral of e_F(t) dt over the saved horizon, where e_F is the gauge-ALIGNED RMS of F_hat - F_ref over the full circular domain (the whole channel is the scoring region: the CV is periodic and there is no wall, so there is no mask to choose and no place to hide a gain outside one). Statistic: per-seed paired Delta I_F = 100 (I_F^uni / I_F^abf - 1), median over 16 seeds, 10000-resample bootstrap CI of the median (seed 20260829).",
+    "final": "e_F(T), always reported (transient vs persistent acceleration must be visible -- the gateway EMA arm's late reversal is why this cannot be hidden)",
+    "mean_force": "e_F'(t), the NON-aligned RMS of F_hat' - F_ref' (the mean force has no gauge freedom)",
+    "marginal": "KL(p_t^xi || uniform) and TV(p_t^xi, uniform)",
+    "time_to_accuracy": "tau_eps, first t with e_F <= eps sustained for 0.2 T, eps in {e0/2, e0/4, e0/8, abf_final}; censoring reported, never imputed",
+    "genealogy": "ancestor ESS/N, unique-ancestor count, max lineage share, cumulative replacement events",
+    "hidden_gate": "J_gate(t) per arm against the umbrella reference; the cumulative A_gate distribution at the window per arm vs the reference; and A_gate at the instant of every completed cage-to-cage transit -- this is what distinguishes 'FR created independent open-gate opportunities' from 'FR multiplied correlated copies of one gate state'.",
+    "figures": "the three-panel aligned mechanism figure (marginal -> mean force -> free energy) with t_FR marked, plus the gate, genealogy, speedup and reference panels (scripts/plot_uniform_zif8.py)"
+  },
+  "success_rule": {
+    "median_rel_change_pct_max": -10.0,
+    "ci95_upper_pct_max": 0.0,
+    "final_noninferiority_margin_pct": 5.0,
+    "ess_anc_over_N_min": 0.3,
+    "wmax_max": 0.05,
+    "verdicts": {
+      "SAFE_ACCELERATOR": "median Delta I_F <= -10%, CI95 upper < 0, final within +5%, genealogy floors met",
+      "ACCELERATION_POSITIVE_BUT_UNSAFE": "accuracy gate met but a genealogy floor or the final non-inferiority margin is violated",
+      "NEUTRAL": "|median Delta I_F| < 10% and final within +5%",
+      "NEGATIVE_OR_UNSAFE": "anything else"
+    }
+  },
+  "predictions_recorded_before_data": [
+    "The barrier will be substantially entropic (the anchor paper decomposes it as such, with favourable host-guest and unfavourable host-deformation contributions cancelling). Per the closed LTA sweep, the entropic fraction is NOT the predictor of FR benefit and will not be used as one.",
+    "The predictor being tested is marginal establishment STARVATION, the LTA sweep's surviving verdict.",
+    "If the screen returns conditional_limited (T_gate >> T_marg), the prediction is that uniform marginal FR is NEUTRAL-to-harmful on I_F, because cloning on xi alone multiplies descendants of the same gate configuration -- the R15 pentane failure mode. The falsifiable signature is J_gate worse in the FR arm than in the ABF arm at matched compute, which analyze_uniform_zif8.py computes and reports as gate.fr_gate_worse_than_abf."
+  ],
+  "gpu_policy": "GPU 3 only (H200), per standing user instruction; multiple processes on that one device are allowed.",
+  "prohibited": [
+    "tuning any FR knob on an error metric",
+    "adding arms, targets, cells or seed extensions after data are seen",
+    "claiming FR rescue on a discovery-limited cell",
+    "choosing the temperature or the horizon after seeing any FR result",
+    "tuning the lattice constant to make the barrier resemble the literature value",
+    "editing this file after the first production run starts"
+  ],
+  "_resolved": {
+    "_note": "Values determined by the recorded Stage-0 outputs BEFORE any FR run, with their evidence. Nothing here may be set after an FR result is seen.",
+    "resolved_on": "2026-08-30",
+    "lattice_a_A": 16.5068,
+    "lattice_evidence": "Stage 0A virial scan: <P>(a) = +3129, +100, -2826, -4834, -6410, -8244 bar at a = 16.30, 16.50, 16.70, 16.85, 16.991, 17.15 A -> <P> = 1 bar at a = 16.507 A. Corroborated externally: the anchor paper's own Krokidas-FF supercell is 33.19 A, i.e. a = 16.595 A, from a real barostat -- 0.5% agreement by an independent route. Not tuned to any barrier.",
+    "dt_ps": 0.0005,
+    "dt_evidence": "Stage 0C compared the binned local mean force at dt = 0.001 and 0.002 ps against dt = 0.0005: RMS differences 1.363 and 1.225 kJ/mol/rad. dt = 0.002 deviating LESS than dt = 0.001 shows the comparison was dominated by sampling noise, not timestep bias, so the gate was INCONCLUSIVE and did not license a larger dt. The conservative 0.5 fs is kept -- it is also the anchor paper's timestep, and the C-H period is 11.3 fs (22 steps). Gate statistics were dt-independent: A_gate 2.7952/2.7953/2.7953 A with identical sd.",
+    "force_dtype": "float32",
+    "precision_evidence": "Stage 0C: the f32 force kernel's BIAS in the local mean force -- the quantity ABF integrates -- is +4.5e-6 +- 1.3e-6 kJ/mol/rad against |f_loc| ~ 9.4, i.e. 4.7e-7 relative; total energy agrees to 0.0028 kJ/mol = 0.001 kT. Measured speedup 2.54x (5348 -> 13585 ns/day aggregate at B = 512). Positions/accumulators stay f64.",
+    "n_replicas": 384,
+    "n_steps": 600000,
+    "horizon_ps": 300.0,
+    "horizon_evidence": "Chosen on COMPUTE, before any FR run: 2 arms x 16 seeds x 384 replicas x 300 ps = 3686 ns aggregate ~ 6.3 h at the measured 14100 ns/day. 384 replicas over 96 grid bins is 4 walkers/bin for the FR score's KDE. The ABF-only screen runs at the SAME horizon, so its three clocks are measured on the budget production will actually have.",
+    "stage0_gates": "0A/0B/0D all PASS; see docs/ZIF8_STAGE0_RESULTS.md",
+    "throughput_ns_per_day": 7828,
+    "determinism_evidence": "torch.use_deterministic_algorithms + torch._inductor.config.deterministic are set at import in src/zif8/core_zif8.py. Measured on the H200 (forces repeated on identical input, B=512): compiled f32 default 6.1e-05, compiled f64 default 1.1e-13, eager 0 but 8.8x slower, compiled f32 + flags 0 and still 1.47x faster than f64. WITHOUT this the two arms diverge from the first step and the paired endpoint silently becomes unpaired -- which is what happened to the WCA stage. Cost 1.75x, paid deliberately. Regression-tested by tests/test_zif8.py::test_gpu_arms_are_exactly_paired, which asserts the arms are BIT-IDENTICAL for all 60000 steps before fr_start.",
+    "estimator_binning": "The ABF accumulators use a deterministic one-hot scatter_ + fixed-order sum instead of scatter_add_ (CUDA float atomics), since the accumulators feed the bias and therefore the trajectory. Cost R*N*G, negligible beside the force kernel."
+  },
+  "engine": {
+    "dtype": "float64",
+    "force_dtype": "float32",
+    "chunk": 1024,
+    "_note": "Positions, velocities, the CV and every estimator accumulator are f64; ONLY the force/energy kernel runs f32. Full-f32 positions would not be safe -- the guest's unwrapped axial coordinate drifts to O(100 A) while one step moves it 2.5e-4 A.",
+    "deterministic": true,
+    "_determinism_note": "torch.use_deterministic_algorithms + torch._inductor.config.deterministic are set at import in src/zif8/core_zif8.py. Measured on the H200 (forces repeated on identical input, B=512): compiled f32 default 6.1e-05, compiled f64 default 1.1e-13, eager 0 but 8.8x slower, compiled f32 + flags 0 and still 1.47x faster than f64. WITHOUT this the two arms diverge from the first step and the paired endpoint silently becomes unpaired -- which is what happened to the WCA stage. Cost 1.75x, paid deliberately. Regression-tested by tests/test_zif8.py::test_gpu_arms_are_exactly_paired, which asserts the arms are BIT-IDENTICAL for all 60000 steps before fr_start."
+  }
+}
