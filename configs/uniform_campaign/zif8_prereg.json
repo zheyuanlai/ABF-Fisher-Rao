@@ -207,6 +207,19 @@
         "COVERAGE CLAUSE. cover_hold_frac was a no-op (n_visited_bins is monotone, so 'sustained' is implied). Removed rather than left as a rule that cannot bite."
       ],
       "not_changed": "The frozen primary endpoint, the -10% / CI-upper<0 success thresholds, the arms, the target, the cell, the seeds, the FR rate rule's ladder and safety floors, the horizon, and every Stage-0-resolved engine value."
+    },
+    {
+      "id": "A2",
+      "date": "2026-08-30",
+      "when": "BEFORE the T=300 K screen finished and before ANY FR run on ANY cell. Recorded now precisely so that a temperature follow-up cannot later be a post-hoc reaction to the 300 K verdict.",
+      "why": "The closed LTA sweep is this campaign's strongest precedent: FR benefit GREW as temperature fell, and the surviving predictor was marginal establishment starvation, NOT entropy share. If ethane/ZIF-8 at 300 K turns out not to be establishment-limited at this budget, the question 'does ZIF-8 have such a regime at all?' is only answerable on a ladder whose rule was fixed in advance.",
+      "changes": [
+        "A temperature ladder T in {250, 300, 350} K is preregistered. 300 K is the cell already running; 250 and 350 K are additions whose execution is gated on compute, not on any result.",
+        "Each temperature repeats the FULL protocol independently: its own Stage-0A equilibrium lattice (the cell expands with T and the anchor paper shows the gate opens with it), its own umbrella reference, its own ABF-only screen and classification, and its own safety-only FR calibration. The 300 K reference is NOT reused at another temperature.",
+        "The horizon, replica count, dt, engine settings, arms, target, endpoints and success thresholds are IDENTICAL across temperatures -- the ladder varies temperature and nothing else."
+      ],
+      "prediction_recorded_before_data": "Per the LTA verdict, the prediction is NOT 'lower T -> more entropic -> FR better'. It is: T changes the gate dynamics, which changes T_marg, which changes the FR opportunity. Concretely -- at a FIXED wall-clock horizon, lower T should lengthen T_marg/T and so move the cell toward establishment-limited, where FR should help; higher T should shorten it toward abf_sufficient, where FR should be neutral. The entropic fraction of the barrier is recorded per temperature but is NOT used as a predictor.",
+      "prohibited": "Shortening the horizon, or reducing the replica count, in order to manufacture an establishment-limited cell. The budget is frozen across the ladder. If every temperature is abf_sufficient at this budget, that is the result."
     }
   ]
 }
