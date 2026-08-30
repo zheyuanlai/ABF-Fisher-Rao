@@ -1,0 +1,160 @@
+{
+  "task": "Literature-validated FLEXIBLE force field for ZIF-8 (Zn + 2-methylimidazolate), complete parameter set with provenance",
+  "date_downloaded": "2026-08-30",
+  "note_on_directory": "provenance_structure.json and zif8_*.cif files in this directory were written by a parallel structure-retrieval task, not by this force-field task.",
+  "anchor_paper": {
+    "title": "In-Depth Thermodynamic and Kinetic Analysis of Ethane Diffusion in ZIF-8",
+    "authors": "Bernd Schmidt, Pieter Cnudde, Veronique Van Speybroeck, Louis Vanduyfhuys (Ghent University CMM)",
+    "journal": "J. Phys. Chem. C 2024, 128(43), 18509-18523",
+    "doi": "10.1021/acs.jpcc.4c04790",
+    "force_field_used": "Krokidas et al. flexible ZIF-8 FF (main text ref 60 = J. Phys. Chem. C 2015, 119, 27028, doi 10.1021/acs.jpcc.5b08554; the paper's own SI cites the same FF via ref 1 = Krokidas et al. ACS Appl. Mater. Interfaces 2018, 10, 39631, doi 10.1021/acsami.8b12605). Engine: YAFF coupled with LAMMPS, 2x2x2 supercell (2208 atoms), NVT/NPT, electrostatics+vdW truncated and switched at 12.0 A, 0.5 fs timestep."
+  },
+  "files": [
+    {
+      "file": "biblio_record_jpcc2024.html",
+      "url": "https://biblio.ugent.be/publication/01JBY8N8FWDR0F5C1BEJ7K1KQ1",
+      "publication": "10.1021/acs.jpcc.4c04790 (repository record page)",
+      "contains": "Ghent University biblio record: metadata, abstract, download links. Published-version PDF is UGent-only; accepted manuscript docx is open access.",
+      "ff_parameters": "none",
+      "completeness": "n/a (metadata)"
+    },
+    {
+      "file": "jpcc2024_ethane_zif8_accepted_manuscript.docx",
+      "url": "https://biblio.ugent.be/publication/01JBY8N8FWDR0F5C1BEJ7K1KQ1/file/01JJKD59QG0WYMC7D602KDJ15G.docx",
+      "publication": "10.1021/acs.jpcc.4c04790 (accepted manuscript, open access, 1.80 MB Word)",
+      "contains": "Full main text incl. Table 1 (ethane barrier + D_self at 300 K, NVT/NPT, Krokidas FF vs DFT vs Verploegh vs experiment), Table 2 (temperature dependence 250-400 K), Table 3 (loading dependence). Methods section documents the FF choice and MD settings.",
+      "ff_parameters": "none reproduced (FF used by citation only)",
+      "completeness": "n/a for parameters; PRIMARY source for anchor-paper physical numbers"
+    },
+    {
+      "file": "jpcc2024_ethane_zif8_accepted_manuscript_extracted.txt",
+      "url": "derived locally from jpcc2024_ethane_zif8_accepted_manuscript.docx (w:t nodes of word/document.xml, Zotero field codes stripped)",
+      "publication": "10.1021/acs.jpcc.4c04790",
+      "contains": "Machine-extracted plain text + the three tables. NOT a downloaded source; superscripts/equations lossy - defer to the docx for load-bearing values.",
+      "ff_parameters": "none",
+      "completeness": "n/a (convenience derivative)"
+    },
+    {
+      "file": "jpcc2024_ethane_zif8_si.pdf",
+      "url": "https://ndownloader.figshare.com/files/49923123 (ACS figshare article 27278277, doi 10.1021/acs.jpcc.4c04790.s001, file jp4c04790_si_001.pdf)",
+      "publication": "10.1021/acs.jpcc.4c04790 (Supporting Information, 17 pp)",
+      "contains": "S1 hopping/random-walk model details, S2 FF-vs-DFT validation (SI-Table S1: TS-location sensitivity of barrier/diffusivity), S3-S5 deprojection/temperature/loading figures. Its ref 1 for the 'Krokidas et al. FF' is the 2018 ZIF-7-8 paper (10.1021/acsami.8b12605).",
+      "ff_parameters": "none (no parameter tables; validation and analysis only)",
+      "completeness": "n/a for parameters"
+    },
+    {
+      "file": "krokidas2018_zif78_si.pdf",
+      "url": "https://ndownloader.figshare.com/files/13533992 (ACS figshare article 7326647, doi 10.1021/acsami.8b12605.s001, file am8b12605_si_001.pdf)",
+      "publication": "Krokidas, Moncho, Brothers, Castier, Jeong, Economou, 'On the Efficient Separation of Gas Mixtures with the Mixed-Linker Zeolitic-Imidazolate Framework-7-8', ACS Appl. Mater. Interfaces 2018, 10, 39631, doi 10.1021/acsami.8b12605",
+      "contains": "PRIMARY, COMPLETE ZIF-8 flexible FF from the Krokidas group (the FF the 2024 anchor paper's SI cites). Figure S1 atom-type definitions (Zn, N, C1 ring CH, C2 N-C-N carbon, C3 methyl, H1 ring H, H2 methyl H). Table S1 (page S-2): 7 bond types (l0 in Angstrom, kl in kJ/mol/nm^2) and 11 angle types (theta0 in degrees, ktheta in kJ/mol/rad^2). Table S2 (page S-3): 6 torsion types (phi0 in degrees, multiplicity m, kphi in kJ/mol, source AMBER). Table S3 (page S-3): partial charges (e) and Lennard-Jones epsilon/sigma for all 7 atom types (sigma in nm; epsilon column header misprinted 'kJ/mol/nm2', values are kJ/mol AMBER-style). Also ZIF-7-8 FF (Tables S4-S6).",
+      "ff_parameters": "atom types YES, partial charges YES, LJ YES, bonds YES, angles YES, dihedrals YES, impropers: NONE DEFINED (this FF has no improper terms for ZIF-8)",
+      "completeness": "COMPLETE for ZIF-8 (given 'no impropers' is the FF design). Functional-form equations are not written out in the SI; conventions are pinned by the GROMACS implementation (zif8_gromacs_aanik_atomtypes_ZIF-8_Krokidas.itp: harmonic bond/angle GROMACS func 1, periodic proper dihedral func 1, Lorentz-Berthelot, fudgeLJ 0.5 / fudgeQQ 0.8333) whose numbers match these tables verbatim."
+    },
+    {
+      "file": "krokidas2017_zif8_zif67_si.pdf",
+      "url": "https://ndownloader.figshare.com/files/9090412 (ACS figshare article 5305465, doi 10.1021/acs.jpcc.7b05700.s001, file jp7b05700_si_001.pdf)",
+      "publication": "Krokidas et al., 'Computational Study of ZIF-8 and ZIF-67 Performance for Separation of Gas Mixtures', J. Phys. Chem. C 2017, doi 10.1021/acs.jpcc.7b05700",
+      "contains": "Table S1 ZIF-8 bonds+angles (IDENTICAL values to krokidas2018 Table S1 - confirms the parameter set is stable across the group's papers), Table S2 ZIF-8 torsions, Tables S3-S4 ZIF-67, Table S5 partial charges for ZIF-8 and ZIF-67. LJ parameters NOT tabulated (referenced to 'the work of Hertag et al.').",
+      "ff_parameters": "bonds YES, angles YES, dihedrals YES, charges YES, LJ NO (by reference only), impropers none",
+      "completeness": "incomplete alone (LJ missing); used here as independent cross-check of the 2018 tables"
+    },
+    {
+      "file": "krokidas2020_modified_zifs_si.pdf",
+      "url": "https://ndownloader.figshare.com/files/22403361 (ACS figshare article 12184749, doi 10.1021/acsami.0c02886.s001, file am0c02886_si_001.pdf)",
+      "publication": "Krokidas et al., 'Defining New Limits in Gas Separations Using Modified ZIF Systems', ACS Appl. Mater. Interfaces 2020, doi 10.1021/acsami.0c02886",
+      "contains": "FF terms for Co-ZIF-7-8 / ZIF-8 analogues (Tables S1-S3: bonds+angles, torsions, charges+LJ), diffusivity/permeability tables.",
+      "ff_parameters": "ZIF-8-analogue variants (context; not the plain-ZIF-8 set)",
+      "completeness": "supplementary context only"
+    },
+    {
+      "file": "zheng2012_zif8_ff_si.pdf",
+      "url": "https://ndownloader.figshare.com/files/4204837 (ACS figshare article 2561752, doi 10.1021/jp209463a.s001, file jp209463a_si_001.pdf)",
+      "publication": "Zheng, Sant, Demontis, Suffritti, 'Force Field for Molecular Dynamics Computations in Flexible ZIF-8 Framework', J. Phys. Chem. C 2012, 116, 933-938, doi 10.1021/jp209463a",
+      "contains": "SI only discusses CO2 self-diffusivity sensitivity to lattice parameter (16.99 vs 16.79 A; D_S 1.79 vs 0.83 e-10 m2/s at 300 K) and 6MR window radius (3.33 vs 3.25 A). The FF TABLES ARE IN THE PAYWALLED MAIN TEXT, not in this SI.",
+      "ff_parameters": "none in this file",
+      "completeness": "Zheng 2012 parameter tables obtained instead from mmm2022_zif8_ff_evaluation_si.pdf (FF1) and zif8_gromacs_aanik_atomtypes_ZIF-8_Zheng.itp"
+    },
+    {
+      "file": "mmm2022_zif8_ff_evaluation_si.pdf",
+      "url": "https://pure.uva.nl/ws/files/177263524/1-s2.0-S1387181122007247-mmc1.pdf (University of Amsterdam Pure repository)",
+      "publication": "Acuna-Yeomans, Gutierrez-Sevillano, Calero, Dubbeldam, 'Evaluation of ZIF-8 flexible force fields for structural and mechanical properties', Microporous and Mesoporous Materials 2023, 348, 112406, doi 10.1016/j.micromeso.2022.112406 (Supporting Information)",
+      "contains": "COMPLETE parameter sets WITH EXPLICIT FUNCTIONAL-FORM EQUATIONS for FIVE flexible ZIF-8 force fields: FF1 = Zheng et al. 2012 (10.1021/jp209463a), FF2 = J. Jiang et al. 2012, FF3 = L. Zhang et al. 2013, FF4 = X. Wu et al. 2014 (10.1039/C4RA00664J), FF5 = Weng & Schmidt 2019. Table S1 non-bonded (epsilon kcal/mol, sigma Angstrom, q e), Table S2 bonds (Kr kcal/mol/A^2, r0 A), Table S3 angles (Ktheta kcal/mol/rad^2, theta0 deg), Table S4 Urey-Bradley (FF5), Table S5 impropers, Table S6 dihedrals (Kphi kcal/mol, phi0 deg), Table S7 Zn dihedrals, Table S8 cutoffs and 1-4 scaling, Table S9 RASPA-vs-LAMMPS energy validation. Krokidas FF is NOT among the five.",
+      "ff_parameters": "atom types YES, charges YES, LJ YES, bonds YES, angles YES, dihedrals YES, impropers YES, Urey-Bradley YES (FF5), functional forms YES, units YES, 1-4 scaling YES",
+      "completeness": "COMPLETE for Zheng 2012, Jiang 2012, Zhang 2013, Wu 2014, Weng-Schmidt 2019. CAUTION: pdftotext drops the epsilon row labels in Table S1 (rows are epsilon/sigma/q triplets per atom); FF4 H3 charge is listed with two values (0.1325, 0.1306) with a group-neutrality note on p. S8; FF1 Zn charge printed as +0.7362 (the GROMACS adaptation uses 0.7326 and calls the published value a misprint - reconcile before use)."
+    },
+    {
+      "file": "mmm2022_zif8_ff_evaluation_main.pdf",
+      "url": "https://pure.tue.nl/ws/files/264395233/1_s2.0_S1387181122007247_main.pdf (TU Eindhoven Pure repository; CC BY publisher's version)",
+      "publication": "doi 10.1016/j.micromeso.2022.112406 (main text)",
+      "contains": "Main text of the FF-evaluation study; context for the SI tables (which FF reproduces which structural/mechanical property).",
+      "ff_parameters": "summarized; full tables in the SI file",
+      "completeness": "companion to the SI"
+    },
+    {
+      "file": "zif8_gromacs_aanik_atomtypes_ZIF-8_Krokidas.itp",
+      "url": "https://raw.githubusercontent.com/a-anik/zif-8_md/master/top_all/zif-8/atomtypes_ZIF-8_Krokidas.itp (repo a-anik/zif-8_md, master @ commit 615ea2395dac33045fd0c7e3f637c82f96601134, 2019-01-14)",
+      "publication": "Machine-readable GROMACS implementation of Krokidas et al. 2015 (10.1021/acs.jpcc.5b08554), adapted by A.V. Anikeenko for Sheveleva et al., J. Phys. Chem. C 2017, 121, 19880, doi 10.1021/acs.jpcc.7b06884",
+      "contains": "[atomtypes] with mass/charge/sigma(nm)/epsilon(kJ/mol) + #define'd bond (func 1: b0 nm, kb kJ/mol/nm^2), angle (func 1: deg, kJ/mol/rad^2), proper dihedral (func 1: periodic) and improper (func 2, all zero) types. Header documents deviations from the paper: Zn charge 1.3426 vs published 1.3429 (system neutrality); atoms renamed to Zheng 2012 convention (paper C2->file C1 etc.); C2-C2-N angle 108.7 (author-provided topology) vs 107.9 (published); several unlisted dihedrals added from author-provided topology. Required [defaults]: comb-rule 2 (Lorentz-Berthelot), fudgeLJ 0.5, fudgeQQ 0.8333.",
+      "ff_parameters": "COMPLETE, machine-readable; values verified to match krokidas2018_zif78_si.pdf Tables S1-S3 to the SI's printed precision (the itp carries more digits, consistent with exact kcal-to-kJ conversion, e.g. 296.2272 vs printed 296.23; modulo the documented header changes and atom renaming)",
+      "completeness": "COMPLETE (jackpot file for the anchor paper's FF)"
+    },
+    {
+      "file": "zif8_gromacs_aanik_atomtypes_ZIF-8_Zheng.itp",
+      "url": "https://raw.githubusercontent.com/a-anik/zif-8_md/master/top_all/zif-8/atomtypes_ZIF-8_Zheng.itp (same repo/commit)",
+      "publication": "GROMACS implementation of Zheng et al. 2012 (10.1021/jp209463a), same adaptation provenance as above",
+      "contains": "Same structure as the Krokidas file; nonzero harmonic impropers (func 2, 16.736 kJ/mol/rad^2). Header change: Zn charge +0.7326 (declared misprint fix vs published +0.7362).",
+      "ff_parameters": "COMPLETE, machine-readable; cross-checkable against mmm2022_zif8_ff_evaluation_si.pdf FF1 columns",
+      "completeness": "COMPLETE"
+    },
+    {
+      "file": "zif8_gromacs_aanik_atomtypes_ZIF-8_Wu.itp",
+      "url": "https://raw.githubusercontent.com/a-anik/zif-8_md/master/top_all/zif-8/atomtypes_ZIF-8_Wu.itp (same repo/commit)",
+      "publication": "GROMACS implementation of Wu, Huang, Cai, Jaroniec, RSC Adv. 2014, 4, 16503, doi 10.1039/C4RA00664J",
+      "contains": "Same structure; fudgeQQ 0.5 for this FF. Header changes: C3 charge -0.4527 (from -0.4526), H3 +0.1319 (from 0.1325/0.1306) for neutrality.",
+      "ff_parameters": "COMPLETE, machine-readable; cross-checkable against mmm2022_zif8_ff_evaluation_si.pdf FF4 columns",
+      "completeness": "COMPLETE"
+    },
+    {
+      "file": "zif8_gromacs_aanik_zif8_2x2x2_periodic.itp",
+      "url": "https://raw.githubusercontent.com/a-anik/zif-8_md/master/top_all/zif-8/zif8_2x2x2_periodic.itp (same repo/commit)",
+      "publication": "same repo",
+      "contains": "[moleculetype] ZIF for the 2x2x2 supercell (2208 atoms): full periodic enumeration of all bonds/pairs/angles/dihedrals/impropers referencing the #define'd types (15360 typed bonded interactions). FF-agnostic: combine with any one of the three atomtypes files.",
+      "ff_parameters": "topology (connectivity), not parameter values",
+      "completeness": "companion topology"
+    },
+    {
+      "file": "zif8_gromacs_aanik_conf_2x2x2.pdb / zif8_gromacs_aanik_topol.top / zif8_gromacs_aanik_README.rst / zif8_gromacs_aanik_Makefile",
+      "url": "https://raw.githubusercontent.com/a-anik/zif-8_md/master/top_all/zif-8/{conf.pdb,topol.top,README.rst,Makefile} (same repo/commit)",
+      "publication": "same repo",
+      "contains": "Starting 2x2x2 structure built from Park et al. PNAS 2006 X-ray geometry (258 K, I-43m, a=16.991 A), master topology, docs (incl. the required [defaults] caution), build recipes.",
+      "ff_parameters": "none",
+      "completeness": "companions"
+    },
+    {
+      "file": "verploegh2015_jacs_zif8_si.pdf",
+      "url": "https://ndownloader.figshare.com/files/3728593 (ACS figshare article 2095363, doi 10.1021/jacs.5b08746.s001, file ja5b08746_si_001.pdf)",
+      "publication": "Verploegh, Nair, Sholl, 'Temperature and Loading-Dependent Diffusion of Light Hydrocarbons in ZIF-8 as Predicted Through Fully Flexible Molecular Simulations', JACS 2015, doi 10.1021/jacs.5b08746",
+      "contains": "Adsorbate (guest) FF: Table S1 LJ+charges, Table S2 guest bonds/angles/dihedrals. Table S3 Helmholtz free-energy barriers (kJ/mol) incl. ethane over 0-150 C at infinite dilution; Tables S4-S8 hopping rates/diffusivities. Framework FF = Zhang et al. 2013, cited but NOT reproduced here.",
+      "ff_parameters": "guest molecules only; framework NO",
+      "completeness": "secondary comparison source for the anchor paper's Verploegh benchmark numbers"
+    }
+  ],
+  "not_obtained": [
+    {
+      "item": "Krokidas et al. 2015 SI (10.1021/acs.jpcc.5b08554, jp5b08554_si_001.pdf)",
+      "why": "pubs.acs.org returns 403 to non-browser clients; not on ACS figshare (backfill does not reach Dec 2015); no OA copy via OpenAlex/Semantic Scholar/CORE; ResearchGate 403. NOT copied from memory. The identical parameter set is secured from the group's own 2017 and 2018 SIs (see above), which agree with each other and with the GROMACS implementation."
+    },
+    {
+      "item": "Zheng 2012 and Wu 2014 main-text PDFs",
+      "why": "ACS/RSC 403. Their complete parameter tables are secured via mmm2022_zif8_ff_evaluation_si.pdf (peer-reviewed reproduction with functional forms) and the GROMACS itp files."
+    },
+    {
+      "item": "UCL thesis discovery.ucl.ac.uk/10069803 ('Molecular modelling of stimuli responsive gate effects...')",
+      "why": "Downloaded and inspected but deliberately NOT saved: its Appendix 9.3.1 'Krokidas intramolecular Force Field' MIXES Krokidas force constants with Zheng equilibrium values (e.g. Zn-N l0 0.20111 nm = Zheng's 2.011 A instead of Krokidas' 2.048 A; C1-N-Zn theta0 128.33 = Zheng's value with Krokidas' 462.74 k). Unreliable transcription - do not use."
+    },
+    {
+      "item": "ChemRxiv 'MOF-FF for ZIFs' preprint (10.26434/chemrxiv.7322183)",
+      "why": "ChemRxiv asset endpoints returned 403; optional fallback, not pursued further."
+    }
+  ]
+}
