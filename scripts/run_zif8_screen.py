@@ -49,78 +49,140 @@ def git_rev():
         return "unknown"
 
 
-def relative_time(t, curve, frac, hold_frac, high_is_bad=True):
+def relative_time(t, curve, frac, hold_frac, t0=0.0):
     """First t at which ``curve`` has covered ``1 - frac`` of the way from its
-    first value to its own late-time plateau, sustained for ``hold_frac * T``.
+    first POST-WARMUP value to its own late-time plateau, sustained for a FULL
+    ``hold_frac * T``.
 
-    Returns (time, J0, J_inf, threshold); inf if never sustained."""
+    Returns (time, J0, J_inf, threshold, status); the time is inf when the
+    criterion is never sustained.  Three things here are deliberate:
+
+      * ``J0`` is read at ``t >= t0`` (the end of the ABF warm-up), exactly as
+        the preregistration words it.  Reading it at t = 0 instead inflates the
+        threshold -- the pre-warmup value is always the largest -- and biases
+        T_marg SHORT, i.e. systematically away from the establishment-limited
+        verdict this campaign is hunting for (measured: 33 ps vs 148 ps, 0.11 T
+        vs 0.49 T, on a plausible TV curve).
+      * A curve that gets WORSE (J_inf > J0) has not equilibrated at all.  The
+        naive threshold then lands BETWEEN J0 and J_inf and the criterion is
+        met at i = 0, reporting "equilibrated at t = 0" for a diverging curve.
+        That case is returned as inf with status 'degrading'.
+      * The persistence window must fit INSIDE the data.  Letting it truncate at
+        the tail makes the criterion easier exactly where the evidence is
+        weakest -- one noisy final sample could move the cell between the two
+        extreme verdicts -- and it imputes where the preregistration says
+        censoring must be reported.
+    """
     t = np.asarray(t, float)
     c = np.asarray(curve, float)
     T = t[-1]
     late = c[t >= 0.8 * T]
-    J_inf = float(np.median(late[np.isfinite(late)])) if np.isfinite(late).any() else np.nan
-    first = np.argmax(np.isfinite(c))
-    J0 = float(c[first])
+    late = late[np.isfinite(late)]
+    if late.size == 0:
+        return float("inf"), float("nan"), float("nan"), float("nan"), "no_data"
+    J_inf = float(np.median(late))
+    post = np.nonzero((t >= t0) & np.isfinite(c))[0]
+    if post.size == 0:
+        return float("inf"), float("nan"), J_inf, float("nan"), "no_data"
+    J0 = float(c[post[0]])
+    if not (J0 > J_inf):
+        return float("inf"), J0, J_inf, float("nan"), "degrading"
     thr = J_inf + frac * (J0 - J_inf)
-    hold = max(1, int(hold_frac * len(t)))
-    hit = float("inf")
-    for i in range(len(t)):
-        seg = c[i:i + hold]
-        if np.isfinite(seg).all() and (seg <= thr if high_is_bad else seg >= thr).all():
-            hit = float(t[i]); break
-    return hit, J0, J_inf, float(thr)
+    hold_t = hold_frac * T
+    for i in range(post[0], len(t)):
+        if t[i] + hold_t > T + 1e-12:          # window would run past the data
+            break
+        seg = c[(t >= t[i]) & (t <= t[i] + hold_t)]
+        if np.isfinite(seg).all() and (seg <= thr).all():
+            return float(t[i]), J0, J_inf, float(thr), "ok"
+    return float("inf"), J0, J_inf, float(thr), "never_sustained"
 
 
-def classify(out, sim, pre, ref_gate=None):
+def gate_js_series(blocks_xa, ref_xa, min_per_cell):
+    """J_gate(t) as a CONDITIONAL divergence, resolved in xi.
+
+    ``blocks_xa`` is (T, n_xi, n_gate) and ``ref_xa`` is (n_xi, n_gate): the
+    gate histogram split by which xi sub-bin of the band the sample came from.
+
+    Comparing p(A_gate | |xi| < band) directly would NOT be a conditional
+    comparison at all.  That density is a mixture over xi with each ensemble's
+    own p(xi | band) as the weights, and <A_gate | xi> varies across the band
+    by construction -- the guest opens the ring where it sits in it.  The
+    reference's weights come from equally-spaced umbrella windows, plain ABF's
+    from its residual marginal, and the FR arm's from a marginal FR has
+    DELIBERATELY FLATTENED.  So a pure marginal reshuffle inside the band moves
+    the divergence as much as a real 0.25-0.5 sd gate displacement, and the
+    stage's falsifiable signature would fire (or fail) for the wrong reason.
+
+    Conditioning on the xi sub-bin and averaging with FIXED weights removes the
+    confound: the marginal is exactly what is divided out.
+    """
+    T, nx, _ = blocks_xa.shape
+    out = np.full(T, np.nan)
+    ref_n = ref_xa.sum(axis=-1)
+    for i in range(T):
+        n = blocks_xa[i].sum(axis=-1)
+        ok = (n >= min_per_cell) & (ref_n >= min_per_cell)
+        if not ok.any():
+            continue
+        out[i] = float(np.mean(js_divergence(blocks_xa[i][ok], ref_xa[ok])))
+    return out
+
+
+def classify(out, sim, pre, ref_gate_xa=None):
     t = np.asarray(out["times"], float)
     T = float(t[-1])
     r = pre["screen"]
     G = int(sim.n_grid)
+    t_warm = sim.abf_warmup_steps * sim.dt
+    # coverage is monotone (csum only accumulates), so a "sustained" clause on
+    # it is a no-op; the first fully-covered save IS the coverage time
     nvis = np.asarray(out["n_visited_bins"], float).mean(1)
-    hold = max(1, int(r["cover_hold_frac"] * len(t)))
-    covered = nvis >= G
-    T_cover = float("inf")
-    for i in range(len(t)):
-        if covered[i:i + hold].all():
-            T_cover = float(t[i]); break
+    covered = np.nonzero(nvis >= G)[0]
+    T_cover = float(t[covered[0]]) if covered.size else float("inf")
 
     tv = np.asarray(out["tv_uniform"], float).mean(1)
-    T_marg, J0m, Jim, thrm = relative_time(t, tv, r["relative_fraction"],
-                                           r["hold_frac"])
-    # J_gate against the umbrella reference conditional at the window
-    T_gate, J0g, Jig, thrg = float("nan"), float("nan"), float("nan"), float("nan")
+    T_marg, J0m, Jim, thrm, st_m = relative_time(
+        t, tv, r["relative_fraction"], r["hold_frac"], t0=t_warm)
+    T_gate, J0g, Jig, thrg, st_g = (float("nan"),) * 4 + ("no_reference",)
     js = None
-    if ref_gate is not None:
-        blocks = np.asarray(out["gate_hist_block"], float).sum(axis=1)   # (T, Gg)
-        tot = blocks.sum(axis=-1)
-        js = np.where(tot > r["gate_min_samples"],
-                      js_divergence(blocks, np.broadcast_to(ref_gate, blocks.shape)),
-                      np.nan)
-        T_gate, J0g, Jig, thrg = relative_time(t, js, r["relative_fraction"],
-                                               r["hold_frac"])
+    if ref_gate_xa is not None:
+        blocks = np.asarray(out["gate_hist_block"], float).sum(axis=1)  # (T,nx,na)
+        js = gate_js_series(blocks, ref_gate_xa, r["gate_min_samples"])
+        T_gate, J0g, Jig, thrg, st_g = relative_time(
+            t, js, r["relative_fraction"], r["hold_frac"], t0=t_warm)
 
+    # A gate that NEVER equilibrates must not read as a gate that equilibrated
+    # early.  np.isfinite(inf) is False, so testing "not isfinite" as evidence
+    # of health routes the strongest possible conditional-limitation signal
+    # straight into the neutrality control.
+    gate_known = st_g not in ("no_reference", "no_data")
+    gate_bad = gate_known and (T_gate > 0.5 * T)          # inf > 0.5T is True
+    gate_fast = gate_known and (T_gate < 0.25 * T)
     q = 0.25 * T
     if T_cover > 0.5 * T or nvis[-1] < G:
         verdict = "discovery_limited"
-    elif np.isfinite(T_gate) and T_gate > 0.5 * T:
+    elif gate_bad:
         verdict = "conditional_limited"
-    elif T_cover < q and T_marg < q and (not np.isfinite(T_gate) or T_gate < q):
+    elif not gate_known:
+        verdict = "unclassified_no_gate_reference"
+    elif T_cover < q and T_marg < q and gate_fast:
         verdict = "abf_sufficient"
-    elif T_cover < q and q <= T_marg <= 0.8 * T and \
-            (not np.isfinite(T_gate) or T_gate < q):
+    elif T_cover < q and q <= T_marg <= 0.8 * T and gate_fast:
         verdict = "establishment_limited"
     else:
         verdict = "intermediate"
     return dict(
-        T=T, T_cover=T_cover, T_marg=T_marg, T_gate=T_gate,
+        T=T, t_warmup=t_warm, T_cover=T_cover, T_marg=T_marg, T_gate=T_gate,
+        marg_status=st_m, gate_status=st_g,
         L_marg=(T_marg - T_cover if np.isfinite(T_marg) and np.isfinite(T_cover)
                 else float("inf")),
         marg=dict(J0=J0m, J_inf=Jim, threshold=thrm, final=float(tv[-1])),
         gate=dict(J0=J0g, J_inf=Jig, threshold=thrg,
                   final=(float(js[-1]) if js is not None and np.isfinite(js[-1])
                          else None)),
-        unvisited_bins=int(G - nvis[-1]),
-        transits=int(np.asarray(out["n_crossings"]).sum()),
+        unvisited_bins=float(G - nvis[-1]),
+        transit_events=int(np.asarray(out["cross_gate_samples"]).size),
         frac_window_final=float(np.asarray(out["frac_window"])[-1].mean()),
         gate_mean_final=float(np.asarray(out["gate_mean"])[-1].mean()),
         verdict=verdict,
@@ -157,8 +219,12 @@ def main():
     ref_path = os.path.join(REF, f"reference_T{a.temperature:g}.npz")
     ref_gate = None
     if os.path.exists(ref_path):
-        ref_gate = np.load(ref_path)["gate_hist_window"].astype(float)
-        print(f"  gate reference loaded from {os.path.basename(ref_path)}")
+        _r = np.load(ref_path)
+        assert bool(_r["accepted"]), \
+            "the umbrella reference on disk FAILED its acceptance gates"
+        ref_gate = _r["gate_hist_window_xi"].astype(float)
+        print(f"  gate reference loaded from {os.path.basename(ref_path)} "
+              f"(accepted, {ref_gate.shape[0]} xi sub-bins)")
     else:
         print("  NOTE: no umbrella reference yet -- T_gate will not be computed "
               "and the classifier will not be able to see a conditional-limited "
@@ -176,7 +242,8 @@ def main():
           f"(threshold {cls['marg']['threshold']:.3f})")
     print(f"  T_gate  = {cls['T_gate']:.1f} ps   JS {cls['gate']['J0']} -> "
           f"{cls['gate']['J_inf']}")
-    print(f"  transits {cls['transits']}, unvisited bins {cls['unvisited_bins']}, "
+    print(f"  transit events {cls['transit_events']}, unvisited bins "
+          f"{cls['unvisited_bins']:.2f}, "
           f"A_gate final {cls['gate_mean_final']:.3f} A")
     print(f"  VERDICT: {cls['verdict']}")
     np.savez_compressed(os.path.join(OUT, f"screen_{tag}.npz"),

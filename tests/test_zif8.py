@@ -386,16 +386,102 @@ def test_wham_periodic_recovers_a_known_profile():
 
 
 # --------------------------------------------------------------- gate utils
-def test_gate_hist_and_js():
-    sim = ZIF8SimConfig(gate_lo=0.0, gate_hi=4.0, n_gate_bins=4)
-    a = torch.tensor([[0.5, 1.5, 2.5, 3.5], [0.5, 0.6, 3.9, 9.0]], dtype=torch.float64)
-    band = torch.tensor([[True, True, False, True], [True, True, True, False]])
-    h = gate_hist(a, band, sim, torch.device("cpu"), torch.float64).numpy()
-    assert np.allclose(h[0], [1, 1, 0, 1])
-    assert np.allclose(h[1], [2, 0, 0, 1])
+def test_gate_hist_drops_out_of_range_and_resolves_xi():
+    """Out-of-range A_gate must be DROPPED (matching the reference's
+    np.histogram), never clamped into the edge bin, and the count reported."""
+    sim = ZIF8SimConfig(gate_lo=0.0, gate_hi=4.0, n_gate_bins=4, n_gate_xi=2,
+                        gate_band_A=1.0)
+    k = 1.0                                    # 1 rad per A, so band = 1.0 rad
+    a = torch.tensor([[0.5, 1.5, 2.5, 9.0]], dtype=torch.float64)
+    phi = torch.tensor([[-0.5, 0.5, -0.9, 0.1]], dtype=torch.float64)
+    h, drop = gate_hist(a, phi, sim, k, torch.device("cpu"), torch.float64)
+    h = h.numpy()
+    assert h.shape == (1, 2, 4)
+    assert drop == 1, "the 9.0 A sample must be dropped, not clamped"
+    assert h.sum() == 3
+    assert h[0, 0, 0] == 1 and h[0, 0, 2] == 1      # xi<0 sub-bin
+    assert h[0, 1, 1] == 1                          # xi>0 sub-bin
+    # out-of-band samples never enter
+    h2, _ = gate_hist(a, torch.full_like(phi, 5.0), sim, k,
+                      torch.device("cpu"), torch.float64)
+    assert float(h2.sum()) == 0.0
+
+
+def test_js_divergence_endpoints():
     p, qd = np.array([1.0, 0, 0, 0]), np.array([0.0, 1, 0, 0])
     assert abs(js_divergence(p, qd) - math.log(2.0)) < 1e-12
     assert js_divergence(p, p) < 1e-12
+
+
+# ----------------------------- screen classifier regression (CPU, no GPU) ---
+def _screen():
+    sys.path.insert(0, os.path.join(ROOT, "scripts"))
+    import run_zif8_screen as S
+    return S
+
+
+def test_relative_time_rejects_degrading_and_untruncated_tail():
+    S = _screen()
+    t = np.linspace(0, 300, 301)
+    # a curve that gets WORSE has not equilibrated -- it must not report t=0
+    worse = 0.05 + 0.25 * t / 300
+    assert S.relative_time(t, worse, 0.2, 0.1, t0=30)[0] == float("inf")
+    assert S.relative_time(t, worse, 0.2, 0.1, t0=30)[4] == "degrading"
+    # a single final sample below threshold must be censored, not imputed
+    dip = np.full(301, 0.30); dip[-1] = 0.05
+    assert S.relative_time(t, dip, 0.2, 0.1, t0=30)[0] == float("inf")
+    # J0 must be read POST-warmup: reading it at t=0 inflates the threshold and
+    # biases the clock short, away from the establishment-limited verdict
+    tv = 0.10 + 0.55 * np.exp(-t / 8) + 0.22 * np.exp(-t / 90)
+    assert S.relative_time(t, tv, 0.2, 0.1, t0=30)[0] > \
+        3.0 * S.relative_time(t, tv, 0.2, 0.1, t0=0)[0]
+
+
+def test_never_equilibrating_gate_is_conditional_limited_not_abf_sufficient():
+    """np.isfinite(inf) is False, so a 'not isfinite' health test would route
+    the strongest conditional-limitation signal into the neutrality control."""
+    S = _screen()
+    import types
+    t = np.linspace(0, 300, 301)
+    sim = types.SimpleNamespace(n_grid=96, abf_warmup_steps=60000, dt=0.0005)
+    pre = {"screen": dict(relative_fraction=0.2, hold_frac=0.1,
+                          gate_min_samples=200)}
+    out = dict(times=t, n_visited_bins=np.full((301, 8), 96.0),
+               tv_uniform=np.tile((0.1 + 0.5 * np.exp(-t / 8))[:, None], (1, 8)),
+               gate_hist_block=np.zeros((301, 8, 8, 96)),
+               cross_gate_samples=np.zeros(5), frac_window=np.zeros((301, 8)),
+               gate_mean=np.full((301, 8), 2.8))
+    orig = S.gate_js_series
+    S.gate_js_series = lambda b, r, m: np.full(301, 0.30)      # pinned forever
+    try:
+        c = S.classify(out, sim, pre, ref_gate_xa=np.ones((8, 96)))
+    finally:
+        S.gate_js_series = orig
+    assert c["verdict"] == "conditional_limited", c["verdict"]
+    # and a MISSING reference must not masquerade as a healthy gate
+    c2 = S.classify(out, sim, pre, ref_gate_xa=None)
+    assert c2["verdict"] == "unclassified_no_gate_reference", c2["verdict"]
+
+
+def test_gate_js_is_conditional_not_marginal():
+    """A pure reshuffle of p(xi | band) -- exactly what FR does -- must NOT
+    register as a gate change, while a real gate displacement must."""
+    S = _screen()
+    na, nx = 96, 8
+    ag = np.linspace(2.2, 4.6, na)
+    cond = np.stack([np.exp(-0.5 * ((ag - (2.8 + 0.02 * k)) / 0.058) ** 2)
+                     for k in range(nx)])
+    cond /= cond.sum(1, keepdims=True)
+    ref = cond * 20000
+    w = np.exp(-0.5 * ((np.arange(nx) - 3.5) / 1.0) ** 2)
+    reshuffled = cond * (20000 * nx * w / w.sum())[:, None]
+    shifted = np.stack([np.exp(-0.5 * ((ag - (2.8 + 0.02 * k + 0.5 * 0.058))
+                                       / 0.058) ** 2) for k in range(nx)])
+    shifted = shifted / shifted.sum(1, keepdims=True) * 20000
+    js_marg = S.gate_js_series(reshuffled[None], ref, 200)[0]
+    js_real = S.gate_js_series(shifted[None], ref, 200)[0]
+    assert js_marg < 1e-9, f"marginal reshuffle leaked into J_gate: {js_marg}"
+    assert js_real > 1e-2, f"a real 0.5 sd gate shift is invisible: {js_real}"
 
 
 # ------------------------------------------------- real-artifact gates

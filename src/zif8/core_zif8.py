@@ -145,9 +145,10 @@ class ZIF8SimConfig:
     cage_half_A: float = 2.0
     gate_every: int = 25
     gate_band_A: float = 1.0            # |xi| < this defines "at the gate"
-    gate_lo: float = 2.0                # A_gate histogram range (A, radius)
-    gate_hi: float = 4.5
-    n_gate_bins: int = 40
+    gate_lo: float = 2.2                # A_gate histogram range (A, radius)
+    gate_hi: float = 4.6                # 0.025 A bins = 0.43 sd of the Stage-0B
+    n_gate_bins: int = 96               # aperture law (a 1.08 sd bin cannot
+    n_gate_xi: int = 8                  # resolve the stage's own diagnostic)
 
     def config_hash(self):
         import hashlib, json
@@ -557,13 +558,30 @@ def mean_force_regularized(fsum, csum, K, min_count):
     return per.smooth(fsum, K) / (per.smooth(csum, K) + min_count + EPS)
 
 
-def gate_hist(a_gate, in_band, sim, device, dtype):
-    """Histogram of A_gate over the replicas currently inside the band, (R,Gg)."""
-    G = sim.n_gate_bins
-    i = torch.floor((a_gate - sim.gate_lo) / (sim.gate_hi - sim.gate_lo) * G).long()
-    out = torch.zeros(a_gate.shape[0], G, device=device, dtype=dtype)
-    out.scatter_add_(1, i.clamp(0, G - 1), in_band.to(dtype))
-    return out
+def gate_hist(a_gate, phi, sim, k_phi, device, dtype):
+    """Gate histogram RESOLVED IN xi inside the band: (R, n_gate_xi, n_gate).
+
+    Resolving in xi is what makes J_gate a conditional comparison rather than a
+    marginal one -- see gate_js_series in scripts/run_zif8_screen.py for why
+    the unresolved version cannot separate "the gate is in the wrong state"
+    from "the population sits at a different place in the band", which is
+    precisely what FR changes.
+
+    Out-of-range A_gate is DROPPED, not clamped into the edge bin, so that this
+    estimator and the reference's np.histogram agree; the dropped count is
+    returned so it can never be silently zero.
+    """
+    G, X = sim.n_gate_bins, sim.n_gate_xi
+    band = sim.gate_band_A * k_phi
+    R = a_gate.shape[0]
+    ia = torch.floor((a_gate - sim.gate_lo) / (sim.gate_hi - sim.gate_lo) * G).long()
+    ix = torch.floor((phi / band * 0.5 + 0.5) * X).long()
+    good = (phi.abs() < band) & (ia >= 0) & (ia < G) & (ix >= 0) & (ix < X)
+    flat = (ix.clamp(0, X - 1) * G + ia.clamp(0, G - 1))
+    out = torch.zeros(R, X * G, device=device, dtype=dtype)
+    out.scatter_add_(1, flat, good.to(dtype))
+    n_drop = int(((phi.abs() < band) & ~good).sum())
+    return out.reshape(R, X, G), n_drop
 
 
 def js_divergence(p, q):
@@ -619,8 +637,10 @@ def run_sampler(method, system: ZIF8System, sim: ZIF8SimConfig, seeds, init_pool
     z = lambda: torch.zeros(R, G, device=device, dtype=dtype)
     fsum, csum, fsum_p, csum_p = z(), z(), z(), z()
     usum_p, uhgsum_p, ucnt_p = z(), z(), z()
-    ghist = torch.zeros(R, sim.n_gate_bins, device=device, dtype=dtype)
+    ghist = torch.zeros(R, sim.n_gate_xi, sim.n_gate_bins, device=device,
+                        dtype=dtype)
     ghist_c = torch.zeros_like(ghist)
+    n_gate_dropped = 0
     ancestors = (torch.arange(N, device=device).expand(R, N).clone() if is_fr else None)
     total_repl = torch.zeros(R, dtype=torch.long)
     crossings = torch.zeros(R, N, dtype=torch.long, device=device)
@@ -669,7 +689,8 @@ def run_sampler(method, system: ZIF8System, sim: ZIF8SimConfig, seeds, init_pool
         if step % sim.gate_every == 0:
             ag, th = system.gate_observables(q)
             a_gate, theta_g = ag.reshape(R, N), th.reshape(R, N)
-            gh = gate_hist(a_gate, phi.abs() < gate_phi, sim, device, dtype)
+            gh, nd = gate_hist(a_gate, phi, sim, kf, device, dtype)
+            n_gate_dropped += nd
             ghist += gh
             ghist_c += gh
 
@@ -774,8 +795,16 @@ def run_sampler(method, system: ZIF8System, sim: ZIF8SimConfig, seeds, init_pool
                                                  device=device, dtype=dtype) * vsig[0])
                         for arr in (f_loc, phi, phi_unw, a_gate, theta_g):
                             arr[r, di] = arr[r].index_select(0, src)
-                        for arr in (cage_idx, last_cage, crossings):
+                        for arr in (cage_idx, last_cage):
                             arr[r, di] = arr[r].index_select(0, src)
+                        # `crossings` is a CUMULATIVE per-walker count, not
+                        # state: copying it re-counts the parent's completed
+                        # transits once per clone, and the uniform target
+                        # clones the window walkers preferentially, so the
+                        # population total drifts UPWARD in the FR arm only.
+                        # The clone starts from zero; cross_gate_samples (one
+                        # entry per real event) stays the ground truth.
+                        crossings[r, di] = 0
                         has_cage[r, di] = has_cage[r].index_select(0, src)
                     F_phys = Fr.reshape(R * N, A, 3)
                     v = system.pin_frame_com(vr.reshape(R * N, A, 3))
@@ -788,6 +817,8 @@ def run_sampler(method, system: ZIF8System, sim: ZIF8SimConfig, seeds, init_pool
            "runtime_seconds": time.perf_counter() - t0,
            "total_replacement_events": total_repl.numpy(),
            "n_crossings": crossings.sum(-1).cpu().numpy(),
+           "n_transit_events": int(sum(x.size for x in cross_gate)),
+           "n_gate_dropped": n_gate_dropped,
            "cross_gate_samples": (np.concatenate(cross_gate) if cross_gate
                                   else np.zeros(0)),
            "fr_score_std": score_std_sum / max(n_score, 1),
@@ -870,6 +901,7 @@ def wham_periodic(phi_samples, centers, kappa, beta, n_bins=144, n_iter=20000,
     d = d - 2 * np.pi * np.round(d / (2 * np.pi))
     bias = 0.5 * kappa * d ** 2
     f_w = np.zeros(W)
+    converged = False
     for _ in range(n_iter):
         denom = (n_w[:, None] * np.exp(beta * (f_w[:, None] - bias))).sum(axis=0)
         p = hist.sum(axis=0) / np.maximum(denom, 1e-300)
@@ -878,8 +910,11 @@ def wham_periodic(phi_samples, centers, kappa, beta, n_bins=144, n_iter=20000,
                                    1e-300).sum(axis=1)) / beta
         if np.abs((f_new - f_new.mean()) - (f_w - f_w.mean())).max() < tol:
             f_w = f_new
+            converged = True
             break
         f_w = f_new
+    if not converged:
+        raise RuntimeError(f"WHAM did not converge in {n_iter} iterations")
     with np.errstate(divide="ignore"):
         F = -np.log(np.maximum(p, 1e-300)) / beta
     return mids, F - np.nanmin(F), p, hist

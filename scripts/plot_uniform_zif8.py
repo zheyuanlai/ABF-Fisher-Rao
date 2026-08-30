@@ -359,12 +359,21 @@ def main():
     # ===================================================================
     # 3. the hidden gate coordinate: distribution, J_gate(t), transits
     # ===================================================================
-    blocks = {m: np.asarray(runs[m]["gate_hist_block"], dtype=float) for m in runs}
+    # The gate histograms are RESOLVED IN xi: (T, R, n_xi, n_gate) per arm and
+    # (n_xi, n_gate) for the reference.  The left panel marginalises over xi
+    # for display; J_gate must NOT -- see gate_js_series for why an unresolved
+    # comparison confounds a conditional change with the marginal reshuffle
+    # that FR itself performs.
+    blocks = {m: np.asarray(runs[m]["gate_hist_block"], dtype=float).sum(axis=1)
+              for m in runs}                                  # (T, n_xi, n_gate)
     n_bins = blocks["abf"].shape[-1]
     centers, edges = gate_bin_edges([ref, runs["abf"], runs["fr_uniform"]], cfg, n_bins)
-    g_ref = np.asarray(ref["gate_hist_window"], dtype=float).ravel() if \
-        "gate_hist_window" in ref else np.zeros(0)
+    g_ref_xa = (np.asarray(ref["gate_hist_window_xi"], dtype=float)
+                if "gate_hist_window_xi" in ref else np.zeros((0, 0)))
+    g_ref = g_ref_xa.sum(axis=0) if g_ref_xa.size else np.zeros(0)
     ref_ok = g_ref.size == n_bins
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from run_zif8_screen import gate_js_series
     if not ref_ok:
         print(f"warning: reference gate histogram has {g_ref.size} bins but the runs "
               f"have {n_bins}; the reference overlay and J_gate are omitted")
@@ -372,7 +381,8 @@ def main():
     fig, axes = plt.subplots(1, 3, figsize=(6.9, 2.9), layout="constrained")
     ax = axes[0]
     for m, c, lab in ARMS:
-        h = np.asarray(runs[m]["gate_hist_cumulative"], dtype=float).sum(axis=0)
+        h = np.asarray(runs[m]["gate_hist_cumulative"], dtype=float)
+        h = h.sum(axis=tuple(range(h.ndim - 1)))
         ax.plot(centers, norm_density(h, edges), color=c, lw=1.4,
                 drawstyle="steps-mid", label=lab)
     if ref_ok:
@@ -385,13 +395,10 @@ def main():
 
     ax = axes[1]
     if ref_ok:
+        min_cell = 200
         for m, c, lab in ARMS:
-            b = blocks[m]                                  # (T, R, Gg)
-            j = js_divergence(b, g_ref[None, None, :])
-            j = np.where(b.sum(axis=-1) > 0, j, np.nan)     # empty blocks carry no info
-            md, lo, hi = nan_med_iqr(j, 1)
-            ax.plot(t, md, color=c, lw=1.4, label=lab)
-            ax.fill_between(t, lo, hi, color=c, alpha=0.18, lw=0)
+            j = gate_js_series(blocks[m], g_ref_xa, min_cell)   # (T,)
+            ax.plot(t, j, color=c, lw=1.4, label=lab)
         ax.set_ylabel(r"$J_{\rm gate}(t)$ (JS to umbrella ref)")
         ax.ticklabel_format(axis="y", style="plain", useOffset=False)
         ax.yaxis.set_major_formatter(mticker.FormatStrFormatter("%.3g"))

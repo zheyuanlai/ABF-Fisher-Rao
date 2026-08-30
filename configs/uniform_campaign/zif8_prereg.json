@@ -46,10 +46,11 @@
     "cage_half_A": 2.0,
     "gate_every": 25,
     "gate_band_A": 1.0,
-    "gate_lo": 2.0,
-    "gate_hi": 4.5,
-    "n_gate_bins": 40,
-    "_note": "fr_start = warmup end = estimator burn-in end (the LTA sweep lesson: starting FR after establishment has already happened erases the entire opportunity). Identical force-evaluation budget in every arm. dt and n_steps are the ONE pair of values the protocol allows to be revised, once each, from the recorded Stage-0C and screen outputs, BEFORE any FR run; the revision and its justification are appended to _resolved below."
+    "gate_lo": 2.2,
+    "gate_hi": 4.6,
+    "n_gate_bins": 96,
+    "_note": "fr_start = warmup end = estimator burn-in end (the LTA sweep lesson: starting FR after establishment has already happened erases the entire opportunity). Identical force-evaluation budget in every arm. dt and n_steps are the ONE pair of values the protocol allows to be revised, once each, from the recorded Stage-0C and screen outputs, BEFORE any FR run; the revision and its justification are appended to _resolved below.",
+    "n_gate_xi": 8
   },
   "reference_rule": {
     "method": "umbrella sampling on the circular CV + periodic WHAM, one independent BAOAB run per window",
@@ -63,11 +64,14 @@
     "accept_dF_kT": 0.3,
     "accept_rms_kT": 0.3,
     "accept_overlap_bins": 2,
-    "accept_gate_js": 0.02,
+    "accept_gate_js": 0.001,
     "acceptance": "split-half barrier within 0.3 kT; split-half profile RMS within 0.3 kT; adjacent-window overlap (circularly closed) >= 2 bins; AND the reference's own hidden-gate conditional at the window must be split-half converged (JS < 0.02) -- the reference is not accepted merely because WHAM returns a smooth curve, and it is not usable as the T_gate yardstick unless its OWN gate conditional has converged.",
     "records": "F(xi), U(xi), U_hostguest(xi), -T dS = F - U, p(xi), and p_ref(A_gate | |xi| < gate_band_A)",
     "min_u_counts": 100,
-    "min_gate_samples": 20000
+    "min_gate_samples": 20000,
+    "min_gate_cell_samples": 5000,
+    "barrier_half_window_A": 0.6,
+    "barrier_cage_half_A": 1.5
   },
   "screen": {
     "protocol": "ABF-ONLY, one run, 8 seed labels batched, the production sampler above. No FR arm exists at this stage; the classification alone licenses or refuses the two-arm run.",
@@ -105,7 +109,7 @@
     ],
     "n_seeds": 1,
     "seed_first": 900,
-    "n_replicas": 256,
+    "n_replicas": 384,
     "rng_seed": 20260960,
     "rule": "largest rate satisfying min ancestor ESS/N >= 0.30 AND max lineage share <= 0.05 AND event fraction <= max_event_fraction, over the FR-active saves, chosen WITHOUT reading any error metric and without loading the reference.",
     "_horizon_note": "The ladder runs the FULL production horizon. The olefin/CHA stage calibrated at 150k steps, selected rate 0.10, and then production at 400k steps landed at ESS/N = 0.221 -- below the 0.30 floor its own calibration had certified. Ancestor collapse accumulates with the number of birth-death events, i.e. with the HORIZON, so a short ladder systematically over-certifies. run_zif8_uniform.py asserts the calibration horizon equals the production horizon."
@@ -133,10 +137,11 @@
     "ess_anc_over_N_min": 0.3,
     "wmax_max": 0.05,
     "verdicts": {
-      "SAFE_ACCELERATOR": "median Delta I_F <= -10%, CI95 upper < 0, final within +5%, genealogy floors met",
-      "ACCELERATION_POSITIVE_BUT_UNSAFE": "accuracy gate met but a genealogy floor or the final non-inferiority margin is violated",
-      "NEUTRAL": "|median Delta I_F| < 10% and final within +5%",
-      "NEGATIVE_OR_UNSAFE": "anything else"
+      "SAFE_ACCELERATOR": "median dI_F <= -10%, CI95 upper < 0, final within +5%, genealogy floors met",
+      "ACCELERATION_POSITIVE_BUT_UNSAFE": "the accuracy gate is met but a genealogy floor or the final non-inferiority margin is violated",
+      "HARMFUL": "median dI_F >= +10% OR CI95 lower > 0 (the FR arm is worse, significantly)",
+      "NEUTRAL": "TOST equivalence -- the WHOLE CI95 lies inside +-10% -- with the genealogy floors met and the final margin held",
+      "INCONCLUSIVE": "anything else, e.g. a CI too wide to place the effect"
     }
   },
   "predictions_recorded_before_data": [
@@ -178,5 +183,30 @@
     "_note": "Positions, velocities, the CV and every estimator accumulator are f64; ONLY the force/energy kernel runs f32. Full-f32 positions would not be safe -- the guest's unwrapped axial coordinate drifts to O(100 A) while one step moves it 2.5e-4 A.",
     "deterministic": true,
     "_determinism_note": "torch.use_deterministic_algorithms + torch._inductor.config.deterministic are set at import in src/zif8/core_zif8.py. Measured on the H200 (forces repeated on identical input, B=512): compiled f32 default 6.1e-05, compiled f64 default 1.1e-13, eager 0 but 8.8x slower, compiled f32 + flags 0 and still 1.47x faster than f64. WITHOUT this the two arms diverge from the first step and the paired endpoint silently becomes unpaired -- which is what happened to the WCA stage. Cost 1.75x, paid deliberately. Regression-tested by tests/test_zif8.py::test_gpu_arms_are_exactly_paired, which asserts the arms are BIT-IDENTICAL for all 60000 steps before fr_start."
-  }
+  },
+  "_amendments": [
+    {
+      "id": "A1",
+      "date": "2026-08-30",
+      "when": "BEFORE any FR run and before any production data on this system. The umbrella reference had begun and was KILLED 40 min in; it is being re-run under these rules. No arm, target, cell or seed is added or removed and no FR knob is touched.",
+      "why": "An adversarial audit of the new analysis/classification code (against this project's own recorded defect classes) found defects that would have corrupted the conclusion rather than raised an error.",
+      "changes": [
+        "SCREEN CLASSIFIER. np.isfinite(inf) is False, so a gate that NEVER equilibrates (T_gate = inf) failed the conditional_limited test and then satisfied the abf_sufficient guard, which read 'not isfinite' as evidence of health. The strongest possible conditional-limitation signal was routed into the NEUTRALITY CONTROL, and the frozen rule text ('T_gate > 0.5T', which inf satisfies) was contradicted by its own implementation. A missing reference (nan) took the same path. Fixed; a missing reference now yields the explicit verdict 'unclassified_no_gate_reference'.",
+        "T_marg / T_gate THRESHOLD. J_0 was read at t = 0 although the frozen text says 'the first POST-WARMUP value'. The pre-warmup value is always the largest, so the threshold was inflated and both clocks biased SHORT -- systematically away from establishment_limited, the verdict this campaign is hunting. Measured on a plausible TV curve: T_marg 33 ps (0.11 T, -> abf_sufficient) as coded vs 148 ps (0.49 T, -> establishment_limited) as written. The code now matches the frozen text.",
+        "DEGRADING CURVES. When a curve gets WORSE (J_inf > J0) the relative threshold falls BETWEEN J0 and J_inf and was met at i = 0, reporting 'equilibrated at t = 0' for a diverging gate. Now returned as inf with status 'degrading'.",
+        "PERSISTENCE WINDOWS. Both relative_time and tau let the sustain window truncate at the tail, making the criterion easiest exactly where the evidence is weakest -- one noisy final sample could move the cell between the two extreme verdicts, and a single final save below eps reported a tau with zero persistence. The window must now fit inside the data; otherwise the value is censored, as the frozen endpoint text requires ('censoring reported, never imputed').",
+        "J_gate IS NOW A CONDITIONAL, RESOLVED IN xi. p(A_gate | |xi| < band) is a MIXTURE whose weights are each ensemble's own p(xi | band) -- and FR deliberately flattens that marginal. Demonstrated: with p(A_gate|xi) held identical, a pure marginal reshuffle inside the band produced JS 0.0006-0.019, the same order as a genuine 0.25-0.5 sd gate displacement (0.006-0.023). The stage's declared falsifiable signature could therefore have fired, or been falsely refuted, for a purely marginal reason -- and T_marg and T_gate were not the independent clocks the design claims. The gate histogram is now recorded as (n_gate_xi = 8) x (n_gate_bins), and J_gate is the mean over xi sub-bins of the per-sub-bin JS, which divides the marginal out.",
+        "GATE HISTOGRAM RESOLUTION. The [2.0, 4.5]/40-bin grid gave 0.0625 A bins = 1.08 sd of the Stage-0B aperture law, with only ~5 bins carrying mass -- too coarse for the stage's central diagnostic. Now [2.2, 4.6]/96 bins = 0.025 A = 0.43 sd. Out-of-range samples are DROPPED (matching the reference's np.histogram) instead of clamped into the edge bin, and the dropped count is recorded so it can never be silently zero.",
+        "accept_gate_js 0.02 -> 0.001. At the frozen umbrella budget a split-half of the same law scores ~2e-6, so 0.02 passed by four orders of magnitude: a gate that could not fire. It is the gate that licenses the reference as the T_gate yardstick.",
+        "TRANSIT COUNTING. `crossings` is a cumulative per-walker count, not state, and was inherited on a clone -- re-counting the parent's completed transits once per clone. The uniform target clones window walkers preferentially, so the population total drifted UPWARD in the FR arm ONLY (4-8% at production scale in a bookkeeping replay). A clone now starts from zero, and the analysis counts transits from the per-event list instead.",
+        "VERDICT TREE. The old tree let an FR arm 9.9% WORSE with a CI excluding zero report NEUTRAL, let an arm in genealogical collapse report NEUTRAL (health gated only the 'safe' label), and labelled a 12%-BETTER arm NEGATIVE_OR_UNSAFE because its CI straddled zero. NEUTRAL is now TOST equivalence (the whole CI inside +-10%) with the health floors required, HARMFUL is explicit, and INCONCLUSIVE absorbs the rest.",
+        "REFERENCE INTEGRITY. The reference npz was written BEFORE its acceptance gates were asserted, so a rejected reference was left on disk looking usable, and no consumer read the stored acceptance. It is now written only after the gates pass, carries `accepted`, and unsampled WHAM bins are NaN-masked rather than left as the finite +1718 kJ/mol that -log(1e-300)/beta produces.",
+        "BARRIER DEFINITION. barrier() used unpreregistered half-widths and returns a window-MEAN minus cage-MEAN, which was printed against the anchor paper's PEAK-minus-minimum 24.2 kJ/mol -- two different quantities. The widths are now preregistered (0.6/1.5 A) and the peak-based value is computed and reported alongside as the comparable one.",
+        "DECLARED SECONDARY ENDPOINT. The arms are bit-identical before fr_start (regression-tested), so that segment contributes exactly zero to the difference while carrying ~21-24% of I_F, diluting the frozen -10% threshold. The frozen primary is UNCHANGED (full-horizon, campaign convention); dI_F restricted to t >= fr_start is now computed and reported beside it, with the pre-FR share of I_F stated, so the dilution is visible rather than absorbed.",
+        "CALIBRATION POPULATION. fr_rate_rule.n_replicas raised 256 -> 384 to match production; 2.67 vs 4.00 walkers per grid bin changes the FR score's KDE noise and hence the event rate the safety ladder certifies.",
+        "COVERAGE CLAUSE. cover_hold_frac was a no-op (n_visited_bins is monotone, so 'sustained' is implied). Removed rather than left as a rule that cannot bite."
+      ],
+      "not_changed": "The frozen primary endpoint, the -10% / CI-upper<0 success thresholds, the arms, the target, the cell, the seeds, the FR rate rule's ladder and safety floors, the horizon, and every Stage-0-resolved engine value."
+    }
+  ]
 }
