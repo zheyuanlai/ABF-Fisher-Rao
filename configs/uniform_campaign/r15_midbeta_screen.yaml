@@ -1,0 +1,58 @@
+# Uniform-FR campaign, P1 follow-up: pentane R15 intermediate-beta ABF-ONLY screen.
+#
+# The closed CV-extension study bracketed R15 as beta=1 "easy" vs beta=2 "starved
+# (dynamical/support)"; mFR failed at beta=2 because cloning met a MIXING deficit, not an
+# establishment deficit.  This screen asks whether an establishment-limited window exists
+# BETWEEN those endpoints.  ABF only -- no FR arm exists here; per the campaign principle
+# ("never tune FR to create a positive"), a two-arm follow-up is licensed only by the
+# frozen selection rule below, applied to the SAME frozen starvation classifier used by
+# the closed study (analyze_alkanes_cv_extension.py).
+#
+# SELECTION RULE (frozen before running): a cell qualifies for the abf-vs-fr_uniform
+# follow-up iff its classification is NOT "easy" AND the mixing family is NOT failing
+# AND discovery is intact (no missing thermal support at the end): difficulty present,
+# but not of the mixing/conditional kind that beta=2 already showed FR cannot fix.
+# If no cell qualifies, the screen closes negative with no follow-up.
+experiment_name: uniform_campaign_r15_midbeta
+output_root: results/uniform_campaign/r15_midbeta
+cache_dir: cache/alkanes_cv
+
+base:
+  kind: dist
+  molecule: pentane
+  sigma: 2.3
+  cv_i: 0
+  cv_j: 4
+  R_lo: 1.4
+  R_hi: 3.7
+  wall_lo: 1.45
+  wall_hi: 3.65
+  k_wall: 200.0
+  dist_n_grid: 256
+  dist_abf_bandwidth: 0.04
+  dist_kde_bandwidth: 0.06
+  n_rbins: 12
+  n_grid2: 48
+  thermal_delta: 10.0
+  save_every: 5000
+  abf_force_clip: 60.0
+  force_clip: 200.0
+  dt: 5.0e-4
+  ref_n_samples: 800000
+
+method_defaults: {fr_every: 5, score_clip: 2.0}
+methods:
+  abf: {type: abf}
+
+stages:
+  # identical protocol to the closed screen's trans rows, four new beta values between
+  # the bracketing endpoints; same seeds/rng stream/lengths so rows are comparable.
+  screen:
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7]
+    rng_seed: 55555
+    methods: [abf]
+    cells:
+      - {beta: 1.2, init_mode: trans, n_steps: 80000, n_replicas: 1024}
+      - {beta: 1.4, init_mode: trans, n_steps: 80000, n_replicas: 1024}
+      - {beta: 1.6, init_mode: trans, n_steps: 80000, n_replicas: 1024}
+      - {beta: 1.8, init_mode: trans, n_steps: 80000, n_replicas: 1024}

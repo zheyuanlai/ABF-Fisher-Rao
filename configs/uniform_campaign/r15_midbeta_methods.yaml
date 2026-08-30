@@ -1,0 +1,62 @@
+# Uniform-FR campaign, P1 follow-up production: pentane R15 at the two cells the
+# ABF-only mid-beta screen QUALIFIED under the frozen selection rule
+# (configs/uniform_campaign/r15_midbeta_screen.yaml header): beta 1.4 and 1.6 are
+# "intermediate" with ONLY the convergence family failing -- mixing healthy, support
+# intact.  This is the establishment window between the closed study's easy (beta=1)
+# and dynamical/support-starved (beta=2) endpoints.
+#
+# Two arms only (campaign rule).  ALL FR mechanics inherited VERBATIM from the closed
+# r15_methods study's frozen deployable block (rate 0.02, cap 0.01, fr_every 5,
+# clip 2.0, fr_start 12000) -- selected there before this window was known, not tuned
+# here.  Production seeds disjoint from the screen's (0-7) and from the closed study's
+# (1-8, 101-104).  Endpoints: the campaign rules (Delta I_F paired median, 10k
+# bootstrap; final non-inferiority +5%; genealogy floors ESS>=0.30/wmax<=0.05
+# evaluated on the ancestor series, median-across-seeds convention).
+experiment_name: uniform_campaign_r15_midbeta_methods
+output_root: results/uniform_campaign/r15_midbeta_methods
+cache_dir: cache/alkanes_cv
+
+base:
+  kind: dist
+  molecule: pentane
+  sigma: 2.3
+  cv_i: 0
+  cv_j: 4
+  R_lo: 1.4
+  R_hi: 3.7
+  wall_lo: 1.45
+  wall_hi: 3.65
+  k_wall: 200.0
+  dist_n_grid: 256
+  dist_abf_bandwidth: 0.04
+  dist_kde_bandwidth: 0.06
+  n_rbins: 12
+  n_grid2: 48
+  thermal_delta: 10.0
+  save_every: 5000
+  abf_warmup_steps: 5000
+  estimator_burn_in_steps: 6000
+  abf_force_clip: 60.0
+  force_clip: 200.0
+  dt: 5.0e-4
+  ref_n_samples: 800000
+  fr_start_steps: 12000
+
+method_defaults:
+  target_ema_rate: 0.005
+  max_event_fraction: 0.01
+  fr_every: 5
+  score_clip: 2.0
+
+methods:
+  abf:        {type: abf}
+  fr_uniform: {type: fr_uniform, fr_rate: 0.02}   # the closed study's frozen deployable rate
+
+stages:
+  production:
+    seeds: [200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215]
+    rng_seed: 20260830
+    methods: [abf, fr_uniform]
+    cells:
+      - {beta: 1.4, init_mode: trans, n_steps: 80000, n_replicas: 1024}
+      - {beta: 1.6, init_mode: trans, n_steps: 80000, n_replicas: 1024}
