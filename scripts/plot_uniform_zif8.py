@@ -120,13 +120,23 @@ CFG_LAST_RESORT = dict(dt=0.0005, fr_start_steps=0, gate_lo=0.0, gate_hi=1.0,
                        n_gate_bins=40, gate_band=1.0, n_replicas=256, fr_rate=None)
 
 
-def resolve_config(metas):
-    """ZIF8SimConfig defaults, overridden by anything the run metas declare."""
+def resolve_config(metas, prereg=None):
+    """ZIF8SimConfig defaults, then the PREREGISTRATION, then the run metas.
+
+    The prereg must be consulted: the run meta records only a subset of the
+    sampler block, so a knob it omits (fr_start_steps, notably) would silently
+    fall back to a dataclass default that the campaign does not use -- and the
+    t_FR marker would sit at the wrong time on every figure."""
     base = ZIF8SimConfig()
     vals = {}
     for key, names in CFG_ALIASES.items():
         vals[key] = next((getattr(base, n) for n in names if hasattr(base, n)),
                          CFG_LAST_RESORT[key])
+    if isinstance(prereg, dict):
+        for key, names in CFG_ALIASES.items():
+            for n in names:
+                if prereg.get(n) is not None:
+                    vals[key] = prereg[n]
     for meta in metas:
         for src in (meta, meta.get("sim"), meta.get("config"), meta.get("sim_config")):
             if not isinstance(src, dict):
@@ -190,7 +200,11 @@ def main():
     else:
         print(f"note: no summary json at {summary_path}; annotations omitted")
 
-    cfg = resolve_config([load_meta(runs[m]) for m in runs])
+    _pre = {}
+    _pp = os.path.join(root, 'configs/uniform_campaign/zif8_prereg.json')
+    if os.path.exists(_pp):
+        _pre = json.load(open(_pp)).get('sampler', {})
+    cfg = resolve_config([load_meta(runs[m]) for m in runs], _pre)
     os.makedirs(out, exist_ok=True)
     apply_publication_style()
 
@@ -264,7 +278,9 @@ def main():
     # ===================================================================
     # 1. THE headline: marginal -> mean force -> free energy, one x axis
     # ===================================================================
-    fig, axes = plt.subplots(3, 1, figsize=(3.4, 7.0), sharex=True, layout="constrained")
+    fig, axes = plt.subplots(4, 1, figsize=(3.4, 8.8), sharex=True,
+                             layout="constrained",
+                             gridspec_kw=dict(height_ratios=[1, 1, 1, 0.85]))
     panels = (
         (kl, r"$D_{\mathrm{KL}}(\hat p^{\,\xi}_t \,\|\, u)$",
          wants_log(kl["abf"], kl["fr_uniform"])),
@@ -293,7 +309,30 @@ def main():
             note += f"\n{summary['verdict']}"
         axes[2].text(0.97, 0.95, note, transform=axes[2].transAxes, ha="right",
                      va="top", fontsize=7, color=C_REF)
-    axes[2].set_xlabel("t (ps)")
+    # 4th panel: the RELATIVE difference, which is what the endpoint integrates.
+    # On the log axes above, a persistent 5-10% gap between two curves that have
+    # both fallen ~50x is almost invisible; here it is the whole plot.
+    ax = axes[3]
+    ma_, mu_ = np.median(err["abf"], axis=1), np.median(err["fr_uniform"], axis=1)
+    rel = 100.0 * (mu_ - ma_) / np.where(ma_ > 0, ma_, np.nan)
+    pre = t < fr_start_t - 1e-9
+    rel_plot = np.where(pre, np.nan, rel)          # identical before FR: no signal
+    ax.axhline(0.0, color=C_AUX, lw=0.8)
+    ax.plot(t, rel_plot, color=C_FR, lw=1.4)
+    ax.fill_between(t, 0.0, np.nan_to_num(rel_plot), where=~np.isnan(rel_plot),
+                    color=C_FR, alpha=0.18, lw=0)
+    mark_fr(ax)
+    ax.set_ylabel(r"$e_F^{\mathrm{mFR}}/e_F^{\mathrm{ABF}}-1$ (%)")
+    ax.set_xlabel("t (ps)")
+    ax.text(0.97, 0.93, "above 0 = mFR worse", transform=ax.transAxes,
+            ha="right", va="top", fontsize=6.5, color=C_REF)
+    # the estimator restarts on post-burn-in samples only at t_FR, so e_F jumps
+    # once; both arms are still identical there, so it cannot bias the contrast
+    j = int(np.argmin(np.abs(t - fr_start_t)))
+    axes[2].annotate("estimator\nrestart", xy=(t[j], ma_[j]),
+                     xytext=(t[j] + 0.13 * t[-1], ma_[j]), fontsize=6,
+                     color=C_REF, va="center",
+                     arrowprops=dict(arrowstyle="-", color=C_REF, lw=0.6))
     emit(fig, f"fig_zif8_convergence_T{tkey}")
 
     # ===================================================================

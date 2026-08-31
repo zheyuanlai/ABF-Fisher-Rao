@@ -57,20 +57,33 @@ def main():
                else pre["screen"]["licensed_verdicts"])
     assert scr["verdict"] in allowed, \
         f"screen verdict {scr['verdict']!r} does not license a two-arm run ({allowed})"
-    sel = json.load(open(os.path.join(
-        ROOT, f"results/uniform_campaign/zif8/calibration/fr_rate_selection_{tag}.json")))
-    rate = sel["selected"]
-    assert rate is not None, "no safe FR rate was found in the calibration"
-
     s = {k: v for k, v in pre["sampler"].items() if not k.startswith("_")}
-    assert int(sel["fr_start_steps"]) == int(s["fr_start_steps"])
-    assert int(sel["n_steps"]) == int(s["n_steps"]), \
-        "the calibration horizon differs from production -- ESS would be over-certified"
+    sel_path = os.path.join(
+        ROOT, f"results/uniform_campaign/zif8/calibration/fr_rate_selection_{tag}.json")
+    if a.only == "abf" and not os.path.exists(sel_path):
+        # The ABF arm never calls the birth-death step, so its trajectory is
+        # BIT-IDENTICAL for any fr_rate -- verified directly, in two separate
+        # processes, before this path was used.  It therefore does not have to
+        # wait for the safety calibration, and running it concurrently with the
+        # ladder costs nothing scientifically.  The FR arm still cannot start
+        # until the rate is frozen.
+        rate = None
+        print("  ABF arm: running BEFORE the FR calibration. The ABF trajectory "
+              "does not depend on fr_rate (verified bit-identical), and the FR "
+              "arm still waits for the frozen rate.", flush=True)
+    else:
+        sel = json.load(open(sel_path))
+        rate = sel["selected"]
+        assert rate is not None, "no safe FR rate was found in the calibration"
+        assert int(sel["fr_start_steps"]) == int(s["fr_start_steps"])
+        assert int(sel["n_steps"]) == int(s["n_steps"]), \
+            "the calibration horizon differs from production -- ESS would be over-certified"
     seeds = list(range(pre["production"]["seed_first"],
                        pre["production"]["seed_first"]
                        + pre["production"]["n_seeds"]))
     rng_seed = int(pre["production"]["rng_seed"])
-    sim = ZIF8SimConfig(**s, rng_seed=rng_seed, fr_rate=float(rate))
+    sim = ZIF8SimConfig(**s, rng_seed=rng_seed,
+                        fr_rate=(0.0 if rate is None else float(rate)))
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if torch.cuda.is_available():
@@ -85,7 +98,7 @@ def main():
     out_dir = os.path.join(ROOT, f"results/uniform_campaign/zif8/production_{tag}")
     os.makedirs(out_dir, exist_ok=True)
     print(f"ZIF-8 production {tag}: screen verdict {scr['verdict']}, "
-          f"fr_rate={rate}, {len(seeds)} labels {seeds[0]}-{seeds[-1]}, "
+          f"fr_rate={rate if rate is not None else 'n/a (ABF arm)'}, {len(seeds)} labels {seeds[0]}-{seeds[-1]}, "
           f"N={sim.n_replicas}, {sim.n_steps} steps "
           f"({sim.n_steps*sim.dt:.0f} ps), rng_seed={rng_seed}", flush=True)
 
@@ -104,6 +117,8 @@ def main():
             method=method, cell=tag, seeds=seeds, rng_seed=rng_seed, fr_rate=rate,
             screen_verdict=scr["verdict"], config_hash=sim.config_hash(),
             n_replicas=sim.n_replicas, n_steps=sim.n_steps, dt=sim.dt,
+            fr_start_steps=sim.fr_start_steps,
+            estimator_burn_in_steps=sim.estimator_burn_in_steps,
             prereg=os.path.relpath(PREREG, ROOT), git_rev=git_rev(),
             host=socket.gethostname(),
             cuda_visible_devices=os.environ.get("CUDA_VISIBLE_DEVICES", "")))

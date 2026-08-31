@@ -1,0 +1,58 @@
+{
+  "ladder": [
+    {
+      "rate": 0.005,
+      "ess_min": 0.7999999999999999,
+      "wmax_max": 0.0078125,
+      "events_per_replica": 0.125,
+      "event_fraction": 1.1574074074074074e-06,
+      "ok": true,
+      "minutes": 87.2308144489924
+    },
+    {
+      "rate": 0.01,
+      "ess_min": 0.7559055118110235,
+      "wmax_max": 0.0078125,
+      "events_per_replica": 0.18229166666666666,
+      "event_fraction": 1.6878858024691357e-06,
+      "ok": true,
+      "minutes": 86.97532448371251
+    },
+    {
+      "rate": 0.02,
+      "ess_min": 0.5439093484419263,
+      "wmax_max": 0.015625,
+      "events_per_replica": 0.421875,
+      "event_fraction": 3.90625e-06,
+      "ok": true,
+      "minutes": 98.3738952477773
+    },
+    {
+      "rate": 0.05,
+      "ess_min": 0.3535911602209945,
+      "wmax_max": 0.03125,
+      "events_per_replica": 0.9791666666666666,
+      "event_fraction": 9.066358024691358e-06,
+      "ok": true,
+      "minutes": 112.90269810756048
+    },
+    {
+      "rate": 0.1,
+      "ess_min": 0.2029598308668076,
+      "wmax_max": 0.041666666666666664,
+      "events_per_replica": 1.9817708333333333,
+      "event_fraction": 1.8349729938271603e-05,
+      "ok": false,
+      "minutes": 113.15758256514867
+    }
+  ],
+  "selected": 0.05,
+  "cell": "T300",
+  "fr_start_steps": 60000,
+  "n_steps": 600000,
+  "n_replicas": 384,
+  "seeds": [
+    900
+  ],
+  "note": "Safety-only; largest safe rate; no error metric read. Run at the FULL production horizon -- see the module docstring for why a short ladder over-certifies."
+}

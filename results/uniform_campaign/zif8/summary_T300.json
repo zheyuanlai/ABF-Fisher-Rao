@@ -1,0 +1,113 @@
+{
+  "cell": "T300",
+  "n_pairs": 16,
+  "n_replicas": 384,
+  "horizon_ps": 300.0,
+  "reference": {
+    "dF_kT": 13.601876035516252,
+    "dF_kJmol": 33.92768694959098,
+    "dU_kT": 5.442566495323967,
+    "mTdS_kT": 8.159309540192286,
+    "entropic_fraction": 0.5998664830415508,
+    "anchor_paper_dF_kJmol": "24.2 +- 2.6 (Krokidas FF, NPT 300 K)"
+  },
+  "d_int_pct": {
+    "median": 3.6659285683747544,
+    "ci95": [
+      1.9700566658286953,
+      5.016359826420306
+    ],
+    "wins": 2
+  },
+  "d_int_pct_post_fr": {
+    "median": 7.8366043591793595,
+    "ci95": [
+      4.0825646779049425,
+      10.440646245236058
+    ],
+    "wins": 2,
+    "pre_fr_share_of_I_F": 0.5264236040463166,
+    "_note": "declared secondary: the arms are bit-identical before fr_start, so the pre-FR segment can only dilute"
+  },
+  "health_flags": {
+    "accel": false,
+    "harmful": true,
+    "equivalent_tost": true,
+    "final_noninferior": false,
+    "genealogy_ok": true
+  },
+  "d_final_pct": {
+    "median": 5.082504223367664,
+    "ci95": [
+      2.5377985001061583,
+      6.855098196984541
+    ],
+    "wins": 3
+  },
+  "health": {
+    "median_min_ess_frac": 0.31893775713777206,
+    "median_max_wmax": 0.026041666666666668,
+    "worst_min_ess_frac": 0.2962962962962963,
+    "worst_max_wmax": 0.041666666666666664,
+    "ok": true
+  },
+  "transits": {
+    "abf": 26648,
+    "uni": 27084,
+    "_note": "counted from the per-event list, not the per-walker cumulative counter, which a clone must not inherit"
+  },
+  "gate": {
+    "abf": {
+      "n_gate_samples": 16261443.0,
+      "js_final": 0.003496528037534215,
+      "js_vs_reference_cumulative": 0.0033677439741063185,
+      "mean_A_gate": 2.867441477210848,
+      "crossing_A_gate": 2.7961760502334263,
+      "n_crossing_samples": 26648
+    },
+    "fr_uniform": {
+      "n_gate_samples": 16233239.0,
+      "js_final": 0.002986922903324371,
+      "js_vs_reference_cumulative": 0.0031855400182316087,
+      "mean_A_gate": 2.8670769008267545,
+      "crossing_A_gate": 2.7963976325973814,
+      "n_crossing_samples": 27084
+    },
+    "reference": {
+      "mean_A_gate": 2.857378658921196
+    },
+    "fr_gate_worse_than_abf": false
+  },
+  "time_to_accuracy": {
+    "e0/2": {
+      "eps": 6.529977098656088,
+      "tau_abf": 31.0,
+      "tau_uni": 31.0,
+      "speedup": 1.0,
+      "status": "ok"
+    },
+    "e0/4": {
+      "eps": 3.264988549328044,
+      "tau_abf": 31.0,
+      "tau_uni": 31.0,
+      "speedup": 1.0,
+      "status": "ok"
+    },
+    "e0/8": {
+      "eps": 1.632494274664022,
+      "tau_abf": 31.0,
+      "tau_uni": 31.0,
+      "speedup": 1.0,
+      "status": "ok"
+    },
+    "abf_final": {
+      "eps": 0.2746798950631417,
+      "tau_abf": 102.0,
+      "tau_uni": Infinity,
+      "speedup": null,
+      "status": "arm_never"
+    }
+  },
+  "verdict": "HARMFUL",
+  "fr_rate": 0.05
+}
