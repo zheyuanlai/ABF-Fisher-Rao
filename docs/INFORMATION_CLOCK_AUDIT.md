@@ -221,3 +221,86 @@ honest recommendation is only:
 
 > Halve the online bandwidth from the value this project has been using, and
 > read out at or below the bin width. Both are free.
+
+---
+
+# Lineage mechanism experiment: Outcome L2
+
+Two instrumented ZIF-8 arms at the **legacy h_bias = 0.20 Å** (so this explains
+the closed result, and says nothing about the corrected algorithm), 8 seeds,
+150 ps, `fr_rate = 0.05`. Predictions frozen in
+`configs/information_campaign/lineage_mechanism_prereg.md`.
+
+## P2 — the headline prediction — is REFUTED
+
+The lineage-balanced estimator is **not** less biased than the descendant-weighted
+one, in either arm:
+
+| arm | ordinary | balanced | gap | distinct lineages/bin |
+|---|---|---|---|---|
+| ABF | 0.4021 | 0.4273 | −0.0252 | 383.0 |
+| FR | 0.4096 | 0.4381 | −0.0285 | 354.4 |
+
+The prediction was `gap(FR) > gap(ABF)`. Measured: −0.0285 vs −0.0252, i.e. the
+wrong way, and the FR-minus-ABF difference is **−0.0033** — nothing. The sign
+flips at `min_n = 100` (−0.0187 vs −0.0217), which is a sensitivity cut, not a
+result; a claim that reverses on an arbitrary threshold is noise.
+
+**The instrument's own null control is what makes this interpretable.** The ABF
+arm never clones, so its gap should be ~0; it is −0.0252. That offset is the
+diagnostic's intrinsic bias (lineages with few samples are noisier, and the
+balanced estimator weights them equally). So only the FR-minus-ABF *difference*
+carries information — and it is essentially zero. Had the ABF arm not been run,
+FR's −0.0285 would have looked like a substantial effect.
+
+## P1 — directionally right, magnitude negligible
+
+Per-bin ancestor ESS/N_g is lower in the FR arm, as predicted, but by 0.6 %
+(3.55 → 3.53 at the barrier; 4.04 → 4.03 in the cages). Real, and far too small
+to matter.
+
+## P3 — a clean hit, and it is the only positive finding
+
+Force residual by clone age, in the barrier bins:
+
+| clone age | population weight | mean residual (kJ/mol/rad) |
+|---|---|---|
+| **< 0.5 ps** | 0.411 % | **−0.620** |
+| 0.5–5 ps | 2.482 % | +0.063 |
+| > 5 ps | 97.107 % | +0.175 |
+
+Fresh clones carry a **strongly negative** mean-force residual, exactly the sign
+of the observed barrier compression, and it relaxes toward the mature value
+within a few ps. The mechanism is real: a just-cloned walker is a duplicate that
+has not yet decorrelated, and it drags the conditional average down.
+
+**But it is too small.** Population-weighted, the pull on the barrier mean force
+is −0.0060 kJ/mol/rad; integrated across the barrier that is **−0.0077 kJ/mol**
+against the **−0.0878 kJ/mol** compression actually observed — **8.8 %**.
+
+## Verdict
+
+Outcome **L2**: lineage diversity does fall and fresh clones are demonstrably
+biased in the right direction, but neither effect is anywhere near large enough
+to explain the harm. ~91 % of the barrier compression remains unaccounted for.
+
+Per the frozen falsifier, **stop rather than propose mechanism #4.** The
+remaining candidates — guest orientation, radial position, framework modes other
+than the gate ring — are precisely the within-fibre coordinates this stage never
+instrumented, and chasing them means another instrument-build-and-run cycle with
+no prior reason to prefer one over another.
+
+## What the mechanism campaign now stands on
+
+Five hypotheses for ZIF-8's harm have been tested and four are dead:
+
+| hypothesis | verdict |
+|---|---|
+| entropic barrier fraction | failed (LTA sweep, earlier) |
+| marginal establishment starvation | failed — free energy converges before the marginal |
+| information/variance headroom (T_info) | failed — variance clock, bias-dominated endpoint |
+| p′/p asymptotic kernel bias | failed — wrong sign, 7 % of magnitude |
+| lineage over-weighting | **partial** — right sign, 8.8 % of magnitude |
+
+What survives is not a mechanism but a measurement: the error is ~95 % bias, and
+the bandwidth that sets it is worth 5.8× while reallocation is worth −7 %.
