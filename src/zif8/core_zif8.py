@@ -670,7 +670,8 @@ def run_sampler(method, system: ZIF8System, sim: ZIF8SimConfig, seeds, init_pool
                             "max_ancestor_frac", "repl_cumulative", "kl_uniform",
                             "tv_uniform", "frac_cage", "frac_window",
                             "n_visited_bins", "gate_hist_block", "gate_mean",
-                            "gate_theta_mean", "temp_kin", "n_band"]}
+                            "gate_theta_mean", "temp_kin", "n_band",
+                            "raw_fsum_t", "raw_csum_t"]}
     t0 = time.perf_counter()
 
     def full_force(qq):
@@ -742,6 +743,10 @@ def run_sampler(method, system: ZIF8System, sim: ZIF8SimConfig, seeds, init_pool
             est_c = csum_p if float(csum_p.sum()) > 0 else csum
             mf_rep = mean_force_regularized(est_f, est_c, K_abf, sim.abf_min_count)
             diag["steps"].append(step); diag["times"].append(step * sim.dt)
+            # the UNSMOOTHED accumulators the estimator used at this save, so
+            # the run can be re-scored at any h_read after the fact
+            diag["raw_fsum_t"].append(est_f.cpu().numpy())
+            diag["raw_csum_t"].append(est_c.cpu().numpy())
             diag["mean_force"].append(mf_rep.cpu().numpy())
             diag["pmf"].append(per.free_energy_from_mean_force(mf_rep, grid, dphi)
                                .cpu().numpy())

@@ -1,0 +1,49 @@
+{
+  "_comment": "ZIF-8 300 K, CORRECTED-BASELINE test. Frozen 2026-09-01 BEFORE any calibration or production run of this experiment. The single question: once ABF's own bandwidth defect is fixed, does uniform mFR still add or subtract value? Two arms only.",
+  "_why": "The closed ZIF-8 result (dI_F +3.67%, HARMFUL) was measured against an ABF baseline now known to be mis-resolved: h_bias=0.20 A over-smoothed the bias force by 7% relative to the true mean-force profile, and halving it to 0.10 A improved the endpoint by a resolved -21.6% (paired, 6/8 seeds). A method comparison against a deficient baseline cannot settle whether the method helps.",
+  "corrected_baseline": {
+    "h_bias_A": 0.10,
+    "h_read_A": 0.05,
+    "_h_bias_justification": "0.20 -> 0.10 is the ONLY statistically resolved step in the bandwidth matrix (-21.6% +- 8.1, 6/8 seeds). 0.10 -> 0.05 (-10.4 +- 14.8) and 0.05 -> 0.025 (-2.6 +- 11.1) are not resolved, so 0.05 has a better raw mean but choosing it would be outcome-based tuning. 0.10 is the smallest change a resolved experiment supports.",
+    "_h_read_justification": "Frozen earlier, in bandwidth_matrix_prereg.md, from the plateau of the offline sweep. Unchanged here."
+  },
+  "arms": ["abf", "fr_uniform"],
+  "unchanged_from_legacy": [
+    "physical model, framework artifact, CV, temperature 300 K",
+    "N = 384 replicas, dt = 0.0005 ps, 600000 steps (300 ps)",
+    "abf_min_count = 20, force clip, warmup / burn-in / fr_start = 60000 steps",
+    "FR marginal KDE bandwidth, score clip, fr_every, max_event_fraction",
+    "the umbrella reference and its acceptance",
+    "the endpoint family and the bootstrap seed"
+  ],
+  "_one_thing_changed": "mFR is applied on top of a properly resolved ABF baseline. If the verdict moves, that is the only candidate cause.",
+  "fr_rate_rule": {
+    "ladder": [0.005, 0.01, 0.02, 0.05, 0.1],
+    "n_seeds": 1, "seed_first": 1100, "n_replicas": 384, "rng_seed": 20261010,
+    "rule": "largest rate with min ancestor ESS/N >= 0.30 AND max lineage share <= 0.05 AND event fraction <= 0.02, over the FR-active saves, at the FULL production horizon, chosen WITHOUT reading any error metric or loading the reference",
+    "_why_recalibrate": "The legacy rate 0.05 was earned at h_bias=0.20. Changing the bias force changes the trajectory, hence p_t^xi, hence the FR score and the event rate. The rate must be re-earned under the corrected dynamics, not inherited."
+  },
+  "production": {
+    "seed_first": 1000, "n_seeds": 16, "rng_seed": 20261000,
+    "_why_fresh": "The bandwidth matrix used seeds 0-7 and has been inspected repeatedly. Fresh labels keep the exploratory bandwidth development and this confirmatory test separate.",
+    "pairing": "both arms share the init-pool draw and the dynamics RNG stream; bit-identity before the first FR event is asserted in analysis, not assumed"
+  },
+  "endpoints": {
+    "primary": "I_F = integral of e_F(t) dt, with e_F the gauge-aligned RMS of F_hat - F_ref over the full circular domain, EVERY arm scored at h_read = 0.05 A from the raw accumulators. Statistic: per-seed paired dI_F, median over 16 seeds, 10000-resample bootstrap CI (seed 20260829).",
+    "secondary": "dI_F restricted to t >= fr_start (the pre-FR segment is shared and can only dilute); final e_F(T); genealogy; transits",
+    "robustness": "the SAME verdict must hold when scored against the full umbrella reference AND against each of its two split-half references. A verdict that flips between them is not reported as a verdict."
+  },
+  "outcomes_frozen": {
+    "R1_HARMFUL": "CI95 lower > 0. Conclusion: even on a corrected baseline mFR hurts this system. Close ZIF-8 permanently; do not pursue the unexplained 91% of the barrier compression.",
+    "R2_NEUTRAL": "the whole CI95 lies inside [-5%, +5%]. Conclusion: the practical problem was the ABF estimator, and mFR adds essentially nothing once it is fixed.",
+    "R3_ACCELERATOR": "median <= -10% AND CI95 upper < 0 AND genealogy floors met. Conclusion: mFR gives complementary gains on an already-corrected baseline -- the strongest possible form of the accelerator claim.",
+    "R4_INCONCLUSIVE": "anything else, e.g. a CI too wide to place the effect."
+  },
+  "prohibited": [
+    "tuning h_bias, h_read, the FR rate, or any knob on an error metric",
+    "reading e_F or the reference during the safety calibration",
+    "reusing the bandwidth-matrix seeds",
+    "changing the FR implementation, its KDE bandwidth, or its score clip",
+    "editing this file after the first production run starts"
+  ]
+}
