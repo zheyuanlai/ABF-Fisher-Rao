@@ -76,3 +76,14 @@ results/wca_representative/summaries/adaptive_fr_event_log.csv
 
 # Claude Code session state and worktrees -- not project content
 .claude/
+
+# Publisher supporting-information and manuscript files fetched for provenance.
+# This repository is PUBLIC: these are copyrighted third-party documents and
+# must never be committed. Their URLs, checksums and the parameters extracted
+# from them are recorded in cache/*/literature/provenance_*.json instead, which
+# is what reproducibility actually needs.
+cache/*/literature/*.pdf
+cache/*/literature/*.docx
+cache/*/literature/*.zip
+cache/*/literature/*.html
+cache/*/literature/*_extracted.txt
