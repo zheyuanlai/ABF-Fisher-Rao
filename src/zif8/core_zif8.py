@@ -603,7 +603,8 @@ def uniform_target(R, n_grid, device, dtype):
 
 # --------------------------------- sampler ---------------------------------
 def run_sampler(method, system: ZIF8System, sim: ZIF8SimConfig, seeds, init_pool,
-                oracle_free_energy=None, verbose=True, progress_every=0):
+                oracle_free_energy=None, verbose=True, progress_every=0,
+                lineage_diagnostics=False, clone_age_edges=(0.5, 5.0)):
     """R = len(seeds) matched-seed populations of ``method`` in one process.
 
     BAOAB Langevin, one force evaluation per step.  FR clones copy q AND the
@@ -637,6 +638,21 @@ def run_sampler(method, system: ZIF8System, sim: ZIF8SimConfig, seeds, init_pool
     z = lambda: torch.zeros(R, G, device=device, dtype=dtype)
     fsum, csum, fsum_p, csum_p = z(), z(), z(), z()
     usum_p, uhgsum_p, ucnt_p = z(), z(), z()
+    # ---- lineage instrumentation (DIAGNOSTIC ONLY; never enters the bias
+    # force or the FR score, so the trajectory stays bit-paired between arms).
+    # The ordinary ABF estimate weights each lineage by its descendant COUNT;
+    # these accumulators also allow a lineage-BALANCED estimate that weights
+    # each ancestral discovery once, which is what separates "this bin has 100
+    # observations" from "this bin has 100 copies of three discoveries".
+    if lineage_diagnostics:
+        fsum_ag = torch.zeros(R, N, G, device=device, dtype=dtype)
+        csum_ag = torch.zeros(R, N, G, device=device, dtype=dtype)
+        n_age = len(clone_age_edges) + 1
+        fsum_age = torch.zeros(R, n_age, G, device=device, dtype=dtype)
+        csum_age = torch.zeros(R, n_age, G, device=device, dtype=dtype)
+        t_clone = torch.zeros(R, N, device=device, dtype=dtype)
+        age_edges = torch.tensor(clone_age_edges, device=device, dtype=dtype)
+        ess_bin_series = []
     ghist = torch.zeros(R, sim.n_gate_xi, sim.n_gate_bins, device=device,
                         dtype=dtype)
     ghist_c = torch.zeros_like(ghist)
@@ -675,6 +691,18 @@ def run_sampler(method, system: ZIF8System, sim: ZIF8SimConfig, seeds, init_pool
         c_now, f_now = bin_counts_and_sum(phi, fl, G)
         fsum += f_now
         csum += c_now
+        if lineage_diagnostics and step >= sim.estimator_burn_in_steps:
+            gidx = (torch.floor((phi + math.pi) / dphi).long() % G)
+            anc = (ancestors if is_fr else
+                   torch.arange(N, device=device).expand(R, N))
+            flat = anc * G + gidx
+            fsum_ag.view(R, -1).scatter_add_(1, flat, fl)
+            csum_ag.view(R, -1).scatter_add_(1, flat, torch.ones_like(fl))
+            age = step * sim.dt - t_clone
+            ab = torch.bucketize(age, age_edges)
+            fa = ab * G + gidx
+            fsum_age.view(R, -1).scatter_add_(1, fa, fl)
+            csum_age.view(R, -1).scatter_add_(1, fa, torch.ones_like(fl))
         if step >= sim.estimator_burn_in_steps:
             fsum_p += f_now
             csum_p += c_now
@@ -743,6 +771,17 @@ def run_sampler(method, system: ZIF8System, sim: ZIF8SimConfig, seeds, init_pool
             diag["temp_kin"].append((2.0 * ke / ((3 * A - 3) * KB)).reshape(R, N)
                                     .mean(-1).cpu().numpy())
             diag["n_band"].append((phi.abs() < gate_phi).to(dtype).sum(-1).cpu().numpy())
+            if lineage_diagnostics:
+                gidx = (torch.floor((phi + math.pi) / dphi).long() % G)
+                anc = (ancestors if is_fr else
+                       torch.arange(N, device=device).expand(R, N))
+                occ = torch.zeros(R, N * G, device=device, dtype=dtype)
+                occ.scatter_add_(1, anc * G + gidx, torch.ones_like(phi))
+                occ = occ.view(R, N, G)
+                tot = occ.sum(1)
+                ess = tot ** 2 / (occ ** 2).sum(1).clamp_min(EPS)
+                ess_bin_series.append(torch.where(tot > 0, ess,
+                                      torch.zeros_like(ess)).cpu().numpy())
             if progress_every and (step // sim.save_every) % progress_every == 0:
                 print(f"    step {step}/{sim.n_steps} t={step*sim.dt:.1f} ps "
                       f"KL={float(np.median(diag['kl_uniform'][-1])):.4f} "
@@ -797,6 +836,8 @@ def run_sampler(method, system: ZIF8System, sim: ZIF8SimConfig, seeds, init_pool
                             arr[r, di] = arr[r].index_select(0, src)
                         for arr in (cage_idx, last_cage):
                             arr[r, di] = arr[r].index_select(0, src)
+                        if lineage_diagnostics:
+                            t_clone[r, di] = (step + 1) * sim.dt
                         # `crossings` is a CUMULATIVE per-walker count, not
                         # state: copying it re-counts the parent's completed
                         # transits once per clone, and the uniform target
@@ -833,6 +874,13 @@ def run_sampler(method, system: ZIF8System, sim: ZIF8SimConfig, seeds, init_pool
            # never be revisited after the fact.  They are what makes an
            # offline h-sweep possible from a single trajectory.
            "raw_fsum": fsum_p.cpu().numpy(), "raw_csum": csum_p.cpu().numpy()}
+    if lineage_diagnostics:
+        out.update({"lineage_fsum": fsum_ag.cpu().numpy(),
+                    "lineage_csum": csum_ag.cpu().numpy(),
+                    "cloneage_fsum": fsum_age.cpu().numpy(),
+                    "cloneage_csum": csum_age.cpu().numpy(),
+                    "clone_age_edges": np.asarray(clone_age_edges),
+                    "ess_anc_bin": np.asarray(ess_bin_series)})
     for k in diag:
         out[k] = np.asarray(diag[k])
     if verbose:
