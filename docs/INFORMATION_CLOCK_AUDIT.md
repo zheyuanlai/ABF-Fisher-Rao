@@ -164,3 +164,60 @@ exactly the win available by re-reading existing data. Whether *running* at
 small h helps or hurts is a separate question — a noisier bias force could
 degrade sampling — and is untested. That, not another allocation predictor, is
 the experiment worth doing next.
+
+---
+
+# Experiment 1 closed: the online bandwidth matters too (Outcome B)
+
+Four ABF-only arms, 8 seeds, shared init pool, all scored at the **frozen**
+`h_read = 0.05 Å`. `min_count` held fixed throughout.
+
+| h_bias | e_F | ref-corrected | barrier err | ref-noise share | force roughness / truth |
+|---|---|---|---|---|---|
+| 0.200 | 0.1262 | 0.1079 | −0.54 % | 27 % | 0.93 |
+| 0.100 | 0.1053 | 0.0823 | +0.04 % | 39 % | 0.99 |
+| 0.050 | 0.0909 | 0.0630 | +0.17 % | 52 % | 1.02 |
+| 0.025 | 0.1041 | 0.0808 | +0.20 % | 40 % | 1.02 |
+
+## What is resolved, and what is not
+
+| step | paired median | sem | seeds better | resolved |
+|---|---|---|---|---|
+| 0.20 → 0.10 | **−21.6 %** | 8.1 | 6/8 | **yes** |
+| 0.10 → 0.05 | −10.4 % | 14.8 | 5/8 | no |
+| 0.05 → 0.025 | −2.6 % | 11.1 | 4/8 | no |
+
+**Only the first halving is resolved.** The apparent minimum at h_bias = 0.05 and
+the apparent turnover at 0.025 are both inside the noise, so neither an optimum
+nor a turnover is claimed. The barrier error does improve monotonically and
+dramatically (−0.54 % → +0.04 %) at the first step, which is the same story.
+
+## The predicted failure mode does not occur
+
+A small online bandwidth is supposed to make the adaptive force noisy. Measured
+on the force the dynamics actually felt: roughness 0.93 → 0.99 → 1.02 → 1.02
+relative to the true profile, with **zero clipping at every arm**. The force is
+not becoming noisy, it is becoming accurate — **h_bias = 0.20 was OVER-smoothing
+the bias force by 7 %, under-resolving the very barrier it was meant to
+flatten.** That is the mechanism behind Outcome B, and it was measured rather
+than assumed.
+
+This contradicts the prediction recorded before the runs (A or C). One bandwidth
+was doing two jobs and doing both badly — but not for the reason expected.
+
+## The experiment is now reference-limited
+
+The share of the squared error that is the reference's own split-half
+uncertainty runs 27 % → 39 % → 52 %. Because the reference enters every arm
+identically its error is common-mode, `E[e²] = MSE_true + σ_ref²`, and
+subtracting it gives the corrected column — which strengthens the result
+(2.9× MSE from 0.20 to 0.05). But by h_bias = 0.05 the correction is half the
+signal, and the three sub-0.10 arms are mutually indistinguishable.
+
+**Resolving the small-bandwidth end would need ~10× more umbrella sampling
+(≈19 h), since reference noise falls as 1/√t.** Until that is spent, "which
+bandwidth below 0.10 is best" is not a question this system can answer, and the
+honest recommendation is only:
+
+> Halve the online bandwidth from the value this project has been using, and
+> read out at or below the bin width. Both are free.
