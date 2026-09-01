@@ -826,7 +826,13 @@ def run_sampler(method, system: ZIF8System, sim: ZIF8SimConfig, seeds, init_pool
            "gate_hist_cumulative": ghist_c.cpu().numpy(),
            "gate_edges": np.linspace(sim.gate_lo, sim.gate_hi, sim.n_gate_bins + 1),
            "u_of_phi": u_of_phi, "u_hostguest_of_phi": uhg_of_phi,
-           "u_counts": ucnt_p.cpu().numpy()}
+           "u_counts": ucnt_p.cpu().numpy(),
+           # RAW (unsmoothed) post-burn-in accumulators.  Everything the engine
+           # reports has already been convolved with K_abf, and that convolution
+           # is not invertible -- so without these the estimator's bandwidth can
+           # never be revisited after the fact.  They are what makes an
+           # offline h-sweep possible from a single trajectory.
+           "raw_fsum": fsum_p.cpu().numpy(), "raw_csum": csum_p.cpu().numpy()}
     for k in diag:
         out[k] = np.asarray(diag[k])
     if verbose:

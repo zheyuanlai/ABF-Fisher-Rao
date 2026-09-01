@@ -103,3 +103,64 @@ order.
 The licensed next experiment is therefore **not** another allocation predictor,
 and **not** ZIF-8 at 250/350 K. It is a direct bandwidth sweep on a cell where
 the reference is already trusted.
+
+---
+
+# The bandwidth sweep — the lever that was there all along
+
+One ABF-only ZIF-8 trajectory (8 seeds × 384 replicas, 150 ps), with the **raw
+binned accumulators** saved so the bandwidth is swept entirely offline at fixed
+dynamics. That isolates the read-out from any change in sampling.
+
+| h (Å) | h (bins) | e_F | bias | seed sd | barrier vs ref |
+|---|---|---|---|---|---|
+| 0.40 | 2.69 | 0.8373 | 0.8434 | 0.0731 | −2.91 % |
+| 0.30 | 2.01 | 0.5369 | 0.5368 | 0.0674 | −1.91 % |
+| **0.20 (production)** | **1.34** | **0.3018** | 0.2951 | 0.0634 | −1.17 % |
+| 0.15 | 1.01 | 0.2186 | 0.2084 | 0.0622 | −0.89 % |
+| 0.10 | 0.67 | 0.1620 | 0.1507 | 0.0614 | −0.69 % |
+| 0.07 | 0.47 | 0.1374 | 0.1272 | 0.0611 | −0.60 % |
+| **0.05** | **0.34** | **0.1266** | 0.1170 | 0.0610 | −0.54 % |
+| 0.03 | 0.20 | 0.1251 | 0.1157 | 0.0609 | −0.54 % |
+| 0.02 | 0.13 | 0.1251 | 0.1157 | 0.0609 | −0.54 % |
+
+**The error IS the bias**: `bias/e_F` = 1.007, 1.000, 0.978, … 0.925 across the
+whole sweep. Nothing else is happening.
+
+**There is no bias–variance tradeoff in this regime.** The seed-to-seed spread
+*also* falls with smaller h (0.0731 → 0.0609). This independently reproduces the
+mechanism campaign's finding that integrated variance *rises* with bandwidth
+because smoothing lengthens correlation and the endpoint integrates F′ — now
+confirmed on a molecular flexible-framework system it was never derived from.
+So smaller h improves both terms and there is no interior optimum; the error
+saturates once h drops below about a third of the bin width, i.e. once the
+kernel stops doing anything and the binning itself sets the resolution.
+
+## The two levers, same endpoint, same system
+
+| lever | cost | effect on endpoint MSE |
+|---|---|---|
+| bandwidth 0.20 → 0.05 Å | **free** — re-analysis of data already on disk | **5.8× better** |
+| uniform mFR at its safety-calibrated rate | a full second production run | **1.07× worse** |
+
+**A factor of 6.3 separates them, and the free one wins.** The production
+bandwidth was 1.34 bins; the entire ZIF-8 result — reference, screen,
+calibration, two 10-hour arms — was spent moving an endpoint that a one-line
+change to the read-out improves by 5.8×.
+
+The residual at h → 0 is 0.1251 kJ/mol, of which 27 % of the squared error is
+the reference's own noise. So even the floor is not sampling-limited.
+
+## What this changes
+
+The campaign's premise was that a better *allocation* of samples accelerates
+ABF. On this system, allocation was worth −7 % and the read-out was worth
++480 %. The honest reframing is that kernel-ABF endpoints are bias-dominated,
+the bias is set by the estimator's bandwidth, and bandwidth is free.
+
+**Caveat, stated because it bounds the claim:** this sweep changes only the
+*analysis*. The ABF bias force during the run still used h = 0.20 Å, so this is
+exactly the win available by re-reading existing data. Whether *running* at
+small h helps or hurts is a separate question — a noisier bias force could
+degrade sampling — and is untested. That, not another allocation predictor, is
+the experiment worth doing next.
