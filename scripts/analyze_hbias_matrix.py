@@ -54,7 +54,7 @@ def main():
     print(f"reference own noise {ref_noise:.4f} kJ/mol; barrier {bref:.3f} kJ/mol")
     print(f"PRIMARY readout h_read = {H_READ_PRIMARY} A (frozen before the runs)\n")
     print(f"{'h_bias':>7} {'e_F med':>9} {'e_F sem':>8} {'vs 0.20 paired':>16} "
-          f"{'barrier err':>12} {'refnoise share':>15}")
+          f"{'barrier err':>12} {'refnoise share':>15} {'e_F corrected':>13}")
     out = {}
     e0 = None
     for hb in sorted(arms, reverse=True):
@@ -67,11 +67,42 @@ def main():
         if e0 is not None and not (abs(hb - base) < 1e-9):
             d = 100 * (e - e0) / e0
             pair = f"{np.median(d):+7.1f}% ({int((d<0).sum())}/{len(d)})"
+        # The reference enters every arm identically, so its error is
+        # common-mode: E[e^2] = MSE_true + sigma_ref^2 when the two are
+        # independent.  Subtracting it recovers an unbiased estimate of the
+        # arm's OWN error -- but the correction grows as a share of the signal,
+        # so it is reported beside the raw number, never instead of it.
         share = 100 * (ref_noise / np.median(e)) ** 2
+        corr2 = np.median(e) ** 2 - ref_noise ** 2
+        e_corr = float(np.sqrt(corr2)) if corr2 > 0 else float("nan")
         out[hb] = dict(eF=float(np.median(e)), sem=float(e.std(ddof=1)/np.sqrt(len(e))),
-                       barrier_err_pct=float(bar), ref_noise_share_pct=float(share))
+                       eF_ref_corrected=e_corr, barrier_err_pct=float(bar),
+                       ref_noise_share_pct=float(share))
         print(f"{hb:7.3f} {np.median(e):9.4f} {out[hb]['sem']:8.4f} {pair:>16} "
-              f"{bar:+11.2f}% {share:14.0f}%")
+              f"{bar:+11.2f}% {share:14.0f}% {e_corr:12.4f}")
+
+    # --- the failure mode a small online bandwidth is SUPPOSED to have -----
+    # Smaller h_bias should make the adaptive force noisy.  Measure it directly
+    # on the force the DYNAMICS actually felt (each arm smoothed at its OWN
+    # h_bias) rather than assuming it.
+    G2 = F_ref.size
+    grid2, dphi2 = per.periodic_grid(G2, dtype=torch.float64)
+    Fp_ref = np.gradient(F_ref, dphi2, edge_order=2)
+    R_ref = float(np.sqrt(np.mean(np.gradient(Fp_ref, dphi2, edge_order=2) ** 2)))
+    print(f"\n  online bias-force roughness vs the reference ({R_ref:.1f}); "
+          f"~1 = as smooth as the truth, >>1 = dynamics pushed by estimator noise")
+    for hb in sorted(arms, reverse=True):
+        fs, cs = arms[hb]
+        K = per.wrapped_gaussian_kernel_matrix(grid2, hb * K_PHI)
+        mf = mean_force_regularized(torch.as_tensor(fs, dtype=torch.float64),
+                                    torch.as_tensor(cs, dtype=torch.float64),
+                                    K, 20.0).numpy()
+        rough = np.sqrt(np.mean(np.gradient(mf, dphi2, axis=-1, edge_order=2) ** 2, -1))
+        clip = 100 * np.mean(np.abs(mf) >= 30.0 / K_PHI)
+        out[hb]["roughness_ratio"] = float(np.median(rough) / R_ref)
+        out[hb]["clip_pct"] = float(clip)
+        print(f"    h_bias {hb:6.3f}: roughness ratio {np.median(rough)/R_ref:5.2f}  "
+              f"clipping {clip:.2f}%")
 
     print("\n  'refnoise share' = how much of the SQUARED error is the reference's own")
     print("  uncertainty.  Once this approaches 100% the experiment is reference-limited")
