@@ -35,6 +35,9 @@ def main():
     ap.add_argument("--temperature", type=float, default=300.0)
     ap.add_argument("--steps", type=int, default=300000)      # 150 ps
     ap.add_argument("--seeds", type=int, default=8)
+    ap.add_argument("--h-bias", type=float, default=None,
+                    help="ONLINE bandwidth for the bias force (A). "
+                         "Default = the prereg value.")
     ap.add_argument("--bandwidths", type=float, nargs="*",
                     default=[0.40, 0.30, 0.20, 0.15, 0.10, 0.07, 0.05, 0.03, 0.02])
     a = ap.parse_args()
@@ -46,7 +49,10 @@ def main():
     system = ZIF8System(a.temperature, dev, root=ROOT, **engine_kwargs(pre))
     sim = ZIF8SimConfig(**s, rng_seed=20260980)
     sim.n_steps = a.steps
-    pool = os.path.join(ROOT, f"cache/zif8/init_pool_{tag}.npz")
+    if a.h_bias is not None:
+        sim.abf_bandwidth_A = float(a.h_bias)
+    tag = f"{tag}_hb{sim.abf_bandwidth_A:g}" if a.h_bias is not None else tag
+    pool = os.path.join(ROOT, f"cache/zif8/init_pool_T{a.temperature:g}.npz")
     raw_path = os.path.join(OUT, f"zif8_raw_accumulators_{tag}.npz")
 
     if os.path.exists(raw_path):
@@ -66,7 +72,7 @@ def main():
         print(f"wrote {raw_path}")
 
     ref = np.load(os.path.join(ROOT, f"results/uniform_campaign/zif8/reference/"
-                                     f"reference_{tag}.npz"), allow_pickle=True)
+                                     f"reference_T{a.temperature:g}.npz"), allow_pickle=True)
     F_ref = np.asarray(ref["F"], float); kT = float(ref["kT"])
     G = fsum.shape[-1]
     grid, dphi = per.periodic_grid(G, dtype=torch.float64)
