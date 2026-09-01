@@ -68,6 +68,26 @@ harm is. LTA requires porting the instrumentation to a second engine and is a
 follow-up, not a promise. A ZIF-8-only result establishes the mechanism of the
 HARM but cannot by itself establish the two-sign claim.
 
+## Which bandwidth this runs at, and what that means
+
+**h_bias = 0.20 A -- the LEGACY value**, inherited verbatim from
+`configs/uniform_campaign/zif8_prereg.json` (verified in the running job, not
+assumed). This is deliberate. The question here is:
+
+> Why did the ALREADY-CLOSED ZIF-8 mFR experiment become harmful?
+
+and that experiment ran at 0.20, so the mechanism must be probed at 0.20.
+
+It therefore does **NOT** answer:
+
+> Would mFR still be harmful once the ABF bandwidth is corrected?
+
+That is a different question needing a separate corrected-baseline comparison
+(mFR at h_bias = 0.10 against ABF at h_bias = 0.10), and its result cannot be
+inferred from this one. The two must not be conflated in the write-up: a
+mechanism found at 0.20 explains the closed result; it does not license a claim
+about the corrected algorithm.
+
 ## Held fixed
 
 Physical model, reference, init pool, seeds, horizon, h_bias, h_read,

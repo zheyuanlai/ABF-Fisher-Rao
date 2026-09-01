@@ -54,7 +54,7 @@ def main():
     print(f"reference own noise {ref_noise:.4f} kJ/mol; barrier {bref:.3f} kJ/mol")
     print(f"PRIMARY readout h_read = {H_READ_PRIMARY} A (frozen before the runs)\n")
     print(f"{'h_bias':>7} {'e_F med':>9} {'e_F sem':>8} {'vs 0.20 paired':>16} "
-          f"{'barrier err':>12} {'refnoise share':>15} {'e_F corrected':>13}")
+          f"{'barrier err':>12} {'refnoise share':>15} {'e_F refcorr*':>13}")
     out = {}
     e0 = None
     for hb in sorted(arms, reverse=True):
@@ -76,7 +76,7 @@ def main():
         corr2 = np.median(e) ** 2 - ref_noise ** 2
         e_corr = float(np.sqrt(corr2)) if corr2 > 0 else float("nan")
         out[hb] = dict(eF=float(np.median(e)), sem=float(e.std(ddof=1)/np.sqrt(len(e))),
-                       eF_ref_corrected=e_corr, barrier_err_pct=float(bar),
+                       eF_ref_floor_corrected_diagnostic=e_corr, barrier_err_pct=float(bar),
                        ref_noise_share_pct=float(share))
         print(f"{hb:7.3f} {np.median(e):9.4f} {out[hb]['sem']:8.4f} {pair:>16} "
               f"{bar:+11.2f}% {share:14.0f}% {e_corr:12.4f}")
@@ -104,6 +104,11 @@ def main():
         print(f"    h_bias {hb:6.3f}: roughness ratio {np.median(rough)/R_ref:5.2f}  "
               f"clipping {clip:.2f}%")
 
+    print("\n  * e_F refcorr is a REFERENCE-NOISE-FLOOR CORRECTED DIAGNOSTIC, not the")
+    print("    true error. sqrt(e^2 - sigma_ref^2) is unbiased only in expectation: for")
+    print("    the ONE realized reference the cross term -2<F_hat - F, F_ref - F> does")
+    print("    not vanish. The conclusion does not rest on it -- the raw column already")
+    print("    carries it.")
     print("\n  'refnoise share' = how much of the SQUARED error is the reference's own")
     print("  uncertainty.  Once this approaches 100% the experiment is reference-limited")
     print("  and a better estimator can no longer be resolved with this reference.")
