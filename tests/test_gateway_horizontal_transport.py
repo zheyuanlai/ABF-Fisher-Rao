@@ -131,8 +131,9 @@ def test_transported_positions_enter_the_accumulators_only_on_the_next_step():
 def test_transport_map_is_pure_no_reference_no_rng_no_population_change():
     assert list(inspect.signature(gw.horizontal_ot_map).parameters) == ["X", "alpha_t", "u"]
     src = inspect.getsource(gw.simulate_batch)
-    end = src.index("if do_fr and any_refresh:") if "if do_fr and any_refresh:" in src else src.index("X, Y = Xp, Yp")
-    block = src[src.index("if do_fr and any_ot:"): end]          # the transport block only
+    start = src.index("if do_fr and any_ot:")
+    later = [src.index(m, start) for m in ("if do_fr and any_refresh:", "if do_fr and (any_refresh", "X, Y = Xp, Yp") if m in src[start:]]
+    block = src[start: min(later)]                                  # the transport block only
     for forbidden in ("F_ref", "Fp_ref", "F_target", "Bbias", "gen_", "rand", "Yp", "Sf",
                       "C.", "interp1d", "binned_density"):
         assert forbidden not in block, forbidden

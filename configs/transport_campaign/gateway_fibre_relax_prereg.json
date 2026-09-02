@@ -1,0 +1,59 @@
+{
+  "_comment": "Transport campaign, third stage: FINITE fibre relaxation (exact constrained-OU propagation at fixed x) as the non-oracle version of the fibre refresh. FROZEN 2026-09-02 by commit BEFORE any run. Licensed by docs/GATEWAY_TRANSPORT_REFRESH.md (R1a: the fibre carry-over is the mechanism; with EXACT fibres transport beats FR). This is a MECHANISM / RELAXATION-TIMESCALE experiment, not a compute-efficiency result: the OU propagator is analytic and free here; a molecular constrained relaxation is not.",
+  "_question": "How many local fibre relaxation times c = tau / tau_y(x), tau_y = 1/omega(x)^2, does a transported walker need before transport becomes a better allocator than ABF and than FR at the SAME fibre treatment? Analytic anchor: the variance mismatch of a transported walker contracts by exactly e^{-2c} (eq. 2), so the dose-response is predicted BEFORE any free-energy number is seen.",
+  "inherits": "configs/transport_campaign/gateway_transport_refresh_prereg.json and its parent (cell, sampler, corrected baseline h_bias 0.07 / gamma 1.5, transport operator, alpha** = 0.00325 from results/transport_campaign/gateway_horizontal/calibration_refine/alpha_selection.json, endpoints, bootstrap, margins, controls)",
+  "relaxation_operator": {
+    "code": "src/gateway_core.py::ou_relax, Method.refresh == 'ou', gw.with_relax(m, c)",
+    "rule": "at every opportunity (every 10 steps from step 0), AFTER any FR gather and any transport, every walker's y is propagated EXACTLY under the constrained OU dynamics at its current x for c local relaxation times: y <- e^{-c} y + sqrt((1 - e^{-2c}) / (beta omega(x)^2)) z, z ~ N(0,1). c = 0 is the identity bit for bit; c -> inf is the oracle refresh (same draw stream, same placement). The draw is shared by every arm of a row (paired across c and across allocators); non-relax arms are bit-identical with or without relax arms present (tests/test_gateway_fibre_relax.py).",
+    "records": "notional constrained-MD cost per row: sum over opportunities and walkers of c / (omega(x)^2 dt) = the steps a non-analytic implementation at the outer time step would take; reported as fibre_cost_ratio = that sum / (N n_steps). Displacement-weighted local relaxation time where the allocator moves mass: tau_move = sum_i w_i tau_y(x_i^+), w_i = |dx_i| / sum |dx_j|, per OT event (mean per save interval)."
+  },
+  "ladder_c": [0.5, 1.0, 2.0, 5.0],
+  "_ladder": "c = 0 (the plain arms) and c = inf (the oracle refresh arms) are run in the same block as anchors; predicted mismatch remaining e^{-2c}: 0.368, 0.135, 0.018, 4.5e-5",
+  "stage_C1_recovery": {
+    "seeds": {"first": 580, "count": 8}, "rows": "8 seeds x {left, one_right} = 16 rows (characterisation, not a decision block)",
+    "arms": "for each allocator A (abf), F (fr_uniform, gamma 1.5), T (ot_exact, alpha**), P (ot_full, alpha 1): c = 0 (plain), c in ladder (with_relax), c = inf (with_refresh) -> 4 x 6 = 24 arms in ONE batch (batch_seed 71000): shared initial conditions, Langevin noise and fibre draws. FR draws are per row as always (F arms across c are noise-paired, not draw-paired).",
+    "records": "profiles, raw accumulators, D_cond, D_move / |dx| / tau_move, fibre cost; frozen-bias stage on every arm",
+    "outputs": "results/transport_campaign/gateway_horizontal/relax_C1/{raw.npz, provenance.json, c_selection.json, analysis.json, figures/}"
+  },
+  "readout_rule": {
+    "why": "h_read* = 0.0175 was fixed by step 1's plateau rule at ABF's error level (~5e-3) and is OFF the plateau for arms at ~1e-3 (docs/GATEWAY_TRANSPORT_REFRESH.md). It is NOT carried forward blindly.",
+    "ladder": [0.0175, 0.00875, 0.004375, 0.0],
+    "rule": "on the COMPLETE C1 block, for EVERY arm, median e_F(T; h) over rows; h_read** = the largest ladder h such that for every arm e(h) <= 1.02 x min_h e(h) (the plateau INTERSECTION over arms). Computed and printed by the C1 analyzer before any arm contrast; frozen for every C1 contrast and for Stage C2. Raw bins reported alongside as sensitivity.",
+    "expected": "0.00875 or raw"
+  },
+  "stage_C1_endpoints": {
+    "per_arm": "I_F, e_F(T) at h_read**; int D_cond dt; b_flank(T) = mean over -0.3 < x < -0.05 of F'_hat(T) - F'_ref (the entering-flank signed error); barrier error F(0) - F(-1) in kT; frozen-bias error; fibre_cost_ratio; tau_move (OT arms)",
+    "recovery_curve": "per row and allocator X in {A, F, T, P}: R_X(c) = (I_F(X_0) - I_F(X_c)) / (I_F(X_0) - I_F(X_inf)); R_X(0) = 0, R_X(inf) = 1; median over rows with the cluster bootstrap by seed. Compared against the analytic 1 - e^{-2c} DIRECTIONALLY (monotone in c), not numerically (the estimator is cumulative and nonlinear).",
+    "flank_excess": "E(c) = b_flank(T_c) - b_flank(A_c), the transport-induced excess flank bias at matched fibre treatment, normalised by E(0); predicted ~ e^{-2c} (eq. 3), tested as: monotone decreasing in c and E(2)/E(0) < 0.2",
+    "conditional": "the D_cond peak during the first 5 time units per arm: predicted to fall with c like e^{-2c} above the finite-count floor",
+    "matched_fibre_contrasts": "at every c: T_c vs A_c and T_c vs F_c (Delta I_F, Delta e_F(T), cluster bootstrap, 8 seeds -> descriptive CIs)",
+    "cost": "fibre_cost_ratio per arm and c; tau_move distribution for T and P arms (median over rows of the time-mean); time-to-ABF-final-accuracy on TWO axes: physical t and notional t_eff = t (1 + fibre_cost_ratio)"
+  },
+  "c_star_rule": "c* = the SMALLEST c in the ladder with median R_T(c) >= 0.90 AND median Delta I_F(T_c vs A_c) <= 0 at h_read**. If no ladder c qualifies, c* = 5 and the outcome bucket is C4 regardless of Stage C2. Exploratory selection: no confirmatory claim is made from C1.",
+  "stage_C2_confirmatory": {
+    "seeds": {"first": 800, "count": 32}, "rows": "32 seeds x {left, one_right} = 64 rows, fresh labels",
+    "arms": "A_0 (abf), F_0 (fr_uniform), T_0 (ot_exact) as within-block anchors; A_c*, F_c*, T_c*; P_c* as a secondary arm -> 7 arms in ONE batch per chunk of 32 rows (batch_seed 81000 + offset)",
+    "readout": "h_read** frozen from C1; raw bins as sensitivity",
+    "primary": "T_c* vs A_c* (Delta I_F at h_read**, cluster bootstrap by seed, 10000 resamples, seed 20260904): verdict rule SAFE_ACCELERATOR / ACCELERATION_POSITIVE(_WITH_REVERSAL) / NEGATIVE / NEUTRAL (accelerator = median <= -10% and CI95 upper < 0; SAFE adds median Delta e_F(T) <= +5%)",
+    "secondary": "T_c* vs F_c* (decision rule OT_better / FR_better / equivalent / INCONCLUSIVE, TOST 90% CI in +-10%); F_c* vs A_c*; A_c* vs A_0 (what relaxation alone does to ABF); T_c* vs T_0 (finite-c repair); P_c* vs A_c* and vs F_c*; every arm vs A_0; frozen-bias endpoint on all; both time axes",
+    "replication": "F_0 vs A_0 must replicate (CI95 upper < 0) or the block is a FAILED REPLICATION and everything else is descriptive",
+    "outputs": "results/transport_campaign/gateway_horizontal/relax_C2/{raw.npz, provenance.json, analysis.json, comparison.csv, figures/}"
+  },
+  "outcomes_frozen": {
+    "C1_gentle": "c* <= 0.5 -> only modest fibre relaxation is needed; molecular transport + constrained solvent relaxation is encouraged",
+    "C2_moderate": "c* in {1, 2} -> promising; the molecular version needs a serious cost analysis (one or two perpendicular correlation times per move)",
+    "C3_full_equilibration": "c* = 5 with R_T(5) >= 0.9 -> transport works only after essentially complete conditional equilibration; FR is attractive precisely because it never pays this cost",
+    "C4_not_recovered": "no ladder c reaches R_T >= 0.9 -> repeated exact redraws, not equilibration per se, are responsible; do not move to WCA",
+    "deployable_allocator": "orthogonal, from C2: T_c* SAFE or ACCELERATION vs A_c* AND (T_c* vs F_c*) OT_better or equivalent -> finite constrained relaxation makes transport a better allocator than birth-death at the same fibre treatment on the gateway",
+    "cost_verdict": "orthogonal, descriptive: fibre_cost_ratio at c* -- if >= 10, the all-walker relaxation is not a deployable design and the next design must relax only where mass moves (tau_move tells where)"
+  },
+  "prediction_recorded_now": "R_T(0.5) in [0.40, 0.75], R_T(1) in [0.75, 0.95], R_T(2) >= 0.95, R_T(5) ~ 1: c* = 1 or 2 (bucket C2_moderate), most likely 1. Flank excess E(c)/E(0) tracks e^{-2c} within a factor 2; the D_cond peak likewise. T_c vs A_c: negative (transport helps) for c >= 1, about -20 to -35%; ambiguous at c = 0.5. T_c* vs F_c*: OT_better or equivalent (the oracle gave -15%). h_read** = 0.00875. Cost: the all-walker relaxation at c* is >= 100x the outer cost (dominated by basin walkers with omega ~ 1, tau_y ~ 1, i.e. 2500 outer steps per walker per opportunity), while tau_move is ~0.01-0.1 (mass moves on the flanks where omega ~ 3-20) -> cost_verdict: not deployable as implemented; relax only the moved walkers next.",
+  "compute": "C1: one batch of 16 x 24 = 384 rows (~3 min) + frozen bias; C2: two chunks of 32 x 7 = 224 rows (~90 s each) + frozen bias. GPU 3 ONLY.",
+  "prohibited": [
+    "everything prohibited by the two parent preregs",
+    "carrying h_read* = 0.0175 forward as primary; choosing h_read** on anything but the frozen intersection rule; choosing c* by anything but the frozen rule",
+    "printing, storing or reading ANY C2 error metric before the committed C2 analyzer runs on the complete block (C1 is a characterisation block and its analyzer runs once on the complete block)",
+    "reusing 0-15, 100-131, 300-315, 400-415, 480-487, 500-531, 540-571, 580-587 in C2",
+    "adding or dropping arms after this file is committed; editing this file after C1 starts (h_read** and c* live in relax_C1/c_selection.json)"
+  ]
+}

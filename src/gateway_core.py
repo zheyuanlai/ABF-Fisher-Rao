@@ -151,6 +151,12 @@ class Method:
     # deployable method: it uses the model's omega and beta.  Refresh draws are shared across
     # the arms of one (config, seed) row, so refresh arms are paired with each other.
     refresh: str = "none"
+    # Finite fibre relaxation (fibre-relax campaign): refresh == 'ou' propagates every walker's y
+    # EXACTLY under the constrained Ornstein-Uhlenbeck dynamics at fixed x for c local relaxation
+    # times tau_y(x) = 1/omega(x)^2:  y <- e^{-c} y + sqrt((1 - e^{-2c}) / (beta omega^2)) z.
+    # c = 0 is the identity, c -> inf is the oracle refresh.  Same placement and RNG stream as
+    # the oracle refresh.  See ``ou_relax``.
+    relax_c: float = float("nan")
 
     def rate(self, cfg) -> float:
         """The FR rate this arm runs at.
@@ -192,6 +198,33 @@ def with_refresh(m: Method, name: str | None = None) -> Method:
     return _dc.replace(m, name=name or f"{m.name}_refresh", refresh="oracle")
 
 
+def with_relax(m: Method, c: float, name: str | None = None) -> Method:
+    """The same arm with the exact constrained-OU fibre relaxation for ``c`` local relaxation
+    times switched on; ``c = inf`` returns the oracle refresh arm (its exact limit)."""
+    import dataclasses as _dc
+    if math.isinf(float(c)):
+        return with_refresh(m, name)
+    return _dc.replace(m, name=name or f"{m.name}_relax{float(c):g}", refresh="ou", relax_c=float(c))
+
+
+def ou_relax(Y, om, beta, c, z):
+    """Exact propagation of the constrained fibre dynamics at fixed x for ``c`` local relaxation times.
+
+    At fixed ``x`` the transverse dynamics is the Ornstein-Uhlenbeck process
+    ``dY = -omega(x)^2 Y dt + sqrt(2/beta) dW`` with relaxation time ``tau_y = 1/omega^2``; after a
+    duration ``tau = c tau_y``,
+
+        Y' = e^{-c} Y + sqrt((1 - e^{-2c}) / (beta omega^2)) z,    z ~ N(0, 1),
+
+    exactly.  ``c = 0`` is the identity (``1 * Y + 0 * z``), ``c -> inf`` is the oracle refresh.
+    The variance mismatch of a transported walker contracts by exactly ``e^{-2c}``.
+    ``Y, om, z`` (R, N); ``beta, c`` (R, 1) or scalars.
+    """
+    decay = torch.exp(-c)
+    amp = torch.sqrt((1.0 - torch.exp(-2.0 * c)) / (beta * om * om))
+    return decay * Y + amp * z
+
+
 def horizontal_ot(alpha: float, name: str | None = None) -> Method:
     """ABF + horizontal optimal transport of the x-marginal toward uniform, strength ``alpha``.
 
@@ -227,12 +260,16 @@ def assert_no_oracle_leakage(methods: Sequence[Method]) -> None:
                 f"matched intensity is unobtainable without it")
         assert m.transport in ("none", "horizontal_ot"), (
             f"unknown transport {m.transport!r} on {m.name}")
-        assert m.refresh in ("none", "oracle"), f"unknown refresh {m.refresh!r} on {m.name}"
+        assert m.refresh in ("none", "oracle", "ou"), f"unknown refresh {m.refresh!r} on {m.name}"
         if m.refresh == "oracle":
             # model knowledge (omega, beta) enters: keep it visible in the arm's name, and never
             # on a sham (its only job is to copy a partner's schedule)
             assert "refresh" in m.name and not m.sham, (
                 f"oracle refresh arm must carry 'refresh' in its name and must not be a sham: {m.name}")
+        if m.refresh == "ou":
+            assert "relax" in m.name and not m.sham, (
+                f"OU relaxation arm must carry 'relax' in its name and must not be a sham: {m.name}")
+            assert 0.0 <= m.relax_c < float("inf"), f"relax_c must be finite and >= 0 on {m.name}: {m.relax_c}"
         if m.transport != "none":
             # A transport arm is a pure comparator for birth-death: it must not ALSO clone,
             # kill, or carry a target, or the two mechanisms could not be told apart.
@@ -681,6 +718,10 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     refresh_mask = torch.tensor([m.refresh == "oracle" for m in methods],
                                 device=device).repeat(B)
     any_refresh = bool(refresh_mask.any())
+    relax_mask = torch.tensor([m.refresh == "ou" for m in methods], device=device).repeat(B)
+    any_relax = bool(relax_mask.any())
+    c_r = torch.tensor([(m.relax_c if m.refresh == "ou" else 0.0) for m in methods],
+                       device=device, dtype=dtype).repeat(B).unsqueeze(1)
 
     F_ref_b, Fp_ref_b = eb.reference_profiles(x_grid, eval_mask, beta_b.unsqueeze(1),
                                               H_b.unsqueeze(1), oout_b.unsqueeze(1),
@@ -741,6 +782,15 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     n_fr_apply = 0
     n_ot_apply = 0
     n_refresh_apply = 0
+    n_relax_apply = 0
+    if any_relax:
+        # notional constrained-MD cost: relaxing walker i for c tau_y(x_i) with the outer time
+        # step would take c / (omega(x_i)^2 dt) steps; summed over walkers and opportunities
+        ts_fibre_steps = torch.zeros((R, n_saves), device=device, dtype=dtype)
+        acc_fibre = torch.zeros(R, device=device, dtype=dtype)
+    if any_ot:
+        ts_tau_move = torch.zeros((R, n_saves), device=device, dtype=dtype)
+        acc_tau_move = torch.zeros(R, device=device, dtype=dtype)
 
     for step in range(n_steps):
         if ess_window > 0 and step % ess_window == 0:
@@ -812,20 +862,32 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
             acc_p95 += torch.quantile(dm, 0.95, dim=1)
             acc_max = torch.maximum(acc_max, dm.max(dim=1).values)
             acc_dx += ddx.mean(dim=1)
+            # displacement-weighted local relaxation time where the allocator moves mass:
+            # tau_move = sum_i w_i / omega(x_i^+)^2,  w_i = |dx_i| / sum_j |dx_j|
+            wsum = torch.clamp(ddx.sum(dim=1, keepdim=True), min=EPS)
+            acc_tau_move += ((ddx / wsum) / (om_new * om_new)).sum(dim=1)
             acc_n += 1
             last_ramp = ramp_factor
             Xp = torch.where(ot_mask.unsqueeze(1), X_new, Xp)
             n_ot_apply += 1
 
-        if do_fr and any_refresh:
-            # Oracle fibre refresh, LAST: whatever FR or transport did to x, y is redrawn from
-            # the exact conditional at the walker's current x.  One (B, N) draw per opportunity
-            # shared by every arm of a row (paired), from a stream no other arm consumes.
+        if do_fr and (any_refresh or any_relax):
+            # Fibre update, LAST: whatever FR or transport did to x, y is either redrawn from the
+            # exact conditional at the walker's current x (oracle refresh) or propagated exactly
+            # under the constrained OU dynamics for c local relaxation times (finite relaxation).
+            # One (B, N) draw per opportunity shared by every arm of a row (paired), from a
+            # stream no other arm consumes.
             zr = torch.randn((B, N), device=device, dtype=dtype,
                              generator=gen_r).repeat_interleave(M, dim=0)
             om_now = omega_of(Xp, oout, oin, sw)
-            Yp = torch.where(refresh_mask.unsqueeze(1), zr / (torch.sqrt(beta) * om_now), Yp)
-            n_refresh_apply += 1
+            if any_refresh:
+                Yp = torch.where(refresh_mask.unsqueeze(1), zr / (torch.sqrt(beta) * om_now), Yp)
+                n_refresh_apply += 1
+            if any_relax:
+                Yp = torch.where(relax_mask.unsqueeze(1), ou_relax(Yp, om_now, beta, c_r, zr), Yp)
+                acc_fibre += torch.where(relax_mask.unsqueeze(1), c_r / (om_now * om_now * dt),
+                                         torch.zeros_like(Yp)).sum(dim=1)
+                n_relax_apply += 1
 
         X, Y = Xp, Yp
 
@@ -854,6 +916,7 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
                 ts_Sf[:, save_ptr] = Sf
                 ts_C[:, save_ptr] = C
             if any_ot:
+                acc_n_events = acc_n
                 nn = float(max(acc_n, 1))
                 ts_dmove_mean[:, save_ptr] = acc_dm / nn
                 ts_dmove_p95[:, save_ptr] = acc_p95 / nn
@@ -861,6 +924,12 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
                 ts_absdx[:, save_ptr] = acc_dx / nn
                 ts_alpha[save_ptr] = last_ramp
                 acc_dm.zero_(); acc_p95.zero_(); acc_max.zero_(); acc_dx.zero_(); acc_n = 0
+            if any_relax:
+                ts_fibre_steps[:, save_ptr] = acc_fibre
+                acc_fibre.zero_()
+            if any_ot:
+                ts_tau_move[:, save_ptr] = acc_tau_move / float(max(acc_n_events, 1))
+                acc_tau_move.zero_()
             if store_conditional:
                 dc_, nb_ = conditional_moment_kl(X, Y, beta, oout, oin, sw)
                 ts_dcond[:, save_ptr] = dc_
@@ -1011,7 +1080,7 @@ def _finalize(L):
                 # one and the config's otherwise -- never re-derive it from the config alone
                 gamma=float(L["gamma_r"][r, 0]),
                 transport=methods[m].transport, alpha=float(methods[m].alpha),
-                refresh=methods[m].refresh,
+                refresh=methods[m].refresh, relax_c=float(methods[m].relax_c),
                 t=t_axis, P_regions=P, Q_regions=Q,
                 l2_f_t=npy(ts_l2f[r]), l2_fp_t=npy(ts_l2fp[r]),
                 ess_t=npy(L["ts_ess"][r]), wmax_t=npy(L["ts_wmax"][r]),
@@ -1040,6 +1109,13 @@ def _finalize(L):
             is_ot = methods[m].transport == "horizontal_ot"
             rec["n_ot_apply"] = int(L["n_ot_apply"]) if is_ot else 0
             rec["n_refresh_apply"] = int(L["n_refresh_apply"]) if methods[m].refresh == "oracle" else 0
+            rec["n_relax_apply"] = int(L["n_relax_apply"]) if methods[m].refresh == "ou" else 0
+            if L.get("any_relax"):
+                rec["fibre_steps_t"] = npy(L["ts_fibre_steps"][r])
+                rec["fibre_steps_total"] = float(L["ts_fibre_steps"][r].sum())
+                rec["fibre_cost_ratio"] = rec["fibre_steps_total"] / float(N * L["n_steps"])
+            if L.get("any_ot"):
+                rec["ot_tau_move_t"] = npy(L["ts_tau_move"][r])
             if L.get("any_ot"):
                 rec["dmove_mean_t"] = npy(L["ts_dmove_mean"][r])
                 rec["dmove_p95_t"] = npy(L["ts_dmove_p95"][r])
