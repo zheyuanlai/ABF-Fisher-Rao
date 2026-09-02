@@ -464,7 +464,7 @@ class BatchSpec:
 
 def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
                    noise_seed_base=2000, fr_seed_base=3000, progress=None,
-                   store_profiles=False):
+                   store_profiles=False, store_accumulators=False):
     """Run ``B`` (config, seed) rows x ``M`` methods, flattened to ``R = B*M``.
 
     Methods inside one B-row share initial conditions and Langevin noise, so an arm and its
@@ -475,6 +475,11 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     profile, the mean-force profile, the KDE marginal density, and KL(p_t || uniform).  It
     only *reads* state -- no RNG is consumed and no update is touched -- so runs with and
     without it are bit-identical.
+
+    ``store_accumulators`` additionally records the RAW mean-force accumulators ``Sf`` (binned
+    force sums) and ``C`` (binned counts) at every save step, so the read-out bandwidth can be
+    swept OFFLINE and exactly (``F' = smooth(Sf)/(smooth(C) + min_count)`` for any kernel, or
+    ``Sf/C`` for raw bins).  Report-only, same bit-identity guarantee (tests/test_gateway_readout.py).
     """
     assert_no_oracle_leakage(spec.methods)
     cfgs, methods = list(spec.configs), list(spec.methods)
@@ -571,6 +576,9 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
         ts_Fp_prof = torch.zeros((R, n_saves, N_GRID), device=device, dtype=dtype)
         ts_phat = torch.zeros((R, n_saves, N_GRID), device=device, dtype=dtype)
         ts_kl_uni = torch.zeros((R, n_saves), device=device, dtype=dtype)
+    if store_accumulators:
+        ts_Sf = torch.zeros((R, n_saves, N_GRID), device=device, dtype=dtype)
+        ts_C = torch.zeros((R, n_saves, N_GRID), device=device, dtype=dtype)
     tot_die = torch.zeros(R, device=device, dtype=dtype)
     tot_clone = torch.zeros(R, device=device, dtype=dtype)
     n_fr_apply = 0
@@ -649,6 +657,10 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
                 ts_kl_uni[:, save_ptr] = trapz(
                     p_save * (torch.log(torch.clamp(p_save, min=EPS))
                               - math.log(q_u)), dx)
+            if store_accumulators:
+                # the SAME Sf, C that produced this save's Fp (scatter_add happened above)
+                ts_Sf[:, save_ptr] = Sf
+                ts_C[:, save_ptr] = C
             save_ptr += 1
         if progress is not None and step % progress == 0:
             print(f"    step {step}/{n_steps}", flush=True)
@@ -816,6 +828,9 @@ def _finalize(L):
                 rec["Fp_prof_t"] = npy(L["ts_Fp_prof"][r])
                 rec["phat_t"] = npy(L["ts_phat"][r])
                 rec["kl_uniform_t"] = npy(L["ts_kl_uni"][r])
+            if L.get("store_accumulators"):
+                rec["Sf_t"] = npy(L["ts_Sf"][r])
+                rec["C_t"] = npy(L["ts_C"][r])
             rec.update(hit_and_establish(P[:, 2], Q[:, 2], t_axis))
             recs.append(rec)
     return recs

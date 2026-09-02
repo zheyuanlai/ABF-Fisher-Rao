@@ -1,0 +1,50 @@
+{
+  "_comment": "Entropic-gateway corrected-baseline audit, STEP 1 of 2: ABF-only ONLINE bandwidth matrix with exact offline read-out. FROZEN 2026-09-02 by commit, BEFORE any run. Step 2 (corrected ABF vs corrected ABF+uniform-FR, fresh seeds) gets its own prereg AFTER this closes; its rate rule is pre-specified below so nothing is left to tune later.",
+  "_why": "The bandwidth-defect screen (docs/BANDWIDTH_DEFECT_SCREEN.md) found the gateway ABF baseline fully read-out-limited: its measured F' error (0.0694) equals the deterministic kernel bias of the legacy h = 0.07 read-out (0.0703) to 1.3%, and its F error sits BELOW the uniform-density fixed point because ABF's non-uniform occupancy sets the NW weights. An exploratory kernel-matched re-score turned the closed +9.82% late reversal into -55.17% (64/64). That re-score is NOT a sharper read-out and the closed runs saved no raw accumulators, so the corrected-baseline contrast is untested. This step corrects the baseline the same way ZIF-8 and WCA were corrected; step 2 measures uniform-FR against it.",
+  "system": "entropic gateway cell beta=16, s=0.10, r=32 (beta_H = 8 kT); N=2048, 100000 steps, dt 4e-4 (T = 40), save every 500 (201 saves); inits [left, one_right]; eval window [-1.5, 1.5]; the sampler block is inherited verbatim from results/gateway_anchor/CONFIRMATORY_PREREGISTRATION.json EXCEPT h, and the runner asserts it",
+  "inherits": "results/gateway_anchor/CONFIRMATORY_PREREGISTRATION.json",
+  "cell": {"beta": 16.0, "s": 0.10, "r": 32.0, "beta_H_kT": 8.0},
+  "inits": ["left", "one_right"],
+  "arms_h_bias": [0.07, 0.035, 0.0175],
+  "_arms": "legacy, 1/2, 1/4 (3.50 / 1.75 / 0.875 grid points; dx = 0.02). min_count = 1.0 is HELD FIXED at every arm (the regulariser is not confounded with the bandwidth; at ~1e6 counts per node it is inert anyway). Method = abf only; no FR arm. The engine requires one h per batch, so each arm is ONE batch of the same 32 (init, seed) rows with the same batch_seed: the Langevin noise streams are then IDENTICAL across arms (no FR draws), i.e. the arms are paired by construction, exactly.",
+  "readout": {
+    "ladder": ["0.07 (production profile)", "0.035", "0.0175", "0.00875", "raw bins Sf/C"],
+    "_how": "raw accumulators Sf (binned force sums) and C (binned counts) recorded at every save (engine store_accumulators, report-only, bit-identity proven by tests/test_gateway_readout.py); F'_h = smooth_h(Sf) / (smooth_h(C) + min_count) with the engine's own reflect-padded kernel, reproduced offline to 1e-9 against the saved profiles (analyzer self-check)"
+  },
+  "seed_first": 300,
+  "n_seeds": 16,
+  "_seeds": "fresh labels 300-315 x 2 inits = 32 paired rows per arm (taken: 0-15 calibration, 100-131 confirmatory + campaign). batch_seed 31000 for every arm.",
+  "stage_1_readout_rule": {
+    "arm": "legacy 0.07 ONLY, before any other arm is scored",
+    "plateau": "ladder points whose median final e_F (over the 32 rows) is within 2% of the ladder minimum",
+    "h_read_star": "the legacy read-out if it is on the plateau (no change licensed), else the LARGEST plateau point",
+    "_why": "the rule that reproduced the frozen ZIF-8 choice and was applied unchanged to LTA and WCA"
+  },
+  "stage_2_endpoints": {
+    "primary": "e_F(T) = aligned RMS over [-1.5, 1.5] of cumtrapz(F'_h) vs the analytic F_ref (exactly the engine's l2_f convention), EVERY arm scored at h_read_star; and I_F = trapezoid of e_F(t) over the 201 saves. Statistic: per-row (init, seed) relative change vs the LEGACY arm, median over 32 rows, 10000-resample bootstrap CI (seed 20260829); per-init breakdown reported.",
+    "secondary": "e_F at every other read-out; F' error; barrier height vs reference",
+    "failure_mode_instrumentation": "on the ONLINE bias force each arm applied (its own Fp_prof_t[-1]): roughness ratio RMS(dF'/dx)/RMS(dF'_ref/dx) over the window, max |F'|, row spread of e_F(T). The gateway has no force clip."
+  },
+  "outcomes_frozen": {
+    "A_readout_only": "no arm differs from legacy at h_read_star (all CIs span 0) while Stage 1 moves h_read_star below 0.07 -> corrected baseline = legacy dynamics + sharper read-out",
+    "B_online_helps": "the first halving (0.035 vs 0.07) improves e_F(T) with CI95 upper < 0 -> corrected h_bias = the smallest RESOLVED step (0.035 unless 0.0175 vs 0.035 is also resolved), never the raw best mean",
+    "C_online_hurts": "a smaller h_bias worsens e_F(T) with CI95 lower > 0, or roughness blows up -> keep h_bias = 0.07 and decouple only the read-out",
+    "D_nothing_moves": "Stage 1 keeps the legacy read-out AND no online arm is resolved -> the baseline was adequate (contradicting the screen); step 2 runs at legacy values"
+  },
+  "prediction_recorded_now": "Stage 1: h_read* <= 0.035, most likely 0.0175 or raw (share >= 1 means nearly the whole final e_F is deterministic kernel bias; the bias-only bound is not finite). Stage 2: B -- the h = 0.07 bias force compresses the s = 0.1 channel (barrier +2.35%), so the flattening is imperfect and the walkers' occupancy stays non-uniform; halving should resolve. Watch roughness at 0.0175 (0.875 bins) -- with ~1e6 counts per node it should not blow up.",
+  "step_2_rules_prespecified": {
+    "arms": ["abf", "fr_uniform"],
+    "baseline": "h_bias = the corrected online bandwidth from this step (B -> smallest resolved; A/C/D -> 0.07); h_read* from Stage 1; both arms identical except FR",
+    "rate": "if h_bias is UNCHANGED (0.07): gamma = 1.5 inherited from the frozen practical rate (as the campaign did). If h_bias CHANGES: the earned rate is void (standing rule) and is re-earned by a SAFETY-ONLY ladder gamma in {0.75, 1.5, 3.0} on fresh calibration labels 200-207 x 2 inits, choosing the LARGEST gamma whose median min ancestor ESS/N >= 0.30 and median max lineage share <= 0.05 (the gateway's declared floors), with NO error metric read during the ladder.",
+    "seeds": "fresh 400-415 x 2 inits (32 pairs); frozen-bias stage inherited (40000 steps, burn 0.5, seed 987654)",
+    "endpoints": "the campaign's frozen rule (median Delta I_F <= -10% and CI95 upper < 0; safe if final <= +5% and floors hold), applied at h_read*; legacy read-out and raw reported alongside; prediction to be recorded in that prereg before its run"
+  },
+  "compute": "3 batches x 32 rows x 1 arm, ~30-60 s each on an H200 (the campaign ran 128 runs in 176 s); GPU 3 ONLY. Launched while the WCA confirmation (same owner) is on GPU 3; wall-clock contention only, no scored quantity depends on timing.",
+  "prohibited": [
+    "tuning h_bias, min_count, the read-out, or any knob on an error metric",
+    "reading any e_F of the 0.035 / 0.0175 arms before Stage 1 has fixed h_read_star on the legacy arm (the runner prints wall time only)",
+    "reusing the 0-15 or 100-131 labels",
+    "adding an FR arm to this file",
+    "editing this file after the first production run starts"
+  ]
+}
