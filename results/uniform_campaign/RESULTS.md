@@ -70,6 +70,14 @@ not the dynamics'. The frozen-bias endpoint agrees in direction (-14.45% [-18.67
 Artifacts: `wca/summary.json`, `wca/comparison.csv`, `wca/figures/`,
 per-shard provenance in `wca/uniform/`.
 
+**Corrected-baseline confirmation (2026-09-02, docs/WCA_CORRECTED_CONFIRMATION.md).**
+The ABF-only bandwidth audit (docs/WCA_BASELINE_AUDIT.md) found no online defect and
+a 1.04x-MSE read-out gain (h_read* = 0.0125). On 16 fresh paired seeds (700-715) at the
+corrected read-out: **dI_F -18.30% [-26.27, -14.00], 16/16; final -47.05% [-49.25, -43.77]**
+(SAFE_ACCELERATOR, tau(ABF final) 3.43x); the legacy read-out on the same runs gives
+-16.30% [-25.43, -12.13], overlapping the -21.91% [-26.30, -19.04] above; the gain GROWS
+as the read-out kernel is removed (raw bins -19.82% / -48.60%). Outcome R1_replicated.
+
 ## Alanine (stage 3) — EQUIVALENT: the neutrality control behaves as predicted (endpoints REPAIRED 2026-09-02)
 
 - Frozen oracle-pilot protocol, only the arm changed (`fr_uniform`, rate 0.02
