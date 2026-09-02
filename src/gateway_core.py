@@ -139,6 +139,12 @@ class Method:
     sham: bool = False    # randomise the score association, keep the event schedule
     shadows: str = ""     # for sham arms: the method whose realised counts are copied
     gamma: float = float("nan")   # per-arm FR rate; NaN means "use the config's"
+    # Horizontal-transport arm (transport campaign, docs/GATEWAY_HORIZONTAL_TRANSPORT.md):
+    # 'none' | 'horizontal_ot'.  A transport arm moves the reaction coordinate ONLY -- a
+    # rank-matched displacement of every walker toward the exact uniform quantiles -- and
+    # never clones, kills, resamples or touches y.  See ``horizontal_ot_map``.
+    transport: str = "none"
+    alpha: float = 0.0            # transport strength alpha_max in [0, 1]; ramped like the FR rate
 
     def rate(self, cfg) -> float:
         """The FR rate this arm runs at.
@@ -174,6 +180,19 @@ METHODS = {m.name: m for m in (ABF, FR_ORACLE, FR_ESTIMATED, FR_UNIFORM,
                                SHAM_ORACLE, SHAM_PRACTICAL)}
 
 
+def horizontal_ot(alpha: float, name: str | None = None) -> Method:
+    """ABF + horizontal optimal transport of the x-marginal toward uniform, strength ``alpha``.
+
+    ``alpha = 1`` snaps the sorted walkers onto the exact finite-N uniform quantiles at every
+    opportunity (the literal "make the current marginal uniform" proposal); ``0 < alpha < 1``
+    is the Wasserstein displacement interpolation between the current and the uniform
+    quantiles.  Same schedule and ramp as the FR arm; no FR, no sham, no target, no RNG.
+    """
+    assert 0.0 <= float(alpha) <= 1.0, alpha
+    return Method(name or f"ot_{float(alpha):g}", use_fr=False, target_mode="none",
+                  transport="horizontal_ot", alpha=float(alpha))
+
+
 def assert_no_oracle_leakage(methods: Sequence[Method]) -> None:
     """Only the explicitly non-deployable ``fr_oracle`` arm may consult ``F_ref``.
 
@@ -194,6 +213,14 @@ def assert_no_oracle_leakage(methods: Sequence[Method]) -> None:
             assert m.shadows in names, (
                 f"sham arm {m.name!r} shadows {m.shadows!r}, which is not in this batch; "
                 f"matched intensity is unobtainable without it")
+        assert m.transport in ("none", "horizontal_ot"), (
+            f"unknown transport {m.transport!r} on {m.name}")
+        if m.transport != "none":
+            # A transport arm is a pure comparator for birth-death: it must not ALSO clone,
+            # kill, or carry a target, or the two mechanisms could not be told apart.
+            assert not m.use_fr and not m.sham and m.target_mode == "none", (
+                f"transport arm {m.name} must not use FR, a sham, or a target")
+            assert 0.0 <= m.alpha <= 1.0, f"alpha out of [0, 1] on {m.name}: {m.alpha}"
 
 
 # -----------------------------------------------------------------------------
@@ -279,6 +306,9 @@ def hit_and_establish(P_plus, Q_plus, times, hold_frac=HOLD_FRAC):
     band = (P_plus >= EST_BAND[0] * Q_plus) & (P_plus <= EST_BAND[1] * Q_plus)
     t_est = first_persistent(band, times, hold_frac)
     T = float(times[-1])
+    if not T > 0.0:
+        # a single-save run has no duration: its fractions are undefined, not an error
+        T = float("nan")
     after = times >= (t_hit if np.isfinite(t_hit) else 0.0)
     below_half = (P_plus < 0.5 * Q_plus) & after
     dt_save = float(np.diff(times).mean()) if len(times) > 1 else 0.0
@@ -346,6 +376,81 @@ def init_conditions(seeds, N, beta_b, oout_b, oin_b, s_b, inits, device, dtype):
     om0 = omega_of(X0, oout_b.unsqueeze(1), oin_b.unsqueeze(1), s_b.unsqueeze(1))
     Y0 = Z0 * torch.sqrt(1.0 / (beta_b.unsqueeze(1) * om0 ** 2))
     return X0, Y0
+
+
+# -----------------------------------------------------------------------------
+# horizontal transport: move x only, toward the uniform quantiles; y untouched
+# -----------------------------------------------------------------------------
+def uniform_quantiles(N, device, dtype):
+    """``u_i = XMIN + (i - 1/2) (XMAX - XMIN) / N``, i = 1..N, as a (1, N) sorted row."""
+    i = torch.arange(N, device=device, dtype=dtype)
+    return (XMIN + (i + 0.5) * (XMAX - XMIN) / float(N)).unsqueeze(0)
+
+
+def horizontal_ot_map(X, alpha_t, u):
+    """Rank-matched displacement of the reaction coordinate toward the uniform quantiles.
+
+    In one dimension the monotone map ``X_(i) -> u_i`` is the W2-optimal coupling between the
+    empirical x-marginal and the uniform quantile measure, and
+
+        X_(i)^+ = (1 - alpha) X_(i)^- + alpha u_i
+
+    is its displacement interpolation.  Only ``x`` is an argument: the transverse coordinate is
+    not touched, the population size is unchanged, nothing is cloned or killed, no random
+    number is drawn, and no reference profile, bias, or histogram is consulted -- the operator
+    needs the walker positions and the domain, nothing else.
+
+    ``X`` (R, N); ``alpha_t`` scalar or (R, 1); ``u`` (1, N) sorted.  Returns X_new (R, N)
+    with each walker keeping its identity (``X_new[order] = interpolated sorted values``).
+    """
+    Xs, order = torch.sort(X, dim=1, stable=True)
+    Xs_new = (1.0 - alpha_t) * Xs + alpha_t * u
+    return torch.empty_like(X).scatter_(1, order, Xs_new)
+
+
+def d_move(om_old, om_new):
+    """Exact conditional distortion of one horizontal move, per walker.
+
+    ``KL( N(0, 1/(beta om_old^2)) || N(0, 1/(beta om_new^2)) )``: the transverse coordinate a
+    walker carries from ``x`` is a sample of the conditional law at ``x``, not at ``x'``.
+    Zero when ``om_new == om_old``; beta cancels.
+    """
+    r = om_new / om_old
+    return torch.log(om_old / om_new) + 0.5 * r * r - 0.5
+
+
+COND_BINS, COND_MIN_COUNT = 31, 20          # fixed coarse bins on the evaluation window
+
+
+def conditional_moment_kl(X, Y, beta, oout, oin, sw, n_bins=COND_BINS, lo=eb.EVAL_LO,
+                          hi=eb.EVAL_HI, min_count=COND_MIN_COUNT):
+    """Empirical conditional fidelity ``D_cond`` from the standardised transverse coordinate.
+
+    ``Z = sqrt(beta) omega(X) Y`` is exactly ``N(0, 1)`` given ``X`` at conditional
+    equilibrium, for every x.  Per bin with at least ``min_count`` walkers the Gaussian
+    moment KL ``1/2 [mu^2 + s^2 - 1 - log s^2]`` is taken and averaged over qualifying bins.
+    Report-only; reads state, consumes no RNG.  Returns ``(D_cond (R,), n_bins_used (R,))``.
+    """
+    R, N = X.shape
+    Z = torch.sqrt(beta) * omega_of(X, oout, oin, sw) * Y
+    b = torch.floor((X - lo) / (hi - lo) * n_bins).long()
+    inside = (b >= 0) & (b < n_bins)
+    b = torch.clamp(b, 0, n_bins - 1)
+    w = inside.to(X.dtype)
+    zero = torch.zeros((R, n_bins), device=X.device, dtype=X.dtype)
+    cnt = zero.clone().scatter_add_(1, b, w)
+    s1 = zero.clone().scatter_add_(1, b, w * Z)
+    s2 = zero.clone().scatter_add_(1, b, w * Z * Z)
+    ok = cnt >= float(min_count)
+    n = torch.clamp(cnt, min=1.0)
+    mu = s1 / n
+    var = torch.clamp(s2 / n - mu * mu, min=EPS)
+    D = 0.5 * (mu * mu + var - 1.0 - torch.log(var))
+    D = torch.where(ok, D, torch.zeros_like(D))
+    nb = ok.sum(dim=1)
+    dcond = torch.where(nb > 0, D.sum(dim=1) / torch.clamp(nb.to(X.dtype), min=1.0),
+                        torch.full((R,), float("nan"), device=X.device, dtype=X.dtype))
+    return dcond, nb
 
 
 # -----------------------------------------------------------------------------
@@ -464,7 +569,8 @@ class BatchSpec:
 
 def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
                    noise_seed_base=2000, fr_seed_base=3000, progress=None,
-                   store_profiles=False, store_accumulators=False):
+                   store_profiles=False, store_accumulators=False,
+                   store_conditional=False, store_final_state=False):
     """Run ``B`` (config, seed) rows x ``M`` methods, flattened to ``R = B*M``.
 
     Methods inside one B-row share initial conditions and Langevin noise, so an arm and its
@@ -480,6 +586,13 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     force sums) and ``C`` (binned counts) at every save step, so the read-out bandwidth can be
     swept OFFLINE and exactly (``F' = smooth(Sf)/(smooth(C) + min_count)`` for any kernel, or
     ``Sf/C`` for raw bins).  Report-only, same bit-identity guarantee (tests/test_gateway_readout.py).
+
+    ``store_conditional`` additionally records ``D_cond(t)`` (``conditional_moment_kl``) at
+    every save; ``store_final_state`` returns the final ``(X, Y)`` of every row.  Both are
+    report-only.  Transport arms (``Method.transport == 'horizontal_ot'``) act at the FR
+    opportunities, AFTER the Langevin step and after any FR gather, on ``x`` alone; their
+    per-event distortion statistics are recorded per save interval.  With no transport arm in
+    the batch the loop is unchanged (tests/test_gateway_horizontal_transport.py).
     """
     assert_no_oracle_leakage(spec.methods)
     cfgs, methods = list(spec.configs), list(spec.methods)
@@ -540,6 +653,12 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     tmode = [m.target_mode for m in methods]
     is_oracle = torch.tensor([t == "oracle" for t in tmode], device=device).repeat(B)
     is_uniform = torch.tensor([t == "uniform" for t in tmode], device=device).repeat(B)
+    ot_mask = torch.tensor([m.transport == "horizontal_ot" for m in methods],
+                           device=device).repeat(B)
+    any_ot = bool(ot_mask.any())
+    alpha_r = torch.tensor([m.alpha for m in methods], device=device,
+                           dtype=dtype).repeat(B).unsqueeze(1)
+    u_quant = uniform_quantiles(N, device, dtype)
 
     F_ref_b, Fp_ref_b = eb.reference_profiles(x_grid, eval_mask, beta_b.unsqueeze(1),
                                               H_b.unsqueeze(1), oout_b.unsqueeze(1),
@@ -579,9 +698,24 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     if store_accumulators:
         ts_Sf = torch.zeros((R, n_saves, N_GRID), device=device, dtype=dtype)
         ts_C = torch.zeros((R, n_saves, N_GRID), device=device, dtype=dtype)
+    if any_ot:
+        ts_dmove_mean = torch.zeros((R, n_saves), device=device, dtype=dtype)
+        ts_dmove_p95 = torch.zeros((R, n_saves), device=device, dtype=dtype)
+        ts_dmove_max = torch.zeros((R, n_saves), device=device, dtype=dtype)
+        ts_absdx = torch.zeros((R, n_saves), device=device, dtype=dtype)
+        ts_alpha = torch.zeros(n_saves, device=device, dtype=dtype)
+        acc_dm = torch.zeros(R, device=device, dtype=dtype)
+        acc_p95 = torch.zeros(R, device=device, dtype=dtype)
+        acc_max = torch.zeros(R, device=device, dtype=dtype)
+        acc_dx = torch.zeros(R, device=device, dtype=dtype)
+        acc_n, last_ramp = 0, 0.0
+    if store_conditional:
+        ts_dcond = torch.zeros((R, n_saves), device=device, dtype=dtype)
+        ts_dcond_nb = torch.zeros((R, n_saves), device=device, dtype=torch.long)
     tot_die = torch.zeros(R, device=device, dtype=dtype)
     tot_clone = torch.zeros(R, device=device, dtype=dtype)
     n_fr_apply = 0
+    n_ot_apply = 0
 
     for step in range(n_steps):
         if ess_window > 0 and step % ess_window == 0:
@@ -635,6 +769,29 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
             tot_clone += clone.sum(dim=1).to(dtype)
             n_fr_apply += 1
 
+        if do_fr and any_ot:
+            # Same opportunities and the same ramp as the FR rate.  Placed AFTER the Langevin
+            # step: a transported position enters the ABF accumulators only at the NEXT step's
+            # deposit, exactly as a cloned walker does.  x only; the transverse coordinate is
+            # not an input of this block.
+            ramp_factor = ((1.0 - math.exp(-max((step - fr_burnin) / ramp, 0.0)))
+                           if ramp > 0 else 1.0)
+            a_t = alpha_r * ramp_factor
+            X_new = horizontal_ot_map(Xp, a_t, u_quant)
+            om_old = omega_of(Xp, oout, oin, sw)
+            om_new = omega_of(X_new, oout, oin, sw)
+            dm = torch.where(ot_mask.unsqueeze(1), d_move(om_old, om_new),
+                             torch.zeros_like(Xp))
+            ddx = torch.where(ot_mask.unsqueeze(1), (X_new - Xp).abs(), torch.zeros_like(Xp))
+            acc_dm += dm.mean(dim=1)
+            acc_p95 += torch.quantile(dm, 0.95, dim=1)
+            acc_max = torch.maximum(acc_max, dm.max(dim=1).values)
+            acc_dx += ddx.mean(dim=1)
+            acc_n += 1
+            last_ramp = ramp_factor
+            Xp = torch.where(ot_mask.unsqueeze(1), X_new, Xp)
+            n_ot_apply += 1
+
         X, Y = Xp, Yp
 
         if step in save_set:
@@ -661,6 +818,18 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
                 # the SAME Sf, C that produced this save's Fp (scatter_add happened above)
                 ts_Sf[:, save_ptr] = Sf
                 ts_C[:, save_ptr] = C
+            if any_ot:
+                nn = float(max(acc_n, 1))
+                ts_dmove_mean[:, save_ptr] = acc_dm / nn
+                ts_dmove_p95[:, save_ptr] = acc_p95 / nn
+                ts_dmove_max[:, save_ptr] = acc_max
+                ts_absdx[:, save_ptr] = acc_dx / nn
+                ts_alpha[save_ptr] = last_ramp
+                acc_dm.zero_(); acc_p95.zero_(); acc_max.zero_(); acc_dx.zero_(); acc_n = 0
+            if store_conditional:
+                dc_, nb_ = conditional_moment_kl(X, Y, beta, oout, oin, sw)
+                ts_dcond[:, save_ptr] = dc_
+                ts_dcond_nb[:, save_ptr] = nb_
             save_ptr += 1
         if progress is not None and step % progress == 0:
             print(f"    step {step}/{n_steps}", flush=True)
@@ -806,6 +975,7 @@ def _finalize(L):
                 # the rate this arm ACTUALLY ran at, which is the method's when it carries
                 # one and the config's otherwise -- never re-derive it from the config alone
                 gamma=float(L["gamma_r"][r, 0]),
+                transport=methods[m].transport, alpha=float(methods[m].alpha),
                 t=t_axis, P_regions=P, Q_regions=Q,
                 l2_f_t=npy(ts_l2f[r]), l2_fp_t=npy(ts_l2fp[r]),
                 ess_t=npy(L["ts_ess"][r]), wmax_t=npy(L["ts_wmax"][r]),
@@ -831,6 +1001,21 @@ def _finalize(L):
             if L.get("store_accumulators"):
                 rec["Sf_t"] = npy(L["ts_Sf"][r])
                 rec["C_t"] = npy(L["ts_C"][r])
+            is_ot = methods[m].transport == "horizontal_ot"
+            rec["n_ot_apply"] = int(L["n_ot_apply"]) if is_ot else 0
+            if L.get("any_ot"):
+                rec["dmove_mean_t"] = npy(L["ts_dmove_mean"][r])
+                rec["dmove_p95_t"] = npy(L["ts_dmove_p95"][r])
+                rec["dmove_max_t"] = npy(L["ts_dmove_max"][r])
+                rec["ot_absdx_t"] = npy(L["ts_absdx"][r])
+                # alpha_max x ramp factor at the last opportunity before each save
+                rec["alpha_t"] = float(methods[m].alpha) * npy(L["ts_alpha"])
+            if L.get("store_conditional"):
+                rec["dcond_t"] = npy(L["ts_dcond"][r])
+                rec["dcond_nbins_t"] = npy(L["ts_dcond_nb"][r])
+            if L.get("store_final_state"):
+                rec["X_final"] = npy(L["X"][r])
+                rec["Y_final"] = npy(L["Y"][r])
             rec.update(hit_and_establish(P[:, 2], Q[:, 2], t_axis))
             recs.append(rec)
     return recs

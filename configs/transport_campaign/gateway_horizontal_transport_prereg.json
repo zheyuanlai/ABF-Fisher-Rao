@@ -1,0 +1,85 @@
+{
+  "_comment": "Entropic-gateway HORIZONTAL TRANSPORT campaign: Fisher-Rao birth-death vs Wasserstein (horizontal optimal transport) reallocation toward the SAME uniform x-marginal, on the corrected gateway baseline. FROZEN 2026-09-02 by commit BEFORE any run. Stage A (calibration) selects alpha* by marginal action ONLY; Stage B (production) is frozen here up to alpha*, which the production runner reads from Stage A's alpha_selection.json and re-derives from the rule below before it will start.",
+  "_question": "ABF on the gateway is establishment-limited and uniform-FR is a persistent 2.5x accelerator there (docs/GATEWAY_CORRECTED_BASELINE.md: -31.9% I_F, -59.4% e_F(T), 32/32 at h_read* = 0.0175). Can the same or better acceleration be had by directly transporting walkers toward a uniform x-marginal while leaving y exactly unchanged? I.e. is the essential ingredient the marginal correction (any geometry) or the fibre-preserving birth-death (Fisher-Rao geometry)? This needs no knowledge of the landscape: the transport map uses walker positions and the CV domain only.",
+  "inherits": {
+    "cell_and_sampler": "results/gateway_anchor/CONFIRMATORY_PREREGISTRATION.json (verbatim: beta 16, s 0.10, r 32, beta H 8; N 2048, dt 4e-4, 100000 steps, T 40, save_every 500, fr_every 10, ramp 0.10, eta 0.10, min_count 1, score_clip 3, max_event_fraction 0.08, EMA 0.005, ESS window 4000)",
+    "corrected_baseline": "configs/information_campaign/gateway_corrected_confirmation_prereg.json -> results/information_campaign/gateway_baseline_audit/analysis.json: h_bias 0.07 (online), h_read* 0.0175 (primary read-out), gamma 1.5 (fr_uniform, inherited)"
+  },
+  "cell": {"beta": 16.0, "s": 0.10, "r": 32.0, "beta_H_kT": 8.0},
+  "inits": ["left", "one_right"],
+  "transport_operator": {
+    "name": "horizontal_ot",
+    "code": "src/gateway_core.py::horizontal_ot_map, Method.transport == 'horizontal_ot'",
+    "map": "sort X; u_i = XMIN + (i - 1/2)(XMAX - XMIN)/N (i = 1..N, exact finite-N uniform quantiles on [-1.8, 1.8]); X_(i)^+ = (1 - alpha_t) X_(i)^- + alpha_t u_i; every walker keeps its rank; Y^+ = Y^- exactly; N^+ = N^-",
+    "schedule": "every fr_every = 10 steps from step 0 (the FR opportunities); alpha_t = alpha_max (1 - exp(-step / ramp)), ramp = 0.10 n_steps = 10000 steps (T 4), the FR rate's own ramp",
+    "placement": "after the Langevin step and after any FR gather; the transported position enters the ABF accumulators at the NEXT step's deposit, exactly as a cloned walker does",
+    "invariants_tested": "tests/test_gateway_horizontal_transport.py: legacy abf / fr_uniform / five-arm batch bit-identical to the fixture from the accepted engine (commit abcfaaf, tests/fixtures/gateway_pre_transport_fixture.npz); alpha = 0 == abf bit for bit; ABF row unchanged by adding OT arms; Y untouched at an event; alpha = 1 gives exactly the quantiles; alpha < 1 gives the displacement interpolation; N unchanged; ranks preserved; operator signature (X, alpha_t, u) with no reference, bias, histogram or RNG; no same-step deposit; fires on the FR schedule with the FR ramp; no genealogy (ESS/N = 1)"
+  },
+  "stage_A_calibration": {
+    "purpose": "choose alpha* so that horizontal OT flattens the x-marginal by the SAME amount as the accepted FR arm (gamma 1.5): dose matching on MARGINAL ACTION, blind to every error metric",
+    "seeds": {"first": 480, "count": 8},
+    "rows": "8 seeds x {left, one_right} = 16 rows",
+    "arms": "abf, fr_uniform (gamma 1.5), ot_<alpha> for every alpha_max in the ladder; ONE batch (batch_seed 45000), shared initial conditions and Langevin noise",
+    "ladder": [0.0025, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2],
+    "dose": "J_KL = int_{t=4}^{40} KL(p_hat_t^x || U) dt, from the engine's kl_uniform_t record (eta = 0.10 KDE marginal, the campaign's own record), trapezoid over the saves with t >= 4 (the end of the ramp); per row, then MEDIAN over the 16 rows per arm",
+    "rule": "ratio(alpha) = median J_KL(ot_alpha) / median J_KL(fr_uniform). If one or more ladder points have ratio in [0.9, 1.1], alpha* = the SMALLEST such alpha (the most conservative dose). Otherwise alpha* = argmin_alpha |log ratio(alpha)|. If no ladder point brackets FR (every ratio > 1.1: even the strongest point flattens less than FR; or every ratio < 0.9: even the weakest flattens more), extend the ladder geometrically by a factor 2 in the needed direction, one point per extension, at most 4 extensions, re-running the whole batch with the extended ladder; then apply the rule to the extended ladder. No interpolation between ladder points. alpha* is what this rule returns, full stop.",
+    "blind": "the calibration runner computes and prints J_KL, the conditional diagnostics (int D_cond dt, D_move statistics, mean |dx| per event) and the FR safety counters ONLY. No F, F' or frozen-bias error of any arm is computed, printed, stored or read: the calibration raw.npz keeps kl_uniform_t, dcond_t, the OT event records and the safety counters, and drops every profile and error field.",
+    "outputs": "results/transport_campaign/gateway_horizontal/calibration/{raw.npz, alpha_selection.json, provenance.json}"
+  },
+  "stage_B_production": {
+    "seeds": {"first": 500, "count": 32},
+    "rows": "32 seeds x {left, one_right} = 64 rows. Fresh labels: gateway trees have consumed 0-15, 100-131, 300-315, 400-415 and Stage A takes 480-487",
+    "arms": {"A": "abf", "B": "fr_uniform, gamma 1.5", "C": "ot_matched: horizontal_ot with alpha_max = alpha* from Stage A", "D": "ot_full: horizontal_ot with alpha_max = 1.0 (the literal proposal: make the current marginal uniform)"},
+    "batching": "all four arms in ONE batch per chunk of 32 rows (batch_seed 51000 + row offset): shared initial conditions and Langevin noise, paired by construction. The FR arm's birth-death draws depend on the batch's row count, as in every previous multi-arm batch; the ABF row does not (tests).",
+    "records": "profiles, RAW accumulators (Sf, C) at every save, D_cond(t) for every arm, D_move (mean, P95, max) and mean |dx| per save interval for the OT arms, alpha_t; frozen-bias stage inherited (40000 steps, burn 0.5, seed 987654, one group per (init, seed), identical fresh start across arms) on every arm",
+    "readouts": {"primary": 0.0175, "sensitivity": [0.07, 0.0]},
+    "outputs": "results/transport_campaign/gateway_horizontal/production/{raw.npz, provenance.json}; analysis: analysis.json, comparison.csv, figures/"
+  },
+  "endpoints": {
+    "e_F": "aligned RMS over [-1.5, 1.5] of cumtrapz(F'_h) vs the analytic F_ref (the engine's l2_f convention), read out OFFLINE and exactly from the saved accumulators at h_read* = 0.0175 (self-checked against the engine at h_bias to 1e-9)",
+    "I_F": "trapezoid of e_F(t) over the 201 saves, t in [0, 40]  (PRIMARY)",
+    "e_F_T": "e_F at T = 40  (CO-PRIMARY)",
+    "I_Fp": "trapezoid of e_F'(t) = RMS over the window of F'_h - F'_ref  (SECONDARY; expected to react earlier to conditional corruption)",
+    "frozen_bias": "campaign convention: F = B - beta^-1 log p_B with the eta = 0.10 KDE, not read-out corrected, reported as the campaign reported it",
+    "mechanism": "J_KL (marginal action), int D_cond dt over [0, 40] (conditional fidelity), D_move statistics and |dx| (what each move injects), ancestor ESS/N and max lineage share (FR only; OT has no genealogy by construction), region occupancies"
+  },
+  "primary_contrast": {
+    "statistic": "Delta_{OT|FR} = 100 (I_F^{ot_matched} - I_F^{fr_uniform}) / I_F^{fr_uniform} per row, at h_read*; negative = OT better than FR",
+    "inference": "CLUSTER bootstrap by seed: resample the 32 seed labels with replacement, each drawn seed contributing BOTH its (left, one_right) rows; median of the pooled rows; 10000 resamples, seed 20260902; 95% CI for the decision, 90% CI for TOST. Per-init medians and CIs reported separately (32 rows each; there the row bootstrap is the cluster bootstrap).",
+    "decision": {
+      "OT_better": "median <= -10% AND CI95 upper < 0",
+      "FR_better": "median >= +10% AND CI95 lower > 0",
+      "equivalent": "TOST: the 90% CI lies entirely inside [-10%, +10%]",
+      "otherwise": "INCONCLUSIVE"
+    },
+    "heterogeneity": "if the pooled decision and a per-init decision differ in KIND (e.g. FR_better pooled, OT_better or equivalent on one init), the result is classified HETEROGENEOUS and reported per init, not pooled"
+  },
+  "secondary_contrasts": {
+    "vs_abf": "for fr_uniform, ot_matched, ot_full: Delta I_F and Delta e_F(T) vs abf, same cluster bootstrap. ACCELERATOR = median Delta I_F <= -10% AND CI95 upper < 0; SAFE = accelerator AND median Delta e_F(T) <= +5% AND (FR only) the genealogy floors (median min ancestor ESS/N >= 0.30, median max lineage share <= 0.05, median-across-seeds convention); NEGATIVE = Delta I_F CI95 lower > 0 OR Delta e_F(T) CI95 lower > 0; NEUTRAL otherwise",
+    "full_vs_matched": "ot_full vs ot_matched: Delta I_F, Delta e_F(T)",
+    "full_vs_fr": "ot_full vs fr_uniform: Delta I_F, Delta e_F(T)",
+    "readout_sensitivity": "every contrast repeated at the legacy 0.07 read-out and at raw bins, from the same accumulators",
+    "secondary_endpoint": "the primary contrast and the vs-abf contrasts on I_Fp",
+    "frozen_bias": "the primary contrast and the vs-abf contrasts on the frozen-bias endpoint",
+    "time_to_accuracy": "tau at e0/2, e0/4, e0/8 and ABF-final (persist 0.2 T) on the median e_F(t) curve of each arm at h_read*",
+    "replication": "fr_uniform vs abf on these fresh seeds must reproduce the corrected confirmation's sign (Delta I_F CI95 upper < 0 at h_read*); if it does not, the block is reported as a FAILED REPLICATION of the positive control and the OT contrasts are descriptive only"
+  },
+  "outcomes_frozen": {
+    "H1_FR_wins": "primary decision FR_better. Flattening the marginal with each walker's fibre coordinate carried along is not enough; Fisher-Rao's copies, which sit on the correct fibre by construction, are what the acceleration needs. Expected signature: int D_cond dt for ot_matched above fr_uniform's.",
+    "H2_OT_wins": "primary decision OT_better AND ot_matched SAFE vs abf. Direct transport is the better mechanism; the method pivots to reaction-coordinate horizontal transport + ABF.",
+    "H3_equivalent": "primary decision equivalent (TOST). The essential ingredient is the controlled marginal reallocation; Fisher-Rao is one principled implementation, not a necessary one.",
+    "H4_strength_tradeoff": "orthogonal to H1-H3, from the vs-abf contrasts: ot_matched is an ACCELERATOR vs abf while ot_full is NEGATIVE vs abf. A reallocation-strength trade-off exists; the next question is the strength relative to the transverse relaxation time.",
+    "H5_full_OT_strong": "ot_full is SAFE vs abf AND median Delta e_F(T) (ot_full vs fr_uniform) <= +5%. Pinning walkers at the quantiles turns ABF into a stratified constrained sampler and the transient corruption washes out; the ping-pong prediction below was wrong about the relaxation race.",
+    "INCONCLUSIVE": "primary decision inconclusive at this budget (32 seeds x 2 inits). Reported as such; no re-run, no added seeds."
+  },
+  "prediction_recorded_now": "H1 together with H4. Mechanism: the gateway's x-force carries omega omega' y^2. A walker transported into the gate flank (|x| ~ s, where omega ~ 20 and omega' ~ 190) with the y it had in a basin (omega = 1) carries E[y^2] about omega_flank^2 ~ 400x the flank's conditional value, so the force sample it deposits is ~400x the true flank mean force (~0.6), and the flank force -omega omega' y^2 ~ -200 ejects it within 1-2 steps: a ping-pong. At full strength the flank quantiles are refilled with unrelaxed walkers at every opportunity, so the corruption is perpetual. Predicted: ot_full NEGATIVE vs abf (Delta e_F(T) > +50%, D_cond and D_move far above every other arm; I_Fp reacts first); alpha* in [0.0025, 0.02]; ot_matched between abf and FR -- at best a modest accelerator vs abf (Delta I_F in [-15, 0]) and worse than FR (Delta_{OT|FR} in [+15, +50], CI95 lower > 0, so FR_better); fr_uniform replicates its -31.9% / -59.4%. Frozen-bias: FR best, ot_full worst. Per-init: both inits agree in kind (the mechanism is establishment, not discovery).",
+  "compute": "Stage A: one batch of 16 rows x 9 arms = 144 rows (~5 min). Stage B: two chunks of 32 rows x 4 arms = 128 rows (~5 min each) + frozen-bias 256 rows x 40000 steps (~2 min). GPU 3 ONLY (standing rule).",
+  "prohibited": [
+    "changing beta, s, r, H, N, dt, n_steps, save_every, fr_every, ramp_fraction, eta, h_bias, min_count, gamma, target_ema_rate, score_clip, max_event_fraction, or the reference",
+    "re-deriving h_read* (0.0175 by step 1's rule); choosing alpha* by ANY error metric; interpolating alpha between ladder points; running the ladder on the production labels",
+    "printing, storing or reading ANY F, F' or frozen-bias error of any arm before the committed analyzer runs on the complete 64-row production block (the runners print wall time and safety counters only)",
+    "reusing labels 0-15, 100-131, 300-315, 400-415; using 480-487 in production",
+    "adding arms to production (no OT + relaxation, no sham, no other rate or strength): a relaxation arm is a separate, later prereg",
+    "editing this file after Stage A starts. alpha* is recorded by the calibration script in calibration/alpha_selection.json, never here by hand."
+  ]
+}
