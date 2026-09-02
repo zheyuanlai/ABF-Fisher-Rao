@@ -1,0 +1,43 @@
+{
+  "script": "run_gateway_bandwidth_audit.py",
+  "git_rev": "7bbdb128f6c3457b7f8147c8eb3bfba53d19a070",
+  "host": "atlas",
+  "cuda_visible_devices": "3",
+  "device": "NVIDIA H200 NVL",
+  "prereg": "configs/information_campaign/gateway_baseline_audit_prereg.json",
+  "base_prereg": "results/gateway_anchor/CONFIRMATORY_PREREGISTRATION.json",
+  "arms_h_bias": [
+    0.07,
+    0.035,
+    0.0175
+  ],
+  "seeds": [
+    300,
+    301,
+    302,
+    303,
+    304,
+    305,
+    306,
+    307,
+    308,
+    309,
+    310,
+    311,
+    312,
+    313,
+    314,
+    315
+  ],
+  "inits": [
+    "left",
+    "one_right"
+  ],
+  "batch_seed": 31000,
+  "files": [
+    "results/information_campaign/gateway_baseline_audit/raw_hb0.07.npz",
+    "results/information_campaign/gateway_baseline_audit/raw_hb0.035.npz",
+    "results/information_campaign/gateway_baseline_audit/raw_hb0.0175.npz"
+  ],
+  "wall_seconds": 234.6500415802002
+}

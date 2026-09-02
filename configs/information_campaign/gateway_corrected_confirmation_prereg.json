@@ -1,0 +1,54 @@
+{
+  "_comment": "Entropic-gateway corrected-baseline CONFIRMATION, step 2 of 2: abf vs fr_uniform on the audited baseline, fresh paired seeds. FROZEN 2026-09-02 by commit, BEFORE any run. Licensed by the closure of step 1 (configs/information_campaign/gateway_baseline_audit_prereg.json -> results/information_campaign/gateway_baseline_audit/analysis.json, outcome C_online_hurts).",
+  "_step1_result": "Stage 1 on the legacy arm: e_F(T) 0.01034 at the legacy 0.07 read-out vs 0.00528 at 0.0175 (plateau {0.0175, 0.00875, raw} within 2%); the legacy read-out was OFF the plateau by 96% -- a 1.96x e_F / 3.8x MSE read-out defect, as the screen predicted (share >= 1). Stage 2 at h_read* = 0.0175: a sharper ONLINE bias force makes ABF worse, resolved: 0.035 +10.36% [+2.83, +15.39] (9/32 wins), 0.0175 +14.89% [+6.70, +17.83] (5/32). Outcome C: keep h_bias = 0.07, decouple only the read-out. The recorded step-1 prediction (B) was wrong on the online half.",
+  "_why": "The closed gateway result (-11.81% integrated, +9.82% WORSE at the end, ratio crossing 1 at t~17-19) was scored at a read-out whose deterministic kernel bias equals the baseline's whole F' error. An exploratory kernel-matched re-score turned the reversal into -55% (64/64), but kernel matching is not a sharper read-out and the closed runs saved no raw accumulators. This run measures uniform-FR against the corrected read-out on fresh trajectories -- and because both read-outs come from the SAME accumulators, it also shows directly whether the reversal belongs to the trajectories or to the read-out.",
+  "inherits": "results/gateway_anchor/CONFIRMATORY_PREREGISTRATION.json (sampler and cell verbatim; h unchanged at 0.07)",
+  "cell": {"beta": 16.0, "s": 0.10, "r": 32.0, "beta_H_kT": 8.0},
+  "inits": ["left", "one_right"],
+  "arms": ["abf", "fr_uniform"],
+  "corrected_baseline": {
+    "h_bias": 0.07,
+    "_h_bias": "LEGACY (step 1 outcome C: both online halvings resolved WORSE at h_read*). Both arms run at the same h_bias.",
+    "h_read_star": 0.0175,
+    "_h_read_star": "fixed by step 1's frozen 2%-plateau rule on the legacy arm (largest plateau point). Taken over verbatim; NOT re-derived on this data.",
+    "report_readouts": [0.07, 0.0175, 0.0],
+    "_report_readouts": "legacy (the closed study's convention = the direct replication of -11.81% / +9.82%), h_read*, raw bins; all exact from the saved raw accumulators"
+  },
+  "rate": {
+    "mode": "inherited",
+    "gamma": 1.5,
+    "_rule": "pre-specified in step 1: h_bias is UNCHANGED, so the frozen practical rate gamma = 1.5 (the campaign's fr_uniform rate) is inherited; the safety ladder is NOT triggered."
+  },
+  "seed_first": 400,
+  "n_seeds": 16,
+  "_seeds": "fresh labels 400-415 x 2 inits = 32 pairs (taken: 0-15, 100-131, 300-315). Both arms in ONE batch (B=32, M=2, batch_seed 41000): shared initial conditions and Langevin noise, paired by construction.",
+  "frozen_bias": {"n_steps": 40000, "burn_frac": 0.5, "seed": 987654,
+                  "reconstruction": "F = B - beta^-1 log p_B", "no_adaptation": true, "no_birth_death": true,
+                  "identical_fresh_start_across_arms": true,
+                  "_note": "inherited from the campaign; its density estimate uses the eta = 0.10 KDE, i.e. it is not read-out-corrected; reported as the campaign reported it"},
+  "endpoints": {
+    "primary": "Delta I_F at h_read* = 0.0175: per-pair relative change of I_F (trapezoid of e_F(t) over the 201 saves), fr_uniform vs abf, median over 32 pairs, 10000-resample bootstrap CI (seed 20260829); e_F = aligned RMS over [-1.5, 1.5] of cumtrapz(F'_h) vs the analytic F_ref (the engine's l2_f convention).",
+    "co_primary_reversal": "Delta e_F(T) at h_read* (median, CI, wins) and the median error-ratio time course uni/abf at t = 2, 5, 10, 17, 20, 30, 40 -- does it cross 1?",
+    "secondary_replication": "the same statistics at the legacy 0.07 read-out (closed study: -11.81% [-14.04, -9.02] / +9.82% [+8.20, +11.74], crossing at t~17-19) and at raw bins",
+    "descriptive": "frozen-bias endpoint (campaign convention), genealogy (median min ancestor ESS/N, median max lineage share; worst row reported), time-to-accuracy at e0/2, e0/4, e0/8, ABF-final (persist 0.2 T), per-init breakdown"
+  },
+  "success_rule": {"median_rel_change_pct_max": -10.0, "ci95_upper_pct_max": 0.0, "final_noninferiority_margin_pct": 5.0},
+  "health_floors": {"ess_anc_over_N_min": 0.30, "wmax_max": 0.05, "_convention": "median across seeds of the per-run minimum/maximum (the frozen confirmatory convention); worst row reported alongside"},
+  "outcomes_frozen": {
+    "G1_persistent_positive": "SAFE_ACCELERATOR at h_read* AND Delta e_F(T) CI95 upper < 0 -> uniform-FR is a persistent accelerator on the gateway; the closed reversal was the read-out's",
+    "G1b_positive_final_unresolved": "Delta I_F CI95 upper < 0 at h_read* but the final CI spans 0 -> acceleration real, persistence unresolved at this budget",
+    "G2_transient_with_reversal": "Delta I_F CI95 upper < 0 at h_read* but Delta e_F(T) median > +5% or its CI95 lower > 0 -> the reversal survives the corrected read-out; it belongs to the trajectories",
+    "G3_null": "Delta I_F CI95 spans 0 at h_read*",
+    "G4_unsafe": "a genealogy floor fails (median convention)"
+  },
+  "prediction_recorded_now": "G1. At h_read*: Delta I_F in [-40, -20], Delta e_F(T) <= -30% with 32/32, ratio flat near 0.45 from t~5 and never crossing 1 (the kernel-matched re-score gave -31.2% / -55.2%). At the LEGACY read-out on the SAME trajectories: the closed signature reproduces (Delta I_F ~ -12%, final ~ +10%, crossing at t~17-19) -- which would pin the reversal on the read-out, not the dynamics. Frozen-bias endpoint: FR better, as the campaign found (-11.15%).",
+  "compute": "1 batch (32 rows x 2 arms, ~80-160 s) + frozen-bias stage (64 rows x 40000 steps, ~1-2 min) on GPU 3 ONLY, while the WCA confirmation (same owner) is on GPU 3; wall-clock contention only.",
+  "prohibited": [
+    "changing h_bias, min_count, eta, gamma, N, n_steps or the reference",
+    "re-deriving h_read* on this data (it is 0.0175 by step 1's rule, full stop)",
+    "printing or reading ANY error metric of either arm before the committed analyzer runs on the complete 32-pair block (the runner prints wall time and safety counters only)",
+    "reusing the 0-15, 100-131 or 300-315 labels",
+    "adding arms (no EMA, no oracle, no sham, no other rate)",
+    "editing this file after the production run starts"
+  ]
+}
