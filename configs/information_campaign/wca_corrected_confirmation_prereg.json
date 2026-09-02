@@ -1,0 +1,53 @@
+{
+  "_comment": "WCA Case IX corrected-baseline CONFIRMATION, step 2 of 2: abf vs fr_uniform on the audited baseline, fresh paired seeds. FROZEN 2026-09-02 by commit, BEFORE any run. Licensed by the closure of step 1 (configs/information_campaign/wca_baseline_audit_prereg.json -> docs/WCA_BASELINE_AUDIT.md, outcome A_readout_only).",
+  "_why": "Step 1 found no baseline defect capable of explaining the -21.9%: the total read-out gain on WCA is 1.041x MSE (ZIF-8: 5.8x) and neither online halving is resolved (0.0125: -4.63% [-6.40, +1.65]; 0.00625: +1.25% [-6.98, +5.31]). The existential threat ('every mFR positive is a bad-bandwidth artefact') is gone, so this is a high-value confirmatory replication, not a kill-shot. Its value is the sentence 'the gain persists against a bandwidth-audited corrected ABF baseline on fresh seeds', which the audit alone cannot say because the Case IX runs (seeds 400-415) saved no raw accumulators and cannot be re-scored at the corrected read-out.",
+  "system": "WCA dimer Case IX cell b1_h2_w2_n10_a1.5, corrected TI reference cache/phase_hp_v3/wca_ti_b1_h2_w2_n10_a1.5_g160.npz (v2, unsmoothed); eval window [-0.1, 1.1]; N=1024, 120000 steps, save every 2500; every value inherited from configs/wca_phase_diagram_production.yaml + scripts/run_uniform_wca.py",
+  "n_steps": 120000,
+  "n_replicas": 1024,
+  "arms": ["abf", "fr_uniform"],
+  "corrected_baseline": {
+    "h_bias": 0.025,
+    "_h_bias": "LEGACY. Step 1 outcome A: no online arm resolved, so the corrected baseline is legacy dynamics + sharper read-out. Both arms run at the same h_bias, as in Case IX.",
+    "abf_smooth_sigma": 0.5,
+    "h_read_star": 0.0125,
+    "_h_read_star": "fixed by step 1's frozen Stage-1 plateau rule on the legacy arm (legacy 0.025 was off the 2% plateau by 0.04 pp; 0.0125 = largest plateau point). Taken over verbatim; NOT re-derived on this data.",
+    "readout_bank_bandwidths": [0.0125, 0.00625, 0.0],
+    "_readout_bank": "report-only estimators at every save + raw binned sums, identical in both arms (inert by construction; CPU byte-identity proven by scripts/smoke_wca_readout_bank.py). The legacy 0.025 read-out is the production profile itself."
+  },
+  "fr_knobs": {
+    "fr_rate": 0.10, "target_ema_rate": 0.005, "max_event_fraction": 0.02, "fr_every": 5, "fr_start_steps": 20000, "score_clip": 2.0,
+    "_inherited": "verbatim from the YAML fr_uniform block = the frozen Case IX fr_estimated block. The standing rule 're-earn the FR rate after h_bias changes' is NOT triggered: h_bias is unchanged, so the dynamics the safety ladder was run on are unchanged and the earned rate remains valid. Nothing is tuned here."
+  },
+  "seed_first": 700,
+  "n_seeds": 16,
+  "_seeds": "fresh labels 700-715 (taken: 0-9, 100-107, 400-415 Case IX, 500-501, 600-615 audit, 1000-1015, 2000-2007). Both arms of one seed in ONE process share the lattice init and noise stream; pairing is by seed label.",
+  "endpoints": {
+    "primary": "Delta I_F = per-seed paired relative change of I_F (trapezoid of e_F(t) over the 49 saves) at h_read* = 0.0125, fr_uniform vs abf; median over 16 seeds, 10000-resample bootstrap CI (seed 20260829). e_F(t) = additive-constant-aligned RMS of the free energy vs the TI reference over [-0.1, 1.1] (exactly the l2_f convention of analyze_uniform_wca.py, applied to the bank's 0.0125 read-out).",
+    "co_primary_safety": "Delta e_F(T) at h_read* (median, CI, wins); genealogy: min ancestor ESS/N >= 0.10 and max lineage share <= 0.05 on every fr_uniform run (the Case IX floors)",
+    "secondary_replication": "the SAME two statistics at the legacy read-out 0.025 = the direct fresh-seed replication of Case IX's -21.91% [-26.30, -19.04] / -41.76%",
+    "secondary_sensitivity": "the read-out ladder {0.025, 0.0125, 0.00625, raw+0.5-bin smoothing, raw} for both arms (the LTA-sweep instrument): does the FR gain shrink, hold or grow as smoothing is removed",
+    "descriptive": "time-to-accuracy tau at e0/2, e0/4, e0/8 and ABF-final (persist 0.2 T), round trips, replacement events, ABF e_F(T) at 0.025 vs 0.0125 (must reproduce step 1's ~ -1.7%)"
+  },
+  "success_rule_frozen": {
+    "acceleration_positive": "median Delta I_F <= -10% AND bootstrap CI95 upper < 0 (the campaign's frozen criterion, docs/UNIFORM_FR_CAMPAIGN.md)",
+    "safe": "additionally median Delta e_F(T) <= +5% and both genealogy floors hold",
+    "neutral": "|median Delta I_F| < 10% and final within the same margin",
+    "_applied_at": "h_read* = 0.0125 (primary). The legacy read-out verdict is reported alongside as the replication check."
+  },
+  "outcomes_frozen": {
+    "R1_replicated": "SAFE_ACCELERATOR at h_read* AND the legacy-read-out Delta I_F CI overlaps Case IX's [-26.30, -19.04] -> the -21.9% persists against the bandwidth-audited corrected baseline on fresh seeds; the WCA positive is closed as REAL",
+    "R2_attenuated": "CI95 upper < 0 at h_read* but median > -10%, or SAFE at legacy but not at h_read* -> the gain is real but part of it was read-out; report both numbers, the smaller one is the headline",
+    "R3_replication_failure": "legacy-read-out CI excludes Case IX's interval (fresh seeds do not reproduce -21.9%) -> a seed/replication problem independent of the read-out; investigate before any claim",
+    "R4_null_or_unsafe": "CI95 spans 0 at h_read*, or a genealogy floor fails -> the WCA positive does not survive the corrected baseline; the paper's headline changes"
+  },
+  "prediction_recorded_now": "R1. Delta I_F at h_read* in [-27, -15] with 16/16 wins; Delta e_F(T) near -40%; the ladder flat-to-growing as smoothing is removed (the LTA pattern: -35.1% -> -33.9% integrated, -74.7% -> -82.0% final). The correction is worth ~1.7% of ABF's own error and applies to both arms, so it cannot move a 22% contrast by more than a few points.",
+  "compute": "2 arms x 16 seeds; step 1 measured ~255 s per ABF run in a single process on GPU 3 (Case IX's 830-980 s were 4 shards sharing the GPU); fr_uniform ~1.13x ABF -> ~2.4 h alone, up to ~4 h if GPU 3 carries another user's job (it did at launch time). This project uses GPU 3 ONLY.",
+  "prohibited": [
+    "changing h_bias, smooth_sigma, any FR knob, N, n_steps or the reference",
+    "re-deriving h_read* on this data (it is 0.0125 by step 1's rule, full stop)",
+    "printing or reading ANY error metric of either arm before the committed analyzer runs on the complete 16-seed block (the runner prints wall time and safety counters only -- the step-1 EXPOSURE_NOTE lesson)",
+    "reusing the 400-415 or 600-615 labels",
+    "adding arms (no EMA, no oracle, no other rate)",
+    "editing this file after the first production run starts"
+  ]
+}
