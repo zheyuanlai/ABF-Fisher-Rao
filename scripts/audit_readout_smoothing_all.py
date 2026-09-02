@@ -73,13 +73,21 @@ def conv_reflect_normalised(mf, bw, dx):
     return np.convolve(np.pad(mf, r, mode="reflect"), k[::-1], mode="valid")
 
 
-def row(h, h_per_bin, mf_true, mf_s, F_true, F_s, dz, mask, w=None):
+def row(h, h_per_bin, mf_true, mf_s, F_true, F_s, dz, mask, w=None, F_ref=None):
+    """det_bias = the bandwidth-REMOVABLE part |int K F' - int F'|; floor_vs_ref = the engine's whole
+    deterministic floor |int K F' - F_ref| (includes the trapezoid discretisation of F', which no
+    bandwidth removes); disc_floor = |int F' - F_ref|."""
     d = (F_s - F_true)[mask]
     R0 = rough(mf_true[mask], dz)
-    return dict(h=float(h), h_per_bin=float(h_per_bin), roughness=rough(mf_s[mask], dz) / R0,
-                barrier_err_pct=100 * ((F_s[mask].max() - F_s[mask].min())
-                                       / (F_true[mask].max() - F_true[mask].min()) - 1),
-                det_bias=aligned_rms(d, None if w is None else w[mask]))
+    ww = None if w is None else w[mask]
+    out = dict(h=float(h), h_per_bin=float(h_per_bin), roughness=rough(mf_s[mask], dz) / R0,
+               barrier_err_pct=100 * ((F_s[mask].max() - F_s[mask].min())
+                                      / (F_true[mask].max() - F_true[mask].min()) - 1),
+               det_bias=aligned_rms(d, ww))
+    if F_ref is not None:
+        out["floor_vs_ref"] = aligned_rms((F_s - F_ref)[mask], ww)
+        out["disc_floor"] = aligned_rms((F_true - F_ref)[mask], ww)
+    return out
 
 
 def finish(name, rows, e_meas, unit, legacy_h, note=""):
@@ -88,11 +96,15 @@ def finish(name, rows, e_meas, unit, legacy_h, note=""):
         r["share"] = r["det_bias"] / e_meas
         r["pred_mse_gain"] = gain(r["share"])
     print(f"\n{name}   (measured ABF e_F(T) = {e_meas:.4f} {unit}){('   ' + note) if note else ''}")
-    print(f"  {'h':>8} {'h/bin':>6} {'rough':>6} {'barrier':>8} {'det.bias':>9} {'share':>6} {'gain':>6}")
+    extra = "floor_vs_ref" in rows[0]
+    print(f"  {'h':>8} {'h/bin':>6} {'rough':>6} {'barrier':>8} {'det.bias':>9} {'share':>6} {'gain':>6}"
+          + (f" {'vs_ref':>8} {'disc':>7}" if extra else ""))
     for r in rows:
         g = f"{r['pred_mse_gain']:6.2f}" if np.isfinite(r["pred_mse_gain"]) else "   inf"
         print(f"  {r['h']:8.4f} {r['h_per_bin']:6.2f} {r['roughness']:6.3f} {r['barrier_err_pct']:+7.2f}%"
-              f" {r['det_bias']:9.4f} {r['share']:6.2f} {g}{'  <- legacy' if r['legacy'] else ''}")
+              f" {r['det_bias']:9.4f} {r['share']:6.2f} {g}"
+              + (f" {r['floor_vs_ref']:8.4f} {r['disc_floor']:7.4f}" if extra else "")
+              + ('  <- legacy' if r['legacy'] else ''))
     return dict(rows=rows, measured_eF_T=e_meas, unit=unit, note=note)
 
 
@@ -117,10 +129,13 @@ def main():
         for h in (2 * h_leg, h_leg, h_leg / 2, h_leg / 4):
             mfs = conv_reflect_normalised(Fp, h, dx)
             Fs = cumtrapz(mfs, dx)
-            rows.append(row(h, h / dx, Fp, mfs, cumtrapz(Fp, dx), Fs, dx, mask))
+            rows.append(row(h, h / dx, Fp, mfs, cumtrapz(Fp, dx), Fs, dx, mask, F_ref=F))
         out[f"gateway_s{s:g}_r{rr:g}"] = finish(
             f"Gateway s={s:g} r={rr:g} (h in x units, dx={dx:.3f}; eval [-1.5, 1.5]; {int(sel.sum())} abf rows)",
-            rows, e, "energy", h_leg, "reflect-padded normalised conv (engine kernel)")
+            rows, e, "energy", h_leg,
+            "share >= 1 SATURATES: the measured F' error (final_l2_fp 0.0694) equals the deterministic "
+            "kernel bias (0.0703) to 1.3%; the measured F error sits BELOW the uniform-density fixed point "
+            "because ABF's accumulated occupancy is non-uniform and the NW weights follow it -- fully read-out-limited")
 
     # ---- CHA 8-ring, three cells (non-periodic NW, bw 0.15 A, min_count 20; mask [xi_A-1, xi_B+1]) ----
     for tag in ("ethene_450", "propene_450", "propene_600"):
@@ -134,7 +149,7 @@ def main():
         rows = []
         for h in (0.30, 0.15, 0.075, 0.0375):
             mfs = nw_line_unpadded(Fp, g, h)
-            rows.append(row(h, h / dz, Fp, mfs, cumtrapz(Fp, dz), cumtrapz(mfs, dz), dz, mask))
+            rows.append(row(h, h / dz, Fp, mfs, cumtrapz(Fp, dz), cumtrapz(mfs, dz), dz, mask, F_ref=F))
         out[f"cha_{tag}"] = finish(f"CHA {tag} (h in A, dz={dz:.4f}; kT={float(r['kT']):.3f} kJ/mol)",
                                    rows, e, "kJ/mol", 0.15)
 
@@ -150,7 +165,7 @@ def main():
         rows = []
         for h in (2 * h_leg, h_leg, h_leg / 2, h_leg / 4):
             mfs = nw_line_unpadded(Fp, g, h)
-            rows.append(row(h, h / dz, Fp, mfs, cumtrapz(Fp, dz), cumtrapz(mfs, dz), dz, mask))
+            rows.append(row(h, h / dz, Fp, mfs, cumtrapz(Fp, dz), cumtrapz(mfs, dz), dz, mask, F_ref=F))
         out[f"r15_pentane_b{spec['beta']:g}"] = finish(
             f"R15 pentane beta={spec['beta']:g} (h in CV units, dz={dz:.5f}; thermal mask <= {spec['thermal_delta']:g})",
             rows, e, "energy", h_leg)

@@ -7,6 +7,8 @@
         "roughness": 0.896217497577651,
         "barrier_err_pct": 9.435970974724327,
         "det_bias": 0.04413843139303374,
+        "floor_vs_ref": 0.04430050498853228,
+        "disc_floor": 0.00016801540001220872,
         "legacy": false,
         "share": 4.209828415203533,
         "pred_mse_gain": Infinity
@@ -17,6 +19,8 @@
         "roughness": 0.9441602175039678,
         "barrier_err_pct": 2.3498587392886128,
         "det_bias": 0.011730276305112105,
+        "floor_vs_ref": 0.011896869650906725,
+        "disc_floor": 0.00016801540001220872,
         "legacy": true,
         "share": 1.1188084612187545,
         "pred_mse_gain": Infinity
@@ -27,6 +31,8 @@
         "roughness": 0.977969635929801,
         "barrier_err_pct": 0.5876443339718929,
         "det_bias": 0.003029024194586199,
+        "floor_vs_ref": 0.0031968330913553313,
+        "disc_floor": 0.00016801540001220872,
         "legacy": false,
         "share": 0.2889017965128806,
         "pred_mse_gain": 1.0910649124693974
@@ -37,6 +43,8 @@
         "roughness": 0.99340603435359,
         "barrier_err_pct": 0.14687293536159718,
         "det_bias": 0.0007659809717033899,
+        "floor_vs_ref": 0.0009339697957607411,
+        "disc_floor": 0.00016801540001220872,
         "legacy": false,
         "share": 0.0730576134767463,
         "pred_mse_gain": 1.0053660557527766
@@ -44,7 +52,7 @@
     ],
     "measured_eF_T": 0.010484615295395544,
     "unit": "energy",
-    "note": "reflect-padded normalised conv (engine kernel)"
+    "note": "share >= 1 SATURATES: the measured F' error (final_l2_fp 0.0694) equals the deterministic kernel bias (0.0703) to 1.3%; the measured F error sits BELOW the uniform-density fixed point because ABF's accumulated occupancy is non-uniform and the NW weights follow it -- fully read-out-limited"
   },
   "cha_ethene_450": {
     "rows": [
@@ -54,6 +62,8 @@
         "roughness": 0.9067261505139936,
         "barrier_err_pct": -2.0120005816928743,
         "det_bias": 0.4936774620502907,
+        "floor_vs_ref": 0.5351786427333044,
+        "disc_floor": 0.041995932453979944,
         "legacy": false,
         "share": 1.3388771090929303,
         "pred_mse_gain": Infinity
@@ -64,6 +74,8 @@
         "roughness": 0.9701717656063682,
         "barrier_err_pct": -0.4766510295640791,
         "det_bias": 0.12839159106015904,
+        "floor_vs_ref": 0.17017301552597222,
+        "disc_floor": 0.041995932453979944,
         "legacy": true,
         "share": 0.34820419298978655,
         "pred_mse_gain": 1.1379751125956163
@@ -74,6 +86,8 @@
         "roughness": 0.9918329676197263,
         "barrier_err_pct": -0.11329689557264544,
         "det_bias": 0.03206842609661303,
+        "floor_vs_ref": 0.073975620816755,
+        "disc_floor": 0.041995932453979944,
         "legacy": false,
         "share": 0.08697111965994449,
         "pred_mse_gain": 1.0076216254442152
@@ -84,6 +98,8 @@
         "roughness": 0.9997313678060288,
         "barrier_err_pct": -0.0035890950249473086,
         "det_bias": 0.0010207930158141563,
+        "floor_vs_ref": 0.043012008623658136,
+        "disc_floor": 0.041995932453979944,
         "legacy": false,
         "share": 0.0027684399371188727,
         "pred_mse_gain": 1.0000076643184268
@@ -101,6 +117,8 @@
         "roughness": 0.896570742864674,
         "barrier_err_pct": -2.8882437412024453,
         "det_bias": 0.6140705559621383,
+        "floor_vs_ref": 0.6661417245379477,
+        "disc_floor": 0.052911926030893244,
         "legacy": false,
         "share": 0.8087857174344923,
         "pred_mse_gain": 2.8912959746682385
@@ -111,6 +129,8 @@
         "roughness": 0.963128261340404,
         "barrier_err_pct": -0.7878492177914587,
         "det_bias": 0.16080998973728952,
+        "floor_vs_ref": 0.21343469416497313,
+        "disc_floor": 0.052911926030893244,
         "legacy": true,
         "share": 0.21180110600894242,
         "pred_mse_gain": 1.0469666172667387
@@ -121,6 +141,8 @@
         "roughness": 0.9894488021201919,
         "barrier_err_pct": -0.20017463775696687,
         "det_bias": 0.04029397136533776,
+        "floor_vs_ref": 0.09309579398473766,
+        "disc_floor": 0.052911926030893244,
         "legacy": false,
         "share": 0.053070755831857434,
         "pred_mse_gain": 1.0028244602312801
@@ -131,6 +153,8 @@
         "roughness": 0.9996506550034355,
         "barrier_err_pct": -0.0063802351562114445,
         "det_bias": 0.0012829518450808216,
+        "floor_vs_ref": 0.05418905410097612,
+        "disc_floor": 0.052911926030893244,
         "legacy": false,
         "share": 0.0016897620613510985,
         "pred_mse_gain": 1.0000028553039768
@@ -148,6 +172,8 @@
         "roughness": 0.8955977718009953,
         "barrier_err_pct": -2.7674448023997544,
         "det_bias": 0.6916149436122152,
+        "floor_vs_ref": 0.7504671028391482,
+        "disc_floor": 0.06010322216561295,
         "legacy": false,
         "share": 1.065555751137737,
         "pred_mse_gain": Infinity
@@ -158,6 +184,8 @@
         "roughness": 0.9610586234843518,
         "barrier_err_pct": -0.7541824322243262,
         "det_bias": 0.1813447766827937,
+        "floor_vs_ref": 0.24097523827939932,
+        "disc_floor": 0.06010322216561295,
         "legacy": true,
         "share": 0.27939386145115463,
         "pred_mse_gain": 1.0846703782724572
@@ -168,6 +196,8 @@
         "roughness": 0.9885949631547015,
         "barrier_err_pct": -0.1913523911850401,
         "det_bias": 0.04549801927260784,
+        "floor_vs_ref": 0.10541130513662857,
+        "disc_floor": 0.06010322216561295,
         "legacy": false,
         "share": 0.07009778569574363,
         "pred_mse_gain": 1.0049379632271804
@@ -178,6 +208,8 @@
         "roughness": 0.9996202907936348,
         "barrier_err_pct": -0.0060977588509536496,
         "det_bias": 0.0014488240739018335,
+        "floor_vs_ref": 0.06154198590187104,
+        "disc_floor": 0.06010322216561295,
         "legacy": false,
         "share": 0.00223217100583429,
         "pred_mse_gain": 1.0000049826122257
@@ -195,6 +227,8 @@
         "roughness": 0.5471444517736023,
         "barrier_err_pct": 1.466737099066484,
         "det_bias": 0.21914091855019124,
+        "floor_vs_ref": 0.22110546817912421,
+        "disc_floor": 0.0030639316324660598,
         "legacy": false,
         "share": 0.20651354548640696,
         "pred_mse_gain": 1.044547708200153
@@ -205,6 +239,8 @@
         "roughness": 0.6484569326485841,
         "barrier_err_pct": 0.37140585706636475,
         "det_bias": 0.0655384832779252,
+        "floor_vs_ref": 0.06772029253434715,
+        "disc_floor": 0.0030639316324660598,
         "legacy": true,
         "share": 0.06176201431055888,
         "pred_mse_gain": 1.003829152893126
@@ -215,6 +251,8 @@
         "roughness": 0.7289617146908087,
         "barrier_err_pct": 0.09316711098010799,
         "det_bias": 0.01875184745738697,
+        "floor_vs_ref": 0.02127454214589056,
+        "disc_floor": 0.0030639316324660598,
         "legacy": false,
         "share": 0.017671325503540333,
         "pred_mse_gain": 1.0003123732916546
@@ -225,6 +263,8 @@
         "roughness": 0.8363586536728149,
         "barrier_err_pct": 0.023404424039230598,
         "det_bias": 0.005485957842445941,
+        "floor_vs_ref": 0.0083458034179265,
+        "disc_floor": 0.0030639316324660598,
         "legacy": false,
         "share": 0.005169845102082064,
         "pred_mse_gain": 1.000026728012747
@@ -242,6 +282,8 @@
         "roughness": 0.5481603671400527,
         "barrier_err_pct": 0.5887702499474567,
         "det_bias": 0.21422938129761426,
+        "floor_vs_ref": 0.2161478815303669,
+        "disc_floor": 0.0028883832705822892,
         "legacy": false,
         "share": 0.18447525205982634,
         "pred_mse_gain": 1.0352300361622502
@@ -252,6 +294,8 @@
         "roughness": 0.6672008109467402,
         "barrier_err_pct": 0.19530997969239294,
         "det_bias": 0.06517576919379849,
+        "floor_vs_ref": 0.06729638473413835,
+        "disc_floor": 0.0028883832705822892,
         "legacy": true,
         "share": 0.05612356427205411,
         "pred_mse_gain": 1.003159807400052
@@ -262,6 +306,8 @@
         "roughness": 0.7524008684913763,
         "barrier_err_pct": 0.04599977621009277,
         "det_bias": 0.0185258367880022,
+        "floor_vs_ref": 0.020923017781342167,
+        "disc_floor": 0.0028883832705822892,
         "legacy": false,
         "share": 0.01595279970648904,
         "pred_mse_gain": 1.0002545566010477
@@ -272,6 +318,8 @@
         "roughness": 0.8487214482485783,
         "barrier_err_pct": 0.011315325480021343,
         "det_bias": 0.005283658936661624,
+        "floor_vs_ref": 0.007975575587001587,
+        "disc_floor": 0.0028883832705822892,
         "legacy": false,
         "share": 0.004549816221448714,
         "pred_mse_gain": 1.0000207012561821
