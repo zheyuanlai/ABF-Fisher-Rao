@@ -1,0 +1,55 @@
+{
+  "_comment": "WCA Case IX corrected-baseline audit, STEP 1 of 2: ABF-only ONLINE bandwidth matrix. FROZEN 2026-09-02 by commit, BEFORE any run. Step 2 (ABF vs mFR on the corrected baseline) gets its own prereg AFTER this closes and is not licensed by this file.",
+  "_why": "ZIF-8's mFR harm was a baseline artefact: its legacy read-out carried 88% deterministic kernel bias and halving the ONLINE bandwidth improved ABF by a resolved -21.6%. The two strong positives were measured at their own legacy bandwidths. For LTA the READ-OUT half is already answered offline (docs/LTA_READOUT_SWEEP.md: legacy on the plateau, gain survives to raw bins). WCA saved no raw accumulators, and its legacy kernel (0.025 + 0.5-bin smoothing = 2.84 bins) compresses the reference barrier by -1.98% with roughness 0.950 -- comparable to ZIF-8's legacy (-0.52%, 0.912) -- while its deterministic read-out share is only 0.16 (results/information_campaign/readout_smoothing_audit.json). So the open question for WCA is the ONLINE bias force, and it needs a run.",
+  "system": "WCA dimer Case IX cell b1_h2_w2_n10_a1.5, corrected TI reference cache/phase_hp_v3/wca_ti_b1_h2_w2_n10_a1.5_g160.npz (v2, unsmoothed); eval window [-0.1, 1.1]; N=1024, 120000 steps, save every 2500; every value inherited from configs/wca_phase_diagram_production.yaml + scripts/run_uniform_wca.py",
+  "n_steps": 120000,
+  "n_replicas": 1024,
+  "arms_h_bias": [
+    0.025,
+    0.0125,
+    0.00625
+  ],
+  "_arms": "legacy, 1/2, 1/4 (2.84 / 1.42 / 0.71 bins). abf_smooth_sigma = 0.5 grid points is HELD FIXED at every arm (the ZIF-8 matrix held abf_min_count fixed for the same reason: changing the regularizer with the bandwidth would confound them). Method = abf only; no FR arm.",
+  "readout_bank_bandwidths": [
+    0.0125,
+    0.00625,
+    0.0
+  ],
+  "_readout_bank": "report-only estimators recorded at every save (engine convention incl. smooth_sigma) plus RAW binned sums (0.0). Inert by construction (never evaluated for the bias, no RNG) and PROVEN on the deterministic CPU path by scripts/smoke_wca_readout_bank.py: same seed, same process, with/without bank -> byte-identical mean_force_t / pmf_t / l2_f, and the bank's 0.025 read-out equals the production profile bit-for-bit. On the GPU the WCA engine is NOT in-process reproducible (two identical ABF runs diverge chaotically), so the GPU smoke can only bound the bank's effect by the engine's own noise. The legacy read-out 0.025 is the production profile itself.",
+  "seed_first": 600,
+  "n_seeds": 16,
+  "_seeds": "fresh labels 600-615 (Case IX campaign used 400-415; 0-9, 100-107, 500-501, 1000-1015, 2000-2007 are taken by other WCA studies). All arms of one seed in one process share the lattice init and noise stream; pairing is by seed label, not bit-identity (the bias differs from step 1).",
+  "stage_1_readout_rule": {
+    "arm": "legacy 0.025 ONLY, before any other arm is scored",
+    "ladder": [
+      "0.025 (production profile)",
+      "0.0125",
+      "0.00625",
+      "raw bins + 0.5-bin smoothing",
+      "raw bins"
+    ],
+    "plateau": "ladder points whose median final e_F is within 2% of the ladder minimum",
+    "h_read_star": "the legacy read-out if it is on the plateau (no change licensed), else the largest plateau point",
+    "_why": "the rule that reproduces the frozen ZIF-8 choice (bandwidth_matrix_prereg.md) and kept LTA's legacy read-out; other read-outs are sensitivity, not selection"
+  },
+  "stage_2_endpoints": {
+    "primary": "e_F(T) = additive-constant-aligned RMS of the final free energy vs the TI reference over the eval window (core.profile_l2_error_np after align_additive_constant_np, exactly l2_f), EVERY arm scored at h_read_star; and I_F = trapezoid of e_F(t) over the 49 saves. Statistic: per-seed relative change vs the LEGACY arm, median over 16 seeds, 10000-resample bootstrap CI (seed 20260829).",
+    "secondary": "e_F at every other read-out; e_F'(T) (mean-force error); barrier height vs reference; round trips (track_crossings)",
+    "failure_mode_instrumentation": "measured on the ONLINE bias force each arm actually applied (mean_force_t of that arm): roughness ratio RMS(dF'/dz)/RMS(dF'_ref/dz) over the window, fraction of grid nodes at |F'| >= abf_force_clip = 40, max |F'|, seed spread of e_F(T)"
+  },
+  "outcomes_frozen": {
+    "A_readout_only": "no arm differs from legacy at h_read_star (all CIs span 0) while Stage 1 moves h_read_star below 0.025 -> read-out matters, online does not; corrected baseline = legacy dynamics + sharper read-out",
+    "B_online_helps": "at least the first halving (0.0125 vs 0.025) improves e_F(T) with CI95 upper < 0 -> the baseline was under-resolved online; corrected h_bias = the smallest RESOLVED step (0.0125 unless 0.00625 vs 0.0125 is also resolved), never the raw best mean",
+    "C_online_hurts": "a smaller h_bias worsens e_F(T) with CI95 lower > 0, or clipping/roughness blow up -> keep h_bias = 0.025 and decouple only the read-out",
+    "D_nothing_moves": "Stage 1 keeps the legacy read-out AND no online arm is resolved -> the WCA baseline was already adequate; the -21.9% stands as measured and Step 2 is unnecessary"
+  },
+  "prediction_recorded_now": "B for the first halving, modest (well below ZIF-8's -21.6%): the deterministic barrier compression -1.98% is 4x ZIF-8's, but the read-out bias share is 0.16 not 0.88, so the online effect is the only lever and it acts through the residual under-flattened barrier. A is disfavoured by the 0.16 share. Clipping at the 1/4 arm is the failure mode to watch (reference max |F'| = 23.6 against the clip at 40).",
+  "compute": "3 arms x 16 seeds x ~450 s (ABF-only, one H200) ~ 6 h on GPU 3. This project uses GPU 3 ONLY (owner's rule, 2026-09-02); on 2026-09-02 GPU 3 was also carrying another user's job (~108 GB, 66% util), so check nvidia-smi and expect a slower wall clock if it is still there.",
+  "prohibited": [
+    "tuning h_bias, smooth_sigma, the read-out, or any knob on an error metric",
+    "reading any e_F of the 0.0125 / 0.00625 arms before Stage 1 has fixed h_read_star on the legacy arm",
+    "reusing the 400-415 Case IX labels",
+    "adding an FR arm to this file; Step 2 needs its own prereg with a re-earned FR rate",
+    "editing this file after the first production run starts"
+  ]
+}

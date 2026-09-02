@@ -479,6 +479,66 @@ class TorchKernelABFEstimator:
         return self.den.clone()
 
 
+class ReadoutBank:
+    """Report-only read-out estimators at extra bandwidths + RAW binned accumulators.
+
+    The engine's kernel estimator accumulates weights AT the sample positions, so a
+    finished run cannot be re-scored at another bandwidth (nothing raw exists on
+    disk; ``effective_counts`` is already smoothed).  This bank runs additional
+    ``TorchKernelABFEstimator`` instances alongside, mirroring the engine's own
+    two-phase convention (all-steps estimator until the burn-in ends, post-burn-in
+    estimator afterwards) so every read-out is exactly what the production profile
+    would have been at that bandwidth.  ``h <= 0`` requests the raw binned sums
+    (nearest grid node, one-hot matmul so the sums are deterministic); those are
+    reported unsmoothed so any read-out kernel can be applied offline.
+
+    INERT: nothing here is evaluated for the bias force and no RNG is consumed, so
+    the dynamics are byte-identical with or without a bank.
+    """
+
+    def __init__(self, grid, sim, bandwidths):
+        self.grid = grid
+        self.G = int(grid.numel())
+        self.z_min = float(grid[0])
+        self.dz = float((grid[-1] - grid[0]) / max(self.G - 1, 1))
+        self.hs = [float(h) for h in bandwidths]
+        self.kernels = {h: [TorchKernelABFEstimator(grid, h, sim.abf_smooth_sigma),
+                            TorchKernelABFEstimator(grid, h, sim.abf_smooth_sigma)]
+                        for h in self.hs if h > 0}
+        self.raw = None
+        if any(h <= 0 for h in self.hs):
+            self.raw = [[torch.zeros_like(grid), torch.zeros_like(grid)],   # fsum: all / prod
+                        [torch.zeros_like(grid), torch.zeros_like(grid)]]   # csum: all / prod
+        self.n_prod = 0
+        self._ar = torch.arange(self.G, device=grid.device)
+
+    def update(self, z, f, in_production):
+        phases = (0, 1) if in_production else (0,)
+        for ests in self.kernels.values():
+            for p in phases:
+                ests[p].update(z, f)
+        if self.raw is not None:
+            idx = torch.round((z - self.z_min) / self.dz).long().clamp_(0, self.G - 1)
+            onehot = (idx[:, None] == self._ar[None, :]).to(f.dtype)          # (N, G)
+            fs = f @ onehot
+            cs = onehot.sum(0)
+            for p in phases:
+                self.raw[0][p] += fs
+                self.raw[1][p] += cs
+        if in_production:
+            self.n_prod += 1
+
+    def report(self):
+        """dict: h -> mean-force profile (engine convention incl. smooth_sigma);
+        'raw_fsum'/'raw_csum' -> unsmoothed binned sums of the reported phase."""
+        p = 1 if self.n_prod > 0 else 0
+        out = {h: to_numpy(ests[p].mean_force_profile()) for h, ests in self.kernels.items()}
+        if self.raw is not None:
+            out["raw_fsum"] = to_numpy(self.raw[0][p])
+            out["raw_csum"] = to_numpy(self.raw[1][p])
+        return out
+
+
 # ---------------------------------------------------------------------------
 # Fisher-Rao target densities (estimated / uniform / oracle) and score
 # ---------------------------------------------------------------------------
@@ -935,8 +995,13 @@ def assert_no_oracle_leakage(method, oracle_free_energy):
 @torch.inference_mode()
 def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                     oracle_free_energy=None, collect_diagnostics=True, verbose=True,
-                    track_crossings=False, replay_counts=None):
+                    track_crossings=False, replay_counts=None, readout_bandwidths=None):
     """Run one sampler on the GPU.
+
+    ``readout_bandwidths`` (default None: byte-identical to before) attaches a
+    :class:`ReadoutBank` -- report-only estimators at those bandwidths (``0`` = raw
+    binned sums) recorded at every save as ``diag["readout_mean_force"][h]`` and
+    ``diag["raw_fsum"]``/``diag["raw_csum"]``.  Never touches the bias or the RNG.
 
     method in {abf, fr_estimated, fr_uniform, fr_oracle}. The FR target is built
     per-variant; only fr_oracle reads oracle_free_energy (the TI reference). The
@@ -982,6 +1047,7 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
 
     bias_estimator = TorchKernelABFEstimator(grid, sim.abf_bandwidth, sim.abf_smooth_sigma, edge_extrapolate=sim.abf_edge_extrapolate)
     production_estimator = TorchKernelABFEstimator(grid, sim.abf_bandwidth, sim.abf_smooth_sigma, edge_extrapolate=sim.abf_edge_extrapolate)
+    readout = ReadoutBank(grid, sim, readout_bandwidths) if readout_bandwidths else None
     noise_scale = math.sqrt(2.0 * sim.dt / params.beta)
     total_replacement_events = 0
     F_target_ema = None
@@ -1050,6 +1116,10 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                              "frac_compact", "frac_transition", "frac_stretched",
                              "ancestor_ess", "n_unique_ancestor", "max_ancestor_frac",
                              "repl_cumulative"]}
+    if readout is not None:
+        diag["readout_mean_force"] = {h: [] for h in readout.hs if h > 0}
+        if readout.raw is not None:
+            diag["raw_fsum"], diag["raw_csum"] = [], []
 
     t0 = time.perf_counter()
     for step in range(sim.n_steps + 1):
@@ -1081,6 +1151,8 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
         bias_estimator.update(z, f_local)
         if step >= sim.estimator_burn_in_steps:
             production_estimator.update(z, f_local)
+        if readout is not None:
+            readout.update(z, f_local, step >= sim.estimator_burn_in_steps)
         ramp = min(1.0, step / max(sim.abf_warmup_steps, 1))
         abf_scale = sim.abf_bias_scale * ramp
         abf_at_z = abf_scale * torch.clamp(bias_estimator.evaluate(z), -sim.abf_force_clip, sim.abf_force_clip)
@@ -1106,6 +1178,13 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
             diag["mean_force"].append(to_numpy(report_estimator.mean_force_profile()))
             diag["pmf"].append(to_numpy(report_estimator.pmf_profile()))
             diag["repl_cumulative"].append(total_replacement_events)
+            if readout is not None:
+                rep = readout.report()
+                for h in diag["readout_mean_force"]:
+                    diag["readout_mean_force"][h].append(rep[h])
+                if readout.raw is not None:
+                    diag["raw_fsum"].append(rep["raw_fsum"])
+                    diag["raw_csum"].append(rep["raw_csum"])
             if collect_diagnostics:
                 fc, ft, fs = region_fractions_torch(z, sim)
                 diag["frac_compact"].append(fc)

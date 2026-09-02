@@ -232,7 +232,7 @@ def fr_event_stats(spec: PhaseRunSpec, steps, repl_cumulative, n_replicas):
 
 
 def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase", verbose=False,
-                replay_counts=None, store_profiles=False):
+                replay_counts=None, store_profiles=False, readout_bandwidths=None):
     """Run one phase-diagram job; return a flat dict of scalars + arrays to save.
 
     ``replay_counts`` is required by the matched-sham methods and rejected by every other
@@ -249,7 +249,8 @@ def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase",
     diag = core.run_sampler_gpu(spec.method, params, sim, engine, initial_q=ic,
                                 oracle_free_energy=oracle_fe, collect_diagnostics=True,
                                 verbose=verbose, track_crossings=True,
-                                replay_counts=replay_counts)
+                                replay_counts=replay_counts,
+                                readout_bandwidths=readout_bandwidths)
     fin = core.final_l2_errors(diag, ref, sim)
     ts = core.timeseries_l2(diag, ref, sim)
 
@@ -368,6 +369,17 @@ def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase",
         "sham_replayed_events": diag["sham_replayed_events"],
     }
     out.update(profiles)
+    if readout_bandwidths:
+        # Read-out bank (inert diagnostics): extra-bandwidth profiles + raw binned sums,
+        # so the read-out bandwidth can be swept OFFLINE at fixed dynamics.
+        out["readout_bandwidths"] = np.asarray([float(h) for h in readout_bandwidths])
+        out["abf_bandwidth_online"] = float(sim.abf_bandwidth)
+        out["abf_smooth_sigma"] = float(sim.abf_smooth_sigma)
+        for h, series in diag.get("readout_mean_force", {}).items():
+            out[f"readout_mean_force_t__h{h:g}"] = np.asarray(series, dtype=np.float64)
+        if "raw_fsum" in diag:
+            out["raw_fsum_t"] = np.asarray(diag["raw_fsum"], dtype=np.float64)
+            out["raw_csum_t"] = np.asarray(diag["raw_csum"], dtype=np.float64)
     return out
 
 
