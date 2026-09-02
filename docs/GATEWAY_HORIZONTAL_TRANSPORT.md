@@ -1,6 +1,6 @@
 # Gateway: Fisher–Rao birth–death vs Wasserstein transport toward the same uniform marginal
 
-**Date:** 2026-09-02. **Status:** preregistered, frozen by commit before each stage, CLOSED — outcome **H1_FR_wins**.
+**Date:** 2026-09-02. **Status:** preregistered, frozen by commit before each stage, CLOSED — outcome **H1_FR_wins**. **Follow-up CLOSED the same day** ([GATEWAY_TRANSPORT_REFRESH.md](GATEWAY_TRANSPORT_REFRESH.md)): H1 replicates at exact dose (+70 %), an oracle fibre refresh REPAIRS transport (−62 %), and with exact fibres transport beats FR (R1a); the two follow-ups named below were run.
 **Prereg:** [`gateway_horizontal_transport_prereg.json`](../configs/transport_campaign/gateway_horizontal_transport_prereg.json) (commit e4e8ca1; alpha\* frozen at 8139850).
 **Data:** `results/transport_campaign/gateway_horizontal/{calibration, production}/` (analysis.json, comparison.csv, figures/).
 **GPU:** 3 only; Stage A 95 s, Stage B 240 s.
@@ -75,8 +75,10 @@ finite-count floor for every arm. Yet the final mean-force error is localised on
 | signed mean (F′_ref flank scale 1.43) | +0.032 | **+0.012** | +0.037 | **+0.104** |
 | barrier error F(0) − F(−1), kT | +0.17 | **+0.07** | +0.21 | **+0.44** |
 
-Birth–death copies walkers that are already on the correct fibre at the flank — clean samples where the mean force
-has the highest variance — and drives the bias down. Transport carries every walker's y along as its x moves toward
+Birth–death never changes the fibre of a configuration when it reallocates it: a copy sits at its parent's x with
+its parent's y, so it adds samples at the flank — where the mean force has the highest variance — without
+introducing a cross-fibre inconsistency, and the bias goes down. (This is the weaker, sufficient property; FR does
+not guarantee that the parent itself was conditionally equilibrated.) Transport carries every walker's y along as its x moves toward
 higher ω, so the samples it feeds the flank have E[y²] systematically too large; the deposited `ω ω′ y²` is too
 positive and the barrier is over-estimated. Per event the distortion is tiny at α\* (mean D_move 3e-6 nats, |dx|
 1.5e-4), but it never stops, and ABF's accumulators never forget. Fig. A shows one event literally: at α\* the
@@ -104,10 +106,12 @@ bins agreeing, so it belongs to the dynamics.
 The essential ingredient is **not** marginal flattening. Two operators that flatten the x-marginal by nearly the
 same amount, with no knowledge of the landscape, give opposite results at the free-energy endpoint: Fisher–Rao
 reallocation −32 % / −59 % (persistent, SAFE), reaction-coordinate transport +14 % / +10 % (NEGATIVE), and the
-literal proposal — make the current marginal uniform — +167 % / +121 %. The difference is where the new samples'
-transverse coordinates come from: a clone inherits a fibre coordinate drawn from the correct conditional at its own
-x; a transported walker inherits one from the wrong x. On a system whose mean force is `ω ω′ y²`, that is the whole
-estimator. This is the Fisher–Rao-vs-Wasserstein reading of the advisor's question, and it favours the reaction
+literal proposal — make the current marginal uniform — +167 % / +121 %. The difference is what happens to the fibre:
+FR reallocates multiplicity and leaves every configuration on its own fibre (`(x, y) ↦ (x, y)` with altered
+multiplicity); transport moves a configuration to another fibre carrying the old transverse coordinate
+(`(x, y) ↦ (x′, y)`), which transports the marginal but not the conditional law. On a system whose mean force is
+`ω ω′ y²`, that is the whole estimator: **marginal uniformity and conditional correctness are different
+requirements, and ABF needs both.** This is the Fisher–Rao-vs-Wasserstein reading of the advisor's question, and it favours the reaction
 geometry; the earlier fibre-horizon and clean-v2 closures (bias-dominated failures of *count* manipulation) and this
 one (bias-dominated failure of *position* manipulation) point the same way.
 
