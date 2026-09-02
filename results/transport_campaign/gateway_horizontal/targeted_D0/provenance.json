@@ -1,0 +1,29 @@
+{
+  "script": "run_gateway_targeted_relax.py",
+  "stage": "D0",
+  "git_rev": "007d90ac92e5dcedd898eecbd9161ce25262509e",
+  "host": "atlas",
+  "cuda_visible_devices": "3",
+  "device": "NVIDIA H200 NVL",
+  "prereg": "configs/transport_campaign/gateway_targeted_relax_prereg.json",
+  "arms": [
+    "abf"
+  ],
+  "seeds": [
+    580,
+    581,
+    582,
+    583,
+    584,
+    585,
+    586,
+    587
+  ],
+  "chunk": 32,
+  "batch_seed": 85000,
+  "wall_seconds": 85.76426935195923,
+  "n_runs": 16,
+  "h_bias": 0.07,
+  "alpha_star": 0.00325,
+  "gamma_selected": 1.5
+}
