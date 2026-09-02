@@ -1,0 +1,51 @@
+{
+  "script": "run_wca_bandwidth_audit.py",
+  "git_rev": "723bc6e164b2a7c3e02ee932460504064cbf5ae8",
+  "host": "atlas",
+  "cuda_visible_devices": "3",
+  "prereg": "configs/information_campaign/wca_baseline_audit_prereg.json",
+  "config": "configs/wca_phase_diagram_production.yaml",
+  "cache_dir": "cache/phase_hp_v3",
+  "cell": {
+    "beta": 1.0,
+    "h": 2.0,
+    "w": 2.0,
+    "n_dim": 10,
+    "a": 1.5,
+    "sigma": 1.0,
+    "epsilon": 1.0
+  },
+  "arms": {
+    "abf_hb0.025": 0.025,
+    "abf_hb0.0125": 0.0125,
+    "abf_hb0.00625": 0.00625
+  },
+  "readout_bank": [
+    0.0125,
+    0.00625,
+    0.0
+  ],
+  "n_steps": 120000,
+  "n_replicas": 1024,
+  "save_every": 2500,
+  "seeds": [
+    600,
+    601,
+    602,
+    603,
+    604,
+    605,
+    606,
+    607,
+    608,
+    609,
+    610,
+    611,
+    612,
+    613,
+    614,
+    615
+  ],
+  "wall_seconds": 12046.350706577301,
+  "n_runs": 48
+}
