@@ -91,3 +91,10 @@ correctly in advance.
 The corrected-baseline confirmation ([WCA_CORRECTED_CONFIRMATION.md](WCA_CORRECTED_CONFIRMATION.md), prereg 06e03e8, seeds 700–715)
 gave **R1_replicated**: ΔI_F −18.30 % [−26.27, −14.00], 16/16, final −47.05 % at h_read\* 0.0125; legacy read-out −16.30 %
 [−25.43, −12.13] overlapping Case IX's interval; the gain grows as smoothing is removed.
+
+### Step 2 closed the same day
+
+The corrected-baseline confirmation ran on fresh seeds 700–715 ([WCA_CORRECTED_CONFIRMATION.md](WCA_CORRECTED_CONFIRMATION.md)):
+at h_read\* = 0.0125 uniform-FR is **−18.30 % [−26.27, −14.00] integrated and −47.05 % [−49.25, −43.77] at
+the end, 16/16**, SAFE_ACCELERATOR; the legacy read-out on the same trajectories reproduces Case IX's
+interval, and the gain grows toward raw bins. Outcome R1_replicated.

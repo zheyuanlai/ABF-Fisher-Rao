@@ -71,6 +71,15 @@ Artifacts: `wca/summary.json`, `wca/comparison.csv`, `wca/figures/`,
 per-shard provenance in `wca/uniform/`.
 
 **Corrected-baseline confirmation (2026-09-02, docs/WCA_CORRECTED_CONFIRMATION.md).**
+Step 1 (ABF-only bandwidth audit, docs/WCA_BASELINE_AUDIT.md) found no online arm
+resolved and a 1.04x-MSE read-out defect only; step 2 re-ran abf vs fr_uniform on 16
+FRESH seeds (700-715) at legacy h_bias 0.025, scored at h_read* = 0.0125:
+**dI_F -18.30% [-26.27, -14.00] 16/16, final -47.05% [-49.25, -43.77] 16/16**,
+SAFE_ACCELERATOR (R1_replicated); the legacy read-out on the same trajectories gives
+-16.30% / -42.39% (CI overlaps the -21.91% above), and the gain GROWS
+toward raw bins (-19.82% / -48.60%). Kernel smoothing bought none of the WCA gain.
+
+**Corrected-baseline confirmation (2026-09-02, docs/WCA_CORRECTED_CONFIRMATION.md).**
 The ABF-only bandwidth audit (docs/WCA_BASELINE_AUDIT.md) found no online defect and
 a 1.04x-MSE read-out gain (h_read* = 0.0125). On 16 fresh paired seeds (700-715) at the
 corrected read-out: **dI_F -18.30% [-26.27, -14.00], 16/16; final -47.05% [-49.25, -43.77]**
