@@ -1,0 +1,56 @@
+{
+  "_comment": "Transport campaign, fourth stage: TARGETED, BUDGETED fibre relaxation. FROZEN 2026-09-02 by commit BEFORE any run. Licensed by docs/GATEWAY_FIBRE_RELAXATION.md (c = 0.5 recovers 96% of the oracle; all-walker relaxation costs 106x because mass moves in the basins where the mean force does not depend on the fibre). The relaxation LOCATION is chosen by an online, landscape-free sensitivity estimate and the AMOUNT by a compute budget; this is the experiment that decides whether transport deserves a WCA implementation.",
+  "_question": "Can a fibre-relaxation policy that knows neither F nor omega's shape -- only the ABF force samples it already has -- concentrate the relaxation where the mean force is fibre-sensitive, retain most of the all-walker c = 0.5 benefit at a cost of order the outer dynamics, and make transport a better allocator than ABF at matched fibre treatment AFTER charging the relaxation?",
+  "inherits": "the three parent preregs (cell, sampler, corrected baseline, alpha** = 0.00325, gamma 1.5, transport operator, OU propagator, endpoints, cluster bootstrap by seed, margins). Read-out: raw bins (the C1 intersection rule), 0.0175 reported.",
+  "sensitivity_estimator": {
+    "code": "src/gateway_core.py::vhat_from (online), sensitivity_ref (analytic, D0 only)",
+    "rule": "a second-moment accumulator Sf2(z) = sum f^2 is deposited with Sf and C at every step (bit-inert for every other arm); v_hat_t(z) = max(s(Sf2)/(s(C)+min_count) - (s(Sf)/(s(C)+min_count))^2, 0) with the ONLINE kernel h_bias = 0.07. No reference, no basin label, no omega.",
+    "analytic_truth": "Var(f | x) = 2/beta^2 (omega'(x)/omega(x))^2 at conditional equilibrium (eq. 1)"
+  },
+  "relaxation_policy": {
+    "code": "src/gateway_core.py::budgeted_relaxation, Method.refresh == 'targeted', gw.with_targeted(m, rho, importance)",
+    "importance": "'v': a_i = v_hat_t(x_i) for EVERY arm (the same fibre-relaxation policy for A, F, T: the fair matched-treatment comparison); 'v_dx': a_i = |dx_i| v_hat_t(x_i^+), transport arms only (the transport-optimised secondary arm T^move)",
+    "allocation": "c_i = 1/2 [log(2 a_i / (lambda tau_i))]_+, tau_i = 1/omega(x_i)^2, lambda by bisection so that sum_i c_i tau_i = B per opportunity; B = rho x N x fr_every x dt, i.e. the notional constrained-MD cost is rho times the outer cost (fibre_cost_ratio = rho by construction whenever any a_i > 0)",
+    "then": "per-walker exact OU propagation y <- e^{-c_i} y + sqrt((1 - e^{-2 c_i}) / (beta omega^2)) z, same placement and draw stream as the previous stages",
+    "diagnostics": "budget fraction spent at |x| < 0.35 and OT displacement fraction there (REPORT-ONLY region labels, never used by the algorithm); active fraction; mean c over active walkers; tau_move"
+  },
+  "stage_D0_validation": {
+    "arms": "plain ABF only", "seeds": {"first": 580, "count": 8}, "rows": "16 (calibration labels; no arm comparison)",
+    "metrics": "at T (and t = 4, 10): Pearson correlation over [-1.5, 1.5] between the median online v_hat(x) and (a) the analytic Var(f|x), (b) the RESOLUTION-MATCHED reference s(v_ref C_T)/(s(C_T)+min_count) with the same kernel; relative L2 to (b); localisation = share of int v within |x| < 0.35 for v_hat vs (a)",
+    "requirement": "corr with (b) >= 0.90 at T. If it fails, fix the estimator (a separate amendment), not the policy; D1 does not start.",
+    "outputs": "results/transport_campaign/gateway_horizontal/targeted_D0/{raw.npz, analysis.json, figures/}"
+  },
+  "stage_D1_cost_ladder": {
+    "seeds": {"first": 1200, "count": 8}, "rows": "16 (characterisation block)",
+    "ladder_rho": [0.25, 0.5, 1.0, 2.0],
+    "arms": "anchors A_0 (abf), F_0 (fr_uniform), T_0 (ot_exact); for each rho: A_rho, F_rho, T_rho (importance 'v'), Tmove_rho (importance 'v_dx'); references A_all0.5, T_all0.5 (all-walker c = 0.5, the closed campaign's 106x arm) -> 21 arms in ONE batch (batch_seed 91000)",
+    "endpoints": "per arm: I_F, e_F(T) (raw bins), b_flank, barrier error, frozen bias, fibre_cost_ratio, flank budget fraction, active fraction, mean c, tau_move and flank displacement fraction (OT arms). Retention ret_X(rho) = (I_F(X_0) - I_F(X_rho)) / (I_F(X_0) - I_F(X_all0.5)) for X in {A, T}. Contrasts (cluster bootstrap, 8 seeds, descriptive): T_rho vs A_rho, T_rho vs F_rho, Tmove_rho vs T_rho. Compute-to-accuracy C_X(eps) = tau_X(eps) x (1 + rho_X) on the median e_F(t) curve for eps in {e0/2, e0/4, e0/8, e_F^ABF(T)}, relative to C_{A_0}(eps).",
+    "rho_star_rule": "the SMALLEST rho <= 1 with (i) median Delta I_F(T_rho vs A_rho) <= -10% AND (ii) C_{T_rho}(e_F^ABF(T)) <= 0.8 C_{A_0}(e_F^ABF(T)). If none qualifies, rho* = 1 and gate_D1 = False (D2 still runs, for the record).",
+    "outputs": "results/transport_campaign/gateway_horizontal/targeted_D1/{raw.npz, rho_selection.json, analysis.json, figures/}"
+  },
+  "stage_D2_confirmatory": {
+    "seeds": {"first": 1300, "count": 32}, "rows": "64, fresh labels",
+    "arms": "A_0, F_0, T_0, A_rho*, F_rho*, T_rho*, Tmove_rho* -> 7 arms in ONE batch per chunk of 32 rows (batch_seed 101000 + offset)",
+    "primary": "T_rho* vs A_rho* (Delta I_F, raw bins, cluster bootstrap by seed, 10000 resamples, seed 20260905). SCIENTIFIC SUCCESS = median <= -10% AND CI95 upper < 0 (verdict rule as before for SAFE / reversal).",
+    "deployability": "C_{T_rho*}(e_F^ABF(T)) < 0.8 x C_{A_0}(e_F^ABF(T)) on the median curves (also reported at e0/8, e0/4, e0/2), with rho* <= 1",
+    "secondary": "T_rho* vs F_rho* (decision rule OT_better / FR_better / equivalent / INCONCLUSIVE; NOT a gate); Tmove_rho* vs T_rho*; F_rho* vs A_rho*; A_rho* vs A_0; every arm vs A_0; frozen bias; F_0 vs A_0 must replicate",
+    "WCA_gate": "scientific success AND deployability -> the molecular experiment (dimer transport along the bond + online-targeted constrained solvent relaxation, cost charged in full) is licensed",
+    "outputs": "results/transport_campaign/gateway_horizontal/targeted_D2/{raw.npz, analysis.json, comparison.csv, figures/}"
+  },
+  "outcomes_frozen": {
+    "D0_pass / D0_fail": "estimator validity",
+    "GATE_MET": "D2 scientific success AND deployability at rho* <= 1 -> WCA licensed",
+    "SCIENCE_ONLY": "scientific success but deployability fails (the relaxation is too expensive even targeted) -> transport adds value but not at this cost; redesign the budget",
+    "NO_VALUE": "primary not an accelerator at rho* -> targeted relaxation does not rescue transport at deployable cost; FR (which never pays it) stays the method",
+    "mechanism_check": "orthogonal: the budget fraction spent at |x| < 0.35 must exceed 0.8 at every rho while the OT displacement fraction there is below 0.3 -- the policy separates 'where mass moves' from 'where conditional equilibration matters' without being told either"
+  },
+  "prediction_recorded_now": "D0 passes (corr >= 0.95 resolution-matched; peak at |x| ~ 0.15-0.25). D1: retention ret_T(rho) >= 0.5 at rho = 0.25 and >= 0.8 at rho = 1 (ChatGPT's 70-90% at rho = 1 is inside); budget fraction on the flank > 0.8 at every rho, displacement fraction there < 0.3; rho* = 0.5 (0.25 possible); T_rho vs A_rho -25 to -35% for rho >= 0.5; C_T(e_F^ABF(T))/C_{A_0} ~ 0.1-0.2, so the gate is met easily on the compute axis; Tmove vs T within +-5%; T vs F close/inconclusive (not required). D2: GATE_MET.",
+  "compute": "D0 ~30 s; D1 one batch of 16 x 21 = 336 rows (~5 min incl. the per-opportunity bisection) + frozen bias; D2 two chunks of 224 rows (~4 min each) + frozen bias. GPU 3 ONLY.",
+  "prohibited": [
+    "everything prohibited by the parent preregs; changing alpha**, gamma, h_bias, the OU propagator, or the read-out (raw bins)",
+    "any region label in the ALGORITHM (the |x| < 0.35 label is a diagnostic only); any use of omega' or F_ref in the policy (tau_i = 1/omega^2 is the exact-propagator's model knowledge, shared with the previous stage, and is stated as such)",
+    "choosing rho* by anything but the frozen rule; printing, storing or reading any D2 error metric before the committed analyzer runs on the complete block",
+    "reusing 0-15, 100-131, 300-315, 400-415, 480-487, 500-531, 540-571, 580-587, 800-831, 1200-1207 in D2",
+    "adding or dropping arms after this file is committed; editing this file after D0 starts"
+  ]
+}

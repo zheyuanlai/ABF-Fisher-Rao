@@ -157,6 +157,14 @@ class Method:
     # c = 0 is the identity, c -> inf is the oracle refresh.  Same placement and RNG stream as
     # the oracle refresh.  See ``ou_relax``.
     relax_c: float = float("nan")
+    # Targeted, budgeted fibre relaxation (targeted-relax campaign): refresh == 'targeted'.  The
+    # per-walker relaxation c_i is the water-filling solution of  max sum_i a_i (1 - e^{-2 c_i})
+    # s.t. sum_i c_i tau_i <= B, with importance a_i = the ONLINE conditional variance of the
+    # local force at the walker's x (importance 'v'), or |dx_i| times it ('v_dx', OT arms only),
+    # tau_i = 1/omega(x_i)^2 and B = budget_rho x N x fr_every x dt per opportunity, so that the
+    # notional constrained-MD cost is budget_rho times the outer cost.  See ``budgeted_relaxation``.
+    budget_rho: float = float("nan")
+    importance: str = "v"
 
     def rate(self, cfg) -> float:
         """The FR rate this arm runs at.
@@ -205,6 +213,74 @@ def with_relax(m: Method, c: float, name: str | None = None) -> Method:
     if math.isinf(float(c)):
         return with_refresh(m, name)
     return _dc.replace(m, name=name or f"{m.name}_relax{float(c):g}", refresh="ou", relax_c=float(c))
+
+
+def with_targeted(m: Method, rho: float, importance: str = "v", name: str | None = None) -> Method:
+    """The same arm with the targeted, budgeted fibre relaxation at cost ratio ``rho``."""
+    import dataclasses as _dc
+    suffix = f"_targ{float(rho):g}" + ("move" if importance == "v_dx" else "")
+    return _dc.replace(m, name=name or f"{m.name}{suffix}", refresh="targeted",
+                       budget_rho=float(rho), importance=importance)
+
+
+def sensitivity_ref(x, beta, oout, oin, sw):
+    """Analytic conditional variance of the local force, Var(f | x) = 2/beta^2 (omega'/omega)^2.
+
+    Report-only (D0 validation of the online estimator): f = U' + omega omega' y^2 and
+    Var(y^2 | x) = 2 / (beta omega^2)^2 at conditional equilibrium.
+    """
+    om = omega_of(x, oout, oin, sw)
+    dom = domega_of(x, oout, oin, sw)
+    return 2.0 / (beta * beta) * (dom / om) ** 2
+
+
+def vhat_from(Sf2, Sf, C, kernel, r, dx, min_count):
+    """ONLINE conditional-variance profile of the local force from the ABF accumulators.
+
+    ``max(E[f^2 | z] - E[f | z]^2, 0)`` with the same kernel and the same ``min_count``
+    regularisation as the mean force.  Needs no reference, no basin labels and no model
+    knowledge: it is the sensitivity field a molecular implementation would also have.
+    """
+    den = smooth(C, kernel, r, dx) + min_count + EPS
+    m1 = smooth(Sf, kernel, r, dx) / den
+    m2 = smooth(Sf2, kernel, r, dx) / den
+    return torch.clamp(m2 - m1 * m1, min=0.0)
+
+
+def budgeted_relaxation(a, tau, B, n_iter=48):
+    """Water-filling allocation of fibre relaxation under a compute budget, per row.
+
+        max_{c >= 0} sum_i a_i (1 - e^{-2 c_i})   s.t.   sum_i c_i tau_i <= B
+
+    has the closed form ``c_i = 1/2 [log(2 a_i / (lambda tau_i))]_+``; the multiplier is found by
+    bisection on ``log lambda`` (the cost is monotone in it).  Walkers with ``a_i <= 0`` get
+    ``c_i = 0``; a row with no positive importance spends nothing.  ``a, tau`` (R, N), ``B`` (R, 1)
+    or scalar.  Returns ``c`` (R, N); the realised cost equals ``B`` whenever any ``a_i > 0``.
+    """
+    valid = a > 0
+    ninf = torch.full_like(a, -float("inf"))
+    logr = torch.where(valid, torch.log(torch.clamp(2.0 * a, min=EPS) / tau), ninf)
+    any_valid = valid.any(dim=1, keepdim=True)
+    hi = torch.where(valid, logr, ninf).max(dim=1, keepdim=True).values                  # cost(hi) = 0
+    tau_min = torch.where(valid, tau, torch.full_like(tau, float("inf"))).min(dim=1, keepdim=True).values
+    lo = (torch.where(valid, logr, torch.full_like(a, float("inf"))).min(dim=1, keepdim=True).values
+          - 2.0 * B / tau_min - 1.0)                                                     # cost(lo) >= B
+    lo = torch.where(any_valid, lo, torch.zeros_like(lo))
+    hi = torch.where(any_valid, hi, torch.zeros_like(hi))
+    for _ in range(n_iter):
+        mid = 0.5 * (lo + hi)
+        cost = (0.5 * torch.clamp(logr - mid, min=0.0) * tau).sum(dim=1, keepdim=True)
+        over = cost > B
+        lo = torch.where(over, mid, lo)
+        hi = torch.where(over, hi, mid)
+    c = 0.5 * torch.clamp(logr - 0.5 * (lo + hi), min=0.0)
+    # a zero budget is the identity EXACTLY (the bisection would otherwise leave an O(1e-14) c
+    # on the top walker); rows with no positive importance spend nothing
+    ok = valid & any_valid & (torch.as_tensor(B, device=a.device, dtype=a.dtype) > 0).expand_as(a)
+    return torch.where(ok, c, torch.zeros_like(c))
+
+
+FLANK_DIAG = 0.35     # |x| < FLANK_DIAG: a REPORT-ONLY region label for the budget diagnostics
 
 
 def ou_relax(Y, om, beta, c, z):
@@ -260,7 +336,14 @@ def assert_no_oracle_leakage(methods: Sequence[Method]) -> None:
                 f"matched intensity is unobtainable without it")
         assert m.transport in ("none", "horizontal_ot"), (
             f"unknown transport {m.transport!r} on {m.name}")
-        assert m.refresh in ("none", "oracle", "ou"), f"unknown refresh {m.refresh!r} on {m.name}"
+        assert m.refresh in ("none", "oracle", "ou", "targeted"), f"unknown refresh {m.refresh!r} on {m.name}"
+        if m.refresh == "targeted":
+            assert "targ" in m.name and not m.sham, (
+                f"targeted relaxation arm must carry 'targ' in its name and must not be a sham: {m.name}")
+            assert 0.0 <= m.budget_rho < float("inf"), f"budget_rho must be finite and >= 0 on {m.name}"
+            assert m.importance in ("v", "v_dx"), f"unknown importance {m.importance!r} on {m.name}"
+            if m.importance == "v_dx":
+                assert m.transport == "horizontal_ot", f"'v_dx' importance needs a transport arm: {m.name}"
         if m.refresh == "oracle":
             # model knowledge (omega, beta) enters: keep it visible in the arm's name, and never
             # on a sham (its only job is to copy a partner's schedule)
@@ -720,6 +803,12 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     any_refresh = bool(refresh_mask.any())
     relax_mask = torch.tensor([m.refresh == "ou" for m in methods], device=device).repeat(B)
     any_relax = bool(relax_mask.any())
+    targ_mask = torch.tensor([m.refresh == "targeted" for m in methods], device=device).repeat(B)
+    targ_move_mask = torch.tensor([m.refresh == "targeted" and m.importance == "v_dx" for m in methods],
+                                  device=device).repeat(B)
+    any_targ = bool(targ_mask.any())
+    rho_r = torch.tensor([(m.budget_rho if m.refresh == "targeted" else 0.0) for m in methods],
+                         device=device, dtype=dtype).repeat(B).unsqueeze(1)
     c_r = torch.tensor([(m.relax_c if m.refresh == "ou" else 0.0) for m in methods],
                        device=device, dtype=dtype).repeat(B).unsqueeze(1)
 
@@ -739,6 +828,7 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
 
     C = torch.zeros((R, N_GRID), device=device, dtype=dtype)
     Sf = torch.zeros((R, N_GRID), device=device, dtype=dtype)
+    Sf2 = torch.zeros((R, N_GRID), device=device, dtype=dtype)     # second moment; report-only unless a targeted arm reads it
     F_target = torch.zeros((R, N_GRID), device=device, dtype=dtype)
 
     gen_n = torch.Generator(device=device); gen_n.manual_seed(noise_seed_base + spec.batch_seed)
@@ -763,6 +853,7 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     if store_accumulators:
         ts_Sf = torch.zeros((R, n_saves, N_GRID), device=device, dtype=dtype)
         ts_C = torch.zeros((R, n_saves, N_GRID), device=device, dtype=dtype)
+        ts_Sf2 = torch.zeros((R, n_saves, N_GRID), device=device, dtype=dtype)
     if any_ot:
         ts_dmove_mean = torch.zeros((R, n_saves), device=device, dtype=dtype)
         ts_dmove_p95 = torch.zeros((R, n_saves), device=device, dtype=dtype)
@@ -783,11 +874,22 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     n_ot_apply = 0
     n_refresh_apply = 0
     n_relax_apply = 0
-    if any_relax:
+    if any_relax or any_targ:
         # notional constrained-MD cost: relaxing walker i for c tau_y(x_i) with the outer time
         # step would take c / (omega(x_i)^2 dt) steps; summed over walkers and opportunities
         ts_fibre_steps = torch.zeros((R, n_saves), device=device, dtype=dtype)
         acc_fibre = torch.zeros(R, device=device, dtype=dtype)
+    if any_targ:
+        n_targ_apply = 0
+        ts_targ_flank = torch.zeros((R, n_saves), device=device, dtype=dtype)   # budget fraction spent at |x| < FLANK_DIAG
+        ts_targ_active = torch.zeros((R, n_saves), device=device, dtype=dtype)  # fraction of walkers with c_i > 0
+        ts_targ_cmean = torch.zeros((R, n_saves), device=device, dtype=dtype)   # mean c_i over active walkers
+        acc_tf = torch.zeros(R, device=device, dtype=dtype); acc_tt = torch.zeros(R, device=device, dtype=dtype)
+        acc_ta = torch.zeros(R, device=device, dtype=dtype); acc_tc = torch.zeros(R, device=device, dtype=dtype)
+        acc_tn = 0
+    if any_ot:
+        ts_ot_flank_dx = torch.zeros((R, n_saves), device=device, dtype=dtype)   # displacement fraction at |x| < FLANK_DIAG
+        acc_ot_flank = torch.zeros(R, device=device, dtype=dtype)
     if any_ot:
         ts_tau_move = torch.zeros((R, n_saves), device=device, dtype=dtype)
         acc_tau_move = torch.zeros(R, device=device, dtype=dtype)
@@ -804,6 +906,7 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
         idx = torch.clamp(torch.round((X - XMIN) / dx).long(), 0, N_GRID - 1)
         C.scatter_add_(1, idx, torch.ones_like(X))
         Sf.scatter_add_(1, idx, fx)
+        Sf2.scatter_add_(1, idx, fx * fx)
         Fp = smooth(Sf, k_h, r_h, dx) / (smooth(C, k_h, r_h, dx) + c0.min_count + EPS)
         Bbias = cumtrapz(Fp, dx)
         Bbias = Bbias - Bbias[:, idx0:idx0 + 1]
@@ -844,6 +947,7 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
             tot_clone += clone.sum(dim=1).to(dtype)
             n_fr_apply += 1
 
+        ddx = None
         if do_fr and any_ot:
             # Same opportunities and the same ramp as the FR rate.  Placed AFTER the Langevin
             # step: a transported position enters the ABF accumulators only at the NEXT step's
@@ -866,12 +970,14 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
             # tau_move = sum_i w_i / omega(x_i^+)^2,  w_i = |dx_i| / sum_j |dx_j|
             wsum = torch.clamp(ddx.sum(dim=1, keepdim=True), min=EPS)
             acc_tau_move += ((ddx / wsum) / (om_new * om_new)).sum(dim=1)
+            acc_ot_flank += (torch.where(X_new.abs() < FLANK_DIAG, ddx, torch.zeros_like(ddx)).sum(dim=1)
+                             / wsum.squeeze(1))
             acc_n += 1
             last_ramp = ramp_factor
             Xp = torch.where(ot_mask.unsqueeze(1), X_new, Xp)
             n_ot_apply += 1
 
-        if do_fr and (any_refresh or any_relax):
+        if do_fr and (any_refresh or any_relax or any_targ):
             # Fibre update, LAST: whatever FR or transport did to x, y is either redrawn from the
             # exact conditional at the walker's current x (oracle refresh) or propagated exactly
             # under the constrained OU dynamics for c local relaxation times (finite relaxation).
@@ -888,6 +994,30 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
                 acc_fibre += torch.where(relax_mask.unsqueeze(1), c_r / (om_now * om_now * dt),
                                          torch.zeros_like(Yp)).sum(dim=1)
                 n_relax_apply += 1
+            if any_targ:
+                # Targeted, budgeted relaxation.  Importance = the ONLINE conditional variance of
+                # the local force at the walker's current x (the same accumulators, the same
+                # kernel), optionally times the transport displacement; cost weight tau_y(x);
+                # budget rho x (outer steps per opportunity) in notional constrained steps.
+                vhat = vhat_from(Sf2, Sf, C, k_h, r_h, dx, c0.min_count)
+                a_imp = interp1d(Xp, vhat, dx)
+                if bool(targ_move_mask.any()):
+                    a_imp = torch.where(targ_move_mask.unsqueeze(1), a_imp * ddx, a_imp)
+                tau_i = 1.0 / (om_now * om_now)
+                B_r = rho_r * float(N * fr_every) * dt
+                c_i = budgeted_relaxation(a_imp, tau_i, B_r)
+                c_i = torch.where(targ_mask.unsqueeze(1), c_i, torch.zeros_like(c_i))
+                Yp = torch.where(targ_mask.unsqueeze(1), ou_relax(Yp, om_now, beta, c_i, zr), Yp)
+                spend = c_i * tau_i                                       # (R, N), zero off the targeted rows
+                acc_fibre += spend.sum(dim=1) / dt
+                tot = spend.sum(dim=1)
+                acc_tf += torch.where(Xp.abs() < FLANK_DIAG, spend, torch.zeros_like(spend)).sum(dim=1)
+                acc_tt += tot
+                active = (c_i > 0).to(dtype)
+                acc_ta += active.mean(dim=1)
+                acc_tc += c_i.sum(dim=1) / torch.clamp(active.sum(dim=1), min=1.0)
+                acc_tn += 1
+                n_targ_apply += 1
 
         X, Y = Xp, Yp
 
@@ -915,6 +1045,7 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
                 # the SAME Sf, C that produced this save's Fp (scatter_add happened above)
                 ts_Sf[:, save_ptr] = Sf
                 ts_C[:, save_ptr] = C
+                ts_Sf2[:, save_ptr] = Sf2
             if any_ot:
                 acc_n_events = acc_n
                 nn = float(max(acc_n, 1))
@@ -924,12 +1055,18 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
                 ts_absdx[:, save_ptr] = acc_dx / nn
                 ts_alpha[save_ptr] = last_ramp
                 acc_dm.zero_(); acc_p95.zero_(); acc_max.zero_(); acc_dx.zero_(); acc_n = 0
-            if any_relax:
+            if any_relax or any_targ:
                 ts_fibre_steps[:, save_ptr] = acc_fibre
                 acc_fibre.zero_()
+            if any_targ:
+                ts_targ_flank[:, save_ptr] = acc_tf / torch.clamp(acc_tt, min=EPS)
+                ts_targ_active[:, save_ptr] = acc_ta / float(max(acc_tn, 1))
+                ts_targ_cmean[:, save_ptr] = acc_tc / float(max(acc_tn, 1))
+                acc_tf.zero_(); acc_tt.zero_(); acc_ta.zero_(); acc_tc.zero_(); acc_tn = 0
             if any_ot:
                 ts_tau_move[:, save_ptr] = acc_tau_move / float(max(acc_n_events, 1))
-                acc_tau_move.zero_()
+                ts_ot_flank_dx[:, save_ptr] = acc_ot_flank / float(max(acc_n_events, 1))
+                acc_tau_move.zero_(); acc_ot_flank.zero_()
             if store_conditional:
                 dc_, nb_ = conditional_moment_kl(X, Y, beta, oout, oin, sw)
                 ts_dcond[:, save_ptr] = dc_
@@ -1081,6 +1218,7 @@ def _finalize(L):
                 gamma=float(L["gamma_r"][r, 0]),
                 transport=methods[m].transport, alpha=float(methods[m].alpha),
                 refresh=methods[m].refresh, relax_c=float(methods[m].relax_c),
+                budget_rho=float(methods[m].budget_rho), importance=methods[m].importance,
                 t=t_axis, P_regions=P, Q_regions=Q,
                 l2_f_t=npy(ts_l2f[r]), l2_fp_t=npy(ts_l2fp[r]),
                 ess_t=npy(L["ts_ess"][r]), wmax_t=npy(L["ts_wmax"][r]),
@@ -1106,16 +1244,23 @@ def _finalize(L):
             if L.get("store_accumulators"):
                 rec["Sf_t"] = npy(L["ts_Sf"][r])
                 rec["C_t"] = npy(L["ts_C"][r])
+                rec["Sf2_t"] = npy(L["ts_Sf2"][r])
             is_ot = methods[m].transport == "horizontal_ot"
             rec["n_ot_apply"] = int(L["n_ot_apply"]) if is_ot else 0
             rec["n_refresh_apply"] = int(L["n_refresh_apply"]) if methods[m].refresh == "oracle" else 0
             rec["n_relax_apply"] = int(L["n_relax_apply"]) if methods[m].refresh == "ou" else 0
-            if L.get("any_relax"):
+            if L.get("any_relax") or L.get("any_targ"):
                 rec["fibre_steps_t"] = npy(L["ts_fibre_steps"][r])
                 rec["fibre_steps_total"] = float(L["ts_fibre_steps"][r].sum())
                 rec["fibre_cost_ratio"] = rec["fibre_steps_total"] / float(N * L["n_steps"])
+            if L.get("any_targ"):
+                rec["n_targ_apply"] = int(L["n_targ_apply"]) if methods[m].refresh == "targeted" else 0
+                rec["targ_flank_frac_t"] = npy(L["ts_targ_flank"][r])
+                rec["targ_active_frac_t"] = npy(L["ts_targ_active"][r])
+                rec["targ_cmean_t"] = npy(L["ts_targ_cmean"][r])
             if L.get("any_ot"):
                 rec["ot_tau_move_t"] = npy(L["ts_tau_move"][r])
+                rec["ot_flank_dx_frac_t"] = npy(L["ts_ot_flank_dx"][r])
             if L.get("any_ot"):
                 rec["dmove_mean_t"] = npy(L["ts_dmove_mean"][r])
                 rec["dmove_p95_t"] = npy(L["ts_dmove_p95"][r])
