@@ -1,0 +1,87 @@
+{
+  "prereg": "configs/transport_campaign/gateway_transport_refresh_prereg.json",
+  "rule": "argmin |log ratio| over the refinement ladder",
+  "alpha_star": 0.00325,
+  "ratio_at_alpha_star": 1.0229659864454135,
+  "within_5pct": true,
+  "ladder": [
+    0.003,
+    0.00325,
+    0.0035,
+    0.00375,
+    0.004
+  ],
+  "median_J_KL": {
+    "abf": 5.354501117495584,
+    "fr_uniform": 0.4893099481132029,
+    "ot_0.003": 0.5512016962976061,
+    "ot_0.00325": 0.5005474337491767,
+    "ot_0.0035": 0.4582327136871235,
+    "ot_0.00375": 0.41939549412758814,
+    "ot_0.004": 0.38806651112867163
+  },
+  "ratio": {
+    "0.003": 1.1264878190665446,
+    "0.00325": 1.0229659864454135,
+    "0.0035": 0.9364876300882204,
+    "0.00375": 0.8571162220281696,
+    "0.004": 0.7930893549682984
+  },
+  "descriptive": {
+    "abf": {
+      "median_J_KL": 5.354501117495584,
+      "median_int_Dcond": 0.770489150778193
+    },
+    "fr_uniform": {
+      "median_J_KL": 0.4893099481132029,
+      "median_int_Dcond": 0.7526114078585963
+    },
+    "ot_0.003": {
+      "median_J_KL": 0.5512016962976061,
+      "median_int_Dcond": 0.7887746821763479,
+      "median_mean_absdx": 0.00016114094834758478,
+      "median_max_Dmove": 0.000675843828444378
+    },
+    "ot_0.00325": {
+      "median_J_KL": 0.5005474337491767,
+      "median_int_Dcond": 0.7911148497233152,
+      "median_mean_absdx": 0.0001658317739679549,
+      "median_max_Dmove": 0.0007581647915392842
+    },
+    "ot_0.0035": {
+      "median_J_KL": 0.4582327136871235,
+      "median_int_Dcond": 0.7947549866934517,
+      "median_mean_absdx": 0.00016953522091271668,
+      "median_max_Dmove": 0.0008432052292536296
+    },
+    "ot_0.00375": {
+      "median_J_KL": 0.41939549412758814,
+      "median_int_Dcond": 0.800157525570351,
+      "median_mean_absdx": 0.00017318878675270173,
+      "median_max_Dmove": 0.0009270551483695488
+    },
+    "ot_0.004": {
+      "median_J_KL": 0.38806651112867163,
+      "median_int_Dcond": 0.8018970685780954,
+      "median_mean_absdx": 0.00017662691459021567,
+      "median_max_Dmove": 0.001008747888771755
+    }
+  },
+  "seeds": [
+    480,
+    481,
+    482,
+    483,
+    484,
+    485,
+    486,
+    487
+  ],
+  "n_rows": 16,
+  "batch_seed": 45000,
+  "gamma": 1.5,
+  "h_bias": 0.07,
+  "git_rev": "a7e6fa827c6e669fbbae06d39dff5e0d8efe34e3",
+  "wall_seconds": 91.44376230239868,
+  "blind": "no error metric computed, printed or stored"
+}
