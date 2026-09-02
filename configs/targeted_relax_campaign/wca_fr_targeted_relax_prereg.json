@@ -1,0 +1,71 @@
+{
+  "_comment": "WCA Case IX: uniform Fisher-Rao + ONLINE sensitivity-targeted constrained solvent relaxation. FROZEN 2026-09-02 (evening) by commit BEFORE any run. Transfers the gateway mechanism (docs/GATEWAY_TARGETED_RELAXATION.md: the fibre, not the marginal, is the ingredient; targeted relaxation at 1x cost; FR is the allocator to pair it with) to the accepted molecular benchmark. No transport is implemented.",
+  "_question": "Does targeted conditional solvent relaxation improve the already-successful uniform-FR WCA calculation, and does the improvement remain worthwhile after charging every extra force evaluation?",
+  "inheritance": {
+    "cell": "b1_h2_w2_n10_a1.5 (beta 1, h 2, w 2, n_dim 10, a 1.5, sigma 1, epsilon 1)",
+    "sampler": "N 1024, 120000 steps, dt 0.002, save_every 2500, h_bias 0.025, abf_smooth_sigma 0.5, eval z in [-0.1, 1.1], every other value verbatim from configs/wca_phase_diagram_production.yaml",
+    "fr": "rate 0.10, fr_every 5, fr_start 20000, score_clip 2.0, EMA 0.005, max_event 0.02 (verbatim; not tuned)",
+    "reference": "cache/phase_hp_v3/wca_ti_b1_h2_w2_n10_a1.5_g160.npz (v2, unsmoothed), EVALUATION ONLY",
+    "readout_bank": "[0.0125, 0.00625, raw] recorded at every save for every arm (report-only, inert), so the read-out ladder {0.025, 0.0125, 0.00625, raw+sigma, raw} is available offline",
+    "invariance": "with relaxation disabled and the instrumentation off, abf and fr_uniform are bit-identical to the accepted engine (tests/test_wca_targeted_relax.py vs tests/fixtures/wca_pre_relax_fixture.npz from commit d3fc93e)"
+  },
+  "sensitivity_estimator": {
+    "code": "src/wca_abffr_core.py::SensitivityAccumulator",
+    "rule": "raw binned sums C, Sf, Sf2 of the estimator-clipped local mean force at every OUTER step (nearest grid node, deterministic one-hot matmul); v_bin_j = (Sf2/C - (Sf/C)^2) x C/(C-1) for C > 1, else 0; then count-weighted Gaussian-kernel smoothing at h_bias 0.025 in z, then the inherited smooth_sigma 0.5 grid smoothing. Per-bin variance FIRST, smoothing second (the gateway D0 lesson). Online only; never consults the TI reference."
+  },
+  "relaxation_operator": {
+    "code": "src/wca_abffr_core.py::frozen_dimer_relax, RelaxConfig",
+    "meaning": "targeted constrained solvent relaxation at fixed dimer coordinate: for a selected replica, particles 0 and 1 (the dimer) are frozen exactly; particles 2..M-1 evolve under the same WCA potential, temperature, time step and periodic box; the fixed dimer's forces keep acting on the solvent. This is NOT full sampling of every tangent degree of freedom (the dimer position and orientation are also frozen), and it is NOT transport.",
+    "no_deposit": "inner steps deposit NOTHING: no ABF C/Sf/Sf2, no read-out bank, no FR event, no target update, no genealogy change, no error evaluation. The relaxed state first contributes at the next outer step.",
+    "ordering": "outer step -> (next-step ABF deposit) ... FR birth-death (if FR arm) -> targeted relaxation -> next outer step; opportunities = the FR schedule (from step 20000, every 5 steps) for FR and ABF arms alike",
+    "noise": "an inner generator seeded from the run seed + 7000000; the outer noise stream is never consumed by inner steps (siblings get independent inner noise)",
+    "allocation": "a_i = v_hat_t(z_i) (interpolated), tau_i = tau_f(z_i) from the FROZEN W0 map; t_i = tau_i/2 [log(2 a_i/(lambda tau_i))]_+ with lambda by bisection so that sum t_i = B; m_i = t_i/dt by floor + largest remainder (rescaled first if needed) so that sum m_i never exceeds the integer budget B_inner = rho x N x fr_every replica-steps per opportunity. No error metric enters.",
+    "random_control": "target='random': the same multiset of m_i computed on the arm's own state, permuted across replicas with the inner generator -> identical total cost, identical duration distribution, identical timing; only the sensitivity-relaxation association is destroyed",
+    "accounting": "actual inner replica-steps are recorded per save interval and in total (relax_steps_total, relax_cost_ratio = total / (N x n_steps)); inner wall time is recorded separately; a replica is never advanced merely because batching is convenient (the active batch shrinks as replicas finish)"
+  },
+  "seeds": {"W0A": [800, 807], "W1": [820, 823], "W1_extension": [824, 827], "W2": [900, 915],
+            "taken_by_previous_wca_work": "0-9, 20-21, 42, 50-51, 100-107, 123, 400-415, 500-501, 600-615, 700-715, 1000-1015, 2000-2007 (results/configs manifests + npz labels, searched)"},
+  "stage_W0": {
+    "A": "8 plain-ABF runs (seeds 800-807) with the sensitivity accumulator recorded at every save and the final configurations saved; no FR+relax arm exists; no error metric printed",
+    "site_selection": "MECHANICAL, from the median (over the 8 runs) final v_hat: 10 sites at the quantiles (i + 1/2)/10 of the cumulative sensitivity mass over the eval window, plus 2 low-sensitivity controls = the argmin of v_hat over each half of the eval window. No free-energy feature, no region label.",
+    "B": "at every site: the 64 pooled W0-A final replicas nearest in z (ABF replicas are independent), dimer projected exactly to z_k; frozen-dimer solvent dynamics for n_eq 4000 + n_prod 16000 steps (32 time units), local mean force recorded every 2 production steps; v_constr(z_k) = variance over replicas x time; tau_f(z_k) = dt (1/2 + sum rho(k)) over the initial positive sequence of the replica-averaged normalised autocorrelation; stability = replica-halves and time-halves estimates within a factor 2",
+    "gates": "Spearman(v_hat(z_k), v_constr(z_k)) >= 0.6 over the 12 sites AND median v_constr at the top-half-v_hat sites > max v_constr at the two controls; for the sites carrying >= 50% of the sensitivity mass, a majority of tau_f estimates stable within 2x. If tau is unresolved (tau_f > n_prod dt / 5 or unstable) ONE preregistered 2x extension of n_prod is allowed; if still unresolved STOP = TAU_MAP_UNRESOLVED.",
+    "tau_map": "tau_f interpolated linearly in z between sites, nearest-endpoint outside; floor 10 dt = 0.02, cap 20.0; frozen with its sha256 in results/targeted_relax_campaign/wca/W0/tau_map.json before W1"
+  },
+  "stage_W1": {
+    "arms": "abf, fr_uniform, and for rho in [0.25, 0.5, 1.0]: abf_targ{rho}, fr_targ{rho} (8 arms); per seed all arms run in one process sequentially",
+    "seeds": "820-823 (4). Extension rule (mechanical, before any analysis): if the 4-seed block's wall time is <= 3.5 h, run 824-827 as well; the analyzer runs ONCE on the complete block",
+    "readout_rule": "on the complete block, for EVERY arm, median e_F(T) at each ladder level {0.025, 0.0125, 0.00625, raw+sigma, raw}; each arm's 2% plateau relative to its own minimum; h_read** = the largest ladder level inside every arm's plateau (raw if only raw). Frozen by commit before W2. Not chosen to flatter any arm.",
+    "rho_star_rule": "for each rho: median Delta I_F(F_rho, F) at h_read** and the compute ratio C_{F_rho}(eps_F) / C_F(eps_F) at eps_F = plain FR's final error, with C(t) = N x step + cumulative inner replica-steps (exact accounting). A budget passes if median Delta I_F <= -10% AND the compute ratio <= 0.80. rho* = the smallest passing rho. If none passes: STOP = NO_COMPUTE_EFFICIENT_FR_RELAXATION; W2 is not launched; no rho > 1 is added.",
+    "mechanism": "as functions of z: occupancy, v_hat, tau_f, relaxation-budget fraction, fraction of relaxed walkers, local mean-force residual; FR birth/death density. Named regions only for descriptive summaries afterwards."
+  },
+  "stage_W2": {
+    "arms": "abf (A), fr_uniform (F), abf_targ{rho*} (A_R), fr_targ{rho*} (F_R), fr_rand{rho*} (F_rand); abf_rand{rho*} only if the primary block completes with time to spare",
+    "seeds": "900-915 (16), per seed all arms in one process; whatever shards complete are kept; an incomplete seed block is NOT analysed",
+    "primary": "F_R vs F: Delta I_F at h_read** (I_F = trapezoid of e_F(t) over the saves); paired bootstrap by seed, 10000 resamples, seed 20260906; RESOLVED IMPROVEMENT = median <= -10% AND CI95 upper < 0; endpoint safety: Delta e_F(T) reported, no resolved late reversal (CI95 lower of Delta e_F(T) must not be > 0); Case IX genealogy floors (min windowed ancestor ESS/N >= 0.10, max lineage share <= 0.05) on every FR-type run",
+    "compute_endpoint": "actual total force evaluations to reach e0/2, e0/4, e0/8, plain-ABF final accuracy and plain-FR final accuracy; R_C = C_{F_R}(e_F^F(T)) / C_F(e_F^F(T))",
+    "secondary": "F_R vs A; A_R vs A; F_R vs F_rand (targeting specificity); F vs A (positive-control replication: CI95 upper < 0 required or the block is a failed replication)"
+  },
+  "outcomes_frozen": {
+    "MOLECULAR_TRANSFER_POSITIVE": "F_R vs F resolved improvement AND no unsafe genealogy AND R_C <= 0.80",
+    "RELAXATION_HELPS_BUT_NOT_COMPUTE_EFFICIENT": "F_R vs F resolved improvement but R_C > 0.80",
+    "TARGETING_NOT_SPECIFIC": "F_R improves over F but F_R does not beat cost-matched F_rand (median Delta I_F(F_R, F_rand) > -10% or CI95 upper >= 0)",
+    "NULL": "F_R not resolved better than F",
+    "UNSAFE": "genealogy, numerical stability (NaN), constraint preservation or engine tests fail -> stop, not null"
+  },
+  "predictions_recorded_now": [
+    "v_hat(z) strongly non-uniform and positively correlated (Spearman >= 0.6) with the independent constrained variance",
+    "the relaxation budget concentrates in a much smaller z-region than the occupancy mass",
+    "F_R outperforms plain F in integrated error",
+    "F_R outperforms F_rand if the gateway targeting principle transfers",
+    "the endpoint improvement may exceed the early-time improvement if the residual WCA error contains conditional-lag bias",
+    "the sign of the compute verdict is genuinely uncertain; no prediction that FR + relaxation must win is recorded -- that is the experiment"
+  ],
+  "compute": "GPU 3 only (shared with another user's job). Measured: ~300 s per plain run; inner relaxation ~ +100 s (rho 0.25) to +400 s (rho 1) per run. W0 ~45 min; W1 (4 seeds) ~4.5 h; W2 (16 seeds) ~12 h, may not finish overnight.",
+  "prohibited": [
+    "WCA transport; changing the cell, FR rate, ABF bandwidth or smoothing, reference, or genealogy rules",
+    "any TI reference, free-energy feature, region label or manual site choice in the targeting rule; any error metric in the allocation",
+    "adding rho > 1 because rho <= 1 fails; changing thresholds after W1; reading W2 errors before the full block; dropping a seed; switching the relaxation operator midway; counting inner samples as ABF observations; claiming speedup on outer time while ignoring inner force evaluations",
+    "overwriting accepted artifacts; pushing"
+  ]
+}

@@ -540,6 +540,210 @@ class ReadoutBank:
 
 
 # ---------------------------------------------------------------------------
+# Targeted solvent relaxation (targeted-relax campaign): online sensitivity field,
+# budgeted water-filling allocation, frozen-dimer inner relaxation.  ADDITIVE: nothing
+# here runs unless ``run_sampler_gpu`` is handed a ``RelaxConfig`` or asked to record
+# the sensitivity accumulator, so every accepted path stays byte-identical.
+# ---------------------------------------------------------------------------
+@dataclass(frozen=True)
+class RelaxConfig:
+    """Targeted constrained solvent relaxation at fixed dimer coordinate.
+
+    At every FR opportunity (same schedule as birth-death, applied AFTER it), each replica
+    ``i`` receives an inner relaxation of ``m_i`` steps with its dimer frozen and the solvent
+    evolving under the physical potential, allocated by water-filling
+    ``t_i = tau_i/2 [log(2 a_i / (lambda tau_i))]_+`` with importance ``a_i`` = the ONLINE
+    conditional variance of the local mean force at the replica's z (never the reference),
+    ``tau_i`` = the frozen local force-correlation time map, and the multiplier set so that
+    ``sum_i m_i = rho x n_replicas x fr_every`` replica-steps (rho = notional extra cost).
+    ``target='random'`` keeps the same multiset of durations and permutes it across replicas
+    (the cost-matched control).  Inner steps deposit nothing into any estimator.
+    """
+    rho: float
+    tau_grid: tuple                     # tau_f on the sim z-grid (already floored/capped)
+    target: str = "sensitivity"         # 'sensitivity' | 'random'
+    inner_seed_offset: int = 7_000_000  # inner noise stream: its own generator, never the global one
+    min_count: float = 2.0              # bins need C > 1 for a variance
+
+
+class SensitivityAccumulator:
+    """Raw binned sums ``C, Sf, Sf2`` of the local mean force (nearest grid node, one-hot
+    matmul, deterministic) and the ONLINE sensitivity profile built from them.
+
+    ``profile()``: per-bin variance FIRST (with the finite-sample correction ``C/(C-1)``;
+    bins with ``C <= 1`` contribute nothing), then count-weighted Gaussian-kernel smoothing at
+    the inherited ABF bandwidth, then the inherited ``smooth_sigma`` grid smoothing -- i.e. the
+    same pipeline as the mean-force profile, applied to a variance.  This is the estimator the
+    gateway D0 audit found floor-free (smoothing the moments first leaks the mean-force
+    gradient across the kernel window into the variance).  Report-only unless a RelaxConfig
+    reads it; consumes no RNG.
+    """
+
+    def __init__(self, grid):
+        self.grid = grid
+        self.G = int(grid.numel())
+        self.z_min = float(grid[0])
+        self.dz = float((grid[-1] - grid[0]) / max(self.G - 1, 1))
+        self.C = torch.zeros_like(grid)
+        self.Sf = torch.zeros_like(grid)
+        self.Sf2 = torch.zeros_like(grid)
+        self._ar = torch.arange(self.G, device=grid.device)
+        self._K = {}
+
+    def update(self, z, f):
+        idx = torch.round((z - self.z_min) / self.dz).long().clamp_(0, self.G - 1)
+        onehot = (idx[:, None] == self._ar[None, :]).to(f.dtype)
+        self.C += onehot.sum(0)
+        self.Sf += f @ onehot
+        self.Sf2 += (f * f) @ onehot
+
+    def bin_variance(self):
+        C = self.C
+        ok = C > 1.0
+        Cs = torch.clamp(C, min=1.0)
+        v = (self.Sf2 / Cs - (self.Sf / Cs) ** 2) * (Cs / torch.clamp(Cs - 1.0, min=1.0))
+        return torch.where(ok, torch.clamp(v, min=0.0), torch.zeros_like(v)), ok
+
+    def profile(self, bandwidth, smooth_sigma):
+        v, ok = self.bin_variance()
+        w = torch.where(ok, self.C, torch.zeros_like(self.C))
+        K = self._K.get(float(bandwidth))
+        if K is None:
+            K = gaussian_kernel_torch(self.grid[:, None] - self.grid[None, :], bandwidth)   # (G, G), cached
+            self._K[float(bandwidth)] = K
+        num = K @ (w * v)
+        den = K @ w
+        vz = torch.where(den > EPS, num / torch.clamp(den, min=EPS), torch.zeros_like(num))
+        return torch.clamp(smooth_profile_torch(vz, smooth_sigma), min=0.0)
+
+    def state(self):
+        return dict(C=to_numpy(self.C), Sf=to_numpy(self.Sf), Sf2=to_numpy(self.Sf2))
+
+
+def water_filling_durations(a, tau, B_time, n_iter=48):
+    """``t_i = tau_i/2 [log(2 a_i / (lambda tau_i))]_+`` with ``sum_i t_i = B_time`` (bisection on
+    ``log lambda``; the total is monotone in it).  Replicas with ``a_i <= 0`` get 0; a zero budget
+    or no positive importance gives all zeros.  ``a, tau`` (N,), ``B_time`` float.  Returns (N,)."""
+    valid = a > 0
+    if B_time <= 0.0 or not bool(valid.any()):
+        return torch.zeros_like(a)
+    ninf = torch.full_like(a, -float("inf"))
+    logr = torch.where(valid, torch.log(torch.clamp(2.0 * a, min=EPS) / tau), ninf)
+    hi = logr.max()
+    tau_min = torch.where(valid, tau, torch.full_like(tau, float("inf"))).min()
+    lo = torch.where(valid, logr, torch.full_like(a, float("inf"))).min() - 2.0 * B_time / tau_min - 1.0
+    for _ in range(n_iter):                      # sync-free bisection: lo/hi stay on the device
+        mid = 0.5 * (lo + hi)
+        cost = (0.5 * torch.clamp(logr - mid, min=0.0) * tau).sum()
+        over = cost > B_time
+        lo = torch.where(over, mid, lo)
+        hi = torch.where(over, hi, mid)
+    c = 0.5 * torch.clamp(logr - 0.5 * (lo + hi), min=0.0)
+    return torch.where(valid, c * tau, torch.zeros_like(a))
+
+
+def integer_steps_largest_remainder(t, dt, budget_steps):
+    """Integer inner steps ``m_i`` from durations: if ``sum t_i/dt`` exceeds the integer budget the
+    durations are rescaled to it first; then floor, then +1 to the largest remainders so that
+    ``sum m_i = min(budget_steps, round(sum t_i / dt))``.  Deterministic; never exceeds the budget;
+    one host sync."""
+    x = t / dt
+    total = float(x.sum().item())
+    budget = int(min(int(budget_steps), int(round(total))))
+    if budget <= 0 or total <= 0:
+        return torch.zeros_like(t, dtype=torch.long)
+    if total > budget:
+        x = x * (budget / total)
+    m = torch.floor(x).long()
+    left = budget - int(m.sum().item())
+    if left > 0:
+        order = torch.argsort(x - m.to(x.dtype), descending=True)
+        m[order[:left]] += 1
+    return torch.clamp(m, min=0)
+
+
+@torch.inference_mode()
+def frozen_dimer_relax(engine, params, sim, q, m_steps, gen):
+    """Inner relaxation with the dimer FROZEN: particles 0 and 1 do not move; every solvent
+    particle evolves under the full physical potential (including the fixed dimer's forces),
+    temperature, time step and periodic box of the outer dynamics.  Replica ``i`` is advanced for
+    exactly ``m_steps[i]`` steps: the batch is sorted by ``m`` and shrinks as replicas finish, so
+    the force is never evaluated for a replica that is not being advanced.  Nothing is deposited
+    anywhere; noise comes from ``gen`` (never the global stream).  Returns (q_new, replica_steps)."""
+    B = q.shape[0]
+    if B == 0:
+        return q, 0
+    order = torch.argsort(m_steps, descending=True)
+    qs = q.index_select(0, order).clone()
+    ms = m_steps.index_select(0, order)
+    noise_scale = math.sqrt(2.0 * sim.dt / params.beta)
+    kmax = int(ms.max().item()) if ms.numel() else 0
+    counts = torch.bincount(ms.clamp(min=0), minlength=kmax + 1)
+    # n_active(k) = number of replicas with m > k = B - (number with m <= k); one host sync
+    cum_le = torch.cumsum(counts, 0).tolist()
+    done = 0
+    for k in range(kmax):
+        n_act = B - int(cum_le[k])
+        if n_act <= 0:
+            break
+        qa = qs[:n_act]
+        f = clip_forces(engine.force(qa, compute_energy=False), params.force_clip)
+        noise = torch.randn(qa.shape, device=qa.device, dtype=qa.dtype, generator=gen)
+        qa_new = qa + sim.dt * f + noise_scale * noise
+        qa_new[:, :2, :] = qa[:, :2, :]                       # dimer frozen exactly
+        qs[:n_act] = wrap_positions(qa_new, params.box_length)
+        done += n_act
+    q_new = torch.empty_like(q)
+    q_new[order] = qs
+    return q_new, done
+
+
+@torch.inference_mode()
+def constrained_force_series(engine, params, sim, q0, z_k, n_eq, n_prod, gen, record_every=1):
+    """W0-B instrument: project each replica's dimer to ``z_k``, run the frozen-dimer solvent
+    dynamics for ``n_eq + n_prod`` steps and record the (estimator-clipped) local mean force
+    every ``record_every`` production steps.  Returns ``f`` (B, n_rec) as float64 numpy."""
+    q = project_dimer_to_z(q0, torch.as_tensor(z_k, device=q0.device, dtype=q0.dtype), params)
+    noise_scale = math.sqrt(2.0 * sim.dt / params.beta)
+    rec = []
+    for step in range(n_eq + n_prod):
+        f_raw = engine.force(q, compute_energy=False)
+        f_phys = clip_forces(f_raw, params.force_clip)
+        if step >= n_eq and (step - n_eq) % record_every == 0:
+            fl = local_mean_force(q, f_phys if sim.use_clipped_force_for_mean_force else f_raw, params)
+            rec.append(torch.clamp(fl, -sim.mean_force_sample_clip, sim.mean_force_sample_clip).to(torch.float64))
+        noise = torch.randn(q.shape, device=q.device, dtype=q.dtype, generator=gen)
+        q_new = q + sim.dt * f_phys + noise_scale * noise
+        q_new[:, :2, :] = q[:, :2, :]
+        q = wrap_positions(q_new, params.box_length)
+    return to_numpy(torch.stack(rec, dim=1))
+
+
+def autocorrelation_time(f, dt, max_lag=None):
+    """Integrated force-correlation time from series ``f`` (B, T): replica-averaged normalised
+    autocorrelation ``rho(k)``, integrated over the initial positive sequence,
+    ``tau = dt (1/2 + sum_{k>=1}^{K} rho(k))`` with ``K`` the last lag before ``rho`` first drops
+    to <= 0.  Returns (tau, rho) with ``rho`` the curve up to ``max_lag``."""
+    f = np.asarray(f, dtype=np.float64)
+    B, T = f.shape
+    d = f - f.mean(axis=1, keepdims=True)
+    L = int(max_lag or T // 2)
+    n = 1
+    while n < 2 * T:
+        n *= 2
+    Fd = np.fft.rfft(d, n=n, axis=1)
+    ac = np.fft.irfft(Fd * np.conj(Fd), n=n, axis=1)[:, :L] / (T - np.arange(L))[None, :]
+    c = ac.mean(axis=0)
+    if c[0] <= 0:
+        return float("nan"), np.zeros(L)
+    rho = c / c[0]
+    neg = np.nonzero(rho <= 0.0)[0]
+    K = int(neg[0]) if neg.size else L
+    tau = dt * (0.5 + rho[1:K].sum())
+    return float(tau), rho
+
+
+# ---------------------------------------------------------------------------
 # Fisher-Rao target densities (estimated / uniform / oracle) and score
 # ---------------------------------------------------------------------------
 def recentered_clipped_score_torch(raw_score, score_clip):
@@ -995,7 +1199,8 @@ def assert_no_oracle_leakage(method, oracle_free_energy):
 @torch.inference_mode()
 def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                     oracle_free_energy=None, collect_diagnostics=True, verbose=True,
-                    track_crossings=False, replay_counts=None, readout_bandwidths=None):
+                    track_crossings=False, replay_counts=None, readout_bandwidths=None,
+                    relax=None, sensitivity_record=False):
     """Run one sampler on the GPU.
 
     ``readout_bandwidths`` (default None: byte-identical to before) attaches a
@@ -1048,6 +1253,21 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
     bias_estimator = TorchKernelABFEstimator(grid, sim.abf_bandwidth, sim.abf_smooth_sigma, edge_extrapolate=sim.abf_edge_extrapolate)
     production_estimator = TorchKernelABFEstimator(grid, sim.abf_bandwidth, sim.abf_smooth_sigma, edge_extrapolate=sim.abf_edge_extrapolate)
     readout = ReadoutBank(grid, sim, readout_bandwidths) if readout_bandwidths else None
+    # Targeted relaxation / sensitivity instrumentation (additive; nothing below runs otherwise)
+    sens = SensitivityAccumulator(grid) if (relax is not None or sensitivity_record) else None
+    if relax is not None:
+        assert relax.target in ("sensitivity", "random"), relax.target
+        assert 0.0 <= float(relax.rho) < float("inf")
+        tau_grid_t = torch.as_tensor(np.asarray(relax.tau_grid, dtype=np.float64), device=engine.device,
+                                     dtype=engine.dtype)
+        assert tau_grid_t.numel() == sim.n_grid and bool((tau_grid_t > 0).all()), "tau map must be positive on the grid"
+        gen_relax = torch.Generator(device=engine.device)
+        gen_relax.manual_seed(int(sim.seed) + int(relax.inner_seed_offset))
+        relax_budget_steps = int(round(float(relax.rho) * sim.n_replicas * max(int(sim.fr_every), 1)))
+        relax_budget_time = relax_budget_steps * sim.dt
+        relax_steps_total, relax_events, relax_inner_wall = 0, 0, 0.0
+        relax_hist = torch.zeros(sim.n_grid, device=engine.device, dtype=torch.float64)
+        _rx_steps_acc, _rx_active_acc, _rx_n_acc = 0, 0.0, 0
     noise_scale = math.sqrt(2.0 * sim.dt / params.beta)
     total_replacement_events = 0
     F_target_ema = None
@@ -1120,6 +1340,12 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
         diag["readout_mean_force"] = {h: [] for h in readout.hs if h > 0}
         if readout.raw is not None:
             diag["raw_fsum"], diag["raw_csum"] = [], []
+    if sens is not None:
+        diag["vhat"] = []
+        if sensitivity_record:
+            diag["sens_C"], diag["sens_Sf"], diag["sens_Sf2"] = [], [], []
+    if relax is not None:
+        diag["relax_steps"], diag["relax_active_frac"] = [], []
 
     t0 = time.perf_counter()
     for step in range(sim.n_steps + 1):
@@ -1153,6 +1379,8 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
             production_estimator.update(z, f_local)
         if readout is not None:
             readout.update(z, f_local, step >= sim.estimator_burn_in_steps)
+        if sens is not None:
+            sens.update(z, f_local)
         ramp = min(1.0, step / max(sim.abf_warmup_steps, 1))
         abf_scale = sim.abf_bias_scale * ramp
         abf_at_z = abf_scale * torch.clamp(bias_estimator.evaluate(z), -sim.abf_force_clip, sim.abf_force_clip)
@@ -1185,6 +1413,15 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                 if readout.raw is not None:
                     diag["raw_fsum"].append(rep["raw_fsum"])
                     diag["raw_csum"].append(rep["raw_csum"])
+            if sens is not None:
+                diag["vhat"].append(to_numpy(sens.profile(sim.abf_bandwidth, sim.abf_smooth_sigma)))
+                if sensitivity_record:
+                    st_ = sens.state()
+                    diag["sens_C"].append(st_["C"]); diag["sens_Sf"].append(st_["Sf"]); diag["sens_Sf2"].append(st_["Sf2"])
+            if relax is not None:
+                diag["relax_steps"].append(int(_rx_steps_acc))
+                diag["relax_active_frac"].append(_rx_active_acc / max(_rx_n_acc, 1))
+                _rx_steps_acc, _rx_active_acc, _rx_n_acc = 0, 0.0, 0
             if collect_diagnostics:
                 fc, ft, fs = region_fractions_torch(z, sim)
                 diag["frac_compact"].append(fc)
@@ -1342,6 +1579,47 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                     # every later count onto the wrong opportunity.
                     fr_event_counts.append(0)
 
+        if relax is not None:
+            # Targeted constrained solvent relaxation, on the FR schedule and AFTER any
+            # birth-death, so the post-selection population is the one being rejuvenated.
+            # Importance = the ONLINE sensitivity field at the replica's current z; cost weight
+            # = the frozen tau map; budget = rho x N x fr_every replica-steps.  The inner steps
+            # deposit nothing (no C/Sf/Sf2, no bank, no FR, no ancestry, no error).
+            next_step = step + 1
+            do_relax = (next_step >= sim.fr_start_steps
+                        and (next_step - sim.fr_start_steps) % max(int(sim.fr_every), 1) == 0)
+            if do_relax and relax_budget_steps > 0:
+                z_now = reaction_coordinate(q, params)
+                vhat = sens.profile(sim.abf_bandwidth, sim.abf_smooth_sigma)
+                a_imp = torch.clamp(interp_uniform_grid_edge(vhat, grid, z_now), min=0.0)
+                tau_i = interp_uniform_grid_edge(tau_grid_t, grid, z_now)
+                t_i = water_filling_durations(a_imp, tau_i, relax_budget_time)
+                m_i = integer_steps_largest_remainder(t_i, sim.dt, relax_budget_steps)
+                if relax.target == "random":
+                    perm = torch.randperm(sim.n_replicas, device=engine.device, generator=gen_relax)
+                    m_i = m_i.index_select(0, perm)
+                active = m_i > 0
+                n_active = int(active.sum().item())
+                if n_active > 0:
+                    if engine.device.type == "cuda":
+                        torch.cuda.synchronize()
+                    tw = time.perf_counter()
+                    idx_act = torch.nonzero(active, as_tuple=False).flatten()
+                    q_act, done = frozen_dimer_relax(engine, params, sim, q.index_select(0, idx_act),
+                                                     m_i.index_select(0, idx_act), gen_relax)
+                    q = q.clone()
+                    q[idx_act] = q_act
+                    if engine.device.type == "cuda":
+                        torch.cuda.synchronize()
+                    relax_inner_wall += time.perf_counter() - tw
+                    relax_steps_total += done
+                    _rx_steps_acc += done
+                    bidx = torch.round((z_now - sim.z_min) / _dz).long().clamp_(0, sim.n_grid - 1)
+                    relax_hist.scatter_add_(0, bidx, m_i.to(torch.float64))
+                relax_events += 1
+                _rx_active_acc += n_active / float(sim.n_replicas)
+                _rx_n_acc += 1
+
     diag["runtime_seconds"] = time.perf_counter() - t0
     diag["method"] = method
     diag["grid"] = to_numpy(grid)
@@ -1384,6 +1662,25 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
     # The §3.3 gate statistic. NaN for `abf`, which has no genealogy at all.
     diag["min_ancestor_ess_window"] = (float(min_ess_window) if is_fr else float("nan"))
     diag["ess_window_steps"] = int(_win)
+    if sens is not None:
+        diag["vhat"] = np.asarray(diag["vhat"], dtype=np.float64)
+        diag["final_vhat"] = diag["vhat"][-1]
+        if sensitivity_record:
+            for k in ("sens_C", "sens_Sf", "sens_Sf2"):
+                diag[k] = np.asarray(diag[k], dtype=np.float64)
+            diag["final_q"] = to_numpy(q).astype(np.float32)
+    if relax is not None:
+        diag["relax_rho"] = float(relax.rho)
+        diag["relax_target"] = relax.target
+        diag["relax_budget_steps_per_opportunity"] = int(relax_budget_steps)
+        diag["relax_steps_total"] = int(relax_steps_total)
+        diag["relax_cost_ratio"] = relax_steps_total / float(sim.n_replicas * sim.n_steps)
+        diag["relax_n_opportunities"] = int(relax_events)
+        diag["relax_inner_wall_seconds"] = float(relax_inner_wall)
+        diag["relax_budget_hist"] = to_numpy(relax_hist)
+        diag["relax_steps"] = np.asarray(diag["relax_steps"], dtype=np.int64)
+        diag["relax_active_frac"] = np.asarray(diag["relax_active_frac"], dtype=np.float64)
+        diag["tau_grid"] = np.asarray(relax.tau_grid, dtype=np.float64)
     if verbose:
         extra = f", replacements {total_replacement_events}" if is_fr else ""
         print(f"{method:13s}: {diag['runtime_seconds']:.1f}s{extra}")

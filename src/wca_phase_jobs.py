@@ -232,7 +232,8 @@ def fr_event_stats(spec: PhaseRunSpec, steps, repl_cumulative, n_replicas):
 
 
 def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase", verbose=False,
-                replay_counts=None, store_profiles=False, readout_bandwidths=None):
+                replay_counts=None, store_profiles=False, readout_bandwidths=None,
+                relax=None, sensitivity_record=False):
     """Run one phase-diagram job; return a flat dict of scalars + arrays to save.
 
     ``replay_counts`` is required by the matched-sham methods and rejected by every other
@@ -250,7 +251,8 @@ def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase",
                                 oracle_free_energy=oracle_fe, collect_diagnostics=True,
                                 verbose=verbose, track_crossings=True,
                                 replay_counts=replay_counts,
-                                readout_bandwidths=readout_bandwidths)
+                                readout_bandwidths=readout_bandwidths,
+                                relax=relax, sensitivity_record=sensitivity_record)
     fin = core.final_l2_errors(diag, ref, sim)
     ts = core.timeseries_l2(diag, ref, sim)
 
@@ -380,6 +382,20 @@ def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase",
         if "raw_fsum" in diag:
             out["raw_fsum_t"] = np.asarray(diag["raw_fsum"], dtype=np.float64)
             out["raw_csum_t"] = np.asarray(diag["raw_csum"], dtype=np.float64)
+    # Targeted-relaxation campaign records (additive; absent unless requested).
+    if "vhat" in diag:
+        out["vhat_t"] = np.asarray(diag["vhat"], dtype=np.float64)
+        out["final_vhat"] = np.asarray(diag["final_vhat"], dtype=np.float64)
+    for k in ("sens_C", "sens_Sf", "sens_Sf2"):
+        if k in diag:
+            out[k + "_t"] = np.asarray(diag[k], dtype=np.float64)
+    if "final_q" in diag:
+        out["final_q"] = np.asarray(diag["final_q"], dtype=np.float32)
+    for k in ("relax_rho", "relax_target", "relax_budget_steps_per_opportunity", "relax_steps_total",
+              "relax_cost_ratio", "relax_n_opportunities", "relax_inner_wall_seconds", "relax_budget_hist",
+              "relax_steps", "relax_active_frac", "tau_grid"):
+        if k in diag:
+            out[k] = diag[k] if not isinstance(diag[k], np.ndarray) else np.asarray(diag[k])
     return out
 
 
