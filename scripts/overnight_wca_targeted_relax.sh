@@ -13,8 +13,10 @@ commit() { git add "$@" >/dev/null 2>&1; git commit -q -m "$COMMIT_MSG
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>" && echo "[$(stamp)] committed: $(git log --oneline -1)"; }
 
-echo "[$(stamp)] === waiting for W0-A to complete (8 runs) ==="
-until [ "$(ls $W/W0/raw/W0A__abf__*.npz 2>/dev/null | wc -l)" -ge 8 ] && grep -q "^done W0-A" $W/W0/run_W0A.log 2>/dev/null; do sleep 60; done
+echo "[$(stamp)] === W0-A: instrument runs (completed runs are skipped) ==="
+mkdir -p $W/W0 $W/W1
+python -u scripts/run_wca_targeted_relax.py --stage W0A > $W/W0/run_W0A.log 2>&1 || { echo "[$(stamp)] W0-A FAILED"; exit 1; }
+tail -3 $W/W0/run_W0A.log
 echo "[$(stamp)] === W0-B: constrained correlations ==="
 python -u scripts/run_wca_targeted_relax.py --stage W0B > $W/W0/run_W0B.log 2>&1 || { echo "[$(stamp)] W0-B FAILED"; exit 1; }
 python -u scripts/analyze_wca_targeted_relax.py --stage W0 > $W/W0/analysis.log 2>&1 || { echo "[$(stamp)] W0 analysis FAILED"; exit 1; }
