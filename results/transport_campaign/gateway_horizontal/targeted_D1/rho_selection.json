@@ -1,0 +1,26 @@
+{
+  "prereg": "configs/transport_campaign/gateway_targeted_relax_prereg.json",
+  "raw": "results/transport_campaign/gateway_horizontal/targeted_D1/raw.npz",
+  "ladder_rho": [
+    0.25,
+    0.5,
+    1.0,
+    2.0
+  ],
+  "dI_T_vs_A_median": {
+    "0.25": 3.7238721002170587,
+    "0.5": -4.612380546228385,
+    "1": -10.94571297263359,
+    "2": -23.195928682673745
+  },
+  "compute_ratio_T": {
+    "0.25": 0.9187591875918747,
+    "0.5": 0.8100081000809973,
+    "1": 0.6700067000669817,
+    "2": 0.4500045000450168
+  },
+  "rho_star": 1.0,
+  "gate_D1": true,
+  "mechanism_check": true,
+  "rule": "smallest rho <= 1 with dI_F(T vs A) <= -10% and C_T/C_A0 <= 0.8 at eps = ABF final; else 1 with gate False"
+}

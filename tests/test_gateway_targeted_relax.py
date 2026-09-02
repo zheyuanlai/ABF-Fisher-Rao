@@ -134,3 +134,20 @@ def test_refusals():
         gw.assert_no_oracle_leakage([gw.with_targeted(gw.ABF, -1.0)])
     gw.assert_no_oracle_leakage([gw.ABF, gw.with_targeted(gw.ABF, 1.0), gw.with_targeted(gw.FR_UNIFORM, 0.25),
                                  gw.with_targeted(OT, 2.0), gw.with_targeted(OT, 2.0, "v_dx"), gw.with_relax(OT, 0.5)])
+
+
+def test_binvar_estimator_removes_the_kernel_gradient_floor_and_is_opt_in():
+    out = _run([gw.ABF], cfg=_cfg(N=2048, n_steps=5000, save_every=1000), store_accumulators=True)
+    r = out["abf"]; x = r["x_grid"]; dx = float(x[1] - x[0])
+    kt, rt = gw.gaussian_kernel(0.07, dx, CPU, torch.float64)
+    args = (torch.tensor(r["Sf2_t"][-1:]), torch.tensor(r["Sf_t"][-1:]), torch.tensor(r["C_t"][-1:]), kt, rt, dx, 1.0)
+    v1 = gw.vhat_from(*args).numpy()[0]; v2 = gw.vhat_from(*args, mode="binvar").numpy()[0]
+    sampled = r["C_t"][-1] > 50
+    basin = sampled & (abs(x) > 0.8)
+    if basin.any():
+        assert v2[basin].max() < 0.1 * max(v1[basin].max(), 1e-12) + 1e-6      # the (F'' h)^2 floor is gone
+    assert np.array_equal(gw.vhat_from(*args).numpy(), gw.vhat_from(*args, mode="moments").numpy())   # default unchanged
+    # opt-in arm naming and refusal
+    assert gw.with_targeted(OT, 1.0, sensitivity="binvar").name == "ot_exact_targ1v2"
+    with pytest.raises(AssertionError):
+        gw.assert_no_oracle_leakage([gw.Method("abf_targ", False, "none", refresh="targeted", budget_rho=1.0, sensitivity="v3")])

@@ -165,6 +165,10 @@ class Method:
     # notional constrained-MD cost is budget_rho times the outer cost.  See ``budgeted_relaxation``.
     budget_rho: float = float("nan")
     importance: str = "v"
+    # Sensitivity estimator: 'moments' (smooth the moments, then variance -- the D0-frozen v1,
+    # which carries the kernel window's own mean-force gradient (F'' h)^2 as a floor) or
+    # 'binvar' (per-bin variance, then count-weighted smoothing -- amendment v2, floor-free).
+    sensitivity: str = "moments"
 
     def rate(self, cfg) -> float:
         """The FR rate this arm runs at.
@@ -215,12 +219,13 @@ def with_relax(m: Method, c: float, name: str | None = None) -> Method:
     return _dc.replace(m, name=name or f"{m.name}_relax{float(c):g}", refresh="ou", relax_c=float(c))
 
 
-def with_targeted(m: Method, rho: float, importance: str = "v", name: str | None = None) -> Method:
+def with_targeted(m: Method, rho: float, importance: str = "v", name: str | None = None,
+                  sensitivity: str = "moments") -> Method:
     """The same arm with the targeted, budgeted fibre relaxation at cost ratio ``rho``."""
     import dataclasses as _dc
-    suffix = f"_targ{float(rho):g}" + ("move" if importance == "v_dx" else "")
+    suffix = f"_targ{float(rho):g}" + ("move" if importance == "v_dx" else "") + ("v2" if sensitivity == "binvar" else "")
     return _dc.replace(m, name=name or f"{m.name}{suffix}", refresh="targeted",
-                       budget_rho=float(rho), importance=importance)
+                       budget_rho=float(rho), importance=importance, sensitivity=sensitivity)
 
 
 def sensitivity_ref(x, beta, oout, oin, sw):
@@ -234,13 +239,21 @@ def sensitivity_ref(x, beta, oout, oin, sw):
     return 2.0 / (beta * beta) * (dom / om) ** 2
 
 
-def vhat_from(Sf2, Sf, C, kernel, r, dx, min_count):
+def vhat_from(Sf2, Sf, C, kernel, r, dx, min_count, mode="moments"):
     """ONLINE conditional-variance profile of the local force from the ABF accumulators.
 
-    ``max(E[f^2 | z] - E[f | z]^2, 0)`` with the same kernel and the same ``min_count``
-    regularisation as the mean force.  Needs no reference, no basin labels and no model
-    knowledge: it is the sensitivity field a molecular implementation would also have.
+    ``mode='moments'`` (v1, D0-frozen): ``max(E[f^2 | z] - E[f | z]^2, 0)`` with the moments
+    smoothed by the same kernel and ``min_count`` as the mean force.  Its floor is the kernel
+    window's own mean-force gradient, ~(F'' h)^2, which is not a fibre effect.
+    ``mode='binvar'`` (v2): the per-bin variance ``Sf2/C - (Sf/C)^2`` (bins with C <= 1 give 0),
+    then count-weighted smoothing ``s(C v)/(s(C) + min_count)``; the within-bin gradient term
+    is (F'' dx)^2/12 and negligible.  Both need no reference, no basin labels and no model
+    knowledge: they are sensitivity fields a molecular implementation would also have.
     """
+    if mode == "binvar":
+        Cs = torch.clamp(C, min=1.0)
+        v = torch.where(C > 1.0, torch.clamp(Sf2 / Cs - (Sf / Cs) ** 2, min=0.0), torch.zeros_like(C))
+        return smooth(v * C, kernel, r, dx) / (smooth(C, kernel, r, dx) + min_count + EPS)
     den = smooth(C, kernel, r, dx) + min_count + EPS
     m1 = smooth(Sf, kernel, r, dx) / den
     m2 = smooth(Sf2, kernel, r, dx) / den
@@ -342,6 +355,7 @@ def assert_no_oracle_leakage(methods: Sequence[Method]) -> None:
                 f"targeted relaxation arm must carry 'targ' in its name and must not be a sham: {m.name}")
             assert 0.0 <= m.budget_rho < float("inf"), f"budget_rho must be finite and >= 0 on {m.name}"
             assert m.importance in ("v", "v_dx"), f"unknown importance {m.importance!r} on {m.name}"
+            assert m.sensitivity in ("moments", "binvar"), f"unknown sensitivity {m.sensitivity!r} on {m.name}"
             if m.importance == "v_dx":
                 assert m.transport == "horizontal_ot", f"'v_dx' importance needs a transport arm: {m.name}"
         if m.refresh == "oracle":
@@ -807,6 +821,9 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     targ_move_mask = torch.tensor([m.refresh == "targeted" and m.importance == "v_dx" for m in methods],
                                   device=device).repeat(B)
     any_targ = bool(targ_mask.any())
+    binvar_mask = torch.tensor([m.refresh == "targeted" and m.sensitivity == "binvar" for m in methods],
+                               device=device).repeat(B)
+    any_binvar = bool(binvar_mask.any())
     rho_r = torch.tensor([(m.budget_rho if m.refresh == "targeted" else 0.0) for m in methods],
                          device=device, dtype=dtype).repeat(B).unsqueeze(1)
     c_r = torch.tensor([(m.relax_c if m.refresh == "ou" else 0.0) for m in methods],
@@ -1000,6 +1017,8 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
                 # kernel), optionally times the transport displacement; cost weight tau_y(x);
                 # budget rho x (outer steps per opportunity) in notional constrained steps.
                 vhat = vhat_from(Sf2, Sf, C, k_h, r_h, dx, c0.min_count)
+                if any_binvar:
+                    vhat = torch.where(binvar_mask.unsqueeze(1), vhat_from(Sf2, Sf, C, k_h, r_h, dx, c0.min_count, "binvar"), vhat)
                 a_imp = interp1d(Xp, vhat, dx)
                 if bool(targ_move_mask.any()):
                     a_imp = torch.where(targ_move_mask.unsqueeze(1), a_imp * ddx, a_imp)
@@ -1219,6 +1238,7 @@ def _finalize(L):
                 transport=methods[m].transport, alpha=float(methods[m].alpha),
                 refresh=methods[m].refresh, relax_c=float(methods[m].relax_c),
                 budget_rho=float(methods[m].budget_rho), importance=methods[m].importance,
+                sensitivity=methods[m].sensitivity,
                 t=t_axis, P_regions=P, Q_regions=Q,
                 l2_f_t=npy(ts_l2f[r]), l2_fp_t=npy(ts_l2fp[r]),
                 ess_t=npy(L["ts_ess"][r]), wmax_t=npy(L["ts_wmax"][r]),
