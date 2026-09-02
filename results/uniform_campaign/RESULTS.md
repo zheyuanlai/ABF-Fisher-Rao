@@ -60,16 +60,44 @@ Artifacts: `gateway/summary.json`, `gateway/comparison.csv`, `gateway/figures/`.
 Artifacts: `wca/summary.json`, `wca/comparison.csv`, `wca/figures/`,
 per-shard provenance in `wca/uniform/`.
 
-## Alanine (stage 3) — EQUIVALENT: the neutrality control behaves exactly as predicted
+## Alanine (stage 3) — EQUIVALENT: the neutrality control behaves as predicted (endpoints REPAIRED 2026-09-02)
 
 - Frozen oracle-pilot protocol, only the arm changed (`fr_uniform`, rate 0.02
   safety-frozen); 16 paired seeds, N=2048, 100 ps, window 20-100 ps.
-- Kernel-matched primary endpoint: median **+0.01%**, CI [-0.01%, +0.02%] —
-  indistinguishable, like the closed oracle arm before it. All safety gates
-  pass (ess_age 0.962, wmax 0.003, events 0.12%/opportunity, zero clipping).
-- 5941 FR events fired and moved nothing: with the (phi,psi) marginal already
-  established by ABF, a uniform target has nothing to correct. This is the
-  self-throttling half of the regime-specific claim, on an atomistic system.
+- **Repair (2026-09-02).** The primary endpoint as first reported (+0.01%,
+  CI [-0.01%, +0.02%]) was arm-insensitive by construction: the "kernel-matched"
+  reference in `metrics_ala.smooth_reference` used an UNNORMALISED wrapped
+  Gaussian (row sum 3.10 per axis, x9.6 in 2-D), so the ABF km error of
+  25.7 kJ/mol was 99.7% a fixed reference-scaling constant (deterministic 25.6)
+  common to both arms. The gradient endpoint had an analogous defect: a spectral
+  derivative of a reference whose unvisited cells were filled with a constant
+  rings across the torus (22.3 of the measured 22.7 kJ/mol/rad). Both metrics
+  were fixed (normalised kernel; local periodic central difference with
+  non-finite stencils dropped), regression-tested (`tests/test_alanine_metrics.py`),
+  and every stage re-derived with NO criterion changed. Pre-fix analysis kept in
+  `analysis_pre_kmfix_20260902/`; old-vs-new in `analysis/kmfix_old_vs_new_20260902.json`.
+- Corrected kernel-matched primary (int_eF_km_equilibrium): median **-1.13%**,
+  CI **[-3.50%, +1.54%]**, 10/16 seeds — EQUIVALENT by the +/-10% band, now with
+  an honest interval (the un-matched endpoints agree: dI_F -0.17% [-0.52, +0.35],
+  final -0.15% [-0.49, +0.38]). ABF's final km error is 0.21 kJ/mol against an
+  un-matched 0.57: the legacy 0.08-rad read-out carries a deterministic
+  smoothing bias of 0.48 kJ/mol (share 0.84 — the alanine baseline is
+  read-out-limited like ZIF-8, see docs/BANDWIDTH_DEFECT_SCREEN.md).
+- Gradient endpoint, corrected: -0.06% [-0.09%, -0.03%]. It remains nearly
+  arm-insensitive for a legitimate reason — 92% of the 8.3 kJ/mol/rad ABF
+  gradient error is the MBAR reference's own grid-scale roughness
+  (RMS |grad(F_ref - K F_ref)| = 7.7), which no smooth estimate can reproduce;
+  the residual after kernel matching is 1.6. The -5% gradient criterion is
+  therefore unreachable by construction on this reference; it is reported, not
+  re-defined.
+- The closed oracle pilot re-derived the same way stays EQUIVALENT in all three
+  stages: N2048 -0.10% [-3.02, +0.25]; N2048_refeq +0.67% [-2.19, +4.97];
+  N4096 +1.09% [-2.60, +2.59] (4 paired seeds each).
+- All safety gates pass (ess_age 0.962, wmax 0.003, events 0.12%/opportunity,
+  zero clipping). 5941 FR events fired and moved nothing: with the (phi,psi)
+  marginal already established by ABF, a uniform target has nothing to correct.
+  This is the self-throttling half of the regime-specific claim, on an atomistic
+  system.
 
 Artifacts: `alanine/analysis/pilot_decision_N2048_uniform.json`, `alanine/figures/`.
 

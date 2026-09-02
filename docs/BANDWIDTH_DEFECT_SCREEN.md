@@ -125,3 +125,25 @@ CUDA_VISIBLE_DEVICES="" python scripts/rescore_kernel_matched.py         # explo
 Before running any bandwidth matrix on a new system: compute the share. Below ≈0.35 the legacy
 read-out is not the story and the arm contrast is stable; above ≈0.8 fix the estimator first —
 any arm contrast measured against the unsmoothed reference is contaminated, in either direction.
+
+### 5a. Repaired the same day (2026-09-02)
+
+Both alanine Category-B endpoints were fixed in `src/alanine/metrics_ala.py` (row-normalised
+kernel in `smooth_reference`; local periodic central difference in `grad_errors`, stencils touching
+non-finite reference cells dropped — the spectral derivative of the fill-filled reference had been
+ringing: 22.3 of the measured 22.7 kJ/mol/rad was deterministic), regression-tested
+(`tests/test_alanine_metrics.py`, 7 tests), and every stage re-derived with no criterion changed:
+
+| stage | arm | primary (km, equilibrium) before | after | class |
+|---|---|---|---|---|
+| N2048_uniform (16) | fr_uniform | +0.006 % [−0.014, +0.020] | **−1.13 % [−3.50, +1.54]**, 10/16 | EQUIVALENT → EQUIVALENT |
+| N2048 (4) | fr_oracle | +0.013 % [+0.012, +0.030] | −0.10 % [−3.02, +0.25] | EQUIVALENT → EQUIVALENT |
+| N2048_refeq (4) | fr_oracle | +0.031 % [−0.097, +0.041] | +0.67 % [−2.19, +4.97] | EQUIVALENT → EQUIVALENT |
+| N4096 (4) | fr_oracle | −0.010 % [−0.063, −0.002] | +1.09 % [−2.60, +2.59] | EQUIVALENT → EQUIVALENT |
+
+ABF's kernel-matched final error fell from 25.7 to **0.21 kJ/mol** (un-matched 0.57). The gradient
+endpoint stays nearly arm-insensitive for a legitimate reason: 92 % of the 8.3 kJ/mol/rad error is
+the MBAR reference's own grid-scale roughness (RMS |∇(F_ref − K F_ref)| = 7.7), which no smooth
+estimate can match; the residual after kernel matching is 1.6. Pre-fix analyses are kept in
+`analysis_pre_kmfix_20260902/`. The convergence-atlas alanine panel and the closure inventory still
+carry the pre-fix km numbers and need regenerating from the repaired decision files.

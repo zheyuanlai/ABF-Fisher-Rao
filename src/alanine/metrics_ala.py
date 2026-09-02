@@ -40,11 +40,22 @@ def build_masks(F_ref, kT):
 
 
 def smooth_reference(F_ref, bandwidth_rad, n_grid):
-    """``K_h * F_ref`` with the estimator's own wrapped-Gaussian kernel (kernel matching)."""
+    """``K_h * F_ref`` with the estimator's own wrapped-Gaussian kernel (kernel matching).
+
+    The kernel matrices from ``density2d.kernels`` are UNNORMALISED (row sum ~3.1 per axis at
+    0.08 rad on the 97-grid); the engine's estimator is a Nadaraya--Watson RATIO, so its fixed
+    point is the row-NORMALISED smoothing.  Until 2026-09-02 this function applied the
+    unnormalised matrices, which scaled the reference by ~9.6x and made every ``eF_km_*``
+    endpoint a fixed reference-scaling constant common to both arms (25.7 kJ/mol against a
+    deterministic 25.6).  Row normalisation is the fix; a constant field is now returned
+    unchanged (tests/test_alanine_metrics.py).
+    """
     import torch
     from alkanes import density2d as d2
     g1, g2, dz1, dz2 = d2.torus_grid(n_grid, n_grid, dtype=torch.float64)
     K1, K2 = d2.kernels(g1, g2, bandwidth_rad, bandwidth_rad)
+    K1 = K1 / K1.sum(dim=1, keepdim=True)
+    K2 = K2 / K2.sum(dim=1, keepdim=True)
     finite = np.isfinite(F_ref)
     F = np.where(finite, F_ref, np.nan)
     fill = np.nanmax(F[finite])
@@ -80,17 +91,34 @@ def fes_errors(F_hat, ref_pack, F_ref_smoothed=None):
     return out
 
 
+def _central_gradient(F, dz):
+    """Periodic central finite-difference gradient on the torus, (dF/dphi, dF/dpsi)."""
+    g1 = (np.roll(F, -1, axis=0) - np.roll(F, 1, axis=0)) / (2.0 * dz)
+    g2 = (np.roll(F, -1, axis=1) - np.roll(F, 1, axis=1)) / (2.0 * dz)
+    return g1, g2
+
+
 def grad_errors(F_hat, F_ref, w, n_grid):
-    """``|| grad F_hat - grad F_ref ||`` with the same spectral derivative for both arms."""
-    import torch
-    from alkanes import poisson2d as ps
+    """``|| grad F_hat - grad F_ref ||`` with the same LOCAL derivative for both arms.
+
+    Until 2026-09-02 this used the spectral (FFT) derivative on a reference whose unvisited
+    cells were filled with ``nanmax``: the fill jump rings across the whole torus (RMS 17.8 on
+    mask8 against a gradient magnitude of 17.9), so the endpoint was a deterministic ringing
+    constant (22.3 of the measured 22.7) common to both arms.  The periodic central difference
+    is local; cells whose stencil touches a non-finite reference value carry zero weight.
+    """
     dz = TWO_PI / n_grid
-    a1, a2 = ps.spectral_gradient(torch.as_tensor(F_hat, dtype=torch.float64)[None], dz, dz)
     finite = np.isfinite(F_ref)
-    Fr = np.where(finite, F_ref, np.nanmax(F_ref[finite]))
-    b1, b2 = ps.spectral_gradient(torch.as_tensor(Fr, dtype=torch.float64)[None], dz, dz)
-    d = ((a1 - b1) ** 2 + (a2 - b2) ** 2)[0].numpy()
-    return float(math.sqrt((d * w).sum() / max(w.sum(), 1e-300)))
+    ok = finite.copy()
+    for ax in (0, 1):
+        for sh in (-1, 1):
+            ok &= np.roll(finite, sh, axis=ax)
+    Fr = np.where(finite, F_ref, 0.0)
+    a1, a2 = _central_gradient(np.asarray(F_hat, dtype=float), dz)
+    b1, b2 = _central_gradient(Fr, dz)
+    d = (a1 - b1) ** 2 + (a2 - b2) ** 2
+    ww = np.where(ok, w, 0.0)
+    return float(math.sqrt((d * ww).sum() / max(ww.sum(), 1e-300)))
 
 
 def integrated(times, values, t0, t1):
