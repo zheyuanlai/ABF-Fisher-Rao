@@ -145,6 +145,12 @@ class Method:
     # never clones, kills, resamples or touches y.  See ``horizontal_ot_map``.
     transport: str = "none"
     alpha: float = 0.0            # transport strength alpha_max in [0, 1]; ramped like the FR rate
+    # Oracle fibre refresh (transport-refresh campaign): 'none' | 'oracle'.  At every opportunity,
+    # AFTER any FR gather and any transport, every walker's y is redrawn from the EXACT
+    # conditional N(0, 1/(beta omega(x)^2)) at its current x.  A causal intervention, not a
+    # deployable method: it uses the model's omega and beta.  Refresh draws are shared across
+    # the arms of one (config, seed) row, so refresh arms are paired with each other.
+    refresh: str = "none"
 
     def rate(self, cfg) -> float:
         """The FR rate this arm runs at.
@@ -178,6 +184,12 @@ SHAM = SHAM_ORACLE          # backwards-compatible alias for the calibration art
 
 METHODS = {m.name: m for m in (ABF, FR_ORACLE, FR_ESTIMATED, FR_UNIFORM,
                                SHAM_ORACLE, SHAM_PRACTICAL)}
+
+
+def with_refresh(m: Method, name: str | None = None) -> Method:
+    """The same arm with the oracle fibre refresh switched on (name gets a '_refresh' suffix)."""
+    import dataclasses as _dc
+    return _dc.replace(m, name=name or f"{m.name}_refresh", refresh="oracle")
 
 
 def horizontal_ot(alpha: float, name: str | None = None) -> Method:
@@ -215,6 +227,12 @@ def assert_no_oracle_leakage(methods: Sequence[Method]) -> None:
                 f"matched intensity is unobtainable without it")
         assert m.transport in ("none", "horizontal_ot"), (
             f"unknown transport {m.transport!r} on {m.name}")
+        assert m.refresh in ("none", "oracle"), f"unknown refresh {m.refresh!r} on {m.name}"
+        if m.refresh == "oracle":
+            # model knowledge (omega, beta) enters: keep it visible in the arm's name, and never
+            # on a sham (its only job is to copy a partner's schedule)
+            assert "refresh" in m.name and not m.sham, (
+                f"oracle refresh arm must carry 'refresh' in its name and must not be a sham: {m.name}")
         if m.transport != "none":
             # A transport arm is a pure comparator for birth-death: it must not ALSO clone,
             # kill, or carry a target, or the two mechanisms could not be told apart.
@@ -570,7 +588,8 @@ class BatchSpec:
 def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
                    noise_seed_base=2000, fr_seed_base=3000, progress=None,
                    store_profiles=False, store_accumulators=False,
-                   store_conditional=False, store_final_state=False):
+                   store_conditional=False, store_final_state=False,
+                   refresh_seed_base=4000):
     """Run ``B`` (config, seed) rows x ``M`` methods, flattened to ``R = B*M``.
 
     Methods inside one B-row share initial conditions and Langevin noise, so an arm and its
@@ -659,6 +678,9 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     alpha_r = torch.tensor([m.alpha for m in methods], device=device,
                            dtype=dtype).repeat(B).unsqueeze(1)
     u_quant = uniform_quantiles(N, device, dtype)
+    refresh_mask = torch.tensor([m.refresh == "oracle" for m in methods],
+                                device=device).repeat(B)
+    any_refresh = bool(refresh_mask.any())
 
     F_ref_b, Fp_ref_b = eb.reference_profiles(x_grid, eval_mask, beta_b.unsqueeze(1),
                                               H_b.unsqueeze(1), oout_b.unsqueeze(1),
@@ -680,6 +702,8 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
 
     gen_n = torch.Generator(device=device); gen_n.manual_seed(noise_seed_base + spec.batch_seed)
     gen_f = torch.Generator(device=device); gen_f.manual_seed(fr_seed_base + spec.batch_seed)
+    # refresh draws: their own stream, so arms without refresh are untouched by its presence
+    gen_r = torch.Generator(device=device); gen_r.manual_seed(refresh_seed_base + spec.batch_seed)
 
     save_steps = [st for st in range(n_steps) if st % save_every == 0 or st == n_steps - 1]
     n_saves = len(save_steps)
@@ -716,6 +740,7 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     tot_clone = torch.zeros(R, device=device, dtype=dtype)
     n_fr_apply = 0
     n_ot_apply = 0
+    n_refresh_apply = 0
 
     for step in range(n_steps):
         if ess_window > 0 and step % ess_window == 0:
@@ -791,6 +816,16 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
             last_ramp = ramp_factor
             Xp = torch.where(ot_mask.unsqueeze(1), X_new, Xp)
             n_ot_apply += 1
+
+        if do_fr and any_refresh:
+            # Oracle fibre refresh, LAST: whatever FR or transport did to x, y is redrawn from
+            # the exact conditional at the walker's current x.  One (B, N) draw per opportunity
+            # shared by every arm of a row (paired), from a stream no other arm consumes.
+            zr = torch.randn((B, N), device=device, dtype=dtype,
+                             generator=gen_r).repeat_interleave(M, dim=0)
+            om_now = omega_of(Xp, oout, oin, sw)
+            Yp = torch.where(refresh_mask.unsqueeze(1), zr / (torch.sqrt(beta) * om_now), Yp)
+            n_refresh_apply += 1
 
         X, Y = Xp, Yp
 
@@ -976,6 +1011,7 @@ def _finalize(L):
                 # one and the config's otherwise -- never re-derive it from the config alone
                 gamma=float(L["gamma_r"][r, 0]),
                 transport=methods[m].transport, alpha=float(methods[m].alpha),
+                refresh=methods[m].refresh,
                 t=t_axis, P_regions=P, Q_regions=Q,
                 l2_f_t=npy(ts_l2f[r]), l2_fp_t=npy(ts_l2fp[r]),
                 ess_t=npy(L["ts_ess"][r]), wmax_t=npy(L["ts_wmax"][r]),
@@ -1003,6 +1039,7 @@ def _finalize(L):
                 rec["C_t"] = npy(L["ts_C"][r])
             is_ot = methods[m].transport == "horizontal_ot"
             rec["n_ot_apply"] = int(L["n_ot_apply"]) if is_ot else 0
+            rec["n_refresh_apply"] = int(L["n_refresh_apply"]) if methods[m].refresh == "oracle" else 0
             if L.get("any_ot"):
                 rec["dmove_mean_t"] = npy(L["ts_dmove_mean"][r])
                 rec["dmove_p95_t"] = npy(L["ts_dmove_p95"][r])

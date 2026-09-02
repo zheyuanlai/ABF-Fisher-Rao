@@ -1,0 +1,67 @@
+{
+  "_comment": "Transport campaign, follow-up: EXACT dose matching of horizontal OT to uniform-FR, and the ORACLE FIBRE REFRESH causal intervention. FROZEN 2026-09-02 by commit BEFORE any run. Licensed by the closure of the first campaign (docs/GATEWAY_HORIZONTAL_TRANSPORT.md, outcome H1_FR_wins; its two stated limitations are (i) dose match 1.41 not 1.0 and (ii) the wrong-fibre mechanism was inferred from the signed flank error, not intervened on).",
+  "_question": "(A) Does H1 hold when the transport dose is matched to FR's marginal action within a few percent? (B) Does horizontal transport fail BECAUSE it moves the marginal without moving the conditional law? On the gateway the conditional is known exactly, y | x ~ N(0, 1/(beta omega(x)^2)), so the intervention is exact: after every move, redraw y from the conditional at the new x. If that repairs OT, the fibre carry-over is the mechanism; if it does not, the explanation is incomplete. Controls: the same refresh applied to ABF and to FR, because an oracle equilibrator may help every arm and 'OT + refresh improved' would then attribute nothing (one control per intervention, the sham rule).",
+  "inherits": "configs/transport_campaign/gateway_horizontal_transport_prereg.json (cell, sampler, corrected baseline h_bias 0.07 / h_read* 0.0175 / gamma 1.5, transport operator, endpoints, bootstrap, margins) -- everything not restated here is unchanged",
+  "refresh_operator": {
+    "name": "oracle fibre refresh", "code": "src/gateway_core.py::Method.refresh == 'oracle', gw.with_refresh",
+    "rule": "at every opportunity (every 10 steps from step 0, no ramp), AFTER any FR gather and any transport, every walker's y is redrawn as z / (sqrt(beta) omega(x)) with z ~ N(0, 1), at the walker's current x. x, ancestry and the ABF accumulators are not touched; the draw is one (B, N) block per opportunity from its own generator stream, shared by every arm of a (config, seed) row (refresh arms are paired with each other) and consumed by no other arm (non-refresh arms are bit-identical with or without refresh arms present: tests/test_gateway_fibre_refresh.py).",
+    "status": "a causal intervention, NOT a deployable method (it uses omega and beta). Its name always carries 'refresh'."
+  },
+  "stage_A2_refinement": {
+    "purpose": "exact dose: the closed campaign's alpha* = 0.0025 gave J_KL(ot)/J_KL(fr) = 1.41 (ladder bracket 0.0025 -> 1.42, 0.005 -> 0.62). Refine blindly between them.",
+    "seeds": {"first": 480, "count": 8}, "rows": "the SAME 16 calibration rows and the SAME batch_seed 45000 as Stage A, so the Langevin noise is identical and fr_uniform's J_KL reproduces",
+    "arms": "abf, fr_uniform (gamma 1.5), ot_<alpha> for the refinement ladder; one batch",
+    "ladder": [0.0030, 0.00325, 0.0035, 0.00375, 0.0040],
+    "dose": "J_KL = int_4^40 KL(p_hat_t^x || U) dt from kl_uniform_t, median over the 16 rows (unchanged)",
+    "rule": "alpha** = argmin over the refinement ladder of |log( median J_KL(ot_alpha) / median J_KL(fr_uniform) )|. Whether |ratio - 1| <= 0.05 is attained is REPORTED, not required; no interpolation; no extension (the ladder already brackets FR on both sides by Stage A).",
+    "blind": "as Stage A: J_KL, D_cond and the event records only; no error metric computed, printed or stored",
+    "outputs": "results/transport_campaign/gateway_horizontal/calibration_refine/{raw.npz, alpha_selection.json, provenance.json}"
+  },
+  "stage_B2_production": {
+    "seeds": {"first": 540, "count": 32},
+    "rows": "32 seeds x {left, one_right} = 64 rows. Fresh labels: gateway trees have consumed 0-15, 100-131, 300-315, 400-415, 480-487, 500-531",
+    "arms": {
+      "abf": "plain ABF",
+      "fr_uniform": "ABF + uniform FR, gamma 1.5",
+      "ot_exact": "ABF + horizontal OT, alpha_max = alpha** (exact dose)",
+      "abf_refresh": "ABF + oracle fibre refresh (CONTROL for the refresh itself)",
+      "fr_uniform_refresh": "ABF + uniform FR + oracle fibre refresh (FR with rejuvenated clones; control)",
+      "ot_exact_refresh": "ABF + horizontal OT at alpha** + oracle fibre refresh (THE INTERVENTION)",
+      "ot_full_refresh": "ABF + full horizontal OT (alpha 1) + oracle fibre refresh (the pinned stratified sampler with exact fibres: the H5 test)"
+    },
+    "batching": "all seven arms in ONE batch per chunk of 32 rows (batch_seed 61000 + row offset): shared initial conditions, Langevin noise and refresh draws; FR draws depend on the batch's row count as always",
+    "records": "as Stage B (profiles, raw accumulators, D_cond, D_move / |dx| for OT arms); frozen-bias stage inherited on every arm",
+    "readouts": {"primary": 0.0175, "sensitivity": [0.07, 0.0]},
+    "outputs": "results/transport_campaign/gateway_horizontal/production_refresh/{raw.npz, provenance.json, analysis.json, comparison.csv, figures/}"
+  },
+  "contrasts": {
+    "statistic": "per-row relative change of I_F at h_read* (co-primary e_F(T)); cluster bootstrap by seed, 10000 resamples, seed 20260903; 95% CI decision, 90% CI TOST; per-init reported",
+    "P1_exact_dose_replication": "ot_exact vs fr_uniform -- the closed campaign's primary at exact dose; decision OT_better / FR_better / equivalent / INCONCLUSIVE as frozen there",
+    "P2_repair": "ot_exact_refresh vs ot_exact -- REPAIRED if median <= -10% AND CI95 upper < 0",
+    "C1_refresh_control": "abf_refresh vs abf -- what the oracle refresh does on its own (verdict rule: SAFE_ACCELERATOR / ACCELERATION_POSITIVE / NEGATIVE / NEUTRAL)",
+    "C2_fr_refresh_control": "fr_uniform_refresh vs fr_uniform",
+    "A1_transport_at_exact_fibres": "ot_exact_refresh vs abf_refresh -- does moving walkers help once every fibre is exact? verdict rule",
+    "A2_ot_vs_fr_at_exact_fibres": "ot_exact_refresh vs fr_uniform_refresh -- decision rule (OT_better / FR_better / equivalent / INCONCLUSIVE)",
+    "A3_full_ot_at_exact_fibres": "ot_full_refresh vs abf_refresh -- verdict rule (the H5 test)",
+    "A4_full_ot_vs_fr_at_exact_fibres": "ot_full_refresh vs fr_uniform_refresh -- decision rule",
+    "vs_abf": "every arm vs abf, verdict rule; fr_uniform vs abf must replicate (CI95 upper < 0) or the block is a FAILED REPLICATION and everything else is descriptive",
+    "mechanism": "per arm, medians: J_KL, int D_cond dt, left-flank (-0.3 < x < -0.05) signed F' error at T, barrier error F(0) - F(-1) in kT at T, genealogy (FR arms), D_move / |dx| (OT arms); frozen-bias endpoint; I_F'; read-out sensitivity (0.07, raw)"
+  },
+  "outcomes_frozen": {
+    "R1_repaired": "P2 REPAIRED AND A1 not NEGATIVE. The fibre carry-over is what broke transport. R1a if A2 is OT_better or equivalent (transport + exact conditional is competitive with FR; the WCA molecular version with solvent relaxation becomes worth building); R1b if A2 is FR_better (repaired, still inferior: FR's advantage is not only the fibre).",
+    "R2_not_repaired": "P2 not REPAIRED. The wrong-fibre explanation is incomplete; do not make the mechanism claim; revisit before touching WCA.",
+    "R3_partial": "P2 REPAIRED but A1 NEGATIVE. The carry-over is part of the mechanism but transport still hurts at exact fibres; the residual is a marginal / dynamics effect, not a fibre effect.",
+    "H5_refresh": "orthogonal: A3 SAFE_ACCELERATOR or ACCELERATION_POSITIVE -> the pinned stratified sampler works once the fibres are exact (the closed campaign's scar reading holds).",
+    "P1_note": "P1 is reported alongside; FR_better = H1 replicates at exact dose; anything else is reported as a dose-sensitivity finding, with the closed campaign's H1 (dose 1.41) standing as measured.",
+    "INCONCLUSIVE": "P2 CI95 spans 0 with |median| < 10% -> reported as such, no re-run"
+  },
+  "prediction_recorded_now": "alpha** ~ 0.0035 (log-linear interpolation of Stage A), ratio within 5%. P1: FR_better again, Delta in [+40, +70]. C1: the refresh alone helps ABF materially (its own +0.03 entering-flank bias is a conditional-lag effect): abf_refresh vs abf in [-40, -15], SAFE. P2: REPAIRED, large (ot_exact_refresh vs ot_exact <= -30%). A1: ot_exact_refresh vs abf_refresh a modest accelerator or neutral ([-25, +5]); A2: FR_better or equivalent, not OT_better. A3 (H5 test): ot_full_refresh vs abf_refresh strongly better (<= -40%), SAFE -- the scar was the whole damage; A4: ot_full_refresh competitive with fr_uniform_refresh (equivalent or OT_better). Outcome: R1b, with H5_refresh true.",
+  "compute": "Stage A2: 16 rows x 7 arms = 112 rows (~80 s). Stage B2: 2 chunks x (32 x 7 = 224 rows) (~4 min each) + frozen bias 448 rows (~40 s). GPU 3 ONLY.",
+  "prohibited": [
+    "everything prohibited by the first prereg (baseline, reference, h_read*, error-blind calibration, label reuse)",
+    "choosing alpha** by any error metric; running the refinement on production labels",
+    "printing, storing or reading ANY F, F' or frozen-bias error before the committed analyzer runs on the complete 64-row block",
+    "reusing 0-15, 100-131, 300-315, 400-415, 480-487, 500-531 in production",
+    "adding or dropping arms after this file is committed; editing this file after Stage A2 starts (alpha** lives in calibration_refine/alpha_selection.json)"
+  ]
+}
