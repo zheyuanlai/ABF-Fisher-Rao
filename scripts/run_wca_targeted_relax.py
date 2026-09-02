@@ -110,7 +110,7 @@ def run_block(stage_name, out_stage, seeds, arms, base, relax_of, sensitivity_re
             if m != "abf":
                 info += f" repl={out['total_replacement_events']} essW={float(out['min_ancestor_ess_window']) / N_REPLICAS:.3f} wmax={float(out['max_ancestor_frac_over_time']):.3f}"
             if "relax_steps_total" in out:
-                info += (f" inner={int(out['relax_steps_total'])} ({float(out['relax_cost_ratio']):.3f}x) active={float(np.mean(out['relax_active_frac'][8:])):.3f}"
+                info += (f" inner={int(out['relax_steps_total'])} ({float(out['relax_cost_ratio']):.3f}x) active={float(np.mean(out['relax_active_frac'][len(out['relax_active_frac']) // 2:])):.3f}"
                          f" innerwall={float(out['relax_inner_wall_seconds']):.0f}s")
             print(f"  [{done}/{total}] {name:>14s} seed{sd}: saved{info} ({time.time() - t0:.0f}s)", flush=True)
     return raw_dir, time.time() - t_start, done
