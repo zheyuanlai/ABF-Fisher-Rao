@@ -147,3 +147,11 @@ the MBAR reference's own grid-scale roughness (RMS |∇(F_ref − K F_ref)| = 7.
 estimate can match; the residual after kernel matching is 1.6. Pre-fix analyses are kept in
 `analysis_pre_kmfix_20260902/`. The convergence-atlas alanine panel and the closure inventory still
 carry the pre-fix km numbers and need regenerating from the repaired decision files.
+
+### 3a. Settled the same day (2026-09-02)
+
+The proposed corrected-read-out replication was preregistered and run ([GATEWAY_CORRECTED_BASELINE.md](GATEWAY_CORRECTED_BASELINE.md)):
+step 1 found the legacy read-out 3.8× MSE off the plateau (h_read\* = 0.0175) and a sharper online bias
+harmful (outcome C); step 2 on 32 fresh pairs gave **−31.90 % / −59.38 %, 32/32, ratio never crossing 1**
+at the corrected read-out while the same trajectories reproduce the closed +9.3 % reversal at the legacy
+read-out. The re-score's prediction (−31 % / −55 %) was confirmed by a preregistered run.

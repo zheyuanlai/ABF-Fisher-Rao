@@ -1,0 +1,39 @@
+{
+  "script": "run_gateway_corrected_confirmation.py",
+  "git_rev": "e33500026e8157c51d9d62afc89c4e98da8c66de",
+  "host": "atlas",
+  "cuda_visible_devices": "3",
+  "device": "NVIDIA H200 NVL",
+  "prereg": "configs/information_campaign/gateway_corrected_confirmation_prereg.json",
+  "step1": "results/information_campaign/gateway_baseline_audit/analysis.json",
+  "h_bias": 0.07,
+  "h_read_star": 0.0175,
+  "rate_selection": {
+    "mode": "inherited",
+    "gamma": 1.5
+  },
+  "seeds": [
+    400,
+    401,
+    402,
+    403,
+    404,
+    405,
+    406,
+    407,
+    408,
+    409,
+    410,
+    411,
+    412,
+    413,
+    414,
+    415
+  ],
+  "inits": [
+    "left",
+    "one_right"
+  ],
+  "wall_seconds": 152.28014874458313,
+  "n_runs": 64
+}

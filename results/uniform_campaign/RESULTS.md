@@ -41,6 +41,16 @@ convention (persist 0.2·T; thresholds e0/2, e0/4, e0/8, ABF's own final error).
 
 Artifacts: `gateway/summary.json`, `gateway/comparison.csv`, `gateway/figures/`.
 
+**Corrected-baseline replication (2026-09-02, docs/GATEWAY_CORRECTED_BASELINE.md).**
+The legacy `h = 0.07` read-out carried a 3.8x-MSE deterministic kernel bias (step 1,
+frozen plateau rule -> h_read* = 0.0175; sharper ONLINE bias hurts, so h_bias stays
+0.07). On 32 fresh pairs scored at the corrected read-out, uniform-FR is
+**-31.90% [-34.73, -29.28] integrated and -59.38% [-63.76, -56.73] at the end, 32/32**,
+error ratio flat at 0.4 and never crossing 1 (SAFE_ACCELERATOR, tau(ABF final) 3.51x);
+the SAME trajectories read out at the legacy bandwidth reproduce the closed signature
+(-10.14% / +9.28%, crossing at t~17-20). The late reversal above was the read-out's,
+not the dynamics'. The frozen-bias endpoint agrees in direction (-14.45% [-18.67, -4.13]).
+
 ## WCA Case IX (stage 2) — the headline: persistent acceleration, better than EMA
 
 - Fresh abf and fr_uniform per seed in one process, corrected TI reference
