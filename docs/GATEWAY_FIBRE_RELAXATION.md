@@ -5,6 +5,7 @@ C2 primary **SAFE_ACCELERATOR** (transport vs ABF at matched fibre treatment), f
 **Prereg:** [`gateway_fibre_relax_prereg.json`](../configs/transport_campaign/gateway_fibre_relax_prereg.json) (commit 7c11fe1; c\* and h_read\*\* frozen at bcdb395).
 **Data:** `results/transport_campaign/gateway_horizontal/{relax_C1, relax_C2}/`. **Parents:** [GATEWAY_HORIZONTAL_TRANSPORT.md](GATEWAY_HORIZONTAL_TRANSPORT.md), [GATEWAY_TRANSPORT_REFRESH.md](GATEWAY_TRANSPORT_REFRESH.md).
 **GPU:** 3 only; C1 275 s, C2 474 s. **This is a mechanism / relaxation-timescale experiment, not a compute-efficiency result.**
+**Fourth stage CLOSED the same day** ([GATEWAY_TARGETED_RELAXATION.md](GATEWAY_TARGETED_RELAXATION.md)): an online sensitivity field plus a budgeted water-filling rule puts 97–99 % of the relaxation on the flank at 1× cost; transport vs ABF at matched treatment −15 % (frozen gate met), but FR + the same targeted relaxation is the strongest and cheapest arm of the series (−48.6 % / −84.9 % vs ABF), so the WCA recommendation is FR + targeted solvent relaxation, not transport.
 
 ## The operator
 
