@@ -4,6 +4,7 @@
 **Prereg:** [`gateway_transport_refresh_prereg.json`](../configs/transport_campaign/gateway_transport_refresh_prereg.json) (commit a7e6fa8; alpha\*\* frozen at bb717d2).
 **Data:** `results/transport_campaign/gateway_horizontal/{calibration_refine, production_refresh}/` (analysis.json, comparison.csv, figures/).
 **Parent:** [GATEWAY_HORIZONTAL_TRANSPORT.md](GATEWAY_HORIZONTAL_TRANSPORT.md) (H1: FR beats horizontal OT by +65 % at dose 1.41).
+**Next stage CLOSED the same day** ([GATEWAY_FIBRE_RELAXATION.md](GATEWAY_FIBRE_RELAXATION.md)): the non-oracle constrained-OU relaxation at c = 0.5 recovers 96 % of the oracle's benefit; transport beats ABF at matched fibre treatment (−34 %), transport vs FR inconclusive at c = 0.5; all-walker relaxation costs 106× (not deployable as implemented).
 **GPU:** 3 only; Stage A2 92 s, Stage B2 228 s.
 
 ## The two questions
