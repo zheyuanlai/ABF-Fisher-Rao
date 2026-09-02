@@ -118,20 +118,30 @@ def stage_w0(a):
     stab_frac = float(np.mean([r["stable"] and r["resolved"] for r in mass_sites]))
     passed_v = bool(rho_s >= 0.6 and sep)
     passed_tau = bool(stab_frac > 0.5)
+    vh_all = np.array([r["v_hat"] for r in rows]); vc_all = np.array([r["v_constr"] for r in rows]); ratio = vh_all / vc_all
+    pearson = float(np.corrcoef(vh_all, vc_all)[0, 1]); ratio_cv = float(ratio.std() / ratio.mean())
     print(f"\n  Spearman(v_hat, v_constr) = {rho_s:.3f} (>= 0.6 required); top-half sites above both controls: {sep}")
     print(f"  tau stable & resolved on the sensitivity-carrying sites: {stab_frac:.2f} (> 0.5 required)")
-    outcome = "W0_PASS" if (passed_v and passed_tau) else ("SENSITIVITY_INVALID" if not passed_v else "TAU_MAP_UNRESOLVED")
-    print(f"  W0 outcome: {outcome}")
+    print(f"  value-based (amendment A1): Pearson {pearson:.3f} (>= 0.6), ratio v_hat/v_constr {ratio.mean():.3f} CV {ratio_cv:.3f} (<= 0.25)")
+    frozen_outcome = "W0_PASS" if (passed_v and passed_tau) else ("SENSITIVITY_INVALID" if not passed_v else "TAU_MAP_UNRESOLVED")
+    outcome = frozen_outcome
+    if a.amendment == "A1":
+        passed_v = bool(pearson >= 0.6 and ratio_cv <= 0.25)
+        outcome = "W0_PASS_A1" if (passed_v and passed_tau) else ("SENSITIVITY_INVALID_A1" if not passed_v else "TAU_MAP_UNRESOLVED")
+    print(f"  W0 outcome: {outcome}" + (f"  (frozen gate: {frozen_outcome}; amendment A1 applied)" if a.amendment else ""))
     # tau map on the sim grid: linear between sites (sorted by z), nearest-endpoint outside, floor/cap
     good = sorted([r for r in rows if np.isfinite(r["tau_f"]) and r["tau_f"] > 0], key=lambda r: r["z"])
     zs = np.array([r["z"] for r in good]); ts = np.array([r["tau_f"] for r in good])
     tau_grid = np.clip(np.interp(grid, zs, ts), TAU_FLOOR, TAU_CAP)
     h = hashlib.sha256(tau_grid.astype(np.float64).tobytes()).hexdigest()
-    json.dump(dict(passed=bool(outcome == "W0_PASS"), outcome=outcome, tau_grid=tau_grid.tolist(), grid=grid.tolist(), sha256=h,
-                   floor=TAU_FLOOR, cap=TAU_CAP, sites=rows, spearman=rho_s, controls_separated=bool(sep), tau_stability_fraction=stab_frac,
-                   rule="linear in z between sites, nearest-endpoint outside, floor 0.02, cap 20"),
+    json.dump(dict(passed=bool(outcome in ("W0_PASS", "W0_PASS_A1")), outcome=outcome, frozen_outcome=frozen_outcome,
+                   amendment=(a.amendment or None), tau_grid=tau_grid.tolist(), grid=grid.tolist(), sha256=h,
+                   floor=TAU_FLOOR, cap=TAU_CAP, floor_binds_everywhere=bool(np.all(ts < TAU_FLOOR)), sites=rows, spearman=rho_s,
+                   pearson=pearson, ratio_mean=float(ratio.mean()), ratio_cv=ratio_cv, controls_separated=bool(sep),
+                   tau_stability_fraction=stab_frac, rule="linear in z between sites, nearest-endpoint outside, floor 0.02, cap 20"),
               open(os.path.join(d0, "tau_map.json"), "w"), indent=2, default=float)
-    json.dump(dict(outcome=outcome, spearman=rho_s, sep=bool(sep), stability_fraction=stab_frac, sites=rows, tau_map_sha256=h),
+    json.dump(dict(outcome=outcome, frozen_outcome=frozen_outcome, amendment=(a.amendment or None), spearman=rho_s, pearson=pearson,
+                   ratio_mean=float(ratio.mean()), ratio_cv=ratio_cv, sep=bool(sep), stability_fraction=stab_frac, sites=rows, tau_map_sha256=h),
               open(os.path.join(d0, "analysis.json"), "w"), indent=2, default=float)
     if not a.no_figures:
         try:
@@ -386,6 +396,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--stage", choices=["W0", "W1", "W2"], required=True)
     ap.add_argument("--no-figures", action="store_true")
+    ap.add_argument("--amendment", default=None, choices=[None, "A1"], help="W0 only: apply the recorded post-hoc validity amendment")
     a = ap.parse_args()
     {"W0": stage_w0, "W1": stage_w1, "W2": stage_w2}[a.stage](a)
 

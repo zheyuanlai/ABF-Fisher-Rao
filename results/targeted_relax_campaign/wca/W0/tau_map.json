@@ -1,6 +1,8 @@
 {
-  "passed": false,
-  "outcome": "SENSITIVITY_INVALID",
+  "passed": true,
+  "outcome": "W0_PASS_A1",
+  "frozen_outcome": "SENSITIVITY_INVALID",
+  "amendment": "A1",
   "tau_grid": [
     0.02,
     0.02,
@@ -328,6 +330,7 @@
   "sha256": "b0330eb3250a48f1e13cb96d4608f8ebaa1f4763073c3af939460994199c745d",
   "floor": 0.02,
   "cap": 20.0,
+  "floor_binds_everywhere": true,
   "sites": [
     {
       "z": 0.01193023631394116,
@@ -547,6 +550,9 @@
     }
   ],
   "spearman": 0.4545454545454546,
+  "pearson": 0.9702923606971847,
+  "ratio_mean": 1.6703143823675901,
+  "ratio_cv": 0.058911784934699625,
   "controls_separated": false,
   "tau_stability_fraction": 1.0,
   "rule": "linear in z between sites, nearest-endpoint outside, floor 0.02, cap 20"

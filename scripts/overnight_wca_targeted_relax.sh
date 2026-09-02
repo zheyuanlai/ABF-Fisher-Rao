@@ -6,6 +6,7 @@
 # Detach with:  setsid nohup bash scripts/overnight_wca_targeted_relax.sh > results/targeted_relax_campaign/wca/overnight.log 2>&1 < /dev/null &
 set -u
 cd "$(dirname "$0")/.."
+START=${1:-W0}      # W0 (default) runs everything; W1 skips the W0 stages (used after amendment A1)
 export CUDA_VISIBLE_DEVICES=3 PYTHONPATH=src:scripts
 W=results/targeted_relax_campaign/wca
 stamp() { date -u +"%Y-%m-%dT%H:%M:%SZ"; }
@@ -13,6 +14,7 @@ commit() { git add "$@" >/dev/null 2>&1; git commit -q -m "$COMMIT_MSG
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>" && echo "[$(stamp)] committed: $(git log --oneline -1)"; }
 
+if [ "$START" = "W0" ]; then
 echo "[$(stamp)] === W0-A: instrument runs (completed runs are skipped) ==="
 mkdir -p $W/W0 $W/W1
 python -u scripts/run_wca_targeted_relax.py --stage W0A > $W/W0/run_W0A.log 2>&1 || { echo "[$(stamp)] W0-A FAILED"; exit 1; }
@@ -32,6 +34,7 @@ commit $W/W0/tau_map.json $W/W0/analysis.json $W/W0/selection.json $W/W0/provena
 if ! python -c "import json,sys;sys.exit(0 if json.load(open('$W/W0/tau_map.json'))['passed'] else 1)"; then
   echo "[$(stamp)] STOP at W0 (gate failed). W1 not started."; exit 0
 fi
+fi   # START=W0
 
 echo "[$(stamp)] === W1: cost ladder (seeds 820-823) ==="
 T1=$(date +%s)
