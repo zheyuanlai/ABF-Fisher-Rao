@@ -564,6 +564,10 @@ class RelaxConfig:
     target: str = "sensitivity"         # 'sensitivity' | 'random'
     inner_seed_offset: int = 7_000_000  # inner noise stream: its own generator, never the global one
     min_count: float = 2.0              # bins need C > 1 for a variance
+    # Inner integration scheme (amendment A2): 'frozen' = dimer atoms fixed, solvent moves (W1);
+    # 'projected' = every particle moves and the dimer is re-projected to its z after each step --
+    # the TI reference's own scheme, hence the same discretised stationary law as the reference.
+    scheme: str = "frozen"
 
 
 class SensitivityAccumulator:
@@ -663,7 +667,7 @@ def integer_steps_largest_remainder(t, dt, budget_steps):
 
 
 @torch.inference_mode()
-def frozen_dimer_relax(engine, params, sim, q, m_steps, gen):
+def frozen_dimer_relax(engine, params, sim, q, m_steps, gen, scheme="frozen"):
     """Inner relaxation with the dimer FROZEN: particles 0 and 1 do not move; every solvent
     particle evolves under the full physical potential (including the fixed dimer's forces),
     temperature, time step and periodic box of the outer dynamics.  Replica ``i`` is advanced for
@@ -676,6 +680,7 @@ def frozen_dimer_relax(engine, params, sim, q, m_steps, gen):
     order = torch.argsort(m_steps, descending=True)
     qs = q.index_select(0, order).clone()
     ms = m_steps.index_select(0, order)
+    z_fixed = reaction_coordinate(qs, params) if scheme == "projected" else None
     noise_scale = math.sqrt(2.0 * sim.dt / params.beta)
     kmax = int(ms.max().item()) if ms.numel() else 0
     counts = torch.bincount(ms.clamp(min=0), minlength=kmax + 1)
@@ -690,8 +695,12 @@ def frozen_dimer_relax(engine, params, sim, q, m_steps, gen):
         f = clip_forces(engine.force(qa, compute_energy=False), params.force_clip)
         noise = torch.randn(qa.shape, device=qa.device, dtype=qa.dtype, generator=gen)
         qa_new = qa + sim.dt * f + noise_scale * noise
-        qa_new[:, :2, :] = qa[:, :2, :]                       # dimer frozen exactly
-        qs[:n_act] = wrap_positions(qa_new, params.box_length)
+        if scheme == "projected":
+            # the TI scheme: all particles move, then the dimer is re-projected to its z
+            qs[:n_act] = project_dimer_to_z(wrap_positions(qa_new, params.box_length), z_fixed[:n_act], params)
+        else:
+            qa_new[:, :2, :] = qa[:, :2, :]                   # dimer frozen exactly
+            qs[:n_act] = wrap_positions(qa_new, params.box_length)
         done += n_act
     q_new = torch.empty_like(q)
     q_new[order] = qs
@@ -1257,6 +1266,7 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
     sens = SensitivityAccumulator(grid) if (relax is not None or sensitivity_record) else None
     if relax is not None:
         assert relax.target in ("sensitivity", "random"), relax.target
+        assert relax.scheme in ("frozen", "projected"), relax.scheme
         assert 0.0 <= float(relax.rho) < float("inf")
         tau_grid_t = torch.as_tensor(np.asarray(relax.tau_grid, dtype=np.float64), device=engine.device,
                                      dtype=engine.dtype)
@@ -1606,7 +1616,7 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                     tw = time.perf_counter()
                     idx_act = torch.nonzero(active, as_tuple=False).flatten()
                     q_act, done = frozen_dimer_relax(engine, params, sim, q.index_select(0, idx_act),
-                                                     m_i.index_select(0, idx_act), gen_relax)
+                                                     m_i.index_select(0, idx_act), gen_relax, scheme=relax.scheme)
                     q = q.clone()
                     q[idx_act] = q_act
                     if engine.device.type == "cuda":
@@ -1672,6 +1682,7 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
     if relax is not None:
         diag["relax_rho"] = float(relax.rho)
         diag["relax_target"] = relax.target
+        diag["relax_scheme"] = relax.scheme
         diag["relax_budget_steps_per_opportunity"] = int(relax_budget_steps)
         diag["relax_steps_total"] = int(relax_steps_total)
         diag["relax_cost_ratio"] = relax_steps_total / float(sim.n_replicas * sim.n_steps)

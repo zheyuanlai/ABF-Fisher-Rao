@@ -391,7 +391,7 @@ def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase",
             out[k + "_t"] = np.asarray(diag[k], dtype=np.float64)
     if "final_q" in diag:
         out["final_q"] = np.asarray(diag["final_q"], dtype=np.float32)
-    for k in ("relax_rho", "relax_target", "relax_budget_steps_per_opportunity", "relax_steps_total",
+    for k in ("relax_rho", "relax_target", "relax_scheme", "relax_budget_steps_per_opportunity", "relax_steps_total",
               "relax_cost_ratio", "relax_n_opportunities", "relax_inner_wall_seconds", "relax_budget_hist",
               "relax_steps", "relax_active_frac", "tau_grid"):
         if k in diag:

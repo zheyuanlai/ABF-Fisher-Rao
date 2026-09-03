@@ -191,24 +191,26 @@ def stage_w1(a, pre, base):
     tau, tmap = load_tau_map()
     seeds = parse_seeds(a.seeds) if a.seeds else list(range(pre["seeds"]["W1"][0], pre["seeds"]["W1"][1] + 1))
     assert not (set(seeds) & (TAKEN | set(range(800, 808)) | set(range(900, 916))))
+    tag = "ptarg" if a.scheme == "projected" else "targ"          # amendment A2: the TI-scheme inner step
     arms = [("abf", "abf"), ("fr_uniform", "fr_uniform")]
     for rho in LADDER_RHO:
-        arms += [(f"abf_targ{rho:g}", "abf"), (f"fr_targ{rho:g}", "fr_uniform")]
+        arms += [(f"abf_{tag}{rho:g}", "abf"), (f"fr_{tag}{rho:g}", "fr_uniform")]
 
     def relax_of(name):
         if "targ" not in name:
             return None
         rho = float(name.split("targ")[1])
-        return core.RelaxConfig(rho=rho, tau_grid=tuple(tau.tolist()), target="sensitivity")
-    print(f"W1: {len(arms)} arms x {len(seeds)} seeds ({seeds[0]}-{seeds[-1]}); tau map {tmap['sha256'][:12]}; no error metric printed")
+        return core.RelaxConfig(rho=rho, tau_grid=tuple(tau.tolist()), target="sensitivity", scheme=a.scheme)
+    print(f"W1{'b' if a.scheme == 'projected' else ''}: {len(arms)} arms x {len(seeds)} seeds ({seeds[0]}-{seeds[-1]}); scheme {a.scheme}; tau map {tmap['sha256'][:12]}; no error metric printed")
     if a.dry_run:
         return
     raw_dir, wall, done = run_block("W1", "W1", seeds, arms, base, relax_of, overwrite=a.overwrite, verbose=a.verbose)
     prov = dict(script=os.path.basename(__file__), stage="W1", git_rev=git_rev(), host=socket.gethostname(),
                 cuda_visible_devices=os.environ.get("CUDA_VISIBLE_DEVICES", ""), prereg=os.path.relpath(PREREG, ROOT),
                 seeds=seeds, arms=[n for n, _ in arms], tau_map_sha256=tmap["sha256"], wall_seconds=wall, n_runs=done)
-    json.dump(prov, open(os.path.join(CAMPAIGN, "W1", f"provenance_{seeds[0]}-{seeds[-1]}.json"), "w"), indent=2, default=float)
-    print(f"\ndone W1: {done} runs in {wall / 3600:.2f} h")
+    prov["scheme"] = a.scheme
+    json.dump(prov, open(os.path.join(CAMPAIGN, "W1", f"provenance_{seeds[0]}-{seeds[-1]}{'_projected' if a.scheme == 'projected' else ''}.json"), "w"), indent=2, default=float)
+    print(f"\ndone W1{'b' if a.scheme == 'projected' else ''}: {done} runs in {wall / 3600:.2f} h")
 
 
 def stage_w2(a, pre, base):
@@ -246,6 +248,7 @@ def main():
     ap.add_argument("--seeds", default=None)
     ap.add_argument("--extend", action="store_true", help="W0B: the ONE preregistered 2x extension of n_prod")
     ap.add_argument("--with-abf-rand", action="store_true")
+    ap.add_argument("--scheme", default="frozen", choices=["frozen", "projected"], help="W1 inner scheme (amendment A2 uses 'projected')")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--overwrite", action="store_true")
     ap.add_argument("--verbose", action="store_true")

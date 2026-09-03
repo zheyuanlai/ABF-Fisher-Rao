@@ -87,7 +87,7 @@ def test_targeting_code_has_no_reference_access():
     for forbidden in ("oracle", "reference", "ref[", "F_target_ema", "current_bias_profile", "ancestors", "anc_win",
                       "bias_estimator", "production_estimator", "readout.", "fr_event_counts"):
         assert forbidden not in block, forbidden
-    assert set(wca.RelaxConfig.__dataclass_fields__) == {"rho", "tau_grid", "target", "inner_seed_offset", "min_count"}
+    assert set(wca.RelaxConfig.__dataclass_fields__) == {"rho", "tau_grid", "target", "inner_seed_offset", "min_count", "scheme"}
     for f in (wca.SensitivityAccumulator.update, wca.SensitivityAccumulator.profile, wca.water_filling_durations,
               wca.frozen_dimer_relax):
         assert "oracle" not in inspect.getsource(f) and "reference" not in inspect.getsource(f)
@@ -179,3 +179,25 @@ def test_constrained_force_series_keeps_z_fixed_and_autocorrelation_time_is_reco
         x[:, t] = phi * x[:, t - 1] + e[:, t]
     tau, rho = wca.autocorrelation_time(x, dt=1.0, max_lag=2000)
     assert abs(tau / 50.0 - 1) < 0.15, tau                                          # integral of exp(-k/50) ~ 50
+
+
+# amendment A2: the projected (reference-scheme) inner step keeps z fixed and is a distinct operator
+def test_projected_scheme_keeps_z_fixed_and_differs_from_frozen():
+    params, sim, engine = _tiny()
+    q = wca.lattice_initial_conditions(params, 12, engine.device, engine.dtype, seed=5)
+    m = torch.tensor([0, 300, 300, 5, 0, 2, 7, 1, 4, 0, 300, 2])      # long enough for solvent-dimer contacts to form
+    z0 = wca.reaction_coordinate(q, params)
+    gen = torch.Generator(); gen.manual_seed(3)
+    qp, done_p = wca.frozen_dimer_relax(engine, params, sim, q, m, gen, scheme="projected")
+    gen = torch.Generator(); gen.manual_seed(3)
+    qf, done_f = wca.frozen_dimer_relax(engine, params, sim, q, m, gen, scheme="frozen")
+    assert done_p == done_f == int(m.sum())
+    np.testing.assert_allclose(wca.reaction_coordinate(qp, params).numpy(), z0.numpy(), rtol=0, atol=1e-10)   # z re-projected exactly
+    moved = (qp[:, :2, :] != q[:, :2, :]).any(dim=(1, 2))
+    assert torch.equal(moved, m > 0)                                    # under 'projected' the dimer atoms DO move (only z is held)
+    assert torch.equal(qf[:, :2, :], q[:, :2, :])                       # under 'frozen' they do not
+    long = m >= 300
+    assert not torch.equal(qp[long][:, 2:, :], qf[long][:, 2:, :])      # the two operators are different once contacts form
+    _, sim2, _ = _tiny()
+    d = _run("abf", relax=wca.RelaxConfig(rho=0.5, tau_grid=tuple([0.05] * sim2.n_grid), scheme="projected"))
+    assert d["relax_scheme"] == "projected" and d["relax_steps_total"] > 0

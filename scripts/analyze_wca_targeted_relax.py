@@ -208,7 +208,9 @@ def compute_to(med, caxis, m, eps):
 def stage_w1(a):
     d1 = os.path.join(CAMPAIGN, "W1")
     runs = load_runs(os.path.join(d1, "raw"), "W1")
-    arms = ["abf", "fr_uniform"] + [f"{p}_targ{r:g}" for r in LADDER_RHO for p in ("abf", "fr")]
+    tag = "ptarg" if a.scheme == "projected" else "targ"
+    suffix = "_projected" if a.scheme == "projected" else ""
+    arms = ["abf", "fr_uniform"] + [f"{p}_{tag}{r:g}" for r in LADDER_RHO for p in ("abf", "fr")]
     missing = [m for m in arms if m not in runs]
     assert not missing, f"missing arms {missing}"
     seeds, grid, t, mask, ro = prepare(runs, arms)
@@ -224,7 +226,7 @@ def stage_w1(a):
     res, k = {}, 0
     C_F = compute_to(med, caxis, "fr_uniform", eps_F); C_A = compute_to(med, caxis, "abf", eps_A)
     for rho in LADDER_RHO:
-        F, A = f"fr_targ{rho:g}", f"abf_targ{rho:g}"
+        F, A = f"fr_{tag}{rho:g}", f"abf_{tag}{rho:g}"
         cF = paired(I[F], I[fr := "fr_uniform"], k); cFf = paired(fin[F], fin[fr], k + 1); cA = paired(I[A], I["abf"], k + 2); cAf = paired(fin[A], fin["abf"], k + 3); k += 4
         CF = compute_to(med, caxis, F, eps_F); ratio = CF / C_F if np.isfinite(C_F) and C_F > 0 else float("inf")
         cost = float(np.median([float(runs[F][s]["relax_cost_ratio"]) for s in seeds]))
@@ -243,7 +245,7 @@ def stage_w1(a):
     # mechanism: occupancy, v_hat, budget fraction on the grid (median over seeds; the top rho as the illustration)
     mech = {}
     for rho in LADDER_RHO:
-        F = f"fr_targ{rho:g}"
+        F = f"fr_{tag}{rho:g}"
         hist = np.median([np.asarray(runs[F][s]["relax_budget_hist"], float) for s in seeds], axis=0)
         occ = np.median([np.asarray(runs[F][s]["final_eff_counts"], float) for s in seeds], axis=0)
         vh = np.median([np.asarray(runs[F][s]["final_vhat"], float) for s in seeds], axis=0)
@@ -258,22 +260,23 @@ def stage_w1(a):
                per_rho=res, rho_star=rho_star, licensed=bool(licensed), positive_control=cF0,
                stop=(None if licensed else "NO_COMPUTE_EFFICIENT_FR_RELAXATION"),
                rule="smallest rho <= 1 with median dI_F(F_rho, F) <= -10% and C_{F_rho}(eps_F)/C_F(eps_F) <= 0.8")
-    json.dump(sel, open(os.path.join(d1, "rho_selection.json"), "w"), indent=2, default=float)
-    json.dump(dict(sel, mechanism=mech, grid=grid.tolist(), tau_grid=np.asarray(runs[f"fr_targ{LADDER_RHO[0]:g}"][seeds[0]]["tau_grid"], float).tolist()),
-              open(os.path.join(d1, "analysis.json"), "w"), indent=2, default=float)
+    sel["scheme"] = a.scheme
+    json.dump(sel, open(os.path.join(d1, f"rho_selection{suffix}.json"), "w"), indent=2, default=float)
+    json.dump(dict(sel, mechanism=mech, grid=grid.tolist(), tau_grid=np.asarray(runs[f"fr_{tag}{LADDER_RHO[0]:g}"][seeds[0]]["tau_grid"], float).tolist()),
+              open(os.path.join(d1, f"analysis{suffix}.json"), "w"), indent=2, default=float)
     if not a.no_figures:
-        w1_figs(d1, grid, t, med, caxis, arms, mech, runs, seeds, h2)
-    print(f"  wrote W1/rho_selection.json, analysis.json")
+        w1_figs(d1, grid, t, med, caxis, arms, mech, runs, seeds, h2, suffix)
+    print(f"  wrote W1/rho_selection{suffix}.json, analysis{suffix}.json")
 
 
-def w1_figs(d1, grid, t, med, caxis, arms, mech, runs, seeds, h2):
+def w1_figs(d1, grid, t, med, caxis, arms, mech, runs, seeds, h2, suffix=""):
     try:
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except Exception as e:  # pragma: no cover
         print(f"  (figures skipped: {e})"); return
-    fd = os.path.join(d1, "figures"); os.makedirs(fd, exist_ok=True)
+    fd = os.path.join(d1, "figures" + suffix); os.makedirs(fd, exist_ok=True)
     col = {"abf": "#4d4d4d", "fr_uniform": "#d95f02"}
     ls = {"0.25": ":", "0.5": "-.", "1": "--"}
     fig, axes = plt.subplots(1, 3, figsize=(15, 4))
@@ -397,6 +400,7 @@ def main():
     ap.add_argument("--stage", choices=["W0", "W1", "W2"], required=True)
     ap.add_argument("--no-figures", action="store_true")
     ap.add_argument("--amendment", default=None, choices=[None, "A1"], help="W0 only: apply the recorded post-hoc validity amendment")
+    ap.add_argument("--scheme", default="frozen", choices=["frozen", "projected"], help="W1 only: which inner scheme's arms to analyse (A2 = projected)")
     a = ap.parse_args()
     {"W0": stage_w0, "W1": stage_w1, "W2": stage_w2}[a.stage](a)
 
