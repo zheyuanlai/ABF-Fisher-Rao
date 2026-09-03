@@ -1,6 +1,6 @@
 # WCA Case IX: uniform Fisher–Rao + online sensitivity-targeted constrained solvent relaxation
 
-**Date:** 2026-09-02/03 (overnight). **Status (2026-09-03 05:30 UTC):** W0 CLOSED (frozen gate failed; continued under amendment A1); W1 CLOSED — STOP `NO_COMPUTE_EFFICIENT_FR_RELAXATION` (frozen-dimer operator, an operator-consistency confound); W1b (amendment A2, reference-scheme operator) RUNNING — 23 of 32 runs, two seeds complete, preliminary below; W2 NOT launched. The detached chain will finish W1b, run its analyzer on all four seeds and auto-commit `W1/rho_selection_projected.json` when the shared GPU allows (four other jobs on it since 03:00 UTC). — this file is the morning report and is completed stage by stage by the detached orchestration (`scripts/overnight_wca_targeted_relax.sh`, log `results/targeted_relax_campaign/wca/overnight.log`).
+**Date:** 2026-09-02/03 (overnight). **Status (2026-09-03 05:30 UTC):** W0 CLOSED (frozen gate failed; continued under amendment A1); W1 CLOSED — STOP `NO_COMPUTE_EFFICIENT_FR_RELAXATION` (frozen-dimer operator, an operator-consistency confound); W1b (amendment A2, reference-scheme operator) RUNNING — 26 of 32 runs, three seeds complete, preliminary below; W2 NOT launched. The detached chain will finish W1b, run its analyzer on all four seeds and auto-commit `W1/rho_selection_projected.json` when the shared GPU allows (four other jobs on it since 03:00 UTC). — this file is the morning report and is completed stage by stage by the detached orchestration (`scripts/overnight_wca_targeted_relax.sh`, log `results/targeted_relax_campaign/wca/overnight.log`).
 **Prereg:** [`wca_fr_targeted_relax_prereg.json`](../configs/targeted_relax_campaign/wca_fr_targeted_relax_prereg.json) (frozen at 199ef32 before any run; analyzer at 4c34b8c; orchestration at ca36c32).
 **Parents:** the four gateway stages ([GATEWAY_TARGETED_RELAXATION.md](GATEWAY_TARGETED_RELAXATION.md) and its parents): the fibre, not the marginal, is the ingredient; targeted relaxation at 1× cost; FR is the allocator to pair it with. **No transport is implemented.**
 **GPU:** 3 only, shared with another user's jobs throughout.
@@ -97,23 +97,23 @@ discretisation, so all *relative* comparisons in the project stand; but the refe
 depth) from the continuum in the compact region, and any operator with a different discretisation must be validated
 against the reference's scheme before it is used (this stage's lesson).
 
-## Stage W1b — the ladder with the reference-consistent operator (amendment A2; PRELIMINARY, 2 of 4 seeds)
+## Stage W1b — the ladder with the reference-consistent operator (amendment A2; PRELIMINARY, 3 of 4 seeds)
 
 Arms `abf_ptarg{ρ}` / `fr_ptarg{ρ}` (inner step = the TI scheme: all particles move, dimer re-projected to its z),
-same seeds, τ map, budget and rules, paired against the W1 `abf` / `fr_uniform` runs. Two seeds (820, 821) complete
-at 05:30 UTC; the chain is finishing seeds 822–823 under heavy GPU contention (~50 min per run).
+same seeds, τ map, budget and rules, paired against the W1 `abf` / `fr_uniform` runs. Seeds 820–822 complete at
+06:20 UTC; the chain is finishing seed 823 under heavy GPU contention. h_read\*\* = 0.00625 by the intersection rule.
 
 | ρ | F_ρ vs F, ΔI_F | Δe_F(T) | A_ρ vs A, ΔI_F | Δe_F(T) | actual cost | C(ε_F) ratio |
 |---|---|---|---|---|---|---|
-| 0.25 | +10.5 % [+9.1, +12.0], 0/2 | +8.7 % | +9.7 % | +8.2 % | 0.208× | ∞ |
-| 0.5 | −1.3 % [−4.3, +1.7], 1/2 | −9.8 % | +0.7 % | −13.5 % | 0.417× | 1.00 |
-| 1 | **−9.4 % [−13.9, −4.9], 2/2** | **−37.4 %** | **−13.8 % [−15.6, −12.0], 2/2** | **−37.0 %** | 0.833× | **0.77** |
+| 0.25 | +12.0 % [+9.1, +19.1], 0/3 | +13.8 % | +9.5 % [+8.4, +9.8], 0/3 | +11.3 % | 0.208× | inf |
+| 0.5 | -1.9 % [-4.3, +1.7], 2/3 | -12.0 % | +6.8 % [-8.4, +9.7], 1/3 | -10.6 % | 0.417× | 1.01 |
+| 1 | -5.1 % [-13.9, -4.9], 3/3 | -40.1 % | -15.6 % [-16.8, -12.0], 3/3 | -33.5 % | 0.833× | 0.75 |
 
-Positive control F vs A −15.4 %, 2/2. Final errors at h_read\*\* = 0.00625: abf 0.0892, fr 0.0507, abf_ptarg1 0.0561,
-**fr_ptarg1 0.0316**. The frozen-operator harm is gone; the improvement grows with ρ and is larger at the end than
-integrated (the endpoint carries a conditional-lag bias that relaxation removes), exactly the shape the handoff's P4
-anticipated. The frozen ρ\* rule is missed at ρ = 1 by 0.6 points on the integrated margin with two seeds
-(`W1/rho_selection_projected_prelim.json`); the four-seed decision is the chain's.
+Positive control F vs A -17.1 % [-19.2, -13.8], 3/3. The frozen-operator harm is gone; the improvement grows
+with ρ and is larger at the end than integrated (an endpoint conditional-lag bias that relaxation removes), the shape
+the handoff's P4 anticipated. Frozen ρ\* rule on three seeds: not yet met (rho* None)
+(`W1/rho_selection_projected_prelim3.json`); the four-seed decision is the chain's and will be auto-committed as
+`W1/rho_selection_projected.json`.
 
 ## Stage W2 — fresh confirmation
 
