@@ -1,6 +1,6 @@
 # WCA Case IX: uniform Fisher–Rao + online sensitivity-targeted constrained solvent relaxation
 
-**Date:** 2026-09-02/03 (overnight). **Status:** W0 CLOSED (frozen gate failed; continued under amendment A1); W1 CLOSED — STOP `NO_COMPUTE_EFFICIENT_FR_RELAXATION` (frozen-dimer operator); W1b (amendment A2, reference-scheme operator) IN PROGRESS; W2 NOT launched — this file is the morning report and is completed stage by stage by the detached orchestration (`scripts/overnight_wca_targeted_relax.sh`, log `results/targeted_relax_campaign/wca/overnight.log`).
+**Date:** 2026-09-02/03 (overnight). **Status (2026-09-03 05:30 UTC):** W0 CLOSED (frozen gate failed; continued under amendment A1); W1 CLOSED — STOP `NO_COMPUTE_EFFICIENT_FR_RELAXATION` (frozen-dimer operator, an operator-consistency confound); W1b (amendment A2, reference-scheme operator) RUNNING — 23 of 32 runs, two seeds complete, preliminary below; W2 NOT launched. The detached chain will finish W1b, run its analyzer on all four seeds and auto-commit `W1/rho_selection_projected.json` when the shared GPU allows (four other jobs on it since 03:00 UTC). — this file is the morning report and is completed stage by stage by the detached orchestration (`scripts/overnight_wca_targeted_relax.sh`, log `results/targeted_relax_campaign/wca/overnight.log`).
 **Prereg:** [`wca_fr_targeted_relax_prereg.json`](../configs/targeted_relax_campaign/wca_fr_targeted_relax_prereg.json) (frozen at 199ef32 before any run; analyzer at 4c34b8c; orchestration at ca36c32).
 **Parents:** the four gateway stages ([GATEWAY_TARGETED_RELAXATION.md](GATEWAY_TARGETED_RELAXATION.md) and its parents): the fibre, not the marginal, is the ingredient; targeted relaxation at 1× cost; FR is the allocator to pair it with. **No transport is implemented.**
 **GPU:** 3 only, shared with another user's jobs throughout.
@@ -23,11 +23,11 @@ the same durations across replicas. Full compute accounting: `C(t) = N·step + �
 3. **What is the measured τ_f(z)?** — 0.0064–0.0115 time units, i.e. 3–6 outer steps, at every site (replica-halves and time-halves agree within 10 %; the ACF has a weak positive tail out to 0.3–0.7 time units that the integral already includes; block-mean variances are 3–6× the i.i.d. value, consistent). The solvent force on the dimer decorrelates within one FR interval (5 steps). Every measured τ_f lies below the frozen floor of 0.02, so the frozen τ map is effectively flat at 10 dt.
 4. **Where did the water-filling policy spend its compute?** — Almost uniformly, as the flat field dictates: 79–100 % of the replicas were relaxed at every opportunity (ρ 0.25 → 1), and 80 % of the budget fell on 49–63 % of the grid against 75 % for the occupancy — a mild concentration toward the low-τ, higher-v̂ sites, nothing like the gateway's flank. Budget spent exactly as specified (0.208×, 0.417×, 0.833× of the outer force evaluations, relaxation starting at step 20000).
 5. **Which ρ passed, if any?** — None. With the frozen-dimer operator every relaxed arm is *worse* than its unrelaxed partner, monotonically in ρ (table below), and none reaches plain FR's final accuracy at any compute. STOP by the frozen rule; W2 was not launched. The post-hoc diagnostic (below) shows this is an operator-consistency confound, and W1b re-runs the ladder with the reference's own integration scheme.
-6. **Does FR + targeted relaxation beat plain FR?** — *pending W2*
-7. **Does it beat cost-matched random relaxation?** — *pending W2*
-8. **Does it remain faster on total force evaluations?** — *pending W2*
-9. **Does the known FR-vs-ABF positive reproduce?** — *pending W2*
-10. **Final verdict** — *pending*
+6. **Does FR + targeted relaxation beat plain FR?** — With the frozen-dimer operator (W1, 4 seeds): no, it is worse at every ρ (+13 / +15 / +31 % integrated, 0/4). With the reference-consistent operator (W1b preliminary, 2 complete seeds): at ρ = 1 yes — F_1 vs F −9.4 % [−13.9, −4.9] integrated (2/2) and **−37 % at the end**; ρ = 0.5 neutral (−1.3 % / −9.8 %); ρ = 0.25 worse (+10.5 %). The frozen ρ\* rule (≤ −10 % integrated AND compute ratio ≤ 0.8) is missed at ρ = 1 by 0.6 points on the integrated margin with two seeds; the full four-seed W1b decides it.
+7. **Does it beat cost-matched random relaxation?** — Not tested: W2 was not licensed. With a flat sensitivity field (W0) the budget is spread over 79–100 % of the replicas at every ρ, so the targeting is close to uniform relaxation by construction; F_rand ≈ F_R is the expectation and the W2 control would most likely return TARGETING_NOT_SPECIFIC even where relaxation helps.
+8. **Does it remain faster on total force evaluations?** — Frozen-dimer operator: never (no relaxed arm reaches plain FR's final accuracy). Reference-consistent operator, ρ = 1, preliminary: **yes at the plain-FR final threshold**, C_{F_1}(ε_F)/C_F(ε_F) = 0.77 with every inner force evaluation charged; at ρ = 0.5 the ratio is 1.00 and at ρ = 0.25 relaxation never reaches it.
+9. **Does the known FR-vs-ABF positive reproduce?** — Yes: F vs A −18.1 % [−20.8, −13.8] integrated, 4/4 (W1, h_read\*\* 0.00625), against the accepted −18.3 % on seeds 700–715.
+10. **Final verdict** — *By the frozen rules:* STOP at W1 (`NO_COMPUTE_EFFICIENT_FR_RELAXATION`); W2 not run; nothing goes into the paper as a positive. *What the night established:* (i) the online conditional-force-variance field is valid on WCA but nearly flat, and the solvent force decorrelates within one FR interval, so the gateway's *localised slow fibre* does not exist here and targeting cannot earn credit; (ii) the frozen-dimer relaxation operator is inconsistent with the dt = 2e-3 discretisation shared by the reference and the outer dynamics, which is why it "hurt" — a lesson that generalises (validate any constrained/inner operator against the reference's own scheme first); (iii) the accepted WCA reference carries an O(dt) bias of order 3 in the compact mean force (≈ 0.6 kT in well depth), shared by every arm, which the paper must state; (iv) with the consistent operator, *untargeted-in-effect* solvent relaxation at ρ = 1 reduces the endpoint error of both ABF and FR by ~37 % on two seeds and reaches FR's accuracy at 0.77× its compute — evidence that the WCA endpoint error does contain a conditional-lag (solvent-shell) bias, the ACF's weak long tail rather than its 5-step core. Recommendation: let W1b finish (it decides ρ\* on the frozen rule); if ρ = 1 passes, a W2 with F_rand is the next block — but its likely label is TARGETING_NOT_SPECIFIC, and the deployable method on WCA would then be "FR + uniform solvent relaxation at ρ ≈ 1", not the sensitivity-targeted one. Do not carry the frozen-dimer result forward as a negative about relaxation; carry it as a negative about operator inconsistency.
 
 ## Stage W0 — sensitivity and timescale maps
 
@@ -97,9 +97,30 @@ discretisation, so all *relative* comparisons in the project stand; but the refe
 depth) from the continuum in the compact region, and any operator with a different discretisation must be validated
 against the reference's scheme before it is used (this stage's lesson).
 
+## Stage W1b — the ladder with the reference-consistent operator (amendment A2; PRELIMINARY, 2 of 4 seeds)
+
+Arms `abf_ptarg{ρ}` / `fr_ptarg{ρ}` (inner step = the TI scheme: all particles move, dimer re-projected to its z),
+same seeds, τ map, budget and rules, paired against the W1 `abf` / `fr_uniform` runs. Two seeds (820, 821) complete
+at 05:30 UTC; the chain is finishing seeds 822–823 under heavy GPU contention (~50 min per run).
+
+| ρ | F_ρ vs F, ΔI_F | Δe_F(T) | A_ρ vs A, ΔI_F | Δe_F(T) | actual cost | C(ε_F) ratio |
+|---|---|---|---|---|---|---|
+| 0.25 | +10.5 % [+9.1, +12.0], 0/2 | +8.7 % | +9.7 % | +8.2 % | 0.208× | ∞ |
+| 0.5 | −1.3 % [−4.3, +1.7], 1/2 | −9.8 % | +0.7 % | −13.5 % | 0.417× | 1.00 |
+| 1 | **−9.4 % [−13.9, −4.9], 2/2** | **−37.4 %** | **−13.8 % [−15.6, −12.0], 2/2** | **−37.0 %** | 0.833× | **0.77** |
+
+Positive control F vs A −15.4 %, 2/2. Final errors at h_read\*\* = 0.00625: abf 0.0892, fr 0.0507, abf_ptarg1 0.0561,
+**fr_ptarg1 0.0316**. The frozen-operator harm is gone; the improvement grows with ρ and is larger at the end than
+integrated (the endpoint carries a conditional-lag bias that relaxation removes), exactly the shape the handoff's P4
+anticipated. The frozen ρ\* rule is missed at ρ = 1 by 0.6 points on the integrated margin with two seeds
+(`W1/rho_selection_projected_prelim.json`); the four-seed decision is the chain's.
+
 ## Stage W2 — fresh confirmation
 
-*pending*
+Not launched (W1 STOP by the frozen rule). If the four-seed W1b licenses ρ = 1, W2 (A, F, A_R, F_R, F_rand on seeds
+900–915) is the next block; on a flat sensitivity field its targeting control is expected to return
+TARGETING_NOT_SPECIFIC, which would make the deployable WCA method "FR + solvent relaxation at ρ ≈ 1" rather than the
+targeted one.
 
 ## Sequencing note
 
