@@ -1,0 +1,28 @@
+{
+  "script": "run_wca_targeted_relax.py",
+  "stage": "W1",
+  "git_rev": "3e40ca9c8e7ae1077a6baf1412853434551b8365",
+  "host": "atlas",
+  "cuda_visible_devices": "3",
+  "prereg": "configs/targeted_relax_campaign/wca_fr_targeted_relax_prereg.json",
+  "seeds": [
+    820,
+    821,
+    822,
+    823
+  ],
+  "arms": [
+    "abf",
+    "fr_uniform",
+    "abf_ptarg0.25",
+    "fr_ptarg0.25",
+    "abf_ptarg0.5",
+    "fr_ptarg0.5",
+    "abf_ptarg1",
+    "fr_ptarg1"
+  ],
+  "tau_map_sha256": "b0330eb3250a48f1e13cb96d4608f8ebaa1f4763073c3af939460994199c745d",
+  "wall_seconds": 31824.55426311493,
+  "n_runs": 32,
+  "scheme": "projected"
+}
