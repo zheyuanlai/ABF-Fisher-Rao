@@ -159,6 +159,13 @@ AND CI95 upper < 0; **safe** if additionally the median final change ≤ +5 %; *
 if |median ΔI_F| < 10 % and the final change within ±5 %; **harmful** if CI95 lower > 0
 on I_F or the final change > +5 % with CI excluding 0.
 
+*Amendment A1 (2026-09-04 12:50 UTC, before any new arm had finished; found while
+validating the analysis script on the CLOSED data only).*  The three labels above are
+evaluated in the order positive → neutral → harmful, as in the campaign, so a change
+whose CI excludes zero but lies inside the ±10 % band is **neutral** (reported as
+NEUTRAL_SIG with its CI), not harmful; the closed R15 arms (+0.55 % [+0.22, +0.67]) are
+the case in point.  No threshold changes.
+
 Reading of the ladder:
 
 * **H1 supported (burn-in was too long):** `u02_t5` / `u02_s5000` acceleration-positive

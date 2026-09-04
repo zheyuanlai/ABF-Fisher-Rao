@@ -298,6 +298,16 @@ def execute_dist(spec: CVRunSpec, device, cache_dir="cache/alkanes_cv", verbose=
         out["final_pmf_reweight"] = diag["pmf_reweight"][-1]
     if "cond_hist" in diag:
         out["cond_hist"] = diag["cond_hist"]; out["ref_cond_dens"] = ref.get("cond_dens")
+    # Per-checkpoint series (additive, 2026-09-04, FR-start timing experiment): the sampler
+    # already records these at every save; only the last value used to be kept.  They are
+    # the mechanism/genealogy time courses (occupancy of the R terciles, KL and L2 of the
+    # walker marginal to the FR target, ancestor ESS / max share, cumulative replacements)
+    # plus the estimator snapshots.  Pure output; the dynamics and RNG streams are untouched.
+    for k in ("frac_compact", "frac_inter", "frac_extended", "kl_pq", "pq_l2", "ancestor_ess",
+              "max_ancestor_frac", "n_unique_ancestor", "repl_cumulative", "pmf", "mean_force",
+              "p_hat", "eff_counts"):
+        if k in diag:
+            out[f"series_{k}"] = np.asarray(diag[k])
     return out, per_seed
 
 
