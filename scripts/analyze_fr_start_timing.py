@@ -572,6 +572,64 @@ def plot_r15(runs, betas, out):
         plt.close(fig)
 
 
+def _pct(r, key):
+    return f"{100*r[f'{key}_median']:+.2f} % [{100*r[f'{key}_lo']:+.2f}, {100*r[f'{key}_hi']:+.2f}]"
+
+
+def _wins(r, key):
+    return f"{int(round(r[f'{key}_win'] * r[f'{key}_n']))}/{r[f'{key}_n']}"
+
+
+def _tau(r):
+    parts = []
+    for k in EPS_LEVELS:
+        v = r.get(f"S_{k}")
+        parts.append("cens" if v is None else f"{v:.2f}")
+    return " / ".join(parts)
+
+
+def render_markdown(out):
+    """Scoreboard tables from the summary JSONs -> <out>/scoreboard.md (pasted into RESULTS.md)."""
+    lines = []
+    pa = os.path.join(out, "alanine_summary.json")
+    if os.path.exists(pa):
+        d = json.load(open(pa))
+        lines += ["### Alanine (16 paired seeds, N = 2048, 100 ps; primary window W1 = [5, 100] ps, W2 = [20, 100] ps)", "",
+                  "| arm | method | start (ps) | rate | ΔI_F W1 (median, CI95) | wins | ΔI_F W2 | own window | final Δe(T) | S_ε (e0/2, e0/4, e0/8, ABF-final) | ESS_age min | wmax | ev/opp | cum ev/N | KL_final | verdict |",
+                  "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+        for name, r in d["arms"].items():
+            lines.append(f"| {name} | {r['method']} | {r['fr_start_ps']:g} | {r['fr_rate']:g} | {_pct(r, 'dIF_W1')} | {_wins(r, 'dIF_W1')} | "
+                         f"{100*r['dIF_W2_median']:+.2f} % | {100*r['dIF_own_median']:+.2f} % {r['own_window']} | {_pct(r, 'final')} | {_tau(r)} | "
+                         f"{r.get('ess_age_min', float('nan')):.3f} | {r.get('wmax_max', float('nan')):.4f} | {r.get('events_per_opp_med', float('nan')):.1f} | "
+                         f"{r.get('event_frac_cum_med', float('nan')):.3f} | {r.get('kl_uniform_final_arm', float('nan')):.3f} | {r['verdict']} |")
+        lines.append("")
+        lines.append(f"Fresh ABF: final error {d['abf']['final_med']:.4f} kJ/mol, {d['abf'].get('ms_per_step', 0):.1f} ms/step, cuda_graph={d['abf'].get('cuda_graph')}.")
+        if d.get("replication"):
+            lines += ["", "Replication (paired, same seeds):", ""]
+            for label, r in d["replication"].items():
+                lines.append(f"- {label}: W1 {100*r['dIF_W1']['median']:+.2f} % [{100*r['dIF_W1']['lo']:+.2f}, {100*r['dIF_W1']['hi']:+.2f}], "
+                             f"W2 {100*r['dIF_W2']['median']:+.2f} %, final {100*r['final']['median']:+.2f} %")
+        lines.append("")
+    pr = os.path.join(out, "r15_summary.json")
+    if os.path.exists(pr):
+        d = json.load(open(pr))
+        lines += ["### Pentane R15 (16 paired seeds, N = 1024, 40 t.u.; W1 = [2.5, 40], W2 = [0, 40])", "",
+                  "| cell | arm | start (steps) | rate | ΔI_F W1 (median, CI95) | wins | ΔI_F W2 | own window | final Δe(T) | S_ε (e0/2, e0/4, e0/8, ABF-final) | ESS_final/N | wmax | ev-frac | repl/N | verdict |",
+                  "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+        for name, r in d["arms"].items():
+            lines.append(f"| {r['cell']} | {r['arm']} | {r['fr_start_steps']} | {r['fr_rate']:g} | {_pct(r, 'dIF_W1')} | {_wins(r, 'dIF_W1')} | "
+                         f"{100*r['dIF_W2_median']:+.2f} % | {100*r['dIF_own_median']:+.2f} % {r['own_window']} | {_pct(r, 'final')} | {_tau(r)} | "
+                         f"{r.get('ess_final_med', float('nan')):.3f} | {r.get('wmax_med', float('nan')):.4f} | {r.get('event_frac_med', float('nan')):.1e} | "
+                         f"{r.get('replacements_cum_frac_med', float('nan')):.3f} | {r['verdict']} |")
+        lines.append("")
+        for cell, c in d["cells"].items():
+            lines.append(f"Fresh ABF {cell}: final error {c['abf']['final_med']:.4f}, wall {c['abf']['wall_seconds']:.0f} s.")
+        lines.append("")
+    path = os.path.join(out, "scoreboard.md")
+    open(path, "w").write("\n".join(lines))
+    print(f"wrote {path}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--system", choices=("alanine", "r15", "both"), default="both")
@@ -584,6 +642,7 @@ def main():
         analyse_alanine(a.alanine_root, a.out, campaign_dir=None if a.no_campaign else CAMPAIGN_ALA)
     if a.system in ("r15", "both"):
         analyse_r15(a.r15_root, a.out, campaign_dir=None if a.no_campaign else CAMPAIGN_R15)
+    render_markdown(a.out)
 
 
 if __name__ == "__main__":
