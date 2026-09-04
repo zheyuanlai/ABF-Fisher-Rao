@@ -233,7 +233,7 @@ def fr_event_stats(spec: PhaseRunSpec, steps, repl_cumulative, n_replicas):
 
 def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase", verbose=False,
                 replay_counts=None, store_profiles=False, readout_bandwidths=None,
-                relax=None, sensitivity_record=False):
+                relax=None, sensitivity_record=False, ot=None):
     """Run one phase-diagram job; return a flat dict of scalars + arrays to save.
 
     ``replay_counts`` is required by the matched-sham methods and rejected by every other
@@ -252,7 +252,7 @@ def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase",
                                 verbose=verbose, track_crossings=True,
                                 replay_counts=replay_counts,
                                 readout_bandwidths=readout_bandwidths,
-                                relax=relax, sensitivity_record=sensitivity_record)
+                                relax=relax, sensitivity_record=sensitivity_record, ot=ot)
     fin = core.final_l2_errors(diag, ref, sim)
     ts = core.timeseries_l2(diag, ref, sim)
 
@@ -393,7 +393,11 @@ def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase",
         out["final_q"] = np.asarray(diag["final_q"], dtype=np.float32)
     for k in ("relax_rho", "relax_target", "relax_scheme", "relax_budget_steps_per_opportunity", "relax_steps_total",
               "relax_cost_ratio", "relax_n_opportunities", "relax_inner_wall_seconds", "relax_budget_hist",
-              "relax_steps", "relax_active_frac", "tau_grid"):
+              "relax_steps", "relax_active_frac", "tau_grid",
+              # OT + repair campaign records (additive; absent unless requested)
+              "ot_alpha", "ot_dz_max", "ot_c_repair", "ot_scheme", "ot_n_opportunities", "ot_moved_frac",
+              "ot_absdz_mean", "ot_absdz_max", "ot_capped_frac", "ot_diag_force_evals",
+              "ot_C_pre", "ot_Sf_pre", "ot_C_post", "ot_Sf_post", "ot_steps"):
         if k in diag:
             out[k] = diag[k] if not isinstance(diag[k], np.ndarray) else np.asarray(diag[k])
     return out

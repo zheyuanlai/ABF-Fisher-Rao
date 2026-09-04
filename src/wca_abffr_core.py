@@ -1209,7 +1209,7 @@ def assert_no_oracle_leakage(method, oracle_free_energy):
 def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                     oracle_free_energy=None, collect_diagnostics=True, verbose=True,
                     track_crossings=False, replay_counts=None, readout_bandwidths=None,
-                    relax=None, sensitivity_record=False):
+                    relax=None, sensitivity_record=False, ot=None):
     """Run one sampler on the GPU.
 
     ``readout_bandwidths`` (default None: byte-identical to before) attaches a
@@ -1278,6 +1278,28 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
         relax_steps_total, relax_events, relax_inner_wall = 0, 0, 0.0
         relax_hist = torch.zeros(sim.n_grid, device=engine.device, dtype=torch.float64)
         _rx_steps_acc, _rx_active_acc, _rx_n_acc = 0, 0.0, 0
+    if ot is not None:
+        # Wasserstein reallocation + constrained fibre repair (wca_ot_repair).  ADDITIVE: absent
+        # unless an OTConfig is handed in.  OT consumes no RNG; repair has its own generator.
+        from wca_ot_repair import OTConfig, ot_displacement, uniform_quantiles
+        assert isinstance(ot, OTConfig)
+        assert ot.scheme in ("frozen", "projected"), ot.scheme
+        assert float(ot.alpha) >= 0.0 and float(ot.dz_max) > 0.0 and float(ot.c_repair) >= 0.0
+        ot_tau_t = torch.as_tensor(np.asarray(ot.tau_grid, dtype=np.float64), device=engine.device, dtype=engine.dtype)
+        assert ot_tau_t.numel() == sim.n_grid and bool((ot_tau_t > 0).all()), "tau map must be positive on the grid"
+        gen_ot = torch.Generator(device=engine.device)
+        gen_ot.manual_seed(int(sim.seed) + int(ot.inner_seed_offset))
+        u_ot = uniform_quantiles(sim.n_replicas, sim.z_min, sim.z_max, engine.device, engine.dtype)
+        ot_steps_total, ot_events, ot_inner_wall, ot_diag_evals, _ot_steps_acc = 0, 0, 0.0, 0, 0
+        ot_absdz_sum = torch.zeros((), device=engine.device, dtype=torch.float64)
+        ot_absdz_max = torch.zeros((), device=engine.device, dtype=torch.float64)
+        ot_capped = torch.zeros((), device=engine.device, dtype=torch.float64)
+        ot_moved = torch.zeros((), device=engine.device, dtype=torch.float64)
+        ot_C_pre = torch.zeros(sim.n_grid, device=engine.device, dtype=torch.float64)
+        ot_Sf_pre = torch.zeros_like(ot_C_pre)
+        ot_C_post = torch.zeros_like(ot_C_pre)
+        ot_Sf_post = torch.zeros_like(ot_C_pre)
+        ot_pending = None        # walkers moved at the last opportunity: their next deposit is the 'post' sample
     noise_scale = math.sqrt(2.0 * sim.dt / params.beta)
     total_replacement_events = 0
     F_target_ema = None
@@ -1384,6 +1406,14 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
         mean_force_input = forces_physical if sim.use_clipped_force_for_mean_force else forces_raw
         f_local = local_mean_force(q, mean_force_input, params)
         f_local = torch.clamp(f_local, -sim.mean_force_sample_clip, sim.mean_force_sample_clip)
+        if ot is not None and ot_pending is not None:
+            # what the moved walkers deposit on their first outer step after the event (T0: the
+            # injected sample; TR: the post-repair residual).  Pure read-off, binned by z.
+            bidx_post = torch.round((z - sim.z_min) / _dz).long().clamp_(0, sim.n_grid - 1)
+            w_post = ot_pending.to(torch.float64)
+            ot_C_post.scatter_add_(0, bidx_post, w_post)
+            ot_Sf_post.scatter_add_(0, bidx_post, w_post * f_local.to(torch.float64))
+            ot_pending = None
         bias_estimator.update(z, f_local)
         if step >= sim.estimator_burn_in_steps:
             production_estimator.update(z, f_local)
@@ -1432,6 +1462,9 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                 diag["relax_steps"].append(int(_rx_steps_acc))
                 diag["relax_active_frac"].append(_rx_active_acc / max(_rx_n_acc, 1))
                 _rx_steps_acc, _rx_active_acc, _rx_n_acc = 0, 0.0, 0
+            if ot is not None:
+                diag.setdefault("ot_steps", []).append(int(_ot_steps_acc))
+                _ot_steps_acc = 0
             if collect_diagnostics:
                 fc, ft, fs = region_fractions_torch(z, sim)
                 diag["frac_compact"].append(fc)
@@ -1589,6 +1622,57 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                     # every later count onto the wrong opportunity.
                     fr_event_counts.append(0)
 
+        if ot is not None:
+            # Wasserstein reallocation along z + constrained fibre repair, on the FR schedule and
+            # AFTER any birth-death.  Lift = project_dimer_to_z (midpoint and direction kept, bath
+            # untouched); repair = the reference-consistent projected scheme for
+            # ceil(c tau_f(z')/dt) steps per moved walker (own generator, nothing deposited, every
+            # inner step charged).  'pre' = the lifted state's f_loc sample (deposit-free, one
+            # diagnostic force evaluation, not charged; recorded only when there is a repair to
+            # compare against); 'post' = the first outer deposit after the event (via ot_pending).
+            next_step = step + 1
+            do_ot = (next_step >= sim.fr_start_steps
+                     and (next_step - sim.fr_start_steps) % max(int(sim.fr_every), 1) == 0)
+            if do_ot:
+                if engine.device.type == "cuda":
+                    torch.cuda.synchronize()
+                tw = time.perf_counter()
+                z_old = reaction_coordinate(q, params)
+                z_new = ot_displacement(z_old, float(ot.alpha), float(ot.dz_max), u_ot)
+                dzabs = (z_new - z_old).abs()
+                moved = dzabs > float(ot.min_move)
+                q = project_dimer_to_z(q, z_new, params)
+                ot_absdz_sum += dzabs.sum().to(torch.float64)
+                ot_absdz_max = torch.maximum(ot_absdz_max, dzabs.max().to(torch.float64))
+                ot_capped += (dzabs >= float(ot.dz_max) - 1e-12).sum().to(torch.float64)
+                ot_moved += moved.sum().to(torch.float64)
+                if float(ot.c_repair) > 0.0:
+                    bidx = torch.round((z_new - sim.z_min) / _dz).long().clamp_(0, sim.n_grid - 1)
+                    wmv = moved.to(torch.float64)
+                    f_pre = engine.force(q, compute_energy=False)
+                    f_pre_in = clip_forces(f_pre, params.force_clip) if sim.use_clipped_force_for_mean_force else f_pre
+                    fl_pre = torch.clamp(local_mean_force(q, f_pre_in, params),
+                                         -sim.mean_force_sample_clip, sim.mean_force_sample_clip)
+                    ot_C_pre.scatter_add_(0, bidx, wmv)
+                    ot_Sf_pre.scatter_add_(0, bidx, wmv * fl_pre.to(torch.float64))
+                    ot_diag_evals += 1
+                    tau_i = interp_uniform_grid_edge(ot_tau_t, grid, z_new)
+                    # ceil with a guard so that an exact integer (e.g. 0.02/0.002) is not pushed up by rounding
+                    m_i = torch.ceil(float(ot.c_repair) * tau_i / sim.dt - 1e-6).long() * moved.long()
+                    idx_act = torch.nonzero(m_i > 0, as_tuple=False).flatten()
+                    if int(idx_act.numel()) > 0:
+                        q_act, done = frozen_dimer_relax(engine, params, sim, q.index_select(0, idx_act),
+                                                         m_i.index_select(0, idx_act), gen_ot, scheme=ot.scheme)
+                        q = q.clone()
+                        q[idx_act] = q_act
+                        ot_steps_total += done
+                        _ot_steps_acc += done
+                ot_pending = moved
+                ot_events += 1
+                if engine.device.type == "cuda":
+                    torch.cuda.synchronize()
+                ot_inner_wall += time.perf_counter() - tw
+
         if relax is not None:
             # Targeted constrained solvent relaxation, on the FR schedule and AFTER any
             # birth-death, so the post-selection population is the one being rejuvenated.
@@ -1692,6 +1776,29 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
         diag["relax_steps"] = np.asarray(diag["relax_steps"], dtype=np.int64)
         diag["relax_active_frac"] = np.asarray(diag["relax_active_frac"], dtype=np.float64)
         diag["tau_grid"] = np.asarray(relax.tau_grid, dtype=np.float64)
+    if ot is not None:
+        n_ev = max(ot_events, 1)
+        diag["ot_alpha"], diag["ot_dz_max"], diag["ot_c_repair"] = float(ot.alpha), float(ot.dz_max), float(ot.c_repair)
+        diag["ot_scheme"] = ot.scheme
+        diag["ot_n_opportunities"] = int(ot_events)
+        diag["ot_moved_frac"] = float(ot_moved.item()) / float(sim.n_replicas * n_ev)
+        diag["ot_absdz_mean"] = float(ot_absdz_sum.item()) / float(sim.n_replicas * n_ev)
+        diag["ot_absdz_max"] = float(ot_absdz_max.item())
+        diag["ot_capped_frac"] = float(ot_capped.item()) / float(sim.n_replicas * n_ev)
+        diag["ot_diag_force_evals"] = int(ot_diag_evals)
+        diag["ot_C_pre"], diag["ot_Sf_pre"] = to_numpy(ot_C_pre), to_numpy(ot_Sf_pre)
+        diag["ot_C_post"], diag["ot_Sf_post"] = to_numpy(ot_C_post), to_numpy(ot_Sf_post)
+        diag["ot_steps"] = np.asarray(diag.get("ot_steps", []), dtype=np.int64)
+        if relax is None:
+            # the compute-accounting keys the campaign analyzers already read (exact: every inner
+            # replica-step of the repair is charged; the 'pre' diagnostic evaluations are not)
+            diag["relax_steps_total"] = int(ot_steps_total)
+            diag["relax_cost_ratio"] = ot_steps_total / float(sim.n_replicas * sim.n_steps)
+            diag["relax_inner_wall_seconds"] = float(ot_inner_wall)
+            diag["relax_steps"] = diag["ot_steps"].copy()
+            diag["relax_n_opportunities"] = int(ot_events)
+            diag["relax_scheme"] = ot.scheme
+            diag["tau_grid"] = np.asarray(ot.tau_grid, dtype=np.float64)
     if verbose:
         extra = f", replacements {total_replacement_events}" if is_fr else ""
         print(f"{method:13s}: {diag['runtime_seconds']:.1f}s{extra}")
