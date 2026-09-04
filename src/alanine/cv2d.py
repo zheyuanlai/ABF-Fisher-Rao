@@ -132,8 +132,10 @@ class FastBackboneCV2D(BackboneCV2D):
                                                   torch.zeros_like(eye))
         if self._reg_counter is None:
             self._reg_counter = torch.zeros((), device=q.device, dtype=torch.long)
-        self._reg_counter = self._reg_counter + bad.sum()
-        Ginv = torch.linalg.inv(Greg)
+        elif self._reg_counter.device != bad.device:
+            self._reg_counter = self._reg_counter.to(bad.device)
+        self._reg_counter += bad.sum()       # in place (graph-safe), as in the parent
+        Ginv = torch.linalg.inv_ex(Greg).inverse      # graph-safe; bitwise = inv (see parent)
         lap = torch.diagonal(H, dim1=-2, dim2=-1).sum(-1)
         T = torch.einsum("pbi,pcij,pdj->pbcd", gflat, H, gflat)
         U = T + T.transpose(-1, -2)

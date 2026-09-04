@@ -1,0 +1,95 @@
+# FR-START TIMING experiment, alanine dipeptide (vacuum, phi/psi), abf vs uniform-target mFR.
+# Preregistration: docs/FR_START_TIMING.md.  Question: the campaign's alanine arm started FR
+# at 20 ps although the ABF warm-up ends at 5 ps and C7ax is first hit at 4.0-4.6 ps in every
+# seed; ABF's error falls 16x between 5 and 20 ps.  Did the 20 ps burn-in hide an
+# establishment-window acceleration?
+#
+# The base block is inherited VERBATIM from configs/uniform_campaign/alanine_uniform.yaml
+# (= configs/alanine/pilot.yaml): dynamics, estimator, every FR knob.  Each stage below is ONE
+# arm and overrides only fr_start_steps (and, for the dose arms, fr_rate); all stages share
+# seeds 0-15, init c7eq / init_seed 4242, rng_seed 20260903, so every arm is paired with the
+# abf stage by construction.  The initial ensemble is built once (stage abf) and cached
+# (--init-cache) so all arms start from the bitwise-identical ensemble.
+#
+#   u02_t2     fr_start  2 ps   exploratory: BEFORE C7ax discovery, ABF ramp at 40%
+#   u02_t5     fr_start  5 ps   PRIMARY: end of ABF warm-up (the LTA-sweep rule)
+#   u02_t10    fr_start 10 ps   intermediate
+#   u02_t20    fr_start 20 ps   the campaign arm, re-run in this process family
+#   u15_t5     fr_start  5 ps, fr_rate 0.15   dose check (the oracle rate ladder's mid rung,
+#   u15_t20    fr_start 20 ps, fr_rate 0.15   ESS 0.81 >= 0.30 there; chosen a priori)
+#   o02_t5     fr_oracle 5 ps (secondary, target check; runs last, only if time permits)
+experiment_name: fr_start_timing_alanine
+output_root: results/fr_start_timing/alanine
+reference: results/alanine/reference/reference.npz
+stage: abf
+base:
+  dt: 0.001
+  gamma: 1.0
+  temperature: 300.0
+  save_every: 1000
+  rng_seed: 20260903
+  init_equil_ps: 20.0
+  n_grid: 97
+  abf_bandwidth: 0.08
+  kde_bandwidth: 0.15
+  abf_min_count: 200.0
+  abf_force_clip: 200.0
+  project_every: 50
+  estimator_stride: 1
+  abf_warmup_steps: 5000
+  fr_start_steps: 20000        # 20 ps (campaign value; overridden per stage)
+  fr_every: 500                # 0.5 ps
+  fr_rate: 0.02                # frozen by the SAFETY calibration
+  score_clip: 2.0
+  max_event_fraction: 0.05
+  lineage_reset_steps: 6000    # 6 ps age-aware window
+  n_steps: 100000              # 100 ps
+  n_replicas: 2048
+stages:
+  abf:
+    methods: [abf]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+  u02_t2:
+    methods: [fr_uniform]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {fr_start_steps: 2000}
+  u02_t5:
+    methods: [fr_uniform]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {fr_start_steps: 5000}
+  u02_t10:
+    methods: [fr_uniform]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {fr_start_steps: 10000}
+  u02_t20:
+    methods: [fr_uniform]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {fr_start_steps: 20000}
+  u15_t5:
+    methods: [fr_uniform]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {fr_start_steps: 5000, fr_rate: 0.15}
+  u15_t20:
+    methods: [fr_uniform]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {fr_start_steps: 20000, fr_rate: 0.15}
+  o02_t5:
+    methods: [fr_oracle]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {fr_start_steps: 5000}

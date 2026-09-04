@@ -1,0 +1,77 @@
+# FR-START TIMING experiment, pentane R15 mid-beta cells (beta 1.4, 1.6).
+# Preregistration: docs/FR_START_TIMING.md.  Question: did the closed uniform-FR arm
+# (fr_start_steps 12000 = 6.0 time units, +0.49%/+0.61% dI_F) miss the establishment window
+# because it started 2.4x after the ABF warm-up ended?  Every dynamics/estimator knob is
+# inherited VERBATIM from configs/uniform_campaign/r15_midbeta_methods.yaml (itself the
+# closed r15_methods frozen block).  Changes, and nothing else:
+#   * fr_start_steps ladder {3000, 5000, 8000, 12000} at the frozen rate 0.02
+#       3000  = mid-warm-up (exploratory; ABF ramp at 60%)
+#       5000  = end of ABF warm-up (PRIMARY; the LTA-sweep rule fr_start = warmup end)
+#       8000  = intermediate
+#      12000  = the closed arm, re-run here so all arms share one save cadence
+#   * dose factor: fr_rate 0.10 (the closed study's own 'fr_active' probe value, chosen
+#     before this experiment) at 5000 and at 12000 -> a 2x2 timing x dose factorial.
+#     Rationale: the closed arm fired ~90 replacements per seed over 13 601 opportunities
+#     (6.5e-6 per opportunity), so a timing-only null would be uninterpretable.
+#   * save_every 5000 -> 1000 (81 checkpoints instead of 17; diagnostics only, no
+#     effect on the dynamics or the RNG streams).  ABF is re-run at the same cadence.
+# Seeds/rng_seed identical to the closed production stage (200-215, 20260830): every arm
+# is paired with ABF by construction (same jittered init, same fixed-shape noise stream).
+experiment_name: fr_start_timing_r15
+output_root: results/fr_start_timing/r15
+cache_dir: cache/alkanes_cv
+
+base:
+  kind: dist
+  molecule: pentane
+  sigma: 2.3
+  cv_i: 0
+  cv_j: 4
+  R_lo: 1.4
+  R_hi: 3.7
+  wall_lo: 1.45
+  wall_hi: 3.65
+  k_wall: 200.0
+  dist_n_grid: 256
+  dist_abf_bandwidth: 0.04
+  dist_kde_bandwidth: 0.06
+  n_rbins: 12
+  n_grid2: 48
+  thermal_delta: 10.0
+  save_every: 1000
+  abf_warmup_steps: 5000
+  estimator_burn_in_steps: 6000
+  abf_force_clip: 60.0
+  force_clip: 200.0
+  dt: 5.0e-4
+  ref_n_samples: 800000
+  fr_start_steps: 12000
+
+method_defaults:
+  target_ema_rate: 0.005
+  max_event_fraction: 0.01
+  fr_every: 5
+  score_clip: 2.0
+
+methods:
+  abf:              {type: abf}
+  u02_s3000:        {type: fr_uniform, fr_rate: 0.02, fr_start_steps: 3000}
+  u02_s5000:        {type: fr_uniform, fr_rate: 0.02, fr_start_steps: 5000}
+  u02_s8000:        {type: fr_uniform, fr_rate: 0.02, fr_start_steps: 8000}
+  u02_s12000:       {type: fr_uniform, fr_rate: 0.02, fr_start_steps: 12000}
+  u10_s5000:        {type: fr_uniform, fr_rate: 0.10, fr_start_steps: 5000}
+  u10_s12000:       {type: fr_uniform, fr_rate: 0.10, fr_start_steps: 12000}
+
+stages:
+  b14:
+    seeds: [200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215]
+    rng_seed: 20260830
+    methods: [abf, u02_s5000, u02_s3000, u02_s8000, u02_s12000, u10_s5000, u10_s12000]
+    cells:
+      - {beta: 1.4, init_mode: trans, n_steps: 80000, n_replicas: 1024}
+  b16:
+    seeds: [200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215]
+    rng_seed: 20260830
+    methods: [abf, u02_s5000, u02_s3000, u02_s8000, u02_s12000, u10_s5000, u10_s12000]
+    cells:
+      - {beta: 1.6, init_mode: trans, n_steps: 80000, n_replicas: 1024}

@@ -76,6 +76,12 @@ class JointDihedralCV2D:
         self._cv2 = DihedralCV(atoms_b)
         self._reg_counter = None           # lazy GPU tensor; counts lam_min < reg_threshold
         self.reg_activations = 0           # host copy, refreshed by reg_activation_count()
+        # Per-device caches of the constant index tensors used below.  Building them from
+        # Python lists on every call is a host->device copy, which (a) costs a launch and a
+        # sync-free-but-serialising H2D transfer per call and (b) is forbidden inside CUDA
+        # graph capture (alanine.graphed).  Caching changes no arithmetic: the same integer
+        # indices select the same elements.
+        self._idx_cache = {}
 
     # -- values --------------------------------------------------------------
     def values(self, q):
@@ -95,18 +101,34 @@ class JointDihedralCV2D:
         g = q.new_zeros(B, 2, A, 3)
         H = q.new_zeros(B, 2, n, n)
         for a, atoms in enumerate(self.atoms):
-            sub = q[:, atoms, :].reshape(B, 12).detach()
+            atom_idx, lin_idx = self._scatter_indices(a, n, q.device)
+            sub = q.index_select(1, atom_idx).reshape(B, 12).detach()
             ga = _grad_phi4(sub)                    # (B,12)
             Ha = _hess_phi4(sub)                    # (B,12,12)
-            g[:, a][:, atoms, :] = ga.reshape(B, 4, 3)
+            g[:, a].index_copy_(1, atom_idx, ga.reshape(B, 4, 3))
             # scatter the 12x12 Hessian into the full n x n layout
+            H[:, a].reshape(B, n * n).scatter_add_(
+                1, lin_idx[None, :].expand(B, -1), Ha.reshape(B, 144))
+        return g, H
+
+    def _scatter_indices(self, a, n, device):
+        """Cached ``(atom_idx (4,), lin_idx (144,))`` for dihedral ``a`` on ``device``.
+
+        ``lin_idx = rows * n + cols`` over the 12 flat coordinate indices of the dihedral's
+        four atoms -- the same values the previous per-call construction produced.
+        """
+        key = (a, n, str(device))
+        hit = self._idx_cache.get(key)
+        if hit is None:
+            atoms = self.atoms[a]
+            atom_idx = torch.tensor(list(atoms), dtype=torch.long, device=device)
             idx = torch.tensor([at * 3 + c for at in atoms for c in range(3)],
-                               device=q.device)     # (12,) flat coordinate indices
+                               dtype=torch.long, device=device)     # (12,)
             rows = idx[:, None].expand(12, 12).reshape(-1)
             cols = idx[None, :].expand(12, 12).reshape(-1)
-            H[:, a].reshape(B, n * n).scatter_add_(
-                1, (rows * n + cols)[None, :].expand(B, -1), Ha.reshape(B, 144))
-        return g, H
+            hit = (atom_idx, (rows * n + cols).contiguous())
+            self._idx_cache[key] = hit
+        return hit
 
     def grad_only(self, q):
         """Cheap ``(phi (B,2), g (B,2,A,3))`` using only per-CV gradients (NO Hessian).
@@ -144,8 +166,13 @@ class JointDihedralCV2D:
         Greg = G + self.ridge * eye + adaptive
         if self._reg_counter is None:
             self._reg_counter = torch.zeros((), device=q.device, dtype=torch.long)
-        self._reg_counter = self._reg_counter + bad.sum()
-        Ginv = torch.linalg.inv(Greg)                              # (B,2,2)
+        elif self._reg_counter.device != bad.device:      # one object used on CPU then GPU (tests)
+            self._reg_counter = self._reg_counter.to(bad.device)
+        self._reg_counter += bad.sum()       # in place: one fixed device address (graph-safe)
+        # inv_ex is the same cuSOLVER/LAPACK routine as inv (bitwise-identical result) minus
+        # the host-side singularity check, so it is CUDA-graph capturable and sync-free.  A
+        # singular G cannot reach it: the adaptive ridge above already excludes lam_min < 1e-8.
+        Ginv = torch.linalg.inv_ex(Greg).inverse                   # (B,2,2)
         lap = torch.diagonal(H, dim1=-2, dim2=-1).sum(-1)          # (B,2) tr H_b
         # T[p,b,c,d] = g_b . (H_c g_d)
         T = torch.einsum("pbi,pcij,pdj->pbcd", gflat, H, gflat)    # (B,2,2,2)

@@ -31,6 +31,7 @@ from alanine.core2d_ala import AlaSimConfig, run_sampler_ala                  # 
 from alanine.cv2d import BackboneCV2D                                         # noqa: E402
 from alanine.dynamics import BAOAB, KB, SeedFailure, make_seed_streams        # noqa: E402
 from alanine.forcefield import TorchFF, extract_parameters, parameter_hash    # noqa: E402
+from alanine.graphed import GraphedCV, GraphedForces                          # noqa: E402
 from alanine.system import (PHI_ATOMS, PSI_ATOMS, reference_minimum,          # noqa: E402
                             relax_seeds, seed_umbrella_lattice)
 
@@ -41,6 +42,7 @@ from alanine.system import (PHI_ATOMS, PSI_ATOMS, reference_minimum,          # 
 #: not this set, that actually enforces the "one" half of it.
 ALLOWED_GPUS = {"0", "1", "2", "3"}
 TWO_PI = 2.0 * math.pi
+A_ATOMS = 22                      # Ace-Ala-Nme
 
 
 # --------------------------------------------------------------------------- safety
@@ -162,6 +164,16 @@ def main():
     ap.add_argument("--only-seed", type=int, default=None)
     ap.add_argument("--overwrite", action="store_true")
     ap.add_argument("--cpu", action="store_true", help="CPU-only (tests/smoke; never production)")
+    ap.add_argument("--init-cache", default=None,
+                    help="path of an .npz holding the initial ensemble: loaded if present, else "
+                         "built exactly as without the flag and saved.  Lets several arms in "
+                         "SEPARATE processes start from the bitwise-identical ensemble one "
+                         "process built (the in-process force path is not deterministic across "
+                         "processes), and skips the 20 ps equilibration for every arm but the first.")
+    ap.add_argument("--cuda-graph", action="store_true",
+                    help="replay the physical force and the CV local mean force through CUDA graphs "
+                         "(alanine.graphed): the same eager kernels in the same order, bitwise-"
+                         "identical outputs, launch overhead removed (~4x per step at R*N=32768)")
     a = ap.parse_args()
 
     cfg = yaml.safe_load(open(a.config))
@@ -223,7 +235,22 @@ def main():
 
     # identical initial ensemble for every arm within a stage
     t_init = time.perf_counter()
-    if init_mode == "c7eq":
+    init = None
+    if a.init_cache and os.path.exists(a.init_cache):
+        cached = np.load(a.init_cache, allow_pickle=True)
+        cmeta = json.loads(str(cached["meta"]))
+        want = dict(init=init_mode, init_seed=int(st.get("init_seed", 4242)), R=R, N=N,
+                    seeds=[int(x) for x in seeds], init_equil_ps=float(base.get("init_equil_ps", 20.0)),
+                    dt=sim.dt, gamma=sim.gamma, temperature=sim.temperature, param_hash=phash)
+        got = {k: cmeta.get(k) for k in want}
+        if got != want:
+            raise SystemExit(f"init cache {a.init_cache} was built for {got}, this stage needs {want}")
+        init = torch.as_tensor(cached["init"], device=device, dtype=dtype)
+        print(f"  init[{init_mode}] loaded from {a.init_cache} (built {cmeta.get('built')}, "
+              f"git {cmeta.get('git', {}).get('commit', '')[:8]})", flush=True)
+    if init is not None:
+        pass
+    elif init_mode == "c7eq":
         init = init_c7eq(X0, tff, R, N, base.get("init_equil_ps", 20.0), sim.dt, sim.gamma,
                          sim.temperature, device, dtype, seed=st.get("init_seed", 4242))
     elif init_mode == "reference_equilibrium":
@@ -234,6 +261,27 @@ def main():
     else:
         raise SystemExit(f"unknown init {init_mode!r}")
     print(f"  init[{init_mode}] built in {time.perf_counter()-t_init:.0f}s", flush=True)
+    if a.init_cache and not os.path.exists(a.init_cache):
+        os.makedirs(os.path.dirname(os.path.abspath(a.init_cache)), exist_ok=True)
+        save_atomic(a.init_cache, init=init.detach().cpu().numpy(), meta=json.dumps(dict(
+            init=init_mode, init_seed=int(st.get("init_seed", 4242)), R=R, N=N,
+            seeds=[int(x) for x in seeds], init_equil_ps=float(base.get("init_equil_ps", 20.0)),
+            dt=sim.dt, gamma=sim.gamma, temperature=sim.temperature, param_hash=phash,
+            built=time.strftime("%Y-%m-%dT%H:%M:%S"), git=prov, cuda_visible_devices=vis)))
+        print(f"  init[{init_mode}] saved -> {a.init_cache}", flush=True)
+
+    # Optional CUDA-graph replay of the two launch-bound kernels of the hot loop.  Same
+    # kernels, same order, bitwise-identical outputs (tests/test_alanine_graphed.py); the
+    # noise draws stay eager so the dynamical RNG stream is untouched.
+    force_fn, cv_run = None, cv
+    if a.cuda_graph:
+        if a.cpu:
+            raise SystemExit("--cuda-graph needs a CUDA device")
+        t_cap = time.perf_counter()
+        force_fn = GraphedForces(tff, batch=R * N, device=device, dtype=dtype)
+        cv_run = GraphedCV(cv, batch=R * N, beta=1.0 / (KB * sim.temperature), n_atoms=A_ATOMS,
+                           device=device, dtype=dtype)
+        print(f"  cuda graphs captured in {time.perf_counter()-t_cap:.1f}s", flush=True)
 
     manifest = []
     for m in methods:
@@ -247,9 +295,10 @@ def main():
             continue
         try:
             t0 = time.perf_counter()
-            out = run_sampler_ala(m, tff, cv, sim, seeds, init, labels, device, dtype=dtype,
+            out = run_sampler_ala(m, tff, cv_run, sim, seeds, init, labels, device, dtype=dtype,
                                   reference_F=(F_ref if m == "fr_oracle" else None),
-                                  dump_dir=os.path.join(out_root, "raw", "_failures"))
+                                  dump_dir=os.path.join(out_root, "raw", "_failures"),
+                                  force_fn=force_fn)
             payload = {k: v for k, v in out.items() if isinstance(v, (np.ndarray, np.generic))}
             payload["meta"] = json.dumps(dict(
                 spec, run_id=rid, param_hash=phash, config_hash=sim.config_hash(),
@@ -260,7 +309,10 @@ def main():
                 peak_cuda_gib=out["peak_cuda_gib"], clip_fraction=out["clip_fraction"],
                 force_evaluations=out["force_evaluations"],
                 aggregate_simulated_ps=out["aggregate_simulated_ps"],
-                init_equil_ps=base.get("init_equil_ps", 20.0)), default=float)
+                init_equil_ps=base.get("init_equil_ps", 20.0),
+                init_cache=a.init_cache, cuda_graph=bool(a.cuda_graph),
+                fr_start_steps=sim.fr_start_steps, fr_every=sim.fr_every,
+                fr_rate=sim.fr_rate), default=float)
             save_atomic(path, **payload)
             manifest.append(dict(spec, run_id=rid, status="ok", path=path,
                                  wall_seconds=time.perf_counter() - t0,
