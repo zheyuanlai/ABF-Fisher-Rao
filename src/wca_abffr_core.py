@@ -241,8 +241,52 @@ class WCADimerEngine:
         self.pair_i = pair_i[keep].long()
         self.pair_j = pair_j[keep].long()
         self.n_pairs = int(self.pair_i.numel())
+        # Optional fused all-pairs force (env WCA_DENSE_FORCE=1; 2026-09-05, M3 speed-up).  Same
+        # physics and the same float32 arithmetic per pair; the pair sum is a fused reduction over
+        # a (B, N, N, 2) tensor instead of 4950 scatter-adds with atomics per replica, compiled by
+        # torch.compile into one kernel (~8x faster force at B = 1024).  Not bitwise equal to the
+        # scatter path (summation order), agreement ~1e-6 relative on thermalised configurations;
+        # WCA arms were never bitwise-paired (the scatter path's atomics are order-nondeterministic
+        # themselves), so the pairing semantics (same init, same noise stream) are unchanged.
+        # ``compute_energy=True`` always takes the scatter path.  Recorded as ``force_impl``.
+        # STATUS 2026-09-05: NOT deployed -- under this flag the bit-identity tests
+        # (zero-budget relaxation == plain ABF, instrumentation inert) fail, i.e. a run's arithmetic
+        # is not reproducible across sampler variants; the step is CPU/launch-bound anyway (~12 %
+        # gain), so concurrency, not this path, is the speed lever.  Opt-in only.
+        self.force_impl = "scatter"
+        if os.environ.get("WCA_DENSE_FORCE", "") == "1":
+            m = torch.ones(self.N, self.N, device=device, dtype=torch.bool)
+            m.fill_diagonal_(False); m[0, 1] = False; m[1, 0] = False
+            self._pair_mask = m.to(dtype)
+            # dynamic=True: ONE kernel for every batch size, so the arithmetic of a run cannot
+            # change when a relaxation sub-batch triggers a recompile (bit-identity tests)
+            self._force_dense_c = torch.compile(self._force_dense, dynamic=True)
+            self.force_impl = "dense_compiled"
+
+    def _force_dense(self, q):
+        d = q[:, :, None, :] - q[:, None, :, :]                                   # q_i - q_j, (B,N,N,2)
+        d = d - self.L * torch.round(d / self.L)
+        r = torch.linalg.norm(d, dim=-1)
+        r_safe = torch.clamp(r, min=self.min_r * self.sigma)
+        inv = self.sigma / r_safe
+        inv6 = inv ** 6
+        inv12 = inv6 ** 2
+        dVdr = 4.0 * self.epsilon * (-12.0 * inv12 / r_safe + 6.0 * inv6 / r_safe)
+        act = (r <= self.cutoff).to(q.dtype) * self._pair_mask
+        f_pair = (-dVdr / torch.clamp(r_safe, min=EPS) * act).unsqueeze(-1) * d
+        forces = f_pair.sum(2)
+        d01 = minimum_image(q[:, 0, :] - q[:, 1, :], self.L)
+        r01 = torch.linalg.norm(d01, dim=1).clamp_min(EPS)
+        u = (r01 - self.r0 - self.w) / self.w
+        dVdr_dim = -4.0 * self.h * u * (1.0 - u ** 2) / self.w
+        f01 = (-dVdr_dim / r01).unsqueeze(-1) * d01
+        forces[:, 0, :] += f01
+        forces[:, 1, :] -= f01
+        return forces
 
     def force(self, q, compute_energy=False):
+        if self.force_impl == "dense_compiled" and not compute_energy:
+            return self._force_dense_c(q)
         B = q.shape[0]
         qi = q.index_select(1, self.pair_i)
         qj = q.index_select(1, self.pair_j)

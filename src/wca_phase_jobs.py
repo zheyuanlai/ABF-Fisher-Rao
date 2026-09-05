@@ -316,7 +316,7 @@ def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase",
         "config_hash": sim.config_hash(), "core_version": "wca_phase_v1",
         "runtime_seconds": diag["runtime_seconds"], "wall_seconds": time.perf_counter() - t0,
         "device": str(core.DEVICE),
-        "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES", ""),
+        "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES", ""), "force_impl": getattr(engine, "force_impl", "scatter"),
         "had_nan": had_nan, "total_replacement_events": diag["total_replacement_events"],
         # final scalar metrics
         "l2_f": fin["l2_f"], "l2_fp": fin["l2_fp"], "integrated_l2_f": ts["integrated_l2_f"],
