@@ -1,0 +1,30 @@
+M3-C: arms ['A', 'F', 'T', 'R', 'F+R', 'T+R'], 16 seeds 900-915, C* = 1.229e+08, h** = 0.00625
+
+primary at h** (compute-normalised I_F^(C) on the common budget C*; paired; 95% and 90% CIs; wins/16)
+     A: I_F^(C) 0.18060  e_F(C*) 0.09071  total compute 1.00x
+     F: I_F^(C) 0.14091  e_F(C*) 0.04866  total compute 1.00x
+     T: I_F^(C) 0.14997  e_F(C*) 0.06114  total compute 1.00x
+     R: I_F^(C) 0.15201  e_F(C*) 0.05978  total compute 1.83x
+   F+R: I_F^(C) 0.14003  e_F(C*) 0.03895  total compute 1.83x
+   T+R: I_F^(C) 0.12610  e_F(C*) 0.02996  total compute 1.83x
+        T vs A [H-B1]: dI_F^(C)  -14.04% [ -22.07,  -7.03] (90%: [-18.86, -8.37]) 16/16   final  -31.62% [ -36.04, -26.99] (90%: [-35.36,-27.16]) 16/16   superior=True equivalent=False
+        T vs F [H-B2]: dI_F^(C)   +3.43% [  +0.95, +11.24] (90%: [ +1.58,+10.74])  4/16   final  +26.77% [ +20.91, +32.80] (90%: [+21.59,+32.26])  0/16   superior=False equivalent=False
+        F vs A [F vs A]: dI_F^(C)  -18.23% [ -22.51, -15.66] (90%: [-20.55,-16.33]) 16/16   final  -44.51% [ -47.32, -43.20] (90%: [-46.08,-43.24]) 16/16   superior=True equivalent=False
+      T+R vs R [H-C1]: dI_F^(C)  -16.55% [ -24.78, -10.55] (90%: [-22.35,-12.31]) 15/16   final  -49.02% [ -50.94, -44.40] (90%: [-50.77,-46.05]) 16/16   superior=True equivalent=False
+    T+R vs F+R [H-C2]: dI_F^(C)  -11.83% [ -14.49,  -3.10] (90%: [-14.16, -5.89]) 14/16   final  -16.56% [ -29.92, -10.10] (90%: [-27.07,-11.24]) 13/16   superior=True equivalent=False
+      T+R vs T [repair at equal compute]: dI_F^(C)  -15.73% [ -23.99,  -5.69] (90%: [-22.74, -7.04]) 14/16   final  -50.06% [ -53.45, -46.62] (90%: [-53.36,-47.84]) 16/16   superior=True equivalent=False
+        R vs A [R vs A]: dI_F^(C)  -15.76% [ -19.35,  -4.42] (90%: [-19.12, -6.73]) 13/16   final  -31.35% [ -36.74, -29.38] (90%: [-35.02,-30.58]) 16/16   superior=True equivalent=False
+      F+R vs F [F+R vs F]: dI_F^(C)   -0.73% [  -9.30,  +8.32] (90%: [ -9.20, +7.51])  9/16   final  -21.82% [ -27.06, -12.01] (90%: [-26.95,-15.93]) 14/16   superior=False equivalent=True
+      T+R vs A [T+R vs A]: dI_F^(C)  -29.39% [ -31.67, -22.25] (90%: [-31.27,-22.27]) 16/16   final  -65.10% [ -67.60, -63.11] (90%: [-67.43,-63.48]) 16/16   superior=True equivalent=False
+read-out sensitivity (median dI_F^(C) at raw / 0.00625 / 0.0125):
+        T vs A: raw -13.70%  0.00625 -14.04%  0.0125 -13.45%
+        T vs F: raw +7.13%  0.00625 +3.43%  0.0125 +3.56%
+        F vs A: raw -19.92%  0.00625 -18.23%  0.0125 -19.34%
+      T+R vs R: raw -14.58%  0.00625 -16.55%  0.0125 -16.35%
+    T+R vs F+R: raw -12.16%  0.00625 -11.83%  0.0125 -9.73%
+      T+R vs T: raw -17.46%  0.00625 -15.73%  0.0125 -15.26%
+        R vs A: raw -14.00%  0.00625 -15.76%  0.0125 -15.66%
+      F+R vs F: raw +4.86%  0.00625 -0.73%  0.0125 -2.00%   <- SIGN CHANGES: read-out-sensitive
+      T+R vs A: raw -26.12%  0.00625 -29.39%  0.0125 -28.30%
+compute to eps_A (median ABF final error; persistence 2 saves): A 1.000x  F 0.292x  T 0.354x  R 0.458x  F+R 0.333x  T+R 0.292x
+wrote /home/zheyuanlai/ABF-Fisher-Rao/scripts/../results/ot_repair_campaign/wca/M3/repair/analysis.json

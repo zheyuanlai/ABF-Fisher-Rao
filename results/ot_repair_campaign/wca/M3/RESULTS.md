@@ -49,6 +49,47 @@ capped Wasserstein reallocation alone is a WCA accelerator (−14 % integrated, 
 better raw allocator, clearly at the endpoint (+27 % for OT, 0/16) and marginally integrated
 (+3 %, CI excluding 0 but inside the ±10 % band on the median).  Go/no-go: **GO** by H-B1.
 
-## M3-C — R / F+R / T+R (only on GO)
+## M3-C — R / F+R / T+R on the same 16 seeds (CLOSED 14:36 UTC; `repair/analysis.json`, figures under `repair/figures/`)
 
-_(pending)_
+Rejuvenation = 5 projected inner steps for every walker at every opportunity (identical for R,
+F+R, T+R; 0.83× extra force evaluations, charged; total compute 1.83× A).  Primary = I_F^(C) on
+the common budget C\* (repaired arms' curves truncated at C\* on the compute axis).
+
+| contrast | ΔI_F^(C) median [CI95] (90 % CI) | wins | Δe_F(C\*) [CI95] | wins | verdict |
+|---|---|---|---|---|---|
+| **T+R vs R** (H-C1) | **−16.6 %** [−24.8, −10.6] (−22.4, −12.3) | 15/16 | **−49.0 %** [−50.9, −44.4] | 16/16 | superior; **H-C1 holds** |
+| **T+R vs F+R** (H-C2) | **−11.8 %** [−14.5, −3.1] (−14.2, −5.9) | 14/16 | **−16.6 %** [−29.9, −10.1] | 13/16 | not equivalent — **OT+R beats FR+R** |
+| T+R vs T (repair at equal compute) | −15.7 % [−24.0, −5.7] | 14/16 | −50.1 % [−53.5, −46.6] | 16/16 | rejuvenation worth its cost for OT |
+| R vs A | −15.8 % [−19.4, −4.4] | 13/16 | −31.4 % [−36.7, −29.4] | 16/16 | superior |
+| F+R vs F | −0.7 % [−9.3, +8.3] | 9/16 | −21.8 % [−27.1, −12.0] | 14/16 | equivalent integrated (read-out-sensitive sign); endpoint gain |
+| T+R vs A | **−29.4 %** [−31.7, −22.3] | 16/16 | **−65.1 %** [−67.6, −63.1] | 16/16 | superior |
+
+Read-out sensitivity: every contrast keeps its sign across raw / 0.00625 / 0.0125 except F+R vs F
+integrated (+4.9 / −0.7 / −2.0 %), which is labelled read-out-sensitive.  Compute to ABF's final
+accuracy (inner steps charged, persistence 2 saves): **T+R 0.29×** = F 0.29× < F+R 0.33× < T 0.35×
+< R 0.46× < A 1×.  Genealogy of the FR arms: windowed ESS 0.78–0.83 throughout.
+
+## Bottom line (M3, 16 fresh seeds, all preregistered contrasts)
+
+1. **Capped, self-limiting Wasserstein reallocation is a real WCA accelerator on its own**
+   (H-B1): −14 % integrated, −32 % at the end, 16/16, read-out-stable, at 1× compute.  It does
+   this while moving each walker a tenth of a bin per event and flattening the marginal 5–17×
+   more than FR; the M1 first-order fibre damage never materialises at this dose.
+2. **Raw uniform FR is the better raw allocator** (H-B2 fails): OT is 3 % worse integrated and
+   27 % worse at the end, 0/16.  The fibre-preserving allocator keeps a small, consistent edge.
+3. **With identical solvent rejuvenation the ranking inverts** (H-C1, H-C2): OT+R beats R by
+   17 % / 49 % and beats FR+R by 12 % / 17 %, reaches ABF's accuracy at 0.29× its compute with
+   every inner step charged (tied with plain FR, ahead of F+R 0.33×), and ends 65 % below ABF.
+   Rejuvenation helps OT far more than FR (T+R vs T −16 % / −50 %; F+R vs F −1 % / −22 %): the
+   shell lag OT induces is exactly what constrained rejuvenation removes, whereas FR's clones
+   already carry a consistent fibre.
+4. The frozen M3 prediction that OT+R would merely tie FR+R was too conservative; the M1/M2
+   mechanism reading (injection first-order per unit moved, negligible at capped doses, repair =
+   generic rejuvenation) stands, and the reviewer's outcome A ("capped Wasserstein is a real
+   practical allocator, competitive with FR") is the one obtained — with the refinement that
+   OT needs rejuvenation to beat FR, and FR does not need it to beat raw OT.
+
+Not run (out of scope for this round): guarded/selective repair (M4), NaCl, C60.  Engine
+note: the sampler is CPU/launch-bound; the block ran as three concurrent processes (1.4×
+aggregate), the scatter force path unchanged; an opt-in compiled dense force exists but is not
+deployed (fails the bit-identity tests).
