@@ -1,0 +1,59 @@
+{
+  "alpha_star": 0.03,
+  "arm": "ot_a0.03",
+  "ratio": 0.21048961773585953,
+  "in_band": false,
+  "capped_frac": 0.0,
+  "J_KL_F": 6.073799095346675,
+  "J_KL_A": 8.25950787203158,
+  "ladder": [
+    {
+      "arm": "ot_a0.03",
+      "alpha": 0.03,
+      "J_KL": 1.278471649783931,
+      "ratio": 0.21048961773585953,
+      "log_ratio": -1.5583189489959741,
+      "capped_frac": 0.0,
+      "absdz_mean": 0.0008680155992473162,
+      "had_nan": false,
+      "n_seeds": 4
+    },
+    {
+      "arm": "ot_a0.05",
+      "alpha": 0.05,
+      "J_KL": 0.9883717104161545,
+      "ratio": 0.16272709961272452,
+      "log_ratio": -1.815680716778692,
+      "capped_frac": 2.4412841857907104e-08,
+      "absdz_mean": 0.0011038313463719333,
+      "had_nan": false,
+      "n_seeds": 4
+    },
+    {
+      "arm": "ot_a0.1",
+      "alpha": 0.1,
+      "J_KL": 0.5583764422933835,
+      "ratio": 0.09193199075701614,
+      "log_ratio": -2.386706206200987,
+      "capped_frac": 0.00023990499693765313,
+      "absdz_mean": 0.0015165701496232102,
+      "had_nan": false,
+      "n_seeds": 4
+    },
+    {
+      "arm": "ot_a0.2",
+      "alpha": 0.2,
+      "J_KL": 0.3525062587718424,
+      "ratio": 0.05803719438825501,
+      "log_ratio": -2.8466711914133898,
+      "capped_frac": 0.005020232386818159,
+      "absdz_mean": 0.0021892908643504627,
+      "had_nan": false,
+      "n_seeds": 4
+    }
+  ],
+  "t_start": 40.0,
+  "rule": "argmin |log(J_OT/J_F)|, capped<5%, no NaN",
+  "blind": true,
+  "note": "only p_hat_t / ot_* fields were read; no free-energy error was consulted"
+}
