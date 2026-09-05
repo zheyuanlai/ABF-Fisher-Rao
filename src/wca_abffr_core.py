@@ -1281,7 +1281,7 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
     if ot is not None:
         # Wasserstein reallocation + constrained fibre repair (wca_ot_repair).  ADDITIVE: absent
         # unless an OTConfig is handed in.  OT consumes no RNG; repair has its own generator.
-        from wca_ot_repair import OTConfig, ot_displacement, uniform_quantiles
+        from wca_ot_repair import ABSDZ_EDGES, OTConfig, ot_displacement, uniform_quantiles
         assert isinstance(ot, OTConfig)
         assert ot.scheme in ("frozen", "projected"), ot.scheme
         assert float(ot.alpha) >= 0.0 and float(ot.dz_max) > 0.0 and float(ot.c_repair) >= 0.0
@@ -1300,6 +1300,15 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
         ot_C_post = torch.zeros_like(ot_C_pre)
         ot_Sf_post = torch.zeros_like(ot_C_pre)
         ot_pending = None        # walkers moved at the last opportunity: their next deposit is the 'post' sample
+        # M3 additions: per-save |dz| / cap series, and the deposit-after-event table binned by (z, |dz|)
+        ot_dz_edges = torch.tensor(ABSDZ_EDGES[1:-1], device=engine.device, dtype=engine.dtype)   # bucketize on the finite interior edges
+        n_dzb = len(ABSDZ_EDGES) - 1
+        ot_C2_post = torch.zeros(sim.n_grid * n_dzb, device=engine.device, dtype=torch.float64)
+        ot_Sf2_post = torch.zeros_like(ot_C2_post)
+        ot_pending_dzb = None
+        _ot_absdz_acc = torch.zeros((), device=engine.device, dtype=torch.float64)
+        _ot_capped_acc = torch.zeros((), device=engine.device, dtype=torch.float64)
+        _ot_events_acc = 0
     noise_scale = math.sqrt(2.0 * sim.dt / params.beta)
     total_replacement_events = 0
     F_target_ema = None
@@ -1413,6 +1422,9 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
             w_post = ot_pending.to(torch.float64)
             ot_C_post.scatter_add_(0, bidx_post, w_post)
             ot_Sf_post.scatter_add_(0, bidx_post, w_post * f_local.to(torch.float64))
+            lin2 = bidx_post * n_dzb + ot_pending_dzb
+            ot_C2_post.scatter_add_(0, lin2, w_post)
+            ot_Sf2_post.scatter_add_(0, lin2, w_post * f_local.to(torch.float64))
             ot_pending = None
         bias_estimator.update(z, f_local)
         if step >= sim.estimator_burn_in_steps:
@@ -1465,6 +1477,10 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
             if ot is not None:
                 diag.setdefault("ot_steps", []).append(int(_ot_steps_acc))
                 _ot_steps_acc = 0
+                nev = max(_ot_events_acc, 1)
+                diag.setdefault("ot_absdz_t", []).append(float(_ot_absdz_acc.item()) / float(sim.n_replicas * nev) if _ot_events_acc else float("nan"))
+                diag.setdefault("ot_capped_t", []).append(float(_ot_capped_acc.item()) / float(sim.n_replicas * nev) if _ot_events_acc else float("nan"))
+                _ot_absdz_acc.zero_(); _ot_capped_acc.zero_(); _ot_events_acc = 0
             if collect_diagnostics:
                 fc, ft, fs = region_fractions_torch(z, sim)
                 diag["frac_compact"].append(fc)
@@ -1641,11 +1657,15 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                 z_new = ot_displacement(z_old, float(ot.alpha), float(ot.dz_max), u_ot)
                 dzabs = (z_new - z_old).abs()
                 moved = dzabs > float(ot.min_move)
+                repair_mask = torch.ones_like(moved) if bool(ot.repair_all) else moved
                 q = project_dimer_to_z(q, z_new, params)
                 ot_absdz_sum += dzabs.sum().to(torch.float64)
                 ot_absdz_max = torch.maximum(ot_absdz_max, dzabs.max().to(torch.float64))
-                ot_capped += (dzabs >= float(ot.dz_max) - 1e-12).sum().to(torch.float64)
+                _capped_now = (dzabs >= float(ot.dz_max) - 1e-12).sum().to(torch.float64)
+                ot_capped += _capped_now
                 ot_moved += moved.sum().to(torch.float64)
+                _ot_absdz_acc += dzabs.sum().to(torch.float64); _ot_capped_acc += _capped_now; _ot_events_acc += 1
+                ot_pending_dzb = torch.bucketize(dzabs, ot_dz_edges).clamp_(0, n_dzb - 1)
                 if float(ot.c_repair) > 0.0:
                     bidx = torch.round((z_new - sim.z_min) / _dz).long().clamp_(0, sim.n_grid - 1)
                     wmv = moved.to(torch.float64)
@@ -1658,7 +1678,7 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                     ot_diag_evals += 1
                     tau_i = interp_uniform_grid_edge(ot_tau_t, grid, z_new)
                     # ceil with a guard so that an exact integer (e.g. 0.02/0.002) is not pushed up by rounding
-                    m_i = torch.ceil(float(ot.c_repair) * tau_i / sim.dt - 1e-6).long() * moved.long()
+                    m_i = torch.ceil(float(ot.c_repair) * tau_i / sim.dt - 1e-6).long() * repair_mask.long()
                     idx_act = torch.nonzero(m_i > 0, as_tuple=False).flatten()
                     if int(idx_act.numel()) > 0:
                         q_act, done = frozen_dimer_relax(engine, params, sim, q.index_select(0, idx_act),
@@ -1667,7 +1687,7 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                         q[idx_act] = q_act
                         ot_steps_total += done
                         _ot_steps_acc += done
-                ot_pending = moved
+                ot_pending = moved | repair_mask
                 ot_events += 1
                 if engine.device.type == "cuda":
                     torch.cuda.synchronize()
@@ -1788,6 +1808,12 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
         diag["ot_diag_force_evals"] = int(ot_diag_evals)
         diag["ot_C_pre"], diag["ot_Sf_pre"] = to_numpy(ot_C_pre), to_numpy(ot_Sf_pre)
         diag["ot_C_post"], diag["ot_Sf_post"] = to_numpy(ot_C_post), to_numpy(ot_Sf_post)
+        diag["ot_C2_post"] = to_numpy(ot_C2_post).reshape(sim.n_grid, n_dzb)
+        diag["ot_Sf2_post"] = to_numpy(ot_Sf2_post).reshape(sim.n_grid, n_dzb)
+        diag["ot_absdz_edges"] = np.asarray(ABSDZ_EDGES, dtype=np.float64)
+        diag["ot_repair_all"] = bool(ot.repair_all)
+        diag["ot_absdz_t"] = np.asarray(diag.get("ot_absdz_t", []), dtype=np.float64)
+        diag["ot_capped_t"] = np.asarray(diag.get("ot_capped_t", []), dtype=np.float64)
         diag["ot_steps"] = np.asarray(diag.get("ot_steps", []), dtype=np.int64)
         if relax is None:
             # the compute-accounting keys the campaign analyzers already read (exact: every inner

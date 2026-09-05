@@ -73,3 +73,25 @@ def test_sampler_alpha_zero_matches_abf_and_repair_is_accounted():
     assert float(tr["ot_absdz_max"]) <= 0.0176 + 1e-12
     # the pre/post deposit-free accumulators only see moved walkers
     assert float(np.sum(tr["ot_C_pre"])) == pytest.approx(float(tr["ot_moved_frac"]) * 16 * 13, abs=1e-6)
+
+
+def test_repair_all_and_dz_table():
+    """M3: repair_all charges every walker (R arm with alpha 0); the (z, |dz|) table sums to C_post."""
+    p = _params()
+    engine = core.WCADimerEngine(p, core.DEVICE, core.DTYPE)
+    sim = _tiny_sim()
+    tau = tuple([0.02] * sim.n_grid)                                               # the frozen 10-dt map: c 0.5 -> 5 steps
+    R = core.run_sampler_gpu("abf", p, sim, engine, verbose=False,
+                             ot=OTConfig(alpha=0.0, dz_max=0.0176, c_repair=0.5, tau_grid=tau, repair_all=True))
+    assert int(R["ot_n_opportunities"]) == 13 and float(R["ot_moved_frac"]) == 0.0
+    assert int(R["relax_steps_total"]) == 5 * 16 * 13                             # every walker, every event
+    assert float(np.sum(R["ot_C_post"])) == pytest.approx(16 * 13, abs=1e-6)       # pending = repaired walkers
+    T = core.run_sampler_gpu("abf", p, sim, engine, verbose=False,
+                             ot=OTConfig(alpha=0.5, dz_max=0.0176, c_repair=0.0, tau_grid=tau))
+    assert T["ot_C2_post"].shape == (sim.n_grid, len(T["ot_absdz_edges"]) - 1)
+    assert float(np.sum(T["ot_C2_post"])) == pytest.approx(float(np.sum(T["ot_C_post"])), abs=1e-6)
+    assert float(np.sum(T["ot_Sf2_post"])) == pytest.approx(float(np.sum(T["ot_Sf_post"])), rel=1e-9, abs=1e-6)
+    assert len(T["ot_absdz_t"]) == len(T["ot_steps"]) and np.nanmax(T["ot_absdz_t"]) <= 0.0176 + 1e-12
+    F = core.run_sampler_gpu("fr_uniform", p, sim, engine, verbose=False,
+                             ot=OTConfig(alpha=0.0, dz_max=0.0176, c_repair=0.5, tau_grid=tau, repair_all=True))
+    assert int(F["relax_steps_total"]) == 5 * 16 * 13                             # FR + the same repair (F+R arm)

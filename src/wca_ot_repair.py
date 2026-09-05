@@ -38,6 +38,15 @@ class OTConfig:
     scheme: str = "projected"       # inner scheme; 'projected' = the TI reference's own operator
     inner_seed_offset: int = 8_000_000
     min_move: float = 1.0e-9        # walkers moved by less than this are not repaired
+    #: M3 (docs/WCA_OT_CONFIRMATORY_M3.md): repair EVERY walker at every opportunity regardless of
+    #: its move, so that R (alpha 0), F+R (with FR) and T+R receive literally the same fibre
+    #: treatment.  False reproduces M2 (repair only walkers the OT moved).
+    repair_all: bool = False
+
+
+#: |dz| bin edges (z units) for the deposit-after-event table binned by (z, |dz|): the live
+#: sampler's injection-vs-displacement curve against the M1 slope.  Last finite edge = 2 bins.
+ABSDZ_EDGES = (0.0, 1e-4, 3e-4, 1e-3, 2e-3, 3e-3, 5e-3, 7.5e-3, 1e-2, 1.25e-2, 1.5e-2, 1.76e-2, float("inf"))
 
 
 def uniform_quantiles(n, z_lo, z_hi, device, dtype):

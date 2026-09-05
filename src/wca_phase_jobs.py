@@ -285,6 +285,7 @@ def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase",
             mean_force_t=np.asarray(diag["mean_force"], dtype=np.float32),
             profile_steps=np.asarray(diag["steps"]),
             profile_times=np.asarray(diag["times"]),
+            p_hat_t=np.asarray(diag["p_hat"], dtype=np.float32),          # walker marginal at every save (KL to uniform offline)
             reference_free_energy=np.asarray(ref["free_energy"], dtype=np.float64),
             reference_mean_force=np.asarray(ref["mean_force"], dtype=np.float64),
             reference_label=str(ref.get("label", "")))
@@ -397,7 +398,8 @@ def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase",
               # OT + repair campaign records (additive; absent unless requested)
               "ot_alpha", "ot_dz_max", "ot_c_repair", "ot_scheme", "ot_n_opportunities", "ot_moved_frac",
               "ot_absdz_mean", "ot_absdz_max", "ot_capped_frac", "ot_diag_force_evals",
-              "ot_C_pre", "ot_Sf_pre", "ot_C_post", "ot_Sf_post", "ot_steps"):
+              "ot_C_pre", "ot_Sf_pre", "ot_C_post", "ot_Sf_post", "ot_steps",
+              "ot_C2_post", "ot_Sf2_post", "ot_absdz_edges", "ot_repair_all", "ot_absdz_t", "ot_capped_t"):
         if k in diag:
             out[k] = diag[k] if not isinstance(diag[k], np.ndarray) else np.asarray(diag[k])
     return out
