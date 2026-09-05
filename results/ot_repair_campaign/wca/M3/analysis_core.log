@@ -1,0 +1,17 @@
+M3-B: arms ['A', 'F', 'T'], 16 seeds 900-915, C* = 1.229e+08, h** = 0.00625
+
+primary at h** (compute-normalised I_F^(C) on the common budget C*; paired; 95% and 90% CIs; wins/16)
+     A: I_F^(C) 0.18060  e_F(C*) 0.09071  total compute 1.00x
+     F: I_F^(C) 0.14091  e_F(C*) 0.04866  total compute 1.00x
+     T: I_F^(C) 0.14997  e_F(C*) 0.06114  total compute 1.00x
+        T vs A [H-B1]: dI_F^(C)  -14.04% [ -22.07,  -7.00] (90%: [-18.86, -8.37]) 16/16   final  -31.62% [ -36.04, -26.98] (90%: [-35.36,-27.16]) 16/16   superior=True equivalent=False
+        T vs F [H-B2]: dI_F^(C)   +3.43% [  +1.27, +11.24] (90%: [ +1.58,+10.74])  4/16   final  +26.77% [ +21.15, +32.80] (90%: [+21.59,+32.26])  0/16   superior=False equivalent=False
+        F vs A [F vs A]: dI_F^(C)  -18.23% [ -22.51, -15.66] (90%: [-20.55,-16.33]) 16/16   final  -44.51% [ -47.75, -43.15] (90%: [-46.08,-43.24]) 16/16   superior=True equivalent=False
+read-out sensitivity (median dI_F^(C) at raw / 0.00625 / 0.0125):
+        T vs A: raw -13.70%  0.00625 -14.04%  0.0125 -13.45%
+        T vs F: raw +7.13%  0.00625 +3.43%  0.0125 +3.56%
+        F vs A: raw -19.92%  0.00625 -18.23%  0.0125 -19.34%
+compute to eps_A (median ABF final error; persistence 2 saves): A 1.000x  F 0.292x  T 0.354x
+
+GO/NO-GO for M3-C: GO  (H-B1 holds; H-B2 equivalence fails)
+wrote /home/zheyuanlai/ABF-Fisher-Rao/scripts/../results/ot_repair_campaign/wca/M3/core/analysis.json

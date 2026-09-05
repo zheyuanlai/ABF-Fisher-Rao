@@ -1,0 +1,87 @@
+{
+  "script": "run_wca_ot_m3.py",
+  "stage": "core",
+  "git_rev": "4af3a157bc19b3cd0dab23762d6241446675537f",
+  "host": "atlas",
+  "cuda_visible_devices": "1",
+  "prereg": "docs/WCA_OT_CONFIRMATORY_M3.md",
+  "seeds": [
+    908,
+    909,
+    910,
+    911
+  ],
+  "arms": [
+    "abf",
+    "fr_uniform",
+    "ot_a0.03"
+  ],
+  "alpha_star": 0.03,
+  "dz_max": 0.01761006289308176,
+  "c_repair": 0.5,
+  "tau_map_sha256": "b0330eb3250a48f1e13cb96d4608f8ebaa1f4763073c3af939460994199c745d",
+  "wall_seconds": 9438.101136684418,
+  "n_runs": 12,
+  "runs": [
+    {
+      "name": "abf",
+      "seed": 908,
+      "wall": 666.8555705547333
+    },
+    {
+      "name": "fr_uniform",
+      "seed": 908,
+      "wall": 859.5257468223572
+    },
+    {
+      "name": "ot_a0.03",
+      "seed": 908,
+      "wall": 832.3971743583679
+    },
+    {
+      "name": "abf",
+      "seed": 909,
+      "wall": 668.2828447818756
+    },
+    {
+      "name": "fr_uniform",
+      "seed": 909,
+      "wall": 857.552227973938
+    },
+    {
+      "name": "ot_a0.03",
+      "seed": 909,
+      "wall": 833.9908645153046
+    },
+    {
+      "name": "abf",
+      "seed": 910,
+      "wall": 669.2473361492157
+    },
+    {
+      "name": "fr_uniform",
+      "seed": 910,
+      "wall": 861.2375047206879
+    },
+    {
+      "name": "ot_a0.03",
+      "seed": 910,
+      "wall": 831.8712275028229
+    },
+    {
+      "name": "abf",
+      "seed": 911,
+      "wall": 670.4628703594208
+    },
+    {
+      "name": "fr_uniform",
+      "seed": 911,
+      "wall": 861.403760433197
+    },
+    {
+      "name": "ot_a0.03",
+      "seed": 911,
+      "wall": 824.061282157898
+    }
+  ]
+}

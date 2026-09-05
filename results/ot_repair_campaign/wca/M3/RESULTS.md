@@ -26,9 +26,28 @@ Marginal-action matching between the two allocators is therefore not possible wi
 pair; the gentlest ladder point is used, which also makes M3-B a *harder* test for OT than the
 α = 0.1 pilot.
 
-## M3-B — A / F / T on 16 fresh seeds (900–915)
+## M3-B — A / F / T(α = 0.03) on 16 fresh seeds 900–915 (CLOSED 08:20 UTC; `core/analysis.json`, `core/go_nogo.json`, figures M3-2…6)
 
-_(pending)_
+Primary = compute-normalised I_F^(C) on the common budget C\* = 122.88 M force evaluations at
+h\*\* = 0.00625 (for these three arms identical to the physical-time integral); paired per seed,
+10 000-resample bootstrap.
+
+| contrast | ΔI_F^(C) median [CI95] (90 % CI) | wins | Δe_F(C\*) median [CI95] | wins | verdict |
+|---|---|---|---|---|---|
+| **T vs A** (H-B1) | **−14.0 %** [−22.1, −7.0] (−18.9, −8.4) | 16/16 | **−31.6 %** [−36.0, −27.0] | 16/16 | **superior; H-B1 holds** |
+| T vs F (H-B2) | +3.4 % [+1.3, +11.2] (+1.6, +10.7) | 4/16 | **+26.8 %** [+21.2, +32.8] | 0/16 | equivalence **fails** (90 % CI upper 10.7 > 10); FR ahead |
+| F vs A | −18.2 % [−22.5, −15.7] | 16/16 | −44.5 % [−47.8, −43.2] | 16/16 | superior |
+
+Read-out sensitivity (raw / 0.00625 / 0.0125): T vs A −13.7 / −14.0 / −13.5 %; T vs F +7.1 / +3.4 /
++3.6 %; F vs A −19.9 / −18.2 / −19.3 % — no sign change anywhere.  Compute to ABF's final accuracy
+(persistence 2 saves): F 0.29×, T 0.35× of A's.  Dose delivered: mean |Δz| 0.0009 per event
+(a tenth of a bin), max ≤ 0.013, nothing capped, no NaN.
+
+**Reading.**  H-B1 replicates the pilot on 16 fresh seeds at a *gentler* dose than the pilot's:
+capped Wasserstein reallocation alone is a WCA accelerator (−14 % integrated, −32 % at the end,
+16/16, read-out-stable, 0.35× compute to ABF's accuracy).  H-B2 does not hold: uniform FR is the
+better raw allocator, clearly at the endpoint (+27 % for OT, 0/16) and marginally integrated
+(+3 %, CI excluding 0 but inside the ±10 % band on the median).  Go/no-go: **GO** by H-B1.
 
 ## M3-C — R / F+R / T+R (only on GO)
 
