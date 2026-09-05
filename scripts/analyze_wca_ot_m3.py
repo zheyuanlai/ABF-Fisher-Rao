@@ -88,21 +88,26 @@ def integral_on_budget(caxis, curve, C_star):
 
 
 def first_reach_persist(axis, curve, eps, n_persist=2):
+    """First axis value from which the curve stays <= eps for n_persist saves (the final save
+    counts on its own, so an arm whose last point defines eps reaches it there)."""
     below = np.asarray(curve) <= eps
-    for i in range(len(axis) - n_persist + 1):
-        if below[i:i + n_persist].all():
+    for i in range(len(axis)):
+        if below[i:min(i + n_persist, len(axis))].all():
             return float(axis[i])
     return float("inf")
 
 
 def kl_to_uniform(p_hat_t, grid, z_lo, z_hi):
-    """KL(p_hat || U) per save from the stored walker marginal (a density on the grid)."""
+    """KL(p_hat || U) per save from the stored walker marginal (a density on the grid), with
+    trapezoid weights so that the uniform density gives exactly 0 (rectangle sums on a
+    160-point grid over-count the range by one bin and make a flat marginal read -0.6 %)."""
     p = np.clip(np.asarray(p_hat_t, float), 0.0, None)
-    dz = float(grid[1] - grid[0])
-    p = p / np.maximum((p * dz).sum(1, keepdims=True), 1e-300)
+    g = np.asarray(grid, float)
+    w = np.gradient(g); w[0] *= 0.5; w[-1] *= 0.5                    # trapezoid weights, sum = z_hi - z_lo
+    p = p / np.maximum((p * w).sum(1, keepdims=True), 1e-300)
     U = 1.0 / (z_hi - z_lo)
     with np.errstate(divide="ignore", invalid="ignore"):
-        kl = np.where(p > 0, p * np.log(p / U), 0.0).sum(1) * dz
+        kl = (np.where(p > 0, p * np.log(p / U), 0.0) * w).sum(1)
     return kl
 
 
@@ -130,11 +135,11 @@ def stage_calibration(a):
         capped = float(np.median([float(r["ot_capped_frac"]) for r in runs[m].values()]))
         absdz = float(np.median([float(r["ot_absdz_mean"]) for r in runs[m].values()]))
         nan = any(bool(r["had_nan"]) for r in runs[m].values())
-        rows.append(dict(arm=m, alpha=float(m[4:]), J_KL=J[m]["median"], ratio=ratio, log_ratio=float(np.log(ratio)),
+        rows.append(dict(arm=m, alpha=float(m[4:]), J_KL=J[m]["median"], ratio=ratio, log_ratio=float(np.log(ratio)) if ratio > 0 else float("nan"),
                          capped_frac=capped, absdz_mean=absdz, had_nan=nan, n_seeds=len(runs[m])))
-    ok = [r for r in rows if r["capped_frac"] < 0.05 and not r["had_nan"]]
+    ok = [r for r in rows if r["capped_frac"] < 0.05 and not r["had_nan"] and r["ratio"] > 0]
     pool = ok if ok else rows
-    best = min(pool, key=lambda r: abs(r["log_ratio"]))
+    best = min(pool, key=lambda r: abs(r["log_ratio"]) if np.isfinite(r["log_ratio"]) else float("inf"))
     in_band = 0.9 <= best["ratio"] <= 1.1
     out = dict(alpha_star=best["alpha"], arm=best["arm"], ratio=best["ratio"], in_band=bool(in_band), capped_frac=best["capped_frac"],
                J_KL_F=JF, J_KL_A=J["abf"]["median"], ladder=rows, t_start=t_start, rule="argmin |log(J_OT/J_F)|, capped<5%, no NaN",
@@ -261,7 +266,7 @@ def stage_core(a, with_repair=False):
             c = C2[:, j]; ok = mask & (c >= MIN_COUNT)
             if ok.sum() < 3:
                 continue
-            bias = S2[ok] / c[ok] - Fp_ref[ok]; w = c[ok] / c[ok].sum()
+            bias = S2[ok, j] / c[ok] - Fp_ref[ok]; w = c[ok] / c[ok].sum()
             mid = 0.5 * (edges[j] + min(edges[j + 1], 0.0176))
             rows.append(dict(absdz_mid=float(mid), rms_bias=float(np.sqrt(np.sum(w * bias ** 2))), signed=float(np.sum(w * bias)), n_samples=float(c[ok].sum()), n_bins=int(ok.sum())))
         inj[m] = rows
