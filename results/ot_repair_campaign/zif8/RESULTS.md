@@ -99,7 +99,29 @@ classifier branch and the "gate divergence indistinguishable between arms" findi
 `docs/ZIF8_RESULT.md` — were all computed on the same mixture on both sides; they measure the fraction
 of walkers at the indexed window as much as the gate state, and need re-examination (not done here).
 
-(Z1c / corrected-reference numbers appended when the runs complete)
+**Z1c (150 ps, 256 replicas each, random pool frameworks).**  Library `run_umbrella` at one window centred
+on ξ = 0 with UNSHIFTED pool frameworks: in-band ⟨A_gate⟩ = 2.861 (block sd 0.001) stationary
+from 20 to 150 ps — the stored reference's 2.86 reproduced exactly by its own protocol.  Constrained
+ensemble with the guest in the indexed window: 2.9488 / 2.9484 / 2.9485 at 15 / 50 / 100 ps, i.e. **the
+held-guest gate is a true stationary state, not a transient**, and the two protocols differ only in which
+window the guest occupies.  **Corrected gate reference** (`cache/zif8/gate_reference_v2_T300.npz`; same umbrella protocol, guest
+lattice-shifted into the indexed window, gate binned by unwrapped ξ; 8 windows × 128 replicas × 90 ps,
+split-half JS 4.3e-05, 0% frames at the image window): per-sub-bin ⟨A_gate⟩ =
+2.894, 2.916, 2.934, 2.946, 2.952, 2.952, 2.950, 2.948 for ξ from −0.875 to +0.875 — a real induced-fit profile, the gate opening
+by 0.15 Å in radius as the guest arrives (stored reference: 2.852, 2.861, 2.865, 2.865, 2.861, 2.856, 2.855, 2.847).
+
+**Z1 conditional gate re-scored against the corrected reference (`Z123/z1_gate_rescored_v2.json`): PASS.**
+
+| site | ⟨A⟩ Z1 constrained (sd) | ⟨A⟩ corrected ref (sd) | ⟨A⟩ stored ref | TV vs corrected | TV vs stored | TV halves |
+|---|---|---|---|---|---|---|
+| left_band | 2.9343 (0.051) | 2.9337 (0.051) | 2.8648 | 0.006 | 0.395 | 0.003 |
+| window_plane | 2.9491 (0.052) | 2.9490 (0.052) | 2.8629 | 0.002 | 0.468 | 0.004 |
+| peak_band | 2.9480 (0.053) | 2.9478 (0.053) | 2.8471 | 0.004 | 0.547 | 0.005 |
+
+max |Δ⟨A⟩| = 0.0006 Å (threshold 0.02), max TV(rec, ref) − TV(halves) = 0.002 (threshold 0.05).
+**The fixed-ξ constrained BAOAB operator reproduces both the mean force and the hidden-gate conditional of
+the umbrella ensemble.  The operator is validated; the frozen hard stop was triggered by a defective
+reference and is withdrawn on the corrected one.**
 
 ## Implications for Z4 / Z5 (design only; nothing launched)
 
