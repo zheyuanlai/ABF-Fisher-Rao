@@ -149,10 +149,40 @@ class ZIF8SimConfig:
     gate_hi: float = 4.6                # 0.025 A bins = 0.43 sd of the Stage-0B
     n_gate_bins: int = 96               # aperture law (a 1.08 sd bin cannot
     n_gate_xi: int = 8                  # resolve the stage's own diagnostic)
+    #: Condition the in-band gate histogram on the UNWRAPPED guest position (2026-09-06,
+    #: docs/ZIF8_OT_REPAIR.md §Z1b).  The CV is periodic on the circle, so a guest at the
+    #: periodic-image window (unwrapped xi ~ +-L) has phi ~ 0 and counted as "in band" while
+    #: gate_observables measures the one indexed window -- then empty.  With this flag a walker
+    #: is in band only if it is within gate_band_A of the INDEXED window or its true images
+    #: (2L apart).  Default False = the legacy (mixture) diagnostic, byte-identical.  Diagnostic
+    #: only: never touches the bias force or the trajectory.
+    gate_band_unwrapped: bool = False
 
     def config_hash(self):
         import hashlib, json
         return hashlib.md5(json.dumps(asdict(self), sort_keys=True).encode()).hexdigest()[:12]
+
+
+@dataclass(frozen=True)
+class ZIF8OTConfig:
+    """Wasserstein reallocation along the channel + constrained gate repair, the ``ot=`` option of
+    :func:`run_sampler` (docs/ZIF8_OT_Z4Z5.md).  ADDITIVE: ``ot=None`` is byte-identical.
+
+    Every ``every`` outer steps from ``fr_start_steps``: (1) rank-matched displacement of the
+    walkers' phi toward the uniform quantiles on the circle cut at +-pi (the cage centre), capped
+    at ``cap_bins`` grid bins per event, strength ``alpha``; the LIFT translates the whole ethane by
+    dxi n (bond, orientation, framework, velocities untouched); (2) ``m_repair`` constrained BAOAB
+    steps at each walker's fixed unwrapped xi (guest COM re-projected along n each step, its COM
+    velocity along n removed) for EVERY walker (``repair_all``, the matched-treatment design of
+    WCA M3) -- afterwards the guest's axial COM velocity is redrawn from the Maxwellian so the
+    release of the constraint does not cool the guest.  Nothing is deposited during repair; the
+    lift's force re-evaluation and every inner step are counted in ``inner_steps_total``."""
+    alpha: float = 0.0
+    cap_bins: float = 2.0
+    every: int = 100
+    m_repair: int = 0
+    repair_all: bool = True
+    inner_seed_offset: int = 8_000_000
 
 
 class ZIF8System:
@@ -604,7 +634,7 @@ def uniform_target(R, n_grid, device, dtype):
 # --------------------------------- sampler ---------------------------------
 def run_sampler(method, system: ZIF8System, sim: ZIF8SimConfig, seeds, init_pool,
                 oracle_free_energy=None, verbose=True, progress_every=0,
-                lineage_diagnostics=False, clone_age_edges=(0.5, 5.0)):
+                lineage_diagnostics=False, clone_age_edges=(0.5, 5.0), ot: "ZIF8OTConfig | None" = None):
     """R = len(seeds) matched-seed populations of ``method`` in one process.
 
     BAOAB Langevin, one force evaluation per step.  FR clones copy q AND the
@@ -672,6 +702,21 @@ def run_sampler(method, system: ZIF8System, sim: ZIF8SimConfig, seeds, init_pool
                             "n_visited_bins", "gate_hist_block", "gate_mean",
                             "gate_theta_mean", "temp_kin", "n_band",
                             "raw_fsum_t", "raw_csum_t"]}
+    # ---- Wasserstein reallocation + constrained gate repair (only when ``ot`` is given) ----
+    ot_on = ot is not None
+    if ot_on:
+        from alkanes.ot_repair_dist import ot_displacement_batched
+        assert ot.repair_all, "guarded repair is not implemented in this round (matched treatment only)"
+        u_quant = -math.pi + (torch.arange(N, device=device, dtype=dtype) + 0.5) * (TWO_PI / N)
+        cap_phi = float(ot.cap_bins) * dphi
+        gen_rep = torch.Generator(device=device).manual_seed(int(sim.rng_seed) + int(ot.inner_seed_offset))
+        ot_Sf_pre, ot_C_pre, ot_Sf_post, ot_C_post = z(), z(), z(), z()
+        ot_absdphi_sum = torch.zeros(R, device=device, dtype=dtype); ot_absdphi_max = torch.zeros(R, device=device, dtype=dtype)
+        ot_capped = torch.zeros(R, device=device, dtype=dtype); ot_moved = torch.zeros(R, device=device, dtype=dtype)
+        ot_n_opp = 0; inner_steps_total = 0                       # inner force evaluations per seed (x N walkers)
+        nf_ = system.n_frame; M_guest = float(system.mass[nf_:].sum())
+        v_com_sig = math.sqrt(system.kT / M_guest)
+        diag["series_inner_steps"] = []
     t0 = time.perf_counter()
 
     def full_force(qq):
@@ -718,7 +763,13 @@ def run_sampler(method, system: ZIF8System, sim: ZIF8SimConfig, seeds, init_pool
         if step % sim.gate_every == 0:
             ag, th = system.gate_observables(q)
             a_gate, theta_g = ag.reshape(R, N), th.reshape(R, N)
-            gh, nd = gate_hist(a_gate, phi, sim, kf, device, dtype)
+            if sim.gate_band_unwrapped:
+                # distance (in phi units) from the indexed window or its true periodic images (2L)
+                two_pi_L = 2.0 * TWO_PI
+                phi_band = torch.remainder(phi_unw + TWO_PI, two_pi_L) - TWO_PI
+            else:
+                phi_band = phi
+            gh, nd = gate_hist(a_gate, phi_band, sim, kf, device, dtype)
             n_gate_dropped += nd
             ghist += gh
             ghist_c += gh
@@ -776,6 +827,8 @@ def run_sampler(method, system: ZIF8System, sim: ZIF8SimConfig, seeds, init_pool
             diag["temp_kin"].append((2.0 * ke / ((3 * A - 3) * KB)).reshape(R, N)
                                     .mean(-1).cpu().numpy())
             diag["n_band"].append((phi.abs() < gate_phi).to(dtype).sum(-1).cpu().numpy())
+            if ot_on:
+                diag["series_inner_steps"].append(int(inner_steps_total))
             if lineage_diagnostics:
                 gidx = (torch.floor((phi + math.pi) / dphi).long() % G)
                 anc = (ancestors if is_fr else
@@ -855,6 +908,55 @@ def run_sampler(method, system: ZIF8System, sim: ZIF8SimConfig, seeds, init_pool
                     F_phys = Fr.reshape(R * N, A, 3)
                     v = system.pin_frame_com(vr.reshape(R * N, A, 3))
 
+        # ---- Wasserstein lift + constrained repair (schedule: fr_start + k * ot.every) ----
+        if ot_on:
+            nxt = step + 1
+            if nxt >= sim.fr_start_steps and (nxt - sim.fr_start_steps) % max(int(ot.every), 1) == 0:
+                ot_n_opp += 1
+                moved = torch.zeros(R, N, dtype=torch.bool, device=device)
+                if ot.alpha > 0.0:
+                    phi_new = ot_displacement_batched(phi, float(ot.alpha), cap_phi, u_quant)
+                    dph = phi_new - phi
+                    moved = dph.abs() > 1e-12
+                    ot_absdphi_sum += dph.abs().sum(-1); ot_absdphi_max = torch.maximum(ot_absdphi_max, dph.abs().amax(-1))
+                    ot_capped += (dph.abs() >= cap_phi - 1e-12).to(dtype).sum(-1); ot_moved += moved.to(dtype).sum(-1)
+                    qr = q.reshape(R, N, A, 3)
+                    qr[:, :, system.n_frame:] += (dph / kf)[..., None, None] * system.normal[None, None, None, :]
+                    q = qr.reshape(R * N, A, 3)
+                    phi_unw = phi_unw + dph
+                    F_phys, f_loc, phi = full_force(q)                       # the lifted configuration's force (charged)
+                    inner_steps_total += N
+                    cage_idx = torch.round((phi_unw - math.pi) / TWO_PI).long()
+                    w_ev = moved.to(dtype)
+                    c_ev, f_ev = bin_counts_and_sum(phi, f_loc.clamp(-clip_phi * 8, clip_phi * 8) * w_ev, G)
+                    ot_Sf_pre += f_ev; ot_C_pre += bin_counts_and_sum(phi, w_ev, G)[1]
+                if int(ot.m_repair) > 0:
+                    xi_fixed = system.xi_value(q)                             # (R*N,) unwrapped, exact
+                    F_rep = F_phys
+                    for _k in range(int(ot.m_repair)):
+                        v = v + (0.5 * sim.dt) * F_rep / m
+                        q = q + (0.5 * sim.dt) * v
+                        noise = torch.randn(q.shape, generator=gen_rep, device=device, dtype=dtype)
+                        v = system.pin_frame_com(c1 * v + c2 * vsig * noise)
+                        q = q + (0.5 * sim.dt) * v
+                        dsh = (xi_fixed - system.xi_value(q))[:, None] * system.normal[None, :]
+                        q = q.clone(); q[:, system.n_frame:] += dsh[:, None, :]      # position projection
+                        F_rep = system.forces(q)
+                        v = v + (0.5 * sim.dt) * F_rep / m
+                        vg = v[:, system.n_frame:]
+                        vcn = ((vg * system.mass_w[None, :, None]).sum(1) * system.normal[None, :]).sum(-1)
+                        v = v.clone(); v[:, system.n_frame:] = vg - vcn[:, None, None] * system.normal[None, None, :]   # velocity projection
+                    inner_steps_total += int(ot.m_repair) * N
+                    # release the constraint: redraw the guest's axial COM velocity from the Maxwellian
+                    vn = torch.randn(R * N, generator=gen_rep, device=device, dtype=dtype) * v_com_sig
+                    v = v.clone(); v[:, system.n_frame:] += vn[:, None, None] * system.normal[None, None, :]
+                    F_phys = F_rep
+                    f_loc, phi = system.cv_local_mean_force(q, F_phys); f_loc = f_loc.reshape(R, N); phi = phi.reshape(R, N)
+                    if ot.alpha > 0.0:
+                        w_ev = moved.to(dtype)
+                        _, f_ev = bin_counts_and_sum(phi, f_loc.clamp(-clip_phi * 8, clip_phi * 8) * w_ev, G)
+                        ot_Sf_post += f_ev; ot_C_post += bin_counts_and_sum(phi, w_ev, G)[1]
+
     u_of_phi = (usum_p / ucnt_p.clamp_min(1.0)).cpu().numpy()
     uhg_of_phi = (uhgsum_p / ucnt_p.clamp_min(1.0)).cpu().numpy()
     out = {"method": method, "grid": grid.cpu().numpy(), "dphi": dphi,
@@ -879,6 +981,15 @@ def run_sampler(method, system: ZIF8System, sim: ZIF8SimConfig, seeds, init_pool
            # never be revisited after the fact.  They are what makes an
            # offline h-sweep possible from a single trajectory.
            "raw_fsum": fsum_p.cpu().numpy(), "raw_csum": csum_p.cpu().numpy()}
+    if ot_on:
+        import json as _json
+        n_ev = max(ot_n_opp, 1) * N
+        out.update({"ot_config": _json.dumps(asdict(ot)), "ot_n_opportunities": int(ot_n_opp),
+                    "inner_steps_total": int(inner_steps_total),
+                    "ot_Sf_pre": ot_Sf_pre.cpu().numpy(), "ot_C_pre": ot_C_pre.cpu().numpy(),
+                    "ot_Sf_post": ot_Sf_post.cpu().numpy(), "ot_C_post": ot_C_post.cpu().numpy(),
+                    "ot_absdphi_mean": (ot_absdphi_sum / n_ev).cpu().numpy(), "ot_absdphi_max": ot_absdphi_max.cpu().numpy(),
+                    "ot_capped_frac": (ot_capped / n_ev).cpu().numpy(), "ot_moved_frac": (ot_moved / n_ev).cpu().numpy()})
     if lineage_diagnostics:
         out.update({"lineage_fsum": fsum_ag.cpu().numpy(),
                     "lineage_csum": csum_ag.cpu().numpy(),
@@ -989,7 +1100,7 @@ def conditional_mean_periodic(phi_samples, values, n_bins=144):
     return mids, np.where(cnt > 0, s / np.maximum(cnt, 1), np.nan), cnt
 
 
-__all__ = ["ZIF8SimConfig", "ZIF8System", "run_sampler", "run_umbrella",
+__all__ = ["ZIF8SimConfig", "ZIF8OTConfig", "ZIF8System", "run_sampler", "run_umbrella",
            "engine_kwargs", "bin_counts_and_sum",
            "wham_periodic", "conditional_mean_periodic", "gate_hist",
            "js_divergence", "uniform_target", "mean_force_regularized",
