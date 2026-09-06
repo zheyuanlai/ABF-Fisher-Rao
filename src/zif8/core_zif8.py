@@ -764,9 +764,13 @@ def run_sampler(method, system: ZIF8System, sim: ZIF8SimConfig, seeds, init_pool
             ag, th = system.gate_observables(q)
             a_gate, theta_g = ag.reshape(R, N), th.reshape(R, N)
             if sim.gate_band_unwrapped:
-                # distance (in phi units) from the indexed window or its true periodic images (2L)
+                # distance (in phi units) from the INDEXED window or its true periodic images (2L apart),
+                # from the guest's TRUE unwrapped coordinates (xi_value), not from the sampler's phi_unw
+                # bookkeeping, which is accumulated from the WRAPPED start position and therefore cannot
+                # tell a walker that began nearer the image window from one that began nearer the indexed one.
+                xi_true = system.xi_value(q).reshape(R, N) * kf
                 two_pi_L = 2.0 * TWO_PI
-                phi_band = torch.remainder(phi_unw + TWO_PI, two_pi_L) - TWO_PI
+                phi_band = torch.remainder(xi_true + TWO_PI, two_pi_L) - TWO_PI
             else:
                 phi_band = phi
             gh, nd = gate_hist(a_gate, phi_band, sim, kf, device, dtype)

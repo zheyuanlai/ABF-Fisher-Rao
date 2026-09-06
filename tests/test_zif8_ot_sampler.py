@@ -38,3 +38,20 @@ def test_lift_and_repair_accounting(tmp_path):
     assert int(r["inner_steps_total"]) == 4 * 7 * N and float(r["ot_C_pre"].sum()) == 0.0
     fr = _run(tmp_path, method="fr_uniform", ot=ZIF8OTConfig(alpha=0.0, every=100, m_repair=7), fr_rate=5.0, max_event_fraction=0.2)
     assert int(fr["inner_steps_total"]) == 4 * 7 * N and np.isfinite(np.asarray(fr["pmf"])).all()
+
+
+def test_unwrapped_band_excludes_image_window(tmp_path):
+    """A guest sitting at the periodic IMAGE of the window (unwrapped xi = L) has phi ~ 0 but must not be
+    counted in the unwrapped band; a guest at the indexed window must."""
+    from zif8.core_zif8 import gate_hist, TWO_PI
+    s = tz.make_system(tmp_path); sim = ZIF8SimConfig(**KW, gate_band_unwrapped=True)
+    q = tz.rand_config(s, B=4, jitter=0.0)
+    xi = torch.tensor([0.0, s.period, -s.period, 2 * s.period], dtype=torch.float64)       # indexed, image, image, true image
+    q = q.clone(); q[:, s.n_frame:] += ((xi - s.xi_value(q))[:, None] * s.normal[None, :])[:, None, :]
+    xi_true = s.xi_value(q).reshape(1, 4) * s.k_phi
+    phi_band = torch.remainder(xi_true + TWO_PI, 2 * TWO_PI) - TWO_PI
+    a = torch.full((1, 4), 3.0, dtype=torch.float64)
+    gh, _ = gate_hist(a, phi_band, sim, s.k_phi, torch.device("cpu"), torch.float64)
+    assert float(gh.sum()) == 2.0                                                        # xi = 0 and xi = 2L only
+    ghw, _ = gate_hist(a, s.cv_value(q).reshape(1, 4), sim, s.k_phi, torch.device("cpu"), torch.float64)
+    assert float(ghw.sum()) == 4.0                                                        # the wrapped (legacy) band counts all four

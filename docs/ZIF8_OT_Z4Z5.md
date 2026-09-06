@@ -67,3 +67,20 @@ full-scale two-arm long-time check (A, T+R at 384 × 300 ps) is a separate decis
   dynamics relax within ~100 steps anyway, so T vs A ≈ neutral-to-slightly-positive; T+R vs T positive
   (repair pays here, unlike pentane) but the 2× compute makes T+R vs A at C* uncertain; T+R vs R
   positive (allocation beyond rejuvenation).  Every arm reported regardless of sign.
+
+## Amendments (after B1 finished, before B2–B4 finished and before any Z5 run)
+
+* **A1 (17:05 UTC, withdrawn by A2):** T_gate on cumulative 24-bin histograms instead of 96-bin per-save
+  blocks.  Reason recorded: the block-wise JS floor.  Measurement showed the floor is NOT the cause
+  (cumulative 24-bin J_gate for B1 = 0.07 → 0.12 with 44 000 samples per sub-bin, floor 1e-4).
+* **A2 (17:15 UTC):** the sampler's `gate_band_unwrapped` test used `phi_unw`, which is accumulated from
+  the WRAPPED start position and cannot tell a walker that began nearer the image window from one that
+  began nearer the indexed one — so the Z4 in-band gate histograms are still a periodic-image mixture
+  (B1's cumulative in-band ⟨A_gate⟩ per sub-bin is reported in `Z4/cell_choice.json`).  Fixed in the
+  sampler (band from the guest's true unwrapped coordinates, `system.xi_value`; regression test
+  `test_unwrapped_band_excludes_image_window`) BEFORE any Z5 run.  **Z4 verdicts are taken from T_cover
+  and T_marg only** (discovery_limited / abf_sufficient / establishment_limited / intermediate); the
+  cell rule is unchanged; the gate clock is measured in Z5 with the corrected band and the corrected
+  reference.  Also noted: at these budgets the marginal establishes within the 30 ps warm-up
+  (B1: TV 0.44 → 0.19 by 30 ps, then a finite-N plateau), so T_marg is censored by the warm-up and
+  `intermediate` is the expected verdict; the choice then falls to the cell nearest 128 replicas.
