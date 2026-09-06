@@ -1,0 +1,78 @@
+{
+ "choice": "B4",
+ "go_z5": true,
+ "n_replicas": 192,
+ "table": {
+  "B1": {
+   "n_replicas": 64,
+   "verdict": "intermediate",
+   "verdict_block96": "conditional_limited",
+   "T_cover": 27.0,
+   "T_marg": Infinity,
+   "T_gate": Infinity,
+   "T": 150.0,
+   "marg_status": "never_sustained",
+   "gate_status": "degrading",
+   "gate_final": 0.12646990984721634,
+   "transits": 953,
+   "unvisited": 0.0
+  },
+  "B2": {
+   "n_replicas": 96,
+   "verdict": "intermediate",
+   "verdict_block96": "conditional_limited",
+   "T_cover": 26.0,
+   "T_marg": Infinity,
+   "T_gate": Infinity,
+   "T": 150.0,
+   "marg_status": "never_sustained",
+   "gate_status": "degrading",
+   "gate_final": 0.12327180392200676,
+   "transits": 1456,
+   "unvisited": 0.0
+  },
+  "B3": {
+   "n_replicas": 128,
+   "verdict": "intermediate",
+   "verdict_block96": "conditional_limited",
+   "T_cover": 27.0,
+   "T_marg": 121.0,
+   "T_gate": Infinity,
+   "T": 150.0,
+   "marg_status": "ok",
+   "gate_status": "degrading",
+   "gate_final": 0.12716721029024464,
+   "transits": 1965,
+   "unvisited": 0.0
+  },
+  "B4": {
+   "n_replicas": 192,
+   "verdict": "establishment_limited",
+   "verdict_block96": "conditional_limited",
+   "T_cover": 24.0,
+   "T_marg": 45.0,
+   "T_gate": Infinity,
+   "T": 150.0,
+   "marg_status": "ok",
+   "gate_status": "degrading",
+   "gate_final": 0.12614965245120136,
+   "transits": 2960,
+   "unvisited": 0.0
+  },
+  "control": {
+   "n_replicas": 384,
+   "verdict": "unclassified_no_gate_reference_(gate=legacy_mixture,not_used)",
+   "verdict_block96": null,
+   "T_cover": 24.0,
+   "T_marg": 32.0,
+   "T_gate": NaN,
+   "T": 300.0,
+   "marg_status": "ok",
+   "gate_status": "no_reference",
+   "gate_final": null,
+   "transits": 26984,
+   "unvisited": 0.0
+  }
+ },
+ "rule": "A2: verdict from T_cover/T_marg only (Z4 gate histograms invalid); establishment_limited > intermediate; ties -> |N - 128| smallest; discovery excluded; none -> no Z5"
+}
