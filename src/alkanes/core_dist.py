@@ -16,6 +16,7 @@ from __future__ import annotations
 import math
 import time
 from dataclasses import dataclass, asdict
+from typing import Optional
 
 import numpy as np
 import torch
@@ -27,6 +28,8 @@ from . import density2d as d2
 from .distance_cv import DistanceCV, dist_bias_force
 from .core import (_birth_death, _ancestor_stats, _recentered_clipped_score,
                    assert_no_reference_leakage, FR_METHODS, ESTIMATED_TARGET_METHODS, ALL_METHODS)
+from .ot_repair_dist import (DistOTConfig, uniform_quantiles, ot_displacement_batched, lift_to_R,
+                             projected_relax, torsion_cond_indices)
 
 EPS = 1.0e-12
 PI = math.pi
@@ -72,6 +75,10 @@ class DistSimConfig:
     fr_every: int = 5
     target_ema_rate: float = 0.005
     max_event_fraction: float = 0.01
+    #: Domain ``(lo, hi)`` of the ``fr_uniform`` target.  ``None`` = the whole grid ``[R_lo, R_hi]``
+    #: (frozen v1 behaviour, byte-identical).  The OT campaign (docs/PENTANE_R15_OT_REPAIR.md) puts
+    #: FR and OT on the same reference-free domain so that the two allocators share one target.
+    fr_domain: Optional[tuple] = None
     # conditional torsion diagnostic
     n_grid2: int = 48
     n_rbins: int = 12
@@ -92,12 +99,16 @@ def _wall_gforce(R, sim):
     return f
 
 
-def _fr_target(method, grid, dz, R_lo, R_hi, F_ema, B_n, oracle, beta):
+def _fr_target(method, grid, dz, R_lo, R_hi, F_ema, B_n, oracle, beta, fr_domain=None):
     if method == "abf":
         return None
     if method == "fr_uniform":
         R = B_n.shape[0] if B_n is not None else 1
-        return iv.normalize_density(torch.ones(R, grid.numel(), device=grid.device, dtype=grid.dtype), dz)
+        ones = torch.ones(R, grid.numel(), device=grid.device, dtype=grid.dtype)
+        if fr_domain is not None:
+            inside = ((grid >= float(fr_domain[0])) & (grid <= float(fr_domain[1]))).to(grid.dtype)
+            ones = ones * inside[None, :]
+        return iv.normalize_density(ones, dz)
     if method == "fr_oracle":
         log_q = -beta * (oracle[None, :] - B_n)
         log_q = log_q - log_q.max(-1, keepdim=True).values
@@ -122,8 +133,16 @@ def _fr_score(R, grid, dz, R_lo, R_hi, K_kde, q_grid, clip):
 
 def run_sampler_dist(method, params: pot.AlkaneParams, sim: DistSimConfig, seeds,
                      cv: DistanceCV, device, dtype=torch.float64, initial_dihedrals=None,
-                     oracle_free_energy=None, collect_conditional=True, verbose=True):
-    """Run ``R=len(seeds)`` matched-seed replicas of ``method`` on the distance CV."""
+                     oracle_free_energy=None, collect_conditional=True, verbose=True,
+                     ot: Optional[DistOTConfig] = None, force_fn=None):
+    """Run ``R=len(seeds)`` matched-seed replicas of ``method`` on the distance CV.
+
+    ``ot`` (additive, 2026-09-06): Wasserstein reallocation along R + projected constrained
+    repair on the FR schedule (:mod:`alkanes.ot_repair_dist`); ``None`` is byte-identical to
+    the frozen sampler.  ``force_fn(q, params)`` replaces :func:`potentials.forces` (default)
+    for every force evaluation, outer and inner -- the runner passes a ``torch.compile``d copy.
+    """
+    force_fn = pot.forces if force_fn is None else force_fn
     if method not in ALL_METHODS:
         raise ValueError(f"unknown method {method!r}")
     assert_no_reference_leakage(method, oracle_free_energy)
@@ -186,10 +205,26 @@ def run_sampler_dist(method, params: pot.AlkaneParams, sim: DistSimConfig, seeds
                             "eff_counts", "ancestor_ess", "n_unique_ancestor",
                             "max_ancestor_frac", "repl_cumulative", "pq_l2", "kl_pq",
                             "frac_compact", "frac_inter", "frac_extended"]}
+    # ---- OT + repair state (only when ``ot`` is given) ----
+    ot_on = ot is not None
+    if ot_on:
+        ot_lo, ot_hi = (ot.domain if ot.domain is not None else (sim.R_lo, sim.R_hi))
+        u_quant = uniform_quantiles(N, float(ot_lo), float(ot_hi), device, dtype)
+        gen_rep = torch.Generator(device=device).manual_seed(int(sim.rng_seed) + int(ot.inner_seed_offset))
+        event_mask = torch.zeros(R, N, dtype=torch.bool, device=device)      # walkers OT moved at the last opportunity
+        ot_Sf_pre = torch.zeros(R, sim.n_grid, device=device, dtype=dtype); ot_C_pre = torch.zeros_like(ot_Sf_pre)
+        ot_Sf_post = torch.zeros_like(ot_Sf_pre); ot_C_post = torch.zeros_like(ot_Sf_pre)
+        ot_absdR_sum = torch.zeros(R, device=device, dtype=dtype); ot_absdR_max = torch.zeros(R, device=device, dtype=dtype)
+        ot_capped = torch.zeros(R, device=device, dtype=dtype); ot_moved = torch.zeros(R, device=device, dtype=dtype)
+        ot_n_opp = 0; inner_steps_total = 0                                  # inner steps per seed (all seeds identical)
+        if do_cond:
+            ot_cond_pre = torch.zeros(R, sim.n_rbins * sim.n_grid2 * sim.n_grid2, device=device, dtype=dtype)
+            ot_cond_post = torch.zeros_like(ot_cond_pre)
+        diag["series_cond_hist"] = []; diag["series_inner_steps"] = []
     t0 = time.perf_counter()
     for step in range(sim.n_steps + 1):
         qf = q.reshape(R * N, A, 3)
-        F = pot.forces(qf, params)
+        F = force_fn(qf, params)
         f_loc, R_f, grad_f = cv.local_mean_force(qf, F, beta)
         Rv = R_f.reshape(R, N)
         f_loc = torch.clamp(f_loc, -sim.abf_force_clip * 8, sim.abf_force_clip * 8).reshape(R, N)
@@ -208,6 +243,16 @@ def run_sampler_dist(method, params: pot.AlkaneParams, sim: DistSimConfig, seeds
                 i2 = torch.floor((phi2 + PI) / dphi2c).long().clamp(0, sim.n_grid2 - 1)
                 lin = bin_id * (sim.n_grid2 * sim.n_grid2) + i1 * sim.n_grid2 + i2
                 cond_hist.view(R, -1).scatter_add_(1, lin, torch.ones_like(phi1))
+        if ot_on and ot.alpha > 0.0:
+            # deposit-free copy of the FIRST outer sample after an OT event, binned by the walker's R:
+            # the injected conditional bias actually entering ABF (T) or its post-repair residual (T+R)
+            w_ev = event_mask.to(dtype)
+            ot_Sf_post += iv.bin_sum(Rv, f_loc * w_ev, sim.n_grid, sim.R_lo, sim.R_hi)
+            ot_C_post += iv.bin_sum(Rv, w_ev, sim.n_grid, sim.R_lo, sim.R_hi)
+            if do_cond:
+                lin_ev, _, _ = torsion_cond_indices(qf, Rv.reshape(-1), cond_edges, sim.n_rbins, sim.n_grid2, dphi1c)
+                ot_cond_post.scatter_add_(1, lin_ev.reshape(R, N), w_ev)
+            event_mask = torch.zeros_like(event_mask)
 
         mf_profile = iv.mean_force_profile(fsum, csum, K_abf)
         A_hat = iv.free_energy_from_mean_force(mf_profile, grid, dz)
@@ -265,7 +310,8 @@ def run_sampler_dist(method, params: pot.AlkaneParams, sim: DistSimConfig, seeds
             diag["repl_cumulative"].append(total_repl.numpy().copy())
             p_grid = iv.kde_marginal(Rv, K_kde, sim.n_grid, dz, sim.R_lo, sim.R_hi)
             diag["p_hat"].append(p_grid.cpu().numpy())
-            q_grid = _fr_target(method, grid, dz, sim.R_lo, sim.R_hi, F_ema, B_n, oracle, beta)
+            q_grid = _fr_target(method, grid, dz, sim.R_lo, sim.R_hi, F_ema, B_n, oracle, beta,
+                                fr_domain=sim.fr_domain)
             if q_grid is not None:
                 lr = torch.log(p_grid.clamp_min(EPS)) - torch.log(q_grid.clamp_min(EPS))
                 diag["q_target"].append(q_grid.cpu().numpy())
@@ -283,6 +329,10 @@ def run_sampler_dist(method, params: pot.AlkaneParams, sim: DistSimConfig, seeds
             diag["frac_compact"].append((cur_ext == 2).float().mean(-1).cpu().numpy())
             diag["frac_inter"].append((cur_ext == 0).float().mean(-1).cpu().numpy())
             diag["frac_extended"].append((cur_ext == 1).float().mean(-1).cpu().numpy())
+            if ot_on:
+                diag["series_inner_steps"].append(int(inner_steps_total))
+                if do_cond and ot.cond_snapshot:
+                    diag["series_cond_hist"].append(cond_hist.to(torch.float32).cpu().numpy())
 
         if step == sim.n_steps:
             break
@@ -295,7 +345,8 @@ def run_sampler_dist(method, params: pot.AlkaneParams, sim: DistSimConfig, seeds
             nxt = step + 1
             if nxt >= sim.fr_start_steps and (nxt - sim.fr_start_steps) % max(int(sim.fr_every), 1) == 0:
                 R_new = cv.value(q.reshape(R * N, A, 3)).reshape(R, N)
-                q_grid = _fr_target(method, grid, dz, sim.R_lo, sim.R_hi, F_ema, B_n, oracle, beta)
+                q_grid = _fr_target(method, grid, dz, sim.R_lo, sim.R_hi, F_ema, B_n, oracle, beta,
+                                    fr_domain=sim.fr_domain)
                 if q_grid is not None:
                     score, p_fr, kl = _fr_score(R_new, grid, dz, sim.R_lo, sim.R_hi, K_kde,
                                                 q_grid, sim.score_clip)
@@ -315,6 +366,37 @@ def run_sampler_dist(method, params: pot.AlkaneParams, sim: DistSimConfig, seeds
                             if prev_ext is not None:
                                 prev_ext[r, deaths[r]] = prev_ext[r].index_select(0, births[r])
 
+        if ot_on:
+            nxt = step + 1
+            if nxt >= sim.fr_start_steps and (nxt - sim.fr_start_steps) % max(int(sim.fr_every), 1) == 0:
+                ot_n_opp += 1
+                R_cur = cv.value(q.reshape(R * N, A, 3)).reshape(R, N)
+                if ot.alpha > 0.0:
+                    R_new = ot_displacement_batched(R_cur, float(ot.alpha), float(ot.dR_max), u_quant)
+                    dR = R_new - R_cur
+                    moved = dR.abs() > float(ot.min_move)
+                    ot_absdR_sum += dR.abs().sum(-1); ot_absdR_max = torch.maximum(ot_absdR_max, dR.abs().amax(-1))
+                    ot_capped += (dR.abs() >= float(ot.dR_max) - 1e-12).to(dtype).sum(-1)
+                    ot_moved += moved.to(dtype).sum(-1)
+                    q = lift_to_R(q, R_new, cv.i, cv.j)
+                    event_mask = moved
+                else:
+                    R_new = R_cur
+                if int(ot.m_repair) > 0:
+                    qf_r = q.reshape(R * N, A, 3)
+                    if ot.alpha > 0.0 and do_cond:
+                        lin_pre, _, _ = torsion_cond_indices(qf_r, R_new.reshape(-1), cond_edges, sim.n_rbins, sim.n_grid2, dphi1c)
+                        ot_cond_pre.scatter_add_(1, lin_pre.reshape(R, N), event_mask.to(dtype))
+                    qf_r, f_first = projected_relax(qf_r, R_new.reshape(-1), int(ot.m_repair), params, sim.dt, beta,
+                                                    gen_rep, force_fn, cv, record_first=(ot.alpha > 0.0))
+                    if f_first is not None:
+                        f_first = torch.clamp(f_first, -sim.abf_force_clip * 8, sim.abf_force_clip * 8).reshape(R, N)
+                        w_ev = event_mask.to(dtype)
+                        ot_Sf_pre += iv.bin_sum(R_new, f_first * w_ev, sim.n_grid, sim.R_lo, sim.R_hi)
+                        ot_C_pre += iv.bin_sum(R_new, w_ev, sim.n_grid, sim.R_lo, sim.R_hi)
+                    q = qf_r.reshape(R, N, A, 3)
+                    inner_steps_total += int(ot.m_repair) * N
+
     out = {"method": method, "grid": grid.cpu().numpy(), "dz": float(dz),
            "R_lo": sim.R_lo, "R_hi": sim.R_hi,
            "runtime_seconds": time.perf_counter() - t0,
@@ -329,6 +411,20 @@ def run_sampler_dist(method, params: pot.AlkaneParams, sim: DistSimConfig, seeds
            "final_eff_counts": iv.effective_counts(csum, K_abf).cpu().numpy()}
     for k in diag:
         out[k] = np.asarray(diag[k])
+    if ot_on:
+        import json as _json
+        out["ot_config"] = _json.dumps(asdict(ot))
+        out["ot_domain"] = np.array([float(ot_lo), float(ot_hi)])
+        out["ot_n_opportunities"] = int(ot_n_opp)
+        out["inner_steps_total"] = int(inner_steps_total)                  # per seed
+        out["ot_Sf_pre"] = ot_Sf_pre.cpu().numpy(); out["ot_C_pre"] = ot_C_pre.cpu().numpy()
+        out["ot_Sf_post"] = ot_Sf_post.cpu().numpy(); out["ot_C_post"] = ot_C_post.cpu().numpy()
+        n_ev = max(ot_n_opp, 1) * N
+        out["ot_absdR_mean"] = (ot_absdR_sum / n_ev).cpu().numpy(); out["ot_absdR_max"] = ot_absdR_max.cpu().numpy()
+        out["ot_capped_frac"] = (ot_capped / n_ev).cpu().numpy(); out["ot_moved_frac"] = (ot_moved / n_ev).cpu().numpy()
+        if do_cond:
+            out["ot_cond_pre"] = ot_cond_pre.reshape(R, sim.n_rbins, sim.n_grid2, sim.n_grid2).cpu().numpy()
+            out["ot_cond_post"] = ot_cond_post.reshape(R, sim.n_rbins, sim.n_grid2, sim.n_grid2).cpu().numpy()
     if do_cond:
         out["cond_hist"] = cond_hist.cpu().numpy()
         out["cond_grid1"] = g1c.cpu().numpy(); out["cond_grid2"] = g2c.cpu().numpy()
