@@ -143,9 +143,18 @@ def stage_arms(root, stage):
                         C_end=float(C[-1]), n_seeds=R)
         # mechanism (deposit-free) diagnostics
         mech = {}
+        mf_final = np.asarray(d["mean_force"])[-1]                                            # (R, G) estimator profile at the end
+        mech["mf_rms_err_end"] = float(np.median(np.sqrt(np.mean((mf_final[:, win2] - Fp2[win2]) ** 2, axis=1))))
+        if "csum_prod" in d.files:                                                            # all deposits (raw bins), same statistic
+            Cb = np.asarray(d["csum_prod"]).sum(0); Sf = np.asarray(d["fsum_prod"]).sum(0); ok = (Cb >= 200) & win2
+            if ok.any():
+                bias = Sf[ok] / Cb[ok] - Fp2[ok]
+                mech["deposit_bias_rms_all"] = float(np.sqrt(np.average(bias ** 2, weights=Cb[ok])))
         if float(np.sum(d["ot_C_post"])) > 0:
             for tag in ("pre", "post"):
                 Cb = np.asarray(d[f"ot_C_{tag}"]).sum(0); Sf = np.asarray(d[f"ot_Sf_{tag}"]).sum(0)
+                if Cb.sum() <= 0:
+                    continue
                 ok = (Cb >= 200) & win2
                 if ok.any():
                     bias = Sf[ok] / Cb[ok] - Fp2[ok]
@@ -178,8 +187,8 @@ def stage_arms(root, stage):
         ratios = []
         for s in range(p["n_seeds"]):
             e = p["eF"][s]; C = p["C"]; hit = None
-            for t in range(len(e) - 1):
-                if e[t] <= eps_A and e[t + 1] <= eps_A:
+            for t in range(len(e)):
+                if e[t] <= eps_A and (t == len(e) - 1 or e[t + 1] <= eps_A):
                     hit = C[t]; break
             ratios.append(hit / C_star if hit is not None else float("nan"))
         ratios = np.asarray(ratios)
@@ -213,12 +222,17 @@ def stage_arms(root, stage):
         f = lambda cc: f"{100 * cc['median']:+.1f}% [{100 * cc['ci95'][0]:+.1f}, {100 * cc['ci95'][1]:+.1f}] {cc['wins']}/{cc['n']}"   # noqa: E731
         lines.append(f"| {k} | {f(c['I_F'])} | {f(c['eF_star'])} | {f(c['D_star'])} | {'YES' if c['positive'] else 'no'} | {100 * c['I_L']['median']:+.1f}% |")
     lines += ["", "Mechanism (deposit-free, moved walkers, window bins with >= 200 samples): RMS of <f | R> - F'_v2 and conditional TV, before (pre) and after (post) repair.", ""]
-    for lab in ("T", "T+R"):
+    for lab in ("A", "F", "T", "R", "F+R", "T+R"):
         if lab in per and per[lab]["mech"]:
             m = per[lab]["mech"]
-            lines.append(f"- {lab}: deposit bias RMS pre {m.get('deposit_bias_rms_pre', float('nan')):.3f} / post {m.get('deposit_bias_rms_post', float('nan')):.3f} "
-                         f"(|F'| RMS {m['Fp_rms_window']:.2f}); conditional TV pre {m.get('cond_tv_pre', float('nan')):.3f} / post {m.get('cond_tv_post', float('nan')):.3f}; "
+            line = f"- {lab}: final smoothed mean-force RMS error {m['mf_rms_err_end']:.3f}"
+            if "deposit_bias_rms_all" in m:
+                line += f"; raw deposit bias RMS (all deposits) {m['deposit_bias_rms_all']:.3f}"
+            if "deposit_bias_rms_post" in m:
+                line += (f"; post-event deposit bias RMS pre {m.get('deposit_bias_rms_pre', float('nan')):.3f} / post {m['deposit_bias_rms_post']:.3f} "
+                         f"(|F'| RMS {m['Fp_rms_window']:.2f}); conditional TV of moved walkers pre {m.get('cond_tv_pre', float('nan')):.3f} / post {m.get('cond_tv_post', float('nan')):.3f}; "
                          f"|dR| mean {m['absdR_mean']:.4f}, capped {m['capped_frac']:.3f}, moved {m['moved_frac']:.3f}")
+            lines.append(line)
     lines += ["", f"Go to confirmatory: **{go}**"]
     open(os.path.join(out_dir, "REPORT.md"), "w").write("\n".join(lines) + "\n")
     print("\n".join(lines))

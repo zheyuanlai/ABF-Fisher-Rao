@@ -408,7 +408,9 @@ def run_sampler_dist(method, params: pot.AlkaneParams, sim: DistSimConfig, seeds
            "F_target_ema": (F_ema.cpu().numpy() if F_ema is not None else None),
            "fr_score_std": (score_std_sum / max(n_score, 1)),
            "fr_score_absmax": score_absmax,
-           "final_eff_counts": iv.effective_counts(csum, K_abf).cpu().numpy()}
+           "final_eff_counts": iv.effective_counts(csum, K_abf).cpu().numpy(),
+           # raw (unsmoothed) production accumulators: every deposit after the burn-in (additive, 2026-09-06)
+           "fsum_prod": fsum_prod.cpu().numpy(), "csum_prod": csum_prod.cpu().numpy()}
     for k in diag:
         out[k] = np.asarray(diag[k])
     if ot_on:
