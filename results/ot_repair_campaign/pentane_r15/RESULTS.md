@@ -160,6 +160,11 @@ above 3.17: 9.7 → 21.7 %; share of window deposits below R 2.65: 64 → 52 %; 
 error R ≥ 2.75: 4.02 → 3.29, R < 2.75: 9.9 → 10.0; transitions 4.87 → 4.81 M, round trips 9 078 →
 8 374 (rejuvenated arms 14 300, no accuracy gain).
 
+**Mechanism figure** (`confirmatory/figures/pentane_r15_ot_mechanism.{png,pdf,svg}`, `scripts/plot_pentane_r15_ot_mechanism.py`,
+frozen confirmatory outputs only): (a) final walker marginal for A/F/T against the uniform target; (b) deposit-density
+redistribution T − A from the raw accumulators (12.5 % of all deposits move from R < 2.75 to R ≥ 2.75); (c) per-bin RMS over
+16 seeds of the final mean-force error for A and T — the gain is confined to the repopulated mid/extended region.
+
 ## 5. Reading
 
 1. **Capped, gentle Wasserstein reallocation along R is a robust accelerator on the starved pentane
