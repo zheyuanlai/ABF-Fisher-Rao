@@ -63,6 +63,60 @@ the outer budget at an opportunity every 5 steps).  Affordable designs: an OT op
 ≥ 100 outer steps with ~100 inner steps (inner/outer ≤ 1), or repair only walkers moved ≥ 1 bin.
 The 2-bin cap is the safe edge (8-bin lifts create host–guest overlaps).
 
-## Z1b — resolving the gate-aperture inconsistency
+## Z1b — resolving the gate-aperture inconsistency: a defect in the stored reference's gate conditional
 
-(appended when the random-pool run completes)
+Facts established in order (`Z1b/`, `Z1b_randompool/`, `Z1c_*.log`, scratch kernel/lateral checks):
+1. The constrained ensembles are stationary and the shift is uniform across replicas (within-replica
+   sd = pooled sd), so it is not a mixture of gate states nor an equilibration lag.
+2. Preparation does not matter: fast pull, slow 20 ps pull, ξ-nearest or **random** pool frameworks all
+   give ⟨A_gate⟩ = 2.949 ± 0.05 at the window plane; the framework's kinetic temperature is 297.5–299 K.
+3. The constraint does not matter: the reference's own umbrella-spring protocol run by my loop gives
+   2.948 in the band (random frameworks, 30 ps), and constraining those states afterwards leaves 2.937.
+4. The kernel does not matter: compiled-deterministic vs compiled-nondeterministic forces differ only at
+   f32 noise (5e-4 on 4e15) and both match eager to 1e-6; no engine commit since the corrected production;
+   my cage-site aperture reproduces Stage 0B's empty-framework value (2.7957 ± 0.058) to four decimals.
+5. The guest's lateral state does not matter: held at |ξ| < 0.25 it sits on the axis (ρ = 0.20 ± 0.02 Å),
+   aligned within 12°, U_host–guest = −6.6 kJ/mol; A_gate is uncorrelated with ρ and orientation.
+6. **The cause is in the reference and the production diagnostics, not in the operator.**  The CV is
+   periodic on the circle, so a guest at the *periodic image* of the window (unwrapped ξ ≈ ±L) has φ ≈ 0
+   and is counted "in band", but `gate_observables` measures the one indexed window — then empty.  The
+   init pool has the guest anywhere in cage A (ξ ∈ [−11.2, −1.7]); **54.3 % of its frameworks are nearer
+   the image window**, so the umbrella reference and every production in-band histogram are a 46/54
+   mixture of the held-guest gate (2.949 ± 0.052) and the empty gate (2.796 ± 0.058): predicted mean
+   2.866, sd 0.094; observed 2.857–2.867, sd 0.090–0.092.  My ensembles lattice-shift the guest into
+   the indexed window and therefore see the true conditional.
+7. Direct confirmations: (a) the library `run_umbrella` at one window from unshifted pool frameworks
+   for 150 ps (`Z1c_umbrella`) — expected to reproduce the mixture; (b) the constrained ensemble for
+   150 ps (`Z1c_constrained`) — 2.9488 flat so far; (c) a corrected gate reference built with the same
+   umbrella protocol but the guest lattice-shifted into the indexed window and the gate binned by the
+   unwrapped ξ (`scripts/zif8_build_gate_reference_v2.py` → `cache/zif8/gate_reference_v2_T300.npz`).
+   Results appended below.
+
+**Consequences.**  The Z1 conditional gate is re-scored against the corrected reference (below).  The
+mean-force reference F(ξ) is unaffected (it uses φ, which is exactly periodic, as intended).  But the
+legacy ZIF-8 hidden-gate diagnostics — p_ref(A_gate | band), J_gate(t), T_gate, the `conditional_limited`
+classifier branch and the "gate divergence indistinguishable between arms" finding of
+`docs/ZIF8_RESULT.md` — were all computed on the same mixture on both sides; they measure the fraction
+of walkers at the indexed window as much as the gate state, and need re-examination (not done here).
+
+(Z1c / corrected-reference numbers appended when the runs complete)
+
+## Implications for Z4 / Z5 (design only; nothing launched)
+
+* **Repair dose and cadence.**  With τ* ≈ 100 inner steps and a first-order injection of ≈ 0.5 |F′|
+  per 2-bin move, the WCA/pentane recipe (5 inner steps every 5 outer steps) would repair nothing
+  (0–5 %).  The affordable design keeps inner/outer ≤ 1: an OT opportunity every ≥ 100 outer steps
+  (50 fs) with ≈ 100 inner steps for the moved walkers (≈ 80 % of the lag removed), or an
+  opportunity every 5 steps with repair guarded to walkers moved ≥ 1 bin.  The per-opportunity cap
+  stays at 2 bins (0.30 Å); 8-bin moves overlap ring atoms.
+* **Headroom.**  The corrected 300 K baseline is already at e_F(T) = 0.084 kJ/mol against a 39 kJ/mol
+  barrier, and uniform FR is neutral there (+0.8 %).  OT can only pay where ABF has an
+  establishment deficit, so Z4 (ABF-only screen: lower temperature and/or smaller replica budget,
+  per-bin adequacy, T_cover/T_marg/T_gate of the ZIF-8 prereg classifier) must pick the cell from
+  ABF-only diagnostics before any OT arm exists.  A new temperature also needs a new umbrella
+  reference (~2–3 GPU-h at the legacy protocol).
+* **Cost.**  One corrected-baseline production arm (16 seeds × 384 replicas × 300 ps) took 9.5 h on
+  the shared GPU 1; six arms with three repaired at inner/outer = 1 would be ≈ 85 GPU-h.  A reduced
+  scale (8 seeds × 128 replicas × 150 ps, batch 1024 keeps the kernel saturated) brings a six-arm
+  block to ≈ 10–12 GPU-h plus ≈ 4 h for the reference and screen — a one-day job, but a scale the
+  user should confirm.

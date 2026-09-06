@@ -56,6 +56,9 @@ def main():
     pool = torch.as_tensor(np.load(POOL)["q"], device=dev, dtype=system.dtype); xi_pool = system.xi_value(pool)
     nf = system.n_frame; mf = system.mass[:nf]; dof = 3 * nf - 3
     sc = 0.2 if quick else 1.0
+    scl = [a for a in sys.argv if a.startswith("--scale=")]
+    if scl:
+        sc = float(scl[0].split("=")[1])
     n_pull_fast, n_pull_slow = int(4000 * sc), int(40000 * sc)
     n_A, n_B, n_C, n_D = int(120000 * sc), int(80000 * sc), int(120000 * sc), int(40000 * sc)
     block = int(BLOCK * sc)
