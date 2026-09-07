@@ -142,3 +142,79 @@ reference and is withdrawn on the corrected one.**
   scale (8 seeds × 128 replicas × 150 ps, batch 1024 keeps the kernel saturated) brings a six-arm
   block to ≈ 10–12 GPU-h plus ≈ 4 h for the reference and screen — a one-day job, but a scale the
   user should confirm.
+
+## Z4 — ABF-only budget ladder at 300 K (corrected baseline, 8 seeds × 150 ps; `Z4/`, `Z4/cell_choice.json`)
+
+| cell | N | T_cover/T | T_marg/T | transits | verdict (T_cover/T_marg, amendment A2) |
+|---|---|---|---|---|---|
+| B1 | 64 | 0.18 | inf (censored by the 30 ps warm-up) | 953 | intermediate |
+| B2 | 96 | 0.17 | inf (censored) | 1456 | intermediate |
+| B3 | 128 | 0.18 | 0.81 | 1965 | intermediate |
+| **B4** | **192** | 0.16 | **0.30** | 2960 | **establishment_limited → chosen** |
+| control | 384 (300 ps) | 0.08 | 0.11 | 26 984 | abf-sufficient-like (gate legacy) |
+
+Discovery is never limiting.  The T_gate clock could not be used for Z4 (amendment A2: the first
+unwrapped-band implementation still produced a periodic-image mixture, confirmed by B1's in-band
+⟨A_gate⟩ 2.845–2.870 against the corrected 2.89–2.95; fixed for Z5).
+
+## Z5 calibration (N 192, 2 seeds × 75 ps; `Z5/calibration/alpha_star.json`)
+
+J = ∫ KL(p̂ ∥ U) dt: A 3612, F 3114 (uniform FR at 0.05 flattens the marginal here), T 2509 / 1554 / 622
+at α 0.03 / 0.10 / 0.30 → the [0.9, 1.1] band is unreachable, **α* = 0.03** by the frozen fallback
+(mean move 0.0039 rad = 0.06 bins per 100-step opportunity, nothing capped).
+
+## Z5 pilot — six arms, 8 seeds × 192 replicas × 150 ps (`Z5/pilot/REPORT.md`, closed 2026-09-07 05:08 UTC)
+
+C* = 57.6 M walker-steps; repaired arms carry 46 M inner steps per seed (inner/outer = 1) and are read at C*.
+e_F at h_read 0.05 Å vs the umbrella F; D_gate = mean JS of the corrected in-band gate law vs the
+corrected reference.  ε_A = 0.1056 kJ/mol against a 39 kJ/mol barrier.
+
+| arm | I_F^(C) | e_F(C*) | e_F(end) | D_gate(C*) | C(ε_A)/C* | transits |
+|---|---|---|---|---|---|---|
+| A | 1.098 | 0.1056 | 0.1056 | 0.0002 | 0.62 (6/8) | 2863 |
+| F | 1.110 | 0.1273 | 0.1273 | 0.0002 | 0.83 (2/8) | 2240 |
+| T | 1.120 | 0.1079 | 0.1079 | 0.0002 | 0.78 (5/8) | 2941 |
+| R | 1.095 | 0.0829 | 0.0746 | 0.0003 | 0.52 (7/8) | 392 |
+| F+R | 1.121 | 0.0879 | 0.0857 | 0.0003 | 0.79 (7/8) | 338 |
+| T+R | 1.110 | 0.0785 | 0.0672 | 0.0003 | 0.62 (8/8) | 447 |
+
+| contrast | ΔI_F^(C) [CI95] wins | Δe_F(C*) [CI95] wins |
+|---|---|---|
+| T vs A | +0.9 % [−5.0, +5.5] 4/8 | −0.4 % [−20.9, +21.4] |
+| T vs F | −0.0 % [−2.1, +3.1] | −11.2 % [−30.2, +4.7] |
+| F vs A | −0.0 % [−0.6, +2.3] | **+17.4 % [+5.7, +42.2] 1/8** |
+| R vs A | +0.1 % [−3.0, +4.3] | −21.3 % [−43.5, +32.5] |
+| F+R vs F | +1.0 % [−2.3, +3.8] | −27.0 % [−51.3, −15.3] 7/8 |
+| T+R vs T | −0.0 % [−2.1, +3.4] | **−25.6 % [−32.3, −12.0] 8/8** |
+| T+R vs R | −0.3 % [−0.9, +3.2] | −3.5 % [−38.2, +18.0] |
+| T+R vs F+R | −1.3 % [−3.6, +3.3] | −15.9 % [−32.1, +30.0] |
+| T+R vs A | +0.7 % [−1.8, +4.0] | **−28.2 % [−39.9, −8.3] 7/8** |
+
+Genealogy floors met (ESS/N ≥ 0.41).  D_gate is at the finite-sample floor (2–3 × 10⁻⁴) for every arm.
+**No contrast is positive by the prereg rule; go = False.**  The 16-fresh-seed block launched
+speculatively on GPU 3 is therefore a supplementary replication, not a confirmation.
+
+## Reading (ZIF-8, 300 K, 192 × 150 ps)
+
+1. **Gentle OT is neutral on ZIF-8**: ΔI_F +0.9 % [−5.0, +5.5], final −0.4 %.  OT does flatten the walker
+   marginal (final KL to uniform 0.027 vs ABF 0.031; T+R 0.013) but the free-energy error does not
+   follow: on this cell the error is not marginal-limited (ABF's own final error is 0.11 kJ/mol on a
+   39 kJ/mol barrier; Z4's establishment deficit is mild, T_marg = 0.30 T).  Uniform FR is integrated-
+   neutral and **worse at the end (+17 %, 1/8)**, so OT ≥ FR again (T vs F final −11 %), consistent with
+   pentane and WCA.
+2. **Repair buys final accuracy at equal compute, through generic fibre decorrelation, not OT-specific
+   repair**: T+R vs T −26 % (8/8), T+R vs A −28 % (7/8), F+R vs F −27 % (7/8), R vs A −21 % (noisy), while
+   T+R vs R is −3.5 % and every integrated contrast is null.  The constrained segments decorrelate the
+   framework between outer deposits, so each deposit carries more information; the price is half the
+   outer time at fixed compute, which cancels the gain in the integrated error.  The same reading as
+   WCA's "repair = relaxation", now on a flexible molecular gate, and the opposite sign from pentane,
+   where the fibre could not be relaxed at all.
+3. **No conditional damage anywhere**: with the corrected gate diagnostic, every arm reproduces the
+   held-guest gate law to the sampling floor; at the calibrated dose (0.06 bins per 50 fs) the Z2
+   injection scales to ≈ 1 % of |F′| per event and is invisible.
+4. The three-system picture: OT accelerates where the marginal is the bottleneck (WCA, pentane) and is
+   neutral where it is not (ZIF-8 at 300 K); repair pays where the fibre lags and is affordable (WCA),
+   is pure cost where it is frozen (pentane), and on ZIF-8 acts as a final-accuracy decorrelator whose
+   integrated value is zero at inner/outer = 1.  The Z2/Z3 mechanism numbers (0.47 |F′| injection per
+   2-bin move, τ_gate ≈ 100 steps) stand, but at the dose the blind rule permits the injection is never
+   large enough to need repairing.
