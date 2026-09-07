@@ -84,3 +84,10 @@ full-scale two-arm long-time check (A, T+R at 384 × 300 ps) is a separate decis
   reference.  Also noted: at these budgets the marginal establishes within the 30 ps warm-up
   (B1: TV 0.44 → 0.19 by 30 ps, then a finite-N plateau), so T_marg is censored by the warm-up and
   `intermediate` is the expected verdict; the choice then falls to the cell nearest 128 replicas.
+
+## Closure (2026-09-07)
+
+Pilot `go=False` (all integrated contrasts null; T vs A +0.9 % [−5.0, +5.5]).  The supplementary 16-seed
+block launched speculatively on GPU 3 was terminated before any arm completed (GPU reassigned); nothing
+from it is used.  ZIF-8 300 K is frozen as mechanistically validated, production-neutral.  See
+`results/ot_repair_campaign/zif8/RESULTS.md` §Closure for the refined predictor and the two-axis repair picture.

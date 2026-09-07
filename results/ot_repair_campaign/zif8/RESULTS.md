@@ -218,3 +218,58 @@ speculatively on GPU 3 is therefore a supplementary replication, not a confirmat
    integrated value is zero at inner/outer = 1.  The Z2/Z3 mechanism numbers (0.47 |F′| injection per
    2-bin move, τ_gate ≈ 100 steps) stand, but at the dose the blind rule permits the injection is never
    large enough to need repairing.
+
+## Closure (2026-09-07 05:30 UTC)
+
+**Supplementary 16-seed block: ABORTED.**  The preregistered Z5 pilot returned `go=False`.  A subsequently
+launched 16-seed supplementary replication (GPU 3, rng 20260990) was terminated before any arm completed
+because GPU resources were reallocated to other work; no partial outcome is used for inference or to modify
+the frozen Z5 conclusion (`Z5/confirmatory/ABORTED.txt`).  If a replication is ever wanted, the whole block is
+re-run from the frozen configuration, not resumed.
+
+**Analysis-only check of the repair mechanism (pilot files, 8 seeds).**  Per-step deposit autocorrelations
+were not saved, so the direct τ_f(z) test is not available; the saved raw accumulators allow the next best
+thing — the error at MATCHED outer deposit counts split into across-seed spread and systematic bias
+(RMS over seeds of the aligned error at h_read 0.05 Å):
+
+| arm (150 ps outer each) | e_F | \|bias\| | seed sd | bias² share |
+|---|---|---|---|---|
+| A | 0.117 | 0.081 | 0.090 | 0.48 |
+| R | 0.083 | 0.058 | 0.063 | 0.49 |
+| T | 0.111 | 0.085 | 0.076 | 0.59 |
+| T+R | 0.071 | 0.058 | 0.044 | 0.66 |
+| F | 0.128 | 0.089 | 0.099 | 0.48 |
+| F+R | 0.086 | 0.066 | 0.059 | 0.58 |
+
+At the same number of deposits the repaired arms reduce both the seed spread (−30 %) and the bias (−28 %)
+by similar factors.  So the late gain of R is **partly decorrelation (more independent deposits) and partly
+the removal of a fibre-lag bias carried by the driven ABF deposits** — the constrained pauses let the
+framework re-equilibrate to the guest the bias force is pushing through the gate — the same lag the WCA
+W1b endpoint contained.  "Decorrelation" alone is therefore an incomplete description and is stated as
+inference.  At common compute (A 300k outer vs R 180k outer) e_F is 0.117 vs 0.102 (RMS; median −21 %),
+while A at 180k outer is 0.146: per deposit, R's samples are worth ~1.4 of A's.
+
+**Refined predictor.**  Z4 found a mild establishment deficit (T_marg 0.30 T) and Z5 flattened the marginal
+further (KL 0.031 → 0.027) without any change in I_F (+0.9 % [−5.0, +5.5]).  A marginal-establishment
+deficit is therefore NOT a sufficient condition for OT to help; the condition is that the finite-budget
+free-energy error be substantially caused by allocation along ξ (under-allocation → too few informative
+force samples → mean-force error → free-energy error, with every link active).  WCA and pentane satisfy
+it; ZIF-8 at 300 K does not.  A uniform marginal is a geometric target; the estimator's own objective
+points to n(z) ∝ √(w(z) Var(f | ξ = z)), which reduces to uniform only when the conditional force
+variance is flat — the natural next algorithmic direction (information-targeted reallocation), and the
+reason we do not search temperature or budget space for a cell where uniform OT happens to win.
+
+**Two-axis repair picture (measured on all three systems).**
+
+| system | fibre mismatch at the DEPLOYED OT dose | fibre relaxation | repair outcome |
+|---|---|---|---|
+| WCA | yes (≈ 2 \|F′\| at the cap; injection ~500/unit z) | fast, 3–6 steps | useful (T+R < T, 16/16) |
+| pentane R15 | some (≈ 0.03–0.1 \|F′\| per event; mixing-zone residual permanent) | frozen, 10⁶–10⁷ steps | pure cost (T+R > T +22 %) |
+| ethane/ZIF-8 | **negligible at the calibrated dose** (0.47 \|F′\| per 2-bin move × 0.03 bins ≈ 1 % \|F′\|) | intermediate, ~100 steps | no OT-specific benefit; R alone gives a late gain |
+
+Useful repair needs both a non-negligible injection at the deployed step and an affordable τ⊥.  ZIF-8's
+gate needs repair after a large move (Z2) but the safe OT algorithm never makes one (Z5).
+
+**ZIF-8 300 K is frozen as: mechanistically validated (operator, injection, τ_gate, corrected gate law),
+production-neutral for uniform OT on the integrated endpoint.**  No further tuning, temperature ladder or
+budget search.
