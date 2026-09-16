@@ -29,11 +29,15 @@ from __future__ import annotations
 import json
 import math
 import os
+import sys
 
 import numpy as np
 
 os.environ.setdefault("MPLBACKEND", "Agg")
 import matplotlib.pyplot as plt  # noqa: E402
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from presentation_endlabels import draw_end_labels  # noqa: E402
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 LTA = os.path.join(ROOT, "results/uniform_campaign/lta")
@@ -103,16 +107,8 @@ def panel(ax, E, ylab, title, t, t_fr):
         ax.plot(t[keep], md[keep], color=c, lw=2.4, label=lab)
         ends[m] = (c, lab, md[-1])
     pct = float(np.median(100.0 * (E["fr_uniform"][-1] - E["abf"][-1]) / E["abf"][-1]))
-    gap = np.log10(ends["abf"][2] / ends["fr_uniform"][2])
-    shift = max(0.0, (0.16 - abs(gap)) / 2)
-    up = "abf" if gap >= 0 else "fr_uniform"
-    for m in ("abf", "fr_uniform"):
-        c, lab, y = ends[m]
-        sgn = +1 if m == up else -1
-        text = lab if m == "abf" else f"{lab}  {pct:+.0f}%"
-        ax.annotate(text, xy=(t[-1], y * 10 ** (sgn * shift)), xytext=(6, 0),
-                    textcoords="offset points", va="center", ha="left",
-                    color=c, fontsize=13, fontweight="bold")
+    labels = [(ends["abf"][2], C_ABF, "ABF"),
+              (ends["fr_uniform"][2], C_FR, f"ABF + FR  {pct:+.0f}%")]
     ax.axvline(t_fr, color=C_INK2, lw=1.0, ls=":")
     ax.text(t_fr, 1.0, " FR on", transform=ax.get_xaxis_transform(),
             va="top", ha="left", color=C_INK2, fontsize=12)
@@ -124,7 +120,7 @@ def panel(ax, E, ylab, title, t, t_fr):
     ax.set_title(title, loc="left", fontweight="bold")
     ax.grid(True, axis="y", color=C_GRID, lw=0.7)
     ax.set_axisbelow(True)
-    return pct
+    return pct, (ax, float(t[-1]), labels)
 
 
 def main():
@@ -187,12 +183,14 @@ def main():
         assert abs(c_fd - c_sp) < 2.0, f"derivative scheme moves the F' contrast ({c_fd:.1f} vs {c_sp:.1f})"
 
         fig, axes = plt.subplots(1, 3, figsize=(18.5, 4.8), constrained_layout=True)
-        pcts = [
+        results = [
             panel(axes[0], eF, r"free energy error  $\|\hat F_t - F\|_{L^2}$", "Free energy", t, t_fr),
             panel(axes[1], eFp, r"mean force error  $\|\hat F'_t - F'\|_{L^2}$", "Mean force", t, t_fr),
             panel(axes[2], eP, r"marginal error  $\|\hat p_t(\phi) - u\|_{L^2}$", r"Marginal of $\xi$", t, t_fr),
         ]
+        pcts = [r[0] for r in results]
         axes[0].legend(frameon=False, loc="upper right")
+        draw_end_labels(fig, [r[1] for r in results])
         base = os.path.join(OUT, f"fig_lta_presentation_convergence3_T{T}")
         fig.savefig(base + ".png", dpi=200)
         fig.savefig(base + ".pdf")

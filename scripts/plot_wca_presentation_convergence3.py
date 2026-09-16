@@ -36,6 +36,7 @@ sys.path.insert(0, SCRIPTS)
 sys.path.insert(0, os.path.join(ROOT, "src"))
 from analyze_wca_bandwidth_audit import readouts, Z_LO, Z_HI  # noqa: E402
 from wca_abffr_core import profile_l2_error_np  # noqa: E402
+from presentation_endlabels import draw_end_labels  # noqa: E402
 
 DIR = os.path.join(ROOT, "results/information_campaign/wca_corrected_confirmation")
 RAW = os.path.join(DIR, "confirmation/raw")
@@ -124,6 +125,7 @@ def main():
         "pdf.fonttype": 42, "ps.fonttype": 42,
     })
     fig, axes = plt.subplots(1, 3, figsize=(18.5, 4.8), constrained_layout=True)
+    label_specs = []
     panels = [
         (eF, r"free energy error  $\|\hat F_t - F\|_{L^2}$", "Free energy"),
         (eFp, r"mean force error  $\|\hat F'_t - F'\|_{L^2}$", "Mean force"),
@@ -138,20 +140,12 @@ def main():
             ax.fill_between(t[ok], lo[ok], hi[ok], color=c, alpha=0.18, lw=0)
             ax.plot(t[ok], md[ok], color=c, lw=2.4, label=lab)
             ends[m] = (c, lab, md[-1])
-        gap = np.log10(ends["abf"][2] / ends["fr_uniform"][2])
-        shift = max(0.0, (0.16 - abs(gap)) / 2)
         # paired per-seed median, the campaign endpoint convention (NOT the ratio of medians)
         fr_fin, abf_fin = E["fr_uniform"][:, -1], E["abf"][:, -1]
         pct = float(np.nanmedian(100.0 * (fr_fin - abf_fin) / abf_fin))
-        up = "abf" if gap >= 0 else "fr_uniform"
-        for m in ("abf", "fr_uniform"):
-            c, lab, y = ends[m]
-            sgn = +1 if m == up else -1
-            text = lab if m == "abf" else f"{lab}  {pct:+.0f}%"
-            ax.annotate(text, xy=(t[-1], y * 10 ** (sgn * shift)), xytext=(6, 0), textcoords="offset points",
-                        va="center", ha="left", color=c, fontsize=13, fontweight="bold")
-        ax.axvline(t_fr, color=C_INK2, lw=1.0, ls=":")
-        ax.text(t_fr, 1.0, " FR on", transform=ax.get_xaxis_transform(), va="top", ha="left", color=C_INK2, fontsize=12)
+        label_specs.append((ax, float(t[-1]),
+                            [(ends["abf"][2], C_ABF, "ABF"),
+                             (ends["fr_uniform"][2], C_FR, f"ABF + FR  {pct:+.0f}%")]))
         ax.set_yscale("log")
         ax.set_xlim(0, t[-1] * 1.32)
         ax.set_xticks(np.arange(0, t[-1] + 1, 50))
@@ -161,6 +155,7 @@ def main():
         ax.grid(True, axis="y", color=C_GRID, lw=0.7)
         ax.set_axisbelow(True)
     axes[0].legend(frameon=False, loc="upper right")
+    draw_end_labels(fig, label_specs)
 
     os.makedirs(OUT, exist_ok=True)
     base = os.path.join(OUT, "fig_wca_presentation_convergence3")

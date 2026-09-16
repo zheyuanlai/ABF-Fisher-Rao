@@ -11,11 +11,15 @@ from __future__ import annotations
 import glob
 import json
 import os
+import sys
 
 import numpy as np
 
 os.environ.setdefault("MPLBACKEND", "Agg")
 import matplotlib.pyplot as plt  # noqa: E402
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from presentation_endlabels import draw_end_labels  # noqa: E402
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 RAW = os.path.join(ROOT, "results/uniform_campaign/wca/uniform/raw")
@@ -61,6 +65,7 @@ def main():
     })
 
     fig, axes = plt.subplots(1, 2, figsize=(12.6, 4.6), constrained_layout=True)
+    label_specs = []
     panels = [
         ("l2_f_t", r"free energy error  $\|\hat F_t - F\|_{L^2}$", "Free energy"),
         ("l2_fp_t", r"mean force error  $\|\hat F'_t - F'\|_{L^2}$", "Mean force"),
@@ -75,18 +80,12 @@ def main():
             ax.plot(t[keep], md[keep], color=c, lw=2.4, label=lab)
             ends[method] = (c, lab, md[-1])
         # direct labels at the curve ends, pushed apart if the ends are close on the log axis
-        gap = np.log10(ends["abf"][2] / ends["fr_uniform"][2])
-        min_gap = 0.16  # decades needed for two 13 pt labels not to touch
-        shift = max(0.0, (min_gap - gap) / 2)
         # paired per-seed median, the campaign endpoint convention (NOT the ratio of medians)
         fin = {m: np.array([runs[(m, s_)][key][-1] for s_ in seeds]) for m in ("abf", "fr_uniform")}
         pct = float(np.median(100.0 * (fin["fr_uniform"] - fin["abf"]) / fin["abf"]))
-        for method, sgn in (("abf", +1), ("fr_uniform", -1)):
-            c, lab, y = ends[method]
-            text = lab if method == "abf" else f"{lab}  {pct:+.0f}%"
-            ax.annotate(text, xy=(t[-1], y * 10 ** (sgn * shift)), xytext=(6, 0),
-                        textcoords="offset points", va="center", ha="left",
-                        color=c, fontsize=13, fontweight="bold")
+        label_specs.append((ax, float(t[-1]),
+                            [(ends["abf"][2], C_ABF, "ABF"),
+                             (ends["fr_uniform"][2], C_FR, f"ABF + FR  {pct:+.0f}%")]))
         ax.axvline(T_FR, color=C_INK2, lw=1.0, ls=":")
         ax.text(T_FR, 1.0, " FR on", transform=ax.get_xaxis_transform(),
                 va="top", ha="left", color=C_INK2, fontsize=12)
@@ -100,6 +99,7 @@ def main():
         ax.set_axisbelow(True)
 
     axes[0].legend(frameon=False, loc="upper right")
+    draw_end_labels(fig, label_specs)
 
     os.makedirs(OUT, exist_ok=True)
     base = os.path.join(OUT, "fig_wca_presentation_convergence")
