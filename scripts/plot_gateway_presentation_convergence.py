@@ -120,7 +120,8 @@ def main():
             ends[key] = (c, lab, md[-1])
         gap = np.log10(ends["abf"][2] / ends["fr_uniform"][2])
         shift = max(0.0, (0.16 - gap) / 2)
-        pct = 100 * (ends["fr_uniform"][2] / ends["abf"][2] - 1)
+        # paired per-seed median, the campaign endpoint convention (NOT the ratio of medians)
+        pct = float(np.median(100.0 * (E[iu, -1] - E[ia, -1]) / E[ia, -1]))
         for key, sgn in (("abf", +1), ("fr_uniform", -1)):
             c, lab, y = ends[key]
             text = lab if key == "abf" else f"{lab}  {pct:+.0f}%"
@@ -144,7 +145,8 @@ def main():
     print("saved", base + ".{png,pdf}")
     for E, name in ((eF, "F"), (eFp, "F'")):
         a, u = np.median(E[ia, -1]), np.median(E[iu, -1])
-        print(f"final {name} at h_read*: ABF {a:.4f}  ABF+FR {u:.4f}  ({100*(u/a-1):+.1f}%)")
+        pct = np.median(100.0 * (E[iu, -1] - E[ia, -1]) / E[ia, -1])
+        print(f"final {name} at h_read*: ABF {a:.4f}  ABF+FR {u:.4f}  (paired median {pct:+.1f}%)")
 
 
 if __name__ == "__main__":

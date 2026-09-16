@@ -140,7 +140,9 @@ def main():
             ends[m] = (c, lab, md[-1])
         gap = np.log10(ends["abf"][2] / ends["fr_uniform"][2])
         shift = max(0.0, (0.16 - abs(gap)) / 2)
-        pct = 100 * (ends["fr_uniform"][2] / ends["abf"][2] - 1)
+        # paired per-seed median, the campaign endpoint convention (NOT the ratio of medians)
+        fr_fin, abf_fin = E["fr_uniform"][:, -1], E["abf"][:, -1]
+        pct = float(np.nanmedian(100.0 * (fr_fin - abf_fin) / abf_fin))
         up = "abf" if gap >= 0 else "fr_uniform"
         for m in ("abf", "fr_uniform"):
             c, lab, y = ends[m]
@@ -167,7 +169,8 @@ def main():
     print("saved", base + ".{png,pdf}")
     for E, name in ((eF, "F"), (eFp, "F'"), (eP, "p(xi)")):
         a, u = np.nanmedian(E["abf"][:, -1]), np.nanmedian(E["fr_uniform"][:, -1])
-        print(f"final {name}: ABF {a:.4f}  ABF+FR {u:.4f}  ({100*(u/a-1):+.1f}%)")
+        pct = np.nanmedian(100.0 * (E["fr_uniform"][:, -1] - E["abf"][:, -1]) / E["abf"][:, -1])
+        print(f"final {name}: ABF {a:.4f}  ABF+FR {u:.4f}  (paired median {pct:+.1f}%)")
 
 
 if __name__ == "__main__":

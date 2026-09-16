@@ -78,7 +78,9 @@ def main():
         gap = np.log10(ends["abf"][2] / ends["fr_uniform"][2])
         min_gap = 0.16  # decades needed for two 13 pt labels not to touch
         shift = max(0.0, (min_gap - gap) / 2)
-        pct = 100 * (ends["fr_uniform"][2] / ends["abf"][2] - 1)
+        # paired per-seed median, the campaign endpoint convention (NOT the ratio of medians)
+        fin = {m: np.array([runs[(m, s_)][key][-1] for s_ in seeds]) for m in ("abf", "fr_uniform")}
+        pct = float(np.median(100.0 * (fin["fr_uniform"] - fin["abf"]) / fin["abf"]))
         for method, sgn in (("abf", +1), ("fr_uniform", -1)):
             c, lab, y = ends[method]
             text = lab if method == "abf" else f"{lab}  {pct:+.0f}%"
@@ -107,9 +109,10 @@ def main():
 
     # numbers for the caption
     for key, name in (("l2_f_t", "F"), ("l2_fp_t", "F'")):
-        a = np.median([runs[("abf", s)][key][-1] for s in seeds])
-        u = np.median([runs[("fr_uniform", s)][key][-1] for s in seeds])
-        print(f"final {name}: ABF {a:.4f}  ABF+FR {u:.4f}  ({100*(u/a-1):+.1f}%)")
+        fa = np.array([runs[("abf", s)][key][-1] for s in seeds])
+        fu = np.array([runs[("fr_uniform", s)][key][-1] for s in seeds])
+        pct = np.median(100.0 * (fu - fa) / fa)
+        print(f"final {name}: ABF {np.median(fa):.4f}  ABF+FR {np.median(fu):.4f}  (paired median {pct:+.1f}%)")
 
 
 if __name__ == "__main__":
