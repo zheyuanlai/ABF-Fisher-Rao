@@ -1,0 +1,533 @@
+{
+  "stage": "confirmation",
+  "git_rev": "64567ea9f0c909edadf2dffb2654636cb4493d26",
+  "campaign_sha": "4934c702d386051ec6973944b1220acd05874ee2f8ed53a84465a57cd2cca5d8",
+  "selected": {
+    "selected_n_bins": 45,
+    "selected_delta": 0.08,
+    "how": "NO width passed the frozen rule; predeclared fallback: smallest normalised plateau violation among widths passing (a)",
+    "all_passed_rule": false,
+    "selected_at": "2026-09-27T16:08:53Z",
+    "calibration_seeds": [
+      5200,
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207
+    ],
+    "from_summary": "results/histogram_abf/gateway/calibration/summary.json"
+  },
+  "batches": [
+    {
+      "label": "kernel [abf, fr_uniform]",
+      "git_rev": "64567ea9f0c909edadf2dffb2654636cb4493d26",
+      "campaign_sha": "4934c702d386051ec6973944b1220acd05874ee2f8ed53a84465a57cd2cca5d8",
+      "timestamp": "2026-09-27T16:10:59Z",
+      "host": "atlas",
+      "device": "cuda",
+      "dtype": "torch.float64",
+      "cuda_visible_devices": "3",
+      "config": {
+        "beta": 16.0,
+        "H": 0.5,
+        "omega_out": 1.0,
+        "r": 32.0,
+        "s": 0.1,
+        "N": 2048,
+        "dt": 0.0004,
+        "n_steps": 100000,
+        "save_every": 500,
+        "init": "left",
+        "h": 0.07,
+        "min_count": 1.0,
+        "estimator": "kernel",
+        "n_bins": 0,
+        "gamma": NaN,
+        "eta": 0.1,
+        "fr_every": 10,
+        "fr_burnin": 0,
+        "ramp_fraction": 0.1,
+        "target_ema_rate": 0.005,
+        "score_clip": 3.0,
+        "max_event_fraction": 0.08,
+        "ess_window_steps": 4000
+      },
+      "estimator": "kernel",
+      "n_bins": 0,
+      "delta": null,
+      "hist_edges": null,
+      "rows": [
+        {
+          "init": "left",
+          "seed": 5300
+        },
+        {
+          "init": "left",
+          "seed": 5301
+        },
+        {
+          "init": "left",
+          "seed": 5302
+        },
+        {
+          "init": "left",
+          "seed": 5303
+        },
+        {
+          "init": "left",
+          "seed": 5304
+        },
+        {
+          "init": "left",
+          "seed": 5305
+        },
+        {
+          "init": "left",
+          "seed": 5306
+        },
+        {
+          "init": "left",
+          "seed": 5307
+        },
+        {
+          "init": "left",
+          "seed": 5308
+        },
+        {
+          "init": "left",
+          "seed": 5309
+        },
+        {
+          "init": "left",
+          "seed": 5310
+        },
+        {
+          "init": "left",
+          "seed": 5311
+        },
+        {
+          "init": "left",
+          "seed": 5312
+        },
+        {
+          "init": "left",
+          "seed": 5313
+        },
+        {
+          "init": "left",
+          "seed": 5314
+        },
+        {
+          "init": "left",
+          "seed": 5315
+        },
+        {
+          "init": "one_right",
+          "seed": 5300
+        },
+        {
+          "init": "one_right",
+          "seed": 5301
+        },
+        {
+          "init": "one_right",
+          "seed": 5302
+        },
+        {
+          "init": "one_right",
+          "seed": 5303
+        },
+        {
+          "init": "one_right",
+          "seed": 5304
+        },
+        {
+          "init": "one_right",
+          "seed": 5305
+        },
+        {
+          "init": "one_right",
+          "seed": 5306
+        },
+        {
+          "init": "one_right",
+          "seed": 5307
+        },
+        {
+          "init": "one_right",
+          "seed": 5308
+        },
+        {
+          "init": "one_right",
+          "seed": 5309
+        },
+        {
+          "init": "one_right",
+          "seed": 5310
+        },
+        {
+          "init": "one_right",
+          "seed": 5311
+        },
+        {
+          "init": "one_right",
+          "seed": 5312
+        },
+        {
+          "init": "one_right",
+          "seed": 5313
+        },
+        {
+          "init": "one_right",
+          "seed": 5314
+        },
+        {
+          "init": "one_right",
+          "seed": 5315
+        }
+      ],
+      "seeds": [
+        5300,
+        5301,
+        5302,
+        5303,
+        5304,
+        5305,
+        5306,
+        5307,
+        5308,
+        5309,
+        5310,
+        5311,
+        5312,
+        5313,
+        5314,
+        5315
+      ],
+      "inits": [
+        "left",
+        "one_right"
+      ],
+      "methods": [
+        "abf",
+        "fr_uniform"
+      ],
+      "gamma": [
+        NaN,
+        1.5
+      ],
+      "batch_seed": 780,
+      "wall_seconds": 92.36267609801143,
+      "wall_seconds_per_step": 0.0009236267609801143,
+      "R": 64,
+      "n_steps": 100000,
+      "peak_gpu_mem_bytes": 97626624,
+      "reference": "analytic F_ref = H(x^2-1)^2 + log(omega)/beta, omega_in = r omega_out (gateway_core via eb_abffr_core.reference_profiles)",
+      "kernel_baseline": {
+        "h_bias": 0.07,
+        "h_read_star": 0.0175,
+        "legacy_readout": 0.07,
+        "_": "accepted corrected convention (docs/GATEWAY_CORRECTED_BASELINE.md): kernel arms scored offline at h_read* from the saved fine-grid accumulators, legacy 0.07 = the engine's own profile alongside"
+      },
+      "fr_parameters": {
+        "N": 2048,
+        "dt": 0.0004,
+        "n_steps": 100000,
+        "save_every": 500,
+        "T_total": 40.0,
+        "fr_every": 10,
+        "fr_burnin": 0,
+        "ramp_fraction": 0.1,
+        "max_event_fraction": 0.08,
+        "score_clip": 3.0,
+        "eta": 0.1,
+        "h": 0.07,
+        "min_count": 1.0,
+        "target_ema_rate": 0.005,
+        "ess_window_steps": 4000,
+        "gamma": 1.5
+      }
+    },
+    {
+      "label": "histogram [abf, fr_uniform]",
+      "git_rev": "64567ea9f0c909edadf2dffb2654636cb4493d26",
+      "campaign_sha": "4934c702d386051ec6973944b1220acd05874ee2f8ed53a84465a57cd2cca5d8",
+      "timestamp": "2026-09-27T16:12:29Z",
+      "host": "atlas",
+      "device": "cuda",
+      "dtype": "torch.float64",
+      "cuda_visible_devices": "3",
+      "config": {
+        "beta": 16.0,
+        "H": 0.5,
+        "omega_out": 1.0,
+        "r": 32.0,
+        "s": 0.1,
+        "N": 2048,
+        "dt": 0.0004,
+        "n_steps": 100000,
+        "save_every": 500,
+        "init": "left",
+        "h": 0.07,
+        "min_count": 1.0,
+        "estimator": "histogram",
+        "n_bins": 45,
+        "gamma": NaN,
+        "eta": 0.1,
+        "fr_every": 10,
+        "fr_burnin": 0,
+        "ramp_fraction": 0.1,
+        "target_ema_rate": 0.005,
+        "score_clip": 3.0,
+        "max_event_fraction": 0.08,
+        "ess_window_steps": 4000
+      },
+      "estimator": "histogram",
+      "n_bins": 45,
+      "delta": 0.08,
+      "hist_edges": [
+        -1.8,
+        -1.72,
+        -1.6400000000000001,
+        -1.56,
+        -1.48,
+        -1.4,
+        -1.32,
+        -1.24,
+        -1.1600000000000001,
+        -1.08,
+        -1.0,
+        -0.92,
+        -0.8400000000000001,
+        -0.76,
+        -0.6799999999999999,
+        -0.6000000000000001,
+        -0.52,
+        -0.43999999999999995,
+        -0.3600000000000001,
+        -0.28,
+        -0.19999999999999996,
+        -0.1200000000000001,
+        -0.040000000000000036,
+        0.040000000000000036,
+        0.11999999999999988,
+        0.19999999999999996,
+        0.28,
+        0.3600000000000001,
+        0.44000000000000017,
+        0.5199999999999998,
+        0.5999999999999999,
+        0.6799999999999999,
+        0.76,
+        0.8400000000000001,
+        0.9200000000000002,
+        1.0000000000000002,
+        1.0799999999999998,
+        1.16,
+        1.24,
+        1.32,
+        1.4000000000000001,
+        1.4800000000000002,
+        1.5599999999999998,
+        1.64,
+        1.72,
+        1.8
+      ],
+      "rows": [
+        {
+          "init": "left",
+          "seed": 5300
+        },
+        {
+          "init": "left",
+          "seed": 5301
+        },
+        {
+          "init": "left",
+          "seed": 5302
+        },
+        {
+          "init": "left",
+          "seed": 5303
+        },
+        {
+          "init": "left",
+          "seed": 5304
+        },
+        {
+          "init": "left",
+          "seed": 5305
+        },
+        {
+          "init": "left",
+          "seed": 5306
+        },
+        {
+          "init": "left",
+          "seed": 5307
+        },
+        {
+          "init": "left",
+          "seed": 5308
+        },
+        {
+          "init": "left",
+          "seed": 5309
+        },
+        {
+          "init": "left",
+          "seed": 5310
+        },
+        {
+          "init": "left",
+          "seed": 5311
+        },
+        {
+          "init": "left",
+          "seed": 5312
+        },
+        {
+          "init": "left",
+          "seed": 5313
+        },
+        {
+          "init": "left",
+          "seed": 5314
+        },
+        {
+          "init": "left",
+          "seed": 5315
+        },
+        {
+          "init": "one_right",
+          "seed": 5300
+        },
+        {
+          "init": "one_right",
+          "seed": 5301
+        },
+        {
+          "init": "one_right",
+          "seed": 5302
+        },
+        {
+          "init": "one_right",
+          "seed": 5303
+        },
+        {
+          "init": "one_right",
+          "seed": 5304
+        },
+        {
+          "init": "one_right",
+          "seed": 5305
+        },
+        {
+          "init": "one_right",
+          "seed": 5306
+        },
+        {
+          "init": "one_right",
+          "seed": 5307
+        },
+        {
+          "init": "one_right",
+          "seed": 5308
+        },
+        {
+          "init": "one_right",
+          "seed": 5309
+        },
+        {
+          "init": "one_right",
+          "seed": 5310
+        },
+        {
+          "init": "one_right",
+          "seed": 5311
+        },
+        {
+          "init": "one_right",
+          "seed": 5312
+        },
+        {
+          "init": "one_right",
+          "seed": 5313
+        },
+        {
+          "init": "one_right",
+          "seed": 5314
+        },
+        {
+          "init": "one_right",
+          "seed": 5315
+        }
+      ],
+      "seeds": [
+        5300,
+        5301,
+        5302,
+        5303,
+        5304,
+        5305,
+        5306,
+        5307,
+        5308,
+        5309,
+        5310,
+        5311,
+        5312,
+        5313,
+        5314,
+        5315
+      ],
+      "inits": [
+        "left",
+        "one_right"
+      ],
+      "methods": [
+        "abf",
+        "fr_uniform"
+      ],
+      "gamma": [
+        NaN,
+        1.5
+      ],
+      "batch_seed": 780,
+      "wall_seconds": 87.01815226580948,
+      "wall_seconds_per_step": 0.0008701815226580948,
+      "R": 64,
+      "n_steps": 100000,
+      "peak_gpu_mem_bytes": 107259392,
+      "reference": "analytic F_ref = H(x^2-1)^2 + log(omega)/beta, omega_in = r omega_out (gateway_core via eb_abffr_core.reference_profiles)",
+      "kernel_baseline": {
+        "h_bias": 0.07,
+        "h_read_star": 0.0175,
+        "legacy_readout": 0.07,
+        "_": "accepted corrected convention (docs/GATEWAY_CORRECTED_BASELINE.md): kernel arms scored offline at h_read* from the saved fine-grid accumulators, legacy 0.07 = the engine's own profile alongside"
+      },
+      "fr_parameters": {
+        "N": 2048,
+        "dt": 0.0004,
+        "n_steps": 100000,
+        "save_every": 500,
+        "T_total": 40.0,
+        "fr_every": 10,
+        "fr_burnin": 0,
+        "ramp_fraction": 0.1,
+        "max_event_fraction": 0.08,
+        "score_clip": 3.0,
+        "eta": 0.1,
+        "h": 0.07,
+        "min_count": 1.0,
+        "target_ema_rate": 0.005,
+        "ess_window_steps": 4000,
+        "gamma": 1.5
+      }
+    }
+  ],
+  "wall_seconds": 184.69853830337524
+}

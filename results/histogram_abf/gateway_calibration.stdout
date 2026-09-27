@@ -1,0 +1,14 @@
+device=cuda git=64567ea9f0c909edadf2dffb2654636cb4493d26 campaign_sha=4934c702d386 cell={'beta': 16.0, 's': 0.1, 'r': 32.0, 'beta_H_kT': 8.0, 'H': 0.5, 'omega_out': 1.0, 'omega_in': 32.0} gamma=1.5
+  floor n_bins=  45 Delta=0.080: e_F 0.00297  e_F' 0.1315  (nodes 0.1395)
+  floor n_bins=  60 Delta=0.060: e_F 0.00169  e_F' 0.0965  (nodes 0.1101)
+  floor n_bins=  90 Delta=0.040: e_F 0.00076  e_F' 0.0645  (nodes 0.0787)
+  floor n_bins= 180 Delta=0.020: e_F 0.00000  e_F' 0.0323  (nodes 0.0565)
+  floor n_bins= 360 Delta=0.010: e_F 0.00000  e_F' 0.0161  (nodes 0.0283)
+[calibration] ABF only, seeds [5200, 5201, 5202, 5203, 5204, 5205, 5206, 5207] x ['left', 'one_right'], batch_seed 779
+  hist n_bins=45: R=16 (16 rows x 1 methods) in 63.5s (0.635 ms/step)
+  hist n_bins=60: R=16 (16 rows x 1 methods) in 64.0s (0.640 ms/step)
+  hist n_bins=90: R=16 (16 rows x 1 methods) in 63.7s (0.637 ms/step)
+  hist n_bins=180: R=16 (16 rows x 1 methods) in 64.0s (0.640 ms/step)
+  hist n_bins=360: R=16 (16 rows x 1 methods) in 64.3s (0.643 ms/step)
+  kernel h=0.07 (context only): R=16 (16 rows x 1 methods) in 67.4s (0.674 ms/step)
+done in 393s

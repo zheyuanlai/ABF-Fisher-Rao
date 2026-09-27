@@ -1,0 +1,83 @@
+{
+  "profiling_rows": [
+    {
+      "device": "cuda",
+      "system": "Entropic bottleneck",
+      "force_us": 163.370193913579,
+      "fr_kde_us": 434.9474376067519,
+      "kernel_est_us": 272.24353980273,
+      "hist_est_us": 119.56709437072277,
+      "kernel_total_us": 877.5311885401607,
+      "hist_total_us": 616.5014812722802,
+      "est_speedup": 2.2769102254724665,
+      "total_speedup": 1.4234048338848933,
+      "kernel_mem": 483840,
+      "hist_mem": 541696
+    },
+    {
+      "device": "cuda",
+      "system": "WCA dimer",
+      "force_us": 767.0422317460179,
+      "fr_kde_us": 557.9694826155901,
+      "kernel_est_us": 632.0480443537235,
+      "hist_est_us": 167.22859349101785,
+      "kernel_total_us": 1551.7070206503072,
+      "hist_total_us": 1126.1122161522508,
+      "est_speedup": 3.779545298798869,
+      "total_speedup": 1.377932854642362,
+      "kernel_mem": 340429312,
+      "hist_mem": 340446208
+    },
+    {
+      "device": "cpu",
+      "system": "Entropic bottleneck",
+      "force_us": 54.10440266132355,
+      "fr_kde_us": 227.53939032554626,
+      "kernel_est_us": 193.74940544366837,
+      "hist_est_us": 55.243391543626785,
+      "kernel_total_us": 506.1520049348474,
+      "hist_total_us": 299.90747617557645,
+      "est_speedup": 3.5071960650833804,
+      "total_speedup": 1.6876938560828945,
+      "kernel_mem": null,
+      "hist_mem": null
+    },
+    {
+      "device": "cpu",
+      "system": "WCA dimer",
+      "force_us": 236693.40254738927,
+      "fr_kde_us": 1091.7985625565052,
+      "kernel_est_us": 1446.3349804282186,
+      "hist_est_us": 101.45258158445358,
+      "kernel_total_us": 200356.60192680857,
+      "hist_total_us": 167045.3072184076,
+      "est_speedup": 14.256265911027862,
+      "total_speedup": 1.1994147292317963,
+      "kernel_mem": null,
+      "hist_mem": null
+    }
+  ],
+  "campaign_wall": {
+    "entropic_bottleneck": {
+      "kernel_wall_s": 33.28638315759599,
+      "hist_wall_s": 24.77001104131341,
+      "speedup": 1.3438178570884887,
+      "R": 40,
+      "note": "one batch of 20 seeds x [abf, fr_uniform], 40000 steps, end to end"
+    },
+    "gateway": {
+      "kernel_wall_s": 92.36267609801143,
+      "hist_wall_s": 87.01815226580948,
+      "speedup": 1.0614184936480417,
+      "R": 64,
+      "note": "one batch of 32 (init, seed) rows x [abf, fr_uniform], 100000 steps, end to end"
+    },
+    "wca": {
+      "kernel_abf": 236.56022593006492,
+      "kernel_fr_uniform": 258.93992113741115,
+      "hist_abf": 142.24472783552483,
+      "hist_fr_uniform": 166.02210817718878,
+      "note": "median sampler seconds per 120000-step run; kernel arms carry the read-out bank (accepted scoring), histogram arms none"
+    }
+  }
+}

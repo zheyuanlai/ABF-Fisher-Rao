@@ -107,6 +107,16 @@ class GatewayConfig:
     # ABF mean-force smoothing
     h: float = 0.07
     min_count: float = 1.0
+    # Online mean-force estimator (histogram-estimator study, docs/GATEWAY_HISTOGRAM_ESTIMATOR.md):
+    #   'kernel'    -- the accepted engine: fine-grid accumulators, Gaussian kernel of bandwidth h,
+    #                  bias force linearly interpolated from the grid profile;
+    #   'histogram' -- textbook ABF: n_bins equal bins on [XMIN, XMAX], F'_j = M_j / (C_j + min_count),
+    #                  bias force = the value of the walker's OWN bin (piecewise constant, no
+    #                  interpolation, no kernel).  The fine-grid accumulators are still deposited
+    #                  so every arm can be read out at the same bandwidth offline; the bin
+    #                  accumulators are recorded too (store_accumulators) for the native read-out.
+    estimator: str = "kernel"
+    n_bins: int = 0
     # FR knobs (frozen from the accepted entropic-bottleneck setup)
     gamma: float = 15.0
     eta: float = 0.10
@@ -723,7 +733,7 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
                    noise_seed_base=2000, fr_seed_base=3000, progress=None,
                    store_profiles=False, store_accumulators=False,
                    store_conditional=False, store_final_state=False,
-                   refresh_seed_base=4000):
+                   refresh_seed_base=4000, store_snapshots=0):
     """Run ``B`` (config, seed) rows x ``M`` methods, flattened to ``R = B*M``.
 
     Methods inside one B-row share initial conditions and Langevin noise, so an arm and its
@@ -742,7 +752,15 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
 
     ``store_conditional`` additionally records ``D_cond(t)`` (``conditional_moment_kl``) at
     every save; ``store_final_state`` returns the final ``(X, Y)`` of every row.  Both are
-    report-only.  Transport arms (``Method.transport == 'horizontal_ot'``) act at the FR
+    report-only.
+
+    ``store_snapshots = k > 0`` additionally records, every ``k`` steps, a *movie record*: every
+    walker's ``(x, y)`` and a persistent walker id (a cloned copy receives a fresh id, a killed
+    walker's id disappears), the FR score, KDE marginal and target of the last opportunity, the
+    centered free-energy and mean-force profiles, the raw accumulators (so a corrected read-out
+    can be drawn per frame), and the exact ``(x, y)`` of every death and birth event.  It only reads state and consumes no random numbers, so it is bit-inert
+    (tests/test_gateway_snapshots.py).  Meant for ``scripts/make_gateway_movie.py``; not a
+    metric.  Transport arms (``Method.transport == 'horizontal_ot'``) act at the FR
     opportunities, AFTER the Langevin step and after any FR gather, on ``x`` alone; their
     per-event distortion statistics are recorded per save interval.  With no transport arm in
     the batch the loop is unchanged (tests/test_gateway_horizontal_transport.py).
@@ -758,7 +776,7 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
         # loop.  beta, H, s, r and gamma are per-config and broadcast as (R,1), which is
         # what lets one batch carry a whole sweep.
         for a in ("N", "dt", "n_steps", "save_every", "fr_every", "fr_burnin",
-                  "ramp_fraction", "h", "eta", "min_count"):
+                  "ramp_fraction", "h", "eta", "min_count", "estimator", "n_bins"):
             assert getattr(c, a) == getattr(c0, a), f"non-uniform {a} across configs"
     N, dt, n_steps = c0.N, c0.dt, c0.n_steps
     save_every, fr_every, fr_burnin = c0.save_every, c0.fr_every, c0.fr_burnin
@@ -845,6 +863,21 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
 
     C = torch.zeros((R, N_GRID), device=device, dtype=dtype)
     Sf = torch.zeros((R, N_GRID), device=device, dtype=dtype)
+    assert c0.estimator in ("kernel", "histogram"), c0.estimator
+    use_hist = c0.estimator == "histogram"
+    if use_hist:
+        # the campaign's shared P0 estimator (eb_abffr_core.HistogramABFEstimator): [left, right)
+        # bins, Gamma_j = M_j / (C_j + min_count), own-bin bias force, EXACT piecewise-linear PMF,
+        # Gauss-Legendre own F' error.  Ch / Mh alias its accumulators for the save records.
+        n_bins = int(c0.n_bins)
+        assert n_bins > 0, "histogram estimator needs n_bins > 0"
+        est = eb.HistogramABFEstimator(R, n_bins, c0.min_count, x_grid, device, dtype)
+        Ch, Mh, g2h = est.C, est.M, est.g2h
+        Fp_bins = est.bin_mean_force()
+        Fp_ref_sub = eb.reference_mean_force(est.sub_x.unsqueeze(0), beta, Hc, oout, oin, sw)
+        sub_mask = (est.sub_x >= eb.EVAL_LO) & (est.sub_x <= eb.EVAL_HI)
+        win_bins = est.window_bins(eb.EVAL_LO, eb.EVAL_HI)
+    max_abs_bias = torch.zeros(R, device=device, dtype=dtype)
     Sf2 = torch.zeros((R, N_GRID), device=device, dtype=dtype)     # second moment; report-only unless a targeted arm reads it
     F_target = torch.zeros((R, N_GRID), device=device, dtype=dtype)
 
@@ -858,6 +891,8 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     save_set, save_ptr = set(save_steps), 0
     ts_l2f = torch.zeros((R, n_saves), device=device, dtype=dtype)
     ts_l2fp = torch.zeros((R, n_saves), device=device, dtype=dtype)
+    if use_hist:
+        ts_l2fp_nodes = torch.zeros((R, n_saves), device=device, dtype=dtype)
     ts_ess = torch.zeros((R, n_saves), device=device, dtype=dtype)
     ts_wmax = torch.zeros((R, n_saves), device=device, dtype=dtype)
     ts_P = torch.zeros((R, n_saves, 3), device=device, dtype=dtype)
@@ -871,6 +906,9 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
         ts_Sf = torch.zeros((R, n_saves, N_GRID), device=device, dtype=dtype)
         ts_C = torch.zeros((R, n_saves, N_GRID), device=device, dtype=dtype)
         ts_Sf2 = torch.zeros((R, n_saves, N_GRID), device=device, dtype=dtype)
+        if use_hist:
+            ts_Mh = torch.zeros((R, n_saves, n_bins), device=device, dtype=dtype)
+            ts_Ch = torch.zeros((R, n_saves, n_bins), device=device, dtype=dtype)
     if any_ot:
         ts_dmove_mean = torch.zeros((R, n_saves), device=device, dtype=dtype)
         ts_dmove_p95 = torch.zeros((R, n_saves), device=device, dtype=dtype)
@@ -911,6 +949,29 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
         ts_tau_move = torch.zeros((R, n_saves), device=device, dtype=dtype)
         acc_tau_move = torch.zeros(R, device=device, dtype=dtype)
 
+    if store_snapshots:
+        f32, i32 = torch.float32, torch.int32
+        snap_steps = [st for st in range(n_steps)
+                      if st % int(store_snapshots) == 0 or st == n_steps - 1]
+        snap_set, snap_ptr, n_snap = set(snap_steps), 0, len(snap_steps)
+        sn_X = torch.zeros((R, n_snap, N), device=device, dtype=f32)
+        sn_Y = torch.zeros_like(sn_X)
+        sn_S = torch.zeros_like(sn_X)
+        sn_id = torch.zeros((R, n_snap, N), device=device, dtype=i32)
+        sn_Fp = torch.zeros((R, n_snap, N_GRID), device=device, dtype=f32)
+        sn_F = torch.zeros_like(sn_Fp)
+        sn_p = torch.zeros_like(sn_Fp)
+        sn_q = torch.zeros_like(sn_Fp)
+        # raw accumulators at snapshot cadence, so any read-out bandwidth can be drawn per frame
+        sn_Sf = torch.zeros((R, n_snap, N_GRID), device=device, dtype=dtype)
+        sn_C = torch.zeros_like(sn_Sf)
+        wid = torch.arange(N, device=device, dtype=torch.long).unsqueeze(0).expand(R, N).clone()
+        next_id = torch.full((R, 1), N, device=device, dtype=torch.long)
+        S_last = torch.zeros((R, N), device=device, dtype=dtype)
+        p_last = torch.zeros((R, N_GRID), device=device, dtype=dtype)
+        q_last = torch.zeros((R, N_GRID), device=device, dtype=dtype)
+        ev_die, ev_clone = [], []       # (row, snapshot slot, x, y) per event, ragged
+
     for step in range(n_steps):
         if ess_window > 0 and step % ess_window == 0:
             anc = torch.arange(N, device=device).unsqueeze(0).expand(R, N).clone()
@@ -924,16 +985,23 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
         C.scatter_add_(1, idx, torch.ones_like(X))
         Sf.scatter_add_(1, idx, fx)
         Sf2.scatter_add_(1, idx, fx * fx)
-        Fp = smooth(Sf, k_h, r_h, dx) / (smooth(C, k_h, r_h, dx) + c0.min_count + EPS)
-        Bbias = cumtrapz(Fp, dx)
-        Bbias = Bbias - Bbias[:, idx0:idx0 + 1]
+        if use_hist:
+            est.update(X, fx)
+            Fp_bins = est.bin_mean_force()
+            Fp = est.mean_force_profile(Fp_bins)             # P0 at the nodes (secondary read-out)
+            Bbias = est.pmf_profile(idx0, Fp_bins)           # exact integral of the P0 force, gauged at x = 0
+        else:
+            Fp = smooth(Sf, k_h, r_h, dx) / (smooth(C, k_h, r_h, dx) + c0.min_count + EPS)
+            Bbias = cumtrapz(Fp, dx)
+            Bbias = Bbias - Bbias[:, idx0:idx0 + 1]
         F_target = (1.0 - ema) * F_target + ema * Bbias
 
         zx = torch.randn((B, N), device=device, dtype=dtype,
                          generator=gen_n).repeat_interleave(M, dim=0)
         zy = torch.randn((B, N), device=device, dtype=dtype,
                          generator=gen_n).repeat_interleave(M, dim=0)
-        bias_force = interp1d(X, Fp, dx)
+        bias_force = est.evaluate(X, Fp_bins) if use_hist else interp1d(X, Fp, dx)
+        max_abs_bias = torch.maximum(max_abs_bias, bias_force.abs().max(dim=1).values)
         Xp = reflect_into(X + (-fx + bias_force) * dt + noise_amp * zx, XMIN, XMAX)
         Yp = Y + (-fy) * dt + noise_amp * zy
 
@@ -957,9 +1025,27 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
             S = torch.clamp(S, -clip_r, clip_r)
             sel, die, clone = resample_indices(S, fr_mask, sham_mask, partner, g, dt_fr,
                                                cap_r, gen_f)
+            if store_snapshots:
+                # events are indexed by OLD slots: read their positions before the gather
+                for mask, buf in ((die, ev_die), (clone, ev_clone)):
+                    rr, cc = mask.nonzero(as_tuple=True)
+                    if rr.numel():
+                        buf.append(torch.stack([rr.to(dtype), torch.full_like(rr, snap_ptr).to(dtype),
+                                                Xp[rr, cc], Yp[rr, cc]], dim=1))
+                S_last, p_last, q_last = S, p, q
             Xp = torch.gather(Xp, 1, sel)
             Yp = torch.gather(Yp, 1, sel)
             anc = torch.gather(anc, 1, sel)
+            if store_snapshots:
+                # persistent ids: survivors keep theirs, every extra copy of an id is a birth
+                wid = torch.gather(wid, 1, sel)
+                srt, order = wid.sort(dim=1)
+                dup = torch.zeros_like(srt, dtype=torch.bool)
+                dup[:, 1:] = srt[:, 1:] == srt[:, :-1]
+                k = dup.to(torch.long).cumsum(dim=1)
+                new_sorted = torch.where(dup, next_id + k - 1, srt)
+                wid = torch.empty_like(wid).scatter_(1, order, new_sorted)
+                next_id = next_id + k[:, -1:]
             tot_die += die.sum(dim=1).to(dtype)
             tot_clone += clone.sum(dim=1).to(dtype)
             n_fr_apply += 1
@@ -1040,10 +1126,28 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
 
         X, Y = Xp, Yp
 
+        if store_snapshots and step in snap_set:
+            sn_X[:, snap_ptr] = X.to(f32)
+            sn_Y[:, snap_ptr] = Y.to(f32)
+            sn_S[:, snap_ptr] = S_last.to(f32)
+            sn_id[:, snap_ptr] = wid.to(i32)
+            sn_Fp[:, snap_ptr] = Fp.to(f32)
+            sn_F[:, snap_ptr] = (Bbias - Bbias[:, eval_mask].mean(dim=1, keepdim=True)).to(f32)
+            sn_p[:, snap_ptr] = p_last.to(f32)
+            sn_q[:, snap_ptr] = q_last.to(f32)
+            sn_Sf[:, snap_ptr] = Sf
+            sn_C[:, snap_ptr] = C
+            snap_ptr += 1
+
         if step in save_set:
             Bc = Bbias - Bbias[:, eval_mask].mean(dim=1, keepdim=True)
             ts_l2f[:, save_ptr] = l2_error(Bc, F_ref, eval_mask)
-            ts_l2fp[:, save_ptr] = l2_error(Fp, Fp_ref, eval_mask)
+            if use_hist:
+                # own read-out: function-space F' error (primary) + node-sampled (secondary)
+                ts_l2fp[:, save_ptr] = est.fp_error(Fp_ref_sub, sub_mask, Fp_bins)
+                ts_l2fp_nodes[:, save_ptr] = l2_error(Fp, Fp_ref, eval_mask)
+            else:
+                ts_l2fp[:, save_ptr] = l2_error(Fp, Fp_ref, eval_mask)
             e_, w_ = ancestor_stats(anc, N)
             ts_ess[:, save_ptr] = e_
             ts_wmax[:, save_ptr] = w_
@@ -1065,6 +1169,9 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
                 ts_Sf[:, save_ptr] = Sf
                 ts_C[:, save_ptr] = C
                 ts_Sf2[:, save_ptr] = Sf2
+                if use_hist:
+                    ts_Mh[:, save_ptr] = Mh
+                    ts_Ch[:, save_ptr] = Ch
             if any_ot:
                 acc_n_events = acc_n
                 nn = float(max(acc_n, 1))
@@ -1265,6 +1372,26 @@ def _finalize(L):
                 rec["Sf_t"] = npy(L["ts_Sf"][r])
                 rec["C_t"] = npy(L["ts_C"][r])
                 rec["Sf2_t"] = npy(L["ts_Sf2"][r])
+                if L.get("use_hist"):
+                    rec["Mh_t"] = npy(L["ts_Mh"][r])
+                    rec["Ch_t"] = npy(L["ts_Ch"][r])
+            rec["abf_estimator"] = cfgs[b].estimator
+            rec["max_abs_bias_force"] = float(L["max_abs_bias"][r])
+            if L.get("use_hist"):
+                est = L["est"]
+                rec["hist_edges"] = npy(est.edges)
+                rec["hist_delta"] = float(est.delta)
+                rec["abf_n_bins"] = int(L["n_bins"])
+                rec["Fp_bins"] = npy(L["Fp_bins"][r])
+                rec["C_bins"] = npy(est.C[r])
+                rec["M_bins"] = npy(est.M[r])
+                rec["g2h"] = npy(L["g2h"])          # the engine's own grid-point -> bin assignment
+                rec["l2_fp_nodes_t"] = npy(L["ts_l2fp_nodes"][r])
+                rec["final_l2_fp_nodes"] = float(L["ts_l2fp_nodes"][r, -1])
+                win = L["win_bins"]
+                rec["min_count_window"] = float(est.C[r][win].min())
+                rec["frac_untrusted_window"] = float((est.C[r][win] < eb.TRUST_MIN_COUNT).to(est.C.dtype).mean())
+                rec["trust_min_count"] = eb.TRUST_MIN_COUNT
             is_ot = methods[m].transport == "horizontal_ot"
             rec["n_ot_apply"] = int(L["n_ot_apply"]) if is_ot else 0
             rec["n_refresh_apply"] = int(L["n_refresh_apply"]) if methods[m].refresh == "oracle" else 0
@@ -1294,6 +1421,17 @@ def _finalize(L):
             if L.get("store_final_state"):
                 rec["X_final"] = npy(L["X"][r])
                 rec["Y_final"] = npy(L["Y"][r])
+            if L.get("store_snapshots"):
+                rec["snap_t"] = np.array([st * dt for st in L["snap_steps"]])
+                rec["snap_step"] = np.array(L["snap_steps"])
+                for k in ("X", "Y", "S", "id", "Fp", "F", "p", "q", "Sf", "C"):
+                    rec["snap_" + k] = npy(L["sn_" + k][r])
+                for k in ("die", "clone"):
+                    ev = L["ev_" + k]
+                    ev = (torch.cat(ev, dim=0) if ev
+                          else torch.zeros((0, 4), device=L["X"].device, dtype=L["X"].dtype))
+                    own = ev[ev[:, 0] == r][:, 1:]     # (slot, x, y): slot = snapshot index the event precedes
+                    rec["snap_ev_" + k] = npy(own).astype(np.float32)
             rec.update(hit_and_establish(P[:, 2], Q[:, 2], t_axis))
             recs.append(rec)
     return recs

@@ -1,0 +1,33 @@
+{
+  "title": "Entropic gateway: histogram online mean-force estimator vs the accepted Gaussian-kernel estimator, ABF and ABF+FR",
+  "date_frozen": "2026-09-26",
+  "question": "Replacing the online kernel estimator (h_bias 0.07, interpolated bias force) by the textbook ABF histogram (M_j/(C_j+1), own-bin bias force): (Q1) how does plain ABF's accuracy move with the bin width; (Q2) does uniform-FR's gain over ABF persist under the histogram estimator; (Q3) how does the histogram's NATIVE read-out compare with the frozen corrected read-out h_read* = 0.0175.",
+  "cell": {"beta": 16.0, "s": 0.1, "r": 32.0, "beta_H_kT": 8.0},
+  "sampler": "results/gateway_anchor/CONFIRMATORY_PREREGISTRATION.json (N 2048, dt 4e-4, 100k steps, T 40, eta 0.10, fr_every 10, ramp 0.10, min_count 1)",
+  "arms": ["abf", "fr_uniform gamma 1.5 (frozen practical rate, inherited)"],
+  "estimator_ladder": [
+    {"name": "kernel_0.07", "estimator": "kernel", "h": 0.07, "note": "the accepted engine; reference"},
+    {"name": "hist_180", "estimator": "histogram", "n_bins": 180, "bin_width": 0.02},
+    {"name": "hist_90", "estimator": "histogram", "n_bins": 90, "bin_width": 0.04},
+    {"name": "hist_60", "estimator": "histogram", "n_bins": 60, "bin_width": 0.06},
+    {"name": "hist_36", "estimator": "histogram", "n_bins": 36, "bin_width": 0.10},
+    {"name": "hist_24", "estimator": "histogram", "n_bins": 24, "bin_width": 0.15},
+    {"name": "hist_18", "estimator": "histogram", "n_bins": 18, "bin_width": 0.20}
+  ],
+  "seeds": {"first": 900, "n": 16, "inits": ["left", "one_right"], "pairs": 32,
+            "note": "fresh labels; every taken block (0-15, 100-131, 300-315, 400-415, 480-487, 500-571, 580-587, 800-831, 1200-1207) avoided"},
+  "pairing": "both arms in one batch per estimator (shared init + Langevin noise); every estimator batch uses the SAME batch_seed 61000 and the SAME row order, so ABF(hist) vs ABF(kernel) is paired on identical noise (the gateway bandwidth-audit convention)",
+  "primary_readout": "e_F at h_read* = 0.0175 from the fine-grid raw accumulators, identical for every arm (Sf, C are deposited on the fine grid regardless of the online estimator); integrated I_F over t>0 and final e_F(T)",
+  "native_readout": "the histogram arm's own bins: F'_j = M_j/C_j (visited bins), piecewise-constant on the fine grid, integrated and centred, RMS vs the analytic F on the evaluation window; for the kernel arm the legacy h = 0.07 read-out",
+  "statistics": "paired median % change, 10000-resample bootstrap 95% CI, wins/32; FR health floors (min ancestor ESS/N >= 0.30, max lineage share <= 0.05) reported, not gating",
+  "predictions_recorded_before_running": {
+    "P1_abf_fine_bins_hurt": "hist_180 ABF I_F at h_read* is WORSE than kernel_0.07 by +10..+30 % (sharper online bandwidth hurt ABF +10.4 %/+14.9 % in docs/GATEWAY_CORRECTED_BASELINE.md; raw bins are sharper still)",
+    "P2_abf_coarse_bins_match": "some bin width in 0.06..0.15 gives ABF I_F within +-5 % of kernel_0.07 (box sigma = width/sqrt(12) ~ 0.017..0.043 brackets the Gaussian 0.07's effective width once its 4-sigma support is considered)",
+    "P3_fr_gain_persists": "fr_uniform beats abf at h_read* under EVERY histogram width, integrated <= -20 % and final <= -40 % with >= 28/32 wins (the corrected-baseline gain -31.9 %/-59.4 % is a dynamics effect, not a read-out effect)",
+    "P4_fr_gain_grows_with_sharpness": "the FR relative gain is at least as large under hist_180 as under kernel_0.07 (a sharper estimator is more sensitive to uneven occupancy, which uniform-FR removes) -- low confidence",
+    "P5_native_vs_corrected": "for bins <= 0.06 the native read-out is within 10 % of the h_read* read-out (raw bins were on the read-out plateau, 0.00538 vs 0.00528); for bins >= 0.10 the native read-out is worse by discretisation of the s = 0.1 gateway feature"
+  },
+  "gpu": "3 only (idle at launch)",
+  "outputs": "results/gateway_histogram/<estimator>.npz, summary.json, comparison.csv, figures/",
+  "not_run": "frozen-bias stage (estimator-independent endpoint) omitted from this exploratory design; can be added"
+}

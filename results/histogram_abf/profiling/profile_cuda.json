@@ -1,0 +1,65 @@
+{
+  "device": "cuda",
+  "gpu_name": "NVIDIA H200 NVL",
+  "cuda_visible_devices": "3",
+  "torch": "2.12.1+cu130",
+  "git_rev": "64567ea9f0c909edadf2dffb2654636cb4493d26",
+  "timestamp": "2026-09-27T11:41:52Z",
+  "n_rep": 200,
+  "note": "synchronised region timings (profiling mode only); total step = unmodified engine loop over a short horizon",
+  "entropic_bottleneck": {
+    "physical_force_s": 0.000163370193913579,
+    "fr_kde_score_s": 0.0004349474376067519,
+    "kernel": {
+      "update_s": 4.232894629240036e-05,
+      "mean_force_eval_s": 0.00018479464575648307,
+      "mean_force_profile_only_s": 8.114475291222334e-05,
+      "pmf_reconstruction_s": 4.511994775384665e-05,
+      "estimator_per_step_s": 0.00027224353980273005,
+      "total_step_s": 0.0008775311885401607,
+      "peak_mem_bytes": 483840
+    },
+    "histogram": {
+      "update_s": 4.3704151175916194e-05,
+      "mean_force_eval_s": 7.586294319480657e-05,
+      "mean_force_profile_only_s": 3.8849697448313235e-05,
+      "pmf_reconstruction_s": 0.00010517360176891088,
+      "estimator_per_step_s": 0.00011956709437072277,
+      "total_step_s": 0.0006165014812722803,
+      "peak_mem_bytes": 541696
+    },
+    "R": 4,
+    "N": 256,
+    "n_bins": 60,
+    "estimator_speedup": 2.2769102254724665,
+    "total_step_speedup": 1.4234048338848933
+  },
+  "wca": {
+    "physical_force_s": 0.0007670422317460179,
+    "fr_kde_score_s": 0.0005579694826155901,
+    "kernel": {
+      "update_s": 6.65091024711728e-05,
+      "mean_force_eval_s": 0.0002637880900874734,
+      "pmf_reconstruction_s": 0.0002352417493239045,
+      "estimator_per_step_s": 0.0006320480443537236,
+      "total_step_s": 0.0015517070206503072,
+      "total_step_fr_uniform_s": 0.001866644596060117,
+      "peak_mem_bytes": 340429312
+    },
+    "histogram": {
+      "update_s": 4.44260984659195e-05,
+      "mean_force_eval_s": 7.837639655917883e-05,
+      "pmf_reconstruction_s": 0.00018925539683550596,
+      "estimator_per_step_s": 0.00016722859349101784,
+      "total_step_s": 0.0011261122161522507,
+      "total_step_fr_uniform_s": 0.001294985661904017,
+      "peak_mem_bytes": 340446208
+    },
+    "N": 1024,
+    "n_grid": 160,
+    "n_bins": 160,
+    "estimator_speedup": 3.779545298798869,
+    "total_step_speedup": 1.377932854642362,
+    "total_step_speedup_fr_uniform": 1.4414403579693615
+  }
+}

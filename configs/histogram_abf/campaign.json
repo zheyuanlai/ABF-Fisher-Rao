@@ -1,0 +1,307 @@
+{
+  "_comment": "Histogram (P0) ABF estimator replication campaign. FROZEN 2026-09-27 before any calibration or confirmation run (git base 64567ea, branch histogram-abf). Selection rules, seed blocks and verdict rules below are predeclared; nothing here is edited after the first production run starts.",
+  "purpose": "Test whether replacing the kernel/KDE ABF mean-force estimator (object A) by a true online histogram reproduces the accepted ABF and ABF+uniform-FR results on Case II (entropic bottleneck) and the corrected Case IX WCA cell, at lower estimator cost. The FR marginal KDE (object B), its bandwidth, target, score and schedule are untouched.",
+  "gpu": "3 only (standing rule 2026-09-02; the OT rounds' GPU 1 assignment was for those rounds)",
+  "trust_threshold_diagnostic": {
+    "min_samples": 10,
+    "_": "reporting threshold for 'fraction of window bins below trust'; affects no dynamics; fixed before any run"
+  },
+  "own_readout_conventions": {
+    "e_F": "exact piecewise-linear F_hat = integral of the P0 force, at the existing grid nodes, gauged/aligned as the kernel arm (EB: gauge x=0 then mean over the eval window; WCA: mean over the eval window), RMS with the engine's norm over the existing window",
+    "e_Fp_primary": "function-space RMS of Gamma(x) - F'_ref(x) over the window, composite Gauss-Legendre rule with n_sub = 8 nodes per bin (never on a bin edge; an 8-point midpoint rule under-reads a locally linear residual by 1/64 in MSE, caught by the unit test before any run); EB reference analytic; WCA reference linearly interpolated between its 160 nodes",
+    "e_Fp_secondary": "node-sampled P0 value with the [left,right) rule (the half-bin-shift trap on EB, where dx = 0.02 divides every ladder Delta)",
+    "no_kde_readout_for_histogram_arms": true,
+    "_edit_log": "2026-09-27 before any calibration run: quadrature changed from composite midpoint to composite Gauss-Legendre (same 8 nodes per bin) after the unit test showed the midpoint rule's 1/64 MSE bias; no data had been produced"
+  },
+  "entropic_bottleneck": {
+    "engine": "src/eb_abffr_core.py PhysConfig defaults (Case II base regime)",
+    "physical": {
+      "beta": 8.0,
+      "H": 2.5,
+      "omega_out": 1.0,
+      "omega_in": 25.0,
+      "s": 0.25,
+      "N": 256,
+      "dt": 0.001,
+      "n_steps": 40000,
+      "save_every": 400
+    },
+    "fr_uniform": {
+      "gamma": 15.0,
+      "eta": 0.1,
+      "fr_every": 10,
+      "score_clip": 3.0,
+      "max_event_fraction": 0.08,
+      "ramp_fraction": 0.1,
+      "fr_burnin": 0,
+      "target_ema_rate": 0.005
+    },
+    "kernel_baseline": {
+      "h": 0.07,
+      "min_count": 1.0
+    },
+    "histogram_min_count": 1.0,
+    "domain": [
+      -1.8,
+      1.8
+    ],
+    "eval_window": [
+      -1.5,
+      1.5
+    ],
+    "ladder_delta": [
+      0.08,
+      0.06,
+      0.04,
+      0.02,
+      0.01
+    ],
+    "ladder_n_bins": [
+      45,
+      60,
+      90,
+      180,
+      360
+    ],
+    "calibration": {
+      "arms": [
+        "abf"
+      ],
+      "seeds": [
+        5000,
+        5001,
+        5002,
+        5003,
+        5004,
+        5005,
+        5006,
+        5007
+      ],
+      "batch_seed": 777,
+      "_": "one batch per ladder member with the SAME batch_seed and row order, so widths are paired on identical Langevin noise; kernel ABF run alongside at the same batch_seed as context only (not used by the rule)"
+    },
+    "confirmation": {
+      "arms": [
+        "kernel_abf",
+        "kernel_fr_uniform",
+        "hist_abf",
+        "hist_fr_uniform"
+      ],
+      "seeds_first": 5100,
+      "n_seeds": 20,
+      "batch_seed": 778,
+      "_": "two batches (kernel, histogram), each [abf, fr_uniform], same batch_seed and row order"
+    }
+  },
+  "wca": {
+    "cell": {
+      "beta": 1.0,
+      "h": 2.0,
+      "w": 2.0,
+      "n_dim": 10,
+      "a": 1.5,
+      "sigma": 1.0,
+      "epsilon": 1.0
+    },
+    "run": {
+      "n_steps": 120000,
+      "n_replicas": 1024,
+      "save_every": 2500,
+      "dt": 0.002
+    },
+    "reference": "cache/phase_hp_v3/wca_ti_b1_h2_w2_n10_a1.5_g160.npz (v2, unsmoothed) -- must exist, never recomputed",
+    "kernel_baseline": {
+      "abf_bandwidth": 0.025,
+      "abf_smooth_sigma": 0.5,
+      "readout_bank": [
+        0.0125,
+        0.00625,
+        0.0
+      ],
+      "primary_readout_h_read_star": 0.0125,
+      "legacy_readout": 0.025
+    },
+    "fr_knobs": {
+      "fr_rate": 0.1,
+      "fr_every": 5,
+      "fr_start_steps": 20000,
+      "target_ema_rate": 0.005,
+      "max_event_fraction": 0.02,
+      "score_clip": 2.0,
+      "kde_bandwidth": 0.07
+    },
+    "abf_shared": {
+      "abf_force_clip": 40.0,
+      "abf_warmup_steps": 10000,
+      "estimator_burn_in_steps": 10000,
+      "mean_force_sample_clip": 500.0,
+      "abf_edge_extrapolate": true
+    },
+    "domain": [
+      -0.2,
+      1.2
+    ],
+    "eval_window": [
+      -0.1,
+      1.1
+    ],
+    "ladder_n_bins": [
+      40,
+      80,
+      160,
+      320
+    ],
+    "ladder_delta": [
+      0.035,
+      0.0175,
+      0.00875,
+      0.004375
+    ],
+    "calibration": {
+      "arms": [
+        "hist_abf"
+      ],
+      "seeds": [
+        3000,
+        3001,
+        3002,
+        3003,
+        3004,
+        3005,
+        3006,
+        3007
+      ],
+      "_": "8 fresh seeds; if the smoke-measured histogram ABF run exceeds 330 s the block is the first 6 seeds (compute rule, declared now); kernel ABF is NOT part of the rule"
+    },
+    "confirmation": {
+      "arms": [
+        "kernel_abf",
+        "kernel_fr_uniform",
+        "hist_abf",
+        "hist_fr_uniform"
+      ],
+      "seeds_first": 3100,
+      "n_seeds": 16,
+      "_": "all four arms of one seed in ONE process (shared lattice init and noise stream); kernel arms carry the read-out bank (accepted scoring), histogram arms carry none"
+    },
+    "seed_labels_already_taken": "0-9, 20, 21, 42, 100-107, 123, 400-415, 500-501, 600-615, 700-715, 800-807, 820-823, 880-883, 900-915 (scan of results/**wca**/*.npz on 2026-09-27)"
+  },
+  "bin_selection_rule_frozen": {
+    "applies_to": "ABF-only calibration; no FR result is read before the width is frozen",
+    "a_floor": "deterministic P0 floor share = floor / median ABF-only own final error must be <= 0.20 for BOTH e_F(T) and e_F'(T) (4 % of the MSE budget; the project's audit precedent treats shares of 0.16-0.19 as not read-out-limited)",
+    "b_plateau": "per-seed paired relative change from this width to the NEXT FINER ladder member: median |change| <= 5 % for final e_F and for I_F, <= 10 % for final e_F'",
+    "choice": "the COARSEST width passing (a) and (b); the finest ladder member has no finer neighbour and cannot be selected by (b)",
+    "if_none_passes": "report the failure explicitly; the confirmation still runs, at the width passing (a) whose maximum normalised plateau violation max(|dF|/5, |dI|/5, |dFp|/10) is smallest, and the doc states that (b) was not met (declared now so it is not a post-hoc choice); thresholds are not moved",
+    "statistic": "median over seeds of the per-seed relative change; bootstrap 95 % CI (10000 resamples, seed 20260829) reported alongside"
+  },
+  "confirmation_verdict_rules_frozen": {
+    "fr_effect_within_estimator": "paired by seed: Delta = (FR - ABF)/ABF for I_F, e_F(T), e_F'(T); median, bootstrap 95 % CI (10000, seed 20260829), seed wins",
+    "replicates": "(i) same sign of the median Delta I_F and Delta e_F(T) as the kernel estimator; (ii) if the kernel CI95 upper bound for Delta I_F is < 0 then the histogram's is too; (iii) comparable magnitude: |median Delta I_F(hist) - median Delta I_F(kernel)| <= 10 percentage points OR the two CI95s overlap; same for Delta e_F(T) with 15 points",
+    "absolute_accuracy_acceptable": "histogram ABF's own median final e_F within +25 % of kernel ABF's accepted-read-out median final e_F, and own median I_F within +25 % (the gateway ladder measured a ~14 % endpoint penalty for any online bias sharper than the kernel; larger than 25 % is reported as materially worse). Being BETTER than the kernel is not a failure.",
+    "safety": "replacement fraction, min windowed ancestor ESS/N >= 0.10 and max lineage share <= 0.05 on every FR run (the WCA Case IX floors, reported for EB as well), EB conditional-variance diagnostics",
+    "primary_metric_histogram_arms": "own estimator only (see own_readout_conventions); kernel arms: EB own h = 0.07 (the accepted Case II convention); WCA h_read* = 0.0125 from the bank (accepted corrected convention) with the legacy 0.025 alongside"
+  },
+  "efficiency": "scripts/profile_histogram_abf.py: separate short runs, torch.cuda.synchronize() around timed regions (profiling mode only), CPU and CUDA; regions: physical force, ABF update, ABF evaluate, PMF reconstruction, FR KDE+score, total step; peak memory via torch.cuda.max_memory_allocated; plus end-to-end wall time of the HEAD (unmodified) engines measured from a HEAD worktree before any edit",
+  "prohibited": [
+    "reading any FR metric before the width is frozen in configs/histogram_abf/selected_bins.json",
+    "changing any FR knob, the FR KDE bandwidth, warm-up, horizon, N, reference, or the physical cell",
+    "smoothing, interpolating or kernel-re-scoring the histogram arms' primary numbers",
+    "writing into any existing results directory",
+    "reusing seed labels listed above"
+  ],
+  "gateway": {
+    "_amendment": "ADDED 2026-09-27T15:59:53Z at the user's request after A2/B2 closed; the existing blocks are unchanged; the same bin_selection_rule_frozen and confirmation_verdict_rules_frozen apply; no gateway FR result of THIS campaign has been read (yesterday's exploratory ladder in results/gateway_histogram used a different PMF reconstruction and read-out and is not used for any choice here)",
+    "engine": "src/gateway_core.py (imports the EB primitives; same 181-node grid on [-1.8, 1.8], eval window [-1.5, 1.5], analytic reference)",
+    "cell": {
+      "beta": 16.0,
+      "s": 0.1,
+      "r": 32.0,
+      "beta_H_kT": 8.0,
+      "H": 0.5,
+      "omega_out": 1.0,
+      "omega_in": 32.0
+    },
+    "sampler": {
+      "N": 2048,
+      "dt": 0.0004,
+      "n_steps": 100000,
+      "save_every": 500,
+      "T_total": 40.0,
+      "fr_every": 10,
+      "fr_burnin": 0,
+      "ramp_fraction": 0.1,
+      "max_event_fraction": 0.08,
+      "score_clip": 3.0,
+      "eta": 0.1,
+      "h": 0.07,
+      "min_count": 1.0,
+      "target_ema_rate": 0.005,
+      "ess_window_steps": 4000
+    },
+    "_sampler_source": "results/gateway_anchor/CONFIRMATORY_PREREGISTRATION.json (asserted by the runner)",
+    "fr_uniform": {
+      "gamma": 1.5,
+      "_": "the frozen practical rate, inherited (configs/information_campaign/gateway_corrected_confirmation_prereg.json)"
+    },
+    "kernel_baseline": {
+      "h_bias": 0.07,
+      "h_read_star": 0.0175,
+      "legacy_readout": 0.07,
+      "_": "accepted corrected convention (docs/GATEWAY_CORRECTED_BASELINE.md): kernel arms scored offline at h_read* from the saved fine-grid accumulators, legacy 0.07 = the engine's own profile alongside"
+    },
+    "inits": [
+      "left",
+      "one_right"
+    ],
+    "ladder_delta": [
+      0.08,
+      0.06,
+      0.04,
+      0.02,
+      0.01
+    ],
+    "ladder_n_bins": [
+      45,
+      60,
+      90,
+      180,
+      360
+    ],
+    "histogram_min_count": 1.0,
+    "calibration": {
+      "arms": [
+        "abf"
+      ],
+      "seeds": [
+        5200,
+        5201,
+        5202,
+        5203,
+        5204,
+        5205,
+        5206,
+        5207
+      ],
+      "batch_seed": 779,
+      "_": "8 seeds x 2 inits = 16 ABF-only rows per width; same batch_seed and row order for every width (paired noise); kernel ABF context batch alongside"
+    },
+    "confirmation": {
+      "arms": [
+        "kernel_abf",
+        "kernel_fr_uniform",
+        "hist_abf",
+        "hist_fr_uniform"
+      ],
+      "seeds_first": 5300,
+      "n_seeds": 16,
+      "batch_seed": 780,
+      "_": "16 seeds x 2 inits = 32 pairs (the accepted scale); kernel batch and histogram batch each [abf, fr_uniform gamma 1.5], same batch_seed and row order"
+    },
+    "safety_floors": {
+      "min_ess_frac": 0.3,
+      "wmax": 0.05,
+      "_": "the gateway confirmatory floors (windowed ancestor ESS/N over 4000 steps; reported, not gating)"
+    },
+    "seed_labels_already_taken": "0-15, 100-131, 300-315, 400-415, 480-487, 500-571, 580-587, 800-831, 900-915, 1200-1207, 1300-1331 (scan 2026-09-27)"
+  }
+}

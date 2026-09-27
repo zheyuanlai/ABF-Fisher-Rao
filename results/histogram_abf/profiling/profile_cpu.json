@@ -1,0 +1,65 @@
+{
+  "device": "cpu",
+  "gpu_name": null,
+  "cuda_visible_devices": "",
+  "torch": "2.12.1+cu130",
+  "git_rev": "64567ea9f0c909edadf2dffb2654636cb4493d26",
+  "timestamp": "2026-09-27T10:25:57Z",
+  "n_rep": 50,
+  "note": "synchronised region timings (profiling mode only); total step = unmodified engine loop over a short horizon",
+  "entropic_bottleneck": {
+    "physical_force_s": 5.410440266132355e-05,
+    "fr_kde_score_s": 0.00022753939032554626,
+    "kernel": {
+      "update_s": 1.5100408345460892e-05,
+      "mean_force_eval_s": 0.0001609905995428562,
+      "mean_force_profile_only_s": 0.00010849880054593086,
+      "pmf_reconstruction_s": 1.765839755535126e-05,
+      "estimator_per_step_s": 0.00019374940544366836,
+      "total_step_s": 0.0005061520049348474,
+      "peak_mem_bytes": null
+    },
+    "histogram": {
+      "update_s": 2.5865398347377776e-05,
+      "mean_force_eval_s": 2.937799319624901e-05,
+      "mean_force_profile_only_s": 1.8929392099380492e-05,
+      "pmf_reconstruction_s": 4.0453001856803896e-05,
+      "estimator_per_step_s": 5.5243391543626785e-05,
+      "total_step_s": 0.00029990747617557643,
+      "peak_mem_bytes": null
+    },
+    "R": 4,
+    "N": 256,
+    "n_bins": 60,
+    "estimator_speedup": 3.5071960650833804,
+    "total_step_speedup": 1.6876938560828945
+  },
+  "wca": {
+    "physical_force_s": 0.23669340254738927,
+    "fr_kde_score_s": 0.0010917985625565052,
+    "kernel": {
+      "update_s": 0.0006169097870588302,
+      "mean_force_eval_s": 0.00012266939505934716,
+      "pmf_reconstruction_s": 8.984601125121116e-05,
+      "estimator_per_step_s": 0.0014463349804282187,
+      "total_step_s": 0.20035660192680857,
+      "total_step_fr_uniform_s": 0.16318535247196753,
+      "peak_mem_bytes": null
+    },
+    "histogram": {
+      "update_s": 3.4804996103048326e-05,
+      "mean_force_eval_s": 3.1842589378356935e-05,
+      "pmf_reconstruction_s": 4.483800381422043e-05,
+      "estimator_per_step_s": 0.00010145258158445359,
+      "total_step_s": 0.1670453072184076,
+      "total_step_fr_uniform_s": 0.1802552547926704,
+      "peak_mem_bytes": null
+    },
+    "N": 1024,
+    "n_grid": 160,
+    "n_bins": 80,
+    "estimator_speedup": 14.256265911027862,
+    "total_step_speedup": 1.1994147292317963,
+    "total_step_speedup_fr_uniform": 0.9053014995854812
+  }
+}

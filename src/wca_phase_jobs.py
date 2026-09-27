@@ -65,6 +65,11 @@ class PhaseRunSpec:
     fr_start_steps: int
     score_clip: float
     prior_c: float = 1.0
+    # ---- online ABF mean-force estimator (object A; docs/HISTOGRAM_ABF_REPLICATION.md) ----
+    # Dropped from spec_hash at their defaults, so every legacy run_id is byte-identical and no
+    # completed run is orphaned (the trap wca_followup_jobs.py records).
+    abf_estimator: str = "kernel"
+    abf_n_bins: int = 0
 
     @property
     def M(self) -> int:
@@ -75,12 +80,20 @@ class PhaseRunSpec:
         return (f"b{self.beta:g}_h{self.h:g}_w{self.w:g}"
                 f"_n{int(self.n_dim)}_a{self.a:g}")
 
+    def _hash_dict(self) -> dict:
+        d = asdict(self)
+        if d.get("abf_estimator", "kernel") == "kernel" and int(d.get("abf_n_bins", 0)) == 0:
+            d.pop("abf_estimator", None)
+            d.pop("abf_n_bins", None)
+        return d
+
     def spec_hash(self) -> str:
-        return hashlib.md5(json.dumps(asdict(self), sort_keys=True).encode()).hexdigest()[:12]
+        return hashlib.md5(json.dumps(self._hash_dict(), sort_keys=True).encode()).hexdigest()[:12]
 
     def run_id(self) -> str:
+        tag = f"__hist{int(self.abf_n_bins)}" if self.abf_estimator == "histogram" else ""
         return (f"{self.stage}__{self.name}__{self.physics_tag()}"
-                f"__seed{self.seed}__N{self.n_replicas}__T{self.n_steps}__{self.spec_hash()}")
+                f"__seed{self.seed}__N{self.n_replicas}__T{self.n_steps}{tag}__{self.spec_hash()}")
 
 
 # ---------------------------------------------------------------------------
@@ -106,6 +119,8 @@ def build_sim(spec: PhaseRunSpec, base: dict) -> "core.SimConfig":
         max_event_fraction=float(spec.max_event_fraction),
         prior_c=float(getattr(spec, 'prior_c', 1.0)), fr_every=int(spec.fr_every),
         fr_start_steps=int(spec.fr_start_steps), score_clip=float(spec.score_clip),
+        abf_estimator=str(getattr(spec, "abf_estimator", "kernel")),
+        abf_n_bins=int(getattr(spec, "abf_n_bins", 0)),
     )
     valid = core.SimConfig.__dataclass_fields__.keys()
     kw = {k: v for k, v in kw.items() if k in valid}
@@ -372,6 +387,30 @@ def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase",
         "sham_replayed_events": diag["sham_replayed_events"],
     }
     out.update(profiles)
+    # Object-A identity + applied-bias diagnostics (both estimators; additive keys).
+    out["abf_estimator"] = str(diag.get("abf_estimator", "kernel"))
+    out["abf_n_bins"] = int(diag.get("abf_n_bins", 0))
+    out["bias_absmax"] = float(diag.get("bias_absmax", float("nan")))
+    out["bias_clip_fraction"] = float(diag.get("bias_clip_fraction", float("nan")))
+    if out["abf_estimator"] == "histogram":
+        # Histogram arms: the OWN estimator is the primary score.  e_F already is (the saved
+        # pmf is the exact integral of the bins at the nodes); e_F' becomes the function-space
+        # RMS of the P0 profile (histogram_fp_error_np) and the node-sampled value is kept as
+        # the secondary `l2_fp_nodes`.  No kernel read-out is attached to these runs.
+        edges = np.asarray(diag["hist_edges_abf"], dtype=float)
+        mfb = np.asarray(diag["hist_mf_bins"], dtype=np.float64)
+        own_t = core.histogram_fp_error_np(mfb, edges, grid, ref["mean_force"], sim.eval_z_lo, sim.eval_z_hi)
+        out["l2_fp_nodes"], out["l2_fp_nodes_t"] = out["l2_fp"], np.asarray(out["l2_fp_t"])
+        out["l2_fp"], out["l2_fp_t"] = float(own_t[-1]), np.asarray(own_t)
+        out["hist_edges_abf"] = edges
+        out["hist_delta"] = float(diag["hist_delta"])
+        out["hist_mf_bins_t"] = mfb
+        out["hist_counts_t"] = np.asarray(diag["hist_counts"], dtype=np.float64)
+        out["final_hist_mf_bins"] = mfb[-1]
+        out["final_hist_counts"] = out["hist_counts_t"][-1]
+        for k in ("hist_min_count_window", "hist_frac_untrusted_window", "hist_n_bins_window"):
+            out[k] = diag[k]
+        out["trust_min_count"] = float(core.TRUST_MIN_COUNT)
     if readout_bandwidths:
         # Read-out bank (inert diagnostics): extra-bandwidth profiles + raw binned sums,
         # so the read-out bandwidth can be swept OFFLINE at fixed dynamics.

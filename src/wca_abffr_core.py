@@ -111,6 +111,15 @@ class SimConfig:
     abf_bandwidth: float = 0.025
     kde_bandwidth: float = 0.070
     abf_smooth_sigma: float = 0.50
+    # Online ABF mean-force estimator (object A; docs/HISTOGRAM_ABF_REPLICATION.md):
+    #   'kernel'    -- TorchKernelABFEstimator (accepted: Gaussian weights at abf_bandwidth,
+    #                  abf_smooth_sigma, linear interpolation of the grid profile);
+    #   'histogram' -- HistogramABFEstimator: abf_n_bins equal bins on [z_min, z_max],
+    #                  Gamma_j = M_j / C_j, every replica feels its OWN bin (piecewise constant).
+    # The FR marginal KDE (kde_bandwidth) is untouched by either.  Both fields are dropped from
+    # config_hash at their defaults so every legacy hash is unchanged.
+    abf_estimator: str = "kernel"
+    abf_n_bins: int = 0
 
     mean_force_sample_clip: float = 500.0
     use_clipped_force_for_mean_force: bool = True
@@ -182,7 +191,11 @@ class SimConfig:
     adaptive_max_rate: float = 0.20
 
     def config_hash(self) -> str:
-        return hashlib.md5(json.dumps(asdict(self), sort_keys=True).encode()).hexdigest()[:12]
+        d = asdict(self)
+        if d.get("abf_estimator", "kernel") == "kernel" and int(d.get("abf_n_bins", 0)) == 0:
+            d.pop("abf_estimator", None)     # legacy hashes unchanged (see the field comment)
+            d.pop("abf_n_bins", None)
+        return hashlib.md5(json.dumps(d, sort_keys=True).encode()).hexdigest()[:12]
 
 
 @dataclass(frozen=True)
@@ -521,6 +534,172 @@ class TorchKernelABFEstimator:
     def effective_counts(self):
         """Kernel-accumulated weight per grid bin (proxy for N_eff(z_j))."""
         return self.den.clone()
+
+
+TRUST_MIN_COUNT = 10.0   # reporting threshold for "untrusted bin" diagnostics; affects no dynamics
+
+
+class HistogramABFEstimator:
+    """Textbook (Darve-Pohorille) P0 ABF estimator -- object A of the algorithm.  The FR
+    marginal KDE (``kde_bandwidth``, :func:`fr_score_torch`) is untouched.
+
+    ``n_bins`` equal bins on [z_min, z_max]: edges ``e_j = z_min + j*delta``, bin j =
+    ``[e_j, e_{j+1})`` with the last bin closed at ``z_max``; samples outside the domain
+    (the soft wall lets a few out) are deposited in the boundary bins, mirroring the kernel's
+    edge-extrapolate reading.  Online update: ``idx = bin(z); C[idx] += 1; M[idx] += f`` --
+    no sample is ever revisited.  ``Gamma_j = M_j / (C_j + min_count)``; with the engine's
+    ``min_count = 0`` that is exactly ``M_j / C_j`` on populated bins and 0 on empty ones
+    (the kernel's ``den > EPS`` rule).  The warm-up ramp and the force clip are applied by the
+    sampler exactly as for the kernel.
+
+    ``evaluate(z)`` returns the replica's OWN bin value: piecewise constant, no interpolation,
+    no smoothing (outside the domain: boundary bin if ``edge_extrapolate`` else 0, the kernel's
+    flag).  Grid-facing read-out with the kernel's interface so the sampler's save code is
+    shared: ``pmf_profile`` = EXACT integral of the piecewise-constant force (piecewise linear)
+    at the grid nodes, gauged at the midpoint node like the kernel; ``mean_force_profile`` = P0
+    value at the nodes ([left, right) rule; secondary read-out -- the primary F' error is the
+    function-space RMS, :func:`histogram_fp_error_np`)."""
+
+    def __init__(self, z_grid, n_bins, z_min, z_max, min_count=0.0, edge_extrapolate=False, n_sub=8):
+        assert int(n_bins) > 0, "histogram estimator needs abf_n_bins > 0"
+        self.z_grid = z_grid
+        self.n_bins, self.min_count = int(n_bins), float(min_count)
+        self.z_min, self.z_max = float(z_min), float(z_max)
+        self.delta = (self.z_max - self.z_min) / self.n_bins
+        self.edge_extrapolate = bool(edge_extrapolate)
+        dev, dt = z_grid.device, z_grid.dtype
+        self.edges = self.z_min + self.delta * torch.arange(self.n_bins + 1, device=dev, dtype=torch.float64)
+        self.centres = 0.5 * (self.edges[1:] + self.edges[:-1])
+        # node -> bin in float64 so the [left, right) convention is exact at the two edge nodes
+        self.g2h = torch.clamp(torch.floor((z_grid.double() - self.z_min) / self.delta + 1e-9).long(),
+                               0, self.n_bins - 1)
+        self.node_offset = (z_grid.double() - self.edges[self.g2h]).to(dt)
+        self.C = torch.zeros(self.n_bins, device=dev, dtype=dt)
+        self.M = torch.zeros(self.n_bins, device=dev, dtype=dt)
+        self.n_updates = 0
+        self.n_sub = int(n_sub)
+
+    def bin_index(self, z):
+        return torch.clamp(torch.floor((z - self.z_min) / self.delta + 1e-9).long(), 0, self.n_bins - 1)
+
+    def update(self, z_samples, force_samples):
+        idx = self.bin_index(z_samples)
+        self.C.scatter_add_(0, idx, torch.ones_like(z_samples))
+        self.M.scatter_add_(0, idx, force_samples)
+        self.n_updates += int(z_samples.numel())
+
+    def bin_mean_force(self):
+        den = self.C + self.min_count
+        safe = torch.where(den > 0, den, torch.ones_like(den))
+        return torch.where(den > 0, self.M / safe, torch.zeros_like(den))
+
+    def evaluate(self, z_samples):
+        val = torch.gather(self.bin_mean_force(), 0, self.bin_index(z_samples))
+        if self.edge_extrapolate:
+            return val
+        inside = (z_samples >= self.z_min) & (z_samples <= self.z_max)
+        return torch.where(inside, val, torch.zeros_like(val))
+
+    def mean_force_profile(self):
+        return self.bin_mean_force()[self.g2h]
+
+    def pmf_profile(self):
+        G = self.bin_mean_force()
+        F_edges = torch.zeros(self.n_bins + 1, device=G.device, dtype=G.dtype)
+        F_edges[1:] = torch.cumsum(G * G.new_tensor(self.delta), dim=0)
+        F_nodes = F_edges[self.g2h] + G[self.g2h] * self.node_offset
+        return normalize_profile_zero_at_midpoint_torch(F_nodes, self.z_grid)
+
+    def effective_counts(self):
+        """Counts of the bin each grid node falls in (kernel-interface shape)."""
+        return self.C[self.g2h].clone()
+
+    def counts(self):
+        return self.C.clone()
+
+    def diagnostics(self, z_lo, z_hi, trust=TRUST_MIN_COUNT):
+        """Per-bin support over the evaluation window [z_lo, z_hi] (bins by centre)."""
+        win = (self.centres >= z_lo) & (self.centres <= z_hi)
+        c = self.C[win]
+        return dict(min_count_window=float(c.min().item()) if c.numel() else float("nan"),
+                    frac_untrusted_window=float((c < trust).to(torch.float64).mean().item()) if c.numel() else float("nan"),
+                    n_bins_window=int(win.sum().item()))
+
+
+def make_abf_estimator(sim, grid):
+    """Object A by configuration.  ``sim.abf_estimator == 'kernel'`` is the accepted engine."""
+    if sim.abf_estimator == "kernel":
+        return TorchKernelABFEstimator(grid, sim.abf_bandwidth, sim.abf_smooth_sigma,
+                                       edge_extrapolate=sim.abf_edge_extrapolate)
+    if sim.abf_estimator == "histogram":
+        return HistogramABFEstimator(grid, sim.abf_n_bins, sim.z_min, sim.z_max, min_count=0.0,
+                                     edge_extrapolate=sim.abf_edge_extrapolate)
+    raise ValueError(f"abf_estimator must be 'kernel' or 'histogram', got {sim.abf_estimator!r}")
+
+
+def histogram_sub_grid_np(edges, n_sub=8):
+    """Composite Gauss-Legendre sub-grid: ``n_sub`` nodes per bin (never on an edge) and their
+    weights (summing to 1 per bin).  Returns (sub_x, sub_w), each of length n_bins * n_sub."""
+    edges = np.asarray(edges, dtype=float)
+    delta = edges[1] - edges[0]
+    gl_x, gl_w = np.polynomial.legendre.leggauss(int(n_sub))
+    k = 0.5 * (gl_x + 1.0)
+    sub_x = (edges[:-1, None] + delta * k[None, :]).reshape(-1)
+    return sub_x, np.tile(0.5 * gl_w, len(edges) - 1)
+
+
+def histogram_midpoint_grid_np(edges, n_avg=64):
+    """Composite midpoint sub-grid, n_avg points per bin (for bin averages of a reference)."""
+    edges = np.asarray(edges, dtype=float)
+    delta = edges[1] - edges[0]
+    k = (np.arange(int(n_avg)) + 0.5) / int(n_avg)
+    return (edges[:-1, None] + delta * k[None, :]).reshape(-1)
+
+
+def histogram_fp_error_np(mf_bins, edges, ref_grid, ref_mf, z_lo, z_hi, n_sub=8):
+    """Own F' error of a P0 profile: function-space RMS of Gamma(z) - F'_ref(z) over
+    [z_lo, z_hi], the reference read linearly between its nodes (the same reading the
+    trapezoid metric uses), composite Gauss-Legendre rule with ``n_sub`` nodes per bin.
+    ``mf_bins``: (..., n_bins) -> (...)."""
+    sub_x, sub_w = histogram_sub_grid_np(edges, n_sub)
+    ref_sub = np.interp(sub_x, np.asarray(ref_grid, dtype=float), np.asarray(ref_mf, dtype=float))
+    mask = (sub_x >= z_lo) & (sub_x <= z_hi)
+    p0 = np.repeat(np.asarray(mf_bins, dtype=float), int(n_sub), axis=-1)
+    d = (p0 - ref_sub)[..., mask]
+    w = sub_w[mask]
+    return np.sqrt(np.sum(d * d * w, axis=-1) / w.sum())
+
+
+def histogram_pmf_nodes_np(mf_bins, edges, grid):
+    """Exact integral of the piecewise-constant force at the grid nodes (piecewise linear)."""
+    edges = np.asarray(edges, dtype=float)
+    grid = np.asarray(grid, dtype=float)
+    mf_bins = np.asarray(mf_bins, dtype=float)
+    n_bins = len(edges) - 1
+    delta = edges[1] - edges[0]
+    g2h = np.clip(np.floor((grid - edges[0]) / delta + 1e-9).astype(int), 0, n_bins - 1)
+    F_edges = np.concatenate([np.zeros(mf_bins.shape[:-1] + (1,)), np.cumsum(mf_bins * delta, axis=-1)], axis=-1)
+    return F_edges[..., g2h] + mf_bins[..., g2h] * (grid - edges[g2h])
+
+
+def histogram_p0_floor_np(n_bins, reference, sim, n_avg=64, n_sub=8):
+    """Deterministic P0 discretisation floor from the TI reference (no simulation): bin averages
+    of F'_ref (read linearly between its nodes, ``n_avg``-point midpoint rule per bin), exact
+    integral, and the own-read-out e_F / e_F' conventions on the evaluation window."""
+    grid = np.asarray(reference["grid"], dtype=float)
+    ref_mf = np.asarray(reference["mean_force"], dtype=float)
+    ref_F = np.asarray(reference["free_energy"], dtype=float)
+    edges = np.linspace(sim.z_min, sim.z_max, int(n_bins) + 1)
+    xa = histogram_midpoint_grid_np(edges, n_avg).reshape(int(n_bins), int(n_avg))
+    mf_bins = np.interp(xa, grid, ref_mf).mean(axis=1)
+    mask = eval_window_mask_np(grid, sim)
+    F_nodes = histogram_pmf_nodes_np(mf_bins, edges, grid)
+    F_al = align_additive_constant_np(F_nodes, ref_F, grid, mask=mask)
+    g2h = np.clip(np.floor((grid - edges[0]) / (edges[1] - edges[0]) + 1e-9).astype(int), 0, int(n_bins) - 1)
+    return dict(n_bins=int(n_bins), delta=float(edges[1] - edges[0]), edges=edges, mf_bins=mf_bins,
+                floor_l2_f=profile_l2_error_np(F_al, ref_F, grid, mask=mask),
+                floor_l2_fp=float(histogram_fp_error_np(mf_bins, edges, grid, ref_mf, sim.eval_z_lo, sim.eval_z_hi, n_sub)),
+                floor_l2_fp_nodes=profile_l2_error_np(mf_bins[g2h], ref_mf, grid, mask=mask))
 
 
 class ReadoutBank:
@@ -1303,8 +1482,17 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
         oracle_t = torch.as_tensor(oracle_free_energy, device=engine.device, dtype=engine.dtype)
         oracle_t = normalize_profile_zero_at_midpoint_torch(oracle_t, grid)
 
-    bias_estimator = TorchKernelABFEstimator(grid, sim.abf_bandwidth, sim.abf_smooth_sigma, edge_extrapolate=sim.abf_edge_extrapolate)
-    production_estimator = TorchKernelABFEstimator(grid, sim.abf_bandwidth, sim.abf_smooth_sigma, edge_extrapolate=sim.abf_edge_extrapolate)
+    # Object A (online mean-force estimator), by configuration.  Two instances as before: the
+    # bias estimator sees every step, the production (reported) one starts after the burn-in.
+    use_hist = getattr(sim, "abf_estimator", "kernel") == "histogram"
+    bias_estimator = make_abf_estimator(sim, grid)
+    production_estimator = make_abf_estimator(sim, grid)
+    # the histogram path rebuilds the grid PMF only when a target needs it or at a save
+    _need_pmf_every_step = (not use_hist) or method in ESTIMATED_TARGET_METHODS or method == "fr_oracle"
+    A_hat, current_bias_profile = None, None
+    _bias_absmax = torch.zeros((), device=engine.device, dtype=engine.dtype)
+    _clip_n = torch.zeros((), device=engine.device, dtype=torch.float64)
+    _eval_n = 0
     readout = ReadoutBank(grid, sim, readout_bandwidths) if readout_bandwidths else None
     # Targeted relaxation / sensitivity instrumentation (additive; nothing below runs otherwise)
     sens = SensitivityAccumulator(grid) if (relax is not None or sensitivity_record) else None
@@ -1425,6 +1613,8 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
         diag["readout_mean_force"] = {h: [] for h in readout.hs if h > 0}
         if readout.raw is not None:
             diag["raw_fsum"], diag["raw_csum"] = [], []
+    if use_hist:
+        diag["hist_mf_bins"], diag["hist_counts"] = [], []      # the reported estimator's own bins
     if sens is not None:
         diag["vhat"] = []
         if sensitivity_record:
@@ -1479,9 +1669,15 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
             sens.update(z, f_local)
         ramp = min(1.0, step / max(sim.abf_warmup_steps, 1))
         abf_scale = sim.abf_bias_scale * ramp
-        abf_at_z = abf_scale * torch.clamp(bias_estimator.evaluate(z), -sim.abf_force_clip, sim.abf_force_clip)
-        A_hat = bias_estimator.pmf_profile()                 # unscaled A_hat_n(z)
-        current_bias_profile = abf_scale * A_hat             # B_n(z)
+        _raw_bias = bias_estimator.evaluate(z)
+        abf_at_z = abf_scale * torch.clamp(_raw_bias, -sim.abf_force_clip, sim.abf_force_clip)
+        # applied-bias diagnostics (GPU-side, no sync; read once at the end)
+        _bias_absmax = torch.maximum(_bias_absmax, _raw_bias.abs().max())
+        _clip_n += (_raw_bias.abs() > sim.abf_force_clip).sum().to(torch.float64)
+        _eval_n += int(_raw_bias.numel())
+        if _need_pmf_every_step or step % sim.save_every == 0 or step == sim.n_steps:
+            A_hat = bias_estimator.pmf_profile()                 # unscaled A_hat_n(z)
+            current_bias_profile = abf_scale * A_hat             # B_n(z)
         # Online EMA target maintained for the estimated-target methods (incl.
         # the adaptive variant), starting at fr_start. Never sees the TI reference.
         if method in ESTIMATED_TARGET_METHODS and (step + 1) >= sim.fr_start_steps:
@@ -1501,6 +1697,9 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
             diag["times"].append(step * sim.dt)
             diag["mean_force"].append(to_numpy(report_estimator.mean_force_profile()))
             diag["pmf"].append(to_numpy(report_estimator.pmf_profile()))
+            if use_hist:
+                diag["hist_mf_bins"].append(to_numpy(report_estimator.bin_mean_force()))
+                diag["hist_counts"].append(to_numpy(report_estimator.counts()))
             diag["repl_cumulative"].append(total_replacement_events)
             if readout is not None:
                 rep = readout.report()
@@ -1781,6 +1980,18 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
     diag["runtime_seconds"] = time.perf_counter() - t0
     diag["method"] = method
     diag["grid"] = to_numpy(grid)
+    # object-A identity + applied-bias diagnostics (both estimators)
+    diag["abf_estimator"] = "histogram" if use_hist else "kernel"
+    diag["abf_n_bins"] = int(bias_estimator.n_bins) if use_hist else 0
+    diag["bias_absmax"] = float(_bias_absmax.item())
+    diag["bias_clip_fraction"] = float(_clip_n.item()) / float(max(_eval_n, 1))
+    if use_hist:
+        rep = production_estimator if production_estimator.n_updates > 0 else bias_estimator
+        diag["hist_edges_abf"] = to_numpy(rep.edges)
+        diag["hist_delta"] = float(rep.delta)
+        diag.update({f"hist_{k}": v for k, v in rep.diagnostics(sim.eval_z_lo, sim.eval_z_hi).items()})
+        diag["hist_mf_bins"] = np.asarray(diag["hist_mf_bins"], dtype=np.float64)
+        diag["hist_counts"] = np.asarray(diag["hist_counts"], dtype=np.float64)
     diag["total_replacement_events"] = total_replacement_events
     diag["fr_event_counts"] = np.asarray(fr_event_counts, dtype=np.int64)
     diag["sham_partner"] = SHAM_PARTNER.get(method)

@@ -89,6 +89,15 @@ class PhysConfig:
     # ABF mean-force smoothing
     h: float = 0.07
     min_count: float = 1.0
+    # Online ABF mean-force estimator (object A; docs/HISTOGRAM_ABF_REPLICATION.md):
+    #   'kernel'    -- the accepted engine: nearest-node accumulators on the 181-node grid,
+    #                  Gaussian smoothing at bandwidth h, bias force linearly interpolated;
+    #   'histogram' -- textbook P0 ABF: abf_n_bins equal bins on [XMIN, XMAX],
+    #                  Gamma_j = M_j / (C_j + min_count), every walker feels its OWN bin's
+    #                  value (piecewise constant, no interpolation, no smoothing).
+    # Structural (uniform within a batch).  The FR marginal KDE (eta) is untouched by either.
+    abf_estimator: str = "kernel"
+    abf_n_bins: int = 0
     # FR knobs
     eta: float = 0.10            # marginal-density bandwidth
     fr_every: int = 10
@@ -261,6 +270,158 @@ def l2_error(a, b, eval_mask):
     return torch.sqrt(torch.mean(d * d, dim=1))
 
 
+def reference_mean_force(x, beta, Hc, omega_out, omega_in, s):
+    """F'_ref at arbitrary positions (broadcasts x:(1,Q) against (R,1) parameters)."""
+    om = omega_of(x, omega_out, omega_in, s)
+    dom = domega_of(x, omega_out, omega_in, s)
+    return dU_of(x, Hc) + dom / (om * beta)
+
+
+# -----------------------------------------------------------------------------
+# online ABF mean-force estimators (object A of the algorithm).  The FR marginal
+# density (object B) is `binned_density` above; neither estimator touches it.
+# -----------------------------------------------------------------------------
+TRUST_MIN_COUNT = 10.0   # reporting threshold for "untrusted bin" diagnostics; affects no dynamics
+
+
+class KernelABFEstimator:
+    """The accepted estimator: nearest-node accumulators C / Sf on the 181-node grid,
+    Gaussian smoothing at bandwidth h with the notebook's unscaled min_count
+    regularisation, bias force linearly interpolated from the grid profile.
+
+    Op for op the code that lived inline in ``simulate_batch`` before the histogram
+    estimator existed (tests/test_histogram_abf.py pins the outputs to a fixture
+    generated at that commit)."""
+
+    def __init__(self, R, h, min_count, dx, device, dtype):
+        self.dx, self.min_count = dx, min_count
+        self.k_h, self.r_h = gaussian_kernel(h, dx, device, dtype)
+        self.C = torch.zeros((R, N_GRID), device=device, dtype=dtype)
+        self.Sf = torch.zeros((R, N_GRID), device=device, dtype=dtype)
+
+    def update(self, X, fx):
+        idx = torch.clamp(torch.round((X - XMIN) / self.dx).long(), 0, N_GRID - 1)
+        self.C.scatter_add_(1, idx, torch.ones_like(X))
+        self.Sf.scatter_add_(1, idx, fx)
+
+    def mean_force_profile(self):
+        return smooth(self.Sf, self.k_h, self.r_h, self.dx) / (
+            smooth(self.C, self.k_h, self.r_h, self.dx) + self.min_count + EPS)
+
+    def pmf_profile(self, Fp, idx0):
+        B = cumtrapz(Fp, self.dx)
+        return B - B[:, idx0:idx0 + 1]
+
+    def evaluate(self, X, Fp):
+        return interp1d(X, Fp, self.dx)
+
+
+def histogram_bin_index(x, lo, delta, n_bins):
+    """Bin of ``x``: bin j = [e_j, e_{j+1}) with e_j = lo + j*delta, the last bin closed at
+    the right end; values outside [lo, hi] land in the boundary bins.  The 1e-9 nudge makes a
+    point sitting exactly on an edge (every grid node, on this grid) belong to the bin to its
+    RIGHT as the [left, right) convention says, independent of floating-point rounding."""
+    return torch.clamp(torch.floor((x - lo) / delta + 1e-9).long(), 0, n_bins - 1)
+
+
+class HistogramABFEstimator:
+    """Textbook (Darve-Pohorille) ABF, batched over the run axis R.
+
+    ``n_bins`` equal bins on [XMIN, XMAX]; per bin the cumulative count ``C_j`` and force
+    sum ``M_j`` (online: identify bin, C += 1, M += f; no sample is ever revisited);
+    ``Gamma_j = M_j / (C_j + min_count)`` -- the engine's existing soft ramp (min_count = 1 in
+    the accepted configuration; min_count = 0 gives exactly M_j / C_j on populated bins and
+    0 on empty ones).  ``evaluate`` returns the value of the walker's OWN bin: piecewise
+    constant, no interpolation, no smoothing.
+
+    Own read-out: ``pmf_profile`` is the EXACT integral of the piecewise-constant force
+    (piecewise linear, continuous) at the grid nodes, gauged at ``idx0`` like the kernel arm;
+    ``fp_error`` is the function-space RMS against a reference sampled on an ``n_sub``-point
+    midpoint sub-grid per bin (never on an edge) -- the primary F' error;
+    ``mean_force_profile`` is the P0 value at the nodes with the [left, right) rule (on this
+    grid every node is a bin edge, so that is the secondary read-out only)."""
+
+    def __init__(self, R, n_bins, min_count, x_grid, device, dtype, n_sub=8):
+        assert int(n_bins) > 0, "histogram estimator needs abf_n_bins > 0"
+        self.n_bins, self.min_count = int(n_bins), float(min_count)
+        self.lo, self.hi = XMIN, XMAX
+        self.delta = (XMAX - XMIN) / self.n_bins
+        self.edges = XMIN + self.delta * torch.arange(self.n_bins + 1, device=device, dtype=dtype)
+        self.centres = 0.5 * (self.edges[1:] + self.edges[:-1])
+        self.C = torch.zeros((R, self.n_bins), device=device, dtype=dtype)
+        self.M = torch.zeros((R, self.n_bins), device=device, dtype=dtype)
+        # grid node -> bin, and the node's offset from its bin's left edge (exact integral)
+        self.g2h = histogram_bin_index(x_grid, XMIN, self.delta, self.n_bins)
+        self.node_offset = x_grid - self.edges[self.g2h]
+        # Gauss-Legendre sub-grid (n_sub nodes per bin, never on an edge) for the function-space
+        # F' error; an 8-point midpoint rule would under-read the RMS of a locally linear
+        # residual by 1/64 in MSE, the composite Gauss rule is exact for it
+        self.n_sub = int(n_sub)
+        gl_x, gl_w = np.polynomial.legendre.leggauss(self.n_sub)
+        k = torch.as_tensor(0.5 * (gl_x + 1.0), device=device, dtype=dtype)
+        self.sub_x = (self.edges[:-1, None] + self.delta * k[None, :]).reshape(-1)
+        self.sub_w = torch.as_tensor(0.5 * gl_w, device=device, dtype=dtype).repeat(self.n_bins)
+        self.sub2h = torch.arange(self.n_bins, device=device).repeat_interleave(self.n_sub)
+
+    def update(self, X, fx):
+        idx = histogram_bin_index(X, self.lo, self.delta, self.n_bins)
+        self.C.scatter_add_(1, idx, torch.ones_like(X))
+        self.M.scatter_add_(1, idx, fx)
+
+    def bin_mean_force(self):
+        den = self.C + self.min_count
+        safe = torch.where(den > 0, den, torch.ones_like(den))
+        return torch.where(den > 0, self.M / safe, torch.zeros_like(den))
+
+    def evaluate(self, X, Fp_bins=None):
+        Fp_bins = self.bin_mean_force() if Fp_bins is None else Fp_bins
+        return torch.gather(Fp_bins, 1, histogram_bin_index(X, self.lo, self.delta, self.n_bins))
+
+    def mean_force_profile(self, Fp_bins=None):
+        Fp_bins = self.bin_mean_force() if Fp_bins is None else Fp_bins
+        return Fp_bins[:, self.g2h]
+
+    def pmf_profile(self, idx0, Fp_bins=None):
+        Fp_bins = self.bin_mean_force() if Fp_bins is None else Fp_bins
+        F_edges = torch.zeros((Fp_bins.shape[0], self.n_bins + 1), device=Fp_bins.device,
+                              dtype=Fp_bins.dtype)
+        F_edges[:, 1:] = torch.cumsum(Fp_bins * self.delta, dim=1)
+        F_nodes = F_edges[:, self.g2h] + Fp_bins[:, self.g2h] * self.node_offset
+        return F_nodes - F_nodes[:, idx0:idx0 + 1]
+
+    def fp_error(self, Fp_ref_sub, sub_mask, Fp_bins=None):
+        """RMS of Gamma - F'_ref over the sub-points selected by ``sub_mask``.
+        Fp_ref_sub: (R, Q) or (1, Q) reference values on ``self.sub_x``."""
+        Fp_bins = self.bin_mean_force() if Fp_bins is None else Fp_bins
+        d = (Fp_bins[:, self.sub2h] - Fp_ref_sub)[:, sub_mask]
+        w = self.sub_w[sub_mask]
+        return torch.sqrt(torch.sum(d * d * w, dim=1) / w.sum())
+
+    def window_bins(self, lo, hi):
+        return (self.centres >= lo) & (self.centres <= hi)
+
+
+def p0_projection_floor(n_bins, x_grid, eval_mask, idx0, beta, Hc, omega_out, omega_in, s,
+                        device=DEVICE, dtype=DTYPE, n_avg=64):
+    """Deterministic discretisation floor of the P0 estimator: bin averages of the analytic
+    F'_ref (``n_avg``-point midpoint rule per bin), the exact P0 profile, its exact integral,
+    and the own-read-out e_F / e_F' conventions.  No simulation."""
+    est = HistogramABFEstimator(1, n_bins, 0.0, x_grid, device, dtype)
+    k = (torch.arange(n_avg, device=device, dtype=dtype) + 0.5) / n_avg
+    xa = (est.edges[:-1, None] + est.delta * k[None, :])                       # (n_bins, n_avg)
+    Fp_bins = reference_mean_force(xa, beta, Hc, omega_out, omega_in, s).mean(dim=1).unsqueeze(0)
+    F_ref, Fp_ref = reference_profiles(x_grid, eval_mask, beta, Hc, omega_out, omega_in, s)
+    Fp_ref_sub = reference_mean_force(est.sub_x.unsqueeze(0), beta, Hc, omega_out, omega_in, s)
+    sub_mask = (est.sub_x >= EVAL_LO) & (est.sub_x <= EVAL_HI)
+    B = est.pmf_profile(idx0, Fp_bins)
+    Bc = B - B[:, eval_mask].mean(dim=1, keepdim=True)
+    return dict(n_bins=int(n_bins), delta=float(est.delta),
+                floor_l2_f=float(l2_error(Bc, F_ref, eval_mask)[0]),
+                floor_l2_fp=float(est.fp_error(Fp_ref_sub, sub_mask, Fp_bins)[0]),
+                floor_l2_fp_nodes=float(l2_error(est.mean_force_profile(Fp_bins), Fp_ref, eval_mask)[0]),
+                Fp_bins=Fp_bins[0].detach().cpu().numpy(), F_nodes=Bc[0].detach().cpu().numpy())
+
+
 # -----------------------------------------------------------------------------
 # batched Fisher-Rao birth-death resampling
 # -----------------------------------------------------------------------------
@@ -407,9 +568,14 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     """Run all (config, method) pairs for one seed. Returns a dict of results.
 
     Uniform-across-batch (asserted): N, dt, n_steps, save_every, fr_every,
-    fr_burnin, ramp_fraction, h, eta, min_count.  Per-config (may vary):
-    beta, H, omega_out, omega_in, s, gamma, target_ema_rate, score_clip,
-    max_event_fraction.
+    fr_burnin, ramp_fraction, h, eta, min_count, abf_estimator, abf_n_bins.
+    Per-config (may vary): beta, H, omega_out, omega_in, s, gamma,
+    target_ema_rate, score_clip, max_event_fraction.
+
+    ``abf_estimator == 'histogram'`` swaps object A (the online mean-force estimator) for
+    :class:`HistogramABFEstimator`; the grid profile / PMF are then rebuilt only at saves
+    (and every step only when an estimated or oracle target needs them).  The FR block
+    below is byte-identical under either estimator.
     """
     assert_no_oracle_leakage(spec.methods)
     cfgs, methods = list(spec.configs), list(spec.methods)
@@ -420,16 +586,17 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     c0 = cfgs[0]
     for c in cfgs:
         for a in ("N", "dt", "n_steps", "save_every", "fr_every", "fr_burnin",
-                  "ramp_fraction", "h", "eta", "min_count"):
+                  "ramp_fraction", "h", "eta", "min_count", "abf_estimator", "abf_n_bins"):
             assert getattr(c, a) == getattr(c0, a), f"non-uniform {a} across configs"
+    assert c0.abf_estimator in ("kernel", "histogram"), c0.abf_estimator
+    use_hist = c0.abf_estimator == "histogram"
     N, dt, n_steps = c0.N, c0.dt, c0.n_steps
     save_every, fr_every, fr_burnin = c0.save_every, c0.fr_every, c0.fr_burnin
     ramp = int(c0.ramp_fraction * n_steps)
     dt_fr = dt * fr_every
 
     x_grid, dx, eval_mask, idx0 = build_grid(device, dtype)
-    k_h, r_h = gaussian_kernel(c0.h, dx, device, dtype)
-    k_eta, r_eta = gaussian_kernel(c0.eta, dx, device, dtype)
+    k_eta, r_eta = gaussian_kernel(c0.eta, dx, device, dtype)      # FR marginal KDE (object B)
 
     # per-config (B,) params, then broadcast to per-run (R,1) over the M axis
     def cfg_b(attr):
@@ -471,9 +638,22 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     anc = torch.arange(N, device=device).unsqueeze(0).expand(R, N).clone()
     ess_window = c0.ess_window_steps
 
-    C = torch.zeros((R, N_GRID), device=device, dtype=dtype)
-    Sf = torch.zeros((R, N_GRID), device=device, dtype=dtype)
+    # object A: the online ABF mean-force estimator
+    if use_hist:
+        est = HistogramABFEstimator(R, c0.abf_n_bins, c0.min_count, x_grid, device, dtype)
+        # analytic F'_ref on the estimator's midpoint sub-grid (own F' error) + window masks
+        Fp_ref_sub = reference_mean_force(est.sub_x.unsqueeze(0), beta, Hc, oout, oin, sw)
+        sub_mask = (est.sub_x >= EVAL_LO) & (est.sub_x <= EVAL_HI)
+        win_bins = est.window_bins(EVAL_LO, EVAL_HI)
+        # the grid profile / PMF are needed every step only by estimated / oracle targets
+        need_profiles = any(m.target_mode in ("estimated", "oracle") for m in methods)
+        Fp_bins = est.bin_mean_force()
+    else:
+        est = KernelABFEstimator(R, c0.h, c0.min_count, dx, device, dtype)
+    Fp = torch.zeros((R, N_GRID), device=device, dtype=dtype)
+    Bbias = torch.zeros((R, N_GRID), device=device, dtype=dtype)
     F_target = torch.zeros((R, N_GRID), device=device, dtype=dtype)
+    max_abs_bias = torch.zeros(R, device=device, dtype=dtype)
 
     # generators: Langevin noise drawn per B-row then broadcast across the M
     # methods of that row (so matched methods see identical noise); FR draws use
@@ -488,6 +668,10 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
     ts_l2f = torch.zeros((R, n_saves), device=device, dtype=dtype)
     ts_l2fp = torch.zeros((R, n_saves), device=device, dtype=dtype)
     ts_ess = torch.zeros((R, n_saves), device=device, dtype=dtype)
+    if use_hist:
+        ts_l2fp_nodes = torch.zeros((R, n_saves), device=device, dtype=dtype)
+        ts_Ch = torch.zeros((R, n_saves, est.n_bins), device=device, dtype=dtype)
+        ts_Mh = torch.zeros((R, n_saves, est.n_bins), device=device, dtype=dtype)
     save_set = set(save_steps); save_ptr = 0
     tot_die = torch.zeros(R, device=device, dtype=dtype)
     tot_clone = torch.zeros(R, device=device, dtype=dtype)
@@ -505,18 +689,25 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
         fy = om * om * Y                              # dV/dy
 
         # ---- ABF accumulation + mean force + bias ----
-        idx = torch.clamp(torch.round((X - XMIN) / dx).long(), 0, N_GRID - 1)
-        C.scatter_add_(1, idx, torch.ones_like(X))
-        Sf.scatter_add_(1, idx, fx)
-        Fp = smooth(Sf, k_h, r_h, dx) / (smooth(C, k_h, r_h, dx) + c0.min_count + EPS)
-        Bbias = cumtrapz(Fp, dx)
-        Bbias = Bbias - Bbias[:, idx0:idx0 + 1]
-        F_target = (1.0 - ema) * F_target + ema * Bbias
+        est.update(X, fx)
+        if use_hist:
+            Fp_bins = est.bin_mean_force()
+            if need_profiles or step in save_set:
+                Fp = est.mean_force_profile(Fp_bins)
+                Bbias = est.pmf_profile(idx0, Fp_bins)
+                if need_profiles:
+                    F_target = (1.0 - ema) * F_target + ema * Bbias
+        else:
+            Fp = est.mean_force_profile()
+            Bbias = est.pmf_profile(Fp, idx0)
+            F_target = (1.0 - ema) * F_target + ema * Bbias
 
         # ---- Langevin step (noise shared across methods via B-block broadcast) ----
         zx = torch.randn((B, N), device=device, dtype=dtype, generator=gen_n).repeat_interleave(M, dim=0)
         zy = torch.randn((B, N), device=device, dtype=dtype, generator=gen_n).repeat_interleave(M, dim=0)
-        bias_force = interp1d(X, Fp, dx)              # applied ABF mean force at X
+        # applied ABF mean force at X: own-bin value (histogram) / interpolated grid profile (kernel)
+        bias_force = est.evaluate(X, Fp_bins) if use_hist else est.evaluate(X, Fp)
+        max_abs_bias = torch.maximum(max_abs_bias, bias_force.abs().max(dim=1).values)
         Xp = reflect_into(X + (-fx + bias_force) * dt + noise_amp * zx, XMIN, XMAX)
         Yp = Y + (-fy) * dt + noise_amp * zy
 
@@ -559,7 +750,14 @@ def simulate_batch(spec: BatchSpec, device=DEVICE, dtype=DTYPE,
         if step in save_set:
             Bc = Bbias - Bbias[:, eval_mask].mean(dim=1, keepdim=True)
             ts_l2f[:, save_ptr] = l2_error(Bc, F_ref, eval_mask)
-            ts_l2fp[:, save_ptr] = l2_error(Fp, Fp_ref, eval_mask)
+            if use_hist:
+                # own read-out: function-space F' error (primary) + node-sampled (secondary)
+                ts_l2fp[:, save_ptr] = est.fp_error(Fp_ref_sub, sub_mask, Fp_bins)
+                ts_l2fp_nodes[:, save_ptr] = l2_error(Fp, Fp_ref, eval_mask)
+                ts_Ch[:, save_ptr] = est.C
+                ts_Mh[:, save_ptr] = est.M
+            else:
+                ts_l2fp[:, save_ptr] = l2_error(Fp, Fp_ref, eval_mask)
             ts_ess[:, save_ptr] = ancestor_ess(anc, N)
             save_ptr += 1
         if progress is not None and step % progress == 0:
@@ -686,6 +884,26 @@ def _finalize(L):
                 "cond_ref_var": npy(cond["cond_ref_var"][r]),
                 "cond_abs_err": npy(cond["cond_abs_err"][r]),
                 "cond_count": npy(cond["cond_count"][r]),
+                "abf_estimator": cfgs[b].abf_estimator,
+                "max_abs_bias_force": float(L["max_abs_bias"][r]),
             }
+            if L.get("use_hist"):
+                est = L["est"]
+                Fp_bins, Cb, win = est.bin_mean_force(), est.C, L["win_bins"]
+                rec.update({
+                    "abf_n_bins": est.n_bins,
+                    "hist_delta": float(est.delta),
+                    "hist_edges": npy(est.edges),
+                    "Fp_bins": npy(Fp_bins[r]),
+                    "C_bins": npy(Cb[r]),
+                    "M_bins": npy(est.M[r]),
+                    "Ch_t": npy(L["ts_Ch"][r]),
+                    "Mh_t": npy(L["ts_Mh"][r]),
+                    "l2_fp_nodes_t": npy(L["ts_l2fp_nodes"][r]),
+                    "final_l2_fp_nodes": float(L["ts_l2fp_nodes"][r, -1]),
+                    "min_count_window": float(Cb[r][win].min()),
+                    "frac_untrusted_window": float((Cb[r][win] < TRUST_MIN_COUNT).to(Cb.dtype).mean()),
+                    "trust_min_count": TRUST_MIN_COUNT,
+                })
             recs.append(rec)
     return recs
