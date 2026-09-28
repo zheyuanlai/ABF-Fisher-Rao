@@ -1432,8 +1432,18 @@ def assert_no_oracle_leakage(method, oracle_free_energy):
 def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                     oracle_free_energy=None, collect_diagnostics=True, verbose=True,
                     track_crossings=False, replay_counts=None, readout_bandwidths=None,
-                    relax=None, sensitivity_record=False, ot=None):
+                    relax=None, sensitivity_record=False, ot=None,
+                    store_snapshots=0, snapshot_replicas=(0,)):
     """Run one sampler on the GPU.
+
+    ``store_snapshots = k > 0`` (default 0: byte-identical to before) additionally records a
+    *movie record* every ``k`` steps and at the last step: z of every replica, a persistent
+    walker id (a clone gets a fresh id, a death's id vanishes; slot index is not identity once
+    birth-death runs), the REPORTED estimator's grid PMF (and its bins / counts for the
+    histogram), the full configuration of the ``snapshot_replicas`` slots, and the z of every
+    death and birth keyed by the snapshot index it precedes.  Pure read-off of state: it
+    consumes no RNG and touches no accumulator (tests/test_wca_snapshots.py).  Meant for
+    ``scripts/make_wca_movie.py``.
 
     ``readout_bandwidths`` (default None: byte-identical to before) attaches a
     :class:`ReadoutBank` -- report-only estimators at those bandwidths (``0`` = raw
@@ -1570,6 +1580,34 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
     # birth/death z-location histograms accumulated over the run
     birth_hist = np.zeros(sim.n_grid, dtype=np.float64)
     death_hist = np.zeros(sim.n_grid, dtype=np.float64)
+
+    # Movie record (report-only; see the docstring).  Snapshots are kept on the device and
+    # transferred once at the end; events are (snapshot slot, z) rows, ragged over time.
+    snap_every = int(store_snapshots or 0)
+    if snap_every > 0:
+        snap_slots = torch.as_tensor([int(i) for i in snapshot_replicas], device=engine.device, dtype=torch.long)
+        assert int(snap_slots.numel()) > 0 and int(snap_slots.max()) < sim.n_replicas and int(snap_slots.min()) >= 0
+        sn = {k: [] for k in ("step", "z", "wid", "pmf", "mf_bins", "counts", "q")}
+        sn_ev_die, sn_ev_birth = [], []
+        wid = torch.arange(sim.n_replicas, device=engine.device, dtype=torch.long)
+        next_id = int(sim.n_replicas)
+
+    def _snap_events(stats, z_pre):
+        """Record the realised replacement (deaths at their own z, births at the source's z,
+        both PRE-replacement) against the snapshot they precede, and refresh the ids."""
+        nonlocal wid, next_id
+        if snap_every <= 0:
+            return
+        di, bs = stats.get("death_idx"), stats.get("birth_src")
+        n = int(di.numel()) if di is not None else 0
+        if n == 0:
+            return
+        slot = torch.full((n,), float(len(sn["step"])), device=z_pre.device, dtype=z_pre.dtype)
+        sn_ev_die.append(torch.stack([slot, z_pre.index_select(0, di)], dim=1))
+        sn_ev_birth.append(torch.stack([slot, z_pre.index_select(0, bs)], dim=1))
+        wid = wid.clone()
+        wid[di] = next_id + torch.arange(n, device=wid.device, dtype=torch.long)
+        next_id += n
 
     # Adaptive-FR state + per-event log (only populated for fr_estimated_adaptive).
     is_adaptive = method == "fr_estimated_adaptive"
@@ -1755,6 +1793,18 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                     diag["n_unique_ancestor"].append(sim.n_replicas)
                     diag["max_ancestor_frac"].append(float("nan"))
 
+        if snap_every > 0 and (step % snap_every == 0 or step == sim.n_steps):
+            # the same state the save block reads: z and the estimators as of THIS step's deposit
+            rep_ = production_estimator if production_estimator.n_updates > 0 else bias_estimator
+            sn["step"].append(int(step))
+            sn["z"].append(z.detach().clone())
+            sn["wid"].append(wid.clone())
+            sn["pmf"].append(rep_.pmf_profile().detach().clone())
+            if use_hist:
+                sn["mf_bins"].append(rep_.bin_mean_force().detach().clone())
+                sn["counts"].append(rep_.counts())
+            sn["q"].append(q.index_select(0, snap_slots).detach().clone())
+
         if step == sim.n_steps:
             break
 
@@ -1777,6 +1827,7 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                     q, ancestors, stats = uniform_birth_death_torch(q, K,
                                                                     ancestors=ancestors)
                     _track_window(stats, next_step)
+                    _snap_events(stats, z_new)
                     total_replacement_events += stats["replacement"]
                     last_event_fraction = stats["replacement"] / float(sim.n_replicas)
                     fr_event_counts.append(int(stats["replacement"]))
@@ -1840,6 +1891,7 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
                         q, score, sim, ancestors=ancestors, fr_interval=sim.fr_every,
                         fr_rate_override=rate_override)
                     _track_window(stats, next_step)
+                    _snap_events(stats, z_new)
                     total_replacement_events += stats["replacement"]
                     last_event_fraction = stats["replacement"] / float(sim.n_replicas)
                     # Recorded per FR opportunity so a matched sham can replay this exact
@@ -1980,6 +2032,20 @@ def run_sampler_gpu(method, params, sim, engine, initial_q=None,
     diag["runtime_seconds"] = time.perf_counter() - t0
     diag["method"] = method
     diag["grid"] = to_numpy(grid)
+    if snap_every > 0:
+        diag["snap_every"] = snap_every
+        diag["snap_steps"] = np.asarray(sn["step"], dtype=np.int64)
+        diag["snap_times"] = diag["snap_steps"] * float(sim.dt)
+        diag["snap_replicas"] = to_numpy(snap_slots).astype(np.int64)
+        diag["snap_z"] = to_numpy(torch.stack(sn["z"])).astype(np.float32)
+        diag["snap_wid"] = to_numpy(torch.stack(sn["wid"])).astype(np.int32)
+        diag["snap_pmf"] = to_numpy(torch.stack(sn["pmf"])).astype(np.float32)
+        if use_hist:
+            diag["snap_mf_bins"] = to_numpy(torch.stack(sn["mf_bins"])).astype(np.float32)
+            diag["snap_counts"] = to_numpy(torch.stack(sn["counts"])).astype(np.float32)
+        diag["snap_q"] = to_numpy(torch.stack(sn["q"])).astype(np.float32)      # (n_snap, n_slots, N, 2)
+        for k, buf in (("die", sn_ev_die), ("birth", sn_ev_birth)):
+            diag["snap_ev_" + k] = (to_numpy(torch.cat(buf, dim=0)) if buf else np.zeros((0, 2))).astype(np.float32)
     # object-A identity + applied-bias diagnostics (both estimators)
     diag["abf_estimator"] = "histogram" if use_hist else "kernel"
     diag["abf_n_bins"] = int(bias_estimator.n_bins) if use_hist else 0

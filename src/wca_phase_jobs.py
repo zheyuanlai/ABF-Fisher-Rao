@@ -248,8 +248,11 @@ def fr_event_stats(spec: PhaseRunSpec, steps, repl_cumulative, n_replicas):
 
 def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase", verbose=False,
                 replay_counts=None, store_profiles=False, readout_bandwidths=None,
-                relax=None, sensitivity_record=False, ot=None):
+                relax=None, sensitivity_record=False, ot=None, store_snapshots=0, snapshot_replicas=(0,)):
     """Run one phase-diagram job; return a flat dict of scalars + arrays to save.
+
+    ``store_snapshots`` / ``snapshot_replicas`` are the sampler's report-only movie record
+    (absent from the output unless requested; see ``core.run_sampler_gpu``).
 
     ``replay_counts`` is required by the matched-sham methods and rejected by every other
     one: it is the per-FR-opportunity replacement count its partner arm realised on the same
@@ -267,7 +270,8 @@ def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase",
                                 verbose=verbose, track_crossings=True,
                                 replay_counts=replay_counts,
                                 readout_bandwidths=readout_bandwidths,
-                                relax=relax, sensitivity_record=sensitivity_record, ot=ot)
+                                relax=relax, sensitivity_record=sensitivity_record, ot=ot,
+                                store_snapshots=store_snapshots, snapshot_replicas=snapshot_replicas)
     fin = core.final_l2_errors(diag, ref, sim)
     ts = core.timeseries_l2(diag, ref, sim)
 
@@ -441,6 +445,11 @@ def execute_run(spec: PhaseRunSpec, base: dict, engine, cache_dir="cache/phase",
               "ot_C2_post", "ot_Sf2_post", "ot_absdz_edges", "ot_repair_all", "ot_absdz_t", "ot_capped_t"):
         if k in diag:
             out[k] = diag[k] if not isinstance(diag[k], np.ndarray) else np.asarray(diag[k])
+    # movie record (additive; only present when store_snapshots > 0)
+    for k in ("snap_every", "snap_steps", "snap_times", "snap_replicas", "snap_z", "snap_wid", "snap_pmf",
+              "snap_mf_bins", "snap_counts", "snap_q", "snap_ev_die", "snap_ev_birth"):
+        if k in diag:
+            out[k] = diag[k]
     return out
 
 

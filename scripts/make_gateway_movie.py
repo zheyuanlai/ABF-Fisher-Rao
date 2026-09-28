@@ -19,6 +19,13 @@ Bottom strip: e_F(t) for both arms with a moving cursor, and the fraction of wal
 
 Data: results/gateway_movie/movie_data.npz; movie: results/gateway_movie/gateway_abf_vs_fr.mp4.
 The engine record behind it is ``store_snapshots`` (tests/test_gateway_snapshots.py: bit-inert).
+
+``--estimator histogram`` (both stages) runs the SAME cell, seed and noise with the textbook
+histogram (P0) mean-force estimator at the campaign's frozen width
+(configs/histogram_abf/selected_bins.json, 45 bins = 0.08; docs/HISTOGRAM_ABF_REPLICATION.md):
+both arms feel the own-bin bias force M_j / (C_j + 1) and the drawn / scored free energy is the
+estimator's OWN exact piecewise-linear PMF (no kernel read-out).  Output in
+results/gateway_movie_histogram/ (gateway_abf_vs_fr_histogram.mp4).
 """
 from __future__ import annotations
 
@@ -26,11 +33,8 @@ import argparse
 import dataclasses
 import json
 import os
-import shutil
-import subprocess
 import sys
 import time
-import multiprocessing as mp
 
 import numpy as np
 
@@ -42,7 +46,13 @@ sys.path.insert(0, os.path.join(ROOT, "scripts"))
 
 BASE_PREREG = os.path.join(ROOT, "results/gateway_anchor/CONFIRMATORY_PREREGISTRATION.json")
 PREREG = os.path.join(ROOT, "configs/information_campaign/gateway_corrected_confirmation_prereg.json")
-OUT_DIR = os.path.join(ROOT, "results", "gateway_movie")
+SELECTED = os.path.join(ROOT, "configs/histogram_abf/selected_bins.json")
+OUT_DIR = {"kernel": os.path.join(ROOT, "results", "gateway_movie"),
+           "histogram": os.path.join(ROOT, "results", "gateway_movie_histogram")}
+MOVIE = {"kernel": "gateway_abf_vs_fr", "histogram": "gateway_abf_vs_fr_histogram"}
+# confirmation medians (final e_F, integrated), quoted next to this seed's numbers
+CONFIRM = {"kernel": (-59.4, -31.9, "32 pairs, docs/GATEWAY_CORRECTED_BASELINE.md"),
+           "histogram": (-47.7, -30.0, "32 pairs, results/histogram_abf/gateway/confirmation/summary.json")}
 
 C_ABF = "#2a78d6"     # blue   (presentation figures)
 C_FR = "#eb6834"      # orange (presentation figures)
@@ -66,7 +76,7 @@ def simulate(a):
     import gateway_core as gw
     from run_gateway_bandwidth_audit import build_config
     from analyze_gateway_bandwidth_audit import mean_force_at, e_f
-    from eb_abffr_core import EVAL_LO, EVAL_HI
+    from eb_abffr_core import EVAL_LO, EVAL_HI, XMIN as eb_XMIN, XMAX as eb_XMAX
 
     base, pre = json.load(open(BASE_PREREG)), json.load(open(PREREG))
     sampler, cell = base["sampler"], base["cell"]
@@ -75,10 +85,16 @@ def simulate(a):
     if torch.cuda.is_available():
         assert torch.cuda.device_count() == 1, "pin exactly one GPU (CUDA_VISIBLE_DEVICES)"
     cfg = build_config(sampler, cell, a.init, h_bias)
+    n_bins = 0
+    if a.estimator == "histogram":
+        n_bins = int(a.n_bins or json.load(open(SELECTED))["gateway"]["selected_n_bins"])
+        cfg = dataclasses.replace(cfg, estimator="histogram", n_bins=n_bins)
     arms = [gw.ABF, dataclasses.replace(gw.FR_UNIFORM, gamma=gamma)]
     spec = gw.BatchSpec(configs=[cfg], seeds=[a.seed], methods=arms, batch_seed=a.batch_seed)
+    est_txt = (f"histogram estimator, {n_bins} bins (Delta {(eb_XMAX - eb_XMIN) / n_bins:g}), own read-out"
+               if n_bins else f"kernel estimator h_bias {h_bias:g}, read-out h_read* {h_star:g}")
     print(f"cell beta {cfg.beta:g} s {cfg.s:g} r {cfg.r:g} H {cfg.H:g} N {cfg.N} T {cfg.T_total:g}; "
-          f"h_bias {h_bias:g} h_read* {h_star:g} gamma {gamma:g}; init {a.init} seed {a.seed}; "
+          f"{est_txt}; gamma {gamma:g}; init {a.init} seed {a.seed}; "
           f"snapshot every {a.snap_every} steps", flush=True)
     t0 = time.time()
     recs = gw.simulate_batch(spec, store_profiles=True, store_accumulators=True,
@@ -94,7 +110,9 @@ def simulate(a):
                t_save=np.asarray(abf["t"], float), snap_t=np.asarray(abf["snap_t"], float),
                snap_step=np.asarray(abf["snap_step"]), config_json=json.dumps(abf["config"], sort_keys=True),
                h_bias=h_bias, h_read_star=h_star, gamma=gamma, seed=a.seed, init=a.init,
-               batch_seed=a.batch_seed, methods=np.array(["abf", "fr_uniform"]))
+               batch_seed=a.batch_seed, methods=np.array(["abf", "fr_uniform"]),
+               estimator=a.estimator, n_bins=n_bins,
+               hist_edges=(np.linspace(eb_XMIN, eb_XMAX, n_bins + 1) if n_bins else np.zeros(0)))
     for j, r in enumerate((abf, fr)):
         m = r["method"]
         for k in ("X", "Y", "S", "id", "p", "q"):
@@ -108,10 +126,32 @@ def simulate(a):
         Fc = Fc - Fc[:, mask].mean(axis=1, keepdims=True)
         out[f"{m}/snap_F_star"] = Fc.astype(np.float32)
         out[f"{m}/snap_eF_star"] = e_f(Fp_star, F_ref, dx, mask)
-        out[f"{m}/snap_F_bias"] = r["snap_F"]                       # what the walkers feel (h_bias)
-        Fp_leg = mean_force_at(np.asarray(r["snap_Sf"], float), np.asarray(r["snap_C"], float), h_bias, dx, 1.0)
-        dev = np.abs(e_f(Fp_leg, F_ref, dx, mask)[-1] - r["final_l2_f"])
-        assert dev < 1e-9, f"offline read-out at h_bias does not reproduce the engine ({dev:.2e})"
+        out[f"{m}/snap_F_bias"] = r["snap_F"]                       # what the walkers feel (h_bias / own bins)
+        if n_bins:
+            # own read-out: the engine's exact piecewise-linear PMF of the bins, centred on the
+            # window (snap_F), scored exactly as the engine scores it (eb.l2_error on the window)
+            assert r["abf_estimator"] == "histogram" and int(r["abf_n_bins"]) == n_bins
+            F_own = np.asarray(r["snap_F"], np.float64)
+            F_ref_c = F_ref - F_ref[mask].mean()
+            eF_own = np.sqrt(np.mean((F_own[:, mask] - F_ref_c[mask]) ** 2, axis=1))
+            dev = abs(eF_own[-1] - float(r["final_l2_f"]))
+            assert dev < 1e-6, f"own read-out does not reproduce the engine's final e_F ({dev:.2e})"
+            # ... and at every save step that is also a snapshot step (save_every 500 vs snapshots every 40)
+            steps_save = np.rint(np.asarray(r["t"], float) / float(cfg.dt)).astype(int)
+            common = np.isin(steps_save, out["snap_step"])
+            sv = np.searchsorted(out["snap_step"], steps_save[common])
+            assert common.sum() >= 2 and np.array_equal(out["snap_step"][sv], steps_save[common])
+            dev_t = np.abs(eF_own[sv] - np.asarray(r["l2_f_t"], float)[common]).max()
+            assert dev_t < 1e-6, f"own read-out does not reproduce the engine's e_F(t) at the saves ({dev_t:.2e})"
+            out[f"{m}/snap_F_show"] = F_own.astype(np.float32)
+            out[f"{m}/snap_eF_show"] = eF_own
+            out[f"{m}/snap_Fp_bins"] = r["snap_Fp"]                 # P0 value at the nodes (the bin's Gamma_j)
+        else:
+            Fp_leg = mean_force_at(np.asarray(r["snap_Sf"], float), np.asarray(r["snap_C"], float), h_bias, dx, 1.0)
+            dev = np.abs(e_f(Fp_leg, F_ref, dx, mask)[-1] - r["final_l2_f"])
+            assert dev < 1e-9, f"offline read-out at h_bias does not reproduce the engine ({dev:.2e})"
+            out[f"{m}/snap_F_show"] = out[f"{m}/snap_F_star"]
+            out[f"{m}/snap_eF_show"] = out[f"{m}/snap_eF_star"]
         out[f"{m}/save_eF_star"] = e_f(mean_force_at(np.asarray(r["Sf_t"], float), np.asarray(r["C_t"], float),
                                                      h_star, dx, 1.0), F_ref, dx, mask)
         out[f"{m}/P_regions"] = np.asarray(r["P_regions"], float)
@@ -119,12 +159,16 @@ def simulate(a):
         out[f"{m}/ess_t"] = np.asarray(r["ess_t"], float)
         out[f"{m}/n_die"] = r["n_die"]; out[f"{m}/n_clone"] = r["n_clone"]
         out[f"{m}/final_eF_star"] = float(out[f"{m}/snap_eF_star"][-1])
-        print(f"  {m:11s} e_F(T) at h_read* {out[f'{m}/final_eF_star']:.5f}   events: {r['n_die']:.0f} deaths, "
+        out[f"{m}/final_eF_show"] = float(out[f"{m}/snap_eF_show"][-1])
+        own = f"own {out[f'{m}/final_eF_show']:.5f} (kernel read-out at h_read* {out[f'{m}/final_eF_star']:.5f})" if n_bins \
+            else f"at h_read* {out[f'{m}/final_eF_star']:.5f}"
+        print(f"  {m:11s} e_F(T) {own}   events: {r['n_die']:.0f} deaths, "
               f"{r['n_clone']:.0f} births   min ESS/N {r['min_ess_frac']:.3f}", flush=True)
-    d = 100 * (out["fr_uniform/final_eF_star"] / out["abf/final_eF_star"] - 1)
-    I = {m: np.trapezoid(out[f"{m}/snap_eF_star"], out["snap_t"]) for m in ("abf", "fr_uniform")}
+    d = 100 * (out["fr_uniform/final_eF_show"] / out["abf/final_eF_show"] - 1)
+    I = {m: np.trapezoid(out[f"{m}/snap_eF_show"], out["snap_t"]) for m in ("abf", "fr_uniform")}
+    cf, ci, csrc = CONFIRM[a.estimator]
     print(f"  this seed: final e_F {d:+.1f} %, integrated {100 * (I['fr_uniform'] / I['abf'] - 1):+.1f} % "
-          f"(confirmation medians over 32 pairs: -59.4 % / -31.9 %)")
+          f"(confirmation medians, {csrc}: {cf:+.1f} % / {ci:+.1f} %)")
     os.makedirs(a.out, exist_ok=True)
     np.savez_compressed(os.path.join(a.out, "movie_data.npz"), **out)
     print("saved", os.path.relpath(os.path.join(a.out, "movie_data.npz"), ROOT))
@@ -156,6 +200,11 @@ def _load(npz_path):
     d["F_ref_c"] = Fr
     d["beta"] = float(d["cfg"]["beta"]); d["N"] = int(d["cfg"]["N"])
     d["T"] = float((int(d["snap_step"][-1]) + 1) * float(d["cfg"]["dt"]))   # run length n_steps * dt
+    d["estimator"] = str(d["estimator"]) if "estimator" in d else "kernel"
+    d["n_bins"] = int(d["n_bins"]) if "n_bins" in d else 0
+    for mn in ("abf", "fr_uniform"):          # files written before the estimator option: kernel read-out
+        if f"{mn}/snap_F_show" not in d:
+            d[f"{mn}/snap_F_show"] = d[f"{mn}/snap_F_star"]; d[f"{mn}/snap_eF_show"] = d[f"{mn}/snap_eF_star"]
     return d
 
 
@@ -179,7 +228,9 @@ def draw_frame(args):
                   left=0.055, right=0.985, top=0.875, bottom=0.07)
     gsb = gs[3, :].subgridspec(1, 2, width_ratios=[2.0, 1.0], wspace=0.18)
 
-    fig.text(0.055, 0.968, "Entropic gateway:  ABF  vs  ABF + Fisher–Rao birth–death", fontsize=17,
+    hist = d["estimator"] == "histogram"
+    fig.text(0.055, 0.968, "Entropic gateway:  ABF  vs  ABF + Fisher–Rao birth–death"
+             + ("   (histogram mean-force estimator)" if hist else ""), fontsize=17,
              fontweight="bold", ha="left", va="center")
     fig.text(0.055, 0.937, f"same initial condition, same Langevin noise in both columns;  N = {N} walkers,  "
              f"$\\beta$ = {beta:g},  barrier {beta * float(d['cfg']['H']) + np.log(float(d['cfg']['r'])):.1f} $k_BT$  "
@@ -257,15 +308,21 @@ def draw_frame(args):
 
         # ---- learned free energy --------------------------------------------------------------
         ax = fig.add_subplot(gs[2, col])
-        Fs = d[f"{mname}/snap_F_star"][i]
+        Fs = d[f"{mname}/snap_F_show"][i]
         ax.plot(x[m], beta * d["F_ref_c"][m], color=C_REF, lw=1.3, ls=(0, (5, 3)), label="analytic $F$")
-        ax.plot(x[m], beta * Fs[m], color=colour, lw=2.2, label=f"learned $\\hat F_t$  (read-out $h^*$ = {float(d['h_read_star']):g})")
-        eF = float(d[f"{mname}/snap_eF_star"][i])
+        if hist:
+            lab = f"learned $\\hat F_t$  (histogram, {d['n_bins']} bins, $\\Delta\\xi$ = {(XMAX - XMIN) / d['n_bins']:g})"
+        else:
+            lab = f"learned $\\hat F_t$  (read-out $h^*$ = {float(d['h_read_star']):g})"
+        ax.plot(x[m], beta * Fs[m], color=colour, lw=2.2, label=lab)
+        eF = float(d[f"{mname}/snap_eF_show"][i])
         ax.text(0.015, 0.94, f"$e_F(t)$ = {beta * eF:.3f} $k_BT$", transform=ax.transAxes, fontsize=10.5,
                 ha="left", va="top")
         ax.set_xlim(XMIN, XMAX)
         lo, hi = beta * d["F_ref_c"][m].min(), beta * d["F_ref_c"][m].max()
         ax.set_ylim(lo - 2.5, hi + 3.0)
+        if hist:      # the estimator's bins, as tick marks along the bottom edge
+            ax.vlines(d["hist_edges"], lo - 2.5, lo - 2.5 + 0.09 * (hi - lo + 5.5), color=colour, lw=0.7, alpha=0.7)
         ax.set_xlabel(r"collective variable  $\xi = x$")
         ax.set_ylabel("$\\beta F(\\xi)$  [$k_BT$]", fontsize=10.5)
         ax.grid(True, color=C_GRID, lw=0.6)
@@ -276,7 +333,7 @@ def draw_frame(args):
     ax = fig.add_subplot(gsb[0, 0])
     ts = d["snap_t"]
     for mname, colour, label in (("abf", C_ABF, "ABF"), ("fr_uniform", C_FR, "ABF + FR")):
-        e = beta * d[f"{mname}/snap_eF_star"]
+        e = beta * d[f"{mname}/snap_eF_show"]
         keep = ts > 0
         ax.plot(ts[keep], e[keep], color=colour, lw=1.2, alpha=0.28)
         past = keep & (ts <= t)
@@ -285,13 +342,13 @@ def draw_frame(args):
             ax.plot([t], [e[i]], "o", color=colour, ms=7)
     ax.axvline(t, color=C_INK2, lw=0.8, alpha=0.6)
     ax.set_yscale("log"); ax.set_xlim(0, T)
-    e_all = beta * np.concatenate([d["abf/snap_eF_star"][1:], d["fr_uniform/snap_eF_star"][1:]])
+    e_all = beta * np.concatenate([d["abf/snap_eF_show"][1:], d["fr_uniform/snap_eF_show"][1:]])
     ax.set_ylim(e_all.min() * 0.6, e_all.max() * 1.6)
     ax.set_xlabel("time  $t$"); ax.set_ylabel("free-energy error  $e_F(t)$  [$k_BT$]", fontsize=10.5)
     ax.grid(True, which="both", color=C_GRID, lw=0.6)
     ax.legend(loc="upper right", fontsize=10, frameon=False)
     if t >= T - 1e-9:
-        d_fin = 100 * (d["fr_uniform/snap_eF_star"][-1] / d["abf/snap_eF_star"][-1] - 1)
+        d_fin = 100 * (d["fr_uniform/snap_eF_show"][-1] / d["abf/snap_eF_show"][-1] - 1)
         ax.text(0.985, 0.55, f"final: {d_fin:+.0f} %", transform=ax.transAxes, ha="right", va="top",
                 fontsize=11, color=C_FR, fontweight="bold")
     ax.text(0.015, 0.06, f"FR rate ramps in over the first {0.1 * T:.0f} time units", transform=ax.transAxes,
@@ -319,67 +376,32 @@ def draw_frame(args):
 
 
 def render(a):
+    from movie_common import render_movie
     d = _load(os.path.join(a.out, "movie_data.npz"))
     G["d"] = d
     G["event_window"] = a.event_window
     G["frac_plus"] = {mn: (d[f"{mn}/snap_X"] > X_BASIN).mean(axis=1) for mn in ("abf", "fr_uniform")}
-    n_snap = len(d["snap_t"])
-    idx = list(range(0, n_snap, a.stride))
-    if idx[-1] != n_snap - 1:
-        idx.append(n_snap - 1)
-    frames_dir = a.frames_dir or os.path.join(a.out, "frames")
-    if os.path.isdir(frames_dir):
-        shutil.rmtree(frames_dir)
-    os.makedirs(frames_dir)
-    jobs = [(i, os.path.join(frames_dir, f"frame_{k:05d}.png")) for k, i in enumerate(idx)]
-    if a.only is not None:
-        jobs = [jobs[a.only]]
-        draw_frame(jobs[0]); print("wrote", jobs[0][1]); return
-    t0 = time.time()
-    print(f"rendering {len(jobs)} frames ({n_snap} snapshots, stride {a.stride}) with {a.workers} workers", flush=True)
-    with mp.get_context("fork").Pool(a.workers) as pool:   # py3.14 defaults to forkserver: no shared G
-        for n, _ in enumerate(pool.imap_unordered(draw_frame, jobs, chunksize=4), 1):
-            if n % 200 == 0:
-                print(f"  {n}/{len(jobs)} frames, {time.time() - t0:.0f}s", flush=True)
-    print(f"frames done in {time.time() - t0:.0f}s", flush=True)
-
-    import imageio_ffmpeg
-    ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
-    mp4 = os.path.join(a.out, "gateway_abf_vs_fr.mp4")
-    # hold the final frame for two seconds so the endpoint can be read
-    hold = int(2 * a.fps)
-    last = jobs[-1][1]
-    for k in range(len(jobs), len(jobs) + hold):
-        os.link(last, os.path.join(frames_dir, f"frame_{k:05d}.png"))
-    cmd = [ffmpeg, "-y", "-loglevel", "error", "-framerate", str(a.fps),
-           "-i", os.path.join(frames_dir, "frame_%05d.png"),
-           "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", "-movflags", "+faststart", mp4]
-    subprocess.run(cmd, check=True)
-    print(f"movie: {os.path.relpath(mp4, ROOT)}  ({len(jobs)} frames + {hold} hold at {a.fps} fps = "
-          f"{(len(jobs) + hold) / a.fps:.1f} s, {os.path.getsize(mp4) / 1e6:.1f} MB)")
-    if a.gif:
-        gif = os.path.join(a.out, "gateway_abf_vs_fr.gif")
-        pal = os.path.join(frames_dir, "palette.png")
-        subprocess.run([ffmpeg, "-y", "-loglevel", "error", "-i", mp4, "-vf",
-                        f"fps={a.gif_fps},scale={a.gif_width}:-1:flags=lanczos,palettegen", pal], check=True)
-        subprocess.run([ffmpeg, "-y", "-loglevel", "error", "-i", mp4, "-i", pal, "-lavfi",
-                        f"fps={a.gif_fps},scale={a.gif_width}:-1:flags=lanczos[x];[x][1:v]paletteuse", gif], check=True)
-        print(f"gif:   {os.path.relpath(gif, ROOT)}  ({os.path.getsize(gif) / 1e6:.1f} MB)")
-    if not a.keep_frames:
-        shutil.rmtree(frames_dir)
+    name = MOVIE[d["estimator"]]
+    render_movie(draw_frame, len(d["snap_t"]), stride=a.stride, frames_dir=a.frames_dir or os.path.join(a.out, "frames"),
+                 workers=a.workers, fps=a.fps, mp4=os.path.join(a.out, name + ".mp4"), only=a.only, hold_seconds=2.0,
+                 gif=(os.path.join(a.out, name + ".gif") if a.gif else None), gif_fps=a.gif_fps, gif_width=a.gif_width,
+                 keep_frames=a.keep_frames, root=ROOT)
 
 
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="stage", required=True)
     s = sub.add_parser("simulate")
+    s.add_argument("--estimator", default="kernel", choices=["kernel", "histogram"])
+    s.add_argument("--n-bins", type=int, default=0, help="histogram only; default: the frozen width (selected_bins.json)")
     s.add_argument("--seed", type=int, default=400)
     s.add_argument("--init", default="left", choices=["left", "one_right"])
     s.add_argument("--batch-seed", type=int, default=41_000)
     s.add_argument("--snap-every", type=int, default=40)
-    s.add_argument("--out", default=OUT_DIR)
+    s.add_argument("--out", default=None, help="default: results/gateway_movie[_histogram]")
     r = sub.add_parser("render")
-    r.add_argument("--out", default=OUT_DIR)
+    r.add_argument("--estimator", default="kernel", choices=["kernel", "histogram"], help="selects the default --out")
+    r.add_argument("--out", default=None)
     r.add_argument("--frames-dir", default=None)
     r.add_argument("--stride", type=int, default=2, help="snapshots per frame")
     r.add_argument("--fps", type=int, default=30)
@@ -391,6 +413,8 @@ def main():
     r.add_argument("--gif-fps", type=int, default=12)
     r.add_argument("--gif-width", type=int, default=960)
     a = ap.parse_args()
+    if a.out is None:
+        a.out = OUT_DIR[a.estimator]
     simulate(a) if a.stage == "simulate" else render(a)
 
 

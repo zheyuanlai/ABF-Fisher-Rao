@@ -1,0 +1,11 @@
+cell beta 16 s 0.1 r 32 H 0.5 N 2048 T 40; histogram estimator, 45 bins (Delta 0.08), own read-out; gamma 1.5; init left seed 400; snapshot every 40 steps
+    step 0/100000
+    step 20000/100000
+    step 40000/100000
+    step 60000/100000
+    step 80000/100000
+simulated in 93s
+  abf         e_F(T) own 0.00715 (kernel read-out at h_read* 0.00671)   events: 0 deaths, 0 births   min ESS/N 1.000
+  fr_uniform  e_F(T) own 0.00319 (kernel read-out at h_read* 0.00224)   events: 3386 deaths, 2960 births   min ESS/N 0.421
+  this seed: final e_F -55.3 %, integrated -26.2 % (confirmation medians, 32 pairs, results/histogram_abf/gateway/confirmation/summary.json: -47.7 % / -30.0 %)
+saved results/gateway_movie_histogram/movie_data.npz
