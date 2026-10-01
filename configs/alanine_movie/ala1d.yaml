@@ -1,0 +1,71 @@
+# Alanine phi-alone / psi-alone movie runs: ONE seed, snapshots every 50 steps; same knobs as ala2d.yaml.
+experiment_name: alanine_movie_1d
+output_root: results/alanine_movie/ala1d
+reference: results/alanine/reference/reference.npz
+stage: phi_abf
+base:
+  dt: 0.001
+  gamma: 1.0
+  temperature: 300.0
+  save_every: 1000
+  rng_seed: 20260903
+  init_equil_ps: 20.0
+  n_grid: 97
+  abf_estimator: histogram
+  abf_hist_levels: 4
+  abf_hist_fixed: false
+  abf_bandwidth: 0.08
+  kde_bandwidth: 0.15
+  abf_min_count: 800.0
+  abf_force_clip: 200.0
+  abf_warmup_steps: 5000
+  fr_start_steps: 0
+  fr_every: 500
+  fr_rate: 0.15
+  score_clip: 2.0
+  max_event_fraction: 0.05
+  lineage_reset_steps: 6000
+  store_snapshots: 50
+  snapshot_seed_index: 0
+  n_steps: 100000
+  n_replicas: 2048
+  cv: phi
+stages:
+  phi_abf:
+    methods:
+    - abf
+    seeds:
+    - 0
+    init: c7eq
+    init_seed: 4242
+    overrides:
+      cv: phi
+  phi_fr:
+    methods:
+    - fr_uniform
+    seeds:
+    - 0
+    init: c7eq
+    init_seed: 4242
+    overrides:
+      cv: phi
+      fr_rate: 0.15
+  psi_abf:
+    methods:
+    - abf
+    seeds:
+    - 0
+    init: c7eq
+    init_seed: 4242
+    overrides:
+      cv: psi
+  psi_fr:
+    methods:
+    - fr_uniform
+    seeds:
+    - 0
+    init: c7eq
+    init_seed: 4242
+    overrides:
+      cv: psi
+      fr_rate: 0.15

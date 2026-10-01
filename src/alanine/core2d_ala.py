@@ -88,6 +88,11 @@ class AlaSimConfig:
     # record the raw accumulators (csum, f1s, f2s; float32) at every save so ANY estimator
     # rule can be re-scored offline at fixed data.  Pure output: bit-inert on the trajectory.
     store_accumulators: bool = False
+    # movie record (docs/ALANINE_MOVIES.md): every ``store_snapshots`` steps (0 = off) the walker angles,
+    # persistent walker ids, basin labels and live PMF of ONE seed (``snapshot_seed_index``), plus the
+    # realised FR deaths / births at their pre-replacement angles.  Pure output: consumes no RNG.
+    store_snapshots: int = 0
+    snapshot_seed_index: int = 0
     # --- Fisher--Rao (oracle arm only) ---
     fr_rate: float = 0.05
     score_clip: float = 2.0
@@ -99,7 +104,7 @@ class AlaSimConfig:
 
     _HASH_DEFAULT_DROP = ("abf_estimator", "abf_hist_levels", "abf_hist_fixed",
                           "fr_support_min_count")
-    _HASH_ALWAYS_DROP = ("store_accumulators",)          # output-only: never part of the run id
+    _HASH_ALWAYS_DROP = ("store_accumulators", "store_snapshots", "snapshot_seed_index")   # output-only
 
     def config_hash(self):
         """Fields added after the accepted runs are dropped at their defaults, so every legacy
@@ -396,6 +401,15 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
     curl_pre = torch.zeros(R, device=device, dtype=dtype)
     score_std = torch.zeros(R, device=device, dtype=dtype)
     score_absmax = torch.zeros(R, device=device, dtype=dtype)
+    snap_every = int(sim.store_snapshots or 0)
+    if snap_every > 0:
+        r0 = int(sim.snapshot_seed_index)
+        if not (0 <= r0 < R):
+            raise ValueError(f"snapshot_seed_index {r0} outside 0..{R - 1}")
+        sn = {k: [] for k in ("step", "phi", "psi", "wid", "pmf", "basin")}
+        sn_die, sn_birth = [], []
+        wid = torch.arange(N, device=device, dtype=torch.long)
+        next_id = N
     t0 = time.perf_counter()
 
     # BAOAB needs the force at the CURRENT position on entry, and the loop is arranged so that
@@ -492,6 +506,12 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
                    + prev_basin.clamp_min(0) * n_basins + cur.clamp_min(0))
             trans.view(-1).scatter_add_(0, lin.reshape(-1), ch.reshape(-1).long())
         prev_basin = cur
+
+        if snap_every > 0 and (step % snap_every == 0 or step == sim.n_steps):
+            sn["step"].append(step)
+            sn["phi"].append(p1s[r0].detach().clone()); sn["psi"].append(p2s[r0].detach().clone())
+            sn["wid"].append(wid.clone()); sn["pmf"].append(B[r0].detach().clone())
+            sn["basin"].append(cur[r0].clone())
 
         # ---- save ----
         if step % sim.save_every == 0 or step == sim.n_steps:
@@ -605,9 +625,20 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
                 score, _ = d2.fr_score_2d(z1, z2, p_hat, q_tgt, g1c, g2c, dz1, dz2, sim.score_clip)
                 score_std = score.std(1)
                 score_absmax = score.abs().amax(1)
+                rec = [] if snap_every > 0 else None
                 q, v, f_phys, anc, anc_age, ne = _birth_death_ala(
-                    q, v, f_phys, score, anc, anc_age, gens_fr, sim, sigma_v)
+                    q, v, f_phys, score, anc, anc_age, gens_fr, sim, sigma_v, record=rec)
                 n_events += ne.to(n_events.device)
+                if rec:
+                    for (rr, di, src) in rec:
+                        if rr != r0:
+                            continue
+                        slot = torch.full((di.numel(),), float(len(sn["step"])), device=device, dtype=dtype)
+                        sn_die.append(torch.stack([slot, z1[r0, di], z2[r0, di]], dim=1))
+                        sn_birth.append(torch.stack([slot, z1[r0, src], z2[r0, src]], dim=1))
+                        wid = wid.clone()
+                        wid[di] = next_id + torch.arange(di.numel(), device=device, dtype=torch.long)
+                        next_id += int(di.numel())
                 if int(ne.sum()) > 0:      # state changed: refresh the cached geometry
                     qf = q.reshape(R * N, A, 3)
                     floc, phi, gfull, geo = cv.local_mean_force(
@@ -633,6 +664,18 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
                n_nonfinite=n_nonfinite.cpu().numpy(), config_hash=sim.config_hash())
     for k in diag:
         out[k] = np.asarray(diag[k])
+    if snap_every > 0:
+        out["snap_every"] = snap_every
+        out["snap_seed"] = int(seeds[r0])
+        out["snap_steps"] = np.asarray(sn["step"], dtype=np.int64)
+        out["snap_times"] = out["snap_steps"] * float(sim.dt)
+        out["snap_phi"] = torch.stack(sn["phi"]).to(torch.float32).cpu().numpy()
+        out["snap_psi"] = torch.stack(sn["psi"]).to(torch.float32).cpu().numpy()
+        out["snap_wid"] = torch.stack(sn["wid"]).to(torch.int32).cpu().numpy()
+        out["snap_pmf"] = torch.stack(sn["pmf"]).to(torch.float32).cpu().numpy()
+        out["snap_basin"] = torch.stack(sn["basin"]).to(torch.int8).cpu().numpy()
+        out["snap_ev_die"] = (torch.cat(sn_die).cpu().numpy() if sn_die else np.zeros((0, 3))).astype(np.float32)
+        out["snap_ev_birth"] = (torch.cat(sn_birth).cpu().numpy() if sn_birth else np.zeros((0, 3))).astype(np.float32)
     if verbose:
         print(f"  {method:10s} R={R} N={N}: {wall:.1f}s  {out['ms_per_step']:.2f} ms/step  "
               f"events={int(n_events.sum())}  clip={out['clip_fraction']:.2e}  "
@@ -640,8 +683,10 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
     return out
 
 
-def _birth_death_ala(q, v, f, score, anc, anc_age, gens, sim, sigma_v):
-    """Fixed-population full-state kill-and-clone; fixed RNG consumption per seed."""
+def _birth_death_ala(q, v, f, score, anc, anc_age, gens, sim, sigma_v, record=None):
+    """Fixed-population full-state kill-and-clone; fixed RNG consumption per seed.
+    ``record`` (optional list) receives ``(r, death_idx, birth_src)`` per seed with events;
+    it changes no arithmetic and no RNG draw."""
     R, N = score.shape
     dt_eff = sim.dt * sim.fr_every
     max_ev = int(sim.max_event_fraction * N)
@@ -673,6 +718,8 @@ def _birth_death_ala(q, v, f, score, anc, anc_age, gens, sim, sigma_v):
         cdf = torch.cumsum(birth_w[r], 0)
         cdf = cdf / cdf[-1].clamp_min(1e-30)
         src = torch.searchsorted(cdf, u_pick[:k].clamp(0, 1 - 1e-12)).clamp_(0, N - 1)
+        if record is not None:
+            record.append((r, di.clone(), src.clone()))
         qn[r, di] = q[r, src]
         fn[r, di] = f[r, src]                 # cached PHYSICAL force follows the position
         an[r, di] = anc[r, src]

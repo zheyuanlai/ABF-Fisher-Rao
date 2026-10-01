@@ -115,8 +115,10 @@ class Ala1DSimConfig:
     max_event_fraction: float = 0.05
     lineage_reset_steps: int = 6_000
     store_accumulators: bool = False
+    store_snapshots: int = 0               # movie record (see core2d_ala); 0 = off
+    snapshot_seed_index: int = 0
 
-    _HASH_ALWAYS_DROP = ("store_accumulators",)
+    _HASH_ALWAYS_DROP = ("store_accumulators", "store_snapshots", "snapshot_seed_index")
 
     def config_hash(self):
         import hashlib, json
@@ -235,6 +237,15 @@ def run_sampler_ala1d(method, tff, cv: BackboneCV1D, sim: Ala1DSimConfig, seeds,
                             "joint_hist", "hist_level_mean", "hist_untrusted_frac")}
     if sim.store_accumulators:
         diag["acc_fs"] = []; diag["acc_cs"] = []
+    snap_every = int(sim.store_snapshots or 0)
+    if snap_every > 0:
+        r0 = int(sim.snapshot_seed_index)
+        if not (0 <= r0 < R):
+            raise ValueError(f"snapshot_seed_index {r0} outside 0..{R - 1}")
+        sn = {k: [] for k in ("step", "cv", "hidden", "wid", "pmf", "basin")}
+        sn_die, sn_birth = [], []
+        wid = torch.arange(N, device=device, dtype=torch.long)
+        next_id = N
     t0 = time.perf_counter()
 
     qf = q.reshape(R * N, A, 3)
@@ -301,6 +312,13 @@ def run_sampler_ala1d(method, tff, cv: BackboneCV1D, sim: Ala1DSimConfig, seeds,
                    + prev_basin.clamp_min(0) * n_basins + cur.clamp_min(0))
             trans.view(-1).scatter_add_(0, lin.reshape(-1), ch.reshape(-1).long())
         prev_basin = cur
+
+        if snap_every > 0 and (step % snap_every == 0 or step == sim.n_steps):
+            sn["step"].append(step)
+            sn["cv"].append(z[r0].detach().clone()); sn["hidden"].append(hid[r0].detach().clone())
+            sn["wid"].append(wid.clone())
+            sn["pmf"].append(per.free_energy_from_mean_force(profile[r0:r0 + 1], grid, dphi)[0].detach().clone())
+            sn["basin"].append(cur[r0].clone())
 
         if step % sim.save_every == 0 or step == sim.n_steps:
             if int(n_nonfinite.sum().item()) > 0:
@@ -376,9 +394,22 @@ def run_sampler_ala1d(method, tff, cv: BackboneCV1D, sim: Ala1DSimConfig, seeds,
                 raw = torch.log(p_at.clamp_min(EPS)) - torch.log(q_at.clamp_min(EPS)) - kl[:, None]
                 score = _recentered_clipped_score(raw, sim.score_clip)
                 score_std = score.std(1); score_absmax = score.abs().amax(1)
+                rec = [] if snap_every > 0 else None
+                hid_ev = (_dihedral_iupac_t(q.reshape(R * N, A, 3), hidden_atoms).reshape(R, N)
+                          if snap_every > 0 else None)
                 q, v, f_phys, anc, anc_age, ne = _birth_death_ala(
-                    q, v, f_phys, score, anc, anc_age, gens_fr, sim, sigma_v)
+                    q, v, f_phys, score, anc, anc_age, gens_fr, sim, sigma_v, record=rec)
                 n_events += ne.to(n_events.device)
+                if rec:
+                    for (rr, di, src) in rec:
+                        if rr != r0:
+                            continue
+                        slot = torch.full((di.numel(),), float(len(sn["step"])), device=device, dtype=dtype)
+                        sn_die.append(torch.stack([slot, z1[r0, di], hid_ev[r0, di]], dim=1))
+                        sn_birth.append(torch.stack([slot, z1[r0, src], hid_ev[r0, src]], dim=1))
+                        wid = wid.clone()
+                        wid[di] = next_id + torch.arange(di.numel(), device=device, dtype=torch.long)
+                        next_id += int(di.numel())
                 if int(ne.sum()) > 0:
                     qf = q.reshape(R * N, A, 3)
                     floc, phi, gfull = cv.local_mean_force(qf, f_phys.reshape(R * N, A, 3), beta)
@@ -400,6 +431,18 @@ def run_sampler_ala1d(method, tff, cv: BackboneCV1D, sim: Ala1DSimConfig, seeds,
                n_nonfinite=n_nonfinite.cpu().numpy(), config_hash=sim.config_hash())
     for k in diag:
         out[k] = np.asarray(diag[k])
+    if snap_every > 0:
+        out["snap_every"] = snap_every
+        out["snap_seed"] = int(seeds[r0])
+        out["snap_steps"] = np.asarray(sn["step"], dtype=np.int64)
+        out["snap_times"] = out["snap_steps"] * float(sim.dt)
+        out["snap_cv"] = torch.stack(sn["cv"]).to(torch.float32).cpu().numpy()
+        out["snap_hidden"] = torch.stack(sn["hidden"]).to(torch.float32).cpu().numpy()
+        out["snap_wid"] = torch.stack(sn["wid"]).to(torch.int32).cpu().numpy()
+        out["snap_pmf"] = torch.stack(sn["pmf"]).to(torch.float32).cpu().numpy()
+        out["snap_basin"] = torch.stack(sn["basin"]).to(torch.int8).cpu().numpy()
+        out["snap_ev_die"] = (torch.cat(sn_die).cpu().numpy() if sn_die else np.zeros((0, 3))).astype(np.float32)
+        out["snap_ev_birth"] = (torch.cat(sn_birth).cpu().numpy() if sn_birth else np.zeros((0, 3))).astype(np.float32)
     if verbose:
         print(f"  {method:10s} cv={sim.cv} R={R} N={N}: {wall:.1f}s  {out['ms_per_step']:.2f} ms/step  "
               f"events={int(n_events.sum())}  clip={out['clip_fraction']:.2e}  peak={out['peak_cuda_gib']:.2f} GiB",
