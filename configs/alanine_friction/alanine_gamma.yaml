@@ -1,0 +1,70 @@
+# Alanine friction ladder at 300 K: gamma in {10, 50} ps^-1 (gamma = 1 = the existing histogram-study arms).
+# Prereg docs/ALANINE_FRICTION.md.  Selected 300 K configuration; the free energy does not depend on gamma.
+experiment_name: alanine_friction
+output_root: results/alanine_friction
+reference: results/alanine/reference/reference.npz
+stage: g50_abf
+base:
+  dt: 0.001
+  gamma: 10.0
+  temperature: 300.0
+  save_every: 1000
+  rng_seed: 20260903
+  init_equil_ps: 20.0
+  n_grid: 97
+  abf_estimator: histogram
+  abf_hist_levels: 4
+  abf_hist_fixed: false
+  abf_bandwidth: 0.08
+  kde_bandwidth: 0.15
+  abf_min_count: 800.0
+  abf_force_clip: 200.0
+  project_every: 50
+  estimator_stride: 1
+  abf_warmup_steps: 5000
+  fr_start_steps: 0
+  fr_every: 500
+  fr_rate: 0.02
+  score_clip: 2.0
+  max_event_fraction: 0.05
+  lineage_reset_steps: 6000
+  store_accumulators: true
+  n_steps: 100000
+  n_replicas: 2048
+stages:
+  g10_abf:        # predictor arm, gamma = 10 /ps
+    methods: [abf]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {gamma: 10.0}
+  g10_u02_t0:     # torus-uniform FR from 0.5 ps, rate 0.02 (only if FAVOURABLE)
+    methods: [fr_uniform]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {gamma: 10.0, fr_rate: 0.02}
+  g10_u15_t0:     # torus-uniform FR from 0.5 ps, rate 0.15 (only if FAVOURABLE)
+    methods: [fr_uniform]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {gamma: 10.0, fr_rate: 0.15}
+  g50_abf:        # predictor arm, gamma = 50 /ps
+    methods: [abf]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {gamma: 50.0}
+  g50_u02_t0:     # torus-uniform FR from 0.5 ps, rate 0.02 (only if FAVOURABLE)
+    methods: [fr_uniform]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {gamma: 50.0, fr_rate: 0.02}
+  g50_u15_t0:     # torus-uniform FR from 0.5 ps, rate 0.15 (only if FAVOURABLE)
+    methods: [fr_uniform]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {gamma: 50.0, fr_rate: 0.15}

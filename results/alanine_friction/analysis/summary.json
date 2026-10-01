@@ -1,0 +1,52 @@
+{
+  "root": "results/alanine_friction",
+  "reference": "results/alanine/reference/reference.npz",
+  "floor": 0.5593138523027867,
+  "predictor": {
+    "g10_abf": {
+      "t_est_med": 7.0,
+      "t_est_max": 7.0,
+      "t_cov_med": 5.0,
+      "t_F_med": 16.0,
+      "c7ax_first_hit_med": 3.537,
+      "c7ax_censored": 0,
+      "regime": "FAST",
+      "rule": "FAST if t_est < 30 ps; favourable iff t_F >= t_est (amendment A1, docs/ALANINE_NLADDER.md)"
+    },
+    "g50_abf": {
+      "t_est_med": 8.0,
+      "t_est_max": 9.0,
+      "t_cov_med": 5.0,
+      "t_F_med": 0.0,
+      "c7ax_first_hit_med": 4.05,
+      "c7ax_censored": 0,
+      "regime": "FAST",
+      "rule": "FAST if t_est < 30 ps; favourable iff t_F >= t_est (amendment A1, docs/ALANINE_NLADDER.md)"
+    }
+  },
+  "fr": {},
+  "arms": {
+    "g10_abf": {
+      "method": "abf",
+      "estimator": "histogram",
+      "c_min": 800.0,
+      "warmup_ps": 5.0,
+      "levels": 4,
+      "fixed": false,
+      "fr_start_ps": 0.0,
+      "fr_rate": 0.02,
+      "fr_every": 500
+    },
+    "g50_abf": {
+      "method": "abf",
+      "estimator": "histogram",
+      "c_min": 800.0,
+      "warmup_ps": 5.0,
+      "levels": 4,
+      "fixed": false,
+      "fr_start_ps": 0.0,
+      "fr_rate": 0.02,
+      "fr_every": 500
+    }
+  }
+}

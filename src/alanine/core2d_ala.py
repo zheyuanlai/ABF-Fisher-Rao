@@ -52,8 +52,8 @@ from .projection import clip_magnitude, require_odd_grid
 EPS = 1.0e-12
 TWO_PI = 2.0 * math.pi
 
-METHODS = ("abf", "fr_oracle", "fr_uniform")
-FR_METHODS = ("fr_oracle", "fr_uniform")
+METHODS = ("abf", "fr_oracle", "fr_uniform", "fr_support")
+FR_METHODS = ("fr_oracle", "fr_uniform", "fr_support")
 
 
 @dataclass(frozen=True)
@@ -77,6 +77,17 @@ class AlaSimConfig:
     estimator_stride: int = 1
     abf_warmup_steps: int = 5_000
     estimator_burn_in_steps: int = 0
+    # --- mean-force estimator (docs/ALANINE_HISTOGRAM_ABF.md) ---
+    #   "kernel"     the accepted wrapped-Gaussian Nadaraya--Watson ratio at abf_bandwidth
+    #   "histogram"  adaptive-box histogram: per cell the smallest centred (2k+1)^2 box of grid
+    #                cells, k <= abf_hist_levels, whose count reaches abf_min_count; a cell with
+    #                no such box gets zero force (the kernel's trust rule on the pooled count)
+    abf_estimator: str = "kernel"
+    abf_hist_levels: int = 4
+    abf_hist_fixed: bool = False           # True: always the (2L+1)^2 box = one fixed bin size
+    # record the raw accumulators (csum, f1s, f2s; float32) at every save so ANY estimator
+    # rule can be re-scored offline at fixed data.  Pure output: bit-inert on the trajectory.
+    store_accumulators: bool = False
     # --- Fisher--Rao (oracle arm only) ---
     fr_rate: float = 0.05
     score_clip: float = 2.0
@@ -84,10 +95,24 @@ class AlaSimConfig:
     fr_every: int = 500                    # 0.5 ps
     max_event_fraction: float = 0.05
     lineage_reset_steps: int = 6_000       # 6 ps age-aware genealogy window
+    fr_support_min_count: float = 1.0      # fr_support only: a cell is "visited" at this count
+
+    _HASH_DEFAULT_DROP = ("abf_estimator", "abf_hist_levels", "abf_hist_fixed",
+                          "fr_support_min_count")
+    _HASH_ALWAYS_DROP = ("store_accumulators",)          # output-only: never part of the run id
 
     def config_hash(self):
+        """Fields added after the accepted runs are dropped at their defaults, so every legacy
+        ``config_hash`` / run id is unchanged (tests/fixtures/ala_pre_histogram_hashes.json);
+        output-only flags are dropped unconditionally."""
         import hashlib, json
-        return hashlib.md5(json.dumps(asdict(self), sort_keys=True).encode()).hexdigest()[:12]
+        d = asdict(self)
+        for k in self._HASH_DEFAULT_DROP:
+            if d[k] == getattr(type(self), k):
+                d.pop(k)
+        for k in self._HASH_ALWAYS_DROP:
+            d.pop(k)
+        return hashlib.md5(json.dumps(d, sort_keys=True).encode()).hexdigest()[:12]
 
 
 def assert_no_reference_leakage(method, reference_F):
@@ -103,9 +128,68 @@ def assert_no_reference_leakage(method, reference_F):
             "energy; only fr_oracle may.")
 
 
-def _project(f1s, f2s, csum, K1, K2, dz1, dz2, min_count, check=True, tol=1e-9):
-    """Mean-force sums -> conservative bias ``B`` and its spectral gradient."""
-    g1, g2, den = d2.mean_force_fields(f1s, f2s, csum, K1, K2)
+def _box_sum_1d(x, k, dim):
+    """Periodic sum of ``x`` over offsets ``-k..k`` along ``dim`` (box of ``2k+1`` cells)."""
+    out = x
+    for s in range(1, int(k) + 1):
+        out = out + torch.roll(x, s, dims=dim) + torch.roll(x, -s, dims=dim)
+    return out
+
+
+def box_sum2(x, k):
+    """Periodic ``(2k+1) x (2k+1)`` box sum of ``x (..., n1, n2)``; ``k = 0`` returns ``x``."""
+    if int(k) == 0:
+        return x
+    return _box_sum_1d(_box_sum_1d(x, k, -2), k, -1)
+
+
+def adaptive_box_mean_force(f1s, f2s, csum, levels, min_count, fixed=False):
+    """Adaptive-box histogram mean force on the native grid (docs/ALANINE_HISTOGRAM_ABF.md).
+
+    For every cell, the smallest level ``k in 0..levels`` whose periodic ``(2k+1)^2`` box count
+    reaches ``min_count`` supplies ``M_k / C_k`` (force-sum box over count box); a cell with no
+    such level gets zero force and reports the coarsest box count (< ``min_count``), so the
+    caller's trust test ``den >= min_count`` stays consistent.  ``fixed=True`` uses the level
+    ``levels`` box for every cell (one fixed bin size).  Returns ``(g1, g2, den, level)`` with
+    ``level = -1`` where untrusted.  No smoothing, no interpolation: the bin size IS the
+    adaptivity.
+    """
+    g1 = torch.zeros_like(csum)
+    g2 = torch.zeros_like(csum)
+    den = torch.zeros_like(csum)
+    chosen = torch.zeros_like(csum, dtype=torch.bool)
+    level = torch.full_like(csum, -1, dtype=torch.long)
+    ks = [int(levels)] if fixed else range(int(levels) + 1)
+    C = csum
+    for k in ks:
+        C, M1, M2 = box_sum2(csum, k), box_sum2(f1s, k), box_sum2(f2s, k)
+        ok = (~chosen) & (C >= min_count)
+        safe = C.clamp_min(EPS)
+        g1 = torch.where(ok, M1 / safe, g1)
+        g2 = torch.where(ok, M2 / safe, g2)
+        den = torch.where(ok, C, den)
+        level = torch.where(ok, torch.full_like(level, int(k)), level)
+        chosen = chosen | ok
+    den = torch.where(chosen, den, C)
+    return g1, g2, den, level
+
+
+def _project(f1s, f2s, csum, K1, K2, dz1, dz2, min_count, check=True, tol=1e-9,
+             estimator="kernel", hist_levels=4, hist_fixed=False):
+    """Mean-force sums -> conservative bias ``B`` and its spectral gradient.
+
+    ``estimator="kernel"`` is the accepted path, op for op.  ``"histogram"`` replaces ONLY the
+    smoothed ratio by the adaptive-box histogram ratio; the trust test, the projection and the
+    applied field are the same code.  The trailing ``level`` map is ``None`` for the kernel.
+    """
+    level = None
+    if estimator == "kernel":
+        g1, g2, den = d2.mean_force_fields(f1s, f2s, csum, K1, K2)
+    elif estimator == "histogram":
+        g1, g2, den, level = adaptive_box_mean_force(f1s, f2s, csum, hist_levels, min_count,
+                                                     fixed=hist_fixed)
+    else:
+        raise ValueError(f"unknown abf_estimator {estimator!r}; expected 'kernel' or 'histogram'")
     trust = den >= min_count
     g1 = torch.where(trust, g1, torch.zeros_like(g1))
     g2 = torch.where(trust, g2, torch.zeros_like(g2))
@@ -118,7 +202,7 @@ def _project(f1s, f2s, csum, K1, K2, dz1, dz2, min_count, check=True, tol=1e-9):
             raise AssertionError(
                 f"projection returned gB != grad(B) (max abs {resid:.3e} > {tol:.1e}); the "
                 "online and frozen runs would apply different fields")
-    return B, gB1, gB2, g1, g2, float(trust.to(B.dtype).mean()), resid
+    return B, gB1, gB2, g1, g2, float(trust.to(B.dtype).mean()), resid, level
 
 
 def sanitize_reference(F_ref, kT, cap_kT=30.0):
@@ -152,6 +236,16 @@ def _oracle_target(F_ref, B, beta, dz1, dz2):
     if not bool(torch.isfinite(q).all()):
         raise AssertionError("oracle target is non-finite; the reference FES was not sanitised")
     return q
+
+
+def _support_target(csum, min_count, dz1, dz2):
+    """Uniform on the VISITED support: ``q ~ 1[csum >= min_count]`` normalised on the torus
+    (docs/ALANINE_LOWT.md).  Consults only the ABF count accumulator -- no reference, no bias, no
+    EMA -- and equals the torus-uniform target exactly once every cell has been visited."""
+    ind = (csum >= min_count).to(csum.dtype)
+    ok = ind.sum(dim=(-2, -1), keepdim=True) > 0
+    ind = torch.where(ok, ind, torch.ones_like(ind))        # nothing visited yet: fall back to uniform
+    return d2.normalize2(ind, dz1, dz2)
 
 
 def _uniform_target(R, n, dz1, dz2, device, dtype):
@@ -278,7 +372,16 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
                             # uniform-FR campaign instrumentation: the walker marginal on the
                             # (phi, psi) bin grid and its KL to the uniform torus density.
                             # Pure reads of state already computed each step -- no RNG.
-                            "marg_hist", "kl_uniform")}
+                            "marg_hist", "kl_uniform",
+                            # histogram-estimator diagnostics (NaN for the kernel arm): mean
+                            # pooling level over trusted cells, fraction of untrusted cells
+                            "hist_level_mean", "hist_untrusted_frac",
+                            # KL of the walker histogram to the visited-support uniform target
+                            # (fr_support's target; recorded for every arm)
+                            "kl_support")}
+    if sim.store_accumulators:
+        for k in ("acc_csum", "acc_f1s", "acc_f2s"):
+            diag[k] = []
     if extra_angle_atoms is not None:
         # The per-walker basin label is saved alongside, so the omitted coordinate can be
         # checked CONDITIONALLY on the state.  Globally it is nearly useless: two states can
@@ -288,6 +391,8 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
         diag["walker_basin"] = []
     trust_frac = 0.0
     proj_resid = 0.0
+    hist_untrusted = torch.full((R,), float("nan"), device=device, dtype=dtype)
+    hist_level_mean = torch.full((R,), float("nan"), device=device, dtype=dtype)
     curl_pre = torch.zeros(R, device=device, dtype=dtype)
     score_std = torch.zeros(R, device=device, dtype=dtype)
     score_absmax = torch.zeros(R, device=device, dtype=dtype)
@@ -360,9 +465,16 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
             csum += d2.scatter_sum(p1s, p2s, okd, n, n, dz1, dz2)   # bad samples add no count
 
         if step % sim.project_every == 0:
-            B, gB1, gB2, g1f, g2f, trust_frac, proj_resid = _project(
-                f1s, f2s, csum, K1, K2, dz1, dz2, sim.abf_min_count)
+            B, gB1, gB2, g1f, g2f, trust_frac, proj_resid, level_map = _project(
+                f1s, f2s, csum, K1, K2, dz1, dz2, sim.abf_min_count,
+                estimator=sim.abf_estimator, hist_levels=sim.abf_hist_levels,
+                hist_fixed=sim.abf_hist_fixed)
             curl_pre = ps.curl_norm(g1f, g2f, dz1, dz2)
+            if level_map is not None:          # adaptive-bin diagnostics (device-side)
+                tr = level_map >= 0
+                hist_untrusted = 1.0 - tr.to(dtype).mean(dim=(-2, -1))
+                hist_level_mean = ((level_map.to(dtype) * tr.to(dtype)).sum(dim=(-2, -1))
+                                   / tr.to(dtype).sum(dim=(-2, -1)).clamp_min(1.0))
             bias_cart, p1s, p2s, _ = _bias_at(phi, gfull, ramp)     # refresh with the new field
 
         # ---- basin bookkeeping (device-side) ----
@@ -424,6 +536,15 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
                              + math.log(float(n * n)))).sum(1)
             diag["marg_hist"].append(p_bin.reshape(R, n, n).to(torch.float32).cpu().numpy())
             diag["kl_uniform"].append(kl_u.cpu().numpy())
+            q_sup = (_support_target(csum, sim.fr_support_min_count, dz1, dz2) * dz1 * dz2).reshape(R, n * n)
+            kl_s = (p_bin * (torch.log(p_bin.clamp_min(EPS)) - torch.log(q_sup.clamp_min(EPS)))).sum(1)
+            diag["kl_support"].append(kl_s.cpu().numpy())
+            diag["hist_level_mean"].append(hist_level_mean.detach().cpu().numpy())
+            diag["hist_untrusted_frac"].append(hist_untrusted.detach().cpu().numpy())
+            if sim.store_accumulators:
+                diag["acc_csum"].append(csum.detach().to(torch.float32).cpu().numpy())
+                diag["acc_f1s"].append(f1s.detach().to(torch.float32).cpu().numpy())
+                diag["acc_f2s"].append(f2s.detach().to(torch.float32).cpu().numpy())
             if extra_angle_atoms is not None:
                 diag["extra_angle"].append(
                     _dihedral_iupac_t(q.reshape(R * N, A, 3), extra_angle_atoms)
@@ -475,9 +596,12 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
                 z1 = torch.nan_to_num(phi[:, 0].reshape(R, N), 0.0, 0.0, 0.0)
                 z2 = torch.nan_to_num(phi[:, 1].reshape(R, N), 0.0, 0.0, 0.0)
                 p_hat = d2.kde2(z1, z2, Kk1, Kk2, n, n, dz1, dz2)
-                q_tgt = (_oracle_target(F_ref_t, B, beta, dz1, dz2)
-                         if method == "fr_oracle"
-                         else _uniform_target(R, n, dz1, dz2, device, dtype))
+                if method == "fr_oracle":
+                    q_tgt = _oracle_target(F_ref_t, B, beta, dz1, dz2)
+                elif method == "fr_support":
+                    q_tgt = _support_target(csum, sim.fr_support_min_count, dz1, dz2)
+                else:
+                    q_tgt = _uniform_target(R, n, dz1, dz2, device, dtype)
                 score, _ = d2.fr_score_2d(z1, z2, p_hat, q_tgt, g1c, g2c, dz1, dz2, sim.score_clip)
                 score_std = score.std(1)
                 score_absmax = score.abs().amax(1)
@@ -496,6 +620,8 @@ def run_sampler_ala(method, tff, cv, sim: AlaSimConfig, seeds, init_positions, b
                grid=g1c.cpu().numpy(), dz=float(dz1), n_grid=n,
                rare_basin=int(rare_basin),
                final_pmf=B.detach().cpu().numpy(),
+               final_f1s=f1s.detach().cpu().numpy(), final_f2s=f2s.detach().cpu().numpy(),
+               final_csum=csum.detach().cpu().numpy(),
                first_hit=first_hit.cpu().numpy(), trans_matrix=trans.cpu().numpy(),
                total_events=n_events.cpu().numpy(),
                clip_fraction=float(n_clip.item()) / max(float(n_force_eval.item()), 1.0),

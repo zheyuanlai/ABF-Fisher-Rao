@@ -312,7 +312,11 @@ def main():
                 init_equil_ps=base.get("init_equil_ps", 20.0),
                 init_cache=a.init_cache, cuda_graph=bool(a.cuda_graph),
                 fr_start_steps=sim.fr_start_steps, fr_every=sim.fr_every,
-                fr_rate=sim.fr_rate), default=float)
+                fr_rate=sim.fr_rate, abf_estimator=sim.abf_estimator,
+                abf_hist_levels=sim.abf_hist_levels, abf_hist_fixed=sim.abf_hist_fixed,
+                abf_min_count=sim.abf_min_count, abf_warmup_steps=sim.abf_warmup_steps,
+                abf_bandwidth=sim.abf_bandwidth, gamma=sim.gamma, temperature=sim.temperature,
+                dt=sim.dt), default=float)
             save_atomic(path, **payload)
             manifest.append(dict(spec, run_id=rid, status="ok", path=path,
                                  wall_seconds=time.perf_counter() - t0,

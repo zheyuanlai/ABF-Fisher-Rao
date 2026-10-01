@@ -1,0 +1,70 @@
+# Alanine walker-count ladder at 300 K: N in {256, 64} (N = 2048 = the existing histogram study arms).
+# Prereg docs/ALANINE_NLADDER.md.  Selected 300 K configuration (histogram c_min 800, 5 ps ramp, FR from 0.5 ps).
+experiment_name: alanine_nladder
+output_root: results/alanine_nladder
+reference: results/alanine/reference/reference.npz
+stage: N256_abf
+base:
+  dt: 0.001
+  gamma: 1.0
+  temperature: 300.0
+  save_every: 1000
+  rng_seed: 20260903
+  init_equil_ps: 20.0
+  n_grid: 97
+  abf_estimator: histogram
+  abf_hist_levels: 4
+  abf_hist_fixed: false
+  abf_bandwidth: 0.08
+  kde_bandwidth: 0.15
+  abf_min_count: 800.0
+  abf_force_clip: 200.0
+  project_every: 50
+  estimator_stride: 1
+  abf_warmup_steps: 5000
+  fr_start_steps: 0
+  fr_every: 500
+  fr_rate: 0.02
+  score_clip: 2.0
+  max_event_fraction: 0.05
+  lineage_reset_steps: 6000
+  store_accumulators: true
+  n_steps: 100000
+  n_replicas: 256
+stages:
+  N256_abf:        # predictor arm, N = 256
+    methods: [abf]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {n_replicas: 256}
+  N256_u02_t0:     # torus-uniform FR from 0.5 ps, rate 0.02
+    methods: [fr_uniform]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {n_replicas: 256, fr_rate: 0.02}
+  N256_u15_t0:     # torus-uniform FR from 0.5 ps, rate 0.15
+    methods: [fr_uniform]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {n_replicas: 256, fr_rate: 0.15}
+  N64_abf:        # predictor arm, N = 64
+    methods: [abf]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {n_replicas: 64}
+  N64_u02_t0:     # torus-uniform FR from 0.5 ps, rate 0.02
+    methods: [fr_uniform]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {n_replicas: 64, fr_rate: 0.02}
+  N64_u15_t0:     # torus-uniform FR from 0.5 ps, rate 0.15
+    methods: [fr_uniform]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {n_replicas: 64, fr_rate: 0.15}

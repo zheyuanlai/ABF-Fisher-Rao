@@ -1,0 +1,130 @@
+# Alanine dipeptide, adaptive-box HISTOGRAM ABF estimator, no burn-in, uniform-target mFR.
+# Preregistration: docs/ALANINE_HISTOGRAM_ABF.md (rules frozen before any run).
+#
+# The base block is the FR-start-timing block (configs/fr_start_timing/alanine.yaml, itself the
+# campaign/pilot block) with ONE structural change: abf_estimator histogram.  Same seeds 0-15,
+# init c7eq / init_seed 4242, rng_seed 20260903, so every stage is paired with the closed kernel
+# arms in results/fr_start_timing/alanine/ by construction (same cached initial ensemble, same
+# dynamical noise stream, same per-seed FR generators).  Stage A = ABF-only ladder over the one
+# knob (abf_min_count = c_min) + fixed-bin ablations; Stage B = FR arms on the SELECTED
+# configuration (configs/alanine_histogram/selected.json; the FR stages below carry the
+# default candidate c200/w0 and are edited only if the frozen rule selects otherwise).
+# 2026-09-30T03:00Z: the rule selected c_min 800 / warm-up 5 ps; FR stages and hA_c800_w5 carry it.
+experiment_name: alanine_histogram
+output_root: results/alanine_histogram
+reference: results/alanine/reference/reference.npz
+stage: hA_c200_w0
+base:
+  dt: 0.001
+  gamma: 1.0
+  temperature: 300.0
+  save_every: 1000
+  rng_seed: 20260903
+  init_equil_ps: 20.0
+  n_grid: 97
+  abf_estimator: histogram
+  abf_hist_levels: 4           # boxes of 1,3,5,7,9 cells (3.7 .. 33.4 deg)
+  abf_hist_fixed: false
+  abf_bandwidth: 0.08          # unused by the histogram (kernel matrices still built; inert)
+  kde_bandwidth: 0.15          # FR marginal KDE (object B) -- untouched
+  abf_min_count: 200.0         # c_min: per-box count threshold (the kernel's value)
+  abf_force_clip: 200.0
+  project_every: 50
+  estimator_stride: 1
+  abf_warmup_steps: 0          # NO bias ramp: the count threshold gates the bias
+  fr_start_steps: 0            # first FR opportunity at step 500 (0.5 ps)
+  fr_every: 500
+  fr_rate: 0.02
+  score_clip: 2.0
+  max_event_fraction: 0.05
+  lineage_reset_steps: 6000
+  n_steps: 100000
+  n_replicas: 2048
+stages:
+  # ---------------- Stage A: ABF only ----------------
+  hA_c200_w0:
+    methods: [abf]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+  hA_c50_w0:
+    methods: [abf]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {abf_min_count: 50.0}
+  hA_c800_w0:
+    methods: [abf]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {abf_min_count: 800.0}
+  hA_c200_w5:
+    methods: [abf]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {abf_warmup_steps: 5000}
+  hF_L0_w5:                    # textbook fixed-bin histogram: raw 3.7-deg cells, 5 ps ramp
+    methods: [abf]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {abf_hist_levels: 0, abf_hist_fixed: true, abf_warmup_steps: 5000}
+  hF_L2_w0:                    # fixed coarse bin: 5x5 cells = 18.6 deg, no ramp
+    methods: [abf]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {abf_hist_levels: 2, abf_hist_fixed: true}
+  hA_c800_w5:                  # SELECTED configuration (frozen rule, 2026-09-30T03:00Z): matched ABF for Stage B
+    methods: [abf]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {abf_min_count: 800.0, abf_warmup_steps: 5000, store_accumulators: true}
+  hA_c800_w1:                  # POST-HOC (added after Stage A was read): the "smaller burn-in" point, 1 ps ramp
+    methods: [abf]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {abf_min_count: 800.0, abf_warmup_steps: 1000, store_accumulators: true}
+  # ---------------- Stage B: FR on the selected configuration ----------------
+  hu02_t0:
+    methods: [fr_uniform]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {fr_start_steps: 0, fr_rate: 0.02, abf_min_count: 800.0, abf_warmup_steps: 5000, store_accumulators: true}
+  hu02_t5:
+    methods: [fr_uniform]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {fr_start_steps: 5000, fr_rate: 0.02, abf_min_count: 800.0, abf_warmup_steps: 5000, store_accumulators: true}
+  hu02_t20:
+    methods: [fr_uniform]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {fr_start_steps: 20000, fr_rate: 0.02, abf_min_count: 800.0, abf_warmup_steps: 5000, store_accumulators: true}
+  hu15_t0:
+    methods: [fr_uniform]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {fr_start_steps: 0, fr_rate: 0.15, abf_min_count: 800.0, abf_warmup_steps: 5000, store_accumulators: true}
+  hu15_t5:
+    methods: [fr_uniform]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {fr_start_steps: 5000, fr_rate: 0.15, abf_min_count: 800.0, abf_warmup_steps: 5000, store_accumulators: true}
+  hu15_t20:
+    methods: [fr_uniform]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {fr_start_steps: 20000, fr_rate: 0.15, abf_min_count: 800.0, abf_warmup_steps: 5000, store_accumulators: true}
+  # Stage C/D (fully burn-in-free FR arms; no-ramp ABF accumulator re-run) were added 03:12-03:20Z and
+  # WITHDRAWN at the user's direction at 03:25Z before any of their arms ran: the study keeps the ramped ABF.

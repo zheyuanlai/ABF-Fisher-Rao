@@ -1,0 +1,66 @@
+# Alanine dipeptide at 150 K, complete (phi, psi) CV: is the marginal establishment-limited, and does
+# uniform-target FR (torus or visited-support target) accelerate ABF there?  Prereg docs/ALANINE_LOWT.md.
+# Estimator/FR knobs = the configuration selected by the 300 K histogram study (c_min 800, 5 ps ramp).
+experiment_name: alanine_T150
+output_root: results/alanine_T150
+reference: results/alanine_T150/reference/reference.npz
+stage: abf
+base:
+  dt: 0.001
+  gamma: 1.0
+  temperature: 150.0
+  save_every: 1000
+  rng_seed: 20260903
+  init_equil_ps: 20.0
+  n_grid: 97
+  abf_estimator: histogram
+  abf_hist_levels: 4
+  abf_hist_fixed: false
+  abf_bandwidth: 0.08
+  kde_bandwidth: 0.15
+  abf_min_count: 800.0
+  abf_force_clip: 200.0
+  project_every: 50
+  estimator_stride: 1
+  abf_warmup_steps: 5000
+  fr_start_steps: 0
+  fr_every: 500
+  fr_rate: 0.02
+  score_clip: 2.0
+  max_event_fraction: 0.05
+  lineage_reset_steps: 6000
+  fr_support_min_count: 1.0
+  store_accumulators: true
+  n_steps: 100000
+  n_replicas: 2048
+stages:
+  abf:        # PREDICTOR arm: read t_est / t_F before any FR arm
+    methods: [abf]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {}
+  u02_t0:     # torus-uniform FR from 0.5 ps, rate 0.02
+    methods: [fr_uniform]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {fr_rate: 0.02}
+  u15_t0:     # torus-uniform FR from 0.5 ps, rate 0.15
+    methods: [fr_uniform]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {fr_rate: 0.15}
+  s02_t0:     # visited-support FR from 0.5 ps, rate 0.02
+    methods: [fr_support]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {fr_rate: 0.02}
+  s15_t0:     # visited-support FR from 0.5 ps, rate 0.15
+    methods: [fr_support]
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    init: c7eq
+    init_seed: 4242
+    overrides: {fr_rate: 0.15}
