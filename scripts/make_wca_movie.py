@@ -77,6 +77,11 @@ def simulate(a):
           f"seed {a.seed}; featured replica {a.featured}; snapshot every {a.snap_every} steps", flush=True)
     for name, method in (("hist_abf", "abf"), ("hist_fr_uniform", "fr_uniform")):
         sp = make_spec("movie", name, method, a.seed, c, fr, "histogram", n_bins)
+        if a.fr_start is not None and method == "fr_uniform":
+            # earlier FR start (user request 2026-10-01): a different stage label so the cached run id
+            # cannot collide with the frozen-start movie; everything else is the frozen cell
+            import dataclasses
+            sp = dataclasses.replace(sp, stage=f"movie_fr{int(a.fr_start)}", fr_start_steps=int(a.fr_start))
         if a.smoke:       # layout / pipeline check only: tiny run, early FR, same physics and reference
             import dataclasses
             sp = dataclasses.replace(sp, stage="movie_smoke", n_steps=3000, n_replicas=64, save_every=500, fr_start_steps=500)
@@ -108,6 +113,8 @@ def simulate(a):
                        save_t=np.asarray(r["profile_times"], float), n_bins=n_bins, hist_edges=np.asarray(r["hist_edges_abf"], float),
                        seed=a.seed, featured=a.featured, reference_label=str(r["reference_label"]),
                        reference_path=os.path.relpath(REFERENCE_NPZ, ROOT), git_rev=git_rev(), methods=np.array(["abf", "fr_uniform"]))
+        if method == "fr_uniform":   # the FR arm's sim carries the FR start the frames annotate (t_fr)
+            out["sim_json"] = json.dumps({k: getattr(sim, k) for k in sim.__dataclass_fields__}, sort_keys=True, default=float)
         z = np.asarray(r["snap_z"], np.float32)
         out[f"{method}/snap_z"] = z
         out[f"{method}/snap_wid"] = np.asarray(r["snap_wid"], np.int32)
@@ -397,6 +404,7 @@ def main():
     s.add_argument("--n-bins", type=int, default=0, help="default: the frozen width (selected_bins.json)")
     s.add_argument("--featured", type=int, default=0, help="replica slot drawn in the configuration panel")
     s.add_argument("--snap-every", type=int, default=50)
+    s.add_argument("--fr-start", type=int, default=None, help="FR start step for the FR arm (default: the frozen 20 000)")
     s.add_argument("--smoke", action="store_true", help="tiny run for a pipeline check (not a result)")
     s.add_argument("--out", default=OUT_DIR)
     r = sub.add_parser("render")

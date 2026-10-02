@@ -1,0 +1,11 @@
+cell {'beta': 1.0, 'h': 2.0, 'w': 2.0, 'n_dim': 10, 'a': 1.5, 'sigma': 1.0, 'epsilon': 1.0} run {'n_steps': 120000, 'n_replicas': 1024, 'save_every': 2500, 'dt': 0.002} fr {'fr_rate': 0.1, 'fr_every': 5, 'fr_start_steps': 20000, 'target_ema_rate': 0.005, 'max_event_fraction': 0.02, 'score_clip': 2.0}; histogram 160 bins (Delta 0.00875); seed 3200; featured replica 0; snapshot every 50 steps
+Loaded cached TI reference from /home/zheyuanlai/ABF-Fisher-Rao/scripts/../cache/phase_hp_v3/wca_ti_b1_h2_w2_n10_a1.5_g160.npz
+abf          : 142.3s
+  hist_abf: 142s (sampler 142s)
+  abf         e_F(T) own 0.09150  I_F 39.122  e_F'(T) 0.4161  replacements 0  windowed ESS/N nan  round trips 705019
+fr_uniform   : 172.0s, replacements 4671
+  hist_fr_uniform: 172s (sampler 172s)
+  fr_uniform  e_F(T) own 0.05343  I_F 29.576  e_F'(T) 0.4116  replacements 4671  windowed ESS/N 0.658  round trips 730354
+  this seed: final e_F -41.6 %, integrated -24.4 % (confirmation medians, 16 seeds, results/histogram_abf/wca/confirmation/summary.json: -50.5 % / -23.1 %)
+  arms identical (max |dz| < 1e-6) up to snapshot 1 (t = 0.1); FR starts at t = 0
+saved results/wca_movie_histogram_fr0/movie_data.npz
