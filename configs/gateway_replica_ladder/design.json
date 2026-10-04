@@ -1,0 +1,34 @@
+{
+ "_comment": "Gateway replica ladder at EQUAL force-evaluation budget. FROZEN 2026-10-04 before any ladder run (user request: 'the only fair comparison is N replicas to time T vs 1 replica to time NT; plot against the normalised budget; is mFR-ABF more beneficial with more or fewer replicas'). Engine: src/gateway_numba.py (CPU port, tests/test_gateway_numba.py, 12 pass incl. bitwise ABF dynamics vs gateway_core under shared noise).",
+ "cell": {"beta": 16.0, "H": 0.5, "beta_H_kT": 8.0, "omega_out": 1.0, "omega_in": 32.0, "r": 32.0, "s": 0.1, "dt": 0.0004,
+          "_": "the frozen gateway anchor (results/gateway_anchor/CONFIRMATORY_PREREGISTRATION.json; configs/histogram_abf/campaign.json gateway block)"},
+ "budget": {"B_walker_steps": 204800000, "anchor": "N=2048 x 100000 steps (T=40), the accepted confirmatory shape",
+            "rule": "n_steps(N) = B / N, so T(N) = B dt / N; every rung spends exactly B force evaluations per arm"},
+ "ladder_N": [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
+ "arms": [["abf_h45", false, 45], ["fr_h45", true, 45], ["abf_h180", false, 180], ["fr_h180", true, 180]],
+ "arms_note": "FR arms are run for N >= 2 only (a population of one cannot be reweighted); all arms of one (N, seed) share initial conditions and Langevin noise slot by slot (paired).",
+ "primary_width": 180,
+ "primary_width_reason": "Delta 0.02 has an e_F P0 floor of 2e-8 vs 0.0030 at the frozen Delta 0.08 (results/histogram_abf/gateway/floor/p0_floor.json); the long-thin rungs may approach 0.003, where the 45-bin floor would compress any FR-vs-ABF difference toward zero and bias the answer toward 'no benefit at small N'. 45 bins = continuity arm, identical to the accepted confirmation.",
+ "abf": {"estimator": "histogram P0, own bin, Gamma_j = M_j/(C_j+1)", "min_count": 1.0},
+ "fr_uniform": {"gamma": 1.5, "eta": 0.1, "fr_every": 10, "score_clip": 3.0, "max_event_fraction": 0.08, "fr_burnin": 0,
+                "ramp_steps": 10000, "cap_min": 1,
+                "ramp_note": "the accepted engine ramps over int(0.1 n_steps) = 10000 steps = 4 time units at the anchor; the ladder keeps that PHYSICAL ramp for every N (a method constant must not know the budget). Identical to the accepted law at N=2048.",
+                "cap_note": "cap = max(1, floor(0.08 N)); identical to the accepted floor(0.08 N) for N >= 13; at N <= 12 the accepted law gives cap 0 = FR switched off, so cap_min 1 keeps the arm alive (one event per opportunity at most)."},
+ "init": "left (every walker at x ~ N(-1, 0.05)); 'one_right' is not defined for N=1 and is not run",
+ "seeds": {"production": "7100-7131 (32 per N)", "validation": "5300-5315 (the accepted confirmation seeds, init identical, N=2048, 45 bins, cap_min 0, GPU save grid)"},
+ "save_grid": "budget fractions u = b/B: 200 linear (k/200) + 24 log-spaced in [1e-4, 5e-3); identical u for every N",
+ "metrics": {
+   "e_F(u)": "own read-out of the accepted engine (eb.HistogramABFEstimator.pmf_profile, centred on [-1.5, 1.5], RMS at the grid nodes vs the analytic F)",
+   "primary": "normalised integrated error  Ibar_F = mean of e_F over the 200 linear budget fractions u = k/200 (= (1/B) int_0^B e_F(b) db, right Riemann sum)",
+   "secondary": ["final e_F(u=1)", "final e_F' (function-space, Gauss-Legendre)", "budget-to-accuracy u_eps: first u after which e_F stays <= eps to the end, eps = median final e_F of abf at N=2048 (same width)"],
+   "effect": "per seed paired relative change (FR - ABF)/ABF at each N; median, bootstrap 95 % CI (10000 resamples, seed 0), wins = seeds with FR < ABF"
+ },
+ "validation_gate": "before reading the ladder: (a) the analyzer's scorer reproduces the accepted l2_f_t from the accepted Mh_t/Ch_t to 1e-10; (b) numba N=2048 on seeds 5300-5315 (left) vs the accepted GPU rows: median ABF I_F and final e_F within 10 %, FR-vs-ABF median paired integrated effect within 8 points, events per run within 10 %",
+ "predictions_before_any_ladder_run": {
+   "P1": "FR's relative benefit on Ibar_F GROWS with N: most negative at N=2048 (near the accepted left-init effect), shrinking toward 0 as N falls",
+   "P2": "at N <= 8 FR is neutral or harmful (a KDE of <= 8 walkers is dominated by each walker's own kernel, so S > 0 for most walkers and the operator mostly resamples noise)",
+   "P3": "ABF alone gets BETTER on Ibar_F and final e_F as N falls from 2048 to ~128 at fixed budget: the anchor run is establishment-limited (T_est/T = 0.47 at T = 40), a longer run amortises establishment",
+   "P4": "serial N=1 ABF ends (u=1) more accurate than N=2048 ABF+FR at the same budget; its early-budget error is the worst of the ladder (one walker must traverse the domain before the profile exists)",
+   "P5": "consequence if P1-P4 hold: FR saves physical (parallel wall-clock) time, not force evaluations; the best force-evaluation shape is a small-to-intermediate N where FR has little left to repair"
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "_comment": "WCA dimer replica ladder at EQUAL force-evaluation budget. FROZEN 2026-10-04 before any WCA ladder run; predictions in predictions_before_data.json (written earlier the same morning). Engine src/wca_numba.py (numba CPU port of run_sampler_gpu histogram + fr_uniform; tests/test_wca_numba.py 40 pass incl. BITWISE ABF vs the accepted execute_run under shared noise and bitwise FR under a deterministic law; reviewed by three adversarial lenses, 11 minor findings all fixed).",
+ "cell": "accepted corrected Case IX WCA cell: beta 1, h 2, w 2, n_dim 10 (M = 100 particles, 2-D), a 1.5; ACCEPTED_CFG in src/wca_numba.py (= configs/histogram_abf/campaign.json wca block, n_bins 160); reference v2 cache/phase_hp_v3/wca_ti_b1_h2_w2_n10_a1.5_g160.npz",
+ "budget": {"B_replica_steps": 122880000, "anchor": "N = 1024 x 120000 steps (T = 240), the accepted confirmation shape", "rule": "n_steps(N) = B / N"},
+ "ladder_N": [1024, 256, 64, 16, 4, 1],
+ "arms": [["hist_abf", false], ["hist_fr_uniform", true]],
+ "arms_note": "FR arm for N >= 2 only; both arms of a job share the lattice init and the Langevin noise for the WHOLE run (stronger pairing than the accepted engine, where they share it until fr_start); each FR arm has its own FR stream",
+ "time_knobs": "all in STEPS = physical time, unchanged for every N: abf_warmup_steps 10000, estimator_burn_in_steps 10000, fr_start_steps 20000, fr_every 5, ess_window_steps 4000; nothing scales with n_steps",
+ "fr_cap": "max(1, floor(0.02 N)) -- identical to the accepted law for N >= 50; the accepted law draws NO event for N < 50 (verified), so cap_min 1 keeps the arm alive at N = 16, 4",
+ "precision": "float64 accumulators (the intended algorithm). The accepted CUDA runs stored C/M in float32 and the boundary bin saturates at 2^24 in all 32 accepted runs, unequally between arms; at fixed budget every ladder point would saturate in float32.",
+ "seeds": {"production": "3300-3315 (16 per N)", "validation": "3100-3115 = the accepted confirmation seeds, N = 1024, 120000 steps, cap_min 0, saves every 2500 steps; run twice: accum_float32=True (like-for-like) and float64 (measures the saturation artefact's effect on the accepted numbers)"},
+ "save_grid": "budget_save_grid: 200 linear budget fractions k/200 + 24 log-spaced in [1e-4, 5e-3), identical u for every N",
+ "metrics": {
+   "e_F(u)": "accepted own read-out (score_ladder_result -> score_accumulators = execute_run's own e_F vs the v2 reference) on the reported estimator M_rep/C_rep",
+   "primary": "normalised integrated error Ibar_F = mean of e_F over the 200 linear budget fractions",
+   "secondary": ["final e_F(B)", "final e_F' (function space)", "u_eps: first u after which e_F stays <= median ABF e_F(B) at N = 1024"],
+   "effect": "per-seed paired (FR - ABF)/ABF, median + bootstrap 95 % CI (10000 resamples, seed 0) + wins"
+ },
+ "validation_gate": "float32-emulated numba vs accepted (16 seeds): median ABF I_F and final e_F within 10 %, FR-vs-ABF median paired I_F effect within 8 points, FR replacements within 10 %"
+}

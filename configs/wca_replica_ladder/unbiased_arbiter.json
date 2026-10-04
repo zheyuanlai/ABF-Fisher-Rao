@@ -1,0 +1,6 @@
+{
+ "_comment": "POST-HOC arbiter, 2026-10-04 ~10:20 UTC. Three estimates disagree: the ABF long-run limit (consistent across N = 1-256), the FR long-run limit (dose-dependent tilt, RMS 0.06-0.09 from ABF, CAUSED by the FR operator: 0.058/0.024/0.011 at rates 0.1/0.03/0.01), and the v2 TI reference (0.076 from ABF, 0.04 from FR). Dose-response cannot tell 'FR biases a correct ABF' from 'FR corrects a biased ABF'.",
+ "arbiter": "plain UNBIASED dynamics (abf_bias_scale = 0; the FES range is only 2.4 kT, so unbiased sampling is adequate): F_density(z) = -kT log C_j from the cumulative visit counts (no mean-force estimator, no FR, no TI), and F_mf(z) = the integrated mean-force estimate from the SAME unbiased runs (tests the estimator itself)",
+ "design": "N = 1, n_steps = 1.2288e8, seeds 3500-3531 (32), ACCEPTED_CFG except abf_bias_scale 0.0, one ABF arm (estimator accumulates, bias off), float64",
+ "decision": "whichever of {ABF limit, FR limit, v2} lies within noise of F_density is the dynamics' equilibrium free energy; if F_mf != F_density the shared mean-force estimator is itself biased"
+}

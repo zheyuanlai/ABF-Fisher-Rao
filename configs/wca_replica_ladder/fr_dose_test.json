@@ -1,0 +1,7 @@
+{
+ "_comment": "POST-HOC diagnostic, 2026-10-04 ~10:05 UTC, after seeing that pooled FR long-run profiles (N = 16-1024) differ from the pooled ABF long-run limit by a smooth tilt (RMS 0.06-0.09; ABF is consistent across N = 1-256 to 0.001-0.003) while FR at N = 4 (few events) does not.",
+ "question": "is the FR-vs-ABF tilt CAUSED by the FR operator? If so it must shrink with the FR rate (dose-response).",
+ "design": "N = 16, n_steps = 1.92e6 (1/4 of the ladder budget at N = 16, T = 3840), seeds 3300-3315 (identical noise and FR stream to the ladder's first quarter at rate 0.1), jobs = {abf, fr_uniform} at fr_rate in {0.1, 0.03, 0.01}, everything else ACCEPTED_CFG, cap_min 1, float64",
+ "readout": "pooled (16 seeds) final profile of each FR arm vs the pooled ABF arm of the same jobs (RMS over the eval window, after additive alignment); seed-half split for noise; also e_F vs v2",
+ "prediction": "RMS(FR - ABF) roughly proportional to the number of replacement events (rate 0.1 -> 0.03 -> 0.01 gives ~3x and ~10x smaller tilt) if the operator causes it; flat if it does not"
+}

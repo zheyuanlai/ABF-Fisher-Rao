@@ -1,0 +1,6 @@
+{
+ "_comment": "POST-HOC, 2026-10-04 ~10:50 UTC. The unbiased-MD arbiter found that, in the SAME unbiased runs (dt 0.002, accepted clips), the integrated mean-force estimate disagrees with -kT log P(z) by 0.29 kT RMS (noise 0.0008), while the estimator's entropic term -2w/(beta r) is correct for the 2-D distance CV. So the simulated stationary measure is not Boltzmann for U at the level of the effects being compared. Candidates: Euler-Maruyama at dt 0.002 with stiff WCA collisions; non-gradient force modifications (force_clip 250, min_r 0.65, mean_force_sample_clip 500).",
+ "design": "unbiased (abf_bias_scale 0), N = 1, physical time 30720 tu per seed (1/8 of the ladder's serial run), 32 seeds (3600-3631): A dt 0.002 accepted clips; B dt 0.001 accepted clips; C dt 0.0005 accepted clips; D dt 0.0005 clips removed (force_clip 1e5, min_r 0.5, mean_force_sample_clip 1e7)",
+ "readout": "RMS(F_mf - F_density) over the eval window for each config (seed-half noise)",
+ "interpretation": "if it falls toward 0 with dt and/or without clips, the WCA benchmark's free energy is integrator-defined at the 0.1-0.3 kT level, larger than every ABF/FR effect compared, and no WCA verdict (accepted or ladder) is reference-free"
+}

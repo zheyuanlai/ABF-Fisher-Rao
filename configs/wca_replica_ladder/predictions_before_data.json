@@ -1,0 +1,11 @@
+{
+ "_comment": "WCA replica ladder predictions, written 2026-10-04 ~06:45 UTC BEFORE the numba port exists and before any WCA ladder data. The full design.json is written when the port lands, also before any data.",
+ "known_context": "gateway ladder done (docs/GATEWAY_REPLICA_LADDER.md): FR benefit grows with N, harmful at N <= 16, serial ABF dominates at equal budget. Old WCA kernel/fr_estimated equal-compute (b1h2): ABF final L2 0.106/0.087/0.083 at N 2048/1024/512, mFR 0.059/0.041/0.036 (ratio 0.55/0.48/0.44), serial N=1 ABF at 1/4 budget 0.073 (v1 reference). Histogram confirmation N=1024 (v2 ref): ABF 0.0893 vs FR 0.0449 final, I_F 41.0 vs 31.3.",
+ "plan": "B = 1024 x 120000 = 1.2288e8 per arm; N in {1024, 256, 64, 16, 4, 1}; histogram ABF (160 bins) vs + uniform FR (accepted knobs, time knobs fixed in steps, cap max(1, floor(0.02 N))); 16 seeds 3300-3315; paired noise; normalised budget axis; own e_F vs the v2 reference.",
+ "predictions": {
+   "W1": "FR's relative benefit (integrated, normalised) is largest at N >= 256 and shrinks toward 0 or turns harmful at N <= 16 (same small-N KDE self-kernel mechanism as the gateway; KDE bandwidth 0.07 on a CV range ~1.4)",
+   "W2": "ABF alone improves as N falls from 1024 to 64 at fixed budget (old kernel data already show 2048 -> 512 improving)",
+   "W3": "serial N=1 ABF at the full budget ends within +-30 % of 1024-replica ABF+FR on final e_F (old 1/4-budget serial 0.073 extrapolates as 1/sqrt(b) to ~0.037 vs hist FR 0.045), and is better on the normalised integrated error",
+   "W4": "the qualitative gateway conclusion (FR saves wall-clock, not force evaluations) carries over, but less sharply, because WCA's ABF error at N=1024 is not purely establishment-limited"
+ }
+}

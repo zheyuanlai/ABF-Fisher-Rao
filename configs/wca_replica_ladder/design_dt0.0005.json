@@ -1,0 +1,16 @@
+{
+ "_comment": "WCA replica ladder REDONE at dt = 0.0005, written 2026-10-04 ~10:40 UTC BEFORE any run at this dt. Reason (results/wca_replica_ladder/consistency/summary.json): at the accepted dt = 0.002 the integrated mean-force estimate and -kT log P(z) of the SAME unbiased runs disagree by 0.284 kT RMS (0.051 at dt 0.001, 0.018 at dt 0.0005); the free energy itself moves by 0.12 kT RMS between dt 0.002 and 0.0005 (compact well -0.78 -> -0.46 kT); ABF, ABF+FR and the v2 TI reference converge to mutually different profiles at dt 0.002 (0.06-0.2 kT apart), larger than every effect being compared, so no dt = 0.002 WCA verdict is reference-free.",
+ "physics": "ACCEPTED_CFG (beta 1, h 2, w 2, 100 particles, 160 bins, clips unchanged) with dt = 0.0005 and every step-counted knob x4 so all PHYSICAL times are unchanged: abf_warmup_steps 40000, estimator_burn_in_steps 40000, fr_start_steps 80000, fr_every 20 (dt_eff = 0.01 as before, fr_rate 0.1 per unit time unchanged), ess_window_steps 16000",
+ "budget": "B = 4 x 1.2288e8 = 4.9152e8 replica-steps per arm (same physical replica-time budget: N = 1024 runs T = 240); n_steps = B / N",
+ "ladder_N": [1024, 256, 64, 16, 4, 1],
+ "arms": "hist_abf, hist_fr_uniform (N >= 2), paired on shared noise, cap max(1, floor(0.02 N)), float64",
+ "seeds": "production 3700-3715 (16 per N); reference 3800-3831 (32 serial ABF runs at the full budget, used by NO compared arm)",
+ "reference": "PRIMARY = pooled serial ABF limit of the reference seeds at dt 0.0005 (cross-checked against -kT log P(z) of the dt 0.0005 unbiased runs in results/wca_replica_ladder/consistency, which agreed with the mean-force limit to 0.018 there); the v2 TI reference (built at dt 0.002) is reported alongside for continuity only",
+ "metrics": "as design.json: Ibar_F over 200 budget fractions, final e_F, paired effects with bootstrap CIs, u_eps",
+ "predictions": {
+   "D1": "at dt 0.0005 the pooled FR long-run profile agrees with the pooled ABF long-run profile to <= 0.015 RMS (the dt 0.002 tilt of 0.06-0.09 was an integrator artefact amplified by resampling)",
+   "D2": "ABF alone improves as N falls at fixed budget (as on the gateway and as at dt 0.002 vs its own limit)",
+   "D3": "FR's integrated benefit vs ABF is largest at N = 1024/256 and vanishes (or turns harmful) by N <= 16 -- the gateway pattern",
+   "D4": "serial (N = 1) ABF ends more accurate than N = 1024 ABF + FR at the same budget"
+ }
+}

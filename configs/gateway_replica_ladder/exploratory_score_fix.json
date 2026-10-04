@@ -1,0 +1,15 @@
+{
+ "_comment": "EXPLORATORY, post-hoc (written 2026-10-04 06:31 UTC after the ladder result, before any run of these arms). Mechanism test of the small-N FR harm: at N <= 16, 80-100 % of FR events are deaths because the score is centred by the grid KL(p_hat || q) while each walker sits on its own kernel peak, so mean_i log p_hat(x_i) > int p_hat log p_hat and S > 0 for almost everyone.",
+ "arms": {
+   "fr_h180": "accepted score: S = log p_hat(x_i) - log q - KL(p_hat || q)",
+   "fr_emp_h180": "empirical centring: S = log p_hat(x_i) - mean_j log p_hat(x_j)   (q uniform cancels)",
+   "fr_loo_h180": "leave-one-out density + empirical centring: p_loo(x_i) = (N p_hat(x_i) - self_i) / (N - 1), S = log p_loo(x_i) - mean_j log p_loo(x_j)"
+ },
+ "everything_else": "identical to design.json (180 bins, gamma 1.5, eta 0.1, clip 3, cap max(1, floor(0.08 N)), ramp 10000, B = 2.048e8, init left), paired with abf_h180 on shared noise; N in {1024, 256, 64, 16, 4}; seeds 7100-7131 (same labels, same init; the noise stream differs from the ladder because the arm set differs, so compare within this stage only)",
+ "scoring": "dt-consistent (em) reference primary for this mechanism test, analytic alongside",
+ "predictions": {
+   "E1": "death fraction of events falls from 80-100 % to ~50 % at N <= 16 under both fixes",
+   "E2": "the small-N harm (N = 4, 16) disappears (effects within +-10 %) under fr_loo; fr_emp alone removes most of it",
+   "E3": "no fix creates a benefit at N <= 16 comparable to N >= 256: with long T the run is not establishment-limited, so FR has nothing to repair (the large-N benefit is unchanged within +-5 points)"
+ }
+}
