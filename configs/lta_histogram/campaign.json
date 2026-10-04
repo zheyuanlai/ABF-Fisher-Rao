@@ -1,0 +1,255 @@
+{
+  "_comment": "Ethane/LTA under the histogram (P0) ABF mean-force estimator: paired replication of the closed kernel temperature sweep, a NEW 350 K point, a matched-sham attribution arm, and two presentation movies. FROZEN 2026-10-03 18:50 UTC before any run (git base 56ab774; docs/LTA_HISTOGRAM_REPLICATION.md). Nothing here is edited after the first production run starts except per_T.350.fr_rate (filled by the safety-only ladder BEFORE the 350 K production, with a timestamp) and the 'execution_log' block.",
+  "purpose": "(1) Does the LTA uniform-FR benefit survive the move of the presented algorithm to the textbook online histogram estimator (every other closed positive has been replicated: EB, WCA, gateway)? (2) Does the benefit keep shrinking toward neutral at 350 K, as the establishment-starvation reading predicts (ABF window traffic grows with T), or grow, as the entropy-share reading would predict (-TdS share rises with T)? (3) Is the FR gain attributable to the Fisher-Rao DIRECTION, i.e. does FR beat a matched sham that replays its event schedule with random direction (the campaign method rule: one sham per FR arm, the direct arm-vs-sham contrast is the attribution statistic)?",
+  "gpu": "3 only (standing rule); one process at a time; all arms of one temperature in ONE process",
+  "temperatures_K": [
+    300,
+    150,
+    350,
+    225,
+    80
+  ],
+  "_temperature_order": "execution priority; whatever has not finished when the user wakes is reported as not run",
+  "arms": [
+    "abf",
+    "fr_uniform",
+    "fr_sham"
+  ],
+  "sampler": {
+    "n_replicas": 1024,
+    "n_steps": 300000,
+    "dt": 0.0002,
+    "save_every": 3000,
+    "n_grid": 180,
+    "abf_estimator": "histogram",
+    "abf_bandwidth": 0.05,
+    "kde_bandwidth": 0.1,
+    "abf_warmup_steps": 20000,
+    "abf_force_clip": 60.0,
+    "estimator_burn_in_steps": 20000,
+    "fr_start_steps": 20000,
+    "fr_every": 5,
+    "score_clip": 2.0,
+    "max_event_fraction": 0.02,
+    "target_ema_rate": 0.005,
+    "_": "identical to configs/uniform_campaign/lta_sweep_prereg.json except abf_estimator; abf_bandwidth is unused by the histogram branch and kept only so the field set is the sweep's; the FR marginal KDE (kde_bandwidth, object B), rate, cadence, start, clip and cap are untouched"
+  },
+  "per_T": {
+    "300": {
+      "rng_seed": 20260904,
+      "seeds_first": 1060,
+      "fr_rate": 0.2,
+      "reference": "results/uniform_campaign/lta/reference/reference_T300.npz",
+      "kernel_production": "results/uniform_campaign/lta/production_T300"
+    },
+    "150": {
+      "rng_seed": 20260902,
+      "seeds_first": 1020,
+      "fr_rate": 0.2,
+      "reference": "results/uniform_campaign/lta/reference/reference_T150.npz",
+      "kernel_production": "results/uniform_campaign/lta/production_T150"
+    },
+    "225": {
+      "rng_seed": 20260903,
+      "seeds_first": 1040,
+      "fr_rate": 0.2,
+      "reference": "results/uniform_campaign/lta/reference/reference_T225.npz",
+      "kernel_production": "results/uniform_campaign/lta/production_T225"
+    },
+    "80": {
+      "rng_seed": 20260901,
+      "seeds_first": 1000,
+      "fr_rate": 0.1,
+      "reference": "results/uniform_campaign/lta/reference/reference_T80.npz",
+      "kernel_production": "results/uniform_campaign/lta/production_T80"
+    },
+    "350": {
+      "rng_seed": 20260905,
+      "seeds_first": 1080,
+      "fr_rate": 0.2,
+      "reference": "results/uniform_campaign/lta/reference/reference_T350.npz",
+      "kernel_production": null,
+      "reference_rule": {
+        "kappa": 594,
+        "ref_steps": 128571,
+        "ref_burn": 25714,
+        "ref_seed": 20260883,
+        "unbiased_steps": 100000,
+        "_": "the sweep prereg's rule: kappa = kT/(0.07 rad)^2, steps = round(150000*300/T), burn = round(30000*300/T), split-half dF agreement within 0.2 kT required"
+      },
+      "fr_rate_frozen_at": "2026-10-03T19:22:54Z"
+    }
+  },
+  "seeds_count": 16,
+  "rng_pairing": "per-T rng_seed = the kernel sweep's, so the histogram ABF arm runs on the SAME initial conditions and Langevin noise stream as the kernel ABF arm of that T (noise-paired across estimators, the EB/gateway replication convention); seed LABELS are fresh (1000-1095; the kernel sweep used 600-615, 700-775, 900-901)",
+  "fr_rate_rule": "inherited per T from the kernel sweep's safety-only ladders (histogram-replication convention: no FR knob is changed); 350 K (a new T): the same ladder {0.02, 0.05, 0.10, 0.20}, seeds 1110-1111, 120k steps, fr_start 20000, under THIS sampler; largest rate with min ancestor ESS/N >= 0.30 and max lineage share <= 0.05 over the FR-active saves; chosen WITHOUT reading any error metric and written into per_T.350.fr_rate before the 350 K production",
+  "sham": "fr_sham shadows fr_uniform: at every FR opportunity it performs exactly the number of replacements fr_uniform realised at that opportunity in that seed (event_counts replay), choosing the dying replicas uniformly at random without replacement and the clone sources uniformly among the survivors (wca_abffr_core.uniform_birth_death_torch semantics); no score, no target. Same seeds, same initial conditions, same dynamics noise stream as its partner.",
+  "width_rule": {
+    "n_grid": 180,
+    "why": "the engine's existing 180 circular bins (dphi 0.0349 rad = 0.066 A) are the grid the kernel estimator deposits into, and the offline read-out audit found raw-bin read-out ON the accuracy plateau (docs/LTA_READOUT_SWEEP.md); the P0 bias then differs from the kernel bias only by the smoothing matrix",
+    "clause_a_floor": "deterministic P0 floor share <= 0.20 of the histogram ABF's own median e_F(T), floor computed from a periodic cubic interpolant of the reference (no run); evaluated by the analyzer before any FR result is read -- if 180 fails, the analyzer flags it and the ladder's 360 result is the reported width",
+    "clause_b_plateau": "ABF-only ladder n_grid {90, 180, 360}, R = 4, labels 1100-1103, rng_seed 20261003, 300 K, run at the END of the schedule as a sensitivity check: paired |median change| of e_F(T) and I_F from 180 to 360 <= 5 % means 180 is on the plateau; reported either way, not used to re-select"
+  },
+  "movies": {
+    "temperatures_K": [
+      300,
+      150
+    ],
+    "seed_label": 1200,
+    "rng_seed_rule": "20261000 + T",
+    "store_snapshots": 100,
+    "featured": 0,
+    "n_replicas": 1024,
+    "arms": [
+      "abf",
+      "fr_uniform"
+    ],
+    "out": "results/lta_movie/T{T}",
+    "_": "one seed, R = 1, both arms in one process from the same noise stream; the drawn free energy is the reported estimator's own PMF"
+  },
+  "replication_rules": {
+    "fr_effect_within_estimator": "paired by seed: Delta = (arm - abf)/abf for I_F and e_F(T); median, bootstrap 95 % CI (10000, seed 20260829), wins",
+    "replicates": "(i) same sign of median Delta I_F and Delta e_F(T) as the kernel sweep at that T; (ii) if the kernel CI95 upper bound for Delta I_F < 0 then the histogram's is too; (iii) |median Delta I_F(hist) - median Delta I_F(kernel)| <= 10 points OR overlapping CIs; same for Delta e_F(T) with 15 points",
+    "absolute_accuracy_acceptable": "histogram ABF own median e_F(T) within +25 % of kernel ABF's (legacy read-out, recomputed with the same code), and median I_F within +25 %; better is not a failure",
+    "safety": "the sweep's genealogy floors: median across seeds of per-seed min ESS/N >= 0.30 and max lineage share <= 0.05 (worst seed reported)"
+  },
+  "success_rule": {
+    "median_rel_change_pct_max": -10.0,
+    "ci95_upper_pct_max": 0.0,
+    "final_noninferiority_margin_pct": 5.0,
+    "ess_anc_over_N_min": 0.3,
+    "wmax_max": 0.05
+  },
+  "attribution_rule": "FR is attributed to its direction at a T if the DIRECT paired contrast fr_uniform vs fr_sham has median Delta I_F < 0 with CI95 upper < 0 (and the sham vs abf contrast is reported alongside)",
+  "screening_rule_under_test": "the rule proposed for choosing T* from ABF-only data: T_hit/T_run < 0.1 and 0.25 < T_est/T_run < 0.75, with T_hit = median over seeds of the first save at which any replica is in the window and T_est = time at which the median ABF error first comes within 1.5x of its final value; evaluated on the kernel ABF arms (already known before this study: T_hit 1.8-3.0, T_est 36.6-40.8 of 60 at 150-300 K; 80 K non-monotone) and on the histogram ABF arms",
+  "endpoints": "the sweep's (docs/UNIFORM_FR_CAMPAIGN.md): primary Delta I_F paired median with 10k bootstrap CI, final non-inferiority +5 %, tau atlas convention (persist 0.2 T), genealogy median-across-seeds; e_F = additive-constant aligned full-circle RMS against the umbrella/WHAM reference interpolated to the engine grid; histogram arms are scored by their OWN exact PMF (no kernel re-scoring)",
+  "predictions_before_any_run": {
+    "P1_replication": "histogram FR vs histogram ABF at 300 / 150 / 225 / 80 K has the same sign and a magnitude within 10 points of the kernel sweep (-14.8 / -31.9 / -21.3 / -35.1 % integrated; -19.7 / -56.3 / -28.2 / -74.7 % final), 16/16 or 15/16 wins; CIs exclude zero",
+    "P2_baseline": "histogram ABF own e_F(T) is within +-10 % of kernel ABF's legacy read-out (0.087 / 0.134 / 0.095 / 0.164 kJ/mol): the read-out audit put raw bins on the plateau, so the online own-bin bias costs little; I_F within +15 %",
+    "P3_350K": "benefit keeps shrinking: Delta I_F between -12 % and 0 (ABF crossings per replica > 2.7), final within +-10 %, verdict NEUTRAL or a marginal ACCELERATION_POSITIVE; the reference's entropic share rises above 72 %. If instead Delta I_F < -15 % at 350 K the entropy-share reading gains support and the starvation reading loses -- recorded as the alternative",
+    "P4_sham": "the matched sham is NEUTRAL to slightly harmful vs ABF (|Delta I_F| < 5 %, final +0..+10 %) at every T; FR beats its sham directly by at least two thirds of its FR-vs-ABF margin, CI excluding zero (gateway precedent: -11.8 % direct when -12.1 % vs ABF)",
+    "P5_screening_rule": "the proposed rule already classifies 150-300 K as establishment-limited on the kernel ABF arms (T_hit/T_run 0.03-0.05, T_est/T_run 0.6-0.7) and the histogram arms will agree; the e0/8 convention (tau 2.4-4.2) does NOT -- i.e. the rule works only with a threshold tied to the FINAL error, not to the initial one",
+    "P6_health": "histogram FR fires more replacement events than the kernel FR (+30-70 %, the WCA precedent) and its median min ESS/N stays >= 0.30 at 150-350 K; 80 K may again fall below (0.257 under the kernel)"
+  },
+  "execution_order": [
+    "movie T300 simulate",
+    "reference T350",
+    "calibrate T350 (freeze rate)",
+    "production T300",
+    "movie T150 simulate",
+    "production T150",
+    "production T350",
+    "production T225",
+    "production T80",
+    "width ladder T300 (90/180/360, R=4)"
+  ],
+  "prohibited": [
+    "tuning any FR knob or the FR KDE bandwidth",
+    "reading any FR metric before per_T.350.fr_rate is frozen (for 350 K) and before the floor clause is evaluated",
+    "re-running the closed kernel sweep",
+    "re-selecting the width after FR results are seen",
+    "writing into results/uniform_campaign/lta/production_*",
+    "reusing seed labels 600-615, 700-775, 900-901"
+  ],
+  "execution_log": [
+    {
+      "at": "2026-10-03T19:04:32Z",
+      "stage": "movie_T300",
+      "event": "simulated",
+      "d_final_pct": -10.1,
+      "d_int_pct": -12.4
+    },
+    {
+      "at": "2026-10-03T19:22:54Z",
+      "stage": "calibrate_T350",
+      "event": "frozen",
+      "fr_rate": 0.2
+    },
+    {
+      "at": "2026-10-03T19:22:56Z",
+      "stage": "production_T300",
+      "event": "start",
+      "git_rev": "56ab774d727cccb1fc4fb85fde014514fbd1f631"
+    },
+    {
+      "at": "2026-10-03T20:30:24Z",
+      "stage": "production_T300",
+      "event": "done",
+      "minutes": 67.5
+    },
+    {
+      "at": "2026-10-03T20:43:04Z",
+      "stage": "movie_T150",
+      "event": "simulated",
+      "d_final_pct": -49.1,
+      "d_int_pct": -30.7
+    },
+    {
+      "at": "2026-10-03T20:43:06Z",
+      "stage": "production_T150",
+      "event": "start",
+      "git_rev": "56ab774d727cccb1fc4fb85fde014514fbd1f631"
+    },
+    {
+      "at": "2026-10-03T21:50:37Z",
+      "stage": "production_T150",
+      "event": "done",
+      "minutes": 67.5
+    },
+    {
+      "at": "2026-10-03T21:50:39Z",
+      "stage": "production_T350",
+      "event": "start",
+      "git_rev": "56ab774d727cccb1fc4fb85fde014514fbd1f631"
+    },
+    {
+      "at": "2026-10-03T22:58:09Z",
+      "stage": "production_T350",
+      "event": "done",
+      "minutes": 67.5
+    },
+    {
+      "at": "2026-10-03T22:58:11Z",
+      "stage": "production_T225",
+      "event": "start",
+      "git_rev": "56ab774d727cccb1fc4fb85fde014514fbd1f631"
+    },
+    {
+      "at": "2026-10-04T00:05:40Z",
+      "stage": "production_T225",
+      "event": "done",
+      "minutes": 67.5
+    },
+    {
+      "at": "2026-10-04T00:05:42Z",
+      "stage": "production_T80",
+      "event": "start",
+      "git_rev": "56ab774d727cccb1fc4fb85fde014514fbd1f631"
+    },
+    {
+      "at": "2026-10-04T01:13:14Z",
+      "stage": "production_T80",
+      "event": "done",
+      "minutes": 67.5
+    },
+    {
+      "at": "2026-10-04T01:34:17Z",
+      "stage": "width_ladder_T300",
+      "event": "done"
+    },
+    {
+      "at": "2026-10-04T04:05:09Z",
+      "stage": "movie_T150",
+      "event": "simulated",
+      "d_final_pct": -46.2,
+      "d_int_pct": -30.3
+    },
+    {
+      "at": "2026-10-04T04:17:47Z",
+      "stage": "movie_T300",
+      "event": "simulated",
+      "d_final_pct": -11.1,
+      "d_int_pct": -12.8
+    }
+  ]
+}

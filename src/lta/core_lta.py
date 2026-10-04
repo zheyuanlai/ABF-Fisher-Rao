@@ -26,6 +26,28 @@ The ABF estimator, KDE marginal, FR score, birth-death and genealogy machinery
 are IMPORTED from the closed alkanes engine (same periodic-circle conventions),
 not re-implemented: `alkanes.periodic` and `alkanes.core._fr_target/_fr_score/
 _birth_death/_ancestor_stats` are the tested implementations.
+
+Additions of the histogram-estimator study (2026-10-03, docs/LTA_HISTOGRAM_REPLICATION.md),
+all OFF by default so the legacy engine is bit-identical and ``config_hash`` unchanged:
+
+  * ``abf_estimator = "histogram"``: the textbook online histogram (P0) mean-force
+    estimator on the SAME ``n_grid`` circular bins the kernel estimator accumulates
+    into -- bias force = the walker's OWN bin ``Gamma_j = M_j / C_j`` (0 on empty bins,
+    the WCA rule), no smoothing, no interpolation; the reported free energy is the
+    EXACT integral of the piecewise-constant force (piecewise linear), closed on the
+    circle by subtracting the circular mean of ``Gamma`` (the engine's existing
+    periodic-closure convention), evaluated at the cell centres.
+  * ``fr_sham``: the matched-sham arm of the campaign method rule (one sham per FR
+    arm).  It replays its partner's realised per-opportunity replacement counts
+    (``shadow_counts``) at the partner's opportunities and chooses WHICH replicas
+    die / are copied uniformly at random (deaths without replacement, sources among
+    the survivors, mirroring ``wca_abffr_core.uniform_birth_death_torch``).  No score.
+  * ``store_snapshots = k``: report-only movie record of ONE seed (``snapshot_seed_index``)
+    every ``k`` steps -- full configurations, CV, persistent walker ids, the reported
+    PMF and counts, cumulative window crossings, every death / birth of that seed keyed by
+    the snapshot it precedes, and the GENEALOGY: initial-ancestor label per slot per snapshot,
+    (dying slot, source slot) and (child id, parent id) per event.  Consumes no RNG and
+    changes no arithmetic.
 """
 from __future__ import annotations
 
@@ -43,8 +65,11 @@ from alkanes.core import (_ancestor_stats, _birth_death, _fr_score,
 EPS = 1.0e-12
 KB = 0.008314462618        # kJ/mol/K
 FR_METHODS = ("fr_estimated", "fr_uniform", "fr_oracle")
+SHAM_METHODS = ("fr_sham",)
+SHAM_PARTNER = {"fr_sham": "fr_uniform"}
 ESTIMATED_TARGET_METHODS = ("fr_estimated",)
-ALL_METHODS = ("abf",) + FR_METHODS
+ALL_METHODS = ("abf",) + FR_METHODS + SHAM_METHODS
+ABF_ESTIMATORS = ("kernel", "histogram")
 PI = math.pi
 
 
@@ -90,10 +115,26 @@ class LTASimConfig:
     # |z| > cage_min -> cage, in A
     window_half: float = 1.5
     cage_min: float = 4.0
+    # --- histogram-estimator study (2026-10-03); the default is the legacy kernel ---
+    abf_estimator: str = "kernel"          # "kernel" | "histogram" (own-bin P0 on the n_grid bins)
+    # --- report-only movie record (no RNG, no arithmetic change); 0 = off ---
+    store_snapshots: int = 0
+    snapshot_seed_index: int = 0
+
+    # fields that never enter the hash, and fields dropped at their default so every
+    # legacy config_hash (e.g. the sweep's 'afe2a9f9cf6d') is unchanged
+    _HASH_ALWAYS_DROP = ("store_snapshots", "snapshot_seed_index")
+    _HASH_DROP_AT_DEFAULT = {"abf_estimator": "kernel"}
 
     def config_hash(self):
         import hashlib, json
-        return hashlib.md5(json.dumps(asdict(self), sort_keys=True).encode()).hexdigest()[:12]
+        d = asdict(self)
+        for k in self._HASH_ALWAYS_DROP:
+            d.pop(k, None)
+        for k, v in self._HASH_DROP_AT_DEFAULT.items():
+            if d.get(k) == v:
+                d.pop(k, None)
+        return hashlib.md5(json.dumps(d, sort_keys=True).encode()).hexdigest()[:12]
 
 
 class LTASystem:
@@ -198,11 +239,44 @@ def region_index(phi, a, window_half, cage_min):
     return idx
 
 
+# ---------------------------------------------------------------------------
+# histogram (P0) estimator on the circular grid
+# ---------------------------------------------------------------------------
+def bin_index(phi, n_grid):
+    """The bin of ``phi`` on the ``n_grid`` cell-centred circular bins -- EXACTLY the
+    deposit rule of ``alkanes.periodic.bin_counts`` / ``bin_sum`` (own-bin consistency)."""
+    dphi = 2.0 * PI / n_grid
+    return torch.floor((phi + PI) / dphi).long() % n_grid
+
+
+def histogram_mean_force(force_sum, count):
+    """P0 bin mean force ``Gamma_j = M_j / C_j`` on populated bins, 0 on empty ones."""
+    return torch.where(count > 0, force_sum / count.clamp_min(1.0), torch.zeros_like(force_sum))
+
+
+def histogram_pmf(gamma, dphi):
+    """EXACT integral of the piecewise-constant force on the circle, at the cell centres.
+
+    ``gamma`` (..., n_grid) is the P0 bin force; the circular mean is subtracted first (the
+    engine's periodic-closure convention, as in ``free_energy_from_mean_force``) so the
+    reconstructed F is single valued; F is centred on its circular mean.  Bin j covers
+    [e_j, e_{j+1}) with e_0 = -pi; F(e_{j+1}) = F(e_j) + Gamma_j dphi, and the value at the
+    centre c_j is F(e_j) + Gamma_j dphi / 2 = F(e_{j+1}) - Gamma_j dphi / 2.
+    """
+    g0 = gamma - gamma.mean(-1, keepdim=True)
+    F_right = torch.cumsum(g0 * dphi, dim=-1)
+    F_c = F_right - 0.5 * g0 * dphi
+    return F_c - F_c.mean(-1, keepdim=True)
+
+
 def _fr_target_lta(method, grid, dphi, F_ema, B_n, oracle, beta):
-    """Same law as alkanes.core._fr_target (uniform normalized on the circle)."""
+    """Same law as alkanes.core._fr_target (uniform normalized on the circle).
+
+    The sham carries the uniform target for its DIAGNOSTICS only (p-q distances); it
+    never computes a score."""
     if method == "abf":
         return None
-    if method == "fr_uniform":
+    if method in ("fr_uniform",) + SHAM_METHODS:
         R = B_n.shape[0] if B_n is not None else 1
         return per.normalize_density(
             torch.ones(R, grid.numel(), device=grid.device, dtype=grid.dtype), dphi)
@@ -217,17 +291,53 @@ def _fr_target_lta(method, grid, dphi, F_ema, B_n, oracle, beta):
     return per.normalize_density(torch.exp(log_q), dphi)
 
 
+def _sham_birth_death(q, n_events, ancestors, gen_fr):
+    """Matched-sham replacement: ``n_events[r]`` replacements per run, chosen uniformly.
+
+    Deaths are a uniform draw WITHOUT replacement; every source is a uniform draw (with
+    replacement) among the SURVIVORS, exactly as in ``wca_abffr_core.uniform_birth_death_torch``
+    (a replica that dies has zero birth weight in the FR arm and cannot be its own source).
+    Same return structure as ``alkanes.core._birth_death``."""
+    R, N = q.shape[0], q.shape[1]
+    q_new = q.clone()
+    anc_new = ancestors.clone()
+    n_repl = torch.zeros(R, dtype=torch.long, device=q.device)
+    deaths = [None] * R
+    births = [None] * R
+    for r in range(R):
+        n = min(int(n_events[r]), N - 1)
+        if n < 1:
+            continue
+        perm = torch.randperm(N, generator=gen_fr, device=q.device)
+        di = perm[:n]
+        surv = perm[n:]
+        src = surv[torch.randint(surv.numel(), (n,), generator=gen_fr, device=q.device)]
+        q_new[r, di] = q[r, src]
+        anc_new[r, di] = ancestors[r, src]
+        n_repl[r] = n
+        deaths[r] = di; births[r] = src
+    return q_new, anc_new, n_repl, deaths, births
+
+
 def run_sampler(method, system: LTASystem, sim: LTASimConfig, seeds,
-                oracle_free_energy=None, verbose=True):
+                oracle_free_energy=None, shadow_counts=None, verbose=True):
     """R = len(seeds) matched-seed replicas of ``method`` in one process.
 
     Mirrors alkanes.core.run_sampler: same estimator, same FR machinery, same
     output keys (plus ``u_of_z`` accumulators for the entropy decomposition).
+
+    ``shadow_counts`` (n_opportunities, R) int array is REQUIRED for ``fr_sham`` and
+    must be the ``event_counts`` output of its partner ``fr_uniform`` run with the same
+    ``sim`` and seeds; it is refused for every other method.
     """
     if method not in ALL_METHODS:
         raise ValueError(f"unknown method {method!r}")
+    if sim.abf_estimator not in ABF_ESTIMATORS:
+        raise ValueError(f"unknown abf_estimator {sim.abf_estimator!r}")
     assert_no_reference_leakage(method, oracle_free_energy)
-    is_fr = method in FR_METHODS
+    is_sham = method in SHAM_METHODS
+    is_fr = (method in FR_METHODS) or is_sham
+    use_hist = sim.abf_estimator == "histogram"
     device, dtype = system.device, system.dtype
     R, N = len(seeds), sim.n_replicas
     beta = system.p.beta
@@ -236,6 +346,32 @@ def run_sampler(method, system: LTASystem, sim: LTASimConfig, seeds,
     K_kde = per.wrapped_gaussian_kernel_matrix(grid, sim.kde_bandwidth)
     gen_dyn = torch.Generator(device=device).manual_seed(int(sim.rng_seed))
     gen_fr = torch.Generator(device=device).manual_seed(int(sim.rng_seed) + 987654321)
+
+    n_opps = 0
+    if sim.fr_start_steps <= sim.n_steps:
+        n_opps = (sim.n_steps - sim.fr_start_steps) // max(int(sim.fr_every), 1) + 1
+    if is_sham:
+        if shadow_counts is None:
+            raise ValueError("fr_sham requires shadow_counts (its partner's event_counts)")
+        shadow_counts = np.asarray(shadow_counts)
+        if shadow_counts.shape != (n_opps, R):
+            raise ValueError(f"shadow_counts shape {shadow_counts.shape} != (n_opportunities "
+                             f"{n_opps}, R {R}); the partner must share sim and seeds")
+    elif shadow_counts is not None:
+        raise ValueError(f"shadow_counts is only accepted by the sham arm, not {method!r}")
+
+    def mf_profile_of(fs, cs):
+        if use_hist:
+            return histogram_mean_force(fs, cs)
+        return per.mean_force_profile(fs, cs, K_abf)
+
+    def pmf_of(mf):
+        if use_hist:
+            return histogram_pmf(mf, dphi)
+        return per.free_energy_from_mean_force(mf, grid, dphi)
+
+    def support_of(cs):
+        return cs if use_hist else per.effective_counts(cs, K_abf)
 
     oracle = None
     if method == "fr_oracle":
@@ -260,6 +396,19 @@ def run_sampler(method, system: LTASystem, sim: LTASimConfig, seeds,
     birth_hist = torch.zeros(R, sim.n_grid, device=device, dtype=dtype)
     death_hist = torch.zeros(R, sim.n_grid, device=device, dtype=dtype)
     score_std_sum = np.zeros(R); score_absmax = np.zeros(R); n_score = 0
+    event_counts = []                      # (R,) realised replacements per opportunity
+
+    # ---- report-only movie record (bit-inert) ----
+    snap_every = int(sim.store_snapshots or 0)
+    sn = None
+    if snap_every > 0:
+        r0 = int(sim.snapshot_seed_index)
+        if not (0 <= r0 < R):
+            raise ValueError(f"snapshot_seed_index {r0} outside 0..{R - 1}")
+        sn = {k: [] for k in ("step", "q", "phi", "wid", "anc", "pmf", "counts", "crossings")}
+        sn_die, sn_birth, sn_slots, sn_ids = [], [], [], []
+        wid = torch.arange(N, device=device, dtype=torch.long).expand(R, N).clone()
+        next_id = torch.full((R,), N, dtype=torch.long)
 
     diag = {k: [] for k in ["steps", "times", "mean_force", "pmf", "p_hat", "q_target",
                             "eff_counts", "ancestor_ess", "n_unique_ancestor",
@@ -282,13 +431,16 @@ def run_sampler(method, system: LTASystem, sim: LTASimConfig, seeds,
             u_now = system.potential_energy(qf).reshape(R, N)
             usum_prod += per.bin_sum(phi, u_now, sim.n_grid)
 
-        mf_profile = per.mean_force_profile(fsum, csum, K_abf)
-        A_hat = per.free_energy_from_mean_force(mf_profile, grid, dphi)
+        mf_profile = mf_profile_of(fsum, csum)
+        A_hat = pmf_of(mf_profile)
         ramp = min(1.0, step / max(sim.abf_warmup_steps, 1))
         abf_scale = sim.abf_bias_scale * ramp
         B_n = abf_scale * A_hat
-        mf_at = per.circular_interp(mf_profile, grid, phi).clamp(
-            -sim.abf_force_clip, sim.abf_force_clip)
+        if use_hist:
+            mf_at = torch.gather(mf_profile, -1, bin_index(phi, sim.n_grid))
+        else:
+            mf_at = per.circular_interp(mf_profile, grid, phi)
+        mf_at = mf_at.clamp(-sim.abf_force_clip, sim.abf_force_clip)
         bias_at = abf_scale * mf_at
         bias_force = (bias_at.reshape(R * N)[:, None, None]
                       * grad_f).reshape(R, N, 2, 3)
@@ -313,12 +465,12 @@ def run_sampler(method, system: LTASystem, sim: LTASimConfig, seeds,
         if step % sim.save_every == 0 or step == sim.n_steps:
             rep_est_f = fsum_prod if csum_prod.sum() > 0 else fsum
             rep_est_c = csum_prod if csum_prod.sum() > 0 else csum
-            mf_rep = per.mean_force_profile(rep_est_f, rep_est_c, K_abf)
-            pmf_rep = per.free_energy_from_mean_force(mf_rep, grid, dphi)
+            mf_rep = mf_profile_of(rep_est_f, rep_est_c)
+            pmf_rep = pmf_of(mf_rep)
             diag["steps"].append(step); diag["times"].append(step * sim.dt)
             diag["mean_force"].append(mf_rep.cpu().numpy())
             diag["pmf"].append(pmf_rep.cpu().numpy())
-            diag["eff_counts"].append(per.effective_counts(csum, K_abf).cpu().numpy())
+            diag["eff_counts"].append(support_of(csum).cpu().numpy())
             diag["repl_cumulative"].append(total_repl.numpy().copy())
             p_grid = per.kde_marginal(phi, K_kde, sim.n_grid, dphi)
             diag["p_hat"].append(p_grid.cpu().numpy())
@@ -348,6 +500,21 @@ def run_sampler(method, system: LTASystem, sim: LTASimConfig, seeds,
             diag["frac_neck"].append((cur_reg == 1).float().mean(-1).cpu().numpy())
             diag["frac_window"].append((cur_reg == 2).float().mean(-1).cpu().numpy())
 
+        if sn is not None and (step % snap_every == 0 or step == sim.n_steps):
+            # the state at the START of this step, like the saves; reported estimator
+            rep_est_f = fsum_prod if csum_prod.sum() > 0 else fsum
+            rep_est_c = csum_prod if csum_prod.sum() > 0 else csum
+            pmf_snap = pmf_of(mf_profile_of(rep_est_f[r0:r0 + 1], rep_est_c[r0:r0 + 1]))[0]
+            sn["step"].append(step)
+            sn["q"].append(q[r0].detach().to(torch.float32).cpu())
+            sn["phi"].append(phi[r0].detach().to(torch.float32).cpu())
+            sn["wid"].append(wid[r0].detach().to(torch.int32).cpu())
+            sn["anc"].append((ancestors[r0] if ancestors is not None
+                              else torch.arange(N, device=device)).detach().to(torch.int32).cpu())
+            sn["pmf"].append(pmf_snap.detach().to(torch.float32).cpu())
+            sn["counts"].append(rep_est_c[r0].detach().to(torch.float32).cpu())
+            sn["crossings"].append(int(rep_crossings[r0].sum().item()))
+
         if step == sim.n_steps:
             break
 
@@ -360,15 +527,27 @@ def run_sampler(method, system: LTASystem, sim: LTASimConfig, seeds,
                     (nxt - sim.fr_start_steps) % max(int(sim.fr_every), 1) == 0:
                 phi_new = system.cv_value(q.reshape(R * N, 2, 3)).reshape(R, N)
                 q_grid = _fr_target_lta(method, grid, dphi, F_ema, B_n, oracle, beta)
-                if q_grid is not None:
+                if is_sham:
+                    k_opp = len(event_counts)
+                    q_pre = q
+                    q, ancestors, n_repl, deaths, births = _sham_birth_death(
+                        q, shadow_counts[k_opp], ancestors, gen_fr)
+                    fired = True
+                elif q_grid is not None:
                     score, p_fr, kl = _fr_score(phi_new, grid, dphi, K_kde, q_grid,
                                                 sim.kde_bandwidth, sim.score_clip)
                     ss = score.detach().cpu().numpy()
                     score_std_sum += ss.std(axis=1)
                     score_absmax = np.maximum(score_absmax, np.abs(ss).max(axis=1))
                     n_score += 1
+                    q_pre = q
                     q, ancestors, n_repl, deaths, births = _birth_death(
                         q, score, ancestors, sim, gen_fr)
+                    fired = True
+                else:
+                    fired = False
+                if fired:
+                    event_counts.append(n_repl.cpu().numpy().astype(np.int32))
                     total_repl += n_repl.cpu()
                     for r in range(R):
                         if deaths[r] is not None and deaths[r].numel() > 0:
@@ -380,10 +559,27 @@ def run_sampler(method, system: LTASystem, sim: LTASimConfig, seeds,
                                 arr[r, deaths[r]] = arr[r].index_select(0, births[r])
                             if prev_reg is not None:
                                 prev_reg[r, deaths[r]] = prev_reg[r].index_select(0, births[r])
+                            if sn is not None:
+                                n_ev = int(deaths[r].numel())
+                                child = next_id[r].item() + torch.arange(n_ev, device=device, dtype=torch.long)
+                                if r == r0:
+                                    slot = float(len(sn["step"]))      # the snapshot this event precedes
+                                    com_pre = q_pre[r].mean(dim=1)      # pre-replacement COMs
+                                    cd = com_pre.index_select(0, deaths[r]).to(torch.float32).cpu()
+                                    cb = com_pre.index_select(0, births[r]).to(torch.float32).cpu()
+                                    sl = torch.full((n_ev, 1), slot, dtype=torch.float32)
+                                    sn_die.append(torch.cat([sl, zd.to(torch.float32).cpu()[:, None], cd], dim=1))
+                                    sn_birth.append(torch.cat([sl, zb.to(torch.float32).cpu()[:, None], cb], dim=1))
+                                    sn_slots.append(torch.stack([deaths[r], births[r]], dim=1).to(torch.int32).cpu())
+                                    parent = wid[r].index_select(0, births[r])          # ids BEFORE minting
+                                    sn_ids.append(torch.stack([child, parent], dim=1).to(torch.int64).cpu())
+                                wid[r, deaths[r]] = child
+                                next_id[r] += n_ev
 
     u_of_z = (usum_prod / csum_prod.clamp_min(1.0)).cpu().numpy()
     out = {"method": method, "grid": grid.cpu().numpy(), "dphi": float(dphi),
            "a_pseudo": system.a, "box": system.L,
+           "abf_estimator": sim.abf_estimator,
            "runtime_seconds": time.perf_counter() - t0,
            "total_replacement_events": total_repl.numpy(),
            "n_transitions": trans_counts.cpu().numpy(),
@@ -395,11 +591,34 @@ def run_sampler(method, system: LTASystem, sim: LTASimConfig, seeds,
            "fr_score_absmax": score_absmax,
            "u_of_z": u_of_z,
            "u_counts": csum_prod.cpu().numpy(),
-           "final_eff_counts": per.effective_counts(csum, K_abf).cpu().numpy()}
+           "final_eff_counts": support_of(csum).cpu().numpy(),
+           "fsum_prod": fsum_prod.cpu().numpy(),
+           "event_counts": (np.asarray(event_counts, dtype=np.int32) if event_counts
+                            else np.zeros((0, R), dtype=np.int32))}
     for k in diag:
         out[k] = np.asarray(diag[k])
+    if sn is not None:
+        out["snap_every"] = snap_every
+        out["snap_seed"] = int(seeds[r0])
+        out["snap_steps"] = np.asarray(sn["step"], dtype=np.int64)
+        out["snap_times"] = out["snap_steps"] * float(sim.dt)
+        out["snap_q"] = torch.stack(sn["q"]).numpy()
+        out["snap_phi"] = torch.stack(sn["phi"]).numpy()
+        out["snap_wid"] = torch.stack(sn["wid"]).numpy()
+        out["snap_anc"] = torch.stack(sn["anc"]).numpy()
+        out["snap_pmf"] = torch.stack(sn["pmf"]).numpy()
+        out["snap_counts"] = torch.stack(sn["counts"]).numpy()
+        out["snap_crossings"] = np.asarray(sn["crossings"], dtype=np.int64)
+        out["snap_ev_die"] = (torch.cat(sn_die).numpy() if sn_die
+                              else np.zeros((0, 5), dtype=np.float32))
+        out["snap_ev_birth"] = (torch.cat(sn_birth).numpy() if sn_birth
+                                else np.zeros((0, 5), dtype=np.float32))
+        out["snap_ev_slots"] = (torch.cat(sn_slots).numpy() if sn_slots
+                                else np.zeros((0, 2), dtype=np.int32))      # [dying slot, source slot]
+        out["snap_ev_ids"] = (torch.cat(sn_ids).numpy() if sn_ids
+                              else np.zeros((0, 2), dtype=np.int64))        # [child id, parent id]
     if verbose:
-        print(f"  {method:12s} R={R} N={N}: {out['runtime_seconds']:.1f}s "
+        print(f"  {method:12s} R={R} N={N} [{sim.abf_estimator}]: {out['runtime_seconds']:.1f}s "
               f"repl={out['total_replacement_events'].sum()} "
               f"crossings={out['n_cage_crossings'].sum()}", flush=True)
     return out

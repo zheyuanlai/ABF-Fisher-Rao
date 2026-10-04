@@ -1,0 +1,2220 @@
+{
+  "study": "ethane/LTA histogram-estimator replication + 350 K extension + matched sham",
+  "mode": "kernel-only",
+  "campaign": {
+    "path": "configs/lta_histogram/campaign.json",
+    "loaded": true,
+    "temperatures_K": [
+      300.0,
+      150.0,
+      350.0,
+      225.0,
+      80.0
+    ],
+    "arms": [
+      "abf",
+      "fr_uniform",
+      "fr_sham"
+    ],
+    "sampler": {
+      "n_replicas": 1024,
+      "n_steps": 300000,
+      "dt": 0.0002,
+      "save_every": 3000,
+      "n_grid": 180,
+      "abf_bandwidth": 0.05,
+      "kde_bandwidth": 0.1,
+      "abf_warmup_steps": 20000,
+      "abf_force_clip": 60.0,
+      "estimator_burn_in_steps": 20000,
+      "fr_start_steps": 20000,
+      "fr_every": 5,
+      "score_clip": 2.0,
+      "max_event_fraction": 0.02,
+      "target_ema_rate": 0.005,
+      "_budget_note": "identical force-evaluation budget at every T; if ABF cannot converge at low T within it, that IS the starved regime -- censoring is reported, never imputed",
+      "abf_estimator": "histogram",
+      "_": "identical to configs/uniform_campaign/lta_sweep_prereg.json except abf_estimator; abf_bandwidth is unused by the histogram branch and kept only so the field set is the sweep's; the FR marginal KDE (kde_bandwidth, object B), rate, cadence, start, clip and cap are untouched"
+    },
+    "success_rule": {
+      "median_rel_change_pct_max": -10.0,
+      "ci95_upper_pct_max": 0.0,
+      "final_noninferiority_margin_pct": 5.0,
+      "ess_anc_over_N_min": 0.3,
+      "wmax_max": 0.05
+    },
+    "replication_rules": {
+      "magnitude_int_points": 10.0,
+      "magnitude_int_points_source": "text:replicates",
+      "magnitude_final_points": 15.0,
+      "magnitude_final_points_source": "text:replicates",
+      "absolute_accuracy_pct_max": 25.0,
+      "absolute_accuracy_pct_max_source": "text:absolute_accuracy_acceptable"
+    },
+    "replication_rules_raw": {
+      "fr_effect_within_estimator": "paired by seed: Delta = (arm - abf)/abf for I_F and e_F(T); median, bootstrap 95 % CI (10000, seed 20260829), wins",
+      "replicates": "(i) same sign of median Delta I_F and Delta e_F(T) as the kernel sweep at that T; (ii) if the kernel CI95 upper bound for Delta I_F < 0 then the histogram's is too; (iii) |median Delta I_F(hist) - median Delta I_F(kernel)| <= 10 points OR overlapping CIs; same for Delta e_F(T) with 15 points",
+      "absolute_accuracy_acceptable": "histogram ABF own median e_F(T) within +25 % of kernel ABF's (legacy read-out, recomputed with the same code), and median I_F within +25 %; better is not a failure",
+      "safety": "the sweep's genealogy floors: median across seeds of per-seed min ESS/N >= 0.30 and max lineage share <= 0.05 (worst seed reported)"
+    },
+    "width_ladder": {
+      "n_grids": [
+        90,
+        180,
+        360
+      ],
+      "floor_share_max": 0.2,
+      "plateau_pct": 5.0,
+      "temperature_K": 300.0,
+      "rng_seed": 20261003,
+      "selected_n_grid": 180
+    },
+    "seeds_count": 16,
+    "predictions": {
+      "P1_replication": "histogram FR vs histogram ABF at 300 / 150 / 225 / 80 K has the same sign and a magnitude within 10 points of the kernel sweep (-14.8 / -31.9 / -21.3 / -35.1 % integrated; -19.7 / -56.3 / -28.2 / -74.7 % final), 16/16 or 15/16 wins; CIs exclude zero",
+      "P2_baseline": "histogram ABF own e_F(T) is within +-10 % of kernel ABF's legacy read-out (0.087 / 0.134 / 0.095 / 0.164 kJ/mol): the read-out audit put raw bins on the plateau, so the online own-bin bias costs little; I_F within +15 %",
+      "P3_350K": "benefit keeps shrinking: Delta I_F between -12 % and 0 (ABF crossings per replica > 2.7), final within +-10 %, verdict NEUTRAL or a marginal ACCELERATION_POSITIVE; the reference's entropic share rises above 72 %. If instead Delta I_F < -15 % at 350 K the entropy-share reading gains support and the starvation reading loses -- recorded as the alternative",
+      "P4_sham": "the matched sham is NEUTRAL to slightly harmful vs ABF (|Delta I_F| < 5 %, final +0..+10 %) at every T; FR beats its sham directly by at least two thirds of its FR-vs-ABF margin, CI excluding zero (gateway precedent: -11.8 % direct when -12.1 % vs ABF)",
+      "P5_screening_rule": "the proposed rule already classifies 150-300 K as establishment-limited on the kernel ABF arms (T_hit/T_run 0.03-0.05, T_est/T_run 0.6-0.7) and the histogram arms will agree; the e0/8 convention (tau 2.4-4.2) does NOT -- i.e. the rule works only with a threshold tied to the FINAL error, not to the initial one",
+      "P6_health": "histogram FR fires more replacement events than the kernel FR (+30-70 %, the WCA precedent) and its median min ESS/N stays >= 0.30 at 150-350 K; 80 K may again fall below (0.257 under the kernel)"
+    }
+  },
+  "inputs": {
+    "results_dir": "results/lta_histogram",
+    "reference_dir": "results/uniform_campaign/lta/reference",
+    "kernel_dir": "results/uniform_campaign/lta",
+    "out_dir": "results/lta_histogram/pre_run_kernel_only"
+  },
+  "conventions": {
+    "error": "additive-constant-aligned full-circle RMS per (save, seed) vs the umbrella/WHAM reference interpolated to the engine grid (kJ/mol)",
+    "integrated": "trapezoid over saves",
+    "bootstrap": {
+      "n": 10000,
+      "seed_int": 20260829,
+      "seed_final": 20260830
+    },
+    "tau_persistence": 0.2,
+    "health": "median across seeds of per-seed min ESS/N and max lineage share over FR-active saves; worst seed alongside",
+    "p0_floor": "periodic CubicSpline of the reference F -> exact bin-average force -> histogram_pmf -> aligned RMS at the cell centres"
+  },
+  "histogram_pmf_source": "src/lta/core_lta.py::histogram_pmf",
+  "per_T": {
+    "300": {
+      "temperature_K": 300.0,
+      "per_T_config": {
+        "rng_seed": 20260904,
+        "seeds_first": 1060,
+        "fr_rate": 0.2,
+        "reference": "results/uniform_campaign/lta/reference/reference_T300.npz",
+        "kernel_production": "results/uniform_campaign/lta/production_T300"
+      },
+      "reference": {
+        "path": "results/uniform_campaign/lta/reference/reference_T300.npz",
+        "kT": 2.4943387854,
+        "temperature_K": 300.0,
+        "dF_barrier_kT": 10.766604434402941,
+        "dU_barrier_kT": 2.996080158234123,
+        "mTdS_barrier_kT": 7.770524276168819,
+        "entropic_fraction": 0.7217246926374825
+      },
+      "p0_floor_kJmol": {
+        "90": 0.016632948260969692,
+        "180": 0.004779602645611121,
+        "360": 0.0011393993749443756
+      },
+      "validation": {
+        "histogram": {
+          "ok": true,
+          "checks": []
+        },
+        "kernel": {
+          "ok": true,
+          "checks": [
+            {
+              "check": "times abf == fr_uniform",
+              "ok": true
+            },
+            {
+              "check": "seeds abf == fr_uniform",
+              "ok": true
+            },
+            {
+              "check": "abf.meta.temperature_K == 300",
+              "ok": true,
+              "value": 300.0
+            },
+            {
+              "check": "fr_uniform.meta.temperature_K == 300",
+              "ok": true,
+              "value": 300.0
+            }
+          ]
+        }
+      },
+      "arms": {},
+      "kernel_arms": {
+        "abf": {
+          "R": 16,
+          "seeds": [
+            760,
+            761,
+            762,
+            763,
+            764,
+            765,
+            766,
+            767,
+            768,
+            769,
+            770,
+            771,
+            772,
+            773,
+            774,
+            775
+          ],
+          "rng_seed": 20260904,
+          "fr_rate": 0.2,
+          "estimator": null,
+          "path": "results/uniform_campaign/lta/production_T300/abf.npz",
+          "events_total": 0,
+          "events_per_replica": 0.0,
+          "crossings_total": 44107,
+          "crossings_per_replica": 2.69207763671875,
+          "crossings_per_seed": [
+            2770,
+            2751,
+            2734,
+            2802,
+            2851,
+            2792,
+            2723,
+            2714,
+            2815,
+            2726,
+            2656,
+            2695,
+            2752,
+            2776,
+            2822,
+            2728
+          ],
+          "support": {
+            "min_bin_count": 1433837.0,
+            "n_empty_bins_total": 0,
+            "median_bin_count": 1578670.5
+          },
+          "median_eF_T": 0.08690477519105272,
+          "median_I_F": 23.029521980518215,
+          "iqr_eF_T": [
+            0.06913923049576517,
+            0.09272726751830267
+          ],
+          "iqr_I_F": [
+            21.35649880436723,
+            25.161024366192898
+          ],
+          "curve_median_eF_t": [
+            10.97869205195146,
+            3.404554275405933,
+            2.742370643978381,
+            1.7131050234669933,
+            0.7843890091629877,
+            0.45665275320945553,
+            0.34005857081411867,
+            0.7627057726796157,
+            0.7787313512826418,
+            0.7148401728696452,
+            0.7050515524722172,
+            0.6761005102358808,
+            0.6433116191974234,
+            0.6004668979494073,
+            0.5654047438180293,
+            0.5482336344857133,
+            0.529442770660623,
+            0.4995407452017455,
+            0.47083443322553764,
+            0.43860698818000016,
+            0.42421487489599335,
+            0.4091990044828966,
+            0.3973958274057272,
+            0.3820196452065524,
+            0.3599254900212463,
+            0.34652687552079875,
+            0.3328286713468157,
+            0.3206718338860895,
+            0.3117010860593962,
+            0.301515131817903,
+            0.2890445685876548,
+            0.2794763225158336,
+            0.2673789960719998,
+            0.2569221840964714,
+            0.24716225053258203,
+            0.23887950462628899,
+            0.2274120507878839,
+            0.220349184800899,
+            0.21462290956404917,
+            0.20778640645105784,
+            0.20126424080163052,
+            0.19192152173897042,
+            0.18796170024236986,
+            0.17967308714171548,
+            0.17604310174241417,
+            0.17483837064702704,
+            0.170786949580487,
+            0.16900413584231946,
+            0.16679975859171403,
+            0.1606573925762546,
+            0.15809575405282866,
+            0.1538535213374364,
+            0.15230107115557306,
+            0.1486103420561704,
+            0.14707337051921496,
+            0.14367304720568638,
+            0.14010161144386102,
+            0.13771152176340096,
+            0.13939293564070993,
+            0.13555019585915748,
+            0.13137273514560724,
+            0.12797320682311258,
+            0.1253275245637543,
+            0.12163681782555863,
+            0.11890680581319384,
+            0.11770750226921932,
+            0.11657809395658313,
+            0.11312600415442733,
+            0.11292053734518784,
+            0.11061897986212077,
+            0.1074239363057935,
+            0.10675652239945639,
+            0.1067822783115282,
+            0.10586038282240791,
+            0.10424223349891168,
+            0.10205421422505184,
+            0.09993533313906247,
+            0.09976349195614556,
+            0.09686935042896658,
+            0.09522305455943751,
+            0.09497875678582307,
+            0.09461292056754897,
+            0.09498506430192291,
+            0.09563767120386041,
+            0.09319914416930407,
+            0.09279668028328475,
+            0.09257468971037268,
+            0.09090713282165505,
+            0.08908883749505248,
+            0.08899954389165687,
+            0.08926025498703653,
+            0.09058204230566859,
+            0.09225313747937317,
+            0.09172712928558395,
+            0.09271321912634986,
+            0.0909718588991869,
+            0.0901742529852459,
+            0.0885995817363852,
+            0.08860105052058773,
+            0.08783420929559987,
+            0.08690477519105272
+          ]
+        },
+        "fr_uniform": {
+          "R": 16,
+          "seeds": [
+            760,
+            761,
+            762,
+            763,
+            764,
+            765,
+            766,
+            767,
+            768,
+            769,
+            770,
+            771,
+            772,
+            773,
+            774,
+            775
+          ],
+          "rng_seed": 20260904,
+          "fr_rate": 0.2,
+          "estimator": null,
+          "path": "results/uniform_campaign/lta/production_T300/fr_uniform.npz",
+          "events_total": 10483,
+          "events_per_replica": 0.63983154296875,
+          "crossings_total": 45129,
+          "crossings_per_replica": 2.75445556640625,
+          "crossings_per_seed": [
+            2877,
+            2849,
+            2848,
+            2869,
+            2867,
+            2849,
+            2839,
+            2784,
+            2861,
+            2746,
+            2724,
+            2765,
+            2797,
+            2862,
+            2838,
+            2754
+          ],
+          "support": {
+            "min_bin_count": 1466555.0,
+            "n_empty_bins_total": 0,
+            "median_bin_count": 1579847.0
+          },
+          "health": {
+            "median_min_ess_frac": 0.41847725882003994,
+            "median_max_wmax": 0.0087890625,
+            "worst_min_ess_frac": 0.3801039346696362,
+            "worst_max_wmax": 0.0126953125,
+            "n_active_saves": 94,
+            "convention": "median across seeds (gateway rule); worst seed alongside"
+          },
+          "median_eF_T": 0.06642782469331332,
+          "median_I_F": 19.563011466276485,
+          "iqr_eF_T": [
+            0.05476463515797788,
+            0.08428256109831714
+          ],
+          "iqr_I_F": [
+            17.868744538399525,
+            21.783583747654184
+          ],
+          "curve_median_eF_t": [
+            10.97869205195146,
+            3.404554275405933,
+            2.742370643978381,
+            1.7131050234669936,
+            0.7843890091629878,
+            0.45665275320945564,
+            0.3400585708141164,
+            0.7318629321970702,
+            0.7166780237172552,
+            0.654713392937592,
+            0.6091249190418377,
+            0.5657198934431698,
+            0.5511877733260684,
+            0.48078512997452094,
+            0.4443847959423185,
+            0.4148631726307628,
+            0.3871492485162982,
+            0.35651644014153894,
+            0.33900668301354037,
+            0.32197513202936445,
+            0.302243676065175,
+            0.2888636018476877,
+            0.26397384263213286,
+            0.2575987927047465,
+            0.2503637582296304,
+            0.238516727055284,
+            0.22704508427940426,
+            0.2119613243504635,
+            0.2034099649182811,
+            0.19161365200637198,
+            0.1862081312419186,
+            0.17889499120035132,
+            0.167004977633949,
+            0.1582252422327574,
+            0.1603212870340372,
+            0.15562170834022093,
+            0.14673344125006943,
+            0.14054448777128675,
+            0.13633346818373085,
+            0.13111085288106103,
+            0.12378047984932664,
+            0.12243713797348388,
+            0.12254837027192587,
+            0.11899913372962179,
+            0.11849736104685965,
+            0.11523267456590133,
+            0.11599473655961612,
+            0.11386284008133539,
+            0.11153411435944885,
+            0.10582266278014663,
+            0.10472823150774954,
+            0.10486792036617124,
+            0.10317451170240986,
+            0.10151142494045454,
+            0.10164041905501935,
+            0.09879236784287931,
+            0.09897940866399163,
+            0.09666421463141753,
+            0.09440693483257716,
+            0.09262477481321618,
+            0.09264503672906774,
+            0.09139293797470402,
+            0.0891214424546421,
+            0.0878430908405046,
+            0.08575360881085231,
+            0.08646344423206193,
+            0.0861932219699971,
+            0.08439527349061775,
+            0.08489686979486431,
+            0.08317058434414401,
+            0.08297379173852519,
+            0.08265885163641642,
+            0.08025613265945541,
+            0.07875203169709541,
+            0.07912434024650108,
+            0.0769426181458561,
+            0.07563376133918666,
+            0.07340587403018708,
+            0.07298273196086419,
+            0.0724912123311589,
+            0.07195513228466785,
+            0.07308945377517674,
+            0.07379733730708958,
+            0.07442518709039277,
+            0.07374802578482084,
+            0.07218411465803293,
+            0.07112529352401353,
+            0.07141682903354904,
+            0.07045086496154195,
+            0.0702293154237785,
+            0.06970908223180489,
+            0.06956463518958747,
+            0.06886417442681644,
+            0.06844541037914811,
+            0.06809495063757706,
+            0.06743844730860492,
+            0.06714047475649289,
+            0.06614598573788368,
+            0.0658420549511072,
+            0.06590356262002188,
+            0.06642782469331332
+          ]
+        }
+      },
+      "fr_start_t": 4.2,
+      "contrasts": {
+        "kernel_fr_uniform_vs_kernel_abf": {
+          "d_int": {
+            "median": -14.838179671793384,
+            "ci95": [
+              -17.002428515133815,
+              -11.698065568886083
+            ],
+            "wins": 16,
+            "n": 16
+          },
+          "d_fin": {
+            "median": -19.677625016959432,
+            "ci95": [
+              -25.110020352631246,
+              -7.003654556625579
+            ],
+            "wins": 14,
+            "n": 16
+          }
+        }
+      },
+      "kernel_reproduction": {
+        "recomputed_d_int": -14.838179671793384,
+        "recomputed_d_fin": -19.677625016959432,
+        "recomputed_d_int_ci": [
+          -17.002428515133815,
+          -11.698065568886083
+        ],
+        "recomputed_d_fin_ci": [
+          -25.110020352631246,
+          -7.003654556625579
+        ],
+        "recomputed_wins": 16,
+        "sweep_d_int": -14.838179671793384,
+        "sweep_d_fin": -19.677625016959432,
+        "sweep_d_int_ci": [
+          -17.002428515133815,
+          -11.698065568886083
+        ],
+        "sweep_d_fin_ci": [
+          -25.110020352631246,
+          -7.003654556625579
+        ],
+        "sweep_wins": 16,
+        "abs_diff_d_int": 0.0,
+        "abs_diff_d_fin": 0.0,
+        "abs_diff_ci": 0.0,
+        "ok_d_int": true,
+        "ok_d_fin": true,
+        "ok_ci": true,
+        "status": "ok"
+      },
+      "establishment": {
+        "kernel_abf": {
+          "T_run": 60.0,
+          "t_first_window": 1.8,
+          "t_first_window_n_never": 0,
+          "t_first_frac_window_1pct": 3.6,
+          "t_first_frac_window_1pct_n_never": 0,
+          "eF_final_median": 0.08690477519105272,
+          "t_to_1p5x_final": 36.6,
+          "t_to_2x_final": 27.6,
+          "tau_e0_8": 2.4,
+          "t_to_1p5x_final_first_hit": 36.6,
+          "t_to_2x_final_first_hit": 27.6,
+          "kl_uniform_median_at": {
+            "t=4": 0.2628554295655927,
+            "t=12": 0.013890831771358803,
+            "t=60": 0.008448910001588612
+          },
+          "crossings_per_replica": 2.69207763671875,
+          "ratios_to_T_run": {
+            "T_hit": 0.030000000000000002,
+            "T_est": 0.61,
+            "t_to_2x_final": 0.46,
+            "tau_e0_8": 0.04
+          },
+          "screening_rule": {
+            "rule": "T_hit/T_run < 0.1 and 0.25 < T_est/T_run < 0.75; T_hit = median t_first_window, T_est = time (median curve, persistence 0.2 T) to 1.5x the final error",
+            "T_hit": 1.8,
+            "T_est": 36.6,
+            "hit_ok": true,
+            "est_ok": true,
+            "satisfied": true,
+            "T_est_first_hit": 36.6,
+            "satisfied_first_hit": true
+          }
+        }
+      },
+      "status": "kernel only"
+    },
+    "150": {
+      "temperature_K": 150.0,
+      "per_T_config": {
+        "rng_seed": 20260902,
+        "seeds_first": 1020,
+        "fr_rate": 0.2,
+        "reference": "results/uniform_campaign/lta/reference/reference_T150.npz",
+        "kernel_production": "results/uniform_campaign/lta/production_T150"
+      },
+      "reference": {
+        "path": "results/uniform_campaign/lta/reference/reference_T150.npz",
+        "kT": 1.2471693927,
+        "temperature_K": 150.0,
+        "dF_barrier_kT": 13.479256973029715,
+        "dU_barrier_kT": 5.305464566132076,
+        "mTdS_barrier_kT": 8.17379240689764,
+        "entropic_fraction": 0.6063978469475255
+      },
+      "p0_floor_kJmol": {
+        "90": 0.013423828169394815,
+        "180": 0.003485298969783111,
+        "360": 0.000860699607601536
+      },
+      "validation": {
+        "histogram": {
+          "ok": true,
+          "checks": []
+        },
+        "kernel": {
+          "ok": true,
+          "checks": [
+            {
+              "check": "times abf == fr_uniform",
+              "ok": true
+            },
+            {
+              "check": "seeds abf == fr_uniform",
+              "ok": true
+            },
+            {
+              "check": "abf.meta.temperature_K == 150",
+              "ok": true,
+              "value": 150.0
+            },
+            {
+              "check": "fr_uniform.meta.temperature_K == 150",
+              "ok": true,
+              "value": 150.0
+            }
+          ]
+        }
+      },
+      "arms": {},
+      "kernel_arms": {
+        "abf": {
+          "R": 16,
+          "seeds": [
+            720,
+            721,
+            722,
+            723,
+            724,
+            725,
+            726,
+            727,
+            728,
+            729,
+            730,
+            731,
+            732,
+            733,
+            734,
+            735
+          ],
+          "rng_seed": 20260902,
+          "fr_rate": 0.2,
+          "estimator": null,
+          "path": "results/uniform_campaign/lta/production_T150/abf.npz",
+          "events_total": 0,
+          "events_per_replica": 0.0,
+          "crossings_total": 15323,
+          "crossings_per_replica": 0.93524169921875,
+          "crossings_per_seed": [
+            952,
+            957,
+            970,
+            994,
+            1012,
+            932,
+            937,
+            923,
+            1001,
+            988,
+            955,
+            928,
+            963,
+            952,
+            908,
+            951
+          ],
+          "support": {
+            "min_bin_count": 1275119.0,
+            "n_empty_bins_total": 0,
+            "median_bin_count": 1513262.0
+          },
+          "median_eF_T": 0.1342456206814029,
+          "median_I_F": 25.120593345193512,
+          "iqr_eF_T": [
+            0.12393302638696689,
+            0.15095085102742728
+          ],
+          "iqr_I_F": [
+            23.599928333009803,
+            25.95511578930384
+          ],
+          "curve_median_eF_t": [
+            7.242908448568714,
+            3.9031380160177176,
+            1.9766736947350272,
+            1.5197288926437744,
+            1.2546593104583588,
+            0.9791270285671547,
+            0.5139620946548787,
+            0.7228489898541781,
+            0.5570502870513904,
+            0.540379847236583,
+            0.5192074818949345,
+            0.5010829148216123,
+            0.4993277889689021,
+            0.4914828072330798,
+            0.4706507889649112,
+            0.4683471838687874,
+            0.46288478724181714,
+            0.46173805655112493,
+            0.4539509056625307,
+            0.4633323558748497,
+            0.4478918887943415,
+            0.43731993703661654,
+            0.43125918758332094,
+            0.4278577432239553,
+            0.4246403688532436,
+            0.41612416976785893,
+            0.4088812172209638,
+            0.4008489459944982,
+            0.3920628373018344,
+            0.38202527691458676,
+            0.37581728020347593,
+            0.37011927519701937,
+            0.36331007535386634,
+            0.357236264069578,
+            0.35163480266778524,
+            0.342593788683776,
+            0.33806191621068715,
+            0.3274667251274256,
+            0.3231397189827024,
+            0.3180252006237167,
+            0.3123151632309303,
+            0.30979497974424064,
+            0.3038777066766659,
+            0.30126373814949586,
+            0.2940070598201261,
+            0.2901032576596754,
+            0.2845320850285392,
+            0.27813618577394683,
+            0.27456387907019414,
+            0.2695792574552155,
+            0.2617531020746528,
+            0.2565636436178954,
+            0.25119149602989427,
+            0.24608257083990043,
+            0.24435905035768024,
+            0.241825586039713,
+            0.23854103738497012,
+            0.23622663519943216,
+            0.2335719577928271,
+            0.2272066808483219,
+            0.22426405868451021,
+            0.22105903880330038,
+            0.2176996379986005,
+            0.2171983510053322,
+            0.21119087819060545,
+            0.20825424331730205,
+            0.20580637445234223,
+            0.20185609441699104,
+            0.19765965091173593,
+            0.19422380311744786,
+            0.19180251086004993,
+            0.18981135437858976,
+            0.18886490818757104,
+            0.18655409338830042,
+            0.1817951262321298,
+            0.17901270857545576,
+            0.175735555635343,
+            0.17255228929952005,
+            0.17180641898926324,
+            0.16873463606549205,
+            0.16604298558103173,
+            0.1642875972288521,
+            0.16346992484616646,
+            0.16079211245021194,
+            0.15825701151670277,
+            0.15535411810837962,
+            0.152350408430303,
+            0.1516691781779156,
+            0.15051433979965934,
+            0.1504231880155995,
+            0.14777449582250526,
+            0.1466225271115288,
+            0.1459604116534023,
+            0.14503693021921266,
+            0.14459467642926316,
+            0.14326510287388916,
+            0.141022345354757,
+            0.13830775520691635,
+            0.1381271850008965,
+            0.13618520878197418,
+            0.1342456206814029
+          ]
+        },
+        "fr_uniform": {
+          "R": 16,
+          "seeds": [
+            720,
+            721,
+            722,
+            723,
+            724,
+            725,
+            726,
+            727,
+            728,
+            729,
+            730,
+            731,
+            732,
+            733,
+            734,
+            735
+          ],
+          "rng_seed": 20260902,
+          "fr_rate": 0.2,
+          "estimator": null,
+          "path": "results/uniform_campaign/lta/production_T150/fr_uniform.npz",
+          "events_total": 12521,
+          "events_per_replica": 0.76422119140625,
+          "crossings_total": 17984,
+          "crossings_per_replica": 1.09765625,
+          "crossings_per_seed": [
+            1121,
+            1078,
+            1107,
+            1147,
+            1160,
+            1129,
+            1119,
+            1092,
+            1103,
+            1132,
+            1166,
+            1156,
+            1150,
+            1076,
+            1071,
+            1177
+          ],
+          "support": {
+            "min_bin_count": 1370440.0,
+            "n_empty_bins_total": 0,
+            "median_bin_count": 1544643.5
+          },
+          "health": {
+            "median_min_ess_frac": 0.31930304915992536,
+            "median_max_wmax": 0.0126953125,
+            "worst_min_ess_frac": 0.277807921866522,
+            "worst_max_wmax": 0.0205078125,
+            "n_active_saves": 94,
+            "convention": "median across seeds (gateway rule); worst seed alongside"
+          },
+          "median_eF_T": 0.06276527788408026,
+          "median_I_F": 17.247597155991965,
+          "iqr_eF_T": [
+            0.050781079493073124,
+            0.07632732028464416
+          ],
+          "iqr_I_F": [
+            16.157857789949453,
+            17.74434138207191
+          ],
+          "curve_median_eF_t": [
+            7.242908448568714,
+            3.9031380160177176,
+            1.9766736947350272,
+            1.5197288926437742,
+            1.254659310458359,
+            0.9791270285671547,
+            0.5139620946548786,
+            0.7237504379151811,
+            0.5496454607630338,
+            0.5137792517215785,
+            0.44376231230085983,
+            0.4104244318767398,
+            0.3762863274687406,
+            0.35281568473644026,
+            0.32978652645575335,
+            0.319887619174332,
+            0.300095747180948,
+            0.2877691013162219,
+            0.2767699384456064,
+            0.26360182998313925,
+            0.24896352799518967,
+            0.238204395462783,
+            0.22952527367447273,
+            0.2104189361572424,
+            0.20369702452009558,
+            0.19807673925241875,
+            0.1908937842712487,
+            0.18147473015519194,
+            0.17435763680320931,
+            0.16482970036145567,
+            0.16425765840800677,
+            0.1603651911927385,
+            0.15214413282110084,
+            0.14795348891268176,
+            0.14447890684420722,
+            0.14208635917624432,
+            0.135717892974874,
+            0.13882635037778868,
+            0.1345956866148808,
+            0.12834443476938534,
+            0.1261576412019727,
+            0.12060557683260074,
+            0.11835659041166649,
+            0.11387573210758307,
+            0.11227046713744565,
+            0.10909456513975446,
+            0.10183901516998506,
+            0.10186844899438685,
+            0.10400298296458266,
+            0.10107578194817471,
+            0.09845209175337324,
+            0.09631580694929888,
+            0.09760310565082736,
+            0.09759502232554909,
+            0.09623894852549725,
+            0.09605024040107138,
+            0.09541583528801159,
+            0.09223813402255768,
+            0.089565267503624,
+            0.0874768263667615,
+            0.08606918070751135,
+            0.08538832550190883,
+            0.0824721902181185,
+            0.08063345725665055,
+            0.08035382290496634,
+            0.07868489089087462,
+            0.07623454073945263,
+            0.07438942345843015,
+            0.07605980947907465,
+            0.07611386899041514,
+            0.07507251758966944,
+            0.07272395604584096,
+            0.07299347291392463,
+            0.07480404513301614,
+            0.07410590841051029,
+            0.07443870869103925,
+            0.07414464788477516,
+            0.07213763223698123,
+            0.071956522554914,
+            0.07122364144906818,
+            0.06888656045971989,
+            0.06839706837201022,
+            0.06704899512074552,
+            0.06728942392325216,
+            0.06734159757198628,
+            0.06587316929530859,
+            0.06474079775681119,
+            0.06515816820552943,
+            0.06543144887408128,
+            0.06580220755133394,
+            0.0644281074384295,
+            0.06408397178917982,
+            0.06434107921645524,
+            0.06466787546165648,
+            0.0650997516059848,
+            0.06588802488507,
+            0.06603541416831775,
+            0.06489087884168285,
+            0.06414983274841764,
+            0.06299930065673222,
+            0.06276527788408026
+          ]
+        }
+      },
+      "fr_start_t": 4.2,
+      "contrasts": {
+        "kernel_fr_uniform_vs_kernel_abf": {
+          "d_int": {
+            "median": -31.917317550104528,
+            "ci95": [
+              -33.44708577525077,
+              -28.301693411623226
+            ],
+            "wins": 16,
+            "n": 16
+          },
+          "d_fin": {
+            "median": -56.31161886337729,
+            "ci95": [
+              -59.93728755120114,
+              -43.23520128856507
+            ],
+            "wins": 16,
+            "n": 16
+          }
+        }
+      },
+      "kernel_reproduction": {
+        "recomputed_d_int": -31.917317550104528,
+        "recomputed_d_fin": -56.31161886337729,
+        "recomputed_d_int_ci": [
+          -33.44708577525077,
+          -28.301693411623226
+        ],
+        "recomputed_d_fin_ci": [
+          -59.93728755120114,
+          -43.23520128856507
+        ],
+        "recomputed_wins": 16,
+        "sweep_d_int": -31.917317550104528,
+        "sweep_d_fin": -56.31161886337729,
+        "sweep_d_int_ci": [
+          -33.44708577525077,
+          -28.301693411623226
+        ],
+        "sweep_d_fin_ci": [
+          -59.93728755120114,
+          -43.23520128856507
+        ],
+        "sweep_wins": 16,
+        "abs_diff_d_int": 0.0,
+        "abs_diff_d_fin": 0.0,
+        "abs_diff_ci": 0.0,
+        "ok_d_int": true,
+        "ok_d_fin": true,
+        "ok_ci": true,
+        "status": "ok"
+      },
+      "establishment": {
+        "kernel_abf": {
+          "T_run": 60.0,
+          "t_first_window": 2.4,
+          "t_first_window_n_never": 0,
+          "t_first_frac_window_1pct": 4.2,
+          "t_first_frac_window_1pct_n_never": 0,
+          "eF_final_median": 0.1342456206814029,
+          "t_to_1p5x_final": 40.800000000000004,
+          "t_to_2x_final": 30.0,
+          "tau_e0_8": 3.6,
+          "t_to_1p5x_final_first_hit": 40.800000000000004,
+          "t_to_2x_final_first_hit": 30.0,
+          "kl_uniform_median_at": {
+            "t=4": 0.42974913668884523,
+            "t=12": 0.1111750032966004,
+            "t=60": 0.01128890628924616
+          },
+          "crossings_per_replica": 0.93524169921875,
+          "ratios_to_T_run": {
+            "T_hit": 0.04,
+            "T_est": 0.68,
+            "t_to_2x_final": 0.5,
+            "tau_e0_8": 0.060000000000000005
+          },
+          "screening_rule": {
+            "rule": "T_hit/T_run < 0.1 and 0.25 < T_est/T_run < 0.75; T_hit = median t_first_window, T_est = time (median curve, persistence 0.2 T) to 1.5x the final error",
+            "T_hit": 2.4,
+            "T_est": 40.800000000000004,
+            "hit_ok": true,
+            "est_ok": true,
+            "satisfied": true,
+            "T_est_first_hit": 40.800000000000004,
+            "satisfied_first_hit": true
+          }
+        }
+      },
+      "status": "kernel only"
+    },
+    "350": {
+      "temperature_K": 350.0,
+      "per_T_config": {
+        "rng_seed": 20260905,
+        "seeds_first": 1080,
+        "fr_rate": null,
+        "reference": "results/uniform_campaign/lta/reference/reference_T350.npz",
+        "kernel_production": null,
+        "reference_rule": {
+          "kappa": 594,
+          "ref_steps": 128571,
+          "ref_burn": 25714,
+          "ref_seed": 20260883,
+          "unbiased_steps": 100000,
+          "_": "the sweep prereg's rule: kappa = kT/(0.07 rad)^2, steps = round(150000*300/T), burn = round(30000*300/T), split-half dF agreement within 0.2 kT required"
+        }
+      },
+      "status": "no reference: nothing scored"
+    },
+    "225": {
+      "temperature_K": 225.0,
+      "per_T_config": {
+        "rng_seed": 20260903,
+        "seeds_first": 1040,
+        "fr_rate": 0.2,
+        "reference": "results/uniform_campaign/lta/reference/reference_T225.npz",
+        "kernel_production": "results/uniform_campaign/lta/production_T225"
+      },
+      "reference": {
+        "path": "results/uniform_campaign/lta/reference/reference_T225.npz",
+        "kT": 1.87075408905,
+        "temperature_K": 225.0,
+        "dF_barrier_kT": 11.73895438107386,
+        "dU_barrier_kT": 3.7352823165438886,
+        "mTdS_barrier_kT": 8.00367206452997,
+        "entropic_fraction": 0.6818045121151419
+      },
+      "p0_floor_kJmol": {
+        "90": 0.015464233031051523,
+        "180": 0.004148322098806628,
+        "360": 0.0010111705552304654
+      },
+      "validation": {
+        "histogram": {
+          "ok": true,
+          "checks": []
+        },
+        "kernel": {
+          "ok": true,
+          "checks": [
+            {
+              "check": "times abf == fr_uniform",
+              "ok": true
+            },
+            {
+              "check": "seeds abf == fr_uniform",
+              "ok": true
+            },
+            {
+              "check": "abf.meta.temperature_K == 225",
+              "ok": true,
+              "value": 225.0
+            },
+            {
+              "check": "fr_uniform.meta.temperature_K == 225",
+              "ok": true,
+              "value": 225.0
+            }
+          ]
+        }
+      },
+      "arms": {},
+      "kernel_arms": {
+        "abf": {
+          "R": 16,
+          "seeds": [
+            740,
+            741,
+            742,
+            743,
+            744,
+            745,
+            746,
+            747,
+            748,
+            749,
+            750,
+            751,
+            752,
+            753,
+            754,
+            755
+          ],
+          "rng_seed": 20260903,
+          "fr_rate": 0.2,
+          "estimator": null,
+          "path": "results/uniform_campaign/lta/production_T225/abf.npz",
+          "events_total": 0,
+          "events_per_replica": 0.0,
+          "crossings_total": 29410,
+          "crossings_per_replica": 1.7950439453125,
+          "crossings_per_seed": [
+            1834,
+            1828,
+            1885,
+            1759,
+            1810,
+            1904,
+            1790,
+            1828,
+            1919,
+            1866,
+            1847,
+            1822,
+            1827,
+            1838,
+            1822,
+            1831
+          ],
+          "support": {
+            "min_bin_count": 1412992.0,
+            "n_empty_bins_total": 0,
+            "median_bin_count": 1571313.5
+          },
+          "median_eF_T": 0.09479037507350091,
+          "median_I_F": 23.039097569348115,
+          "iqr_eF_T": [
+            0.07324632910918472,
+            0.1004787828868005
+          ],
+          "iqr_I_F": [
+            22.428063261769086,
+            24.479201386129347
+          ],
+          "curve_median_eF_t": [
+            9.246029225799145,
+            3.6610115527688833,
+            2.081428817568821,
+            1.6363616588278829,
+            1.401177926259189,
+            0.5308562468373074,
+            0.43382796190908696,
+            0.9205949056250249,
+            0.7749559680861792,
+            0.6853064287163222,
+            0.6834218949256183,
+            0.6405919060478775,
+            0.6170846805927432,
+            0.6076051768954315,
+            0.5868552593242811,
+            0.5548295015420718,
+            0.5311602615818561,
+            0.5114255015292475,
+            0.4938850051726236,
+            0.4704312501861197,
+            0.46743883320675056,
+            0.4523455430625614,
+            0.44198531504477573,
+            0.42878515682306095,
+            0.41550446724461054,
+            0.4040804240322602,
+            0.3910200956649804,
+            0.3786410648375609,
+            0.3646624403825997,
+            0.3476302767590415,
+            0.3356229337061716,
+            0.3275052592072818,
+            0.3190706667884685,
+            0.30111157235874364,
+            0.2926607731107935,
+            0.28573942341235214,
+            0.2800912288980988,
+            0.27537200335469886,
+            0.2654449775032143,
+            0.25847880609510765,
+            0.25271847484438204,
+            0.24340232414765328,
+            0.23450961201432363,
+            0.22866764157564629,
+            0.22463955362673427,
+            0.22025420521236067,
+            0.21564399125901557,
+            0.2069213719822534,
+            0.20547565249562683,
+            0.20451874895246844,
+            0.19969709612447245,
+            0.19678165464574332,
+            0.19421863162000338,
+            0.1861090995921112,
+            0.1829870210342614,
+            0.17472328406795148,
+            0.17216381693951105,
+            0.16950967191866564,
+            0.1631312305615482,
+            0.1613101863917475,
+            0.1567725296575188,
+            0.15358734706420876,
+            0.14865418469841077,
+            0.14480535987654372,
+            0.1441665422986152,
+            0.13922641776898814,
+            0.13530679671181942,
+            0.13399550203970856,
+            0.13270345129864952,
+            0.12999405976502332,
+            0.12870946638086264,
+            0.12509004427443557,
+            0.12339609106022961,
+            0.12254861773290274,
+            0.11816434128018166,
+            0.11672770811218117,
+            0.11519646939289525,
+            0.11325187197285752,
+            0.11262970042196994,
+            0.11150840072777554,
+            0.11111340055402558,
+            0.11052351410975206,
+            0.11147650491994851,
+            0.1101769236491422,
+            0.11120804887762263,
+            0.11078265097629392,
+            0.11083413611718526,
+            0.11001853070740747,
+            0.10741404694148213,
+            0.10646754373020323,
+            0.10566449344946596,
+            0.1043240384590958,
+            0.10241060587717637,
+            0.10057864903631882,
+            0.10125687334922917,
+            0.10124845166800091,
+            0.10119381142821621,
+            0.09909748211736188,
+            0.09769555008764723,
+            0.09775673631680137,
+            0.09479037507350091
+          ]
+        },
+        "fr_uniform": {
+          "R": 16,
+          "seeds": [
+            740,
+            741,
+            742,
+            743,
+            744,
+            745,
+            746,
+            747,
+            748,
+            749,
+            750,
+            751,
+            752,
+            753,
+            754,
+            755
+          ],
+          "rng_seed": 20260903,
+          "fr_rate": 0.2,
+          "estimator": null,
+          "path": "results/uniform_campaign/lta/production_T225/fr_uniform.npz",
+          "events_total": 11151,
+          "events_per_replica": 0.68060302734375,
+          "crossings_total": 30677,
+          "crossings_per_replica": 1.87237548828125,
+          "crossings_per_seed": [
+            1880,
+            1979,
+            1911,
+            1885,
+            1850,
+            1939,
+            1917,
+            1844,
+            1965,
+            1963,
+            1893,
+            1938,
+            1915,
+            1950,
+            1899,
+            1949
+          ],
+          "support": {
+            "min_bin_count": 1440302.0,
+            "n_empty_bins_total": 0,
+            "median_bin_count": 1571765.0
+          },
+          "health": {
+            "median_min_ess_frac": 0.38539755568272605,
+            "median_max_wmax": 0.009765625,
+            "worst_min_ess_frac": 0.35020519835841313,
+            "worst_max_wmax": 0.0146484375,
+            "n_active_saves": 94,
+            "convention": "median across seeds (gateway rule); worst seed alongside"
+          },
+          "median_eF_T": 0.060827758830183584,
+          "median_I_F": 18.477057576648132,
+          "iqr_eF_T": [
+            0.055561841020719045,
+            0.06983605001279401
+          ],
+          "iqr_I_F": [
+            16.956468196445954,
+            20.12838112988019
+          ],
+          "curve_median_eF_t": [
+            9.246029225799145,
+            3.6610115527688833,
+            2.0814288175688205,
+            1.63636165882788,
+            1.401177926259189,
+            0.5308562468373152,
+            0.4338279619090857,
+            0.9042937377986904,
+            0.7177753829102864,
+            0.6169008187047869,
+            0.5603914890307985,
+            0.5362084288052065,
+            0.4926114377879479,
+            0.4612182330508017,
+            0.4268256147880587,
+            0.39196706801357356,
+            0.3664805911185195,
+            0.3412997843333545,
+            0.32300129385676013,
+            0.3062565389631027,
+            0.2882661343223085,
+            0.2733599843318204,
+            0.2564746195339055,
+            0.25353417848697335,
+            0.24018345904959756,
+            0.222117865592886,
+            0.21314024341769827,
+            0.20108185217124308,
+            0.19647862329772897,
+            0.18792812419950206,
+            0.18180918339310492,
+            0.18381461313797304,
+            0.17300955599876228,
+            0.16794571130631564,
+            0.16021239551992147,
+            0.15968887548992933,
+            0.15623726495194568,
+            0.15591182722936914,
+            0.15222431825804703,
+            0.149707385099409,
+            0.1387886776511108,
+            0.13293895030033775,
+            0.13121857460710887,
+            0.13117008362913396,
+            0.12934434521208013,
+            0.1258128577570929,
+            0.12201298206871852,
+            0.11891163273924651,
+            0.11805208225068256,
+            0.1147622001907377,
+            0.1112622661974759,
+            0.10946868362871155,
+            0.10771148285964549,
+            0.10454914460117096,
+            0.10518535562381359,
+            0.10396895307186628,
+            0.10413958886310536,
+            0.10152519733065196,
+            0.09967417865379058,
+            0.09712938320713707,
+            0.09207371525716318,
+            0.0911364172300816,
+            0.08825887393585574,
+            0.08751255015245593,
+            0.0848525249908676,
+            0.08349493663503296,
+            0.08435682686284378,
+            0.08471700504730609,
+            0.08579718138653432,
+            0.08495536293192829,
+            0.08141103378934292,
+            0.08067837134584026,
+            0.07898280893737941,
+            0.07760552616976037,
+            0.07554277362797875,
+            0.07604283546310808,
+            0.07448029675168014,
+            0.07632910990311946,
+            0.07680571657392433,
+            0.07592102471018977,
+            0.07480226438151773,
+            0.07504260941950856,
+            0.07382030383039442,
+            0.07214234042946605,
+            0.07127978965897414,
+            0.07029869331164765,
+            0.06971789041254867,
+            0.06916790963269577,
+            0.06751918299613761,
+            0.06584688563816513,
+            0.06424722568486813,
+            0.06401942910723551,
+            0.06356830927595913,
+            0.06231348548522051,
+            0.06249187047432903,
+            0.06291295597411901,
+            0.062474498885371696,
+            0.06194732766592534,
+            0.061048942272325116,
+            0.06067153718815384,
+            0.060827758830183584
+          ]
+        }
+      },
+      "fr_start_t": 4.2,
+      "contrasts": {
+        "kernel_fr_uniform_vs_kernel_abf": {
+          "d_int": {
+            "median": -21.283802469745623,
+            "ci95": [
+              -23.205336162774174,
+              -18.133586022896456
+            ],
+            "wins": 16,
+            "n": 16
+          },
+          "d_fin": {
+            "median": -28.171404749228444,
+            "ci95": [
+              -35.14585496234895,
+              -24.142209761474707
+            ],
+            "wins": 15,
+            "n": 16
+          }
+        }
+      },
+      "kernel_reproduction": {
+        "recomputed_d_int": -21.283802469745623,
+        "recomputed_d_fin": -28.171404749228444,
+        "recomputed_d_int_ci": [
+          -23.205336162774174,
+          -18.133586022896456
+        ],
+        "recomputed_d_fin_ci": [
+          -35.14585496234895,
+          -24.142209761474707
+        ],
+        "recomputed_wins": 16,
+        "sweep_d_int": -21.283802469745623,
+        "sweep_d_fin": -28.171404749228444,
+        "sweep_d_int_ci": [
+          -23.205336162774174,
+          -18.133586022896456
+        ],
+        "sweep_d_fin_ci": [
+          -35.14585496234895,
+          -24.142209761474707
+        ],
+        "sweep_wins": 16,
+        "abs_diff_d_int": 0.0,
+        "abs_diff_d_fin": 0.0,
+        "abs_diff_ci": 0.0,
+        "ok_d_int": true,
+        "ok_d_fin": true,
+        "ok_ci": true,
+        "status": "ok"
+      },
+      "establishment": {
+        "kernel_abf": {
+          "T_run": 60.0,
+          "t_first_window": 2.1,
+          "t_first_window_n_never": 0,
+          "t_first_frac_window_1pct": 3.6,
+          "t_first_frac_window_1pct_n_never": 0,
+          "eF_final_median": 0.09479037507350091,
+          "t_to_1p5x_final": 39.0,
+          "t_to_2x_final": 31.8,
+          "tau_e0_8": 3.0,
+          "t_to_1p5x_final_first_hit": 39.0,
+          "t_to_2x_final_first_hit": 31.8,
+          "kl_uniform_median_at": {
+            "t=4": 0.3339402462977853,
+            "t=12": 0.02826670486695451,
+            "t=60": 0.00868157867238388
+          },
+          "crossings_per_replica": 1.7950439453125,
+          "ratios_to_T_run": {
+            "T_hit": 0.035,
+            "T_est": 0.65,
+            "t_to_2x_final": 0.53,
+            "tau_e0_8": 0.05
+          },
+          "screening_rule": {
+            "rule": "T_hit/T_run < 0.1 and 0.25 < T_est/T_run < 0.75; T_hit = median t_first_window, T_est = time (median curve, persistence 0.2 T) to 1.5x the final error",
+            "T_hit": 2.1,
+            "T_est": 39.0,
+            "hit_ok": true,
+            "est_ok": true,
+            "satisfied": true,
+            "T_est_first_hit": 39.0,
+            "satisfied_first_hit": true
+          }
+        }
+      },
+      "status": "kernel only"
+    },
+    "80": {
+      "temperature_K": 80.0,
+      "per_T_config": {
+        "rng_seed": 20260901,
+        "seeds_first": 1000,
+        "fr_rate": 0.1,
+        "reference": "results/uniform_campaign/lta/reference/reference_T80.npz",
+        "kernel_production": "results/uniform_campaign/lta/production_T80"
+      },
+      "reference": {
+        "path": "results/uniform_campaign/lta/reference/reference_T80.npz",
+        "kT": 0.66515700944,
+        "temperature_K": 80.0,
+        "dF_barrier_kT": 18.120641010169745,
+        "dU_barrier_kT": 9.692923398336196,
+        "mTdS_barrier_kT": 8.427717611833549,
+        "entropic_fraction": 0.4650893755416107
+      },
+      "p0_floor_kJmol": {
+        "90": 0.012144074375299262,
+        "180": 0.0030747357909898117,
+        "360": 0.000766138422066352
+      },
+      "validation": {
+        "histogram": {
+          "ok": true,
+          "checks": []
+        },
+        "kernel": {
+          "ok": true,
+          "checks": [
+            {
+              "check": "times abf == fr_uniform",
+              "ok": true
+            },
+            {
+              "check": "seeds abf == fr_uniform",
+              "ok": true
+            },
+            {
+              "check": "abf.meta.temperature_K == 80",
+              "ok": true,
+              "value": 80.0
+            },
+            {
+              "check": "fr_uniform.meta.temperature_K == 80",
+              "ok": true,
+              "value": 80.0
+            }
+          ]
+        }
+      },
+      "arms": {},
+      "kernel_arms": {
+        "abf": {
+          "R": 16,
+          "seeds": [
+            700,
+            701,
+            702,
+            703,
+            704,
+            705,
+            706,
+            707,
+            708,
+            709,
+            710,
+            711,
+            712,
+            713,
+            714,
+            715
+          ],
+          "rng_seed": 20260901,
+          "fr_rate": 0.1,
+          "estimator": null,
+          "path": "results/uniform_campaign/lta/production_T80/abf.npz",
+          "events_total": 0,
+          "events_per_replica": 0.0,
+          "crossings_total": 3840,
+          "crossings_per_replica": 0.234375,
+          "crossings_per_seed": [
+            224,
+            257,
+            209,
+            241,
+            226,
+            225,
+            241,
+            256,
+            251,
+            242,
+            235,
+            243,
+            258,
+            239,
+            249,
+            244
+          ],
+          "support": {
+            "min_bin_count": 792705.0,
+            "n_empty_bins_total": 0,
+            "median_bin_count": 1233877.0
+          },
+          "median_eF_T": 0.1638011875138195,
+          "median_I_F": 23.963568534006082,
+          "iqr_eF_T": [
+            0.15617300081053942,
+            0.17644792316433341
+          ],
+          "iqr_I_F": [
+            22.490972075855474,
+            24.824064564542578
+          ],
+          "curve_median_eF_t": [
+            5.6997325585225855,
+            5.892233737787322,
+            3.0265871097220334,
+            1.5928961002319033,
+            1.3213938942150338,
+            1.2634688134460865,
+            0.9967895303502682,
+            0.3937359878623212,
+            0.2828054804945914,
+            0.25793453690596146,
+            0.24534058517953017,
+            0.23709143531989757,
+            0.23388734744918804,
+            0.23385077571542784,
+            0.23037353540295652,
+            0.2217375235264903,
+            0.22865869146219195,
+            0.23809157120462582,
+            0.23183046510436836,
+            0.2199158880549002,
+            0.22712164619148595,
+            0.2392689898967697,
+            0.2495995294455141,
+            0.2557733897045461,
+            0.2623930949010276,
+            0.26380385389185007,
+            0.26782456602027477,
+            0.2687025881995021,
+            0.27305864518244116,
+            0.27801230623249373,
+            0.27900036661584593,
+            0.2750711537964948,
+            0.2744522608855313,
+            0.2763572193536473,
+            0.2723677858138483,
+            0.2718923892012391,
+            0.26690579314552254,
+            0.2685538555256411,
+            0.26617084014116954,
+            0.26589567237977274,
+            0.267295968466867,
+            0.2653301562083312,
+            0.2609952443770858,
+            0.2606884927731954,
+            0.2632479588593164,
+            0.25887981348376143,
+            0.2602873620016031,
+            0.2569386521575272,
+            0.2567097672961985,
+            0.2559976742369534,
+            0.2546860427799137,
+            0.25173143055715463,
+            0.25052666611575797,
+            0.2495473411841656,
+            0.24628397101513172,
+            0.24569621675079711,
+            0.2420398451334026,
+            0.23884805595383812,
+            0.23646295619548552,
+            0.23396051922611644,
+            0.2326204003238226,
+            0.2308101343065598,
+            0.22915273464409497,
+            0.22681563062609905,
+            0.22500085477929865,
+            0.22347815415324573,
+            0.22013270084220565,
+            0.2185129344268089,
+            0.2205865291349188,
+            0.22036074137702055,
+            0.21871095539959884,
+            0.21604244465992511,
+            0.21653901926448932,
+            0.21480682749958324,
+            0.2117694905966494,
+            0.21007222802780498,
+            0.20754681866628544,
+            0.20576483116987948,
+            0.20412285463166646,
+            0.20313978153169993,
+            0.20170860448903083,
+            0.19947603074614595,
+            0.19651676696099257,
+            0.1932234778529473,
+            0.19157789303238038,
+            0.19131520056890566,
+            0.18901053582160549,
+            0.18711626400769693,
+            0.18513554156648443,
+            0.18113077038460607,
+            0.1791033760564562,
+            0.17730938202551388,
+            0.1758501133893633,
+            0.17417510378172582,
+            0.17202980098152,
+            0.171257868471579,
+            0.16981545916948806,
+            0.16805339094660274,
+            0.1673732779079279,
+            0.1659703484438027,
+            0.1638011875138195
+          ]
+        },
+        "fr_uniform": {
+          "R": 16,
+          "seeds": [
+            700,
+            701,
+            702,
+            703,
+            704,
+            705,
+            706,
+            707,
+            708,
+            709,
+            710,
+            711,
+            712,
+            713,
+            714,
+            715
+          ],
+          "rng_seed": 20260901,
+          "fr_rate": 0.1,
+          "estimator": null,
+          "path": "results/uniform_campaign/lta/production_T80/fr_uniform.npz",
+          "events_total": 10744,
+          "events_per_replica": 0.65576171875,
+          "crossings_total": 7081,
+          "crossings_per_replica": 0.43218994140625,
+          "crossings_per_seed": [
+            435,
+            461,
+            428,
+            459,
+            436,
+            452,
+            463,
+            475,
+            435,
+            462,
+            402,
+            452,
+            417,
+            409,
+            467,
+            428
+          ],
+          "support": {
+            "min_bin_count": 1128997.0,
+            "n_empty_bins_total": 0,
+            "median_bin_count": 1430219.0
+          },
+          "health": {
+            "median_min_ess_frac": 0.25693045436748485,
+            "median_max_wmax": 0.0166015625,
+            "worst_min_ess_frac": 0.1887209730925175,
+            "worst_max_wmax": 0.0361328125,
+            "n_active_saves": 94,
+            "convention": "median across seeds (gateway rule); worst seed alongside"
+          },
+          "median_eF_T": 0.04055383016434088,
+          "median_I_F": 15.478009096662788,
+          "iqr_eF_T": [
+            0.038741720004402125,
+            0.04619676275588202
+          ],
+          "iqr_I_F": [
+            14.548550345183488,
+            16.594890867536733
+          ],
+          "curve_median_eF_t": [
+            5.6997325585225855,
+            5.892233737787322,
+            3.0265871097220334,
+            1.5928961002319033,
+            1.3213938942150338,
+            1.263468813446086,
+            0.9967895303502677,
+            0.39067390421575093,
+            0.2756305522144804,
+            0.2504488604503819,
+            0.2355896755816943,
+            0.22660392145286568,
+            0.20183114089727525,
+            0.19035083553913584,
+            0.16700437222617368,
+            0.1550231442157189,
+            0.14901196975808406,
+            0.13892900429534605,
+            0.13102015110165488,
+            0.12203977489207535,
+            0.1248307027680072,
+            0.12525711168263282,
+            0.12467494282392545,
+            0.11871542107047636,
+            0.1175810969240578,
+            0.11647102370339066,
+            0.1107641649020968,
+            0.10732839204671737,
+            0.10159607670111455,
+            0.0989730526015365,
+            0.09258477357309206,
+            0.0891673404259933,
+            0.08561274367269152,
+            0.08194705243718431,
+            0.078869951398297,
+            0.07653853051336007,
+            0.0753811682248704,
+            0.07488618342095117,
+            0.07257616773522574,
+            0.07154980440779825,
+            0.07024238378529696,
+            0.06738617331145522,
+            0.06659891139897764,
+            0.06521655196758613,
+            0.063107677395216,
+            0.06166746261234869,
+            0.061777758305498684,
+            0.06068141795698793,
+            0.05928719993755613,
+            0.05943104923794082,
+            0.059814626929026934,
+            0.05957659602701936,
+            0.059551247274874874,
+            0.059510626533094343,
+            0.05670984115741596,
+            0.055652808579096394,
+            0.0562457206208742,
+            0.05466094631140885,
+            0.0535376045277224,
+            0.05366817895808172,
+            0.05271162918430556,
+            0.05177627554457635,
+            0.05160094528581405,
+            0.04996769279019205,
+            0.04927160929138896,
+            0.04873327119060106,
+            0.048495201497665404,
+            0.0479853697059105,
+            0.04749742681312962,
+            0.04687543753516827,
+            0.04653719681063348,
+            0.04611362812595466,
+            0.045488460530347066,
+            0.04493316479338717,
+            0.04461735708397523,
+            0.044289594687021226,
+            0.04498660881038878,
+            0.04501062758035641,
+            0.04502600720973838,
+            0.04519077096059984,
+            0.04504599839913945,
+            0.04461523890772663,
+            0.0443866591826789,
+            0.04388077748805971,
+            0.04347415016550681,
+            0.04355939674612879,
+            0.04330713355644267,
+            0.04320664975909409,
+            0.04307984545061061,
+            0.043152279777819505,
+            0.04285016566247621,
+            0.042494927918761444,
+            0.042471703922503316,
+            0.04204409353939351,
+            0.04187793840546779,
+            0.04140503071846239,
+            0.0410453421822282,
+            0.0410856734868216,
+            0.041046937487884065,
+            0.04114483055249709,
+            0.04055383016434088
+          ]
+        }
+      },
+      "fr_start_t": 4.2,
+      "contrasts": {
+        "kernel_fr_uniform_vs_kernel_abf": {
+          "d_int": {
+            "median": -35.14482889112051,
+            "ci95": [
+              -37.31258727359297,
+              -32.71192839993902
+            ],
+            "wins": 16,
+            "n": 16
+          },
+          "d_fin": {
+            "median": -74.73625890203749,
+            "ci95": [
+              -77.22539107439388,
+              -73.16682092681069
+            ],
+            "wins": 16,
+            "n": 16
+          }
+        }
+      },
+      "kernel_reproduction": {
+        "recomputed_d_int": -35.14482889112051,
+        "recomputed_d_fin": -74.73625890203749,
+        "recomputed_d_int_ci": [
+          -37.31258727359297,
+          -32.71192839993902
+        ],
+        "recomputed_d_fin_ci": [
+          -77.22539107439388,
+          -73.16682092681069
+        ],
+        "recomputed_wins": 16,
+        "sweep_d_int": -35.14482889112051,
+        "sweep_d_fin": -74.73625890203749,
+        "sweep_d_int_ci": [
+          -37.31258727359297,
+          -32.71192839993902
+        ],
+        "sweep_d_fin_ci": [
+          -77.22539107439388,
+          -73.16682092681069
+        ],
+        "sweep_wins": 16,
+        "abs_diff_d_int": 0.0,
+        "abs_diff_d_fin": 0.0,
+        "abs_diff_ci": 0.0,
+        "ok_d_int": true,
+        "ok_d_fin": true,
+        "ok_ci": true,
+        "status": "ok"
+      },
+      "establishment": {
+        "kernel_abf": {
+          "T_run": 60.0,
+          "t_first_window": 3.0,
+          "t_first_window_n_never": 0,
+          "t_first_frac_window_1pct": 4.8,
+          "t_first_frac_window_1pct_n_never": 0,
+          "eF_final_median": 0.1638011875138195,
+          "t_to_1p5x_final": 33.0,
+          "t_to_2x_final": 4.8,
+          "tau_e0_8": 4.2,
+          "t_to_1p5x_final_first_hit": 6.0,
+          "t_to_2x_final_first_hit": 4.8,
+          "kl_uniform_median_at": {
+            "t=4": 0.5979865830725629,
+            "t=12": 0.4449206352297548,
+            "t=60": 0.009818182858340945
+          },
+          "crossings_per_replica": 0.234375,
+          "ratios_to_T_run": {
+            "T_hit": 0.05,
+            "T_est": 0.55,
+            "t_to_2x_final": 0.08,
+            "tau_e0_8": 0.07
+          },
+          "screening_rule": {
+            "rule": "T_hit/T_run < 0.1 and 0.25 < T_est/T_run < 0.75; T_hit = median t_first_window, T_est = time (median curve, persistence 0.2 T) to 1.5x the final error",
+            "T_hit": 3.0,
+            "T_est": 33.0,
+            "hit_ok": true,
+            "est_ok": true,
+            "satisfied": true,
+            "T_est_first_hit": 6.0,
+            "satisfied_first_hit": false
+          }
+        }
+      },
+      "status": "kernel only"
+    }
+  },
+  "kernel_reproduction": {
+    "300": {
+      "recomputed_d_int": -14.838179671793384,
+      "recomputed_d_fin": -19.677625016959432,
+      "recomputed_d_int_ci": [
+        -17.002428515133815,
+        -11.698065568886083
+      ],
+      "recomputed_d_fin_ci": [
+        -25.110020352631246,
+        -7.003654556625579
+      ],
+      "recomputed_wins": 16,
+      "sweep_d_int": -14.838179671793384,
+      "sweep_d_fin": -19.677625016959432,
+      "sweep_d_int_ci": [
+        -17.002428515133815,
+        -11.698065568886083
+      ],
+      "sweep_d_fin_ci": [
+        -25.110020352631246,
+        -7.003654556625579
+      ],
+      "sweep_wins": 16,
+      "abs_diff_d_int": 0.0,
+      "abs_diff_d_fin": 0.0,
+      "abs_diff_ci": 0.0,
+      "ok_d_int": true,
+      "ok_d_fin": true,
+      "ok_ci": true,
+      "status": "ok"
+    },
+    "150": {
+      "recomputed_d_int": -31.917317550104528,
+      "recomputed_d_fin": -56.31161886337729,
+      "recomputed_d_int_ci": [
+        -33.44708577525077,
+        -28.301693411623226
+      ],
+      "recomputed_d_fin_ci": [
+        -59.93728755120114,
+        -43.23520128856507
+      ],
+      "recomputed_wins": 16,
+      "sweep_d_int": -31.917317550104528,
+      "sweep_d_fin": -56.31161886337729,
+      "sweep_d_int_ci": [
+        -33.44708577525077,
+        -28.301693411623226
+      ],
+      "sweep_d_fin_ci": [
+        -59.93728755120114,
+        -43.23520128856507
+      ],
+      "sweep_wins": 16,
+      "abs_diff_d_int": 0.0,
+      "abs_diff_d_fin": 0.0,
+      "abs_diff_ci": 0.0,
+      "ok_d_int": true,
+      "ok_d_fin": true,
+      "ok_ci": true,
+      "status": "ok"
+    },
+    "225": {
+      "recomputed_d_int": -21.283802469745623,
+      "recomputed_d_fin": -28.171404749228444,
+      "recomputed_d_int_ci": [
+        -23.205336162774174,
+        -18.133586022896456
+      ],
+      "recomputed_d_fin_ci": [
+        -35.14585496234895,
+        -24.142209761474707
+      ],
+      "recomputed_wins": 16,
+      "sweep_d_int": -21.283802469745623,
+      "sweep_d_fin": -28.171404749228444,
+      "sweep_d_int_ci": [
+        -23.205336162774174,
+        -18.133586022896456
+      ],
+      "sweep_d_fin_ci": [
+        -35.14585496234895,
+        -24.142209761474707
+      ],
+      "sweep_wins": 16,
+      "abs_diff_d_int": 0.0,
+      "abs_diff_d_fin": 0.0,
+      "abs_diff_ci": 0.0,
+      "ok_d_int": true,
+      "ok_d_fin": true,
+      "ok_ci": true,
+      "status": "ok"
+    },
+    "80": {
+      "recomputed_d_int": -35.14482889112051,
+      "recomputed_d_fin": -74.73625890203749,
+      "recomputed_d_int_ci": [
+        -37.31258727359297,
+        -32.71192839993902
+      ],
+      "recomputed_d_fin_ci": [
+        -77.22539107439388,
+        -73.16682092681069
+      ],
+      "recomputed_wins": 16,
+      "sweep_d_int": -35.14482889112051,
+      "sweep_d_fin": -74.73625890203749,
+      "sweep_d_int_ci": [
+        -37.31258727359297,
+        -32.71192839993902
+      ],
+      "sweep_d_fin_ci": [
+        -77.22539107439388,
+        -73.16682092681069
+      ],
+      "sweep_wins": 16,
+      "abs_diff_d_int": 0.0,
+      "abs_diff_d_fin": 0.0,
+      "abs_diff_ci": 0.0,
+      "ok_d_int": true,
+      "ok_d_fin": true,
+      "ok_ci": true,
+      "status": "ok"
+    }
+  },
+  "screening_rule_summary": {
+    "kernel_abf": {
+      "satisfied": [
+        "300",
+        "150",
+        "225",
+        "80"
+      ],
+      "not_satisfied": []
+    }
+  },
+  "width_ladder": {},
+  "predictions_check": {},
+  "fr_rate_selection_T350": null,
+  "notes": [
+    "campaign loaded from configs/lta_histogram/campaign.json",
+    "width_ladder parsed from campaign 'width_rule' clauses: {'floor_share_max': 0.2, 'n_grids': [90, 180, 360], 'plateau_pct': 5.0, 'rng_seed': 20261003, 'temperature_K': 300.0, 'selected_n_grid': 180}",
+    "no histogram production file found for any temperature -> kernel-only mode"
+  ],
+  "missing_inputs": [
+    "T=350: reference results/uniform_campaign/lta/reference/reference_T350.npz"
+  ],
+  "figure_errors": [],
+  "outputs": {
+    "summary": "results/lta_histogram/pre_run_kernel_only/summary.json",
+    "scoreboard": "results/lta_histogram/pre_run_kernel_only/scoreboard.md",
+    "figures": "results/lta_histogram/pre_run_kernel_only/figures"
+  }
+}

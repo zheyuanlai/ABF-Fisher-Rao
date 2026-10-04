@@ -20,3 +20,13 @@ it bit for bit.  Regenerate only from that commit.
 `histogram_abf_head_ids.json` — the legacy WCA `run_id` / `spec_hash` / `config_hash` strings at commit
 64567ea (the accepted Case IX confirmation spec and the tiny test SimConfig), so adding the
 `abf_estimator` / `abf_n_bins` fields can be shown not to orphan any completed run.
+
+## `lta_pre_histogram_fixture.npz`
+
+Generated 2026-10-03 from `src/lta/core_lta.py` as of `56ab774` (BEFORE the histogram-estimator / sham /
+snapshot additions): CPU float64, `LTASimConfig(n_steps=1500, n_replicas=64, save_every=500,
+abf_warmup_steps=200, estimator_burn_in_steps=200, fr_start_steps=300, fr_rate=20.0, rng_seed=11)`,
+arms `abf` and `fr_uniform` (84 replacement events), seeds [0, 1]; keys `<arm>/pmf, mean_force, p_hat,
+eff_counts, total_replacement_events, n_cage_crossings, ancestor_ess, kl_uniform, u_of_z, birth_hist,
+death_hist`, plus `sim_json` and `config_hash`. `tests/test_lta_histogram.py` asserts the current kernel
+engine reproduces every array bitwise and keeps the hash (`git add -f`, like the other fixtures).

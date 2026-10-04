@@ -1,0 +1,47 @@
+{
+  "ladder": [
+    {
+      "rate": 0.02,
+      "ess_min": 0.9292196007259528,
+      "wmax_max": 0.0029296875,
+      "events_per_replica": 0.03369140625,
+      "ok": true
+    },
+    {
+      "rate": 0.05,
+      "ess_min": 0.8576214405360134,
+      "wmax_max": 0.0029296875,
+      "events_per_replica": 0.07568359375,
+      "ok": true
+    },
+    {
+      "rate": 0.1,
+      "ess_min": 0.7388167388167388,
+      "wmax_max": 0.00390625,
+      "events_per_replica": 0.1484375,
+      "ok": true
+    },
+    {
+      "rate": 0.2,
+      "ess_min": 0.6073546856465006,
+      "wmax_max": 0.005859375,
+      "events_per_replica": 0.2744140625,
+      "ok": true
+    }
+  ],
+  "selected": 0.2,
+  "temperature_K": 350.0,
+  "estimator": "histogram",
+  "fr_start_steps": 20000,
+  "cal_steps": 120000,
+  "seeds": [
+    1110,
+    1111
+  ],
+  "rule": {
+    "ess_min": 0.3,
+    "wmax_max": 0.05
+  },
+  "frozen_at": "2026-10-03T19:22:54Z",
+  "note": "Selected on genealogy safety only under the histogram sampler; no error metric computed or read; among safe rates the LARGEST is chosen so the mechanism is exercised."
+}

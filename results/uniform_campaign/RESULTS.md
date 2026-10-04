@@ -300,3 +300,15 @@ Reading, stated honestly:
    materialise: with 1024 walkers and a converged ABF bias, all three cells
    discover both cages within 10% of the budget. The rigid framework's higher
    barriers do not translate into a discovery deficit at this replica count.
+
+## Stage 7 (2026-10-03/04) — LTA under the histogram (P0) estimator, 350 K, matched sham, movies
+
+Reported in full in `docs/LTA_HISTOGRAM_REPLICATION.md` and `results/lta_histogram/` (frozen design
+`configs/lta_histogram/campaign.json`). In one line per question: the LTA sweep REPLICATES under the
+textbook histogram estimator (integrated gain within 0–3.8 points at 80/150/225/300 K, 16/16 everywhere;
+histogram ABF = kernel ABF); the matched sham (same event schedule, random direction) is NEUTRAL at every
+T and FR beats it directly 16/16 (−13 to −35 %), so the gain is the Fisher–Rao direction; the NEW 350 K
+point (ΔF‡ 10.3 kT, 74 % entropic, the most entropic cell) has the SMALLEST benefit (−11.8 % [−15.2,
+−9.5], 16/16, still SAFE_ACCELERATOR), extending the starvation trend (ABF crossings per replica 0.23 →
+3.23 maps onto −35 → −12 %) and refuting the entropy-share reading a fifth time. Movies
+`results/lta_movie/T{300,150}/`.
