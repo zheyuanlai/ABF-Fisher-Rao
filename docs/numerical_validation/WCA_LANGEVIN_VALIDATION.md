@@ -71,7 +71,10 @@ Notes:
   * This is faster than the textbook weak order 1 of EM. The likely reason is that part of the error comes
     from the clip, whose activity falls by an order of magnitude per halving (`WCA_FORCE_AUDIT.md` §5).
   * The two smallest-dt D values are within 1-2× their noise, so the order there is not resolved. I do not
-    claim an asymptotic order.
+    claim an asymptotic order. The density-route upper bound at dt 0.000125 (0.0074) sits at the gate
+    limit (0.0075), and its point estimate (0.0032) is above dt 0.00025's (0.0025). Both are noise at that
+    level. dt 0.000125 is decided by the mean-force route (0.0021 vs 0.0065 at dt 0.00025), which is well
+    resolved.
   * The robust statements: (i) the error is monotone in dt and falls below tolerance at 0.000125; (ii) the
     potential energy, a stiff-contact observable, shows clean first order: ⟨U⟩ − ⟨U⟩_MC = +0.61 / +0.27 /
     +0.12 kT at dt 0.0005 / 0.00025 / 0.000125.
@@ -100,6 +103,29 @@ Notes:
     The fluctuation ratio per doubling of dt is 3.7 / 4.1, the O(dt²) of a symplectic scheme with a
     smooth force. There is no secular drift. The intended force is integrable without any clip at these
     steps, consistent with the force audit.
+
+**Where along z the error sits** (`figures/fig_wca_timestep_validation.png` b). Region means of the
+centred profile minus exact Gibbs, in kT:
+
+| dt | route | compact z < 0.1 | solvation 0.15-0.35 | barrier 0.4-0.6 | stretched z > 0.8 |
+|---|---|---|---|---|---|
+| 0.002 | density | −0.20 | +0.10 | −0.08 | +0.13 |
+| 0.002 | mean force | **−0.53** | +0.23 | **+0.33** | −0.15 |
+| 0.0005 | mean force | −0.033 | +0.010 | +0.025 | −0.010 |
+| 0.000125 | mean force | −0.006 | +0.001 | +0.003 | −0.000 |
+
+F_MF − F_density in the same runs (the 2026-10-04 inconsistency) is −0.32 / +0.12 / +0.41 / −0.28 at
+dt 0.002 and falls to ≤ 0.007 at dt 0.000125.
+
+The inconsistency concentrates in two places:
+
+* **The compact well.** The dimer atoms sit at contact inside a packed solvation shell, so collisions
+  are most frequent and the clip binds most.
+* **The barrier region**, for the mean-force route. Here the mean force is a small difference of large
+  solvent forces, so a biased force distribution shifts it most.
+
+In both places the bias is a smooth tilt plus a well-depth error, not a localised artefact. That is why a
+shared integrator bias tilts every profile and every reference in the same way.
 
 Smooth secondary observables (seed jackknife se):
 
