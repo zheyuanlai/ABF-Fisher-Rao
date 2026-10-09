@@ -1,0 +1,15 @@
+{
+ "_written": "2026-10-09 ~20:00 UTC, before any run below. Context: the gateway's Euler-Maruyama y-update at the accepted dt 4e-4 inflates the gate's fibre variance by 1/(1 - omega_in^2 dt/2) = 1.26 (docs/GATEWAY_REPLICA_LADDER.md section 4); the accepted FR gain was measured at that dt. The analytic F is the exact dt -> 0 free energy, so no sampling arbiter is needed: the EM bias of the reference route is known in closed form.",
+ "question": "Does the accepted gateway FR effect (N 2048, T 40, left init, histogram ABF vs ABF + uniform FR) survive time-step refinement when scored against the exact analytic free energy?",
+ "design": {
+  "cell": "configs/gateway_replica_ladder/design.json cell with dt in {4e-4 (accepted), 1e-4, 2.5e-5}; N 2048; T 40 (n_steps = 40/dt)",
+  "physical_time_knobs": "fr_every = 10 * (4e-4/dt) (dt_fr 0.004), ramp_steps = 10000 * (4e-4/dt) (4 t.u.), gamma 1.5, eta 0.1, clip 3, cap = max(1, floor(0.08 N)) = 163, ABF min_count 1",
+  "arms": "abf_h180, fr_h180 (primary), abf_h45, fr_h45 (continuity), paired on shared noise",
+  "seeds": "7100-7131 (32): the replica-ladder production seeds (N 2048 rung at dt 4e-4 already exists; rerun here for one code path)",
+  "save_grid": "budget fractions (gateway_numba.budget_save_grid), identical u at every dt"
+ },
+ "admissibility": "the EM-vs-analytic F floor (closed form, RMS over the eval window of F_EM - F_analytic) must be <= 1/3 of the median final ABF e_F at that dt for the dt to count as validated; expected 0.00138 / ~0.00035 / ~0.00009 at 4e-4 / 1e-4 / 2.5e-5 against an ABF final error ~0.006",
+ "endpoint": "Ibar_F (mean e_F over the 200 linear budget fractions), final e_F, own e_F'; paired (FR - ABF)/ABF per seed, median and 10000-resample bootstrap CI; reference = analytic (primary), EM-consistent (secondary)",
+ "decision": "the gateway FR gain SURVIVES dt refinement if, at every validated dt (1e-4 and 2.5e-5 expected), FR vs ABF Ibar_F (180 bins, analytic reference) has a CI entirely below 0; WEAKENED if it survives with a magnitude outside the dt 4e-4 CI; NOT ESTABLISHED if the CI includes 0 at a validated dt; REVERSED if the CI lies above 0",
+ "no_tuning": "no knob is changed after any result is seen"
+}

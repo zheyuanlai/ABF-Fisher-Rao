@@ -75,11 +75,15 @@ Noise comes from a jackknife over groups. D is the debiased RMS over the circle,
 | LM dt 2e-4, F_density / F_MF | 0.000 / 0.005 | 0.023 / 0.023 | 0.018 / 0.012 | +0.011 / +0.023 |
 | **published reference** (EM 2e-4, umbrella/WHAM) | **0.034** | **0.038** | (treated as 0) | **+0.049** |
 
-Bond variance (Å²):
+Bond variance, relative to exact MC. kT/k is only approximate, because of the 3-D r² Jacobian and the
+framework LJ; MC is 0.7 % above it at 300 K and 1.5 % at 150 K.
 
-| exact kT/k | MC | EM 2e-4 | EM 1e-4 | EM 5e-5 | LM 2e-4 |
-|---|---|---|---|---|---|
-| 0.006236 | 0.006280 | **0.006823** (+9.4 %) | 0.006541 (+4.9 %) | 0.006407 (+2.7 %) | 0.006281 |
+| T | EM 2e-4 | EM 1e-4 | EM 5e-5 | LM 2e-4 |
+|---|---|---|---|---|
+| 300 K | **+8.65 %** | +4.15 % | +2.03 % | +0.02 % |
+| 150 K | **+8.57 %** | +4.10 % | +2.01 % | +0.01 % |
+
+This is textbook first order (EM bias halves with dt) on the stiffest mode, and LM removes it.
 
 * **G_LTA_MC_self: PASS.** The MC mean-force and density routes agree to 0.002 kJ/mol. The linear CV's
   mean-force estimator is exact.
@@ -141,8 +145,65 @@ matches its integrated (not final) significance and the starvation reading of th
 
 ## 4. Results at 150 K
 
-T150_PLACEHOLDER
+Same design, κ = 254 kJ/mol/rad² (the published 150 K protocol). Exact MC barrier: 16.55 kJ/mol.
+
+| profile | D vs MC (kJ/mol) | 95 % upper | noise | barrier − MC barrier |
+|---|---|---|---|---|
+| MC F_MF / F_mid180 | 0.003 / 0.004 | 0.007 / 0.007 | 0.005 | −0.003 / +0.001 |
+| **EM dt 2e-4: F_density / F_MF** | **0.000 / 0.011** | **0.017 / 0.021** | 0.014 / 0.009 | +0.021 / +0.032 |
+| EM dt 1e-4: F_density / F_MF | 0.000 / 0.004 | 0.012 / 0.012 | 0.013 / 0.009 | +0.005 / +0.002 |
+| EM dt 5e-5: F_density / F_MF | 0.000 / 0.001 | 0.024 / 0.020 | 0.022 / 0.013 | −0.010 / −0.019 |
+| LM dt 2e-4: F_density / F_MF | 0.000 / 0.009 | 0.016 / 0.020 | 0.015 / 0.009 | +0.023 / +0.021 |
+| **published reference** | **0.017** | **0.019** | (0) | −0.028 |
+
+* G_LTA_MC_self **PASS** (0.003).
+* **G_LTA_dyn ADMISSIBLE.**
+* **G_LTA_reference ADMISSIBLE** (0.017 ≤ 0.03, upper 0.019 ≤ 0.045).
+
+At 150 K the window is the narrowest-constrained part of the sweep, and the dynamics and reference are
+still validated.
+
+Rescoring of the published 150 K production (16 seeds):
+
+| contrast | published reference | **exact (MC) reference** |
+|---|---|---|
+| FR vs ABF, ΔI_F | −28.07 % [−29.21, −26.25] 16/16 | **−28.54 % [−29.41, −26.56]** |
+| FR vs ABF, Δe_F(T) | −52.60 % [−56.63, −44.01] | **−54.38 % [−60.52, −46.12]** |
+| sham vs ABF, ΔI_F | −0.94 % [−2.34, +1.15] | −1.01 % [−2.37, +1.19] |
+| FR vs sham, ΔI_F | −27.03 % [−30.03, −24.86] | **−27.52 % [−30.12, −24.98]** |
+
+Pooled long-run limits at 150 K: D vs MC is ABF 0.131, **FR 0.057**, sham 0.130; FR limit vs ABF limit
+0.075. At this temperature ABF's finite-time bias is larger, and FR *reduces* it: FR's long-run profile is
+closer to the exact one. So FR's 150 K benefit extends to the endpoint, consistent with the significant
+final-error effect (−54 %). The sham does nothing.
+
+**The 150 K FR gain SURVIVES the exact reference, in integrated and final error.**
 
 ## 5. Verdict
 
-VERDICT_PLACEHOLDER
+| claim | status | basis |
+|---|---|---|
+| LTA production dynamics (EM, dt 2e-4) samples the model's Gibbs free energy along φ | **Validated at 300 K and 150 K** (frozen gate ADMISSIBLE at both) | MC and LM arbiters; EM first-order bias confined to the stiff bond (+8.6 % variance) and a ≤ 0.05 kJ/mol (0.02 kT) barrier shift |
+| published umbrella/WHAM references | 150 K **ADMISSIBLE**; 300 K **MARGINAL** (0.034 kJ/mol RMS, consistent with its own sampling noise plus the +0.05 kJ/mol first-order barrier shift) | §3, §4 |
+| LTA FR integrated-error gain | **Survives the exact reference at 300 K (−13.7 %) and 150 K (−28.5 %)**; sham neutral at both; FR beats the sham directly at both | §3.1, §4 |
+| mechanism | transient establishment; at 300 K FR leaves the shared finite-time ABF bias (0.08-0.09 kJ/mol) untouched; at 150 K it also reduces it (0.13 → 0.06) | §3.2, §4 |
+
+**Why LTA is a cleaner physical positive than WCA.**
+
+1. Its integrator is in the stable, asymptotic regime (dt·λ_max ≈ 0.16-0.23, no clip), so its error is
+   the small, understood first-order EM bias.
+2. Its CV is linear, so the mean force has no Jacobian term to get wrong.
+3. Its reference survives an exact arbiter.
+4. FR's effect does not depend on which reference scores it. In WCA the sign of the effect flips with
+   the reference.
+5. A matched-turnover sham, run on the same noise, is neutral, so the gain is attributable to the
+   direction of resampling.
+
+What remains for publication:
+
+* the 225 / 80 / 350 K points were not re-validated. The 300 and 150 K results bracket them and the
+  mechanism is the same, but they are not checked;
+* the equal-force-evaluation replica ladder (gateway and WCA showed serial ABF beating many-replica ABF
+  + FR at equal budget) has not been run for LTA;
+* the LTA benefit is at fixed N = 1024 and fixed physical time, equal force evaluations between arms. It
+  is a parallel wall-clock (establishment) gain, not yet shown to be a total-compute gain.
