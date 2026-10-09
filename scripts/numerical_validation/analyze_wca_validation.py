@@ -121,21 +121,34 @@ class Ens:
         return F_mf(self.Ms[idx].sum(0), C)
 
 
-def compare(A, B, nboot=2000):
+def jack_diff_se(A, B):
+    """Jackknife se of the per-bin difference A - B when both profiles come from the SAME chains."""
+    n = A.n
+    loo = np.array([A.boot(np.delete(np.arange(n), i)) - B.boot(np.delete(np.arange(n), i)) for i in range(n)])
+    loo = loo - loo[:, WIN].mean(1, keepdims=True)
+    return np.sqrt((n - 1) / n * ((loo - loo.mean(0)) ** 2).sum(0))
+
+
+def compare(A, B, nboot=2000, paired=False):
+    """D(A, B).  paired=True: A and B are computed from the same chains (resampled jointly, noise of
+    the difference from its own jackknife); otherwise the two ensembles are independent."""
     d = (A.F - B.F)[WIN]
     d = d - d.mean()
-    noise2 = float(np.mean((A.se ** 2 + B.se ** 2)[WIN]))
+    if paired:
+        noise2 = float(np.mean(jack_diff_se(A, B)[WIN] ** 2))
+    else:
+        noise2 = float(np.mean((A.se ** 2 + B.se ** 2)[WIN]))
     rms = float(np.sqrt(np.mean(d ** 2)))
     D = float(np.sqrt(max(0.0, rms ** 2 - noise2)))
     Db = []
     for _ in range(nboot):
         ia = RNG.integers(0, A.n, A.n)
-        ib = RNG.integers(0, B.n, B.n) if B is not A else ia
+        ib = ia if paired else RNG.integers(0, B.n, B.n)
         db = (A.boot(ia) - B.boot(ib))[WIN]
         db = db - db.mean()
         Db.append(np.sqrt(max(0.0, float(np.mean(db ** 2)) - 2.0 * noise2)))
     Db = np.array(Db)
-    return dict(A=A.label, B=B.label, rms_obs=rms, noise=float(np.sqrt(noise2)), D=D,
+    return dict(A=A.label, B=B.label, rms_obs=rms, noise=float(np.sqrt(noise2)), D=D, paired=paired,
                 D_upper95=float(np.quantile(Db, 0.95)), D_boot_median=float(np.median(Db)),
                 maxabs=float(np.max(np.abs(d))), n_A=A.n, n_B=B.n)
 
@@ -184,7 +197,7 @@ def main():
     S["mc_noise_mf"] = float(np.sqrt(np.mean(ref_m.se[WIN] ** 2)))
     rows = []
     # G_MF_formula: MC mean-force route vs MC density route
-    g_mf = compare(ref_m, ref_d)
+    g_mf = compare(ref_m, ref_d, paired=True)
     S["G_MF_formula"] = dict(g_mf, verdict="PASS" if g_mf["D"] <= 0.005 else "FAIL")
     print("G_MF_formula", json.dumps(S["G_MF_formula"]), flush=True)
     profiles = {"MC F_density": ref_d.F, "MC F_MF": ref_m.F}
@@ -196,7 +209,7 @@ def main():
         Em = Ens(f"{name} F_MF", recs, "mf")
         cd = compare(Ed, ref_d)
         cm = compare(Em, ref_d)
-        ci = compare(Em, Ed)
+        ci = compare(Em, Ed, paired=True)
         row = dict(ensemble=name, n=len(recs), D_density_vs_MC=cd["D"], up_density=cd["D_upper95"], rms_density_vs_MC=cd["rms_obs"],
                    D_mf_vs_MC=cm["D"], up_mf=cm["D_upper95"], D_mf_vs_own_density=ci["D"], up_mf_own=ci["D_upper95"],
                    rms_mf_vs_own_density=ci["rms_obs"], noise_density=float(np.sqrt(np.mean(Ed.se[WIN] ** 2))),

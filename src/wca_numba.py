@@ -499,6 +499,29 @@ def fr_select(dprob, bweight, n, cap, rng, deaths, sources, cum):
 
 
 @njit(cache=True)
+def sham_select(N, k, rng, perm, deaths, sources):
+    """The matched-sham law for k replacements among N replicas: deaths = k distinct replicas drawn
+    uniformly (a full Fisher-Yates permutation, first k), sources iid uniform among the N - k
+    survivors (with replacement) -- ``uniform_birth_death_torch`` / ``lta.core_lta._sham_birth_death``."""
+    for i in range(N):
+        perm[i] = i
+    for t in range(N):
+        j = t + int(rng.random() * (N - t))
+        if j > N - 1:
+            j = N - 1
+        tmp = perm[t]
+        perm[t] = perm[j]
+        perm[j] = tmp
+    for t in range(k):
+        deaths[t] = perm[t]
+    for t in range(k):
+        u = int(rng.random() * (N - k))
+        if u > N - k - 1:
+            u = N - k - 1
+        sources[t] = perm[k + u]
+
+
+@njit(cache=True)
 def fr_uniform_event(zs, n, grid, kde_bw, z_min, z_max, score_clip, fr_rate, dt_eff, cap, rng,
                      p, qd, S, dprob, bweight, deaths, sources, cum):
     """One uniform-FR opportunity on post-move RC values zs[:n]: score, guards, law.
@@ -521,7 +544,7 @@ def fr_uniform_event(zs, n, grid, kde_bw, z_min, z_max, score_clip, fr_rate, dt_
 # ---------------------------------------------------------------------------------------------
 @njit(cache=True)
 def simulate(N, n_steps, arm_fr, arm_nb, max_bins, physp, simp, intp, grid, q0, save_at,
-             rng_noise, rng_frs, arm_slot, ext_noise, use_ext_noise, P, fm, Mb, Cb, Mp, Cp):
+             rng_noise, rng_frs, arm_slot, ext_noise, use_ext_noise, P, fm, Mb, Cb, Mp, Cp, arm_partner):
     """All arms of one job on shared Langevin noise.
 
     physp = [L, sigma, 4*epsilon, cutoff, min_r*sigma, h, w, r0, force_clip, beta]
@@ -536,7 +559,13 @@ def simulate(N, n_steps, arm_fr, arm_nb, max_bins, physp, simp, intp, grid, q0, 
     rng_frs: a tuple of FR Generators, one per FR arm (length >= 1); arm a draws its FR randomness
     from rng_frs[arm_slot[a]] (arm_slot = -1 for an ABF arm, never read).
     Mb, Cb, Mp, Cp: (A, max_bins) zero arrays holding the bias / production accumulators; float64,
-    or float32 to emulate the accepted CUDA engine's float32 storage (``accum_float32``)."""
+    or float32 to emulate the accepted CUDA engine's float32 storage (``accum_float32``).
+    arm_fr: 0 ABF, 1 uniform FR, 2 MATCHED SHAM (2026-10-09): at every FR opportunity a sham arm
+    replaces exactly as many replicas as its partner FR arm ``arm_partner[a]`` (an earlier arm, so
+    processed first in the same step) did at that opportunity, with deaths uniform without
+    replacement and sources uniform among the survivors (with replacement) -- the law of
+    ``wca_abffr_core.uniform_birth_death_torch`` / ``lta.core_lta._sham_birth_death`` -- drawn from
+    its own FR stream.  Arms with codes 0/1 are unaffected (bitwise; tests/test_wca_numba.py)."""
     literally(P)
     literally(fm)
     L, sigma, eps4, cutoff, rmin = physp[0], physp[1], physp[2], physp[3], physp[4]
@@ -599,6 +628,8 @@ def simulate(N, n_steps, arm_fr, arm_nb, max_bins, physp, simp, intp, grid, q0, 
     zs = np.empty(N); pk = np.empty(G); qk = np.empty(G); Sc = np.empty(N)
     dprob = np.empty(N); bwt = np.empty(N); cum = np.empty(N)
     deaths = np.empty(N, dtype=np.int64); sources = np.empty(N, dtype=np.int64)
+    k_now = np.zeros(A, dtype=np.int64)            # events of each arm at the current opportunity (sham replay)
+    perm = np.empty(N, dtype=np.int64)
 
     ptr = 0
     for step in range(n_steps + 1):
@@ -683,7 +714,7 @@ def simulate(N, n_steps, arm_fr, arm_nb, max_bins, physp, simp, intp, grid, q0, 
                     rt += rep_c2s[a, i] if rep_c2s[a, i] < rep_s2c[a, i] else rep_s2c[a, i]
                 o_rt[a, ptr] = rt
                 o_nev[a, ptr] = n_event_opp[a]; o_ncap[a, ptr] = n_cap_bind[a]
-                if arm_fr[a] == 1:
+                if arm_fr[a] >= 1:
                     mx = 0
                     nu = 0
                     for i in range(N):
@@ -750,12 +781,21 @@ def simulate(N, n_steps, arm_fr, arm_nb, max_bins, physp, simp, intp, grid, q0, 
                     # wrap_positions = torch.remainder (Python %): identity on (0, L)
                     q[a, i, p, 0] = nx if 0.0 < nx < L else nx % L
                     q[a, i, p, 1] = ny if 0.0 < ny < L else ny % L
-            # ---------- uniform FR on the post-move positions ----------
-            if do_fr and arm_fr[a] == 1:
-                for i in range(N):
-                    zs[i] = dimer_geometry(q[a, i], L, r0, w, fm)[3]
-                k, n_cand = fr_uniform_event(zs, N, grid, kde_bw, z_min, z_max, score_clip, fr_rate, dt_eff, cap,
-                                             rng_frs[arm_slot[a]], pk, qk, Sc, dprob, bwt, deaths, sources, cum)
+            # ---------- uniform FR (or its matched sham) on the post-move positions ----------
+            if do_fr and arm_fr[a] >= 1:
+                if arm_fr[a] == 1:
+                    for i in range(N):
+                        zs[i] = dimer_geometry(q[a, i], L, r0, w, fm)[3]
+                    k, n_cand = fr_uniform_event(zs, N, grid, kde_bw, z_min, z_max, score_clip, fr_rate, dt_eff, cap,
+                                                 rng_frs[arm_slot[a]], pk, qk, Sc, dprob, bwt, deaths, sources, cum)
+                else:
+                    k = k_now[arm_partner[a]]
+                    if k > N - 1:
+                        k = N - 1
+                    n_cand = k
+                    if k > 0:
+                        sham_select(N, k, rng_frs[arm_slot[a]], perm, deaths, sources)
+                k_now[a] = k
                 if k > 0:
                     n_event_opp[a] += 1
                     for t in range(k):
@@ -998,11 +1038,21 @@ def run_ladder_point(seed, N, n_steps, arms, cfg=ACCEPTED_CFG, save_at=None, cap
     assert np.all(np.diff(save_at) > 0) and save_at[0] >= 0 and save_at[-1] <= n_steps, "save_at: sorted, unique, in [0, n_steps]"
     names = [a[0] for a in arms]
     assert len(set(names)) == len(names), "arm names must be unique"
-    arm_fr = np.array([1 if a[1] else 0 for a in arms], dtype=np.int64)
+    arm_fr = np.array([2 if isinstance(a[1], str) else (1 if a[1] else 0) for a in arms], dtype=np.int64)
     arm_nb = np.array([int(a[2]) if len(a) > 2 else int(cfg["n_bins"]) for a in arms], dtype=np.int64)
-    n_fr = int(arm_fr.sum())
+    arm_partner = np.full(len(arms), -1, dtype=np.int64)
+    for i, a in enumerate(arms):
+        if isinstance(a[1], str):                # ("sham", "sham:<partner arm name>"): matched sham
+            assert a[1].startswith("sham:"), a
+            pi = names.index(a[1][5:])
+            assert pi < i and arm_fr[pi] == 1, "a sham's partner must be an EARLIER uniform-FR arm"
+            assert arm_nb[pi] == arm_nb[i]
+            arm_partner[i] = pi
+    n_fr = int((arm_fr == 1).sum())
+    n_sham = int((arm_fr == 2).sum())
     arm_slot = np.full(len(arms), -1, dtype=np.int64)
     arm_slot[arm_fr == 1] = np.arange(n_fr)
+    arm_slot[arm_fr == 2] = n_fr + np.arange(n_sham)       # sham streams AFTER the FR ones: FR streams unchanged
     if q0 is None:
         q0 = lattice_init(seed, N, cfg)
     q0 = np.ascontiguousarray(q0, dtype=np.float64)
@@ -1011,7 +1061,7 @@ def run_ladder_point(seed, N, n_steps, arms, cfg=ACCEPTED_CFG, save_at=None, cap
     cap = event_cap(N, cfg, cap_min)
     if noise_seed is None:
         noise_seed = default_noise_seed(seed, N)
-    rng_noise, rng_frs = make_rngs(noise_seed, max(n_fr, 1))      # >= 1 stream: one compiled tuple length for the ladder
+    rng_noise, rng_frs = make_rngs(noise_seed, max(n_fr + n_sham, 1))   # >= 1 stream; SeedSequence children are index-stable
     physp, simp, intp = _pack(cfg, N, cap)
     grid = fr_grid(cfg)
     use_ext = ext_noise is not None
@@ -1019,7 +1069,7 @@ def run_ladder_point(seed, N, n_steps, arms, cfg=ACCEPTED_CFG, save_at=None, cap
     adt = np.float32 if accum_float32 else np.float64
     acc = [np.zeros((len(arms), int(arm_nb.max())), dtype=adt) for _ in range(4)]
     out = simulate(N, n_steps, arm_fr, arm_nb, int(arm_nb.max()), physp, simp, intp, grid, q0, save_at,
-                   rng_noise, rng_frs, arm_slot, ext, use_ext, int(P), 1 if fma_norm else 0, *acc)
+                   rng_noise, rng_frs, arm_slot, ext, use_ext, int(P), 1 if fma_norm else 0, *acc, arm_partner)
     (Mb, Cb, Mp, Cp, repl, ess, wmax, nuniq, ess_w, min_ess_w_t, frac, zhist, c2s, s2c, rt, nev, ncap,
      bias_absmax, clip_n, eval_n, min_ess_w, q_final, anc, anc_w) = out
     burn = int(cfg["estimator_burn_in_steps"])
@@ -1033,7 +1083,7 @@ def run_ladder_point(seed, N, n_steps, arms, cfg=ACCEPTED_CFG, save_at=None, cap
                 M_bias=Mb, C_bias=Cb, M_prod=Mp, C_prod=Cp, M_rep=M_rep, C_rep=C_rep, rep_is_prod=prod,
                 repl_cumulative=repl, ancestor_ess=ess, max_ancestor_frac=wmax, n_unique_ancestor=nuniq,
                 ancestor_ess_window=ess_w, min_ancestor_ess_window_t=min_ess_w_t,
-                min_ancestor_ess_window=np.where(arm_fr == 1, min_ess_w, np.nan),
+                min_ancestor_ess_window=np.where(arm_fr >= 1, min_ess_w, np.nan),
                 frac_regions=frac, z_hist=zhist, n_c2s=c2s, n_s2c=s2c, n_round_trips=rt,
                 n_event_opportunities=nev, n_cap_binding=ncap,
                 bias_absmax=bias_absmax, bias_clip_fraction=clip_n / np.maximum(eval_n, 1.0), q_final=q_final,
