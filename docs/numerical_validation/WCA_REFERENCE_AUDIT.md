@@ -126,8 +126,8 @@ not refuted individually here.
 
 Root cause, in one sentence: the accepted dt = 0.002 is beyond Euler–Maruyama's linear stability limit
 for ordinary WCA collisions. The per-particle force clip keeps the chain bounded but makes its stationary
-law a different fluid (mean potential energy about 1000 kT instead of 11 kT, pairs inside 0.65σ in about
-3 % of steps). The reference was built with the same chain, so every profile, reference included,
+law a different fluid: a pair closer than 0.865σ in 31 % of steps instead of 2.5e-6 of configurations,
+and pairs inside 0.65σ (V > 651 kT) in 2.8 % of steps. The reference was built with the same chain, so every profile, reference included,
 inherited a 0.1-0.9 kT artefact larger than every effect being compared.
 
 ## 6. What survives

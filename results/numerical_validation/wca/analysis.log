@@ -1,0 +1,41 @@
+seeds: {'MC': 64, 'MALA dt 2.5e-4': 32, 'EM_IMPL dt 0.002': 64, 'EM_IMPL dt 0.001': 64, 'EM_IMPL dt 0.0005': 64, 'EM_IMPL dt 0.00025': 64, 'EM_IMPL dt 0.000125': 64, 'LM dt 0.001': 32, 'LM dt 0.0005': 32, 'LM dt 0.00025': 32, 'BAOAB dt 0.005': 32, 'BAOAB dt 0.0025': 32, 'BAOAB dt 0.00125': 32}
+G_MF_formula {"A": "MC F_MF", "B": "MC F_density", "rms_obs": 0.000630874260397972, "noise": 0.0005866085318257664, "D": 0.00023214814843523275, "paired": true, "D_upper95": 0.000739665088879589, "D_boot_median": 0.0, "maxabs": 0.0019272354650190456, "n_A": 64, "n_B": 64, "verdict": "PASS"}
+MALA dt 2.5e-4         n= 32  D(dens,MC) 0.0000 [up 0.0059]  D(MF,MC) 0.0000 [up 0.0037]  D(MF,own dens) 0.0004 (rms 0.0034)  noise 0.0045/0.0029  blow-ups 0  -> ADMISSIBLE
+EM_IMPL dt 0.002       n= 64  D(dens,MC) 0.1310 [up 0.1337]  D(MF,MC) 0.3077 [up 0.3099]  D(MF,own dens) 0.2849 (rms 0.2849)  noise 0.0034/0.0038  blow-ups 0  -> FAIL
+EM_IMPL dt 0.001       n= 64  D(dens,MC) 0.0218 [up 0.0246]  D(MF,MC) 0.0598 [up 0.0613]  D(MF,own dens) 0.0510 (rms 0.0510)  noise 0.0034/0.0023  blow-ups 0  -> FAIL
+EM_IMPL dt 0.0005      n= 64  D(dens,MC) 0.0078 [up 0.0112]  D(MF,MC) 0.0202 [up 0.0216]  D(MF,own dens) 0.0174 (rms 0.0175)  noise 0.0033/0.0020  blow-ups 0  -> FAIL
+EM_IMPL dt 0.00025     n= 64  D(dens,MC) 0.0025 [up 0.0074]  D(MF,MC) 0.0065 [up 0.0078]  D(MF,own dens) 0.0058 (rms 0.0064)  noise 0.0035/0.0021  blow-ups 0  -> MARGINAL
+EM_IMPL dt 0.000125    n= 64  D(dens,MC) 0.0032 [up 0.0074]  D(MF,MC) 0.0021 [up 0.0049]  D(MF,own dens) 0.0040 (rms 0.0046)  noise 0.0031/0.0022  blow-ups 0  -> ADMISSIBLE
+LM dt 0.001            n= 32  blow-ups 32 -> FAIL
+LM dt 0.0005           n= 22  D(dens,MC) 0.0036 [up 0.0118]  D(MF,MC) 0.0061 [up 0.0131]  D(MF,own dens) 0.0000 (rms 0.0022)  noise 0.0054/0.0043  blow-ups 10  -> FAIL
+LM dt 0.00025          n= 32  D(dens,MC) 0.0030 [up 0.0097]  D(MF,MC) 0.0036 [up 0.0079]  D(MF,own dens) 0.0000 (rms 0.0015)  noise 0.0044/0.0029  blow-ups 0  -> MARGINAL
+BAOAB dt 0.005         n= 32  D(dens,MC) 0.0000 [up 0.0106]  D(MF,MC) 0.0000 [up 0.0078]  D(MF,own dens) 0.0000 (rms 0.0051)  noise 0.0096/0.0065  blow-ups 0  -> MARGINAL
+BAOAB dt 0.0025        n= 32  D(dens,MC) 0.0000 [up 0.0132]  D(MF,MC) 0.0000 [up 0.0101]  D(MF,own dens) 0.0084 (rms 0.0106)  noise 0.0083/0.0071  blow-ups 0  -> MARGINAL
+BAOAB dt 0.00125       n= 32  D(dens,MC) 0.0000 [up 0.0115]  D(MF,MC) 0.0000 [up 0.0102]  D(MF,own dens) 0.0029 (rms 0.0071)  noise 0.0090/0.0072  blow-ups 0  -> MARGINAL
+timestep choice: {'admissible_EM_IMPL_dt': [0.000125], 'chosen': 0.000125, 'verdict': 'RESOLVED'}
+diag dt 0.002 {"n_seeds": 16, "steps": 24576000.0, "frac_steps_clip_binding": 0.28995320638020833, "clip_particle_steps_per_step": 0.725468994140625, "frac_steps_pair_inside_min_r": 0.028351033528645833, "frac_deposits_mf_sample_clip": 0.0006696370442708334, "max_step_displacement": 0.841324541063538, "mean_U": 44669201455336.92, "mean_U_se": 44283657030597.5}
+diag dt 0.001 {"n_seeds": 16, "steps": 49152000.0, "frac_steps_clip_binding": 0.025012736002604168, "clip_particle_steps_per_step": 0.05035400390625, "frac_steps_pair_inside_min_r": 6.89697265625e-06, "frac_deposits_mf_sample_clip": 4.671223958333333e-05, "max_step_displacement": 0.48077183264869866, "mean_U": 13.25766153028985, "mean_U_se": 0.0030278129823353324}
+diag dt 0.0005 {"n_seeds": 16, "steps": 98304000.0, "frac_steps_clip_binding": 0.001869598388671875, "clip_particle_steps_per_step": 0.0036628926595052083, "frac_steps_pair_inside_min_r": 0.0, "frac_deposits_mf_sample_clip": 4.496256510416667e-06, "max_step_displacement": 0.2793937265843348, "mean_U": 11.711698273537937, "mean_U_se": 0.0034094379571147694}
+diag dt 0.00025 {"n_seeds": 16, "steps": 196608000.0, "frac_steps_clip_binding": 0.000162933349609375, "clip_particle_steps_per_step": 0.00031457010904947916, "frac_steps_pair_inside_min_r": 0.0, "frac_deposits_mf_sample_clip": 9.511311848958333e-07, "max_step_displacement": 0.17073614940022253, "mean_U": 11.363576997616155, "mean_U_se": 0.002642927179286193}
+diag dt 0.000125 {"n_seeds": 16, "steps": 393216000.0, "frac_steps_clip_binding": 2.0284016927083332e-05, "clip_particle_steps_per_step": 3.857167561848958e-05, "frac_steps_pair_inside_min_r": 0.0, "frac_deposits_mf_sample_clip": 6.281534830729166e-07, "max_step_displacement": 0.11340924611413791, "mean_U": 11.218626390060246, "mean_U_se": 0.0032263035601323774}
+sec MC {"blowups": 0, "P_stretched": 0.70525, "P_stretched_se": 0.00023, "DeltaF_wells": -0.96729, "DeltaF_wells_se": 0.0012, "mean_U": 11.09805, "mean_U_se": 0.00015, "acc": 0.59169, "dimer_acc": 0.47725, "max_step_displacement": 0.0}
+sec MALA dt 2.5e-4 {"blowups": 0, "P_stretched": 0.70543, "P_stretched_se": 0.0018, "DeltaF_wells": -0.968, "DeltaF_wells_se": 0.00913, "mean_U": 11.09707, "mean_U_se": 0.00074, "acc": 0.87035, "dimer_acc": 0.0, "max_step_displacement": 0.16304}
+sec EM_IMPL dt 0.002 {"blowups": 0, "P_stretched": 0.64348, "P_stretched_se": 0.00157, "DeltaF_wells": -0.68931, "DeltaF_wells_se": 0.00736}
+sec EM_IMPL dt 0.001 {"blowups": 0, "P_stretched": 0.69755, "P_stretched_se": 0.00149, "DeltaF_wells": -0.92559, "DeltaF_wells_se": 0.00766}
+sec EM_IMPL dt 0.0005 {"blowups": 0, "P_stretched": 0.70279, "P_stretched_se": 0.00134, "DeltaF_wells": -0.94868, "DeltaF_wells_se": 0.00689}
+sec EM_IMPL dt 0.00025 {"blowups": 0, "P_stretched": 0.70481, "P_stretched_se": 0.00144, "DeltaF_wells": -0.95821, "DeltaF_wells_se": 0.00741}
+sec EM_IMPL dt 0.000125 {"blowups": 0, "P_stretched": 0.70458, "P_stretched_se": 0.0012, "DeltaF_wells": -0.95586, "DeltaF_wells_se": 0.00635}
+sec LM dt 0.001 {"blowups": 32}
+sec LM dt 0.0005 {"blowups": 10, "P_stretched": 0.70226, "P_stretched_se": 0.00224, "DeltaF_wells": -0.95179, "DeltaF_wells_se": 0.01161, "mean_U": 11.10255, "mean_U_se": 0.00071, "acc": 0.0, "dimer_acc": 0.0, "max_step_displacement": 0.46639}
+sec LM dt 0.00025 {"blowups": 0, "P_stretched": 0.70768, "P_stretched_se": 0.00174, "DeltaF_wells": -0.97981, "DeltaF_wells_se": 0.00893, "mean_U": 11.09864, "mean_U_se": 0.00069, "acc": 0.0, "dimer_acc": 0.0, "max_step_displacement": 0.11915}
+sec BAOAB dt 0.005 {"blowups": 0, "P_stretched": 0.70518, "P_stretched_se": 0.00357, "DeltaF_wells": -0.96662, "DeltaF_wells_se": 0.01844, "mean_U": 11.10304, "mean_U_se": 0.00154, "acc": 0.0, "dimer_acc": 0.0, "max_step_displacement": 0.03513, "p_mean": 4e-05, "p_var": 0.99982, "p_skew": -0.0001, "p_exkurt": 0.00018}
+sec BAOAB dt 0.0025 {"blowups": 0, "P_stretched": 0.7079, "P_stretched_se": 0.0027, "DeltaF_wells": -0.98194, "DeltaF_wells_se": 0.01427, "mean_U": 11.10255, "mean_U_se": 0.002, "acc": 0.0, "dimer_acc": 0.0, "max_step_displacement": 0.01651, "p_mean": 0.00016, "p_var": 1.00006, "p_skew": -0.00014, "p_exkurt": 1e-05}
+sec BAOAB dt 0.00125 {"blowups": 0, "P_stretched": 0.70514, "P_stretched_se": 0.00326, "DeltaF_wells": -0.96785, "DeltaF_wells_se": 0.01701, "mean_U": 11.09817, "mean_U_se": 0.0018, "acc": 0.0, "dimer_acc": 0.0, "max_step_displacement": 0.00875, "p_mean": 6e-05, "p_var": 0.99992, "p_skew": -0.00012, "p_exkurt": -5e-05}
+order density dt 0.000125->0.00025: D 0.0032 -> 0.0025 apparent order -0.38 (small-dt point resolved above 3x noise: False)
+order density dt 0.00025->0.0005: D 0.0025 -> 0.0078 apparent order 1.64 (small-dt point resolved above 3x noise: False)
+order density dt 0.0005->0.001: D 0.0078 -> 0.0218 apparent order 1.49 (small-dt point resolved above 3x noise: False)
+order density dt 0.001->0.002: D 0.0218 -> 0.1310 apparent order 2.59 (small-dt point resolved above 3x noise: True)
+order mf      dt 0.000125->0.00025: D 0.0021 -> 0.0065 apparent order 1.64 (small-dt point resolved above 3x noise: False)
+order mf      dt 0.00025->0.0005: D 0.0065 -> 0.0202 apparent order 1.64 (small-dt point resolved above 3x noise: False)
+order mf      dt 0.0005->0.001: D 0.0202 -> 0.0598 apparent order 1.57 (small-dt point resolved above 3x noise: True)
+order mf      dt 0.001->0.002: D 0.0598 -> 0.3077 apparent order 2.36 (small-dt point resolved above 3x noise: True)

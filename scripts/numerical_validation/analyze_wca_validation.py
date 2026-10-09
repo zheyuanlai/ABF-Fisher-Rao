@@ -202,8 +202,15 @@ def main():
     print("G_MF_formula", json.dumps(S["G_MF_formula"]), flush=True)
     profiles = {"MC F_density": ref_d.F, "MC F_MF": ref_m.F}
     ses = {"MC F_density": ref_d.se}
-    for name, recs in groups.items():
+    for name, recs_all in groups.items():
         if name == "MC":
+            continue
+        # a chain that blew up (non-finite energy) is excluded from the profiles and FAILS the gate
+        recs = [r for r in recs_all if r.get("nonfinite", 0) == 0 and np.all(np.isfinite(r["M"])) and np.all(np.abs(r["M"]) < 1e12)]
+        blow = len(recs_all) - len(recs)
+        if len(recs) < 4:
+            rows.append(dict(ensemble=name, n=len(recs_all), blowups=blow, gate="FAIL", note="too few finite chains"))
+            print(f"{name:22s} n={len(recs_all):3d}  blow-ups {blow} -> FAIL", flush=True)
             continue
         Ed = Ens(f"{name} F_density", recs, "density")
         Em = Ens(f"{name} F_MF", recs, "mf")
@@ -214,8 +221,8 @@ def main():
                    D_mf_vs_MC=cm["D"], up_mf=cm["D_upper95"], D_mf_vs_own_density=ci["D"], up_mf_own=ci["D_upper95"],
                    rms_mf_vs_own_density=ci["rms_obs"], noise_density=float(np.sqrt(np.mean(Ed.se[WIN] ** 2))),
                    noise_mf=float(np.sqrt(np.mean(Em.se[WIN] ** 2))))
-        blow = sum(1 for r in recs if r.get("nonfinite", 0) > 0)
         row["blowups"] = blow
+        row["n_finite"] = len(recs)
         lvl_d = gate_level(cd["D"], cd["D_upper95"])
         lvl_m = gate_level(cm["D"], cm["D_upper95"])
         order = ["ADMISSIBLE", "MARGINAL", "FAIL"]
@@ -225,7 +232,7 @@ def main():
         profiles[f"{name} F_MF"] = Em.F
         ses[f"{name} F_density"] = Ed.se
         print(f"{name:22s} n={len(recs):3d}  D(dens,MC) {cd['D']:.4f} [up {cd['D_upper95']:.4f}]  D(MF,MC) {cm['D']:.4f} [up {cm['D_upper95']:.4f}]"
-              f"  D(MF,own dens) {ci['D']:.4f} (rms {ci['rms_obs']:.4f})  noise {row['noise_density']:.4f}/{row['noise_mf']:.4f}  -> {row['gate']}",
+              f"  D(MF,own dens) {ci['D']:.4f} (rms {ci['rms_obs']:.4f})  noise {row['noise_density']:.4f}/{row['noise_mf']:.4f}  blow-ups {blow}  -> {row['gate']}",
               flush=True)
     S["rows"] = rows
     if "MALA dt 2.5e-4" in groups:
@@ -240,9 +247,13 @@ def main():
 
     # secondary observables
     sec = {}
-    for name, recs in groups.items():
+    for name, recs_all in groups.items():
+        recs = [r for r in recs_all if r.get("nonfinite", 0) == 0 and np.all(np.isfinite(r["M"])) and np.all(np.abs(r["M"]) < 1e12)]
+        if len(recs) < 2:
+            sec[name] = dict(blowups=len(recs_all) - len(recs))
+            continue
         Ct = sum(r["C"] for r in recs)
-        e = {}
+        e = dict(blowups=len(recs_all) - len(recs))
         e["P_stretched"] = float(Ct[CEN > 0.5].sum() / Ct.sum())
         ps = np.array([r["C"][CEN > 0.5].sum() / r["C"].sum() for r in recs])
         e["P_stretched_se"] = float(ps.std(ddof=1) / np.sqrt(len(ps)))
@@ -290,7 +301,7 @@ def main():
         print("sec", k, json.dumps({a: round(b, 5) for a, b in v.items()}), flush=True)
     # observed order of the dt dependence (production EM, both routes), with seed-bootstrap CIs
     order = {}
-    em_rows = {float(r["ensemble"].split()[-1]): r for r in rows if r["ensemble"].startswith("EM_IMPL")}
+    em_rows = {float(r["ensemble"].split()[-1]): r for r in rows if r["ensemble"].startswith("EM_IMPL") and "D_mf_vs_MC" in r}
     dts = sorted(em_rows)
     for route in ("density", "mf"):
         key = "D_density_vs_MC" if route == "density" else "D_mf_vs_MC"
@@ -366,23 +377,27 @@ def sanity_figure(groups, diag, sec):
         ax.set_ylim(1e-9, 1)
         ax.set_xlabel("dt"); ax.set_ylabel("frequency (1e-9 = none seen)"); ax.set_title("(c) production regularisations vs dt", loc="left")
         ax.legend(fontsize=7)
-    # (d) mean potential energy vs dt
+    # (d) mean potential energy bias vs dt (exact samplers define the zero)
     ax = axs[1, 0]
-    if diag:
-        x = np.array([float(k) for k in sorted(diag, key=float)])
-        y = np.array([diag[k]["mean_U"] for k in sorted(diag, key=float)])
-        e = np.array([diag[k]["mean_U_se"] for k in sorted(diag, key=float)])
-        ax.errorbar(x, y, yerr=2 * e, marker="o", color="#c0392b", label="production EM")
-        for name, c, mk in (("MC", "k", "s"), ("MALA dt 2.5e-4", "#1baf7a", "*")):
-            if name in sec and "mean_U" in sec[name]:
-                ax.axhline(sec[name]["mean_U"], color=c, lw=1, ls="--", label=f"{name}: {sec[name]['mean_U']:.3f}")
-        for name in [k for k in sec if k.startswith(("LM", "BAOAB"))]:
-            if "mean_U" in sec[name]:
-                ax.plot(float(name.split()[-1]), sec[name]["mean_U"], marker="^" if name.startswith("BAOAB") else "v",
-                        color="#2a78d6" if name.startswith("LM") else "#e67e22", ls="none")
+    if diag and "MC" in sec:
+        U0 = sec["MC"]["mean_U"]
+        ks = [k for k in sorted(diag, key=float) if float(k) < 0.0015]
+        x = np.array([float(k) for k in ks])
+        y = np.array([diag[k]["mean_U"] - U0 for k in ks])
+        e = np.array([diag[k]["mean_U_se"] for k in ks])
+        ax.errorbar(x, y, yerr=2 * e, marker="o", color="#c0392b", label="production EM (diag runs)")
+        ax.plot(x, x * (y[-1] / x[-1]), color="#c0392b", ls=":", lw=0.8, label="slope 1 through dt 0.001")
+        for pre, c, mk in (("LM", "#2a78d6", "v"), ("BAOAB", "#1baf7a", "^"), ("MALA", "k", "*")):
+            pts = [(float(n.split()[-1].replace("2.5e-4", "0.00025")), sec[n]["mean_U"] - U0, sec[n]["mean_U_se"])
+                   for n in sec if n.startswith(pre) and "mean_U" in sec[n]]
+            if pts:
+                px, py, pe = map(np.array, zip(*pts))
+                ax.errorbar(px, np.maximum(np.abs(py), 1e-4), yerr=2 * pe, marker=mk, color=c, ls="none", label=f"{pre} (abs value)")
         ax.set_xscale("log"); ax.set_yscale("log")
-        ax.set_xlabel("dt"); ax.set_ylabel("<U> (kT)"); ax.set_title("(d) mean potential energy (LM v, BAOAB ^)", loc="left")
-        ax.legend(fontsize=7)
+        ax.text(0.02, 0.03, f"dt 0.002: <U> = {diag['0.002']['mean_U']:.1e} kT (deep overlaps; off scale)" if "0.002" in diag else "",
+                transform=ax.transAxes, fontsize=7)
+        ax.set_xlabel("dt"); ax.set_ylabel("<U> - <U>_MC (kT)"); ax.set_title(f"(d) potential-energy bias (<U>_MC = {U0:.3f})", loc="left")
+        ax.legend(fontsize=6.5)
     # (e) per-seed P(z > 0.5): dependence on initial conditions / seeds
     ax = axs[1, 1]
     names = [n for n in groups if n.startswith("EM_IMPL")] + ["MC"]
@@ -395,8 +410,8 @@ def sanity_figure(groups, diag, sec):
     ax = axs[1, 2]
     for n in names:
         C = sum(r["C"] for r in groups[n])
-        ax.plot(CEN, C / C.sum() / DZ, lw=2.2 if n == "MC" else 1.0, color="k" if n == "MC" else None, label=n)
-    ax.set_xlabel("z"); ax.set_ylabel("p(z)"); ax.set_title("(f) RC histograms", loc="left"); ax.legend(fontsize=6.5)
+        ax.plot(CEN[WIN], (C / C[WIN].sum() / DZ)[WIN], lw=2.2 if n == "MC" else 1.0, color="k" if n == "MC" else None, label=n)
+    ax.set_xlabel("z"); ax.set_ylabel("p(z)"); ax.set_title("(f) RC histograms on the eval window", loc="left"); ax.legend(fontsize=6.5)
     fig.tight_layout()
     for ext in ("png", "pdf"):
         fig.savefig(os.path.join(OUT, "figures", f"fig_wca_dynamics_sanity.{ext}"), dpi=150)
@@ -434,7 +449,7 @@ def make_figures(S, profiles, ses, rows):
     ax.legend(fontsize=6, ncol=2)
     ax = axs[2]
     for prefix, c, mk in (("EM_IMPL", "#c0392b", "o"), ("LM", "#2a78d6", "s"), ("BAOAB", "#1baf7a", "^"), ("MALA", "k", "*")):
-        rr = [r for r in rows if r["ensemble"].startswith(prefix)]
+        rr = [r for r in rows if r["ensemble"].startswith(prefix) and "D_density_vs_MC" in r]
         if not rr:
             continue
         dts = np.array([float(r["ensemble"].split()[-1]) for r in rr])

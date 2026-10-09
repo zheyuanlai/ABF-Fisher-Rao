@@ -711,3 +711,37 @@ def production_clipped_force(q, phys=None):
     F = production_force(q, phys)
     n = np.linalg.norm(F, axis=1, keepdims=True)
     return F * np.minimum(1.0, p["force_clip"] / np.maximum(n, 1e-12))
+
+
+@njit(cache=True)
+def nve_run(q0, p0, ph, dt, n_steps, every):
+    """Deterministic velocity Verlet (unit masses) on the intended potential: the Hamiltonian part of BAOAB
+    (gamma = 0).  Returns H(t) = U + K sampled every ``every`` steps and the max abs displacement per step."""
+    P = q0.shape[0]
+    q = q0.copy()
+    p = p0.copy()
+    F = np.zeros((P, 2))
+    U = energy_force(q, ph, F)[0]
+    L = ph[0]
+    nrec = n_steps // every + 1
+    H = np.zeros(nrec)
+    k = 0
+    for step in range(n_steps + 1):
+        if step % every == 0 and k < nrec:
+            K = 0.0
+            for i in range(P):
+                K += 0.5 * (p[i, 0] * p[i, 0] + p[i, 1] * p[i, 1])
+            H[k] = U + K
+            k += 1
+        if step == n_steps:
+            break
+        for i in range(P):
+            p[i, 0] += 0.5 * dt * F[i, 0]
+            p[i, 1] += 0.5 * dt * F[i, 1]
+            q[i, 0] = _wrap(q[i, 0] + dt * p[i, 0], L)
+            q[i, 1] = _wrap(q[i, 1] + dt * p[i, 1], L)
+        U = energy_force(q, ph, F)[0]
+        for i in range(P):
+            p[i, 0] += 0.5 * dt * F[i, 0]
+            p[i, 1] += 0.5 * dt * F[i, 1]
+    return H

@@ -1,0 +1,33 @@
+groups: {'MC': 16, 'EM2e-4': 16, 'EM1e-4': 16, 'EM5e-5': 16, 'LM2e-4': 16}
+profile MC density noise 0.00591559128362355
+profile MC mf noise 0.0042731234368830985
+profile MC mid180 noise 0.005940673745595344
+profile EM2e-4 density noise 0.019067291761725617
+profile EM2e-4 mf noise 0.010795487627506947
+profile EM2e-4 mid180 noise 0.019065907556601897
+profile EM1e-4 density noise 0.018511723657413562
+profile EM1e-4 mf noise 0.008841493143385995
+profile EM5e-5 density noise 0.027822220131967057
+profile EM5e-5 mf noise 0.015053228520766238
+profile LM2e-4 density noise 0.017276280911648106
+profile LM2e-4 mf noise 0.010184071381761608
+MC mf                                    D 0.0018 [up 0.0099] rms 0.0075 noise 0.0073 max|d| 0.021  barrier-MC +0.0037
+MC mid180                                D 0.0000 [up 0.0087] rms 0.0055 noise 0.0084 max|d| 0.014  barrier-MC +0.0010
+EM2e-4 density                           D 0.0000 [up 0.0209] rms 0.0149 noise 0.0200 max|d| 0.039  barrier-MC +0.0334
+EM2e-4 mf                                D 0.0143 [up 0.0286] rms 0.0189 noise 0.0123 max|d| 0.035  barrier-MC +0.0456
+EM2e-4 mid180                            D 0.0000 [up 0.0205] rms 0.0148 noise 0.0200 max|d| 0.036  barrier-MC +0.0338
+EM1e-4 density                           D 0.0096 [up 0.0335] rms 0.0217 noise 0.0194 max|d| 0.046  barrier-MC +0.0550
+EM1e-4 mf                                D 0.0142 [up 0.0235] rms 0.0177 noise 0.0106 max|d| 0.035  barrier-MC +0.0341
+EM5e-5 density                           D 0.0000 [up 0.0339] rms 0.0230 noise 0.0284 max|d| 0.062  barrier-MC -0.0000
+EM5e-5 mf                                D 0.0000 [up 0.0175] rms 0.0110 noise 0.0162 max|d| 0.025  barrier-MC +0.0187
+LM2e-4 density                           D 0.0000 [up 0.0232] rms 0.0174 noise 0.0183 max|d| 0.048  barrier-MC +0.0109
+LM2e-4 mf                                D 0.0049 [up 0.0229] rms 0.0128 noise 0.0118 max|d| 0.033  barrier-MC +0.0227
+published umbrella/WHAM reference (EM dt 2e-4) D 0.0340 [up 0.0380] rms 0.0345 noise 0.0059 max|d| 0.066  barrier-MC +0.0489
+verdicts: ADMISSIBLE MARGINAL PASS
+bond variance: {'MC': 0.0062797644187715385, 'EM2e-4': 0.006822914492058185, 'EM1e-4': 0.006540567256687169, 'EM5e-5': 0.006406946738781727, 'LM2e-4': 0.006280806637519287} exact 0.0062358469635
+rescore vs published reference: fr_uniform_vs_abf dI_F -14.10% [-15.10,-10.98] de_F(T) -7.20% [-15.42,+0.87]; fr_sham_vs_abf dI_F -0.24% [-2.17,+1.35] de_F(T) -1.17% [-4.85,+11.09]; fr_uniform_vs_fr_sham dI_F -13.17% [-14.62,-12.48] de_F(T) -8.18% [-15.28,-2.63]
+rescore vs MC exact reference: fr_uniform_vs_abf dI_F -13.66% [-14.79,-11.11] de_F(T) -7.93% [-14.61,+0.65]; fr_sham_vs_abf dI_F -0.31% [-1.92,+1.11] de_F(T) -0.15% [-6.00,+5.64]; fr_uniform_vs_fr_sham dI_F -13.02% [-14.15,-11.72] de_F(T) -6.25% [-18.20,-2.47]
+pooled limit abf       : D vs MC 0.0884 [up 0.0997], vs published ref 0.0776, noise 0.0100
+pooled limit fr_uniform: D vs MC 0.0802 [up 0.0905], vs published ref 0.0703, noise 0.0093
+pooled limit fr_sham   : D vs MC 0.0884 [up 0.0976], vs published ref 0.0787, noise 0.0091
+pooled FR limit vs ABF limit: D 0.0000 [up 0.0176] noise 0.0108

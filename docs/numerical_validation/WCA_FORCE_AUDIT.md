@@ -29,9 +29,9 @@ campaign. Tests: `tests/test_wca_force_audit.py` (19 pass). Numbers:
      * the Jacobian of the clipped field is asymmetric (∂F_i,x/∂q_k,y ≠ ∂F_k,y/∂q_i,x by > 10), so no
        potential has it as gradient. The raw field's Jacobian is symmetric to 1e-5.
 
-  A single WCA pair reaches the clip at r = 0.865σ, where V = 14.2 kT. Under exact Gibbs sampling that is
-  rare. Under the dt = 0.002 dynamics it is routine: the clip binds in about 29 % of steps and pairs sit
-  inside r_min in about 3 % of steps (§5).
+  A single WCA pair reaches the clip at r = 0.865σ, where V = 14.2 kT. Under exact Gibbs sampling a
+  configuration has such a pair with probability 2.5e-6. Under the dt = 0.002 dynamics it happens in 31 %
+  of steps: the clip binds in 29 % of steps and pairs sit inside r_min in 2.8 % (§5).
 * **Root cause of the WCA timestep problem: Euler–Maruyama is linearly unstable in ordinary collisions
   at dt = 0.002.** dt·V″(r) is 2.05 at r = 0.95σ (V = 3 kT) and 4.7 at r = 0.90σ (V = 7.6 kT), against a
   stability limit of 2. The force clip turns the instability into bounded but unphysical jumps of up to
@@ -105,8 +105,13 @@ Further checks:
 | ABF bias clip (±40), RC wall | the wall is −∇U_wall; the bias clip acts on the estimate | yes | outside [−0.2, 1.2], or abs Γ > 40 |
 
 Removing the clips is not a cure at the accepted dt. With `force_clip` 1e5 and `min_r` 0.5, the dt 0.0005
-dynamics blows up (2026-10-04 consistency test D). Without any clip, Leimkuhler–Matthews at dt 0.002 blew
-up within the first 0.002 t.u. of the 2026-10-09 pilot. The clips are what keeps the accepted dt from
+dynamics blows up (2026-10-04 consistency test D). Without any clip, Leimkuhler–Matthews on the intended
+force blew up in the 2026-10-09 runs:
+
+* within the first 0.002 t.u. at dt 0.002 (pilot);
+* in **32/32** chains at dt 0.001;
+* in **10/32** chains at dt 0.0005 (30720 t.u. each);
+* in 0/32 at dt 0.00025. The clips are what keeps the accepted dt from
 diverging. Their cost is that the drift stops being the gradient of the stated potential.
 
 ## 5. How often the regularisations act in the production dynamics
@@ -115,7 +120,26 @@ Production drift (`EM_IMPL`, the unbiased branch of `wca_numba.simulate`; test A
 *bitwise* the production trajectory) for 16 seeds × 3072 t.u. per dt, with diagnostics every step
 (`results/numerical_validation/wca/diag/`):
 
-DIAG_TABLE_PLACEHOLDER
+| dt | steps with the force clip binding | clipped particles per step | steps with a pair inside min_r (0.65σ) | P(closest pair < 0.865σ) | deposits hitting the ±500 sample clip | largest one-step displacement | ⟨U⟩ − ⟨U⟩_exact (kT) |
+|---|---|---|---|---|---|---|---|
+| **0.002** (accepted) | **29.0 %** | 0.73 | **2.8 %** | 0.31 | 6.7e-4 | **0.84σ** | ⟨U⟩ = 4.5e13: deep overlaps, heavy-tailed |
+| 0.001 | 2.5 % | 0.050 | 6.9e-6 | 0.030 | 4.7e-5 | 0.48σ | +2.16 ± 0.003 |
+| 0.0005 | 0.19 % | 3.7e-3 | 0 | 2.7e-3 | 4.5e-6 | 0.28σ | +0.61 ± 0.003 |
+| 0.00025 | 0.016 % | 3.1e-4 | 0 | 2.8e-4 | 1.0e-6 | 0.17σ | +0.27 ± 0.003 |
+| **0.000125** | 0.002 % | 3.9e-5 | 0 | 4.2e-5 | 6e-7 | 0.11σ | +0.12 ± 0.003 |
+| exact Gibbs (MC; MALA identical) | — | — | 0 | **2.5e-6** | — | — | 0 (⟨U⟩ = 11.098 ± 0.0002) |
+
+At the accepted dt, the clip is not a rare safeguard. It binds in almost a third of all steps. A particle
+pair is closer than the single-pair clip distance in 31 % of configurations, against 2.5e-6 under exact
+Gibbs, about 10⁵ times too often. Pairs penetrate inside 0.65σ (V > 651 kT) in 2.8 % of steps.
+
+The dt 0.002 chain is therefore a different fluid: one whose cores are softened by the
+clip-then-overshoot mechanism. As dt falls, every regularisation's activity falls by one to two orders of
+magnitude per halving. ⟨U⟩'s bias falls first-order (+0.61 → +0.27 → +0.12).
+
+Even at the admissible dt 0.000125, the stiff-contact observable ⟨U⟩ is still biased by 0.12 kT. The
+free energy along z, the quantity ABF estimates, is not (`WCA_LANGEVIN_VALIDATION.md`). Admissibility is
+a statement about F(z) at 0.005 kT, not about every observable.
 
 ## 6. Was a consistent regularised model needed?
 
