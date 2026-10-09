@@ -1,0 +1,29 @@
+{
+ "_written": "2026-10-09 ~19:20 UTC, AFTER the WCA dynamics gate was evaluated on partial data (EM_IMPL ADMISSIBLE at dt 0.000125; dt 0.00025 still running; dt 0.002 / 0.001 / 0.0005 FAIL) and AFTER the historical runs were rescored against the exact MC reference (accepted FR gain reverses), but BEFORE any ABF/FR run at a validated dt. Nothing below depends on an FR outcome at the validated dt.",
+ "licence": "configs/numerical_validation/wca_validation_prereg.json timestep_choice: the production dt for a new WCA ABF/FR experiment is the LARGEST dt in the ladder at which EM_IMPL is ADMISSIBLE (final, all seeds). dt* is read from results/numerical_validation/wca/summary.json after the campaign completes.",
+ "question": "On the WCA dimer integrated at a VALIDATED time step and scored against the EXACT Gibbs reference, does uniform Fisher-Rao birth-death reduce the integrated free-energy error of histogram ABF in the accepted cell, and is any effect attributable to the direction of the resampling (matched-turnover sham)?",
+ "design": {
+  "cell": "accepted WCA cell (beta 1, h 2, w 2, 100 particles, a 1.5, 160 histogram bins, accepted clips) with dt = dt*; every physical-time knob of the accepted histogram confirmation kept in PHYSICAL time: ABF warm-up 20 t.u., estimator burn-in 20 t.u., FR start 40 t.u., FR every 0.01 t.u. (dt_eff 0.01, fr_rate 0.1, score_clip 2, KDE bw 0.07), cap = floor(0.02 N) (accepted law, cap_min 0), ESS window 8 t.u., saves every 5 t.u.",
+  "N_and_T": "T = 240 t.u. (the accepted confirmation's physical time). N = 1024 (the accepted cell) if dt* >= 0.00025; N = 256 if dt* = 0.000125 (N = 1024 would be ~10 h single-threaded per seed; rule fixed before dt* is known).",
+  "arms": "hist_abf, hist_fr_uniform, hist_fr_sham (replays the FR arm's realised replacement count at every opportunity; deaths uniform without replacement, sources uniform among survivors), all three in ONE process per seed on shared Langevin noise; FR and sham on separate PCG64 streams",
+  "seeds": "5100-5115 (16, never used for WCA)",
+  "engine": "src/wca_numba.py (float64 CPU; sham arm tests/test_wca_numba_sham.py; ABF/FR bitwise-unchanged, tests/test_wca_numba.py 40 pass)",
+  "budget": "equal N and equal physical time => equal force evaluations per arm (N x T/dt); FR/sham overhead (KDE + score + law every 0.01 t.u.) reported separately"
+ },
+ "reference": "exact Gibbs (Metropolis MC, 64 chains): free energy = MC F_density on the 160-node scorer grid; mean force = MC bin means (scripts/numerical_validation/rescore_wca_history.py mc_reference). Scorer: the accepted read-out (wca_numba.score_ladder_result) with this reference.",
+ "endpoints": {
+  "primary": "I_F = trapezoid over the saves of e_F(t) (accepted physical-time integral); paired per-seed % change FR vs ABF and FR vs sham; median with 10000-resample bootstrap 95 % CI; wins",
+  "secondary": "final e_F; own e_F' (histogram mean force vs MC mean force); pooled long-run limits (sum over seeds of the final accumulators) of each arm vs MC and FR vs ABF (D statistic of the validation prereg); region fractions; round trips; min windowed ancestor ESS; max ancestor family share; replacement counts; wall-clock overhead"
+ },
+ "decision": {
+  "FR_beneficial": "median dI_F(FR vs ABF) < 0 with CI upper < 0 AND median dI_F(FR vs sham) < 0 with CI upper < 0",
+  "FR_harmful": "dI_F(FR vs ABF) CI lower > 0",
+  "FR_neutral": "dI_F(FR vs ABF) CI inside [-10 %, +10 %] (TOST-style equivalence margin)",
+  "otherwise": "inconclusive",
+  "no_tuning": "no FR parameter, estimator, reference or N is changed after any result is seen; a harmful or neutral outcome is reported as such"
+ },
+ "predictions_before_data": {
+  "P1": "the stationary FR tilt D(FR limit, ABF limit) at dt* is smaller than at dt 0.0005 (0.018 at N 1024); if the tilt scales ~dt it is ~0.009 at dt 0.00025 / ~0.005 at 0.000125",
+  "P2": "the accepted -24 % integrated FR gain does NOT reappear at dt* against the exact reference (the dt 0.0005 ladder at N 1024 gave +15 % vs MC)"
+ }
+}
