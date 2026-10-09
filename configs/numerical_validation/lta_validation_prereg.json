@@ -1,0 +1,28 @@
+{
+ "_written": "2026-10-09 ~18:55 UTC, BEFORE any LTA free-energy profile from the runs below was computed. Seen beforehand: the source-to-equation map of src/lta/core_lta.py (float64 Euler-Maruyama, dt 2e-4 at every T, no force clip in the dynamics, bond stiffness dt*lambda = 0.16, umbrella/WHAM reference with the same integrator and dt and the umbrella bias evaluated at 180-bin midpoints); a 2-molecule smoke test (EM bond variance 0.00682 vs exact kT/k 0.00624; LM 0.00631; MC 0.00626); the published LTA scoreboard (300 K: hist ABF median e_F(T) ~0.09 kJ/mol, FR vs ABF dI_F -14.1 %, FR vs sham -13.2 %).",
+ "purpose": "Detect a WCA-like numerical problem in the ethane/LTA benchmark: is the production Euler-Maruyama dynamics at dt 2e-4, and the umbrella/WHAM reference built with it, an accurate representation of the Gibbs free energy of the stated model at the precision of the reported ABF/FR effects?",
+ "model": "src/lta/core_lta.py physics re-implemented independently in src/lta_validation.py (tested equal to 1e-13): 2-bead united-atom ethane, harmonic bond k 400 kJ/mol/A^2 r0 1.54 A, truncated-shifted CH3-O LJ (eps 93 K, sigma 3.48 A, rc 10 A) to 384 rigid framework O, minimum image, phi = wrap(2 pi x_COM / a).",
+ "temperature_order": "300 K first. 150 K only if 300 K is ADMISSIBLE (same design, kappa 254 as the 150 K reference).",
+ "design_300K": {
+  "umbrella": "40 windows at linspace(-pi, pi, 40, endpoint=False), kappa 300 kJ/mol/rad^2 (the existing reference_T300 protocol), bias (kappa/2) wrap(phi - c)^2",
+  "groups": "16 independent groups (seeds 7000 + group), each with all 40 windows; jackknife / bootstrap unit = group",
+  "start": "COM on the cage-window axis at phi = c, random cell and orientation, 5000 exact Metropolis steps (no clamps), then 1 t.u. of the scheme as burn-in",
+  "MC": "Metropolis (single-bead +-0.08 A, rigid translation +-0.3 A), 16 molecules per (group, window), 200000 steps, sample every 5",
+  "EM": "production integrator, dt 2e-4 / 1e-4 / 5e-5; 48 t.u. per molecule; 16 molecules per (group, window) (8 at dt 5e-5); sample every 1e-3 t.u.",
+  "LM": "Leimkuhler-Matthews, dt 2e-4, as EM"
+ },
+ "estimators": {
+  "F_density": "binned WHAM on 1800 fine bins (bias at fine-bin centres), probabilities summed to the 180 production bins, F = -kT log p (kJ/mol)",
+  "F_density_mid180": "binned WHAM directly on the 180 production bins with the bias at their midpoints (the existing reference's convention) -- reported to isolate the WHAM discretisation error",
+  "F_MF": "pooled conditional mean of the local mean force per 180-bin over all windows (bias-independent), integrated circularly (histogram_pmf convention: piecewise-constant mean force, circular mean subtracted)"
+ },
+ "statistic": "D(A, B): debiased RMS over the full circle (180 bins) of F_A - F_B after removing the mean difference; noise from the group jackknife; 95 % upper bound from a group bootstrap (2000) debiased by 2x the jackknife noise (as in the WCA prereg). Units kJ/mol.",
+ "gates": {
+  "G_LTA_force": "independent model equals core_lta forces/energies to 1e-10 relative; analytic force = central differences to 1e-6 (tests/test_lta_validation.py)",
+  "G_LTA_MC_self": "MC F_density (fine WHAM) and MC F_MF agree: D <= 0.03 kJ/mol",
+  "G_LTA_dyn": "production EM dt 2e-4 is ADMISSIBLE if D(F_density(EM 2e-4), F_density(MC)) <= 0.03 kJ/mol with upper95 <= 0.045, AND D(F_MF(EM 2e-4), F_density(MC)) <= 0.03 (upper <= 0.045). 0.03 kJ/mol = about 1/3 of the 300 K histogram-ABF median final error (0.09) and 0.012 kT. MARGINAL if both <= 0.06; FAIL otherwise.",
+  "G_LTA_reference": "the existing results/uniform_campaign/lta/reference/reference_T300.npz is ADMISSIBLE if D(F_ref, F_density(MC)) <= 0.03 (upper <= 0.045); MARGINAL <= 0.06; FAIL otherwise (its own noise enters the debiasing as the published split-half spread is not a jackknife; it is treated as noiseless, which is conservative toward FAIL)"
+ },
+ "conclusion_check": "Rescore the existing 300 K histogram production files (results/lta_histogram/production_T300/{abf,fr_uniform,fr_sham}.npz, 16 seeds) with the published arithmetic (scripts/analyze_lta_histogram.py score_group / contrast) against (i) the published reference (must reproduce the scoreboard) and (ii) the MC reference. The LTA FR gain SURVIVES at 300 K if, against the MC reference, FR vs ABF dI_F has a bootstrap CI entirely below 0 AND FR vs sham dI_F has a CI entirely below 0. Also reported: pooled long-run limits of each arm (sum of per-seed final accumulators) vs MC, to detect a stationary FR tilt as found in WCA.",
+ "no_retuning": "FR rates, estimator, bins, seeds of the published runs are not changed; no new ABF/FR run is part of this design."
+}
