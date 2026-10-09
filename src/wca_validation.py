@@ -330,10 +330,10 @@ def clip2(fx, fy, c):
 # ---------------------------------------------------------------------------------------------
 def _prod_kernels():
     import wca_numba as wn
-    return wn.wca_force, wn._clip_vec
+    return wn.wca_force, wn._clip_vec, wn._norm2d
 
 
-_wca_force, _clip_vec = _prod_kernels()
+_wca_force, _clip_vec, _norm2d = _prod_kernels()
 
 
 @njit(cache=True)
@@ -349,7 +349,9 @@ def prod_drift(q, ph, P, Fraw, Fdr, xs, ys, r2b, pl_i, pl_j, pl_fx, pl_fy):
     dx = dx - L * np.rint(dx / L)
     dy = q[0, 1] - q[1, 1]
     dy = dy - L * np.rint(dy / L)
-    r01 = math.sqrt(dx * dx + dy * dy)
+    r01 = _norm2d(dx, dy, 1)                     # wca_numba.dimer_geometry (fma norm): bitwise fidelity
+    if r01 < 1e-12:
+        r01 = 1e-12
     z = (r01 - rc) / (2.0 * w)
     up = z - z_max
     if up < 0.0:
