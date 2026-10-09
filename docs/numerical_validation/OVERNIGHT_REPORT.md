@@ -9,7 +9,7 @@ Every gate below was frozen in a committed preregistration before the data it go
 * `configs/numerical_validation/wca_confirmatory_prereg.json`
 * `configs/numerical_validation/gateway_dt_prereg.json`
 
-Compute: about 230 CPU core-hours on the shared node (`results/numerical_validation/compute_accounting.json`)
+Compute: 254 CPU core-hours on the shared node (`results/numerical_validation/compute_accounting.json`)
 and **0 GPU-hours**. GPUs 0-1 carry another user's jobs and were not touched; GPUs 2-3 were not needed.
 
 ## 1. Executive summary
@@ -54,7 +54,18 @@ and **0 GPU-hours**. GPUs 0-1 carry another user's jobs and were not touched; GP
    integrated error is −29.5 % / −28.4 % / −29.7 % at dt 4e-4 / 1e-4 / 2.5e-5 (30-32 of 32 seeds), so the
    26 % EM fibre-variance inflation at the accepted dt did not create it.
 6. **Conditional WCA confirmatory at the validated dt** (ABF vs FR vs matched sham, exact reference):
-   PHASE5_SUMMARY_PLACEHOLDER
+   **FR_HARMFUL** (frozen rule; dt 0.000125, N 256, T 240, 16 fresh seeds; `WCA_CONFIRMATORY.md`):
+
+   | contrast | integrated error I_F | final error e_F(T) |
+   |---|---|---|
+   | FR vs ABF | +9.9 % [+2.3, +13.2] (4/16 wins) | +131 % |
+   | FR vs sham | +8.7 % [+1.1, +14.7] | |
+   | sham vs ABF | −0.8 %, neutral | |
+
+   FR's pooled long-run profile carries a stationary tilt of 0.017 kT relative to ABF. At N = 256 that tilt
+   was 0.090 at dt 0.002 and 0.022 at dt 0.0005, so it does **not** vanish with dt: it is intrinsic to
+   score-directed FR. The sham has none, so cloning per se does not cause it. **WCA is a validated
+   negative control.**
 
 ## 2. What was run
 
@@ -65,7 +76,7 @@ and **0 GPU-hours**. GPUs 0-1 carry another user's jobs and were not touched; GP
 | III | every historical WCA reference and pooled sampler limit vs exact Gibbs; historical FR runs rescored | v2 TI 0.29 kT off; accepted FR gain reverses |
 | IV | LTA: independent numba model (4 tests); umbrella MC/EM/LM at 300 K and 150 K (6400 jobs); published runs rescored | ADMISSIBLE; FR gain survives |
 | (IV′) | gateway dt refinement (96 jobs) | FR gain survives |
-| V | WCA ABF / FR / sham at dt*, N 256, T 240, 16 fresh seeds | see §1.6 |
+| V | WCA ABF / FR / sham at dt*, N 256, T 240, 16 fresh seeds (32 processes, 42 core-h) | FR_HARMFUL |
 
 Engineering:
 
@@ -81,7 +92,7 @@ Engineering:
 | **WCA original FR gain** (accepted −24 % / −51 %) | **Refuted** (as a free-energy acceleration) | Rescored vs exact Gibbs: +18.5 % / +34 %, 0/16 wins. FR's tilt matches the artefact reference, not the free energy (`WCA_REFERENCE_AUDIT.md` §5). | Every other dt 0.002 WCA study (kernel campaigns, FR-start ladder, movies, OT/repair) is **not established**; rescored here are the histogram confirmation and both ladders only. |
 | **WCA dynamics** | **Fail** at the accepted dt 0.002; **Pass** at dt 0.000125 | Frozen gate vs MC + MALA (`WCA_LANGEVIN_VALIDATION.md`). | ⟨U⟩ (a stiff-contact observable) still carries a first-order +0.12 kT bias at dt*; admissibility covers F(z) only. Apparent convergence order 1.6 of the mean-force route is not resolved at the two smallest dt. |
 | **WCA reference** | **Fail** (accepted v2 TI and v1 TI: 0.28-0.29 kT RMS); **Pass** for the new exact MC reference (noise 0.0006 kT; MALA agrees) | `WCA_REFERENCE_AUDIT.md` | The dt 0.0005 dt-consistent reference (0.0145 kT off) is not a physical reference either. |
-| **WCA FR at the validated dt** | PHASE5_TABLE_PLACEHOLDER | `results/numerical_validation/wca_confirmatory/` | N = 256, not the accepted N = 1024 (cost rule fixed before dt* was known). |
+| **WCA FR at the validated dt** | **Refuted / harmful** (FR_HARMFUL by the frozen rule: +9.9 % I_F, +131 % e_F(T); FR vs sham +8.7 %; sham neutral) | `WCA_CONFIRMATORY.md` | N = 256, not the accepted N = 1024 (cost rule fixed before dt* was known). The FR-tilt mechanism (fibre lag through score-directed cloning of transit walkers) is a hypothesis, not tested. |
 | **LTA FR gain** | **Validated** at 300 K and 150 K (integrated error; the final error too at 150 K) | Dynamics ADMISSIBLE at both T; FR −13.7 % / −28.5 % vs exact reference, sham neutral, FR beats sham (`LTA_VALIDATION.md`) | 80, 225 and 350 K not re-validated; no equal-force-evaluation replica ladder for LTA; at 300 K all arms share a 0.2 kJ/mol finite-time ABF barrier bias that FR does not remove. |
 | **Gateway FR gain** | **Existing evidence, now dt-robust** | −29.5 % / −28.4 % / −29.7 % at dt 4e-4 / 1e-4 / 2.5e-5 vs the exact analytic F | It is a constructed toy. At equal *force-evaluation* budget, serial ABF still beats 2048-replica ABF + FR (2026-10-04 ladder), so its gain is in parallel wall-clock, not in total compute. |
 | **Alanine neutral result** | **Existing evidence** (not re-tested) | BAOAB 1 fs was validated at spec time by configurational temperature (T_conf error +0.08 ± 0.42 %, `ALANINE_SPEC.md` §2.4), and the reference shares (M, dt) with production | None from this audit. A dt artefact would not plausibly *create* neutrality. |
@@ -108,7 +119,8 @@ statistics. FR's benefit is a faster transient. It shrinks as establishment beco
 falls monotonically from 80 to 350 K), and it is absent where ABF converges smoothly:
 
 * alanine: neutral across N, T, γ, CV and dose;
-* the WCA dimer at a valid dt: PHASE5_REGIME_PLACEHOLDER
+* the WCA dimer at a valid dt: FR is *harmful* there. ABF converges without an establishment
+  bottleneck in the accepted physical time, and FR adds a 0.017 kT stationary bias.
 
 FR does not remove ABF's own finite-time bias in the long-run limit at 300 K LTA. It does at 150 K, where
 starvation is stronger.
@@ -139,12 +151,14 @@ a timestep*. The only reliable arbiters were exact samplers (Metropolis MC, MALA
 * with alanine and the validated WCA cell as negative/neutral controls;
 * with the explicit caveat that at equal *total* compute a few-replica ABF can be better.
 
-The WCA positive must be withdrawn and replaced by its validated-dt result.
+The WCA positive must be withdrawn and replaced by its validated-dt result, which is negative (FR harmful).
 
 ## 5. What remains uncertain
 
-* Whether WCA's FR stationary tilt is intrinsic to finite-population FR or an FR × integrator interaction:
-  PHASE5_TILT_PLACEHOLDER
+* WCA's FR stationary tilt is now shown to be intrinsic to FR. At N = 256 it went 0.090 → 0.022 → 0.017
+  across dt 0.002 → 0.0005 → 0.000125, and the sham has none. *Why* the directed selection biases the
+  conditional mean force (fibre-lag hypothesis) is not established. Nor is whether the tilt shrinks with
+  N or with a better score (e.g. leave-one-out KDE).
 * LTA at 80 / 225 / 350 K not re-validated (300 and 150 K bracket the mechanism); LTA equal-budget ladder
   not run.
 * All LTA FR effects are at one FR rate per T, frozen before production. No retuning was done or
@@ -154,7 +168,36 @@ The WCA positive must be withdrawn and replaced by its validated-dt result.
 
 Next experiments: `NEXT_EXPERIMENTS.md`. Detailed documents:
 
+* `WCA_CONFIRMATORY.md`
+
 * `WCA_FORCE_AUDIT.md`
 * `WCA_LANGEVIN_VALIDATION.md`
 * `WCA_REFERENCE_AUDIT.md`
 * `LTA_VALIDATION.md`
+
+## 6. Tests
+
+89 pass, 0 fail, 0 skipped (single-threaded CPU):
+
+* new: `tests/test_wca_force_audit.py` (19), `tests/test_lta_validation.py` (4),
+  `tests/test_wca_numba_sham.py` (3);
+* existing, re-run after the sham was added: `tests/test_wca_numba.py` (40), `tests/test_gateway_numba.py`,
+  `tests/test_lta_histogram.py`.
+
+Passing tests show code equivalences and exact laws. They do not show correct statistics; that is what the
+exact-sampler comparisons are for.
+
+## 7. Process notes (honest record)
+
+* **Tests that rejected correct code, fixed before any conclusion.** A χ² test over correlated histogram
+  bins rejected the *correct* MC sampler. A numpy `a[idx] += 1` dropped duplicate indices in a law test.
+  A z-convention error inverted the LTA barrier sign in a draft table.
+* **Process interruptions.** A `pkill -f` pattern killed its own shell, so the engine test suite was
+  re-run. A pytest run used 255 torch threads during the campaign and was killed and re-run
+  single-threaded.
+* **Decisions taken on frozen rules, not on outcomes.**
+  * The LTA 300 K published reference is MARGINAL by the frozen rule, which treated its noise as zero;
+    the noise attribution above is post-hoc.
+  * The confirmatory used N = 256 by a rule fixed before dt* was known.
+  * The execution was split into two processes per seed, verified bitwise identical to the 3-arm design
+    and recorded as amendment 1.

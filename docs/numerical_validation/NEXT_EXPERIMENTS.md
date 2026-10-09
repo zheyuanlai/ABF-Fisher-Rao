@@ -22,7 +22,25 @@ must be preregistered with its decision rule before it is run, as the campaign's
 
 ## 2. WCA at the validated time step
 
-WCA_ITEM_PLACEHOLDER
+* **Hypothesis.** The 0.017 kT stationary tilt of uniform FR at the validated dt is caused by
+  finite-sample *score noise* that correlates with transit (non-equilibrated) walkers. If so, it shrinks:
+  * with a less noisy score: a leave-one-out KDE, or a 2× bandwidth;
+  * with a larger population: N = 1024 instead of 256, at the same physical time;
+  * with a post-clone decorrelation: the clone is held out of the estimator for τ_fibre ≈ 0.05 t.u.
+    (W0: τ_f 3-6 steps at dt 0.002).
+* **Falsified if** none of these changes moves D(FR limit, ABF limit) below 0.008 kT with CIs. The bias
+  would then be intrinsic to marginal FR selection on this system, and the paper would report it as a
+  limitation of the method, not of an estimator choice.
+* **Scientific value.** It separates "FR is biased" from "this FR score is biased". It also tests the
+  fibre-lag mechanism that explains why FR helps in starved regimes (LTA, gateway) and hurts in smoothly
+  converging ones (WCA, alanine).
+* **Expected cost.** dt 0.000125, T 240, 16 seeds, 4 arms (ABF, FR-LOO, FR-2bw, FR-hold), N 256: about
+  60 CPU core-h, 2 h wall. Engine work: about 2 h for the LOO score and the hold-out flag in
+  `src/wca_numba.py` (the gateway port already has a LOO score). N = 1024 adds about 160 core-h, or
+  needs a parallelised engine.
+* **Necessary before publication: no**, if WCA is reported as a validated negative control. **Yes**, if
+  the paper claims that FR leaves the stationary measure unbiased (the mean-field theorem
+  d/dt p(y | ξ)|_FR = 0), because this is a measured finite-N counterexample.
 
 ## 3. LTA validation at 80 K (the headline −35 % point)
 
