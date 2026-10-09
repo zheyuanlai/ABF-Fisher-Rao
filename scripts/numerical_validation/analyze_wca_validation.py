@@ -288,10 +288,118 @@ def main():
         print("diag dt", k, json.dumps(v), flush=True)
     for k, v in sec.items():
         print("sec", k, json.dumps({a: round(b, 5) for a, b in v.items()}), flush=True)
+    # observed order of the dt dependence (production EM, both routes), with seed-bootstrap CIs
+    order = {}
+    em_rows = {float(r["ensemble"].split()[-1]): r for r in rows if r["ensemble"].startswith("EM_IMPL")}
+    dts = sorted(em_rows)
+    for route in ("density", "mf"):
+        key = "D_density_vs_MC" if route == "density" else "D_mf_vs_MC"
+        pairs = []
+        for d1, d2 in zip(dts[:-1], dts[1:]):
+            a, b = em_rows[d1][key], em_rows[d2][key]
+            nz = max(em_rows[d1]["noise_density"], em_rows[d2]["noise_density"])
+            p = float(np.log(b / a) / np.log(d2 / d1)) if a > 0 and b > 0 else float("nan")
+            pairs.append(dict(dt_small=d1, dt_large=d2, D_small=a, D_large=b, ratio=b / a if a > 0 else float("inf"),
+                              apparent_order=p, resolved=bool(a > 3 * nz)))
+        order[route] = pairs
+    S["observed_order_EM_IMPL"] = order
+    for route, pairs in order.items():
+        for p in pairs:
+            print(f"order {route:7s} dt {p['dt_small']:g}->{p['dt_large']:g}: D {p['D_small']:.4f} -> {p['D_large']:.4f} "
+                  f"apparent order {p['apparent_order']:.2f} (small-dt point resolved above 3x noise: {p['resolved']})", flush=True)
     S["profiles"] = {k: v.tolist() for k, v in profiles.items()}
     S["centres"] = CEN.tolist()
     json.dump(S, open(os.path.join(OUT, "summary.json"), "w"), indent=1)
     make_figures(S, profiles, ses, rows)
+    sanity_figure(groups, diag, sec)
+
+
+def sanity_figure(groups, diag, sec):
+    """Phase-II trajectory sanity checks (necessary, not sufficient, for correct sampling)."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    plt.rcParams.update({"font.size": 9, "axes.spines.top": False, "axes.spines.right": False, "legend.frameon": False})
+    fig, axs = plt.subplots(2, 3, figsize=(16, 8.2))
+    cols = {"0.002": "#c0392b", "0.001": "#e67e22", "0.0005": "#f1c40f", "0.00025": "#2a78d6", "0.000125": "#6c3483"}
+    # (a) z traces: production EM (diag runs) at the largest and smallest dt, and MC
+    ax = axs[0, 0]
+    for dt in ("0.002", "0.000125"):
+        recs = load_group("diag", f"dt{dt}")
+        if recs:
+            z = recs[0]["z_series"]
+            n = recs[0]["meta"]["n_steps"]
+            t = np.arange(len(z)) * (n // 100_000) * float(dt)
+            sel = t <= 300
+            ax.plot(t[sel], z[sel], lw=0.5, color=cols[dt], label=f"production EM dt {dt} (seed {recs[0]['meta']['seed']})")
+    ax.axhspan(-0.2, 1.2, color="#f2f1ec", zorder=-1)
+    ax.set_xlabel("t (t.u.)"); ax.set_ylabel("z"); ax.set_title("(a) RC trajectories (first 300 t.u.)", loc="left")
+    ax.legend(fontsize=7)
+    # (b) minimum solvent-pair distance per step
+    ax = axs[0, 1]
+    edges = np.concatenate([[0.0], 0.5 + (np.arange(65) / 64.0) * (2 ** (1 / 6) - 0.5)])
+    for dt, c in cols.items():
+        recs = load_group("diag", f"dt{dt}")
+        if not recs:
+            continue
+        h = sum(np.asarray(np.load(os.path.join(OUT, "diag", f"dt{dt}_s{r['meta']['seed']}.npz"))["rmin_hist"], float) for r in recs)
+        h = h / h.sum()
+        ax.semilogy(0.5 + (np.arange(64) + 0.5) / 64 * (2 ** (1 / 6) - 0.5), np.maximum(h[1:65], 1e-12), color=c, label=f"dt {dt}  (r<0.5: {h[0]:.1e})")
+    mcr = load_group("mc", "mc")[:16]
+    h = sum(np.asarray(np.load(os.path.join(OUT, "mc", f"mc_s{r['meta']['seed']}.npz"))["rmin_hist"], float) for r in mcr)
+    h = h / h.sum()
+    ax.semilogy(0.5 + (np.arange(64) + 0.5) / 64 * (2 ** (1 / 6) - 0.5), np.maximum(h[1:65], 1e-12), color="k", lw=2, label="exact MC")
+    ax.axvline(0.65, color="#888", ls="--", lw=0.8); ax.text(0.655, 1e-9, "min_r", fontsize=7)
+    ax.axvline(0.865, color="#888", ls=":", lw=0.8); ax.text(0.87, 1e-9, "single-pair clip", fontsize=7)
+    ax.set_ylim(1e-11, 1); ax.set_xlabel("minimum solvent-pair distance in a configuration"); ax.set_ylabel("fraction of steps")
+    ax.set_title("(b) closest approach: integrator vs exact Gibbs", loc="left"); ax.legend(fontsize=6.5)
+    # (c) regularisation activation vs dt
+    ax = axs[0, 2]
+    if diag:
+        d = sorted(diag, key=float)
+        x = np.array([float(k) for k in d])
+        for key, lab, c in (("frac_steps_clip_binding", "steps with the force clip binding", "#c0392b"),
+                            ("frac_steps_pair_inside_min_r", "steps with a pair inside min_r", "#6c3483"),
+                            ("frac_deposits_mf_sample_clip", "deposits with |f| > 500 (sample clip)", "#2a78d6")):
+            y = np.array([diag[k][key] for k in d])
+            ax.loglog(x, np.maximum(y, 1e-9), marker="o", color=c, label=lab)
+        ax.set_ylim(1e-9, 1)
+        ax.set_xlabel("dt"); ax.set_ylabel("frequency (1e-9 = none seen)"); ax.set_title("(c) production regularisations vs dt", loc="left")
+        ax.legend(fontsize=7)
+    # (d) mean potential energy vs dt
+    ax = axs[1, 0]
+    if diag:
+        x = np.array([float(k) for k in sorted(diag, key=float)])
+        y = np.array([diag[k]["mean_U"] for k in sorted(diag, key=float)])
+        e = np.array([diag[k]["mean_U_se"] for k in sorted(diag, key=float)])
+        ax.errorbar(x, y, yerr=2 * e, marker="o", color="#c0392b", label="production EM")
+        for name, c, mk in (("MC", "k", "s"), ("MALA dt 2.5e-4", "#1baf7a", "*")):
+            if name in sec and "mean_U" in sec[name]:
+                ax.axhline(sec[name]["mean_U"], color=c, lw=1, ls="--", label=f"{name}: {sec[name]['mean_U']:.3f}")
+        for name in [k for k in sec if k.startswith(("LM", "BAOAB"))]:
+            if "mean_U" in sec[name]:
+                ax.plot(float(name.split()[-1]), sec[name]["mean_U"], marker="^" if name.startswith("BAOAB") else "v",
+                        color="#2a78d6" if name.startswith("LM") else "#e67e22", ls="none")
+        ax.set_xscale("log"); ax.set_yscale("log")
+        ax.set_xlabel("dt"); ax.set_ylabel("<U> (kT)"); ax.set_title("(d) mean potential energy (LM v, BAOAB ^)", loc="left")
+        ax.legend(fontsize=7)
+    # (e) per-seed P(z > 0.5): dependence on initial conditions / seeds
+    ax = axs[1, 1]
+    names = [n for n in groups if n.startswith("EM_IMPL")] + ["MC"]
+    for i, n in enumerate(names):
+        ps = [r["C"][CEN > 0.5].sum() / r["C"].sum() for r in groups[n]]
+        ax.plot(np.full(len(ps), i) + 0.15 * RNG.standard_normal(len(ps)), ps, "o", ms=2.5, alpha=0.6)
+    ax.set_xticks(range(len(names))); ax.set_xticklabels([n.replace("EM_IMPL ", "EM\n") for n in names], fontsize=7)
+    ax.set_ylabel("P(z > 0.5) per independent seed"); ax.set_title("(e) seed-to-seed spread (independent lattice starts)", loc="left")
+    # (f) z histograms
+    ax = axs[1, 2]
+    for n in names:
+        C = sum(r["C"] for r in groups[n])
+        ax.plot(CEN, C / C.sum() / DZ, lw=2.2 if n == "MC" else 1.0, color="k" if n == "MC" else None, label=n)
+    ax.set_xlabel("z"); ax.set_ylabel("p(z)"); ax.set_title("(f) RC histograms", loc="left"); ax.legend(fontsize=6.5)
+    fig.tight_layout()
+    for ext in ("png", "pdf"):
+        fig.savefig(os.path.join(OUT, "figures", f"fig_wca_dynamics_sanity.{ext}"), dpi=150)
 
 
 def make_figures(S, profiles, ses, rows):

@@ -146,11 +146,11 @@ def compare(A, B, nboot=300):
 
 
 def barrier(F, kT, a=11.919):
+    """run_lta_reference.barrier_stats: mean F over |z| < 0.4 A minus mean F over the cage bins |z| > 4 A,
+    z = phi a / 2 pi the distance from the WINDOW plane (phi = 0 is the window, phi = +-pi the cage centre).
+    (A first version measured z from the cage centre, inverting the sign; fixed 2026-10-09 before any write-up.)"""
     z = np.abs(CEN) * a / (2 * np.pi)
-    zc = a / 2 - z                                    # distance from the window plane
-    win = zc < 0.4
-    cage = zc > 4.0
-    return float(F[win].mean() - F[cage].mean())
+    return float(F[z < 0.4].mean() - F[z > 4.0].mean())
 
 
 def level(D, up, tol=0.03, tol_up=0.045, marg=0.06):
