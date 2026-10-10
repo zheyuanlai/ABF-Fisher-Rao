@@ -1,0 +1,1486 @@
+{
+ "schema": "eqb_synthesis_manifest/1",
+ "script": "scripts/equal_budget/plot_synthesis.py",
+ "script_version": "plot_synthesis/2",
+ "generated_utc": "2026-10-10T08:10:27Z",
+ "system": "gateway",
+ "system_label": "entropic gateway",
+ "kind": "gateway",
+ "fixture": false,
+ "fixture_of": null,
+ "config": "/home/zheyuanlai/ABF-Fisher-Rao/configs/equal_budget_v2/gateway_production.json",
+ "config_sha256": "bfda33b0caa87b569a2552b1e5753e1a44469d6d91a17805b954750b996b4d35",
+ "results_root": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2",
+ "analysis_dir": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2/gateway/analysis",
+ "fig_dir": "/home/zheyuanlai/ABF-Fisher-Rao/figures/equal_budget_v2/gateway/synthesis",
+ "summary": {
+  "path": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2/gateway/analysis/summary.json",
+  "sha256": "715c90bf2d862312f402df4a86ff3a302c949e808c89fc4e82c93a6b5bd3e0a3",
+  "generated_utc": "2026-10-10T08:08:27Z",
+  "metrics_version": "eqb_metrics/2",
+  "n_boot": 10000,
+  "schema": "eqb_ladder_summary/2"
+ },
+ "freshness": {
+  "verified": true,
+  "stale": false,
+  "stale_reasons": []
+ },
+ "plan": {
+  "B": 3276800000,
+  "h": 2.5e-05,
+  "N_ladder": [
+   2048,
+   1024,
+   512,
+   256,
+   128,
+   64,
+   32,
+   16,
+   8,
+   4,
+   2,
+   1
+  ],
+  "N0": 2048,
+  "seeds": [
+   8100,
+   8101,
+   8102,
+   8103,
+   8104,
+   8105,
+   8106,
+   8107,
+   8108,
+   8109,
+   8110,
+   8111,
+   8112,
+   8113,
+   8114,
+   8115,
+   8116,
+   8117,
+   8118,
+   8119,
+   8120,
+   8121,
+   8122,
+   8123,
+   8124,
+   8125,
+   8126,
+   8127,
+   8128,
+   8129,
+   8130,
+   8131
+  ],
+  "thresholds": {
+   "e_F": [
+    0.002,
+    0.0055,
+    0.02
+   ],
+   "e_Fp": [
+    0.012,
+    0.035,
+    0.1
+   ],
+   "TV_half": 0.1
+  },
+  "T_N": {
+   "1": 81920.0,
+   "2": 40960.0,
+   "4": 20480.0,
+   "8": 10240.0,
+   "16": 5120.0,
+   "32": 2560.0,
+   "64": 1280.0,
+   "128": 640.0,
+   "256": 320.0,
+   "512": 160.0,
+   "1024": 80.0,
+   "2048": 40.0
+  }
+ },
+ "status": {
+  "1": {
+   "abf": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  },
+  "2": {
+   "abf": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  },
+  "4": {
+   "abf": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  },
+  "8": {
+   "abf": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  },
+  "16": {
+   "abf": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  },
+  "32": {
+   "abf": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  },
+  "64": {
+   "abf": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  },
+  "128": {
+   "abf": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  },
+  "256": {
+   "abf": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  },
+  "512": {
+   "abf": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  },
+  "1024": {
+   "abf": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  },
+  "2048": {
+   "abf": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  }
+ },
+ "not_run_N": [],
+ "incomplete_N": [],
+ "figures": [
+  {
+   "id": "S1_free_energy_abs_vs_N",
+   "files": [
+    "S1_free_energy_abs_vs_N.png",
+    "S1_free_energy_abs_vs_N.pdf"
+   ],
+   "title": "absolute Ibar_F and final e_F vs N (ABF, ABF+FR; median, IQR, seeds)",
+   "metrics": [
+    "Ibar_F",
+    "final_e_F"
+   ],
+   "details": {
+    "N_with_data": {
+     "Ibar_F": {
+      "abf": [
+       1,
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024,
+       2048
+      ],
+      "fr": [
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024,
+       2048
+      ]
+     },
+     "final_e_F": {
+      "abf": [
+       1,
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024,
+       2048
+      ],
+      "fr": [
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024,
+       2048
+      ]
+     }
+    }
+   }
+  },
+  {
+   "id": "S2_mean_force_abs_vs_N",
+   "files": [
+    "S2_mean_force_abs_vs_N.png",
+    "S2_mean_force_abs_vs_N.pdf"
+   ],
+   "title": "absolute Ibar_F' and final e_F' vs N",
+   "metrics": [
+    "Ibar_Fp",
+    "final_e_Fp"
+   ],
+   "details": {
+    "N_with_data": {
+     "Ibar_Fp": {
+      "abf": [
+       1,
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024,
+       2048
+      ],
+      "fr": [
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024,
+       2048
+      ]
+     },
+     "final_e_Fp": {
+      "abf": [
+       1,
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024,
+       2048
+      ],
+      "fr": [
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024,
+       2048
+      ]
+     }
+    }
+   }
+  },
+  {
+   "id": "S2s_secondary_reference_abs_vs_N",
+   "files": [
+    "S2s_secondary_reference_abs_vs_N.png",
+    "S2s_secondary_reference_abs_vs_N.pdf"
+   ],
+   "title": "secondary errors (EM-consistent reference; floor-free companion of e_F\u2032) vs N (supplementary)",
+   "metrics": [
+    "Ibar_F_em",
+    "final_e_F_em",
+    "Ibar_Fp_em",
+    "final_e_Fp_em",
+    "Ibar_Fp_stat",
+    "final_e_Fp_stat"
+   ],
+   "details": {
+    "N_with_data": {
+     "Ibar_F_em": {
+      "abf": [
+       1,
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024,
+       2048
+      ],
+      "fr": [
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024,
+       2048
+      ]
+     },
+     "final_e_F_em": {
+      "abf": [
+       1,
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024,
+       2048
+      ],
+      "fr": [
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024,
+       2048
+      ]
+     },
+     "Ibar_Fp_em": {
+      "abf": [
+       1,
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024,
+       2048
+      ],
+      "fr": [
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024,
+       2048
+      ]
+     },
+     "final_e_Fp_em": {
+      "abf": [
+       1,
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024,
+       2048
+      ],
+      "fr": [
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024,
+       2048
+      ]
+     },
+     "Ibar_Fp_stat": {
+      "abf": [
+       1,
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024,
+       2048
+      ],
+      "fr": [
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024,
+       2048
+      ]
+     },
+     "final_e_Fp_stat": {
+      "abf": [
+       1,
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024,
+       2048
+      ],
+      "fr": [
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024,
+       2048
+      ]
+     }
+    }
+   }
+  },
+  {
+   "id": "S3_fr_gain_vs_N",
+   "files": [
+    "S3_fr_gain_vs_N.png",
+    "S3_fr_gain_vs_N.pdf"
+   ],
+   "title": "FR relative improvement G(N): median, bootstrap 95 % CI, per-seed, wins/n",
+   "metrics": [
+    "Ibar_F",
+    "Ibar_Fp",
+    "final_e_F",
+    "final_e_Fp"
+   ],
+   "details": {
+    "N_with_paired_data": {
+     "Ibar_F": [
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+     ],
+     "Ibar_Fp": [
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+     ],
+     "final_e_F": [
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+     ],
+     "final_e_Fp": [
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+     ]
+    }
+   }
+  },
+  {
+   "id": "S4a_tau_free_energy_time",
+   "files": [
+    "S4a_tau_free_energy_time.png",
+    "S4a_tau_free_energy_time.pdf"
+   ],
+   "title": "persistent tau(e_F) at strict / mid / loose, physical time; censored = open markers in the top band, k/n",
+   "metrics": [
+    "tau_e_F_strict_t",
+    "tau_e_F_mid_t",
+    "tau_e_F_loose_t",
+    "paired rank tau_e_F_strict_u",
+    "paired rank tau_e_F_mid_u",
+    "paired rank tau_e_F_loose_u"
+   ],
+   "details": {
+    "N_with_data": {
+     "strict": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+     ],
+     "mid": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+     ],
+     "loose": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+     ]
+    }
+   }
+  },
+  {
+   "id": "S4b_tau_free_energy_budget",
+   "files": [
+    "S4b_tau_free_energy_budget.png",
+    "S4b_tau_free_energy_budget.pdf"
+   ],
+   "title": "persistent tau(e_F) at strict / mid / loose, budget fraction; censored = open markers in the top band, k/n",
+   "metrics": [
+    "tau_bgrid_e_F_strict_u",
+    "tau_bgrid_e_F_mid_u",
+    "tau_bgrid_e_F_loose_u",
+    "paired rank tau_e_F_strict_u",
+    "paired rank tau_e_F_mid_u",
+    "paired rank tau_e_F_loose_u"
+   ],
+   "details": {
+    "N_with_data": {
+     "strict": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+     ],
+     "mid": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+     ],
+     "loose": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+     ]
+    }
+   }
+  },
+  {
+   "id": "S5a_tau_mean_force_time",
+   "files": [
+    "S5a_tau_mean_force_time.png",
+    "S5a_tau_mean_force_time.pdf"
+   ],
+   "title": "persistent tau(e_Fp) at strict / mid / loose, physical time; censored = open markers in the top band, k/n",
+   "metrics": [
+    "tau_e_Fp_strict_t",
+    "tau_e_Fp_mid_t",
+    "tau_e_Fp_loose_t",
+    "paired rank tau_e_Fp_strict_u",
+    "paired rank tau_e_Fp_mid_u",
+    "paired rank tau_e_Fp_loose_u"
+   ],
+   "details": {
+    "N_with_data": {
+     "strict": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+     ],
+     "mid": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+     ],
+     "loose": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+     ]
+    }
+   }
+  },
+  {
+   "id": "S5b_tau_mean_force_budget",
+   "files": [
+    "S5b_tau_mean_force_budget.png",
+    "S5b_tau_mean_force_budget.pdf"
+   ],
+   "title": "persistent tau(e_Fp) at strict / mid / loose, budget fraction; censored = open markers in the top band, k/n",
+   "metrics": [
+    "tau_bgrid_e_Fp_strict_u",
+    "tau_bgrid_e_Fp_mid_u",
+    "tau_bgrid_e_Fp_loose_u",
+    "paired rank tau_e_Fp_strict_u",
+    "paired rank tau_e_Fp_mid_u",
+    "paired rank tau_e_Fp_loose_u"
+   ],
+   "details": {
+    "N_with_data": {
+     "strict": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+     ],
+     "mid": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+     ],
+     "loose": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+     ]
+    }
+   }
+  },
+  {
+   "id": "S6a_establishment_budget",
+   "files": [
+    "S6a_establishment_budget.png",
+    "S6a_establishment_budget.pdf"
+   ],
+   "title": "establishment / first arrival / tau TV_half vs N with the FR gain (u)",
+   "metrics": [
+    "est_u (reliable N)",
+    "est_cum_u (N [1, 2, 4, 8, 16, 32]: unreliable instantaneous rule)",
+    "tau_bgrid_TV_half_u",
+    "G Ibar_F",
+    "G final_e_F",
+    "G Ibar_TV_half",
+    "G final_TV_half"
+   ],
+   "details": {
+    "G_F_N": [
+     2,
+     4,
+     8,
+     16,
+     32,
+     64,
+     128,
+     256,
+     512,
+     1024,
+     2048
+    ],
+    "G_marginal_N": [
+     2,
+     4,
+     8,
+     16,
+     32,
+     64,
+     128,
+     256,
+     512,
+     1024,
+     2048
+    ],
+    "scatter": {
+     "establishment": [
+      {
+       "N": 2,
+       "metric": "Ibar_F",
+       "abf_median": 0.000832291259765625,
+       "G": 0.1392283184765596
+      },
+      {
+       "N": 2,
+       "metric": "final_e_F",
+       "abf_median": 0.000832291259765625,
+       "G": -0.09448545502254549
+      },
+      {
+       "N": 4,
+       "metric": "Ibar_F",
+       "abf_median": 0.001477347412109375,
+       "G": 0.12966898525873705
+      },
+      {
+       "N": 4,
+       "metric": "final_e_F",
+       "abf_median": 0.001477347412109375,
+       "G": -0.15126000277951973
+      },
+      {
+       "N": 8,
+       "metric": "Ibar_F",
+       "abf_median": 0.0044531250000000005,
+       "G": -0.016826363093150797
+      },
+      {
+       "N": 8,
+       "metric": "final_e_F",
+       "abf_median": 0.0044531250000000005,
+       "G": -0.16882709870979362
+      },
+      {
+       "N": 16,
+       "metric": "Ibar_F",
+       "abf_median": 0.01,
+       "G": 0.10900816697434693
+      },
+      {
+       "N": 16,
+       "metric": "final_e_F",
+       "abf_median": 0.01,
+       "G": 0.10815806989456433
+      },
+      {
+       "N": 32,
+       "metric": "Ibar_F",
+       "abf_median": 0.015,
+       "G": -0.22337872561201771
+      },
+      {
+       "N": 32,
+       "metric": "final_e_F",
+       "abf_median": 0.015,
+       "G": -0.027324726710686788
+      },
+      {
+       "N": 64,
+       "metric": "Ibar_F",
+       "abf_median": 0.015,
+       "G": -0.26343208268226526
+      },
+      {
+       "N": 64,
+       "metric": "final_e_F",
+       "abf_median": 0.015,
+       "G": 0.2641017927569088
+      },
+      {
+       "N": 128,
+       "metric": "Ibar_F",
+       "abf_median": 0.03,
+       "G": -0.3025574830108121
+      },
+      {
+       "N": 128,
+       "metric": "final_e_F",
+       "abf_median": 0.03,
+       "G": 0.15276999911160358
+      },
+      {
+       "N": 256,
+       "metric": "Ibar_F",
+       "abf_median": 0.055,
+       "G": -0.2688628031033159
+      },
+      {
+       "N": 256,
+       "metric": "final_e_F",
+       "abf_median": 0.055,
+       "G": -0.06265314543391537
+      },
+      {
+       "N": 512,
+       "metric": "Ibar_F",
+       "abf_median": 0.105,
+       "G": -0.40990770016579803
+      },
+      {
+       "N": 512,
+       "metric": "final_e_F",
+       "abf_median": 0.105,
+       "G": -0.5048147519162846
+      },
+      {
+       "N": 1024,
+       "metric": "Ibar_F",
+       "abf_median": 0.2075,
+       "G": -0.3579916760152705
+      },
+      {
+       "N": 1024,
+       "metric": "final_e_F",
+       "abf_median": 0.2075,
+       "G": -0.5686511245643731
+      },
+      {
+       "N": 2048,
+       "metric": "Ibar_F",
+       "abf_median": 0.415,
+       "G": -0.3138503242332476
+      },
+      {
+       "N": 2048,
+       "metric": "final_e_F",
+       "abf_median": 0.415,
+       "G": -0.6137099439291379
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "S6b_establishment_time",
+   "files": [
+    "S6b_establishment_time.png",
+    "S6b_establishment_time.pdf"
+   ],
+   "title": "establishment / first arrival / tau TV_half vs N with the FR gain (t)",
+   "metrics": [
+    "est_t (reliable N)",
+    "est_cum_t (N [1, 2, 4, 8, 16, 32]: unreliable instantaneous rule)",
+    "tau_TV_half_t",
+    "G Ibar_F",
+    "G final_e_F",
+    "G Ibar_TV_half",
+    "G final_TV_half"
+   ],
+   "details": {
+    "G_F_N": [
+     2,
+     4,
+     8,
+     16,
+     32,
+     64,
+     128,
+     256,
+     512,
+     1024,
+     2048
+    ],
+    "G_marginal_N": [
+     2,
+     4,
+     8,
+     16,
+     32,
+     64,
+     128,
+     256,
+     512,
+     1024,
+     2048
+    ],
+    "scatter": {
+     "establishment": [
+      {
+       "N": 2,
+       "metric": "Ibar_F",
+       "abf_median": 34.090650000000004,
+       "G": 0.1392283184765596
+      },
+      {
+       "N": 2,
+       "metric": "final_e_F",
+       "abf_median": 34.090650000000004,
+       "G": -0.09448545502254549
+      },
+      {
+       "N": 4,
+       "metric": "Ibar_F",
+       "abf_median": 30.256075000000003,
+       "G": 0.12966898525873705
+      },
+      {
+       "N": 4,
+       "metric": "final_e_F",
+       "abf_median": 30.256075000000003,
+       "G": -0.15126000277951973
+      },
+      {
+       "N": 8,
+       "metric": "Ibar_F",
+       "abf_median": 45.6,
+       "G": -0.016826363093150797
+      },
+      {
+       "N": 8,
+       "metric": "final_e_F",
+       "abf_median": 45.6,
+       "G": -0.16882709870979362
+      },
+      {
+       "N": 16,
+       "metric": "Ibar_F",
+       "abf_median": 51.2,
+       "G": 0.10900816697434693
+      },
+      {
+       "N": 16,
+       "metric": "final_e_F",
+       "abf_median": 51.2,
+       "G": 0.10815806989456433
+      },
+      {
+       "N": 32,
+       "metric": "Ibar_F",
+       "abf_median": 38.4,
+       "G": -0.22337872561201771
+      },
+      {
+       "N": 32,
+       "metric": "final_e_F",
+       "abf_median": 38.4,
+       "G": -0.027324726710686788
+      },
+      {
+       "N": 64,
+       "metric": "Ibar_F",
+       "abf_median": 19.2,
+       "G": -0.26343208268226526
+      },
+      {
+       "N": 64,
+       "metric": "final_e_F",
+       "abf_median": 19.2,
+       "G": 0.2641017927569088
+      },
+      {
+       "N": 128,
+       "metric": "Ibar_F",
+       "abf_median": 19.2,
+       "G": -0.3025574830108121
+      },
+      {
+       "N": 128,
+       "metric": "final_e_F",
+       "abf_median": 19.2,
+       "G": 0.15276999911160358
+      },
+      {
+       "N": 256,
+       "metric": "Ibar_F",
+       "abf_median": 17.6,
+       "G": -0.2688628031033159
+      },
+      {
+       "N": 256,
+       "metric": "final_e_F",
+       "abf_median": 17.6,
+       "G": -0.06265314543391537
+      },
+      {
+       "N": 512,
+       "metric": "Ibar_F",
+       "abf_median": 16.8,
+       "G": -0.40990770016579803
+      },
+      {
+       "N": 512,
+       "metric": "final_e_F",
+       "abf_median": 16.8,
+       "G": -0.5048147519162846
+      },
+      {
+       "N": 1024,
+       "metric": "Ibar_F",
+       "abf_median": 16.6,
+       "G": -0.3579916760152705
+      },
+      {
+       "N": 1024,
+       "metric": "final_e_F",
+       "abf_median": 16.6,
+       "G": -0.5686511245643731
+      },
+      {
+       "N": 2048,
+       "metric": "Ibar_F",
+       "abf_median": 16.6,
+       "G": -0.3138503242332476
+      },
+      {
+       "N": 2048,
+       "metric": "final_e_F",
+       "abf_median": 16.6,
+       "G": -0.6137099439291379
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "S7_convergence_selected_N",
+   "files": [
+    "S7_convergence_selected_N.png",
+    "S7_convergence_selected_N.pdf"
+   ],
+   "title": "convergence curves, selected N, common axes (median + IQR over seeds)",
+   "metrics": [
+    "e_F",
+    "e_Fp",
+    "TV_half",
+    "far_frac"
+   ],
+   "details": {
+    "selected_N": [
+     2048,
+     64,
+     2,
+     1
+    ],
+    "rule": "largest planned N; the middle of the sorted planned ladder (index len//2); the smallest N with an FR arm; N = 1 -- chosen from the PLAN, independent of the data (duplicates dropped)",
+    "grids": {
+     "N2048_abf": "full save grid",
+     "N2048_fr": "full save grid",
+     "N64_abf": "full save grid",
+     "N64_fr": "full save grid",
+     "N2_abf": "full save grid",
+     "N2_fr": "full save grid",
+     "N1_abf": "full save grid"
+    }
+   }
+  },
+  {
+   "id": "S7s_convergence_all_N",
+   "files": [
+    "S7s_convergence_all_N.png",
+    "S7s_convergence_all_N.pdf"
+   ],
+   "title": "convergence curves, all N, seed medians + FR/ABF ratio (supplementary)",
+   "metrics": [
+    "e_F",
+    "e_Fp",
+    "TV_half"
+   ],
+   "details": {
+    "N_plotted": {
+     "abf": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+     ],
+     "fr": [
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+     ],
+     "ratio": [
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+     ]
+    }
+   }
+  },
+  {
+   "id": "S8_best_allocation",
+   "files": [
+    "S8_best_allocation.png",
+    "S8_best_allocation.pdf"
+   ],
+   "title": "best allocation: medians vs N, best N, bootstrap best-N frequencies, CI of best FR - best ABF",
+   "metrics": [
+    "Ibar_F",
+    "final_e_F",
+    "tau_bgrid_e_F_mid_u"
+   ],
+   "details": {
+    "Ibar_F": {
+     "best_abf": 16,
+     "best_fr": 16
+    },
+    "final_e_F": {
+     "best_abf": 16,
+     "best_fr": 16
+    },
+    "tau_bgrid_e_F_mid_u": {
+     "best_abf": 1,
+     "best_fr": 4
+    }
+   }
+  },
+  {
+   "id": "S8s_best_allocation_secondary",
+   "files": [
+    "S8s_best_allocation_secondary.png",
+    "S8s_best_allocation_secondary.pdf"
+   ],
+   "title": "best allocation for Ibar_F', final e_F', tau TV_half (supplementary)",
+   "metrics": [
+    "Ibar_Fp",
+    "final_e_Fp",
+    "tau_bgrid_TV_half_u"
+   ],
+   "details": {
+    "Ibar_Fp": {
+     "best_abf": 2,
+     "best_fr": 4
+    },
+    "final_e_Fp": {
+     "best_abf": 16,
+     "best_fr": 16
+    },
+    "tau_bgrid_TV_half_u": {
+     "best_abf": 32,
+     "best_fr": 32
+    }
+   }
+  }
+ ],
+ "notes": [
+  "Every planned N is on every N axis; N without data are marked (NOT RUN / RUNNING / incomplete), never omitted.",
+  "FR is not defined at N = 1 (ABF only, by design).",
+  "No metric is recomputed here: every number comes from the analysis summary or its per-run cache."
+ ],
+ "analysis_warnings": [
+  "tau_e_Fp_strict: UNREACHABLE BY CONSTRUCTION: e_Fp >= 0.03227 > eps for every estimate; tau is censored for every arm and 'both censored' is not a tie",
+  "tau_e_Fp_em_strict: UNREACHABLE BY CONSTRUCTION: e_Fp_em >= 0.03227 > eps for every estimate; tau is censored for every arm and 'both censored' is not a tie"
+ ]
+}
