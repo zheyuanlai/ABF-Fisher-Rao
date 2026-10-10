@@ -30,6 +30,12 @@ first draft of this table carried estimated times up to 60 minutes late; they we
 | 11:54–11:56 | 2-seed smoke runs of every cell (Step 4): 72 jobs, 0 failed, 1.7 min. Not interpreted for performance. V5 ABF-bias record (`scripts/mechanism/abf_smoke.py`): all 7 dynamics PASS. The final Γ is ≤ 7.9 against a limit of 15.8; the running maximum reaches 14.4 (λ = 0.25) and 30.3 (λ = 0.1), as Amendment A1 anticipated. D1–D4 saved, and the class sums equal C_all exactly. |
 | 11:57–11:59 | Analysis pipeline (`analyze_ladder`, `plot_config`) runs end to end on all 8 smoke cells: 19 figures per N, legibility passes. `scripts/mechanism/compare_alpha1_bitwise.py` written (Amendment A4). |
 | ~12:00 | Second build workflow launched: mechanism analysis (D1–D4, conditional laws, synthesis figures S1–S6) and the Experiment III benchmark harness (built and smoked only). |
+| ~12:35 | **Second build workflow interrupted:** both builder agents hit the session's usage limit and stopped mid-work. They left partial `scripts/mechanism/mech_analysis.py`, the benchmark harness files and their tests, all unreviewed. |
+| 13:26 | Validation runs complete: 245 jobs, 0 failed, 57 core-h. |
+| 13:27 | **Gate analysis: PASS at h = 2.5e-5 for all 7 dynamics** (plan and strict readings agree; Holm V4: 0 of 32 rejected). |
+| 13:28 | **Production launched:** Experiments I and II, 1 024 runs. Includes the α = 1 rerun of Amendment A4; the 128 λ = 1 jobs are aliases of identical α = 1 runs. 120 workers on cores 128–255. |
+| 13:31 | Gate report `EXP1_TIMESTEP_VALIDATION.md` + figure committed and pushed (bd0c3bd). |
+| ~13:33 | Interrupted build relaunched as a continuation workflow: inspect, finish and verify the partial files, then two-lens review and a fixer. |
 
 ## Resource ledger
 
