@@ -358,3 +358,43 @@ profile of the smoke run, over bins with ≥ 100 deposits, together with finite 
 refinement to 1.25e-5 is needed. The production total is now about 1 152 runs × 290 s ≈ 93 core-h. The plan's
 estimate of about 100 core-h for Experiments I + II with validation becomes about 150 (about 250 with refinement).
 All of this is under the 400 core-h ceiling, so no design change is needed.
+
+---
+
+## Amendment 2 (2026-10-10, before any Experiment III benchmark run; written after Experiments I and II were analysed)
+
+This fixes the Experiment III details that §8 left to an amendment. The endpoints of §8 are unchanged.
+
+**Seeds and arms**
+* The first 8 production seeds of each system, both arms: gateway 8100–8107, LTA 300 K 30000–30007, LTA 150 K
+  15000–15007.
+* Eight pairs is the harness's minimum for a verdict.
+* The harness reports the minimum detectable effect, so a "consistent" equivalence verdict with 8 seeds is weak
+  evidence. This is stated, not hidden.
+
+**Backend B1, `cpu_numba_1core`** (all three systems)
+* The validated production engines, one process per run, each pinned to its own physical core with an idle SMT
+  sibling. Runs on different cores proceed concurrently.
+* Same hardware for both arms.
+* This measures wall-clock on one core. It does **not** test walker-level parallelism.
+
+**Backend B2, `gpu_torch`** (LTA 300 K and LTA 150 K only)
+* The existing torch engines (`src/lta/core_lta.py`), equivalent in law to the validated engine.
+* One run at a time on one GPU, `allowed_gpus = [3]`.
+  * GPU 2, named in §8, now runs another job of the same user (since about 14:06), and is never touched.
+  * GPU 3 was idle when this was written.
+* The statistical-equivalence check against the numba production (Holm over R1–R5, as implemented in
+  `analyze_parallel_benchmark.py`) is reported with its minimum detectable effect.
+
+**NOT TESTED, with reasons stated in the report**
+* Gateway on `gpu_torch`: projected 16.4–16.9 GPU-h, which exceeds the 8 GPU-h ceiling. On the GPU it is also about
+  9× slower per step than one CPU core at N = 512.
+* `cpu_numba_threads`: no walker-parallel CPU build exists, and §8 forbids writing a new backend into this
+  comparison.
+
+**Resource guards**
+* GPU campaign: `--max-device-hours 8`.
+* CPU campaign: ≤ 20 core-h.
+
+**Primary endpoint (unchanged):** paired wall-clock time to the persistent mid e_F threshold. It excludes the warm-up
+and JIT, which are reported separately. It is computed only on uncontended pairs.

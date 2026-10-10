@@ -46,5 +46,30 @@
   "starts only after Experiments I and II are analysed"
  ],
  "seeds_per_arm": "TBD in the amendment (>= 8)",
- "out_root": "results/mechanism/parallel_benchmark"
+ "out_root": "results/mechanism/parallel_benchmark",
+ "amendment_2": {
+  "written": "2026-10-10, before any Experiment III run (docs/mechanism/SCIENTIFIC_PLAN.md Amendment 2)",
+  "seeds_per_arm": 8,
+  "seeds": "first 8 production seeds of each system",
+  "backends": {
+   "cpu_numba_1core": [
+    "gateway",
+    "lta300",
+    "lta150"
+   ],
+   "gpu_torch": [
+    "lta300",
+    "lta150"
+   ]
+  },
+  "not_tested": {
+   "gpu_torch/gateway": "projected 16.4-16.9 GPU-h > 8 GPU-h ceiling",
+   "cpu_numba_threads": "no walker-parallel build exists"
+  },
+  "gpu_guard": "max-device-hours 8",
+  "cpu_guard": "<= 20 core-h"
+ },
+ "allowed_gpus": [
+  3
+ ]
 }
