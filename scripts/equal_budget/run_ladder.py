@@ -3,6 +3,7 @@
 
     python scripts/equal_budget/run_ladder.py --system lta300 --order coarse_first [--workers 120] [--only-N 1024 256]
     python scripts/equal_budget/run_ladder.py --system gateway
+    python scripts/equal_budget/run_ladder.py --system lta300 --config configs/equal_budget_v2/confirm_best_lta300.json
 
 One process per (system, N, seed, method) via the engine's run_job (resumes from its checkpoint, skips complete
 results).  Outputs results/equal_budget_v2/<dir>/N<N>/s<seed>_<method>.npz.  A ledger row per finished job is
@@ -29,8 +30,9 @@ SYSTEMS = {"gateway": ("gateway_production.json", "gateway"),
            "lta150": ("lta_150K_production.json", "lta_T150")}
 
 
-def load_cfg(system):
-    return json.load(open(os.path.join(ROOT, "configs", "equal_budget_v2", SYSTEMS[system][0])))
+def load_cfg(system, cfg_path=None):
+    """The production config of `system`, or `cfg_path` (a derived config, e.g. the best-allocation confirmation)."""
+    return json.load(open(cfg_path or os.path.join(ROOT, "configs", "equal_budget_v2", SYSTEMS[system][0])))
 
 
 def engine(system):
@@ -96,8 +98,8 @@ def lta_run_job(E, P, method, N, seed, n_steps, path):
 
 
 def run_one(args):
-    system, N, seed, method, n_steps = args
-    P = load_cfg(system)
+    system, cfg_path, N, seed, method, n_steps = args
+    P = load_cfg(system, cfg_path)
     P["system_key"] = system
     E = engine(system)
     p = out_path(P, N, seed, method)
@@ -124,8 +126,10 @@ def main():
     ap.add_argument("--order", default="coarse_first", choices=["coarse_first", "ladder"])
     ap.add_argument("--workers", type=int, default=120)
     ap.add_argument("--only-N", type=int, nargs="*", default=None)
+    ap.add_argument("--config", default=None, help="config path overriding the production config of --system")
     a = ap.parse_args()
-    P = load_cfg(a.system)
+    cfg_path = os.path.abspath(a.config) if a.config else None
+    P = load_cfg(a.system, cfg_path)
     P["system_key"] = a.system
     E = engine(a.system)
     done = E.is_complete if a.system == "gateway" else lta_is_complete
@@ -142,7 +146,7 @@ def main():
                                            "n_force_evals", "finished_utc"])
         if new:
             w.writeheader()
-        futs = [ex.submit(run_one, (a.system,) + j) for j in J]
+        futs = [ex.submit(run_one, (a.system, cfg_path) + j) for j in J]
         for k, f in enumerate(as_completed(futs)):
             r = f.result()
             w.writerow(r); fh.flush()
