@@ -33,9 +33,13 @@ first draft of this table carried estimated times up to 60 minutes late; they we
 | ~12:35 | **Second build workflow interrupted:** both builder agents hit the session's usage limit and stopped mid-work. They left partial `scripts/mechanism/mech_analysis.py`, the benchmark harness files and their tests, all unreviewed. |
 | 13:26 | Validation runs complete: 245 jobs, 0 failed, 57 core-h. |
 | 13:27 | **Gate analysis: PASS at h = 2.5e-5 for all 7 dynamics** (plan and strict readings agree; Holm V4: 0 of 32 rejected). |
-| 13:28 | **Production launched:** Experiments I and II, 1 024 runs. Includes the α = 1 rerun of Amendment A4; the 128 λ = 1 jobs are aliases of identical α = 1 runs. 120 workers on cores 128–255. |
+| 13:28 | **Production launched:** Experiments I and II, 1 152 simulated runs. Includes the α = 1 rerun of Amendment A4; the 128 λ = 1 jobs are aliases of identical α = 1 runs. *(This entry and the 13:35 status message first said "1 024 runs", a miscount corrected from the ledger.)* 120 workers on cores 128–255. |
 | 13:31 | Gate report `EXP1_TIMESTEP_VALIDATION.md` + figure committed and pushed (bd0c3bd). |
 | ~13:33 | Interrupted build relaunched as a continuation workflow: inspect, finish and verify the partial files, then two-lens review and a fixer. |
+| 14:18 | **Production complete:** 1 152 simulated runs (768 Experiment I incl. the 192 α = 1 re-runs, plus 384 Experiment II) and 128 λ = 1 aliases, 0 failed, 97.2 core-h. |
+| 14:19 | **Amendment A4 check: PASS, 192/192** α = 1 re-runs bitwise equal to their equal-budget counterparts on all shared arrays (`results/mechanism/reuse_gate/alpha1_bitwise.json`). |
+| 14:19–14:22 | Analysis of all 8 cells (`analyze_ladder --system gateway_family`), preregistered contrasts (`cross_cell.py` → `results/mechanism/synthesis/cross_cell.{json,md}`), per-N figures A–F (20 cell × N sets), per-cell S1–S8. **Completeness audit PASS for all 8 cells.** |
+| 14:22 | Production milestone committed and pushed (2ccf40d). |
 
 ## Resource ledger
 
