@@ -314,3 +314,47 @@ A neutral or negative FR result is not a stopping reason. Incomplete cells are l
 
 **Storage:** the disk was 98 % full (78 GB free) at writing. Raw files are about 0.6 MB per run, so about 0.6 GB in
 total.
+
+---
+
+## Amendment 1 (2026-10-10 ≈ 12:30 UTC, after the implementation review and BEFORE any validation-gate run, smoke run or production run)
+
+The implementation review raised four points that the frozen text left ambiguous, or that would make it fail for
+reasons unrelated to its purpose. No gate, smoke or performance data existed when this was written.
+
+**A1. V5 ABF-bias stability: which Γ.** "max |Γ| below 2 × max|F\*′| on visited bins" is now read on the **final** Γ
+profile of the smoke run, over bins with ≥ 100 deposits, together with finite states and accumulators.
+* The running maximum over all bias reads is reported descriptively, not gated.
+* Reason: at λ = 0.1 the running maximum reaches 19.6–30.4 against the 15.8 limit (engine test, N = 2048, 1 t.u.)
+  while every state stays finite and the final profile is ≤ 9.2.
+* The cause is physical, not numerical. Walkers entering the gate flank still carry well-width y, because the
+  transverse relaxation 1/(λω²) is slow there, so their local forces are large. They deposit into bins with only a few
+  counts, where Γ = M/(C + 1) is a noisy average.
+* This phenomenon is the Experiment II question itself, and it is reported as such.
+
+**A2. V1 reading.** V1 passes iff the closed form 1/(1 − λ·stiffness·h/2) − 1 ≤ 0.02 **and** the measured inflation
+≤ 0.02 + 2 se.
+* For the shifted fibre it also needs the conditional-mean 3-se test in the two central fine bins and the pooled 2 %
+  variance check at |x| ≤ 0.3.
+* The gateway config's additional "|measured − closed form| ≤ 3 se" clause is computed and reported as
+  `V1_strict`. A strict-only failure triggers an investigation note, not a refinement. Reason: 16 such tests per h
+  give a 13 % chance of a false failure even with exact discretisation.
+
+**A3. V4 multiplicity.** The V4 family consists of all 3-se exact-sampler checks across the seven dynamics (32 tests).
+* It is evaluated with Holm–Bonferroni at family-wise 5 %, using per-test two-sided p from the t₁₅ distribution
+  (16-group jackknife).
+* Unadjusted, the family would read HARNESS_FAIL about 25 % of the time with every sampler exact.
+* V4 stays an h-independent precondition, as in the frozen gateway rule.
+
+**A4. α = 1 / λ = 1 cells are re-run, not re-used.**
+* The re-used equal-budget files carry no D1–D3 diagnostics, but §7 requires the λ = 1 point of D2.
+* The new engine therefore runs all 192 α = 1 jobs (N 2048 / 512 / 128 × 2 arms × 32 seeds, about 15 core-h). The
+  λ = 1 cell of Experiment II aliases the identical α = 1 N = 2048 / 512 jobs.
+* **Every** re-run is compared bitwise, on all shared arrays, with its equal-budget counterpart. This replaces the
+  ≥ 4-job reuse gate with a 192-job one.
+* Any mismatch stops the campaign for investigation. H1 still re-uses the same seeds, so §0's caveat stands.
+
+**A5. Cost.** The frozen validation design (500/λ t.u. per chain) measures about 58 core-h, or about 157 if the
+refinement to 1.25e-5 is needed. The production total is now about 1 152 runs × 290 s ≈ 93 core-h. The plan's
+estimate of about 100 core-h for Experiments I + II with validation becomes about 150 (about 250 with refinement).
+All of this is under the 400 core-h ceiling, so no design change is needed.
