@@ -69,7 +69,36 @@ bias-independent because the umbrella bias depends on φ only.
 
 ## 4. Implementation-specific checks for the ladder engine
 
-ENGINE_PLACEHOLDER
+* **Same physical force field.** `src/lta_ladder_numba.py` ports `core_lta.run_sampler` op for op: forces,
+  CV, step order, deposits, bias, FR score and birth–death law.
+  * Replay test E1: driven by torch-recorded random draws on CPU float64, its discrete outputs are identical to
+    torch and its floats agree within 1e-9 to 1e-13 (`tests/test_lta_ladder_numba.py`, 40 tests pass).
+  * The LJ pair sum is a vectorised (reassociated) reduction, which differs at the last-bit level; that is
+    recorded in meta, and checkpoints are tied to the compile target.
+* **No new force clip or regularisation.** The dynamics uses the unclipped physical force, exactly as torch. The
+  only clips are the historical ones: on the bias read (±60 kJ/mol/rad) and on the deposited local mean force
+  (±480). The engine refuses any deposit clip that is not 8 × the bias clip.
+* **Stable under the actual ABF bias** (smoke test, 2026-10-10, both T):
+  * N = 1024 for 60 000 steps (past the 20 000-step warm-up), ABF and FR, and N = 1 ABF for 2 × 10⁶ steps;
+  * every state and accumulator finite;
+  * max |Γ| = 29 kJ/mol/rad at 300 K and 21 at 150 K, against the bias clip 60 and the reference max |dF/dφ| of
+    28.9 and 20.8, so the clip never binds once the estimator has data;
+  * all 180 bins visited;
+  * n_force_evals = N(n_steps + 1) exactly;
+  * 0.87–0.91 µs per molecule-step.
+* **Statistical equivalence with the CUDA production** (full knobs, N 1024, T 60, 16+ seeds):
+  * The paired FR-vs-ABF ΔI_F of the numba engine falls inside the published CIs: −12.3 % vs [−15.1, −11.0] at
+    300 K, and −28.9 % vs [−29.2, −26.3] at 150 K.
+  * Absolute I_F equivalence at ±5 % is *not shown*, because per-seed I_F scatter is 8–9 % (CPU torch vs numba
+    gives 1.015 [0.969, 1.062]).
+  * Window occupancy differs CPU vs CUDA by about 1 % (p ≈ 0.04–0.06). numba with torch's own CPU random draws
+    agrees with numba (p 0.18), so the engine is not the cause. The residual is unresolved without a GPU and is
+    far below the effects studied.
+* **Physical-time scaling** is frozen in §5 and identical across N.
+* **Finite-N extension.** cap(N) = max(1, ⌊0.02 N⌋) is recorded in meta for every run. The engine review found
+  that at N = 2 the FR score is nearly degenerate: median max |S| = 0.005, because a two-walker KDE is almost
+  symmetric. **FR at N = 2 is therefore expected to be nearly inert.** This is a property of the frozen
+  algorithm, not something tuned, and meta flags it.
 
 ## 5. Frozen physical-time scaling
 
