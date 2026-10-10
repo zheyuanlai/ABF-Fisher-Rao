@@ -23,6 +23,19 @@ Writes <out>/summary.json (strict JSON: +inf = the string "inf", i.e. censored; 
 <out>/median_curves.npz (median / q25 / q75 over seeds on the 200 uniform budget fractions).
 A result that violates the engine contract stops the analysis with a clear message (--skip-invalid records it
 as invalid instead).
+
+Mechanism cells (docs/mechanism/SCIENTIFIC_PLAN.md):
+    python scripts/equal_budget/analyze_ladder.py --system gateway_family \
+        --config configs/mechanism/cells/<experiment>/<variant>.json [--out PATH]
+The cell config names its own locations: --results-root defaults to the parent of its results_dir, --out to its
+analysis_dir; an output inside results/ or figures/equal_budget_v2 is refused (eqb_family.guard_output).  A cell
+config is accepted only with --system gateway_family and gateway_family only with a cell config
+(eqb_family.check_invocation).  The family code lives in eqb_family.py (eqb_metrics.py is byte-identical to the
+committed file, so the equal-budget code digest and every committed equal-budget analysis stay valid); the scorer is
+eqb_family.GatewayFamilyScorer.  tau (plan section 6): the 'tau' contrasts of a cell are tau on e_F, on the
+floor-free e_Fp_stat (thresholds.e_Fp_stat) and on TV_half; 'tau_secondary' holds tau on e_F_em and on raw e_Fp /
+e_Fp_em at the thresholds above their hard floor only (raw e_F' is reported; no tau below its 0.03227 floor).
+summary.json carries a 'cell' block (incl. the reuse-gate status of a reuse cell).  Equal-budget outputs are unchanged.
 """
 from __future__ import annotations
 
@@ -43,6 +56,7 @@ import numpy as np  # noqa: E402
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import eqb_metrics as M  # noqa: E402
+import eqb_family as MF  # noqa: E402  (system / config dispatch; mechanism cells)
 import run_ladder as RL  # noqa: E402  (the production driver's save grid: establishment null calibration per N)
 
 ROOT = M.ROOT
@@ -55,6 +69,16 @@ MARGINAL = ["Ibar_TV_half", "final_TV_half", "Ibar_TV_inst", "final_TV_inst"]
 TAU_PRIMARY = ([f"tau_e_F_{n}_u" for n in M.THR_NAMES] + [f"tau_e_Fp_{n}_u" for n in M.THR_NAMES] + ["tau_TV_half_u"])
 TAU_SECONDARY = {"gateway": [f"tau_e_F_em_{n}_u" for n in M.THR_NAMES] + [f"tau_e_Fp_em_{n}_u" for n in M.THR_NAMES],
                  "lta": [f"tau_e_Fp_proj_{n}_u" for n in M.THR_NAMES]}
+
+
+def tau_keys(system, P, floors=None):
+    """(primary, secondary) tau contrast keys: TAU_PRIMARY and TAU_SECONDARY[kind] for every equal-budget system
+    (unchanged); a mechanism cell: eqb_family.tau_groups (plan section 6; ``floors`` = threshold_floors drops raw
+    e_F' tau below its hard floor)."""
+    g = MF.tau_groups(system, P, floors)
+    return g if g is not None else (TAU_PRIMARY, TAU_SECONDARY[M.system_kind(system)])
+
+
 CURVE_KEYS = {"gateway": ["e_F", "e_Fp", "e_F_em", "e_Fp_em", "e_Fp_stat", "TV_half", "TV_inst", "far_frac"],
               "lta": ["e_F", "e_Fp", "e_Fp_proj", "TV_half", "TV_inst", "far_frac"]}
 TRANSIENT_KEYS = {"gateway": ["e_F", "e_Fp", "e_F_em", "TV_half"], "lta": ["e_F", "e_Fp", "e_Fp_proj", "TV_half"]}
@@ -115,9 +139,9 @@ def unplanned_files(res_root, P, planned):
 # --------------------------------------------------------------------------------------------- per-run cache
 def provenance(system, P, config_path=None):
     """Scoring-code and reference provenance of this analysis (also the cache-key ingredients)."""
-    ref = M.reference_path(system, P)
-    return dict(code=M.code_provenance(system), reference_path=os.path.relpath(ref, ROOT),
-                reference_sha256=M.sha256_file(ref), config_digest=M.config_digest(P),
+    ref = MF.reference_path(system, P)
+    return dict(code=MF.code_provenance(system), reference_path=os.path.relpath(ref, ROOT),
+                reference_sha256=M.sha256_file(ref), config_digest=MF.config_digest(P),
                 config_path=(os.path.abspath(config_path) if config_path else None),
                 config_sha256=(M.sha256_file(config_path) if config_path else None))
 
@@ -134,7 +158,7 @@ def read_meta_cfg(path):
 
 def cache_entry_check(path, system, P, cache_dir, expect, prov):
     """(current key, stored blob or None, problems): problems = [] iff the cached entry of ``path`` is valid."""
-    key = M.run_cache_key(path, system, P, code=prov["code"], ref_sha=prov["reference_sha256"])
+    key = MF.run_cache_key(path, system, P, code=prov["code"], ref_sha=prov["reference_sha256"])
     jp, npz = cache_paths(cache_dir, expect["N"], expect["seed"], expect["method"])
     if not (os.path.exists(jp) and os.path.exists(npz)):
         return key, None, ["no cache entry"]
@@ -153,16 +177,16 @@ def cached_metrics(path, system, P, get_scorer, cache_dir, expect, prov):
         meta, cfg = read_meta_cfg(path)                 # the plan is checked at EVERY use, cached or not
         if meta.get("status") != "complete":
             raise M.MetricsError(f"{path}: meta status is {meta.get('status')!r}, not 'complete'")
-        M.check_plan(dict(meta=meta, cfg=cfg), P, path, expect)
+        MF.check_plan(dict(meta=meta, cfg=cfg), P, path, expect)
         try:
             with np.load(npz, allow_pickle=False) as z:
                 curves = {k: z[k] for k in z.files}
             return curves, blob["scalars"], True
         except Exception:  # noqa: BLE001  (a damaged cache entry is recomputed)
             pass
-    res = M.load_run(path, system)
-    M.check_plan(res, P, path, expect)
-    curves, sc = M.run_metrics(res, system, P, get_scorer(), path)
+    res = MF.load_run(path, system)
+    MF.check_plan(res, P, path, expect)
+    curves, sc = MF.run_metrics(res, system, P, get_scorer(), path)
     os.makedirs(os.path.dirname(jp), exist_ok=True)
     tmp = npz + f".tmp{os.getpid()}.npz"
     np.savez_compressed(tmp, **curves)
@@ -179,8 +203,9 @@ def numeric(v):
     return isinstance(v, (bool, int, float)) and not isinstance(v, str)
 
 
-def aggregate(P, system, runs, rows):
-    kind = M.system_kind(system)
+def aggregate(P, system, runs, rows, floors=None):
+    kind = MF.system_kind(system)
+    tau_prim, tau_sec = tau_keys(system, P, floors)
     per_N, contrasts, transient, curves_out = {}, {}, {}, {}
     u_grid = np.arange(1, M.N_UNIFORM + 1) / M.N_UNIFORM
     for r in rows:
@@ -212,7 +237,7 @@ def aggregate(P, system, runs, rows):
         for grp, keys in (("primary", PRIMARY), ("secondary", SECONDARY[kind]), ("marginal", MARGINAL)):
             for k in keys:
                 c[grp][k] = M.paired_contrast({s: v[k] for s, v in pa.items()}, {s: v[k] for s, v in pf.items()})
-        for grp, keys in (("tau", TAU_PRIMARY), ("tau_secondary", TAU_SECONDARY[kind])):
+        for grp, keys in (("tau", tau_prim), ("tau_secondary", tau_sec)):
             for k in keys:
                 c[grp][k] = M.paired_tau_contrast({s: float(v[k]) for s, v in pa.items()},
                                                   {s: float(v[k]) for s, v in pf.items()})
@@ -292,10 +317,10 @@ def fr_activity(P, runs, rows):
 
 def establishment_null_table(system, P, rows):
     """Null calibration of the establishment criterion on every planned N's save grid (independent of the data)."""
-    kind = M.system_kind(system)
+    kind = MF.system_kind(system)
     out = {}
     for r in rows:
-        steps = RL.save_grid(dict(P, system_key=system), r["n_steps"])
+        steps = RL.save_grid(dict(P, system_key=MF.engine_key(system)), r["n_steps"])
         out[r["N"]] = M.establishment_null(r["N"], np.asarray(steps, float) / r["n_steps"], M.FAR[kind]["target"])
     return out
 
@@ -316,8 +341,8 @@ def annotate_tau(contrasts, floors):
 def summarize_runs(P, system, runs, rows, n_boot, scorer):
     """Every aggregate block of summary.json from the per-run (curves, scalars) dict -- also used by
     audit_completeness.py to recompute the summary.  Returns (blocks, median curves)."""
-    per_N, contrasts, transient, curves_out = aggregate(P, system, runs, rows)
-    floors = M.threshold_floors(system, P, scorer)
+    floors = MF.threshold_floors(system, P, scorer)
+    per_N, contrasts, transient, curves_out = aggregate(P, system, runs, rows, floors)
     annotate_tau(contrasts, floors)
     blocks = dict(per_N=per_N, contrasts=contrasts, max_transient=transient,
                   best_allocation=best_allocations(P, runs, rows, n_boot) if runs else {},
@@ -399,10 +424,13 @@ def contrast_cell(c):
 def tables_md(S, kind):
     L = []
     pl = S["plan"]
-    L += [f"# Equal-budget ladder analysis: {S['system']}", "",
+    cl = S.get("cell") or {}
+    L += [f"# Equal-budget ladder analysis: {S['system']}"
+          + (f" -- mechanism cell {cl.get('experiment')}/{cl.get('cell')}: {cl.get('cell_label')}" if cl else ""), "",
           f"Config `{S['config']}`; results `{S['results_root']}`; generated {S['generated_utc']}; {S['metrics_version']}.",
           f"B = {pl['B']:,} walker-steps per arm per seed; h = {pl['h']:g}; seeds {len(pl['seeds'])}; "
-          f"thresholds e_F {pl['thresholds']['e_F']}, e_F' {pl['thresholds']['e_Fp']}, TV_half {pl['thresholds']['TV_half']}.",
+          f"thresholds e_F {pl['thresholds']['e_F']}, e_F' {pl['thresholds']['e_Fp']}, TV_half {pl['thresholds']['TV_half']}"
+          + "".join(f", {k} {v}" for k, v in pl["thresholds"].items() if k not in ("e_F", "e_Fp", "TV_half")) + ".",
           "Contrasts are paired per seed, G = (FR - ABF)/ABF: median [bootstrap 95 % CI, "
           f"{S['n_boot']} resamples] (wins = seeds with FR < ABF / n). tau is the persistent time-to-accuracy on the "
           "budget axis u (censored = '> 1').", ""]
@@ -458,21 +486,26 @@ def tables_md(S, kind):
           "| N | metric | ABF median u | ABF censored | FR median u | FR censored | FR wins/losses/ties | sign p | G (both finite, n) |",
           "|---|---|---|---|---|---|---|---|---|"]
     for N, c in S["contrasts"].items():
-        for k, t in c["tau"].items():
+        # a mechanism cell also lists its secondary tau (e_F_em; raw e_F' above its floor), labelled
+        items = [(k, t, "") for k, t in c["tau"].items()]
+        if cl:
+            items += [(k, t, " (secondary)") for k, t in (c.get("tau_secondary") or {}).items()]
+        for k, t, lab in items:
             r = t["rank"]
             unr = " **(unreachable by construction: ties are not equivalence)**" if t.get("unreachable_by_construction") else ""
-            L.append(f"| {N} | {k[4:-2]}{unr} | {f_val(t['abf_median'], tau='u')} | {f_val(t['censored_frac_abf'])} | "
+            L.append(f"| {N} | {k[4:-2]}{lab}{unr} | {f_val(t['abf_median'], tau='u')} | {f_val(t['censored_frac_abf'])} | "
                      f"{f_val(t['fr_median'], tau='u')} | {f_val(t['censored_frac_fr'])} | {r['wins']}/{r['losses']}/{r['ties']} | "
                      f"{r['sign_test_p']:.3g} | {f_val(t['G_median'], 'pct')} [{f_val(t['G_ci95'][0], 'pct')}, "
                      f"{f_val(t['G_ci95'][1], 'pct')}] (n {t['n_both_finite']}) |")
+    tau_prim = TAU_PRIMARY if not cl else tau_keys(S["system"], S["plan"], S.get("threshold_floors"))[0]
     L += ["", "### tau per arm (all N; median u [IQR], fraction censored)", "",
-          "| N | method | " + " | ".join(k[4:-2] for k in TAU_PRIMARY) + " |", "|---|---|" + "---|" * len(TAU_PRIMARY)]
+          "| N | method | " + " | ".join(k[4:-2] for k in tau_prim) + " |", "|---|---|" + "---|" * len(tau_prim)]
     for N in pn:
         for m in ("abf", "fr"):
             if not pn[N].get(m):
                 continue
             cells = []
-            for k in TAU_PRIMARY:
+            for k in tau_prim:
                 d = g(N, m, k)
                 cz = g(N, m, k[:-2] + "_censored")
                 cells.append(f"{med_iqr(d, tau='u')} ({f_val(cz['mean'])})" if d and cz else "--")
@@ -584,14 +617,18 @@ def tables_md(S, kind):
 
 # --------------------------------------------------------------------------------------------- main
 def analyze(system, results_root=None, config=None, out=None, n_boot=M.N_BOOT, skip_invalid=False, verbose=True):
-    kind = M.system_kind(system)
-    config = config or M.default_config_path(system)
+    kind = MF.system_kind(system)
+    config = config or MF.default_config_path(system)
     P = json.load(open(config))
-    results_root = os.path.abspath(results_root or os.path.join(ROOT, "results", "equal_budget_v2"))
-    out = os.path.abspath(out or os.path.join(results_root, P["out_dir"], "analysis"))
+    MF.check_invocation(system, P, config)     # a cell config only as gateway_family, gateway_family only with one
+    cell = MF.is_cell(P)                       # mechanism cell: its own result / analysis locations
+    results_root = os.path.abspath(results_root or (MF.cell_results_root(P) if cell else
+                                                    os.path.join(ROOT, "results", "equal_budget_v2")))
+    out = os.path.abspath(out or (MF.cell_analysis_dir(P) if cell else os.path.join(results_root, P["out_dir"], "analysis")))
+    MF.guard_output(P, out, system)
     cache_dir = os.path.join(out, "run_metrics")
     os.makedirs(cache_dir, exist_ok=True)
-    get_scorer = functools.lru_cache(maxsize=1)(lambda: M.make_scorer(system, P))
+    get_scorer = functools.lru_cache(maxsize=1)(lambda: MF.make_scorer(system, P))
     prov = provenance(system, P, config)
     rows = plan(P)
     planned = {(r["N"], s, m) for r in rows for m in r["methods"] for s in P["seeds"]}
@@ -663,6 +700,13 @@ def analyze(system, results_root=None, config=None, out=None, n_boot=M.N_BOOT, s
         status=status, **agg, warnings=warnings, cache=dict(hits=hits, computed=computed, dir=cache_dir),
         definitions=DEFINITIONS,
     )
+    if cell:
+        S["cell"] = {k: P.get(k) for k in ("experiment", "cell", "cell_label", "model", "engine_version", "results_dir",
+                                            "analysis_dir", "fig_dir", "reference_file", "reuse")}
+        S["cell"]["reuse_gate"] = MF.reuse_gate_status(P)
+        if S["cell"]["reuse_gate"]["problems"]:
+            warnings.append("reuse cell: the plan's bitwise-reuse gate is NOT established ("
+                            + "; ".join(S["cell"]["reuse_gate"]["problems"]) + "): these results may not be used")
     S = M.json_safe(S)
     with open(os.path.join(out, "summary.json"), "w") as fh:
         json.dump(S, fh, indent=1, allow_nan=False)
@@ -691,7 +735,8 @@ def _reload(S):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--system", required=True, choices=list(M.SYSTEMS))
+    ap.add_argument("--system", required=True, choices=list(MF.SYSTEMS))
+
     ap.add_argument("--results-root", default=None)
     ap.add_argument("--out", default=None)
     ap.add_argument("--config", default=None)

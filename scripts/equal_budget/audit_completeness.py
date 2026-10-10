@@ -92,6 +92,22 @@ What is checked (FAIL unless marked WARN)
    SYNTH_MISSING), files sound, drawn from the CURRENT summary.json (sha256) and not from a stale one
    (MANIFEST_STALE), plan = config (MANIFEST_MISMATCH); required, like the summary, once any run is complete.
 
+Mechanism cells (docs/mechanism/SCIENTIFIC_PLAN.md): --system gateway_family --config <cell config> audits one cell
+(configs/mechanism/cells/<experiment>/<variant>.json); a cell config with any other --system, or gateway_family with
+a non-cell config, is refused (eqb_family.check_invocation).  Defaults come from the cell: results root = parent of
+its results_dir, analysis = its analysis_dir (or --analysis-root itself / <analysis-root>/<cell>/analysis), figures =
+its fig_dir (or <fig-root>/<cell>), --out = <analysis_dir>/completeness_audit.json (never inside results/ or
+figures/equal_budget_v2).  In addition: every run's engine must be the cell's engine_version and its model fields the
+cell's (eqb_family.check_plan -> PLAN_MISMATCH; gateway_ladder_numba/2 files carry no model fields and are read as
+alpha 1, lam 1), the meta 'system' label is 'gateway' or 'gateway_family', the reference is the cell's frozen
+results/mechanism/references/<experiment>_<variant>_reference.npz (model, h, gauge; its primary arrays bitwise the
+equal-budget gateway reference: REF_PRIMARY), the per-run metric list is the cell's (tau on e_F, e_Fp_stat incl.
+tau_bgrid, TV_half; no raw e_F' tau below its hard floor), the ledger is the cell's 'ledger' (production: ONE
+results/mechanism/<experiment>/ledger.csv per experiment written by scripts/mechanism/run_cells.py, rows filtered to
+the cell by 'ledger_filter' {experiment, variant}; reuse cells: results/equal_budget_v2/gateway/ledger.csv), and a
+reuse cell's bitwise-reuse gate record (plan section 5; scripts/mechanism/reuse_gate.py) must license the reuse
+(REUSE_GATE).
+
 STATUS.json (results/equal_budget_v2/<out_dir>/STATUS.json)
   {"N": {"16": {"status": "NOT RUN", "reason": "resource ceiling reached at ..."},
          "8":  {"status": "partial", "reason": "...", "missing": {"fr": [30003]}}}}
@@ -121,6 +137,7 @@ import numpy as np  # noqa: E402
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import eqb_metrics as M  # noqa: E402
+import eqb_family as MF  # noqa: E402  (system / config dispatch; mechanism cells)
 import analyze_ladder as A  # noqa: E402
 import run_ladder as RL  # noqa: E402  (the production driver's save grid)
 
@@ -206,6 +223,22 @@ REQUIRED_RUN_METRICS = (
        "min_gen_ess_win", "max_gen_maxfam_win", "fr_deaths", "fr_zero_deaths", "fr_mean_event_frac_per_opp",
        "fr_deaths_frac_per_opp", "n_force_evals", "wall_s", "peak_rss_mb"]
     + [f"tau_bgrid_{e}_{n}_u" for e in ("e_F", "e_Fp") for n in M.THR_NAMES] + ["tau_bgrid_TV_half_u"])
+def required_run_metrics(system, P, floors=None):
+    """The plan's per-run metric list for ``system``: REQUIRED_RUN_METRICS + the kind's (equal-budget systems,
+    unchanged); a mechanism cell also tau (and tau_bgrid) on the companions with thresholds of their own (e_Fp_stat)
+    and NOT the tau at thresholds below a hard floor (``floors`` = the summary's threshold_floors)."""
+    kind = MF.system_kind(system)
+    req = REQUIRED_RUN_METRICS + REQUIRED_RUN_METRICS_KIND[kind]
+    if not MF.is_family(system):
+        return req
+    comp = MF.tau_companions(kind, P)
+    req = (req + [f"tau_{e}_{n}_{f}" for e in comp for n in M.THR_NAMES for f in ("t", "u", "censored")]
+           + [f"tau_bgrid_{e}_{n}_u" for e in comp for n in M.THR_NAMES])
+    drop = MF.unreachable_tau_stems(floors)
+    return [k for k in req if not any(k.startswith(st + "_") or k.startswith(st.replace("tau_", "tau_bgrid_", 1) + "_")
+                                      for st in drop)]
+
+
 REQUIRED_RUN_METRICS_KIND = {
     "gateway": ["Ibar_F_em", "Ibar_Fp_em", "final_e_F_em", "final_e_Fp_em", "Ibar_Fp_stat", "final_e_Fp_stat",
                 "fr_candidates", "first_right_u", "first_right_t"],
@@ -297,12 +330,12 @@ def _values_ok(a, cls):
 
 
 def expected_grid(system, P, n_steps):
-    return np.asarray(RL.save_grid(dict(P, system_key=system), int(n_steps)), dtype=np.int64)
+    return np.asarray(RL.save_grid(dict(P, system_key=MF.engine_key(system)), int(n_steps)), dtype=np.int64)
 
 
 def audit_run_file(path, system, P, N, seed, method, grid):
     """Returns (status 'complete' | 'invalid', problems [(code, message)], info)."""
-    kind = M.system_kind(system)
+    kind = MF.system_kind(system)
     probs, info = [], {}
     try:
         with np.load(path, allow_pickle=False) as z:
@@ -328,6 +361,11 @@ def audit_run_file(path, system, P, N, seed, method, grid):
     n_steps = B // N
     want = dict(N=N, seed=seed, method=method, system=("gateway" if kind == "gateway" else "lta"), n_steps=n_steps,
                 B=B)
+    if MF.is_family(system):           # gateway family: the label may be 'gateway' (reuse cells) or 'gateway_family'
+        want.pop("system")
+        if meta.get("system") not in MF.FAMILY_SYSTEM_LABELS:
+            probs.append(("FILE_IDENTITY", f"meta system = {meta.get('system')!r}, expected one of "
+                                           f"{MF.FAMILY_SYSTEM_LABELS}"))
     for k, v in want.items():
         if meta.get(k) != v:
             probs.append(("FILE_IDENTITY", f"meta {k} = {meta.get(k)!r}, expected {v!r} (path / config)"))
@@ -336,7 +374,7 @@ def audit_run_file(path, system, P, N, seed, method, grid):
     if kind == "lta" and float(meta.get("T_K", math.nan)) != float(P["T_K"]):
         probs.append(("FILE_IDENTITY", f"meta T_K = {meta.get('T_K')!r}, config T_K = {P['T_K']!r}"))
     try:
-        M.check_plan(dict(meta=meta, cfg=cfg), P, path, dict(N=N, seed=seed, method=method))
+        MF.check_plan(dict(meta=meta, cfg=cfg), P, path, dict(N=N, seed=seed, method=method))
     except M.MetricsError as e:
         probs.append(("PLAN_MISMATCH", str(e)))
     except Exception as e:  # noqa: BLE001
@@ -574,13 +612,17 @@ def status_missing_set(m):
     return out
 
 
-def load_ledger(path):
-    """Last ledger row per (N, seed, method), in file order; None if no ledger."""
+def load_ledger(path, where=None):
+    """Last ledger row per (N, seed, method), in file order; None if no ledger.  ``where``: {column: value} rows must
+    match (a mechanism experiment ledger holds every variant of the experiment: rows filtered to one cell BEFORE
+    keying, so variants never overwrite each other); a filter column absent from the ledger matches nothing."""
     if not os.path.exists(path):
         return None
     last = {}
     with open(path, newline="") as fh:
         for row in csv.DictReader(fh):
+            if where and any(str(row.get(k)) != str(v) for k, v in where.items()):
+                continue
             try:
                 key = (int(row["N"]), int(row["seed"]), str(row["method"]))
             except Exception:  # noqa: BLE001
@@ -590,8 +632,78 @@ def load_ledger(path):
 
 
 # =================================================================================================== references
+def audit_family_reference(system, P, rep, summary):
+    """Gateway family: the cell's frozen reference (scripts/mechanism/build_references.py)."""
+    where = "references"
+    path = MF.reference_path(system, P)
+    out = dict(path=os.path.relpath(path, ROOT), frozen_dir=os.path.relpath(os.path.dirname(path), ROOT))
+    if not os.path.exists(path):
+        rep.fail("REF_MISSING", where, f"frozen cell reference {path} does not exist (scripts/mechanism/build_references.py)")
+        return out
+    out["sha256"] = sha256_file(path)
+    with np.load(path, allow_pickle=False) as z:
+        ref = {k: z[k] for k in z.files}
+    need = MF.FAMILY_REF_ARRAYS + ("h", "model_json")
+    miss = [k for k in need if k not in ref]
+    if miss:
+        rep.fail("REF_MISSING", where, f"{out['path']}: arrays missing {miss}")
+        return out
+    for k in ("units", "gauge", "secondary_definition"):
+        v = ref.get(k)
+        v = str(v.item()) if (v is not None and v.ndim == 0 and v.dtype.kind in "US") else None
+        if not v:
+            rep.fail("REF_UNDOCUMENTED", where, f"{out['path']}: field {k!r} absent or empty")
+        out[k] = v
+    m = ref["eval_mask"].astype(bool)
+    if float(ref["h"]) != float(P["engine_cfg"]["h"]):
+        rep.fail("REF_MISMATCH", where, f"{out['path']}: h {float(ref['h'])} != config h {P['engine_cfg']['h']}")
+    if int(m.sum()) != 151:
+        rep.fail("REF_MISMATCH", where, f"{out['path']}: eval window has {int(m.sum())} nodes, the plan says 151")
+    try:
+        model = json.loads(str(ref["model_json"]))
+    except Exception:  # noqa: BLE001
+        model = None
+    want_model = MF.family_model(P["engine_cfg"])
+    out["model"] = model
+    if model != want_model:
+        rep.fail("REF_MISMATCH", where, f"{out['path']}: model {model} != the cell's {want_model}")
+    g = {k: float(np.mean(ref[k][m])) for k in ("F_ref", "F_ref_em")}
+    out["gauge_check"] = dict(mean_F_ref_eval_window=g["F_ref"], mean_F_ref_em_eval_window=g["F_ref_em"])
+    if any(abs(v) > 1e-9 for v in g.values()):
+        rep.fail("REF_GAUGE", where, f"{out['path']}: stated gauge 'centred on the eval window' violated: {g}")
+    eqb_path = os.path.join(M.REF_DIR, "gateway_reference.npz")
+    with np.load(eqb_path, allow_pickle=False) as z:
+        eqb = {k: z[k] for k in z.files}
+    diff = [k for k in MF.PRIMARY_REF_ARRAYS if not np.array_equal(ref[k], eqb[k])]
+    out["primary_identical_to"] = os.path.relpath(eqb_path, ROOT)
+    out["primary_digest"] = MF.primary_digest(ref)
+    if diff:
+        rep.fail("REF_PRIMARY", where, f"{out['path']}: primary reference arrays {diff} differ from the equal-budget "
+                                       f"{out['primary_identical_to']} (the primary reference must be identical for "
+                                       f"every variant)")
+    d = (ref["F_ref_em"] - ref["F_ref"])[m]
+    out["em_floor_F_rms"] = float(np.sqrt(np.mean((d - d.mean()) ** 2)))
+    try:
+        sc = MF.make_scorer(system, P)            # verifies the file against the scorer, bitwise primary included
+        out["scorer"] = {k: v for k, v in sc.reference_info.items() if not isinstance(v, dict)}
+    except Exception as e:  # noqa: BLE001
+        rep.fail("REF_SCORER", where, f"the family scorer refuses the frozen reference: {type(e).__name__}: {e}")
+    if summary is not None:
+        sref = summary.get("reference") or {}
+        if sref.get("path") != out["path"]:
+            rep.fail("REF_SUMMARY", where, f"summary.json reference path {sref.get('path')!r} != {out['path']!r}")
+        if sref.get("sha256") != out.get("sha256"):
+            rep.fail("REF_SUMMARY", where, f"summary.json was scored against reference sha256 "
+                                           f"{str(sref.get('sha256'))[:12]}, the frozen file is {str(out.get('sha256'))[:12]}")
+        if (sref.get("primary_reference") or {}).get("digest") != out["primary_digest"]:
+            rep.fail("REF_SUMMARY", where, "summary.json primary-reference digest differs from the frozen file's")
+    return out
+
+
 def audit_reference(system, P, rep, summary):
-    kind = M.system_kind(system)
+    if MF.is_family(system):
+        return audit_family_reference(system, P, rep, summary)
+    kind = MF.system_kind(system)
     where = "references"
     fname = "gateway_reference.npz" if kind == "gateway" else f"lta_T{int(round(float(P['T_K'])))}_reference.npz"
     path = os.path.join(M.REF_DIR, fname)
@@ -667,7 +779,7 @@ def audit_reference(system, P, rep, summary):
         out["noise"] = dict(F_ref_se_rms=float(np.sqrt(np.mean(ref["F_ref_se"] ** 2))),
                             gamma_se_rms=float(np.sqrt(np.mean(ref["gamma_se"] ** 2))))
     try:
-        sc = M.make_scorer(system, P)            # gateway: the accepted scorer must reproduce the frozen reference
+        sc = MF.make_scorer(system, P)            # gateway: the accepted scorer must reproduce the frozen reference
         out["scorer"] = {k: v for k, v in sc.reference_info.items() if not isinstance(v, dict)}
     except Exception as e:  # noqa: BLE001
         rep.fail("REF_SCORER", where, f"the metrics scorer refuses the frozen reference: {type(e).__name__}: {e}")
@@ -684,7 +796,19 @@ def audit_reference(system, P, rep, summary):
 
 
 # =================================================================================================== summary + CIs
-def resolve_analysis_dir(analysis_root, out_dir, system):
+def resolve_analysis_dir(analysis_root, out_dir, system, P=None):
+    if MF.is_cell(P):              # mechanism cell: its analysis_dir, or --analysis-root itself / <root>/<cell>/analysis
+        if analysis_root is None:
+            return MF.cell_analysis_dir(P)
+        direct = os.path.join(analysis_root, "summary.json")
+        if os.path.exists(direct):
+            try:
+                S = strict_json(direct)
+                if S.get("system") == system and (S.get("cell") or {}).get("cell") == P["cell"]:
+                    return analysis_root
+            except Exception:  # noqa: BLE001
+                pass
+        return os.path.join(analysis_root, P["cell"], "analysis")
     cand = os.path.join(analysis_root, out_dir, "analysis")
     if os.path.exists(os.path.join(cand, "summary.json")):
         return cand
@@ -700,7 +824,7 @@ def resolve_analysis_dir(analysis_root, out_dir, system):
 
 def audit_summary(system, P, rep, analysis_dir, results_root, D, file_paths, any_complete):
     """Checks section 4 of the module docstring.  D: {(N, method): sorted complete seeds}."""
-    kind = M.system_kind(system)
+    kind = MF.system_kind(system)
     where = "summary"
     path = os.path.join(analysis_dir, "summary.json")
     out = dict(path=path, present=os.path.exists(path))
@@ -773,7 +897,7 @@ def audit_summary(system, P, rep, analysis_dir, results_root, D, file_paths, any
                 rep.fail("SUMMARY_STALE", f"N{N} {m}", f"{len(disk)} complete run files but no per-N metrics")
                 backed[N][m] = dict(n_files=len(disk), n_metrics=0, n_seeds_summary=0)
                 continue
-            req = REQUIRED_RUN_METRICS + REQUIRED_RUN_METRICS_KIND[kind]
+            req = required_run_metrics(system, P, S.get("threshold_floors"))
             lack = [k for k in req if k not in blk]
             if lack:
                 rep.fail("SUMMARY_INCOMPLETE", f"N{N} {m}", f"plan metrics missing from per_N: {lack}")
@@ -815,8 +939,9 @@ def audit_summary(system, P, rep, analysis_dir, results_root, D, file_paths, any
             if not c:
                 rep.fail("SUMMARY_STALE", f"N{N} contrasts", "both arms on disk but no paired contrasts")
                 continue
-            groups = dict(primary=A.PRIMARY, secondary=A.SECONDARY[kind], marginal=A.MARGINAL, tau=A.TAU_PRIMARY,
-                          tau_secondary=A.TAU_SECONDARY[kind])
+            tau_prim, tau_sec = A.tau_keys(system, P, S.get("threshold_floors"))
+            groups = dict(primary=A.PRIMARY, secondary=A.SECONDARY[kind], marginal=A.MARGINAL, tau=tau_prim,
+                          tau_secondary=tau_sec)
             for grp, keys in groups.items():
                 lack = [k for k in keys if k not in (c.get(grp) or {})]
                 if lack:
@@ -922,7 +1047,7 @@ def audit_summary(system, P, rep, analysis_dir, results_root, D, file_paths, any
         if all_valid and not any(f["code"] == "SUMMARY_PLAN" for f in rep.failures):
             try:
                 blocks, _ = A.summarize_runs(P, system, runs_cache, rows, int(S.get("n_boot") or M.N_BOOT),
-                                             M.make_scorer(system, P))
+                                             MF.make_scorer(system, P))
                 want_blocks = M.json_safe(blocks)
                 diffs = []
                 for name, blk in want_blocks.items():
@@ -1129,15 +1254,17 @@ def check_entries(entries, base, rep, where, n_files):
     return ok
 
 
-def audit_figures(system, P, rep, fig_root, results_root, N_status, D, file_paths, summary_meta):
-    """Per-N manifests of plot_config.py and the synthesis manifest of plot_synthesis.py (section 6)."""
+def audit_figures(system, P, rep, fig_root, results_root, N_status, D, file_paths, summary_meta, fig_base=None):
+    """Per-N manifests of plot_config.py and the synthesis manifest of plot_synthesis.py (section 6).  fig_base: the
+    directory holding N<N>/ and synthesis/ (default <fig_root>/<out_dir>; mechanism cells: their fig_dir)."""
     out_dir = P["out_dir"]
+    fig_base = fig_base or os.path.join(fig_root, out_dir)
     fixture = bool(P.get("_fixture_of"))
     out = dict(per_N={}, synthesis={}, n_files_checked=0)
     n_files = [0]
     for N in [int(n) for n in P["N_ladder"]]:
         req = N_status.get(N) == "complete"
-        mp = os.path.join(fig_root, out_dir, f"N{N}", "MANIFEST.json")
+        mp = os.path.join(fig_base, f"N{N}", "MANIFEST.json")
         rec = dict(required=req, manifest=mp, present=os.path.exists(mp), items={})
         out["per_N"][N] = rec
         if not rec["present"]:
@@ -1204,14 +1331,15 @@ def audit_figures(system, P, rep, fig_root, results_root, N_status, D, file_path
 
     # ---- synthesis S1-S8: required as soon as any run is complete (like the summary)
     need = any(len(v) > 0 for v in D.values())
-    cands = [os.path.join(fig_root, out_dir, "synthesis", "MANIFEST.json"),
-             os.path.join(results_root, out_dir, "synthesis", "MANIFEST.json")]
+    cands = [os.path.join(fig_base, "synthesis", "MANIFEST.json")]
+    if not MF.is_cell(P):          # a cell's results_dir may be the equal-budget tree (reuse): no fallback there
+        cands.append(os.path.join(results_root, out_dir, "synthesis", "MANIFEST.json"))
     found = [c for c in dict.fromkeys(cands) if os.path.exists(c)]
     syn = dict(manifest=found[0] if found else cands[0], present=bool(found), items={})
     out["synthesis"] = syn
     if len(found) > 1:
         rep.warn("SYNTH_LOCATION", "synthesis", f"two synthesis manifests ({found}); auditing the one under --fig-root")
-    elif found and found[0] == cands[1] and cands[0] != cands[1]:
+    elif found and len(cands) > 1 and found[0] == cands[1] and cands[0] != cands[1]:
         rep.warn("SYNTH_LOCATION", "synthesis", f"synthesis figures are under the results root ({found[0]}), not under "
                                                 f"--fig-root (plot_synthesis.py's default --fig-root is the results root)")
     man = load_manifest(found[0], rep, "synthesis") if found else None
@@ -1265,16 +1393,27 @@ def audit_figures(system, P, rep, fig_root, results_root, N_status, D, file_path
 
 # =================================================================================================== one system
 def audit_system(system, cfg_path, results_root, analysis_root, fig_root):
+    """results_root / analysis_root / fig_root None: the equal-budget defaults, or a mechanism cell's own locations."""
     rep = Report()
     t0 = time.time()
     P = json.load(open(cfg_path))
-    kind = M.system_kind(system)
+    MF.check_invocation(system, P, cfg_path)      # refused: a cell config as 'gateway', or gateway_family without one
+    kind = MF.system_kind(system)
     out_dir = P["out_dir"]
+    cell = MF.is_cell(P)
+    if cell:
+        results_root = results_root or MF.cell_results_root(P)
+        fig_base = MF.cell_fig_dir(P, fig_root)
+    else:
+        results_root = results_root or os.path.join(ROOT, "results", "equal_budget_v2")
+        analysis_root = analysis_root or results_root
+        fig_root = fig_root or os.path.join(ROOT, "figures", "equal_budget_v2")
+        fig_base = os.path.join(fig_root, out_dir)
     seeds = [int(s) for s in P["seeds"]]
     rows = A.plan(P)
     res_dir = os.path.join(results_root, out_dir)
-    if kind == "lta" and float(P.get("T_K", M.SYSTEMS[system].get("T_K"))) != float(M.SYSTEMS[system]["T_K"]):
-        rep.fail("PLAN_MISMATCH", "config", f"config T_K {P.get('T_K')} is not {system}'s {M.SYSTEMS[system]['T_K']}")
+    if kind == "lta" and float(P.get("T_K", MF.SYSTEMS[system].get("T_K"))) != float(MF.SYSTEMS[system]["T_K"]):
+        rep.fail("PLAN_MISMATCH", "config", f"config T_K {P.get('T_K')} is not {system}'s {MF.SYSTEMS[system]['T_K']}")
     for k in ("profile_snapshot_u", "physical_checkpoints_t", "thresholds", "seeds", "N_ladder"):
         if not P.get(k):
             rep.fail("PLAN_MISMATCH", "config", f"config lacks {k!r}")
@@ -1285,7 +1424,15 @@ def audit_system(system, cfg_path, results_root, analysis_root, fig_root):
             stat_top = strict_json(os.path.join(res_dir, "STATUS.json"))
         except Exception:  # noqa: BLE001  (already reported)
             stat_top = {}
-    ledger = load_ledger(os.path.join(res_dir, "ledger.csv"))
+    if cell:      # the cell's ledger (production: one per experiment, rows of this variant only)
+        ledger_path, ledger_where = MF.cell_ledger(P)
+    else:
+        ledger_path, ledger_where = os.path.join(res_dir, "ledger.csv"), None
+    ledger = load_ledger(ledger_path, ledger_where)
+    gate = MF.reuse_gate_status(P) if cell else None
+    if gate and gate["reuse"] and not gate["licensed"]:
+        rep.fail("REUSE_GATE", "reuse", "the cell reuses results/equal_budget_v2 files but the plan's bitwise-reuse gate "
+                                        "(section 5) is not established: " + "; ".join(gate["problems"]))
 
     # ---- run files
     files, D, file_paths, eng, cfgs, unident = {}, {}, {}, {}, {}, []
@@ -1439,18 +1586,18 @@ def audit_system(system, cfg_path, results_root, analysis_root, fig_root):
         for (N, s, m) in sorted(set(ledger) - planned_keys):
             rep.warn("LEDGER_UNPLANNED", f"N{N} s{s} {m}", "ledger row for a job outside the plan")
     elif any(v["status"] != "missing" for v in files.values()):
-        rep.fail("LEDGER_MISSING", out_dir, f"{os.path.join(res_dir, 'ledger.csv')} does not exist although run files do "
-                                            f"(run_ladder.py writes one row per finished job)")
+        rep.fail("LEDGER_MISSING", out_dir, f"{ledger_path} does not exist although run files do "
+                                            f"(run_ladder.py / scripts/mechanism/run_cells.py write one row per finished job)")
     for N in sorted(set(stat or {}) - {r["N"] for r in rows}):
         rep.warn("STATUS_UNPLANNED", f"N{N}", "STATUS.json entry for an N outside the plan")
     any_complete = any(D.values())
 
     # ---- summary, CIs, references, figures
-    adir = resolve_analysis_dir(analysis_root, out_dir, system)
+    adir = resolve_analysis_dir(analysis_root, out_dir, system, P)
     summ, S = audit_summary(system, P, rep, adir, results_root, D, file_paths, any_complete)
     cis = audit_cis(S, P, rep, D) if S is not None else dict(n_total=0, n_full=0, n_flagged=0, flagged=[], full=[])
     refs = audit_reference(system, P, rep, S)
-    figs = audit_figures(system, P, rep, fig_root, results_root, N_status, D, file_paths, summ)
+    figs = audit_figures(system, P, rep, fig_root, results_root, N_status, D, file_paths, summ, fig_base=fig_base)
     for row in N_rows:
         f = figs["per_N"].get(row["N"], {})
         row["figures"] = dict(required=f.get("required"), present=f.get("present"), n_ok=f.get("n_ok"),
@@ -1459,7 +1606,7 @@ def audit_system(system, cfg_path, results_root, analysis_root, fig_root):
     out = dict(
         system=system, kind=kind, verdict="PASS" if not rep.failures else "FAIL", config=os.path.abspath(cfg_path),
         config_sha256=sha256_file(cfg_path), out_dir=out_dir, results_dir=res_dir, analysis_dir=adir,
-        figure_root=os.path.join(fig_root, out_dir), synthesis_manifest=figs["synthesis"]["manifest"],
+        figure_root=fig_base, synthesis_manifest=figs["synthesis"]["manifest"],
         n_failures=len(rep.failures), n_warnings=len(rep.warnings),
         plan=dict(B=int(P["B"]), h=float(P["engine_cfg"]["h"]), N_ladder=[r["N"] for r in rows], seeds=seeds,
                   n_planned_runs=len(planned_keys), profile_snapshot_u=P["profile_snapshot_u"],
@@ -1475,13 +1622,19 @@ def audit_system(system, cfg_path, results_root, analysis_root, fig_root):
                        files={f"N{N}/s{s}_{m}.npz": v for (N, m, s), v in sorted(files.items())}),
         references=refs, summary=summ, confidence_intervals=cis, figures=figs,
         failures=rep.failures, warnings=rep.warnings, elapsed_s=time.time() - t0)
+    if cell:
+        out["cell"] = {k: P.get(k) for k in ("experiment", "cell", "cell_label", "model", "engine_version", "results_dir",
+                                              "analysis_dir", "fig_dir", "reference_file", "reuse")}
+        out["cell"].update(ledger=ledger_path, ledger_filter=ledger_where, reuse_gate=gate)
     return out
 
 
 # =================================================================================================== printing
 def print_system(a, max_lines=40):
     pr = print
-    pr(f"\n== {a['system']} ({a['out_dir']}): {a['verdict']}  [{a['n_failures']} failure(s), {a['n_warnings']} "
+    where = (f"cell {a['cell']['experiment']}/{a['cell']['cell']}, runs in {a['out_dir']}" if a.get("cell")
+             else a["out_dir"])
+    pr(f"\n== {a['system']} ({where}): {a['verdict']}  [{a['n_failures']} failure(s), {a['n_warnings']} "
        f"warning(s)]")
     pr(f"   config {a['config']}")
     pr(f"   results {a['results_dir']}   analysis {a['analysis_dir']}   figures {a['figure_root']}")
@@ -1546,9 +1699,9 @@ def print_system(a, max_lines=40):
 
 # =================================================================================================== main
 def parse_configs(items, systems):
-    out = {s: M.default_config_path(s) for s in systems}
+    out = {s: (None if MF.is_family(s) else MF.default_config_path(s)) for s in systems}
     for it in items or []:
-        if "=" in it and it.split("=", 1)[0] in M.SYSTEMS:
+        if "=" in it and it.split("=", 1)[0] in MF.SYSTEMS:
             s, p = it.split("=", 1)
             if s not in systems:
                 raise SystemExit(f"--config {it}: {s} is not audited (--system)")
@@ -1557,6 +1710,9 @@ def parse_configs(items, systems):
             out[systems[0]] = it
         else:
             raise SystemExit("with several systems give --config SYSTEM=PATH")
+    miss = [s for s, p in out.items() if p is None]
+    if miss:
+        raise SystemExit(f"--system {miss[0]} needs --config <cell config> (configs/mechanism/cells/<experiment>/<variant>.json)")
     return out
 
 
@@ -1589,24 +1745,43 @@ def run_audit(systems, configs, results_root, analysis_root, fig_root, out_path,
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--system", required=True, choices=list(SYSTEM_ORDER) + ["all"])
-    ap.add_argument("--results-root", default=os.path.join(ROOT, "results", "equal_budget_v2"))
+    ap.add_argument("--system", required=True, choices=list(SYSTEM_ORDER) + ["gateway_family", "all"])
+    ap.add_argument("--results-root", default=None, help="default results/equal_budget_v2 (a cell: its own)")
     ap.add_argument("--config", action="append", default=None,
                     help="config path (one system) or SYSTEM=PATH (repeatable); default the production configs")
-    ap.add_argument("--fig-root", default=os.path.join(ROOT, "figures", "equal_budget_v2"))
-    ap.add_argument("--analysis-root", default=None, help="default: --results-root")
-    ap.add_argument("--out", default=None, help="default: <analysis-root>/completeness_audit.json")
+    ap.add_argument("--fig-root", default=None, help="default figures/equal_budget_v2 (a cell: its fig_dir)")
+    ap.add_argument("--analysis-root", default=None, help="default: --results-root (a cell: its analysis_dir)")
+    ap.add_argument("--out", default=None, help="default: <analysis-root>/completeness_audit.json (a cell: "
+                                                "<analysis_dir>/completeness_audit.json)")
     ap.add_argument("--quiet", action="store_true")
     a = ap.parse_args(argv)
     systems = list(SYSTEM_ORDER) if a.system == "all" else [a.system]
     configs = parse_configs(a.config, systems)
-    results_root = os.path.abspath(a.results_root)
-    analysis_root = os.path.abspath(a.analysis_root or results_root)
-    fig_root = os.path.abspath(a.fig_root)
-    out = os.path.abspath(a.out or os.path.join(analysis_root, "completeness_audit.json"))
-    doc = run_audit(systems, configs, results_root, analysis_root, fig_root, out, verbose=not a.quiet,
-                    argv=list(sys.argv if argv is None else argv))
+    if MF.is_family(a.system):        # mechanism cell: defaults from the cell config
+        P = json.load(open(configs[a.system]))
+        try:
+            MF.check_invocation(a.system, P, configs[a.system])
+        except M.MetricsError as e:
+            raise SystemExit(str(e))
+        results_root = os.path.abspath(a.results_root) if a.results_root else None
+        analysis_root = os.path.abspath(a.analysis_root) if a.analysis_root else None
+        fig_root = os.path.abspath(a.fig_root) if a.fig_root else None
+        out = os.path.abspath(a.out or os.path.join(resolve_analysis_dir(analysis_root, P["out_dir"], a.system, P),
+                                                    "completeness_audit.json"))
+        MF.guard_output(P, out, a.system)
+    else:
+
+        results_root = os.path.abspath(a.results_root or os.path.join(ROOT, "results", "equal_budget_v2"))
+        analysis_root = os.path.abspath(a.analysis_root or results_root)
+        fig_root = os.path.abspath(a.fig_root or os.path.join(ROOT, "figures", "equal_budget_v2"))
+        out = os.path.abspath(a.out or os.path.join(analysis_root, "completeness_audit.json"))
+    try:
+        doc = run_audit(systems, configs, results_root, analysis_root, fig_root, out, verbose=not a.quiet,
+                        argv=list(sys.argv if argv is None else argv))
+    except M.MetricsError as e:          # e.g. a cell config audited as an equal-budget system
+        raise SystemExit(f"audit refused: {e}")
     return 0 if doc["verdict"] == "PASS" else 1
+
 
 
 if __name__ == "__main__":

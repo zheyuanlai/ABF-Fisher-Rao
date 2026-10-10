@@ -8,6 +8,9 @@
 --results-root  directory holding <out_dir>/N<N>/s<seed>_<abf|fr>.npz (default results/equal_budget_v2)
 --config        ladder config (default configs/equal_budget_v2/<system>_production.json)
 --fig-root      output root (default figures/equal_budget_v2); figures go to <fig-root>/<out_dir>/N<N>/
+Mechanism cells (--system gateway_family --config configs/mechanism/cells/<experiment>/<variant>.json): results from
+the cell's results_dir, figures to its fig_dir/N<N>/ (or <fig-root>/<cell>/N<N>/ when --fig-root is given); never
+into results/ or figures/equal_budget_v2.
 
 For every N of the config's ladder with at least one complete result file, every figure below is written as
 PNG (160 dpi) and PDF, named <out_dir>_N<N>_<tag>.{png,pdf}, and listed in <fig-root>/<out_dir>/N<N>/MANIFEST.json.
@@ -71,6 +74,7 @@ from matplotlib.transforms import ScaledTranslation, blended_transform_factory  
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import eqb_metrics as M  # noqa: E402
+import eqb_family as MF  # noqa: E402  (system / config dispatch; mechanism cells)
 import analyze_ladder as AL  # noqa: E402
 import fig_legibility as LG  # noqa: E402
 
@@ -170,16 +174,20 @@ def med_scalar(runs, key):
 class SystemInfo:
     def __init__(self, system, P, scorer, meta):
         self.system = system
-        self.kind = M.system_kind(system)
+        self.kind = MF.system_kind(system)
         self.P = P
         self.scorer = scorer
         self.out_dir = P["out_dir"]
+        self.prefix = P["cell"] if MF.is_cell(P) else self.out_dir      # figure file names <prefix>_N<N>_<tag>
         self.fixture = "_fixture_of" in P
         self.thr = P["thresholds"]
+        self.family = MF.is_family(system)
         if self.kind == "gateway":
             import analyze_gateway_replica_ladder as GL
             self.eb = GL.eb
             self.name = "Entropic gateway"
+            if self.family:          # mechanism cell: same model chrome, its own label
+                self.name = f"Gateway family {P.get('experiment', '')}/{P.get('cell', '')}"
             self.cv, self.cv_unit = "x", ""
             self.cv_label = "x (reduced length)"
             self.F_unit, self.Fp_unit = "reduced energy", "reduced force"
@@ -236,6 +244,16 @@ class SystemInfo:
         self.noise_label_F = "EM bias of F at h (analytic vs EM-consistent reference)"
         self.noise_label_Fp = "EM bias of F′ at h (bin averages, analytic vs EM-consistent; NOT the e_F′ floor)"
         self.noise_short = "EM bias"
+        if self.family:              # the secondary is THIS dynamics' frozen-x EM-consistent mean force
+            self.noise_label = "EM bias at h (analytic vs this dynamics' EM-consistent reference)"
+            self.noise_label_F = "EM bias of F at h (analytic vs this dynamics' EM-consistent reference)"
+            self.noise_label_Fp = ("EM bias of F′ at h (bin averages, analytic vs this dynamics' EM-consistent; "
+                                   "NOT the e_F′ floor)")
+            # alpha = 0 / shifted fibre: the secondary IS F*' (up to the 1e-9 quadrature of F): no band to draw
+            for attr, lab in (("noise_F", "noise_label_F"), ("noise_Fp", "noise_label_Fp")):
+                if getattr(self, attr) < 1e-6:
+                    setattr(self, attr, 0.0)
+                    setattr(self, lab, getattr(self, lab) + " -- numerically zero for this dynamics, not drawn")
         fl, hard = info.get("zero_noise_floor", {}), info.get("floor_is_lower_bound", {})
         # HARD lower bounds of the frozen errors (gateway e_F' and e_F'_em: within-bin variation of F'_ref)
         self.floor = {k: float(v) for k, v in fl.items() if hard.get(k) and v > 0}
@@ -447,9 +465,9 @@ class ConfigData:
         self.sources = []
         for (m, s), p in sorted(paths.items(), key=lambda kv: (kv[0][0], P["seeds"].index(kv[0][1]))):
             try:
-                res = M.load_run(p, si.system)
-                M.check_plan(res, P, p, dict(N=self.N, seed=s, method=m))
-                curves, sc = M.run_metrics(res, si.system, P, scorer, p)
+                res = MF.load_run(p, si.system)
+                MF.check_plan(res, P, p, dict(N=self.N, seed=s, method=m))
+                curves, sc = MF.run_metrics(res, si.system, P, scorer, p)
                 if self.step is None:
                     self.step = np.asarray(curves["save_step"], dtype=np.int64)
                     self.t = np.asarray(curves["save_t"], float)
@@ -503,7 +521,7 @@ class Writer:
         self.cd, self.out_dir, self.dpi = cd, out_dir, dpi
         self.entries = []
         si = cd.si
-        self.prefix = f"{si.out_dir}_N{cd.N}"
+        self.prefix = f"{si.prefix}_N{cd.N}"
         na, nf, npl = cd.n_seeds("abf"), cd.n_seeds("fr"), len(cd.P["seeds"])
         seeds = (f"complete seeds: ABF {na}/{npl}" + (f", ABF+FR {nf}/{npl}" if cd.N >= 2 else
                                                        " (N = 1: ABF only, no FR arm)"))
@@ -671,6 +689,8 @@ def error_panel(ax, cd, key, axis, thr=None, noise=None, scale="log", ylabel="",
     reference-noise level as a shaded band; a HARD zero-noise floor of the metric (gateway e_F') as a dash-dot
     line (thresholds below it are unreachable by construction)."""
     x = cd.x(axis)
+    if noise is not None and not (math.isfinite(noise) and noise > 0):
+        noise = None                  # nothing to shade on a log axis (gateway-family cells whose secondary is F*')
     lo_all, hi_all = [], []
     meds = {}
     for m in cd.methods:
@@ -1752,6 +1772,9 @@ def write_manifest(fig_dir, cd, entries, args, config_path, results_root):
         figures=entries, removed_stale=removed, sources=cd.sources,
         legibility_summary=LG.summarize({e["tag"]: e.get("legibility") or dict(status="not checked") for e in entries}),
     )
+    if MF.is_cell(cd.P):
+        man["cell"] = {k: cd.P.get(k) for k in ("experiment", "cell", "cell_label", "model", "engine_version",
+                                                 "results_dir", "fig_dir")}
     with open(mp + ".tmp", "w") as fh:
         json.dump(M.json_safe(man), fh, indent=1, allow_nan=False)
     os.replace(mp + ".tmp", mp)
@@ -1760,7 +1783,7 @@ def write_manifest(fig_dir, cd, entries, args, config_path, results_root):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--system", required=True, choices=list(M.SYSTEMS))
+    ap.add_argument("--system", required=True, choices=list(MF.SYSTEMS))
     ap.add_argument("--results-root", default=None)
     ap.add_argument("--config", default=None)
     ap.add_argument("--fig-root", default=None)
@@ -1772,12 +1795,15 @@ def main(argv=None):
                     help="exit 1 when any figure fails the legibility check (figures and manifests are still written)")
     a = ap.parse_args(argv)
     setup_style()
-    config = a.config or M.default_config_path(a.system)
+    config = a.config or MF.default_config_path(a.system)
     P = json.load(open(config))
+    MF.check_invocation(a.system, P, config)     # a cell config only as gateway_family, gateway_family only with one
     P["_config_path"] = config
-    results_root = os.path.abspath(a.results_root or os.path.join(ROOT, "results", "equal_budget_v2"))
+    cell = MF.is_cell(P)          # mechanism cell: its own result and figure locations (fig_dir / <fig-root>/<cell>)
+    results_root = os.path.abspath(a.results_root or (MF.cell_results_root(P) if cell else
+                                                      os.path.join(ROOT, "results", "equal_budget_v2")))
     fig_root = os.path.abspath(a.fig_root or os.path.join(ROOT, "figures", "equal_budget_v2"))
-    scorer = M.make_scorer(a.system, P)
+    scorer = MF.make_scorer(a.system, P)
     Ns = [int(n) for n in P["N_ladder"] if not a.only_N or int(n) in a.only_N]
     si = None
     out = {}
@@ -1793,7 +1819,10 @@ def main(argv=None):
         if not cd.has_data:
             print(f"{a.system} N {N}: no complete runs, skipped", flush=True)
             continue
-        fig_dir = os.path.join(fig_root, P["out_dir"], f"N{N}")
+        fig_dir = (os.path.join(MF.cell_fig_dir(P, a.fig_root), f"N{N}") if cell
+                   else os.path.join(fig_root, P["out_dir"], f"N{N}"))
+        MF.guard_output(P, fig_dir, a.system)
+
         t1 = time.time()
         entries = plot_config(cd, fig_dir, a.dpi)
         mp = write_manifest(fig_dir, cd, entries, a, config, results_root)

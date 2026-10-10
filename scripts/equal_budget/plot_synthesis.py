@@ -39,6 +39,10 @@ systems that have paired data) <fig-root>/cross_system/synthesis/X1_cross_system
                                  value, bootstrap best-N frequencies, CI of best FR - best ABF
   S8s_best_allocation_secondary  the same for Ibar_F', final e_F', tau(TV_half)
   X1_cross_system_gain           G for Ibar_F and final e_F vs N / N0 for every system with paired data
+Mechanism cells: --system gateway_family --config configs/mechanism/cells/<experiment>/<variant>.json reads the
+cell's analysis_dir (or --analysis-root itself / <analysis-root>/<cell>/analysis) and results_dir, and writes
+<fig_dir>/synthesis/ (or <fig-root>/<cell>/synthesis/ when --fig-root is given); never into results/ or
+figures/equal_budget_v2.  The cross-system figure is for the equal-budget systems only.
 Every planned N is on every N axis; an N without data is marked NOT RUN / RUNNING / incomplete, never dropped.
 FR is not defined at N = 1 (ABF only, by design).
 Every figure is checked at save time by fig_legibility.check_figure (axis labels, colourbar labels, legends, text
@@ -76,6 +80,7 @@ from matplotlib.ticker import FixedFormatter, FixedLocator, NullFormatter, NullL
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import eqb_metrics as M  # noqa: E402
+import eqb_family as MF  # noqa: E402  (system / config dispatch; mechanism cells)
 import analyze_ladder as AL  # noqa: E402
 import fig_legibility as LG  # noqa: E402
 
@@ -131,6 +136,8 @@ def find_config(system, config):
         return None
     if os.path.isfile(config):
         return os.path.abspath(config)
+    if MF.is_family(system):
+        raise PlotError(f"{system}: --config must be a cell config FILE (configs/mechanism/cells/<experiment>/<variant>.json)")
     if os.path.isdir(config):
         hits = []
         for p in sorted(glob.glob(os.path.join(config, "*.json"))):
@@ -140,7 +147,7 @@ def find_config(system, config):
                 continue
             if not isinstance(P, dict) or P.get("out_dir") != PROD_OUT_DIR[system] or "N_ladder" not in P:
                 continue
-            if M.system_kind(system) == "lta" and float(P.get("T_K", -1)) != M.SYSTEMS[system]["T_K"]:
+            if MF.system_kind(system) == "lta" and float(P.get("T_K", -1)) != MF.SYSTEMS[system]["T_K"]:
                 continue
             hits.append(p)
         if len(hits) > 1:
@@ -154,7 +161,7 @@ class SysData:
 
     def __init__(self, system, P, config_path, summary_path, results_root):
         self.system = system
-        self.kind = M.system_kind(system)
+        self.kind = MF.system_kind(system)
         self.P = P
         self.config_path = config_path
         self.summary_path = summary_path
@@ -173,7 +180,11 @@ class SysData:
         self.thr = P["thresholds"]
         self.N0 = int(P.get("anchor", {}).get("N0", max(self.Ns)))
         self.fixture = "_fixture_of" in P or str(P.get("_frozen", "")).startswith("FIXTURE")
-        self.label = SYSTEM_LABEL[system] + (" [FIXTURE]" if self.fixture else "")
+        self.cell = MF.is_cell(P)
+        # cells: a label as short as the equal-budget ones (the titles are laid out for "entropic gateway")
+        self.label = ((f"gateway {P.get('cell')}" if self.cell else SYSTEM_LABEL[system])
+                      + (" [FIXTURE]" if self.fixture else ""))
+        self.fig_base = None             # cells: the synthesis goes to <fig_base>/synthesis (set by load_system)
         self.out_dir = P["out_dir"]
         self.stale_reasons, self.notes = [], []
         self.freshness_verified = False
@@ -1045,28 +1056,35 @@ def tau_rank_row(ax, D, key_u, y=1.015):
             va="bottom", linespacing=0.95)
 
 
+def tau_stem(D, fam):
+    """The error behind the tau figure of family ``fam``: 'F' -> e_F, 'Fp' -> e_Fp; a mechanism cell's mean-force
+    tau is on the floor-free e_Fp_stat (plan section 6: thresholds.e_Fp_stat; no raw e_F' tau below its floor)."""
+    return "Fp_stat" if (fam == "Fp" and D.cell) else fam
+
+
 def fig_tau(D, outdir, fam, axis):
     fid = (f"S{4 if fam == 'F' else 5}{'a' if axis == 't' else 'b'}_tau_"
            f"{'free_energy' if fam == 'F' else 'mean_force'}_{'time' if axis == 't' else 'budget'}")
-    errname = "e_F" if fam == "F" else "e_F′"
+    st = tau_stem(D, fam)
+    errname = "e_F" if fam == "F" else ("e_F′,stat" if st == "Fp_stat" else "e_F′")
     fig = figure(1, 3, w=3.35, h=3.1)
     gs = GridSpec(1, 3, figure=fig, wspace=0.30)
     shown = {}
-    unr = unreachable_names(D, f"tau_e_{fam}_mid_u")
+    unr = unreachable_names(D, f"tau_e_{st}_mid_u")
     tf = D.S.get("threshold_floors") or {}
     for i, nm in enumerate(THR_NAMES):
         ax = fig.add_subplot(gs[0, i])
         # budget axis: the COMMON budget grid (tau_bgrid, identical u grid at every N); time axis: all saves
-        base = f"tau_bgrid_e_{fam}_{nm}" if axis == "u" else f"tau_e_{fam}_{nm}"
+        base = f"tau_bgrid_e_{st}_{nm}" if axis == "u" else f"tau_e_{st}_{nm}"
         draw_tau_vs_N(ax, D, lambda N, a, b=base: f"{b}_{a}", axis, label=(i == 0))
         shown[nm] = [N for N in D.Ns if any(D.stat(N, m, f"{base}_{axis}") for m in D.methods(N))]
         n_axis(ax, D, top_T=(axis == "u"))
         mark_status(ax, D)
-        tau_rank_row(ax, D, f"tau_e_{fam}_{nm}_u", y=(1.16 if axis == "u" else 1.015))
-        eps = float(D.thr[f"e_{fam}"][i])
+        tau_rank_row(ax, D, f"tau_e_{st}_{nm}_u", y=(1.16 if axis == "u" else 1.015))
+        eps = float(D.thr[f"e_{st}"][i])
         ax.set_title(f"{nm}: {errname} ≤ {eps:g}{units(D, fam)}", loc="left", pad=(24 if axis == "u" else 11))
         if nm in unr:
-            fl = (tf.get(f"tau_e_{fam}_{nm}") or {}).get("floor")
+            fl = (tf.get(f"tau_e_{st}_{nm}") or {}).get("floor")
             ax.text(0.5, 0.5, f"UNREACHABLE BY CONSTRUCTION\nthreshold {eps:g} < zero-noise floor {fnum(fl):.3g}\n"
                     "censored in every arm; ties ≠ equivalence", transform=ax.transAxes, ha="center", va="center",
                     fontsize=6.3, color="#b03030", fontweight="bold",
@@ -1695,7 +1713,9 @@ def fig_cross(datas, out_root):
 
 # ============================================================================================ per system
 def plot_system(D, fig_root):
-    outdir = os.path.join(fig_root, D.out_dir, "synthesis")
+    outdir = os.path.join(D.fig_base or os.path.join(fig_root, D.out_dir), "synthesis")
+    MF.guard_output(D.P, outdir, D.system)
+
     os.makedirs(outdir, exist_ok=True)
     figs = []
     LEGIBILITY.clear()
@@ -1723,8 +1743,9 @@ def plot_system(D, fig_root):
                ("final_e_F_em", f"final e_F vs EM-consistent ref.{uF}", "e_F"),
                ("Ibar_Fp_em", f"Ī_F′ vs EM-consistent ref.{uP}", "e_Fp"),
                ("final_e_Fp_em", f"final e_F′ vs EM-consistent ref.{uP}", "e_Fp"),
-               ("Ibar_Fp_stat", f"Ī_F′,stat, floor-free companion{uP}", "e_Fp"),
-               ("final_e_Fp_stat", f"final e_F′,stat, floor-free companion{uP}", "e_Fp")]
+               # a mechanism cell's e_F',stat has thresholds of its own (plan section 6: its e_F' tau endpoint)
+               ("Ibar_Fp_stat", f"Ī_F′,stat, floor-free companion{uP}", "e_Fp_stat" if D.cell else "e_Fp"),
+               ("final_e_Fp_stat", f"final e_F′,stat, floor-free companion{uP}", "e_Fp_stat" if D.cell else "e_Fp")]
         sec = "EM-consistent reference; floor-free companion of e_F′"
     else:
         pan = [("Ibar_Fp_proj", f"Ī_F′ projected{units(D, 'Fp')}", "e_Fp"),
@@ -1732,21 +1753,27 @@ def plot_system(D, fig_root):
         sec = "periodically projected mean force"
     f, sh = fig_abs(D, outdir, "S2s_secondary_reference_abs_vs_N", f"secondary errors vs N ({sec})", pan,
                     "Secondary read-outs reported by the plan (not the primary endpoints)."
-                    + (" e_F′,stat = RMS over the eval bins of Gamma − bin-averaged F′_ref, so that e_F′² = e_F′,stat² + "
-                       "floor² exactly: the descriptive companion of e_F′ without its deterministic floor (no frozen "
-                       "threshold; the e_F′ thresholds are drawn for scale)." if D.kind == "gateway" else ""))
+                    + ((" e_F′,stat = RMS over the eval bins of Gamma − bin-averaged F′_ref, so that e_F′² = e_F′,stat² + "
+                        "floor² exactly: the companion of e_F′ without its deterministic floor (mechanism cell: its own "
+                        "frozen thresholds, the plan's e_F′ tau endpoint, are drawn)." if D.cell else
+                        " e_F′,stat = RMS over the eval bins of Gamma − bin-averaged F′_ref, so that e_F′² = e_F′,stat² + "
+                        "floor² exactly: the descriptive companion of e_F′ without its deterministic floor (no frozen "
+                        "threshold; the e_F′ thresholds are drawn for scale).") if D.kind == "gateway" else ""))
+
     add("S2s_secondary_reference_abs_vs_N", f, f"secondary errors ({sec}) vs N (supplementary)", [p[0] for p in pan],
         dict(N_with_data=sh))
     f, sh = fig_gain(D, outdir)
     add("S3_fr_gain_vs_N", f, "FR relative improvement G(N): median, bootstrap 95 % CI, per-seed, wins/n",
         ["Ibar_F", "Ibar_Fp", "final_e_F", "final_e_Fp"], dict(N_with_paired_data=sh))
     for fam in ("F", "Fp"):
+        st = tau_stem(D, fam)        # equal-budget systems: st == fam (unchanged)
         for axis in ("t", "u"):
             fid, f, sh = fig_tau(D, outdir, fam, axis)
-            add(fid, f, f"persistent tau(e_{fam}) at strict / mid / loose, "
+            add(fid, f, f"persistent tau(e_{st}) at strict / mid / loose, "
                 f"{'physical time' if axis == 't' else 'budget fraction'}; censored = open markers in the top band, k/n",
-                [(f"tau_bgrid_e_{fam}_{n}_u" if axis == "u" else f"tau_e_{fam}_{n}_t") for n in THR_NAMES]
-                + [f"paired rank tau_e_{fam}_{n}_u" for n in THR_NAMES], dict(N_with_data=sh))
+                [(f"tau_bgrid_e_{st}_{n}_u" if axis == "u" else f"tau_e_{st}_{n}_t") for n in THR_NAMES]
+                + [f"paired rank tau_e_{st}_{n}_u" for n in THR_NAMES], dict(N_with_data=sh))
+
     for axis in ("u", "t"):
         fid, f, sh = fig_establishment(D, outdir, axis)
         add(fid, f, f"establishment / first arrival / tau TV_half vs N with the FR gain ({axis})",
@@ -1790,26 +1817,41 @@ def plot_system(D, fig_root):
                          "never omitted.", "FR is not defined at N = 1 (ABF only, by design).",
                          "No metric is recomputed here: every number comes from the analysis summary or its per-run cache."],
         analysis_warnings=list(D.S.get("warnings") or []))
+    if D.cell:
+        man["cell"] = {k: D.P.get(k) for k in ("experiment", "cell", "cell_label", "model", "engine_version",
+                                                "results_dir", "analysis_dir", "fig_dir")}
     with open(os.path.join(outdir, "MANIFEST.json"), "w") as fh:
         json.dump(M.json_safe(man), fh, indent=1, allow_nan=False)
     return outdir, man
 
 
 # ============================================================================================ main
-def load_system(system, results_root, analysis_root, config, refresh, allow_stale, single=True):
+def load_system(system, results_root, analysis_root, config, refresh, allow_stale, single=True, fig_root_arg=None):
     cfg = find_config(system, config)
     if cfg is None and config is not None:
         return None, f"no config for {system} in {config}"
-    P0 = json.load(open(cfg)) if cfg else json.load(open(M.default_config_path(system)))
+    P0 = json.load(open(cfg)) if cfg else json.load(open(MF.default_config_path(system)))
+    MF.check_invocation(system, P0, cfg)       # a cell config only as gateway_family, gateway_family only with one
+    cell = MF.is_cell(P0)
+    if cell:                       # mechanism cell: its own result root unless one is given explicitly
+        results_root = results_root or MF.cell_results_root(P0)
     cand = []
     if analysis_root and single:
         cand.append(os.path.join(analysis_root, "summary.json"))            # the analysis dir itself
-    cand.append(os.path.join(analysis_root or results_root, P0["out_dir"], "analysis", "summary.json"))
+    if cell:
+        cand.append(os.path.join(analysis_root, P0["cell"], "analysis", "summary.json") if analysis_root
+                    else os.path.join(MF.cell_analysis_dir(P0), "summary.json"))
+    else:
+        cand.append(os.path.join(analysis_root or results_root, P0["out_dir"], "analysis", "summary.json"))
     summary_path = None
     for c in cand:
         if os.path.exists(c):
             try:
-                ok = json.load(open(c)).get("system") == system
+                Sc = json.load(open(c))
+                ok = Sc.get("system") == system
+                if ok and cell:            # a cell's summary must be THIS cell's
+                    ok = ((Sc.get("cell") or {}).get("cell") == P0["cell"]
+                          and (Sc.get("cell") or {}).get("experiment") == P0["experiment"])
             except Exception:  # noqa: BLE001
                 ok = False
             if ok:
@@ -1817,6 +1859,7 @@ def load_system(system, results_root, analysis_root, config, refresh, allow_stal
                 break
     if refresh:
         analysis_dir = os.path.dirname(summary_path) if summary_path else os.path.dirname(cand[-1])
+        MF.guard_output(P0, analysis_dir, system)
         AL.analyze(system, results_root, cfg, analysis_dir, verbose=True)
         summary_path = os.path.join(analysis_dir, "summary.json")
     if summary_path is None:
@@ -1826,9 +1869,11 @@ def load_system(system, results_root, analysis_root, config, refresh, allow_stal
                       f"--system {system} first, or pass --refresh-analysis")
     if cfg is None:
         rec = json.load(open(summary_path)).get("config")
-        cfg = os.path.abspath(rec) if rec and os.path.exists(rec) else os.path.abspath(M.default_config_path(system))
+        cfg = os.path.abspath(rec) if rec and os.path.exists(rec) else os.path.abspath(MF.default_config_path(system))
     P = json.load(open(cfg))
     D = SysData(system, P, cfg, summary_path, results_root)
+    if D.cell:
+        D.fig_base = MF.cell_fig_dir(P, fig_root_arg)
     D.check_freshness()
     if D.stale_reasons and not allow_stale:
         raise PlotError(f"{system}: the analysis summary is STALE ({len(D.stale_reasons)} issues, e.g. {D.stale_reasons[:3]}); "
@@ -1838,7 +1883,7 @@ def load_system(system, results_root, analysis_root, config, refresh, allow_stal
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--system", required=True, choices=SYSTEM_ORDER + ["all"])
+    ap.add_argument("--system", required=True, choices=SYSTEM_ORDER + ["gateway_family", "all"])
     ap.add_argument("--results-root", default=None)
     ap.add_argument("--config", default=None, help="config file (single system) or a directory searched by out_dir / T_K")
     ap.add_argument("--analysis-root", default=None)
@@ -1848,7 +1893,11 @@ def main(argv=None):
     ap.add_argument("--strict-legibility", action="store_true",
                     help="exit 1 when any figure fails the legibility check (figures and manifests are still written)")
     a = ap.parse_args(argv)
-    results_root = os.path.abspath(a.results_root or os.path.join(ROOT, "results", "equal_budget_v2"))
+    family = MF.is_family(a.system)
+    if family and not (a.config and os.path.isfile(a.config)):
+        ap.error("--system gateway_family needs --config <cell config file>")
+    results_root = (os.path.abspath(a.results_root) if a.results_root else None) if family else \
+        os.path.abspath(a.results_root or os.path.join(ROOT, "results", "equal_budget_v2"))
     analysis_root = os.path.abspath(a.analysis_root) if a.analysis_root else None
     fig_root = os.path.abspath(a.fig_root or os.path.join(ROOT, "figures", "equal_budget_v2"))
     systems = SYSTEM_ORDER if a.system == "all" else [a.system]
@@ -1859,7 +1908,7 @@ def main(argv=None):
     for s in systems:
         try:
             D, why = load_system(s, results_root, analysis_root, a.config, a.refresh_analysis, a.allow_stale,
-                                 single=(a.system != "all"))
+                                 single=(a.system != "all"), fig_root_arg=a.fig_root)
         except (PlotError, M.MetricsError) as e:
             errors.append(f"{s}: {e}")
             print(f"ERROR {s}: {e}", file=sys.stderr, flush=True)

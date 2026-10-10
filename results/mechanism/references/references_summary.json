@@ -1,0 +1,147 @@
+{
+ "schema": "mechanism_references/1",
+ "script": "scripts/mechanism/build_references.py",
+ "updated_utc": "2026-10-10T10:30:15Z",
+ "primary_digest": "8c48b7cee8a2942d1787df5b497a7c243d5feb3ac10420121c369f8ffb207666",
+ "primary_source": "results/equal_budget_v2/references/gateway_reference.npz",
+ "primary_source_sha256": "9d551298568cbe9512ae908a5bd9b830cd8b0b87859a2d54d4ec74d6d6eb86c5",
+ "secondary_definition": "per-dynamics frozen-x Euler-Maruyama-consistent mean force at the cell's h and lambda: alpha family 4Hx(x^2-1) + ((1-alpha)/beta) w'/w + (alpha/beta)(w'/w) / (1 - lam w^(2 alpha) h/2) (the EM y-update y <- (1 - lam w^(2 alpha) h) y + sqrt(2 lam h/beta) z has stationary variance 1/(beta w^(2 alpha) (1 - lam w^(2 alpha) h/2))); shifted fibre: F*'(x) exactly (the frozen-x EM chain of y has mean m(x) exactly)",
+ "references": {
+  "conditional_relaxation/lam0.1": {
+   "cell": "conditional_relaxation/lam0.1",
+   "model": {
+    "variant": "alpha",
+    "alpha": 1.0,
+    "kappa": null,
+    "lam": 0.1
+   },
+   "h": 2.5e-05,
+   "primary_digest": "8c48b7cee8a2942d1787df5b497a7c243d5feb3ac10420121c369f8ffb207666",
+   "secondary_equals_equal_budget_em": null,
+   "em_floor_F_rms": 7.86220637002992e-06,
+   "max_abs_Fp_bin_em_minus_ref": 0.00033328228406737104,
+   "path": "results/mechanism/references/conditional_relaxation_lam0.1_reference.npz",
+   "sha256": "1d0851ead12af78da95baf04c0592a818cc62f2c0cc66b32c7a75e2f348c4979",
+   "status": "written"
+  },
+  "conditional_relaxation/lam0.25": {
+   "cell": "conditional_relaxation/lam0.25",
+   "model": {
+    "variant": "alpha",
+    "alpha": 1.0,
+    "kappa": null,
+    "lam": 0.25
+   },
+   "h": 2.5e-05,
+   "primary_digest": "8c48b7cee8a2942d1787df5b497a7c243d5feb3ac10420121c369f8ffb207666",
+   "secondary_equals_equal_budget_em": null,
+   "em_floor_F_rms": 1.9672136389038837e-05,
+   "max_abs_Fp_bin_em_minus_ref": 0.0008342044426594697,
+   "path": "results/mechanism/references/conditional_relaxation_lam0.25_reference.npz",
+   "sha256": "7db51a761e51e83044edfdf1e458245737f2e3f74f02cff1b146071c107b42cf",
+   "status": "written"
+  },
+  "conditional_relaxation/lam0.5": {
+   "cell": "conditional_relaxation/lam0.5",
+   "model": {
+    "variant": "alpha",
+    "alpha": 1.0,
+    "kappa": null,
+    "lam": 0.5
+   },
+   "h": 2.5e-05,
+   "primary_digest": "8c48b7cee8a2942d1787df5b497a7c243d5feb3ac10420121c369f8ffb207666",
+   "secondary_equals_equal_budget_em": null,
+   "em_floor_F_rms": 3.9397219186191186e-05,
+   "max_abs_Fp_bin_em_minus_ref": 0.0016717487201662884,
+   "path": "results/mechanism/references/conditional_relaxation_lam0.5_reference.npz",
+   "sha256": "78bdc8932fa97eabcd85674a03b44666680f279de56e128d966b4da4a1b1f566",
+   "status": "written"
+  },
+  "conditional_relaxation/lam1": {
+   "cell": "conditional_relaxation/lam1",
+   "model": {
+    "variant": "alpha",
+    "alpha": 1.0,
+    "kappa": null,
+    "lam": 1.0
+   },
+   "h": 2.5e-05,
+   "primary_digest": "8c48b7cee8a2942d1787df5b497a7c243d5feb3ac10420121c369f8ffb207666",
+   "secondary_equals_equal_budget_em": true,
+   "em_floor_F_rms": 7.900546534699823e-05,
+   "max_abs_Fp_bin_em_minus_ref": 0.003356937817855399,
+   "path": "results/mechanism/references/conditional_relaxation_lam1_reference.npz",
+   "sha256": "8a072e07ef9db009cdee6cc86dd185c8abb165706c22f6bdac276c3d79a77e51",
+   "status": "written"
+  },
+  "matched_free_energy/alpha0.5": {
+   "cell": "matched_free_energy/alpha0.5",
+   "model": {
+    "variant": "alpha",
+    "alpha": 0.5,
+    "kappa": null,
+    "lam": 1.0
+   },
+   "h": 2.5e-05,
+   "primary_digest": "8c48b7cee8a2942d1787df5b497a7c243d5feb3ac10420121c369f8ffb207666",
+   "secondary_equals_equal_budget_em": null,
+   "em_floor_F_rms": 2.7558266101825967e-06,
+   "max_abs_Fp_bin_em_minus_ref": 7.253835247211793e-05,
+   "path": "results/mechanism/references/matched_free_energy_alpha0.5_reference.npz",
+   "sha256": "194ea8553d0758120b69d3afea81aa6b3e50fecc5877edf1dc6b78617641e3b9",
+   "status": "written"
+  },
+  "matched_free_energy/alpha0": {
+   "cell": "matched_free_energy/alpha0",
+   "model": {
+    "variant": "alpha",
+    "alpha": 0.0,
+    "kappa": null,
+    "lam": 1.0
+   },
+   "h": 2.5e-05,
+   "primary_digest": "8c48b7cee8a2942d1787df5b497a7c243d5feb3ac10420121c369f8ffb207666",
+   "secondary_equals_equal_budget_em": null,
+   "em_floor_F_rms": 1.0496374093956405e-09,
+   "max_abs_Fp_bin_em_minus_ref": 0.0,
+   "path": "results/mechanism/references/matched_free_energy_alpha0_reference.npz",
+   "sha256": "b586ad0c62c3ac3107d57a10dc9291370133f93a549fbdfb0c886f7e0f3ea8ee",
+   "status": "written"
+  },
+  "matched_free_energy/alpha1": {
+   "cell": "matched_free_energy/alpha1",
+   "model": {
+    "variant": "alpha",
+    "alpha": 1.0,
+    "kappa": null,
+    "lam": 1.0
+   },
+   "h": 2.5e-05,
+   "primary_digest": "8c48b7cee8a2942d1787df5b497a7c243d5feb3ac10420121c369f8ffb207666",
+   "secondary_equals_equal_budget_em": true,
+   "em_floor_F_rms": 7.900546534699823e-05,
+   "max_abs_Fp_bin_em_minus_ref": 0.003356937817855399,
+   "path": "results/mechanism/references/matched_free_energy_alpha1_reference.npz",
+   "sha256": "322ad8e122f9223825ee9b74e6eae7c08487b1d51ef037fbeb5098e6b27c3b0a",
+   "status": "written"
+  },
+  "matched_free_energy/shift": {
+   "cell": "matched_free_energy/shift",
+   "model": {
+    "variant": "shift",
+    "alpha": null,
+    "kappa": 1.0,
+    "lam": 1.0
+   },
+   "h": 2.5e-05,
+   "primary_digest": "8c48b7cee8a2942d1787df5b497a7c243d5feb3ac10420121c369f8ffb207666",
+   "secondary_equals_equal_budget_em": null,
+   "em_floor_F_rms": 1.0496374093956405e-09,
+   "max_abs_Fp_bin_em_minus_ref": 0.0,
+   "path": "results/mechanism/references/matched_free_energy_shift_reference.npz",
+   "sha256": "bfaab9feab5ab7f524069fb4ba4b4a1dafd708fcfc63f236d86da88c72d92c21",
+   "status": "written"
+  }
+ }
+}
