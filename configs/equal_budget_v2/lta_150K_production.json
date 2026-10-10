@@ -1,0 +1,111 @@
+{
+ "_frozen": "2026-10-10, before any production run (docs/equal_budget/SCIENTIFIC_PLAN.md).",
+ "system": "ethane/LTA 150 K",
+ "out_dir": "lta_T150",
+ "T_K": 150.0,
+ "engine": "src/lta_ladder_numba.py make_cfg + run_arm",
+ "engine_cfg": {
+  "h": 0.0002,
+  "n_grid": 180,
+  "warmup_steps": 20000,
+  "burn_in_steps": 20000,
+  "fr_start_steps": 20000,
+  "fr_every": 5,
+  "fr_rate": 0.2,
+  "score_clip": 2.0,
+  "kde_bandwidth": 0.1,
+  "max_event_fraction": 0.02,
+  "cap_min": 1,
+  "abf_force_clip": 60.0,
+  "deposit_clip": 480.0,
+  "genealogy_window_tu": 4.0,
+  "diagnostics": true
+ },
+ "h_validated": "docs/equal_budget/LTA_TIMESTEP_VALIDATION.md (h_L = 2e-4)",
+ "anchor": {
+  "N0": 1024,
+  "n0": 300000,
+  "T0": 60.0
+ },
+ "B": 307200000,
+ "N_ladder": [
+  1024,
+  512,
+  256,
+  128,
+  64,
+  32,
+  16,
+  8,
+  4,
+  2,
+  1
+ ],
+ "N_coarse": [
+  1024,
+  256,
+  64,
+  16,
+  4,
+  1
+ ],
+ "small_N_cap_extension": "cap(N) = max(1, floor(0.02 N)) for N >= 2; N < 50 flagged",
+ "seeds": [
+  15000,
+  15001,
+  15002,
+  15003,
+  15004,
+  15005,
+  15006,
+  15007,
+  15008,
+  15009,
+  15010,
+  15011,
+  15012,
+  15013,
+  15014,
+  15015
+ ],
+ "init": "SeedSequence([seed, N, T]) child 0: uniform alpha-cage centre + 0.5 A jitter, uniform orientation; identical for both methods",
+ "physical_checkpoints_t": [
+  0.5,
+  1,
+  2,
+  4,
+  10,
+  20,
+  60,
+  120,
+  480,
+  1920,
+  7680,
+  30720
+ ],
+ "profile_snapshot_u": [
+  0.01,
+  0.05,
+  0.1,
+  0.25,
+  0.5,
+  0.75,
+  1.0
+ ],
+ "reference": "exact Metropolis-MC Gibbs reference (results/numerical_validation/lta/T150/MC): fine-bin WHAM F; conditional mean force per bin with group jackknife",
+ "thresholds": {
+  "e_F": [
+   0.03,
+   0.13,
+   0.5
+  ],
+  "e_Fp": [
+   0.04,
+   0.15,
+   1.0
+  ],
+  "TV_half": 0.1
+ },
+ "checkpoint_every_s": 900.0,
+ "est_us_per_walker_step": 4.5
+}
