@@ -40,13 +40,13 @@ first draft of this table carried estimated times up to 60 minutes late; they we
 | 14:19 | **Amendment A4 check: PASS, 192/192** α = 1 re-runs bitwise equal to their equal-budget counterparts on all shared arrays (`results/mechanism/reuse_gate/alpha1_bitwise.json`). |
 | 14:19–14:22 | Analysis of all 8 cells (`analyze_ladder --system gateway_family`), preregistered contrasts (`cross_cell.py` → `results/mechanism/synthesis/cross_cell.{json,md}`), per-N figures A–F (20 cell × N sets), per-cell S1–S8. **Completeness audit PASS for all 8 cells.** |
 | 14:22 | Production milestone committed and pushed (2ccf40d). |
-| ~14:45–15:00 | Continuation build finished: mechanism analysis (critical fix: the CI of the debiased bias B under-covered 0/20 → 60/60 after the fix) and the benchmark harness (12 findings: 11 fixed, 1 fixed in reporting). 58 tests pass. GPU 2 became occupied by another of the user's jobs (`levy-GM-theory` train.py, since ~14:06); GPU 3 became idle. |
-| 15:05–15:12 | `mech_analysis.py` on production: 159 figures, all legible. Preregistered D2 readout: at N = 2048 young-clone deposit bias grows with decreasing λ (Holm p 0.0036); not significant at N = 512. |
-| 15:20 | Mechanism analysis + harness committed and pushed (7df73a2d). |
-| 15:22 | **Amendment 2 committed (d3595341)** before any Experiment III run. |
-| 15:24 | Experiment III launched. CPU single-core campaign: 48 runs on separate idle cores. GPU campaign: the first launch was refused by the harness guard (CUDA_VISIBLE_DEVICES not pinned); relaunched pinned to GPU 3, one run at a time. |
-| ~15:40 | CPU campaign complete: 48/48 runs, each bitwise equal to its production file. |
-| 15:40–15:55 | Exploratory figure fix: S3/S5 moved to a log-ratio axis. A single seed with FR 75× worse had flattened the linear axis; the per-figure legibility check cannot see this. Tick thinning; 159/159 legible. Experiment I/II reports written and pushed (94bcf123). |
+| ~14:50–15:10 | Continuation build finished: mechanism analysis (critical fix: the CI of the debiased bias B under-covered 0/20 → 60/60 after the fix) and the benchmark harness (12 findings: 11 fixed, 1 fixed in reporting). 58 tests pass. GPU 2 became occupied by another of the user's jobs (`levy-GM-theory` train.py, since ~14:06); GPU 3 became idle. |
+| 15:14–15:21 | `mech_analysis.py` on production: 159 figures, all legible. Preregistered D2 readout: at N = 2048 young-clone deposit bias grows with decreasing λ (Holm p 0.0036); not significant at N = 512. |
+| 15:22 | Mechanism analysis + harness committed and pushed (7df73a2d). |
+| 15:23 | **Amendment 2 committed (d3595341)** before any Experiment III run. |
+| 15:24–15:26 | Experiment III launched. CPU single-core campaign: 48 runs on separate idle cores. GPU campaign: the first launch was refused by the harness guard (CUDA_VISIBLE_DEVICES not pinned); relaunched pinned to GPU 3, one run at a time. |
+| 15:29 | CPU campaign complete: 48/48 runs, each bitwise equal to its production file. |
+| 15:30–15:45 | Exploratory figure fix: S3/S5 moved to a log-ratio axis. A single seed with FR 75× worse had flattened the linear axis; the per-figure legibility check cannot see this. Tick thinning; 159/159 legible. Experiment I/II reports written and pushed (94bcf123). |
 
 ## Resource ledger
 
