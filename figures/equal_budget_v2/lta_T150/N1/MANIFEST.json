@@ -1,0 +1,439 @@
+{
+ "schema": "eqb_figures_manifest/1",
+ "plot_version": "eqb_plot_config/2",
+ "metrics_version": "eqb_metrics/2",
+ "generated_utc": "2026-10-10T07:20:10Z",
+ "system": "lta150",
+ "system_dir": "lta_T150",
+ "name": "Ethane/LTA 150 K",
+ "N": 1,
+ "n_steps": 307200000,
+ "T": 61440.0,
+ "h": 0.0002,
+ "B": 307200000,
+ "fixture": false,
+ "config": "/home/zheyuanlai/ABF-Fisher-Rao/configs/equal_budget_v2/lta_150K_production.json",
+ "results_root": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2",
+ "seeds": {
+  "abf": [
+   15000,
+   15001,
+   15002,
+   15003,
+   15004,
+   15005,
+   15006,
+   15007,
+   15008,
+   15009,
+   15010,
+   15011,
+   15012,
+   15013,
+   15014,
+   15015
+  ]
+ },
+ "status": {
+  "abf": {
+   "complete": [
+    15000,
+    15001,
+    15002,
+    15003,
+    15004,
+    15005,
+    15006,
+    15007,
+    15008,
+    15009,
+    15010,
+    15011,
+    15012,
+    15013,
+    15014,
+    15015
+   ],
+   "missing": [],
+   "running": [],
+   "invalid": []
+  }
+ },
+ "invalid": {},
+ "trace_seed": 15000,
+ "profile_snapshot_u": [
+  0.01,
+  0.05,
+  0.1,
+  0.25,
+  0.5,
+  0.75,
+  1.0
+ ],
+ "profile_snapshot_u_actual": [
+  0.01,
+  0.05,
+  0.1,
+  0.25,
+  0.5,
+  0.75,
+  1.0
+ ],
+ "conventions": {
+  "uncertainty": "line = median across seeds; band = interquartile range (25th-75th percentile) across seeds",
+  "colours": {
+   "ABF": "#2a78d6",
+   "ABF_FR": "#eb6834"
+  },
+  "smoothing": "none (metrics and profiles unsmoothed)",
+  "alignment": "LTA: mean of (F_hat - F_ref) over the circle removed",
+  "tau_markers": "persistent crossing of the seed-median curve (per-seed tau in summary.json)",
+  "heatmap": "seed-mean hist_inst / N on 36 display bins, density / uniform, diverging scale [0, 4] (extended), identical for every panel and N"
+ },
+ "reference": {
+  "path": "results/equal_budget_v2/references/lta_T150_reference.npz",
+  "sha256": "ebfc205152a8f95e7c0ecf32601fa7cbb5d233b9b4708829cc4173044baf8ec5",
+  "T_K": 150.0,
+  "F_ref_se_rms": 0.0034570851297217185,
+  "gamma_se_rms": 0.010076926242980365,
+  "gamma_ref_circular_mean": -0.0014922169292974432,
+  "zero_noise_floor": {
+   "e_F": 0.005602320236329799,
+   "e_Fp": 0.0,
+   "e_Fp_proj": 0.0
+  },
+  "floor_is_lower_bound": {
+   "e_F": false,
+   "e_Fp": false,
+   "e_Fp_proj": false
+  },
+  "floor_definition": "errors at Gamma = gamma_ref (the reference's own per-bin mean force): e_Fp = 0 by construction (no deterministic floor), e_F = the mean-force-route vs density-route consistency of the reference; none is a lower bound",
+  "estimator": "Gamma = M/max(C,1) (0 where C=0) from (M_prod, C_prod) once C_prod has any count else (M_all, C_all); F = histogram_pmf(Gamma)",
+  "units": {
+   "F": "kJ/mol",
+   "Fp": "kJ/mol/rad"
+  }
+ },
+ "noise": {
+  "F": 0.0034570851297217185,
+  "Fp": 0.010076926242980365,
+  "label": "MC reference noise (RMS of the per-bin SE)"
+ },
+ "tv_floor": {
+  "mean": 0.9444444444444444,
+  "se": 0.0
+ },
+ "figures": [
+  {
+   "tag": "A1_eF_vs_t",
+   "title": "Free-energy error e_F vs physical time",
+   "description": "e_F median + IQR across seeds, frozen thresholds, persistent-crossing markers, reference noise",
+   "files": [
+    "lta_T150_N1_A1_eF_vs_t.png",
+    "lta_T150_N1_A1_eF_vs_t.pdf"
+   ]
+  },
+  {
+   "tag": "A2_eF_vs_u",
+   "title": "Free-energy error e_F vs budget fraction u",
+   "description": "e_F median + IQR across seeds, frozen thresholds, persistent-crossing markers, reference noise",
+   "files": [
+    "lta_T150_N1_A2_eF_vs_u.png",
+    "lta_T150_N1_A2_eF_vs_u.pdf"
+   ]
+  },
+  {
+   "tag": "A3_F_profiles",
+   "title": "Free-energy profile snapshots F\u0302_t vs reference (top) and difference (bottom)",
+   "description": "Free-energy profile snapshots F\u0302_t vs reference (top) and difference (bottom) at the frozen snapshot fractions u",
+   "files": [
+    "lta_T150_N1_A3_F_profiles.png",
+    "lta_T150_N1_A3_F_profiles.pdf"
+   ]
+  },
+  {
+   "tag": "B1_eFp_vs_t",
+   "title": "Mean-force error e_F\u2032 vs physical time",
+   "description": "e_F\u2032 median + IQR across seeds, frozen thresholds, persistent-crossing markers, reference noise",
+   "files": [
+    "lta_T150_N1_B1_eFp_vs_t.png",
+    "lta_T150_N1_B1_eFp_vs_t.pdf"
+   ]
+  },
+  {
+   "tag": "B2_eFp_vs_u",
+   "title": "Mean-force error e_F\u2032 vs budget fraction u",
+   "description": "e_F\u2032 median + IQR across seeds, frozen thresholds, persistent-crossing markers, reference noise",
+   "files": [
+    "lta_T150_N1_B2_eFp_vs_u.png",
+    "lta_T150_N1_B2_eFp_vs_u.pdf"
+   ]
+  },
+  {
+   "tag": "B3_Fp_profiles",
+   "title": "Mean-force snapshots (bin mean force) vs reference (top) and difference (bottom)",
+   "description": "Mean-force snapshots (bin mean force) vs reference (top) and difference (bottom) at the frozen snapshot fractions u",
+   "files": [
+    "lta_T150_N1_B3_Fp_profiles.png",
+    "lta_T150_N1_B3_Fp_profiles.pdf"
+   ]
+  },
+  {
+   "tag": "B4_Fp_profiles_projected",
+   "title": "Periodically projected mean-force snapshots vs reference (top) and difference (bottom)",
+   "description": "Periodically projected mean-force snapshots vs reference (top) and difference (bottom) at the frozen snapshot fractions u",
+   "files": [
+    "lta_T150_N1_B4_Fp_profiles_projected.png",
+    "lta_T150_N1_B4_Fp_profiles_projected.pdf"
+   ]
+  },
+  {
+   "tag": "C1_marginal_inst_snapshots",
+   "title": "Instantaneous marginal snapshots (seed-pooled), ABF vs ABF+FR",
+   "description": "seed-pooled instantaneous walker histograms at the snapshot u, 18 coarse bins",
+   "files": [
+    "lta_T150_N1_C1_marginal_inst_snapshots.png",
+    "lta_T150_N1_C1_marginal_inst_snapshots.pdf"
+   ]
+  },
+  {
+   "tag": "C2_TV_vs_t",
+   "title": "Marginal convergence: TV_half and TV_inst with the finite-N floor vs physical time",
+   "description": "TV_half (threshold, persistent crossing) and TV_inst with E_N[TV]",
+   "files": [
+    "lta_T150_N1_C2_TV_vs_t.png",
+    "lta_T150_N1_C2_TV_vs_t.pdf"
+   ]
+  },
+  {
+   "tag": "C2_TV_vs_u",
+   "title": "Marginal convergence: TV_half and TV_inst with the finite-N floor vs budget fraction u",
+   "description": "TV_half (threshold, persistent crossing) and TV_inst with E_N[TV]",
+   "files": [
+    "lta_T150_N1_C2_TV_vs_u.png",
+    "lta_T150_N1_C2_TV_vs_u.pdf"
+   ]
+  },
+  {
+   "tag": "C3_density_heatmap_u",
+   "title": "Seed-averaged instantaneous CV density vs budget fraction u",
+   "description": "paired time x CV heat maps of the seed-mean instantaneous density",
+   "files": [
+    "lta_T150_N1_C3_density_heatmap_u.png",
+    "lta_T150_N1_C3_density_heatmap_u.pdf"
+   ]
+  },
+  {
+   "tag": "C3_density_heatmap_t",
+   "title": "Seed-averaged instantaneous CV density vs physical time",
+   "description": "paired time x CV heat maps of the seed-mean instantaneous density",
+   "files": [
+    "lta_T150_N1_C3_density_heatmap_t.png",
+    "lta_T150_N1_C3_density_heatmap_t.pdf"
+   ]
+  },
+  {
+   "tag": "C4_visitation_snapshots",
+   "title": "Cumulative visitation histograms (C_all, normalised) at the snapshot u",
+   "description": "cumulative visitation histograms at the snapshot u",
+   "files": [
+    "lta_T150_N1_C4_visitation_snapshots.png",
+    "lta_T150_N1_C4_visitation_snapshots.pdf"
+   ]
+  },
+  {
+   "tag": "C5_traces",
+   "title": "Walker trace of slot 0, seed 15000",
+   "description": "traces of the first min(N, 32) slots of the first seed, coloured by ancestor for FR",
+   "files": [
+    "lta_T150_N1_C5_traces.png",
+    "lta_T150_N1_C5_traces.pdf"
+   ]
+  },
+  {
+   "tag": "D_establishment_vs_t",
+   "title": "Establishment and crossings vs physical time",
+   "description": "region fractions, true crossings, first-arrival ECDF, establishment times",
+   "files": [
+    "lta_T150_N1_D_establishment_vs_t.png",
+    "lta_T150_N1_D_establishment_vs_t.pdf"
+   ]
+  },
+  {
+   "tag": "D_establishment_vs_u",
+   "title": "Establishment and crossings vs budget fraction u",
+   "description": "region fractions, true crossings, first-arrival ECDF, establishment times",
+   "files": [
+    "lta_T150_N1_D_establishment_vs_u.png",
+    "lta_T150_N1_D_establishment_vs_u.pdf"
+   ]
+  },
+  {
+   "tag": "E_genealogy_vs_t",
+   "title": "FR genealogy and activity vs physical time",
+   "description": "placeholder: no FR arm",
+   "files": [
+    "lta_T150_N1_E_genealogy_vs_t.png",
+    "lta_T150_N1_E_genealogy_vs_t.pdf"
+   ]
+  },
+  {
+   "tag": "E_genealogy_vs_u",
+   "title": "FR genealogy and activity vs budget fraction u",
+   "description": "placeholder: no FR arm",
+   "files": [
+    "lta_T150_N1_E_genealogy_vs_u.png",
+    "lta_T150_N1_E_genealogy_vs_u.pdf"
+   ]
+  },
+  {
+   "tag": "F_summary_t",
+   "title": "Configuration summary vs physical time",
+   "description": "six-panel summary",
+   "files": [
+    "lta_T150_N1_F_summary_t.png",
+    "lta_T150_N1_F_summary_t.pdf"
+   ]
+  },
+  {
+   "tag": "F_summary_u",
+   "title": "Configuration summary vs budget fraction u (budget-normalised)",
+   "description": "six-panel summary",
+   "files": [
+    "lta_T150_N1_F_summary_u.png",
+    "lta_T150_N1_F_summary_u.pdf"
+   ]
+  }
+ ],
+ "removed_stale": [],
+ "sources": [
+  {
+   "method": "abf",
+   "seed": 15000,
+   "src_sha256": "b057e3f3287d5de813f69ebb0350bc0e159880e8a1a14dfafa00f240a6b0e8fe",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2/lta_T150/N1/s15000_abf.npz",
+   "src_mtime_ns": 1791615416314428311,
+   "src_size": 884566
+  },
+  {
+   "method": "abf",
+   "seed": 15001,
+   "src_sha256": "4cca08a3e424ea3a58e0eeb163caf24b55cc90332d60447e2092170c86121383",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2/lta_T150/N1/s15001_abf.npz",
+   "src_mtime_ns": 1791615416141428316,
+   "src_size": 884412
+  },
+  {
+   "method": "abf",
+   "seed": 15002,
+   "src_sha256": "1b835e7252048643ef0d9c9b36e747dfa3cf328245fba17b47a0c720f3feaa3e",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2/lta_T150/N1/s15002_abf.npz",
+   "src_mtime_ns": 1791615415545428334,
+   "src_size": 885317
+  },
+  {
+   "method": "abf",
+   "seed": 15003,
+   "src_sha256": "58cc777d700f4a2d95cdd7c7b49291fac6b218d899ac57df4790ee58bb22a9f7",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2/lta_T150/N1/s15003_abf.npz",
+   "src_mtime_ns": 1791615416219428314,
+   "src_size": 880812
+  },
+  {
+   "method": "abf",
+   "seed": 15004,
+   "src_sha256": "4031615aca910105215bb88b802925e69f7d9844a1c87a09bc51bab0445d7c7e",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2/lta_T150/N1/s15004_abf.npz",
+   "src_mtime_ns": 1791615415266428342,
+   "src_size": 886779
+  },
+  {
+   "method": "abf",
+   "seed": 15005,
+   "src_sha256": "3864ba6148872a0f0970e19fe441009e357853d77d111067f371e073e5fb13d0",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2/lta_T150/N1/s15005_abf.npz",
+   "src_mtime_ns": 1791615416627428302,
+   "src_size": 889055
+  },
+  {
+   "method": "abf",
+   "seed": 15006,
+   "src_sha256": "a421a66104feae107fecffb6418aea20538bc7d03940b09ff3e64d2dd228cd3c",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2/lta_T150/N1/s15006_abf.npz",
+   "src_mtime_ns": 1791615416857428295,
+   "src_size": 885801
+  },
+  {
+   "method": "abf",
+   "seed": 15007,
+   "src_sha256": "31360ea6ce0b2423cfac40434e4587e1d60ece712ec83431d00d61dbca6bf0fb",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2/lta_T150/N1/s15007_abf.npz",
+   "src_mtime_ns": 1791615414658428360,
+   "src_size": 879914
+  },
+  {
+   "method": "abf",
+   "seed": 15008,
+   "src_sha256": "51d421ba012162a66d59c6c61665cd98edc40f29995c6e6e48d6da346ee86666",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2/lta_T150/N1/s15008_abf.npz",
+   "src_mtime_ns": 1791615416588428303,
+   "src_size": 884791
+  },
+  {
+   "method": "abf",
+   "seed": 15009,
+   "src_sha256": "3bad48ce02786f4f1c0cbcee77c4bb0338dffed4e3da59dc09c5264a6844c1fb",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2/lta_T150/N1/s15009_abf.npz",
+   "src_mtime_ns": 1791615418496428246,
+   "src_size": 882531
+  },
+  {
+   "method": "abf",
+   "seed": 15010,
+   "src_sha256": "f5121381a45fe74bbfe05c329f062c4ade4699f39ab158ffeb418ff9d41162ed",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2/lta_T150/N1/s15010_abf.npz",
+   "src_mtime_ns": 1791615416303428311,
+   "src_size": 887377
+  },
+  {
+   "method": "abf",
+   "seed": 15011,
+   "src_sha256": "e7c13d2cbdc9e89c683b28e1216ed681d823def8d1f30fc8224a7bcf73dd3b09",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2/lta_T150/N1/s15011_abf.npz",
+   "src_mtime_ns": 1791615416705428299,
+   "src_size": 883829
+  },
+  {
+   "method": "abf",
+   "seed": 15012,
+   "src_sha256": "8f7c7ba589724cc8d982e383db5ba7f1b572b88ae16c2204d4cae7643c60f669",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2/lta_T150/N1/s15012_abf.npz",
+   "src_mtime_ns": 1791615416621428302,
+   "src_size": 882024
+  },
+  {
+   "method": "abf",
+   "seed": 15013,
+   "src_sha256": "0362dcd2052922dfb3fe18effce31613e73d80c047c22f9325aea53da87c6adf",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2/lta_T150/N1/s15013_abf.npz",
+   "src_mtime_ns": 1791615416579428303,
+   "src_size": 882757
+  },
+  {
+   "method": "abf",
+   "seed": 15014,
+   "src_sha256": "fabbb73cbf7b27e348fab91091a495cd8146d3d1e4a62b3c32f45443cdbd8909",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2/lta_T150/N1/s15014_abf.npz",
+   "src_mtime_ns": 1791615417722428269,
+   "src_size": 889961
+  },
+  {
+   "method": "abf",
+   "seed": 15015,
+   "src_sha256": "ff60231d14652a47c1bd38a6e1f33ce9fa504d741b3d6e8edb1117ea4ecc0646",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2/lta_T150/N1/s15015_abf.npz",
+   "src_mtime_ns": 1791615418021428260,
+   "src_size": 879832
+  }
+ ]
+}

@@ -1,0 +1,1513 @@
+{
+ "schema": "eqb_synthesis_manifest/1",
+ "script": "scripts/equal_budget/plot_synthesis.py",
+ "script_version": "plot_synthesis/2",
+ "generated_utc": "2026-10-10T07:21:23Z",
+ "system": "lta150",
+ "system_label": "ethane/LTA 150 K",
+ "kind": "lta",
+ "fixture": false,
+ "fixture_of": null,
+ "config": "/home/zheyuanlai/ABF-Fisher-Rao/configs/equal_budget_v2/lta_150K_production.json",
+ "config_sha256": "5704904e3610e59e2aa5e498a55f270c9c180d0494ef17cb7ef30f4233462d9f",
+ "results_root": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2",
+ "analysis_dir": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2/lta_T150/analysis",
+ "fig_dir": "/home/zheyuanlai/ABF-Fisher-Rao/figures/equal_budget_v2/lta_T150/synthesis",
+ "summary": {
+  "path": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2/lta_T150/analysis/summary.json",
+  "sha256": "c9c82af50e348b1070c55f77efbb1d154ba752fb510951b1e2d47e66fcf3ac0f",
+  "generated_utc": "2026-10-10T07:14:18Z",
+  "metrics_version": "eqb_metrics/2",
+  "n_boot": 10000,
+  "schema": "eqb_ladder_summary/2"
+ },
+ "freshness": {
+  "verified": true,
+  "stale": false,
+  "stale_reasons": []
+ },
+ "plan": {
+  "B": 307200000,
+  "h": 0.0002,
+  "N_ladder": [
+   1024,
+   512,
+   256,
+   128,
+   64,
+   32,
+   16,
+   8,
+   4,
+   2,
+   1
+  ],
+  "N0": 1024,
+  "seeds": [
+   15000,
+   15001,
+   15002,
+   15003,
+   15004,
+   15005,
+   15006,
+   15007,
+   15008,
+   15009,
+   15010,
+   15011,
+   15012,
+   15013,
+   15014,
+   15015
+  ],
+  "thresholds": {
+   "e_F": [
+    0.03,
+    0.13,
+    0.5
+   ],
+   "e_Fp": [
+    0.04,
+    0.15,
+    1.0
+   ],
+   "TV_half": 0.1
+  },
+  "T_N": {
+   "1": 61440.0,
+   "2": 30720.0,
+   "4": 15360.0,
+   "8": 7680.0,
+   "16": 3840.0,
+   "32": 1920.0,
+   "64": 960.0,
+   "128": 480.0,
+   "256": 240.0,
+   "512": 120.0,
+   "1024": 60.0
+  }
+ },
+ "status": {
+  "1": {
+   "abf": {
+    "planned": 16,
+    "complete": 16,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  },
+  "2": {
+   "abf": {
+    "planned": 16,
+    "complete": 16,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 16,
+    "complete": 16,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  },
+  "4": {
+   "abf": {
+    "planned": 16,
+    "complete": 16,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 16,
+    "complete": 16,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  },
+  "8": {
+   "abf": {
+    "planned": 16,
+    "complete": 16,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 16,
+    "complete": 16,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  },
+  "16": {
+   "abf": {
+    "planned": 16,
+    "complete": 16,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 16,
+    "complete": 16,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  },
+  "32": {
+   "abf": {
+    "planned": 16,
+    "complete": 16,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 16,
+    "complete": 16,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  },
+  "64": {
+   "abf": {
+    "planned": 16,
+    "complete": 16,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 16,
+    "complete": 16,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  },
+  "128": {
+   "abf": {
+    "planned": 16,
+    "complete": 16,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 16,
+    "complete": 16,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  },
+  "256": {
+   "abf": {
+    "planned": 16,
+    "complete": 16,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 16,
+    "complete": 16,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  },
+  "512": {
+   "abf": {
+    "planned": 16,
+    "complete": 16,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 16,
+    "complete": 16,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  },
+  "1024": {
+   "abf": {
+    "planned": 16,
+    "complete": 16,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 16,
+    "complete": 16,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  }
+ },
+ "not_run_N": [],
+ "incomplete_N": [],
+ "figures": [
+  {
+   "id": "S1_free_energy_abs_vs_N",
+   "files": [
+    "S1_free_energy_abs_vs_N.png",
+    "S1_free_energy_abs_vs_N.pdf"
+   ],
+   "title": "absolute Ibar_F and final e_F vs N (ABF, ABF+FR; median, IQR, seeds)",
+   "metrics": [
+    "Ibar_F",
+    "final_e_F"
+   ],
+   "details": {
+    "N_with_data": {
+     "Ibar_F": {
+      "abf": [
+       1,
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024
+      ],
+      "fr": [
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024
+      ]
+     },
+     "final_e_F": {
+      "abf": [
+       1,
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024
+      ],
+      "fr": [
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024
+      ]
+     }
+    }
+   }
+  },
+  {
+   "id": "S2_mean_force_abs_vs_N",
+   "files": [
+    "S2_mean_force_abs_vs_N.png",
+    "S2_mean_force_abs_vs_N.pdf"
+   ],
+   "title": "absolute Ibar_F' and final e_F' vs N",
+   "metrics": [
+    "Ibar_Fp",
+    "final_e_Fp"
+   ],
+   "details": {
+    "N_with_data": {
+     "Ibar_Fp": {
+      "abf": [
+       1,
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024
+      ],
+      "fr": [
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024
+      ]
+     },
+     "final_e_Fp": {
+      "abf": [
+       1,
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024
+      ],
+      "fr": [
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024
+      ]
+     }
+    }
+   }
+  },
+  {
+   "id": "S2s_secondary_reference_abs_vs_N",
+   "files": [
+    "S2s_secondary_reference_abs_vs_N.png",
+    "S2s_secondary_reference_abs_vs_N.pdf"
+   ],
+   "title": "secondary errors (periodically projected mean force) vs N (supplementary)",
+   "metrics": [
+    "Ibar_Fp_proj",
+    "final_e_Fp_proj"
+   ],
+   "details": {
+    "N_with_data": {
+     "Ibar_Fp_proj": {
+      "abf": [
+       1,
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024
+      ],
+      "fr": [
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024
+      ]
+     },
+     "final_e_Fp_proj": {
+      "abf": [
+       1,
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024
+      ],
+      "fr": [
+       2,
+       4,
+       8,
+       16,
+       32,
+       64,
+       128,
+       256,
+       512,
+       1024
+      ]
+     }
+    }
+   }
+  },
+  {
+   "id": "S3_fr_gain_vs_N",
+   "files": [
+    "S3_fr_gain_vs_N.png",
+    "S3_fr_gain_vs_N.pdf"
+   ],
+   "title": "FR relative improvement G(N): median, bootstrap 95 % CI, per-seed, wins/n",
+   "metrics": [
+    "Ibar_F",
+    "Ibar_Fp",
+    "final_e_F",
+    "final_e_Fp"
+   ],
+   "details": {
+    "N_with_paired_data": {
+     "Ibar_F": [
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+     ],
+     "Ibar_Fp": [
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+     ],
+     "final_e_F": [
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+     ],
+     "final_e_Fp": [
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+     ]
+    }
+   }
+  },
+  {
+   "id": "S4a_tau_free_energy_time",
+   "files": [
+    "S4a_tau_free_energy_time.png",
+    "S4a_tau_free_energy_time.pdf"
+   ],
+   "title": "persistent tau(e_F) at strict / mid / loose, physical time; censored = open markers in the top band, k/n",
+   "metrics": [
+    "tau_e_F_strict_t",
+    "tau_e_F_mid_t",
+    "tau_e_F_loose_t",
+    "paired rank tau_e_F_strict_u",
+    "paired rank tau_e_F_mid_u",
+    "paired rank tau_e_F_loose_u"
+   ],
+   "details": {
+    "N_with_data": {
+     "strict": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+     ],
+     "mid": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+     ],
+     "loose": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+     ]
+    }
+   }
+  },
+  {
+   "id": "S4b_tau_free_energy_budget",
+   "files": [
+    "S4b_tau_free_energy_budget.png",
+    "S4b_tau_free_energy_budget.pdf"
+   ],
+   "title": "persistent tau(e_F) at strict / mid / loose, budget fraction; censored = open markers in the top band, k/n",
+   "metrics": [
+    "tau_bgrid_e_F_strict_u",
+    "tau_bgrid_e_F_mid_u",
+    "tau_bgrid_e_F_loose_u",
+    "paired rank tau_e_F_strict_u",
+    "paired rank tau_e_F_mid_u",
+    "paired rank tau_e_F_loose_u"
+   ],
+   "details": {
+    "N_with_data": {
+     "strict": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+     ],
+     "mid": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+     ],
+     "loose": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+     ]
+    }
+   }
+  },
+  {
+   "id": "S5a_tau_mean_force_time",
+   "files": [
+    "S5a_tau_mean_force_time.png",
+    "S5a_tau_mean_force_time.pdf"
+   ],
+   "title": "persistent tau(e_Fp) at strict / mid / loose, physical time; censored = open markers in the top band, k/n",
+   "metrics": [
+    "tau_e_Fp_strict_t",
+    "tau_e_Fp_mid_t",
+    "tau_e_Fp_loose_t",
+    "paired rank tau_e_Fp_strict_u",
+    "paired rank tau_e_Fp_mid_u",
+    "paired rank tau_e_Fp_loose_u"
+   ],
+   "details": {
+    "N_with_data": {
+     "strict": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+     ],
+     "mid": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+     ],
+     "loose": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+     ]
+    }
+   }
+  },
+  {
+   "id": "S5b_tau_mean_force_budget",
+   "files": [
+    "S5b_tau_mean_force_budget.png",
+    "S5b_tau_mean_force_budget.pdf"
+   ],
+   "title": "persistent tau(e_Fp) at strict / mid / loose, budget fraction; censored = open markers in the top band, k/n",
+   "metrics": [
+    "tau_bgrid_e_Fp_strict_u",
+    "tau_bgrid_e_Fp_mid_u",
+    "tau_bgrid_e_Fp_loose_u",
+    "paired rank tau_e_Fp_strict_u",
+    "paired rank tau_e_Fp_mid_u",
+    "paired rank tau_e_Fp_loose_u"
+   ],
+   "details": {
+    "N_with_data": {
+     "strict": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+     ],
+     "mid": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+     ],
+     "loose": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+     ]
+    }
+   }
+  },
+  {
+   "id": "S6a_establishment_budget",
+   "files": [
+    "S6a_establishment_budget.png",
+    "S6a_establishment_budget.pdf"
+   ],
+   "title": "establishment / first arrival / tau TV_half vs N with the FR gain (u)",
+   "metrics": [
+    "est_u (reliable N)",
+    "est_cum_u (N [1, 2, 4, 8, 16, 32, 64]: unreliable instantaneous rule)",
+    "tau_bgrid_TV_half_u",
+    "G Ibar_F",
+    "G final_e_F",
+    "G Ibar_TV_half",
+    "G final_TV_half"
+   ],
+   "details": {
+    "G_F_N": [
+     2,
+     4,
+     8,
+     16,
+     32,
+     64,
+     128,
+     256,
+     512,
+     1024
+    ],
+    "G_marginal_N": [
+     2,
+     4,
+     8,
+     16,
+     32,
+     64,
+     128,
+     256,
+     512,
+     1024
+    ],
+    "scatter": {
+     "establishment": [
+      {
+       "N": 2,
+       "metric": "Ibar_F",
+       "abf_median": 0.0006258951822916666,
+       "G": -0.07385413189149859
+      },
+      {
+       "N": 2,
+       "metric": "final_e_F",
+       "abf_median": 0.0006258951822916666,
+       "G": -0.010968298733687161
+      },
+      {
+       "N": 4,
+       "metric": "Ibar_F",
+       "abf_median": 0.0006790755208333333,
+       "G": 0.11656317299030391
+      },
+      {
+       "N": 4,
+       "metric": "final_e_F",
+       "abf_median": 0.0006790755208333333,
+       "G": 0.09444958805504972
+      },
+      {
+       "N": 8,
+       "metric": "Ibar_F",
+       "abf_median": 0.0020467447916666668,
+       "G": 0.25575873205897215
+      },
+      {
+       "N": 8,
+       "metric": "final_e_F",
+       "abf_median": 0.0020467447916666668,
+       "G": -0.045186873716761326
+      },
+      {
+       "N": 16,
+       "metric": "Ibar_F",
+       "abf_median": 0.01,
+       "G": 0.16294535436145482
+      },
+      {
+       "N": 16,
+       "metric": "final_e_F",
+       "abf_median": 0.01,
+       "G": 0.0027551551062343325
+      },
+      {
+       "N": 32,
+       "metric": "Ibar_F",
+       "abf_median": 0.015,
+       "G": -0.11473595875665649
+      },
+      {
+       "N": 32,
+       "metric": "final_e_F",
+       "abf_median": 0.015,
+       "G": -0.16194885115790192
+      },
+      {
+       "N": 64,
+       "metric": "Ibar_F",
+       "abf_median": 0.025,
+       "G": -0.15698940812495998
+      },
+      {
+       "N": 64,
+       "metric": "final_e_F",
+       "abf_median": 0.025,
+       "G": 0.15930287761763984
+      },
+      {
+       "N": 128,
+       "metric": "Ibar_F",
+       "abf_median": 0.0275,
+       "G": -0.08542698957282412
+      },
+      {
+       "N": 128,
+       "metric": "final_e_F",
+       "abf_median": 0.0275,
+       "G": 0.2752231844730829
+      },
+      {
+       "N": 256,
+       "metric": "Ibar_F",
+       "abf_median": 0.05,
+       "G": -0.2914120280402608
+      },
+      {
+       "N": 256,
+       "metric": "final_e_F",
+       "abf_median": 0.05,
+       "G": -0.15654946379389967
+      },
+      {
+       "N": 512,
+       "metric": "Ibar_F",
+       "abf_median": 0.09,
+       "G": -0.3445840660231203
+      },
+      {
+       "N": 512,
+       "metric": "final_e_F",
+       "abf_median": 0.09,
+       "G": -0.3495543551199555
+      },
+      {
+       "N": 1024,
+       "metric": "Ibar_F",
+       "abf_median": 0.19,
+       "G": -0.306273758672829
+      },
+      {
+       "N": 1024,
+       "metric": "final_e_F",
+       "abf_median": 0.19,
+       "G": -0.6362169000723314
+      }
+     ],
+     "first_window": [
+      {
+       "N": 2,
+       "metric": "Ibar_F",
+       "abf_median": 0.00023703450520833335,
+       "G": -0.07385413189149859
+      },
+      {
+       "N": 2,
+       "metric": "final_e_F",
+       "abf_median": 0.00023703450520833335,
+       "G": -0.010968298733687161
+      },
+      {
+       "N": 4,
+       "metric": "Ibar_F",
+       "abf_median": 0.0003689518229166666,
+       "G": 0.11656317299030391
+      },
+      {
+       "N": 4,
+       "metric": "final_e_F",
+       "abf_median": 0.0003689518229166666,
+       "G": 0.09444958805504972
+      },
+      {
+       "N": 8,
+       "metric": "Ibar_F",
+       "abf_median": 0.0005093750000000001,
+       "G": 0.25575873205897215
+      },
+      {
+       "N": 8,
+       "metric": "final_e_F",
+       "abf_median": 0.0005093750000000001,
+       "G": -0.045186873716761326
+      },
+      {
+       "N": 16,
+       "metric": "Ibar_F",
+       "abf_median": 0.0009602864583333334,
+       "G": 0.16294535436145482
+      },
+      {
+       "N": 16,
+       "metric": "final_e_F",
+       "abf_median": 0.0009602864583333334,
+       "G": 0.0027551551062343325
+      },
+      {
+       "N": 32,
+       "metric": "Ibar_F",
+       "abf_median": 0.0014015625,
+       "G": -0.11473595875665649
+      },
+      {
+       "N": 32,
+       "metric": "final_e_F",
+       "abf_median": 0.0014015625,
+       "G": -0.16194885115790192
+      },
+      {
+       "N": 64,
+       "metric": "Ibar_F",
+       "abf_median": 0.003038958333333333,
+       "G": -0.15698940812495998
+      },
+      {
+       "N": 64,
+       "metric": "final_e_F",
+       "abf_median": 0.003038958333333333,
+       "G": 0.15930287761763984
+      },
+      {
+       "N": 128,
+       "metric": "Ibar_F",
+       "abf_median": 0.0046125,
+       "G": -0.08542698957282412
+      },
+      {
+       "N": 128,
+       "metric": "final_e_F",
+       "abf_median": 0.0046125,
+       "G": 0.2752231844730829
+      },
+      {
+       "N": 256,
+       "metric": "Ibar_F",
+       "abf_median": 0.008132916666666667,
+       "G": -0.2914120280402608
+      },
+      {
+       "N": 256,
+       "metric": "final_e_F",
+       "abf_median": 0.008132916666666667,
+       "G": -0.15654946379389967
+      },
+      {
+       "N": 512,
+       "metric": "Ibar_F",
+       "abf_median": 0.015050833333333333,
+       "G": -0.3445840660231203
+      },
+      {
+       "N": 512,
+       "metric": "final_e_F",
+       "abf_median": 0.015050833333333333,
+       "G": -0.3495543551199555
+      },
+      {
+       "N": 1024,
+       "metric": "Ibar_F",
+       "abf_median": 0.02350666666666667,
+       "G": -0.306273758672829
+      },
+      {
+       "N": 1024,
+       "metric": "final_e_F",
+       "abf_median": 0.02350666666666667,
+       "G": -0.6362169000723314
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "S6b_establishment_time",
+   "files": [
+    "S6b_establishment_time.png",
+    "S6b_establishment_time.pdf"
+   ],
+   "title": "establishment / first arrival / tau TV_half vs N with the FR gain (t)",
+   "metrics": [
+    "est_t (reliable N)",
+    "est_cum_t (N [1, 2, 4, 8, 16, 32, 64]: unreliable instantaneous rule)",
+    "tau_TV_half_t",
+    "G Ibar_F",
+    "G final_e_F",
+    "G Ibar_TV_half",
+    "G final_TV_half"
+   ],
+   "details": {
+    "G_F_N": [
+     2,
+     4,
+     8,
+     16,
+     32,
+     64,
+     128,
+     256,
+     512,
+     1024
+    ],
+    "G_marginal_N": [
+     2,
+     4,
+     8,
+     16,
+     32,
+     64,
+     128,
+     256,
+     512,
+     1024
+    ],
+    "scatter": {
+     "establishment": [
+      {
+       "N": 2,
+       "metric": "Ibar_F",
+       "abf_median": 19.2275,
+       "G": -0.07385413189149859
+      },
+      {
+       "N": 2,
+       "metric": "final_e_F",
+       "abf_median": 19.2275,
+       "G": -0.010968298733687161
+      },
+      {
+       "N": 4,
+       "metric": "Ibar_F",
+       "abf_median": 10.4306,
+       "G": 0.11656317299030391
+      },
+      {
+       "N": 4,
+       "metric": "final_e_F",
+       "abf_median": 10.4306,
+       "G": 0.09444958805504972
+      },
+      {
+       "N": 8,
+       "metric": "Ibar_F",
+       "abf_median": 15.719000000000001,
+       "G": 0.25575873205897215
+      },
+      {
+       "N": 8,
+       "metric": "final_e_F",
+       "abf_median": 15.719000000000001,
+       "G": -0.045186873716761326
+      },
+      {
+       "N": 16,
+       "metric": "Ibar_F",
+       "abf_median": 38.4,
+       "G": 0.16294535436145482
+      },
+      {
+       "N": 16,
+       "metric": "final_e_F",
+       "abf_median": 38.4,
+       "G": 0.0027551551062343325
+      },
+      {
+       "N": 32,
+       "metric": "Ibar_F",
+       "abf_median": 28.8,
+       "G": -0.11473595875665649
+      },
+      {
+       "N": 32,
+       "metric": "final_e_F",
+       "abf_median": 28.8,
+       "G": -0.16194885115790192
+      },
+      {
+       "N": 64,
+       "metric": "Ibar_F",
+       "abf_median": 24.0,
+       "G": -0.15698940812495998
+      },
+      {
+       "N": 64,
+       "metric": "final_e_F",
+       "abf_median": 24.0,
+       "G": 0.15930287761763984
+      },
+      {
+       "N": 128,
+       "metric": "Ibar_F",
+       "abf_median": 13.2,
+       "G": -0.08542698957282412
+      },
+      {
+       "N": 128,
+       "metric": "final_e_F",
+       "abf_median": 13.2,
+       "G": 0.2752231844730829
+      },
+      {
+       "N": 256,
+       "metric": "Ibar_F",
+       "abf_median": 12.0,
+       "G": -0.2914120280402608
+      },
+      {
+       "N": 256,
+       "metric": "final_e_F",
+       "abf_median": 12.0,
+       "G": -0.15654946379389967
+      },
+      {
+       "N": 512,
+       "metric": "Ibar_F",
+       "abf_median": 10.8,
+       "G": -0.3445840660231203
+      },
+      {
+       "N": 512,
+       "metric": "final_e_F",
+       "abf_median": 10.8,
+       "G": -0.3495543551199555
+      },
+      {
+       "N": 1024,
+       "metric": "Ibar_F",
+       "abf_median": 11.4,
+       "G": -0.306273758672829
+      },
+      {
+       "N": 1024,
+       "metric": "final_e_F",
+       "abf_median": 11.4,
+       "G": -0.6362169000723314
+      }
+     ],
+     "first_window": [
+      {
+       "N": 2,
+       "metric": "Ibar_F",
+       "abf_median": 7.281700000000001,
+       "G": -0.07385413189149859
+      },
+      {
+       "N": 2,
+       "metric": "final_e_F",
+       "abf_median": 7.281700000000001,
+       "G": -0.010968298733687161
+      },
+      {
+       "N": 4,
+       "metric": "Ibar_F",
+       "abf_median": 5.6671,
+       "G": 0.11656317299030391
+      },
+      {
+       "N": 4,
+       "metric": "final_e_F",
+       "abf_median": 5.6671,
+       "G": 0.09444958805504972
+      },
+      {
+       "N": 8,
+       "metric": "Ibar_F",
+       "abf_median": 3.9120000000000004,
+       "G": 0.25575873205897215
+      },
+      {
+       "N": 8,
+       "metric": "final_e_F",
+       "abf_median": 3.9120000000000004,
+       "G": -0.045186873716761326
+      },
+      {
+       "N": 16,
+       "metric": "Ibar_F",
+       "abf_median": 3.6875,
+       "G": 0.16294535436145482
+      },
+      {
+       "N": 16,
+       "metric": "final_e_F",
+       "abf_median": 3.6875,
+       "G": 0.0027551551062343325
+      },
+      {
+       "N": 32,
+       "metric": "Ibar_F",
+       "abf_median": 2.691,
+       "G": -0.11473595875665649
+      },
+      {
+       "N": 32,
+       "metric": "final_e_F",
+       "abf_median": 2.691,
+       "G": -0.16194885115790192
+      },
+      {
+       "N": 64,
+       "metric": "Ibar_F",
+       "abf_median": 2.9174,
+       "G": -0.15698940812495998
+      },
+      {
+       "N": 64,
+       "metric": "final_e_F",
+       "abf_median": 2.9174,
+       "G": 0.15930287761763984
+      },
+      {
+       "N": 128,
+       "metric": "Ibar_F",
+       "abf_median": 2.2140000000000004,
+       "G": -0.08542698957282412
+      },
+      {
+       "N": 128,
+       "metric": "final_e_F",
+       "abf_median": 2.2140000000000004,
+       "G": 0.2752231844730829
+      },
+      {
+       "N": 256,
+       "metric": "Ibar_F",
+       "abf_median": 1.9519000000000002,
+       "G": -0.2914120280402608
+      },
+      {
+       "N": 256,
+       "metric": "final_e_F",
+       "abf_median": 1.9519000000000002,
+       "G": -0.15654946379389967
+      },
+      {
+       "N": 512,
+       "metric": "Ibar_F",
+       "abf_median": 1.8061000000000003,
+       "G": -0.3445840660231203
+      },
+      {
+       "N": 512,
+       "metric": "final_e_F",
+       "abf_median": 1.8061000000000003,
+       "G": -0.3495543551199555
+      },
+      {
+       "N": 1024,
+       "metric": "Ibar_F",
+       "abf_median": 1.4104,
+       "G": -0.306273758672829
+      },
+      {
+       "N": 1024,
+       "metric": "final_e_F",
+       "abf_median": 1.4104,
+       "G": -0.6362169000723314
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "S7_convergence_selected_N",
+   "files": [
+    "S7_convergence_selected_N.png",
+    "S7_convergence_selected_N.pdf"
+   ],
+   "title": "convergence curves, selected N, common axes (median + IQR over seeds)",
+   "metrics": [
+    "e_F",
+    "e_Fp",
+    "TV_half",
+    "far_frac"
+   ],
+   "details": {
+    "selected_N": [
+     1024,
+     32,
+     2,
+     1
+    ],
+    "rule": "largest planned N; the middle of the sorted planned ladder (index len//2); the smallest N with an FR arm; N = 1 -- chosen from the PLAN, independent of the data (duplicates dropped)",
+    "grids": {
+     "N1024_abf": "full save grid",
+     "N1024_fr": "full save grid",
+     "N32_abf": "full save grid",
+     "N32_fr": "full save grid",
+     "N2_abf": "full save grid",
+     "N2_fr": "full save grid",
+     "N1_abf": "full save grid"
+    }
+   }
+  },
+  {
+   "id": "S7s_convergence_all_N",
+   "files": [
+    "S7s_convergence_all_N.png",
+    "S7s_convergence_all_N.pdf"
+   ],
+   "title": "convergence curves, all N, seed medians + FR/ABF ratio (supplementary)",
+   "metrics": [
+    "e_F",
+    "e_Fp",
+    "TV_half"
+   ],
+   "details": {
+    "N_plotted": {
+     "abf": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+     ],
+     "fr": [
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+     ],
+     "ratio": [
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+     ]
+    }
+   }
+  },
+  {
+   "id": "S8_best_allocation",
+   "files": [
+    "S8_best_allocation.png",
+    "S8_best_allocation.pdf"
+   ],
+   "title": "best allocation: medians vs N, best N, bootstrap best-N frequencies, CI of best FR - best ABF",
+   "metrics": [
+    "Ibar_F",
+    "final_e_F",
+    "tau_bgrid_e_F_mid_u"
+   ],
+   "details": {
+    "Ibar_F": {
+     "best_abf": 2,
+     "best_fr": 2
+    },
+    "final_e_F": {
+     "best_abf": 8,
+     "best_fr": 2
+    },
+    "tau_bgrid_e_F_mid_u": {
+     "best_abf": 4,
+     "best_fr": 2
+    }
+   }
+  },
+  {
+   "id": "S8s_best_allocation_secondary",
+   "files": [
+    "S8s_best_allocation_secondary.png",
+    "S8s_best_allocation_secondary.pdf"
+   ],
+   "title": "best allocation for Ibar_F', final e_F', tau TV_half (supplementary)",
+   "metrics": [
+    "Ibar_Fp",
+    "final_e_Fp",
+    "tau_bgrid_TV_half_u"
+   ],
+   "details": {
+    "Ibar_Fp": {
+     "best_abf": 4,
+     "best_fr": 4
+    },
+    "final_e_Fp": {
+     "best_abf": 4,
+     "best_fr": 2
+    },
+    "tau_bgrid_TV_half_u": {
+     "best_abf": 4,
+     "best_fr": 32
+    }
+   }
+  }
+ ],
+ "notes": [
+  "Every planned N is on every N axis; N without data are marked (NOT RUN / RUNNING / incomplete), never omitted.",
+  "FR is not defined at N = 1 (ABF only, by design).",
+  "No metric is recomputed here: every number comes from the analysis summary or its per-run cache."
+ ],
+ "analysis_warnings": []
+}
