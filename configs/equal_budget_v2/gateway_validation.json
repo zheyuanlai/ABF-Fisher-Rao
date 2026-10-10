@@ -1,0 +1,22 @@
+{
+ "_written": "2026-10-10 ~04:45 UTC, before any run of this validation and before any new ABF/FR ladder data. Seen beforehand: the closed-form EM fibre-variance inflation 1/(1 - omega^2 h/2); the 2026-10-09 gateway dt study (accepted N 2048 cell, dt 4e-4/1e-4/2.5e-5: ABF final e_F 0.00553/0.00557/0.00554, own e_F' 0.0375/0.0346/0.0345, FR effect -29.5/-28.4/-29.7 %); unit tests of src/gateway_validation.py (MALA vs EM conditional variance at the gate centre, h 1e-4: MALA -0.1/+0.1 %, EM +3.6/+3.7 % vs closed form +3.7 %).",
+ "model": "src/gateway_numba.py / eb_abffr_core: V = H (x^2-1)^2 + omega(x)^2 y^2/2, omega = 1 + 31 exp(-x^2/(2 s^2)), beta 16, H 0.5, s 0.1, x reflected into [-1.8, 1.8]; exact F = H (x^2-1)^2 + log(omega)/beta, F' = 4Hx(x^2-1) + omega'/(beta omega), Var(Y|x) = 1/(beta omega^2). Unchanged.",
+ "candidates": [4e-4, 1e-4, 2.5e-5],
+ "refinement_if_none_pass": [1.25e-5],
+ "runs": {
+  "flat_bias_EM": "production force and EM update (tests/test_gateway_validation.py H1: bitwise the production simulate) plus the frozen exact bias +F'_exact(x): target exp(-beta (V - F_exact)), flat x-marginal; 16 independent groups (seeds 61000 + 100 k + g) x 256 walkers x 500 t.u. after 10 t.u. burn-in, x initial uniform on [-1.5, 1.5], y from the exact conditional; accumulators every step on 180 production bins and on 1440 fine bins (conditional variance)",
+  "flat_bias_MALA": "same target, MALA at h 1e-4 (exact for any h), 16 groups x 256 walkers x 500 t.u.",
+  "exact_iid": "i.i.d. draws from the exact unbiased Gibbs law (inverse CDF in x), for the read-out code",
+  "unbiased_trajectories": "unbiased EM (bias off) from both wells and from the gate, 8 walkers x 200 t.u. per h, traces every 0.05 t.u.: stability, reflection counts, plausibility (sanity only)"
+ },
+ "statistic": "per-bin jackknife over the 16 groups; RMS over the 151 production bins inside the eval window [-1.5, 1.5] (bin centres), each F profile centred on that window; debiased RMS D = sqrt(max(0, RMS^2 - mean se^2)) as in the 2026-10-09 campaign",
+ "gates": {
+  "V1_conditional_variance": "relative discretisation error of Var(Y|x) at the stiffest point (gate centre, omega = 32) <= 2 %: closed form 1/(1 - 1024 h/2) - 1 <= 0.02 AND the measured flat-bias EM value in the two central fine bins consistent with the closed form (|measured - predicted| <= 3 se) and <= 0.02 + 2 se",
+  "V2_free_energy": "D(F_density(EM h), F_exact) <= 0.00185 (= 1/3 of the anchor ABF final e_F 0.00554) with 95 % upper bound <= 0.0028, AND the same for F_MF (integrated conditional mean force)",
+  "V3_mean_force": "D(conditional mean force (EM h), bin-averaged F'_exact) over the eval-window bins <= 0.0115 (= 1/3 of the anchor ABF final own e_F' 0.0345) with upper bound <= 0.017, AND the closed-form EM mean-force bias RMS <= 0.0115",
+  "V4_exact_sampler": "MALA (exact) conditional variance at the gate centre within 3 se of the exact value and D(F_density(MALA), F_exact) consistent with 0 (upper bound <= 0.0028): validates the harness and read-out",
+  "V5_sanity": "no non-finite state; reflections at the x walls < 1e-6 per walker-step in the unbiased runs; flat-bias walkers cross the gate"
+ },
+ "selection": "h_G = the LARGEST candidate passing V1, V2, V3 (with V4, V5 passed). If none passes, test 1.25e-5. The choice uses no ABF or FR outcome.",
+ "expected_from_closed_form": "V1: 4e-4 -> 25.6 % FAIL, 1e-4 -> 5.4 % FAIL, 2.5e-5 -> 1.30 % pass, 1.25e-5 -> 0.64 %"
+}
