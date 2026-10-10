@@ -1,0 +1,50 @@
+{
+ "_frozen": "2026-10-10 ~10:40 UTC, before any engine code, validation run or performance run of this campaign (docs/mechanism/SCIENTIFIC_PLAN.md). Endpoints frozen; backend / implementation details amended (in this file, dated) before Experiment III runs.",
+ "experiment": "III: actual wall-clock time-to-accuracy at fixed N on identical hardware",
+ "systems": [
+  {
+   "name": "gateway",
+   "config": "configs/equal_budget_v2/gateway_production.json",
+   "N": 512,
+   "threshold_e_F": 0.0055
+  },
+  {
+   "name": "lta300",
+   "config": "configs/equal_budget_v2/lta_300K_production.json",
+   "N": 512,
+   "threshold_e_F": 0.094
+  },
+  {
+   "name": "lta150",
+   "config": "configs/equal_budget_v2/lta_150K_production.json",
+   "N": 512,
+   "threshold_e_F": 0.13
+  }
+ ],
+ "methods": [
+  "abf",
+  "fr"
+ ],
+ "primary": "wall-clock seconds to the persistent mid e_F threshold (timestamps at every save; JIT/compile excluded and reported separately)",
+ "also": [
+  "simulation time to accuracy",
+  "force evaluations to accuracy",
+  "peak memory",
+  "FR added time",
+  "effective parallelism (speed-up over 1 core)",
+  "total resource use"
+ ],
+ "backends_in_preference_order": [
+  "one GPU with an existing torch production engine passing a statistical-equivalence check",
+  "walker-parallel CPU on k cores",
+  "validated single-core numba"
+ ],
+ "rules": [
+  "same hardware for both arms",
+  "backend not run => NOT TESTED",
+  "1 CPU core is never equated with a GPU",
+  "starts only after Experiments I and II are analysed"
+ ],
+ "seeds_per_arm": "TBD in the amendment (>= 8)",
+ "out_root": "results/mechanism/parallel_benchmark"
+}

@@ -1,0 +1,169 @@
+{
+ "_frozen": "2026-10-10 ~10:40 UTC, before any engine code, validation run or performance run of this campaign (docs/mechanism/SCIENTIFIC_PLAN.md).",
+ "engine": "src/gateway_family_numba.py (to be written; at variant alpha, alpha=1, lambda=1 bitwise = src/gateway_ladder_numba.py)",
+ "engine_cfg": {
+  "system": "gateway_family",
+  "beta": 16.0,
+  "H": 0.5,
+  "omega_out": 1.0,
+  "omega_in": 32.0,
+  "s": 0.1,
+  "h": 2.5e-05,
+  "nb": 180,
+  "min_count": 1.0,
+  "gamma": 1.5,
+  "eta": 0.1,
+  "fr_interval_t": 0.004,
+  "ramp_t": 4.0,
+  "score_clip": 3.0,
+  "max_event_fraction": 0.08,
+  "cap_min": 1,
+  "genealogy_window_t": 1.6,
+  "trace_early_dt_t": 0.1,
+  "trace_early_until_t": 40.0,
+  "trace_late_dt_t": 10.0,
+  "trace_max": 5000
+ },
+ "h_status": "candidate 2.5e-5 (validated for alpha=1, lambda=1 only); frozen for all cells by docs/mechanism/EXP1_TIMESTEP_VALIDATION.md; refinement 1.25e-5 for ALL cells if any dynamics fails",
+ "anchor": {
+  "N0": 2048,
+  "T0": 40.0
+ },
+ "B_rule": "B = 2048 * 40 / h walker-steps per arm per seed (3,276,800,000 at h = 2.5e-5)",
+ "seeds": [
+  8100,
+  8101,
+  8102,
+  8103,
+  8104,
+  8105,
+  8106,
+  8107,
+  8108,
+  8109,
+  8110,
+  8111,
+  8112,
+  8113,
+  8114,
+  8115,
+  8116,
+  8117,
+  8118,
+  8119,
+  8120,
+  8121,
+  8122,
+  8123,
+  8124,
+  8125,
+  8126,
+  8127,
+  8128,
+  8129,
+  8130,
+  8131
+ ],
+ "init": "x from gateway_ladder_numba.init_left(seed, N) (numpy default_rng(1000+seed): x ~ N(-1, 0.05) reflected); y from the SAME standard normals z through each model's exact conditional law: alpha family y = z / (sqrt(beta) omega(x)^alpha), shifted y = m(x) + z / (sqrt(beta) kappa); identical for both methods",
+ "noise": "Langevin MT19937 seeded with gateway_ladder_numba.default_noise_seed(seed, N) for every model and lambda (coupled across cells); FR uniforms PCG64 SeedSequence([seed, N, 1])",
+ "physical_checkpoints_t": [
+  0.5,
+  1,
+  2,
+  4,
+  10,
+  20,
+  40,
+  100,
+  400,
+  1000,
+  4000,
+  10000,
+  40000
+ ],
+ "profile_snapshot_u": [
+  0.01,
+  0.05,
+  0.1,
+  0.25,
+  0.5,
+  0.75,
+  1.0
+ ],
+ "reference": "common analytic F*(x) = H(x^2-1)^2 + log(omega)/beta, F*'(x); accepted gateway scorer (151-node eval window [-1.5, 1.5], profile centred on it); secondary = per-dynamics frozen-x EM-consistent mean force (SCIENTIFIC_PLAN section 6)",
+ "thresholds": {
+  "e_F": [
+   0.002,
+   0.0055,
+   0.02
+  ],
+  "e_Fp_raw_reported_only": [
+   0.012,
+   0.035,
+   0.1
+  ],
+  "e_Fp_stat": [
+   0.004,
+   0.0136,
+   0.0946
+  ],
+  "TV_half": 0.1
+ },
+ "e_Fp_floor": 0.03227,
+ "statistics": {
+  "primary": "paired G(Ibar_F) = (FR-ABF)/ABF per seed, median, 10000-resample seed bootstrap 95 % CI, wins",
+  "cross_cell": "Delta_ab = median_seeds[log(I_FR/I_ABF)_a - log(I_FR/I_ABF)_b], seeds coupled across cells; bootstrap CI and p; Holm within each family of primary contrasts; equivalence iff 95 % CI of exp(Delta) inside [0.90, 1.11]",
+  "n_boot": 10000
+ },
+ "checkpoint_every_s": 600.0,
+ "experiment": "I: matched free energy (entropic vs energetic realisation of one F*)",
+ "out_root": "results/mechanism/matched_free_energy",
+ "variants": [
+  {
+   "name": "alpha1",
+   "variant": "alpha",
+   "alpha": 1.0,
+   "kappa": null,
+   "lam": 1.0,
+   "reuse": "results/equal_budget_v2/gateway/N{N}/s{seed}_{method}.npz iff bitwise-reproduced (SCIENTIFIC_PLAN section 5)"
+  },
+  {
+   "name": "alpha0.5",
+   "variant": "alpha",
+   "alpha": 0.5,
+   "kappa": null,
+   "lam": 1.0
+  },
+  {
+   "name": "alpha0",
+   "variant": "alpha",
+   "alpha": 0.0,
+   "kappa": null,
+   "lam": 1.0
+  },
+  {
+   "name": "shift",
+   "variant": "shift",
+   "alpha": null,
+   "kappa": 1.0,
+   "lam": 1.0
+  }
+ ],
+ "N": [
+  2048,
+  512,
+  128
+ ],
+ "T_N": {
+  "2048": 40.0,
+  "512": 160.0,
+  "128": 640.0
+ },
+ "primary_contrasts": [
+  "C1 alpha0 vs alpha1",
+  "C2 shift vs alpha1",
+  "C3 shift vs alpha0",
+  "C4 alpha0.5 vs alpha1"
+ ],
+ "multiplicity": "Holm over 4 contrasts x 3 N = 12"
+}
