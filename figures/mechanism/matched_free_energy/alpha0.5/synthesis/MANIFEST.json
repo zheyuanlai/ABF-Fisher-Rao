@@ -1,0 +1,1135 @@
+{
+ "schema": "eqb_synthesis_manifest/1",
+ "script": "scripts/equal_budget/plot_synthesis.py",
+ "script_version": "plot_synthesis/2",
+ "generated_utc": "2026-10-10T14:21:50Z",
+ "system": "gateway_family",
+ "system_label": "gateway alpha0.5",
+ "kind": "gateway",
+ "fixture": false,
+ "fixture_of": null,
+ "config": "/home/zheyuanlai/ABF-Fisher-Rao/configs/mechanism/cells/matched_free_energy/alpha0.5.json",
+ "config_sha256": "c0ddacacb37dc0884554115b14247d1e33969b29ed7f9ce8b81587db4997729f",
+ "results_root": "/home/zheyuanlai/ABF-Fisher-Rao/results/mechanism/matched_free_energy",
+ "analysis_dir": "/home/zheyuanlai/ABF-Fisher-Rao/results/mechanism/matched_free_energy/alpha0.5/analysis",
+ "fig_dir": "/home/zheyuanlai/ABF-Fisher-Rao/figures/mechanism/matched_free_energy/alpha0.5/synthesis",
+ "summary": {
+  "path": "/home/zheyuanlai/ABF-Fisher-Rao/results/mechanism/matched_free_energy/alpha0.5/analysis/summary.json",
+  "sha256": "bd899d30bf62fc6b9de50f0c9ec1359031e1ef2bfa6317df50123907e27ec303",
+  "generated_utc": "2026-10-10T14:19:19Z",
+  "metrics_version": "eqb_metrics/2",
+  "n_boot": 10000,
+  "schema": "eqb_ladder_summary/2"
+ },
+ "freshness": {
+  "verified": true,
+  "stale": false,
+  "stale_reasons": []
+ },
+ "plan": {
+  "B": 3276800000,
+  "h": 2.5e-05,
+  "N_ladder": [
+   2048,
+   512,
+   128
+  ],
+  "N0": 2048,
+  "seeds": [
+   8100,
+   8101,
+   8102,
+   8103,
+   8104,
+   8105,
+   8106,
+   8107,
+   8108,
+   8109,
+   8110,
+   8111,
+   8112,
+   8113,
+   8114,
+   8115,
+   8116,
+   8117,
+   8118,
+   8119,
+   8120,
+   8121,
+   8122,
+   8123,
+   8124,
+   8125,
+   8126,
+   8127,
+   8128,
+   8129,
+   8130,
+   8131
+  ],
+  "thresholds": {
+   "e_F": [
+    0.002,
+    0.0055,
+    0.02
+   ],
+   "e_Fp": [
+    0.012,
+    0.035,
+    0.1
+   ],
+   "e_Fp_stat": [
+    0.004,
+    0.0136,
+    0.0946
+   ],
+   "TV_half": 0.1
+  },
+  "T_N": {
+   "128": 640.0,
+   "512": 160.0,
+   "2048": 40.0
+  }
+ },
+ "status": {
+  "128": {
+   "abf": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  },
+  "512": {
+   "abf": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  },
+  "2048": {
+   "abf": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "fr": {
+    "planned": 32,
+    "complete": 32,
+    "running": 0,
+    "missing": 0,
+    "invalid": 0
+   },
+   "label": "complete"
+  }
+ },
+ "not_run_N": [],
+ "incomplete_N": [],
+ "figures": [
+  {
+   "id": "S1_free_energy_abs_vs_N",
+   "files": [
+    "S1_free_energy_abs_vs_N.png",
+    "S1_free_energy_abs_vs_N.pdf"
+   ],
+   "title": "absolute Ibar_F and final e_F vs N (ABF, ABF+FR; median, IQR, seeds)",
+   "metrics": [
+    "Ibar_F",
+    "final_e_F"
+   ],
+   "details": {
+    "N_with_data": {
+     "Ibar_F": {
+      "abf": [
+       128,
+       512,
+       2048
+      ],
+      "fr": [
+       128,
+       512,
+       2048
+      ]
+     },
+     "final_e_F": {
+      "abf": [
+       128,
+       512,
+       2048
+      ],
+      "fr": [
+       128,
+       512,
+       2048
+      ]
+     }
+    }
+   },
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 2,
+    "n_data_axes": 2,
+    "n_texts": 39,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": [
+     "legend: axes 1 [final e_F] has no legend of its own; its labels ['ABF', 'ABF + FR'] are entries of the legend on axes [0]"
+    ]
+   }
+  },
+  {
+   "id": "S2_mean_force_abs_vs_N",
+   "files": [
+    "S2_mean_force_abs_vs_N.png",
+    "S2_mean_force_abs_vs_N.pdf"
+   ],
+   "title": "absolute Ibar_F' and final e_F' vs N",
+   "metrics": [
+    "Ibar_Fp",
+    "final_e_Fp"
+   ],
+   "details": {
+    "N_with_data": {
+     "Ibar_Fp": {
+      "abf": [
+       128,
+       512,
+       2048
+      ],
+      "fr": [
+       128,
+       512,
+       2048
+      ]
+     },
+     "final_e_Fp": {
+      "abf": [
+       128,
+       512,
+       2048
+      ],
+      "fr": [
+       128,
+       512,
+       2048
+      ]
+     }
+    }
+   },
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 2,
+    "n_data_axes": 2,
+    "n_texts": 41,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": [
+     "legend: axes 1 [final e_F\u2032] has no legend of its own; its labels ['ABF', 'ABF + FR'] are entries of the legend on axes [0]"
+    ]
+   }
+  },
+  {
+   "id": "S2s_secondary_reference_abs_vs_N",
+   "files": [
+    "S2s_secondary_reference_abs_vs_N.png",
+    "S2s_secondary_reference_abs_vs_N.pdf"
+   ],
+   "title": "secondary errors (EM-consistent reference; floor-free companion of e_F\u2032) vs N (supplementary)",
+   "metrics": [
+    "Ibar_F_em",
+    "final_e_F_em",
+    "Ibar_Fp_em",
+    "final_e_Fp_em",
+    "Ibar_Fp_stat",
+    "final_e_Fp_stat"
+   ],
+   "details": {
+    "N_with_data": {
+     "Ibar_F_em": {
+      "abf": [
+       128,
+       512,
+       2048
+      ],
+      "fr": [
+       128,
+       512,
+       2048
+      ]
+     },
+     "final_e_F_em": {
+      "abf": [
+       128,
+       512,
+       2048
+      ],
+      "fr": [
+       128,
+       512,
+       2048
+      ]
+     },
+     "Ibar_Fp_em": {
+      "abf": [
+       128,
+       512,
+       2048
+      ],
+      "fr": [
+       128,
+       512,
+       2048
+      ]
+     },
+     "final_e_Fp_em": {
+      "abf": [
+       128,
+       512,
+       2048
+      ],
+      "fr": [
+       128,
+       512,
+       2048
+      ]
+     },
+     "Ibar_Fp_stat": {
+      "abf": [
+       128,
+       512,
+       2048
+      ],
+      "fr": [
+       128,
+       512,
+       2048
+      ]
+     },
+     "final_e_Fp_stat": {
+      "abf": [
+       128,
+       512,
+       2048
+      ],
+      "fr": [
+       128,
+       512,
+       2048
+      ]
+     }
+    }
+   },
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 6,
+    "n_data_axes": 6,
+    "n_texts": 106,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": [
+     "legend: axes 1 [final e_F vs EM-consistent ref.] has no legend of its own; its labels ['ABF', 'ABF + FR'] are entries of the legend on axes [0]",
+     "legend: axes 2 [\u012a_F\u2032 vs EM-consistent ref.] has no legend of its own; its labels ['ABF', 'ABF + FR'] are entries of the legend on axes [0]",
+     "legend: axes 3 [final e_F\u2032 vs EM-consistent ref.] has no legend of its own; its labels ['ABF', 'ABF + FR'] are entries of the legend on axes [0]",
+     "legend: axes 4 [\u012a_F\u2032] has no legend of its own; its labels ['ABF', 'ABF + FR'] are entries of the legend on axes [0]",
+     "legend: axes 5 [final e_F\u2032] has no legend of its own; its labels ['ABF', 'ABF + FR'] are entries of the legend on axes [0]"
+    ]
+   }
+  },
+  {
+   "id": "S3_fr_gain_vs_N",
+   "files": [
+    "S3_fr_gain_vs_N.png",
+    "S3_fr_gain_vs_N.pdf"
+   ],
+   "title": "FR relative improvement G(N): median, bootstrap 95 % CI, per-seed, wins/n",
+   "metrics": [
+    "Ibar_F",
+    "Ibar_Fp",
+    "final_e_F",
+    "final_e_Fp"
+   ],
+   "details": {
+    "N_with_paired_data": {
+     "Ibar_F": [
+      128,
+      512,
+      2048
+     ],
+     "Ibar_Fp": [
+      128,
+      512,
+      2048
+     ],
+     "final_e_F": [
+      128,
+      512,
+      2048
+     ],
+     "final_e_Fp": [
+      128,
+      512,
+      2048
+     ]
+    }
+   },
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 4,
+    "n_data_axes": 4,
+    "n_texts": 75,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "id": "S4a_tau_free_energy_time",
+   "files": [
+    "S4a_tau_free_energy_time.png",
+    "S4a_tau_free_energy_time.pdf"
+   ],
+   "title": "persistent tau(e_F) at strict / mid / loose, physical time; censored = open markers in the top band, k/n",
+   "metrics": [
+    "tau_e_F_strict_t",
+    "tau_e_F_mid_t",
+    "tau_e_F_loose_t",
+    "paired rank tau_e_F_strict_u",
+    "paired rank tau_e_F_mid_u",
+    "paired rank tau_e_F_loose_u"
+   ],
+   "details": {
+    "N_with_data": {
+     "strict": [
+      128,
+      512,
+      2048
+     ],
+     "mid": [
+      128,
+      512,
+      2048
+     ],
+     "loose": [
+      128,
+      512,
+      2048
+     ]
+    }
+   },
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 3,
+    "n_data_axes": 3,
+    "n_texts": 56,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "id": "S4b_tau_free_energy_budget",
+   "files": [
+    "S4b_tau_free_energy_budget.png",
+    "S4b_tau_free_energy_budget.pdf"
+   ],
+   "title": "persistent tau(e_F) at strict / mid / loose, budget fraction; censored = open markers in the top band, k/n",
+   "metrics": [
+    "tau_bgrid_e_F_strict_u",
+    "tau_bgrid_e_F_mid_u",
+    "tau_bgrid_e_F_loose_u",
+    "paired rank tau_e_F_strict_u",
+    "paired rank tau_e_F_mid_u",
+    "paired rank tau_e_F_loose_u"
+   ],
+   "details": {
+    "N_with_data": {
+     "strict": [
+      128,
+      512,
+      2048
+     ],
+     "mid": [
+      128,
+      512,
+      2048
+     ],
+     "loose": [
+      128,
+      512,
+      2048
+     ]
+    }
+   },
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 3,
+    "n_data_axes": 3,
+    "n_texts": 71,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "id": "S5a_tau_mean_force_time",
+   "files": [
+    "S5a_tau_mean_force_time.png",
+    "S5a_tau_mean_force_time.pdf"
+   ],
+   "title": "persistent tau(e_Fp_stat) at strict / mid / loose, physical time; censored = open markers in the top band, k/n",
+   "metrics": [
+    "tau_e_Fp_stat_strict_t",
+    "tau_e_Fp_stat_mid_t",
+    "tau_e_Fp_stat_loose_t",
+    "paired rank tau_e_Fp_stat_strict_u",
+    "paired rank tau_e_Fp_stat_mid_u",
+    "paired rank tau_e_Fp_stat_loose_u"
+   ],
+   "details": {
+    "N_with_data": {
+     "strict": [
+      128,
+      512,
+      2048
+     ],
+     "mid": [
+      128,
+      512,
+      2048
+     ],
+     "loose": [
+      128,
+      512,
+      2048
+     ]
+    }
+   },
+   "legibility": {
+    "status": "fail",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 3,
+    "n_data_axes": 3,
+    "n_texts": 57,
+    "n_failures": 1,
+    "failures": [
+     {
+      "check": "legend_over_data",
+      "where": "axes 0 [strict: e_F\u2032,stat \u2264 0.004 (reduced forc\u2026]",
+      "reason": "the legend box is crossed by scatter #7 (1 drawn segment(s) / point(s) inside it)"
+     }
+    ],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "id": "S5b_tau_mean_force_budget",
+   "files": [
+    "S5b_tau_mean_force_budget.png",
+    "S5b_tau_mean_force_budget.pdf"
+   ],
+   "title": "persistent tau(e_Fp_stat) at strict / mid / loose, budget fraction; censored = open markers in the top band, k/n",
+   "metrics": [
+    "tau_bgrid_e_Fp_stat_strict_u",
+    "tau_bgrid_e_Fp_stat_mid_u",
+    "tau_bgrid_e_Fp_stat_loose_u",
+    "paired rank tau_e_Fp_stat_strict_u",
+    "paired rank tau_e_Fp_stat_mid_u",
+    "paired rank tau_e_Fp_stat_loose_u"
+   ],
+   "details": {
+    "N_with_data": {
+     "strict": [
+      128,
+      512,
+      2048
+     ],
+     "mid": [
+      128,
+      512,
+      2048
+     ],
+     "loose": [
+      128,
+      512,
+      2048
+     ]
+    }
+   },
+   "legibility": {
+    "status": "fail",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 3,
+    "n_data_axes": 3,
+    "n_texts": 71,
+    "n_failures": 1,
+    "failures": [
+     {
+      "check": "legend_over_data",
+      "where": "axes 0 [strict: e_F\u2032,stat \u2264 0.004 (reduced forc\u2026]",
+      "reason": "the legend box is crossed by scatter #7 (1 drawn segment(s) / point(s) inside it)"
+     }
+    ],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "id": "S6a_establishment_budget",
+   "files": [
+    "S6a_establishment_budget.png",
+    "S6a_establishment_budget.pdf"
+   ],
+   "title": "establishment / first arrival / tau TV_half vs N with the FR gain (u)",
+   "metrics": [
+    "est_u (reliable N)",
+    "est_cum_u (N []: unreliable instantaneous rule)",
+    "tau_bgrid_TV_half_u",
+    "G Ibar_F",
+    "G final_e_F",
+    "G Ibar_TV_half",
+    "G final_TV_half"
+   ],
+   "details": {
+    "G_F_N": [
+     128,
+     512,
+     2048
+    ],
+    "G_marginal_N": [
+     128,
+     512,
+     2048
+    ],
+    "scatter": {
+     "establishment": [
+      {
+       "N": 128,
+       "metric": "Ibar_F",
+       "abf_median": 0.03,
+       "G": -0.2141626343061322
+      },
+      {
+       "N": 128,
+       "metric": "final_e_F",
+       "abf_median": 0.03,
+       "G": 0.04014390917918939
+      },
+      {
+       "N": 512,
+       "metric": "Ibar_F",
+       "abf_median": 0.115,
+       "G": -0.3631934489987045
+      },
+      {
+       "N": 512,
+       "metric": "final_e_F",
+       "abf_median": 0.115,
+       "G": -0.5591524760679883
+      },
+      {
+       "N": 2048,
+       "metric": "Ibar_F",
+       "abf_median": 0.4425,
+       "G": -0.2621081940328879
+      },
+      {
+       "N": 2048,
+       "metric": "final_e_F",
+       "abf_median": 0.4425,
+       "G": -0.6381444664117963
+      }
+     ]
+    }
+   },
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 6,
+    "n_data_axes": 6,
+    "n_texts": 101,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "id": "S6b_establishment_time",
+   "files": [
+    "S6b_establishment_time.png",
+    "S6b_establishment_time.pdf"
+   ],
+   "title": "establishment / first arrival / tau TV_half vs N with the FR gain (t)",
+   "metrics": [
+    "est_t (reliable N)",
+    "est_cum_t (N []: unreliable instantaneous rule)",
+    "tau_TV_half_t",
+    "G Ibar_F",
+    "G final_e_F",
+    "G Ibar_TV_half",
+    "G final_TV_half"
+   ],
+   "details": {
+    "G_F_N": [
+     128,
+     512,
+     2048
+    ],
+    "G_marginal_N": [
+     128,
+     512,
+     2048
+    ],
+    "scatter": {
+     "establishment": [
+      {
+       "N": 128,
+       "metric": "Ibar_F",
+       "abf_median": 19.2,
+       "G": -0.2141626343061322
+      },
+      {
+       "N": 128,
+       "metric": "final_e_F",
+       "abf_median": 19.2,
+       "G": 0.04014390917918939
+      },
+      {
+       "N": 512,
+       "metric": "Ibar_F",
+       "abf_median": 18.400000000000002,
+       "G": -0.3631934489987045
+      },
+      {
+       "N": 512,
+       "metric": "final_e_F",
+       "abf_median": 18.400000000000002,
+       "G": -0.5591524760679883
+      },
+      {
+       "N": 2048,
+       "metric": "Ibar_F",
+       "abf_median": 17.700000000000003,
+       "G": -0.2621081940328879
+      },
+      {
+       "N": 2048,
+       "metric": "final_e_F",
+       "abf_median": 17.700000000000003,
+       "G": -0.6381444664117963
+      }
+     ]
+    }
+   },
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 6,
+    "n_data_axes": 6,
+    "n_texts": 96,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "id": "S7_convergence_selected_N",
+   "files": [
+    "S7_convergence_selected_N.png",
+    "S7_convergence_selected_N.pdf"
+   ],
+   "title": "convergence curves, selected N, common axes (median + IQR over seeds)",
+   "metrics": [
+    "e_F",
+    "e_Fp",
+    "TV_half",
+    "far_frac"
+   ],
+   "details": {
+    "selected_N": [
+     2048,
+     512,
+     128
+    ],
+    "rule": "largest planned N; the middle of the sorted planned ladder (index len//2); the smallest N with an FR arm; N = 1 -- chosen from the PLAN, independent of the data (duplicates dropped)",
+    "grids": {
+     "N2048_abf": "full save grid",
+     "N2048_fr": "full save grid",
+     "N512_abf": "full save grid",
+     "N512_fr": "full save grid",
+     "N128_abf": "full save grid",
+     "N128_fr": "full save grid"
+    }
+   },
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 12,
+    "n_data_axes": 12,
+    "n_texts": 59,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": [
+     "legend: axes 1 [e_F\u2032 (reduced force)] has no legend of its own; its labels ['ABF (n = 32)', 'ABF + FR (n = 32)'] are entries of the legend on axes [0, 4, 8]",
+     "legend: axes 2 [TV_half (18 bins vs uniform)] has no legend of its own; its labels ['ABF (n = 32)', 'ABF + FR (n = 32)'] are entries of the legend on axes [0, 4, 8]",
+     "legend: axes 3 [far-state fraction (right well x > 0.5)] has no legend of its own; its labels ['ABF (n = 32)', 'ABF + FR (n = 32)'] are entries of the legend on axes [0, 4, 8]",
+     "legend: axes 5 has no legend of its own; its labels ['ABF (n = 32)', 'ABF + FR (n = 32)'] are entries of the legend on axes [0, 4, 8]",
+     "legend: axes 6 has no legend of its own; its labels ['ABF (n = 32)', 'ABF + FR (n = 32)'] are entries of the legend on axes [0, 4, 8]",
+     "legend: axes 7 [budget fraction u = b / B] has no legend of its own; its labels ['ABF (n = 32)', 'ABF + FR (n = 32)'] are entries of the legend on axes [0, 4, 8]",
+     "legend: axes 9 has no legend of its own; its labels ['ABF (n = 32)', 'ABF + FR (n = 32)'] are entries of the legend on axes [0, 4, 8]",
+     "legend: axes 10 has no legend of its own; its labels ['ABF (n = 32)', 'ABF + FR (n = 32)'] are entries of the legend on axes [0, 4, 8]",
+     "legend: axes 11 [budget fraction u = b / B] has no legend of its own; its labels ['ABF (n = 32)', 'ABF + FR (n = 32)'] are entries of the legend on axes [0, 4, 8]"
+    ]
+   }
+  },
+  {
+   "id": "S7s_convergence_all_N",
+   "files": [
+    "S7s_convergence_all_N.png",
+    "S7s_convergence_all_N.pdf"
+   ],
+   "title": "convergence curves, all N, seed medians + FR/ABF ratio (supplementary)",
+   "metrics": [
+    "e_F",
+    "e_Fp",
+    "TV_half"
+   ],
+   "details": {
+    "N_plotted": {
+     "abf": [
+      128,
+      512,
+      2048
+     ],
+     "fr": [
+      128,
+      512,
+      2048
+     ],
+     "ratio": [
+      128,
+      512,
+      2048
+     ]
+    }
+   },
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 9,
+    "n_data_axes": 9,
+    "n_texts": 70,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "id": "S8_best_allocation",
+   "files": [
+    "S8_best_allocation.png",
+    "S8_best_allocation.pdf"
+   ],
+   "title": "best allocation: medians vs N, best N, bootstrap best-N frequencies, CI of best FR - best ABF",
+   "metrics": [
+    "Ibar_F",
+    "final_e_F",
+    "tau_bgrid_e_F_mid_u"
+   ],
+   "details": {
+    "Ibar_F": {
+     "best_abf": 128,
+     "best_fr": 128
+    },
+    "final_e_F": {
+     "best_abf": 128,
+     "best_fr": 128
+    },
+    "tau_bgrid_e_F_mid_u": {
+     "best_abf": 128,
+     "best_fr": 128
+    }
+   },
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 9,
+    "n_data_axes": 6,
+    "n_texts": 93,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": [
+     "legend: axes 0 [\u012a_F] has no legend of its own; its labels ['ABF', 'ABF + FR'] are entries of the legend on axes [1]"
+    ]
+   }
+  },
+  {
+   "id": "S8s_best_allocation_secondary",
+   "files": [
+    "S8s_best_allocation_secondary.png",
+    "S8s_best_allocation_secondary.pdf"
+   ],
+   "title": "best allocation for Ibar_F', final e_F', tau TV_half (supplementary)",
+   "metrics": [
+    "Ibar_Fp",
+    "final_e_Fp",
+    "tau_bgrid_TV_half_u"
+   ],
+   "details": {
+    "Ibar_Fp": {
+     "best_abf": 128,
+     "best_fr": 128
+    },
+    "final_e_Fp": {
+     "best_abf": 128,
+     "best_fr": 512
+    },
+    "tau_bgrid_TV_half_u": {
+     "best_abf": 128,
+     "best_fr": 128
+    }
+   },
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 9,
+    "n_data_axes": 6,
+    "n_texts": 96,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": [
+     "legend: axes 0 [\u012a_F\u2032] has no legend of its own; its labels ['ABF', 'ABF + FR'] are entries of the legend on axes [1]"
+    ]
+   }
+  }
+ ],
+ "legibility_summary": {
+  "n_figures": 14,
+  "n_pass": 12,
+  "n_fail": 2,
+  "failing": {
+   "S5a_tau_mean_force_time": 1,
+   "S5b_tau_mean_force_budget": 1
+  },
+  "n_waived": 0
+ },
+ "notes": [
+  "Every planned N is on every N axis; N without data are marked (NOT RUN / RUNNING / incomplete), never omitted.",
+  "FR is not defined at N = 1 (ABF only, by design).",
+  "No metric is recomputed here: every number comes from the analysis summary or its per-run cache."
+ ],
+ "analysis_warnings": [
+  "tau_e_Fp_strict: UNREACHABLE BY CONSTRUCTION: e_Fp >= 0.03227 > eps for every estimate; per plan section 6 no tau is computed at this threshold (e_Fp itself is reported)",
+  "tau_e_Fp_em_strict: UNREACHABLE BY CONSTRUCTION: e_Fp_em >= 0.03227 > eps for every estimate; per plan section 6 no tau is computed at this threshold (e_Fp_em itself is reported)"
+ ],
+ "cell": {
+  "experiment": "matched_free_energy",
+  "cell": "alpha0.5",
+  "cell_label": "I: alpha = 0.5 (half the log-omega entropy moved into the energy; Var(f|x) / 4)",
+  "model": {
+   "variant": "alpha",
+   "alpha": 0.5,
+   "kappa": null,
+   "lam": 1.0
+  },
+  "engine_version": "gateway_family_numba/1",
+  "results_dir": "results/mechanism/matched_free_energy/alpha0.5",
+  "analysis_dir": "results/mechanism/matched_free_energy/alpha0.5/analysis",
+  "fig_dir": "figures/mechanism/matched_free_energy/alpha0.5"
+ }
+}
