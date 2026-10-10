@@ -81,12 +81,16 @@ bias-independent because the umbrella bias depends on φ only.
 * **Stable under the actual ABF bias** (smoke test, 2026-10-10, both T):
   * N = 1024 for 60 000 steps (past the 20 000-step warm-up), ABF and FR, and N = 1 ABF for 2 × 10⁶ steps;
   * every state and accumulator finite;
-  * max |Γ| = 29 kJ/mol/rad at 300 K and 21 at 150 K, against the bias clip 60 and the reference max |dF/dφ| of
-    28.9 and 20.8, so the clip never binds once the estimator has data;
+  * max |Γ| = 29 kJ/mol/rad at 300 K and 21 at 150 K at N = 1024, against the bias clip 60 and the reference
+    max |dF/dφ| of 28.9 and 20.8. The N = 1 ABF run at 300 K reached 31.2: above the reference maximum, an
+    estimator fluctuation with one walker, but still well below the clip. So the clip never binds once the
+    estimator has data. *(The N = 1 value was corrected 2026-10-10 after the data audit.)*
   * all 180 bins visited;
   * n_force_evals = N(n_steps + 1) exactly;
   * 0.87–0.91 µs per molecule-step.
-* **Statistical equivalence with the CUDA production** (full knobs, N 1024, T 60, 16+ seeds):
+* **Statistical equivalence with the CUDA production** (full knobs, N 1024, T 60). Seed counts, corrected
+  2026-10-10 after the data audit: numba with its own draws, 32 seeds per (T, arm); numba driven by torch's CPU
+  draws, 48 seeds (300 K, ABF); CUDA production, 16 seeds per arm. Data: `results/equal_budget_v2/equivalence/`.
   * The paired FR-vs-ABF ΔI_F of the numba engine falls inside the published CIs: −12.3 % vs [−15.1, −11.0] at
     300 K, and −28.9 % vs [−29.2, −26.3] at 150 K.
   * Absolute I_F equivalence at ±5 % is *not shown*, because per-seed I_F scatter is 8–9 % (CPU torch vs numba

@@ -73,7 +73,8 @@ of `LTASystem.initial_conditions`), Langevin noise, and FR.
 
 **Statistical comparison with the CUDA production** (full knobs, N 1024, 300k steps):
 * The paired FR-vs-ABF ΔI_F lies inside the published CIs at both T: −12.3 % at 300 K, −28.9 % at 150 K.
-* Absolute I_F equivalence at ±5 % is not demonstrable with 16 seeds (per-seed scatter 8–9 %).
+* Absolute I_F equivalence at ±5 % is not demonstrable with the 16 CUDA seeds per arm (32 numba seeds per arm;
+  per-seed scatter 8–9 %). Data: `results/equal_budget_v2/equivalence/`.
 * A residual ~1 % CPU-vs-CUDA difference in window occupancy is not caused by the engine: torch's own CPU random
   draws replayed through numba agree with numba's own draws.
 
@@ -82,7 +83,7 @@ core at any N.
 
 **Production smoke test, both T.** Stable under the live ABF bias:
 * finite states;
-* max |Γ| 29 / 21 kJ/mol/rad against the clip 60;
+* max |Γ| 29 / 21 kJ/mol/rad at N = 1024 (31.2 for the N = 1 ABF run at 300 K) against the clip 60;
 * all bins visited;
 * exact accounting.
 

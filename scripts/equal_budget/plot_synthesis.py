@@ -3,7 +3,7 @@
 
     python scripts/equal_budget/plot_synthesis.py --system gateway|lta300|lta150|all \
         [--results-root PATH] [--config PATH] [--analysis-root PATH] [--fig-root PATH] \
-        [--refresh-analysis] [--allow-stale]
+        [--refresh-analysis] [--allow-stale] [--strict-legibility]
 
 Reads ONLY the outputs of scripts/equal_budget/analyze_ladder.py (no metric is recomputed here):
   <analysis>/summary.json        per-N medians / IQRs / per-seed values, paired contrasts, best allocation
@@ -41,6 +41,10 @@ systems that have paired data) <fig-root>/cross_system/synthesis/X1_cross_system
   X1_cross_system_gain           G for Ibar_F and final e_F vs N / N0 for every system with paired data
 Every planned N is on every N axis; an N without data is marked NOT RUN / RUNNING / incomplete, never dropped.
 FR is not defined at N = 1 (ABF only, by design).
+Every figure is checked at save time by fig_legibility.check_figure (axis labels, colourbar labels, legends, text
+overlaps, text cut off by the canvas, legends struck through by data); the result is the 'legibility' field of its
+manifest entry and the manifest's 'legibility_summary'.  A failure is printed to stderr; --strict-legibility makes
+it exit 1 (after writing every figure and manifest).
 """
 from __future__ import annotations
 
@@ -73,6 +77,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import eqb_metrics as M  # noqa: E402
 import analyze_ladder as AL  # noqa: E402
+import fig_legibility as LG  # noqa: E402
 
 ROOT = M.ROOT
 SCRIPT_VERSION = "plot_synthesis/2"
@@ -95,6 +100,8 @@ G_STY = {"Ibar_F": (C_INK, "D"), "final_e_F": (C_INK2, "v"), "Ibar_Fp": (C_INK, 
          "Ibar_TV_half": (C_INK, "D"), "final_TV_half": (C_INK2, "v")}
 G_TICKS = [-0.99, -0.95, -0.9, -0.8, -2 / 3, -0.5, -1 / 3, -0.2, -1 / 11, 0.0, 0.1, 0.25, 0.5, 1.0, 2.0, 4.0, 9.0, 19.0, 99.0]
 THR_NAMES = M.THR_NAMES
+LEGIBILITY = {}           # figure id -> fig_legibility.check_figure result of the last save (manifest 'legibility')
+LEGIBILITY_FAILED = []    # (system or 'cross_system', figure id) of every failing check (--strict-legibility)
 
 
 class PlotError(RuntimeError):
@@ -366,7 +373,8 @@ def setup_style():
         "font.size": 8, "axes.spines.top": False, "axes.spines.right": False, "axes.edgecolor": C_MUTED,
         "axes.labelcolor": C_INK, "xtick.color": C_MUTED, "ytick.color": C_MUTED, "xtick.labelcolor": C_INK2,
         "ytick.labelcolor": C_INK2, "axes.titlesize": 8.5, "axes.titleweight": "bold", "axes.titlecolor": C_INK,
-        "legend.frameon": False, "legend.fontsize": 6.3, "lines.linewidth": 1.5, "grid.color": C_GRID,
+        "legend.frameon": True, "legend.framealpha": 0.85, "legend.facecolor": "white", "legend.edgecolor": "none",
+        "legend.fancybox": False, "legend.fontsize": 6.3, "lines.linewidth": 1.5, "grid.color": C_GRID,
         "grid.linewidth": 0.6, "axes.grid": True, "axes.axisbelow": True, "pdf.fonttype": 42, "ps.fonttype": 42,
         "savefig.dpi": 170, "xtick.labelsize": 7, "ytick.labelsize": 7, "axes.labelsize": 7.5})
 
@@ -572,8 +580,10 @@ def censor_frame(ax, finite, ceil, lo_extra=None, which="y", rows=0, row_labels=
     lo = min(cands)
     span = math.log10(ceil / lo)
     band_lo, yc = ceil * 10 ** (0.035 * span), ceil * 10 ** (0.095 * span)
-    yrows = [ceil * 10 ** ((0.155 + 0.06 * r) * span) for r in range(rows)]
-    top = ceil * 10 ** ((0.20 + 0.06 * max(rows - 1, 0)) * span)
+    # count rows 0.09 span apart (0.06 put the 'cens.' / 'ABF k/n' / 'FR k/n' labels on top of each other in the
+    # shorter S6 panels; 0.09 span is ~6.8 % of the axis height, more than one 7 pt label)
+    yrows = [ceil * 10 ** ((0.095 + 0.09 * (r + 1)) * span) for r in range(rows)]
+    top = ceil * 10 ** ((0.20 if rows == 0 else 0.095 + 0.09 * rows + 0.055) * span)
     if which == "y":
         ax.set_yscale("log")
         ax.axhspan(band_lo, top, color=C_BAND, lw=0, zorder=0)
@@ -669,6 +679,16 @@ def ratio_axis(ax, core_vals, which="y"):
     while len(ticks) > 9:
         i0 = ticks.index(1.0)
         ticks = [t for j, t in enumerate(ticks) if (j - i0) % 2 == 0]
+    # no two labels closer than 7.5 % of the axis span (wide ranges put -20 % / 0 / +25 % on top of each other):
+    # walk outwards from 0 and keep a tick only when it is far enough from the last one kept
+    sep, keep = 0.075 * 2 * L, [1.0]
+    for side in (sorted(t for t in ticks if t > 1), sorted((t for t in ticks if t < 1), reverse=True)):
+        last = 0.0
+        for t in side:
+            if abs(math.log10(t) - last) >= sep:
+                keep.append(t)
+                last = math.log10(t)
+    ticks = sorted(keep)
     labs = ["0" if abs(t - 1) < 1e-12 else f"{100 * (t - 1):+.0f} %" for t in ticks]
     if which == "y":
         ax.set_yscale("log")
@@ -821,7 +841,8 @@ def scatter_G_vs_time(ax, D, axis, keyfun, xlabel, specs=(("Ibar_F", "G Ī_F"), 
         if any(abs(X - a) < 22 and abs(Y - b) < 9 for a, b in placed):
             continue
         placed.append((X, Y))
-        ax.annotate(f"N={N}", xy=(x, y), xytext=(3, 3), textcoords="offset points", fontsize=5.6, color=C_INK2)
+        ax.annotate(f"N={N}", xy=(x, y), xytext=(3, 3), textcoords="offset points", fontsize=5.6, color=C_INK2,
+                    zorder=6)           # above the markers (a neighbouring marker hid a digit: 'N=512' read 'N=12')
     ax.grid(axis="x", visible=True)
     ax.set_xlabel(xlabel)
     ax.set_ylabel("G = (FR − ABF) / ABF")
@@ -843,8 +864,9 @@ def wrap(text, width_in, fs):
 
 
 def layout_save(fig, gs, title, subtitle, footer, outdir, fid, top_extra=0.0, bottom_extra=0.55, left_in=0.85,
-                right_in=0.25):
-    """Size the figure to its texts (wrapped title block and footer), place the grid, save PNG + PDF."""
+                right_in=0.25, waivers=()):
+    """Size the figure to its texts (wrapped title block and footer), place the grid, save PNG + PDF, then run the
+    legibility check on the saved layout (result in LEGIBILITY[fid]; waivers: documented intentional exceptions)."""
     W = fig.get_figwidth()
     sub = wrap(subtitle, W - 0.3, 7.3)
     foot = []
@@ -867,6 +889,10 @@ def layout_save(fig, gs, title, subtitle, footer, outdir, fid, top_extra=0.0, bo
     for ext in ("png", "pdf"):
         fig.savefig(os.path.join(outdir, f"{fid}.{ext}"))
         files.append(f"{fid}.{ext}")
+    res = LG.check_figure_safe(fig, waivers=waivers)
+    LEGIBILITY[fid] = res
+    if res["status"] != "pass":
+        print(LG.one_line(fid, res), file=sys.stderr, flush=True)
     plt.close(fig)
     return files
 
@@ -890,11 +916,12 @@ def footer_lines(D, fid, extra=()):
     return L
 
 
-def finish(fig, D, fid, title, what, outdir, gs, extra=(), top_extra=0.0, bottom_extra=0.55, right_in=0.25):
+def finish(fig, D, fid, title, what, outdir, gs, extra=(), top_extra=0.0, bottom_extra=0.55, right_in=0.25, waivers=()):
     sub = (f"Equal total budget per arm per seed: B = N × n_steps = {D.B:.5g} walker-steps at every N "
            f"(h = {D.h:g}, T_N = B h / N); {D.n_planned} seeds per (N, method). {what}")
     return layout_save(fig, gs, f"{D.label}: {title}", sub, footer_lines(D, fid, extra), outdir, fid,
-                       top_extra=top_extra, bottom_extra=bottom_extra + rot_extra(D), right_in=right_in)
+                       top_extra=top_extra, bottom_extra=bottom_extra + rot_extra(D), right_in=right_in,
+                       waivers=waivers)
 
 
 def floor_value(D, key):
@@ -1099,7 +1126,7 @@ def fig_establishment(D, outdir, axis):
     for i, (k, ttl, kf) in enumerate(tops):
         ax = fig.add_subplot(gs[0, i])
         draw_tau_vs_N(ax, D, kf, axis, label=(i == 0))
-        n_axis(ax, D, label=False)
+        n_axis(ax, D)
         mark_status(ax, D, short=True)
         if k == "est" and bad:
             for N in bad:
@@ -1329,6 +1356,7 @@ def fig_curves_all(D, outdir):
     if u_min:
         axes[(0, 0)].set_xlim(min(u_min) * 0.8, 1.08)
         set_log_ticks(axes[(0, 0)], "x")
+    leg_rows = 1
     for j, m in enumerate(("abf", "fr", "ratio")):
         Nl = D.Ns if m == "abf" else Ns_fr
         h = []
@@ -1337,13 +1365,18 @@ def fig_curves_all(D, outdir):
             txt, _ = D.status_text(N, ("abf",) if m == "abf" else ("fr",) if m == "fr" else ("abf", "fr"))
             h.append(Line2D([], [], color=cols[m][N] if ok else C_THR, lw=1.4 if ok else 0.8,
                             label=f"N = {N}" + ("" if ok else f" ({(txt or 'no curves').split('  ')[0]})")))
-        axes[(len(rows) - 1, j)].legend(handles=h, loc="upper right" if m == "ratio" else "lower left", fontsize=5.3,
-                                        ncol=2 if len(h) > 6 else 1, handlelength=1.3, columnspacing=0.8)
+        # the N keys go BELOW the bottom row (inside, wherever they sat, some data set ran its curves through them)
+        nc = 3 if max(len(x.get_label()) for x in h) <= 10 else 2
+        leg_rows = max(leg_rows, int(math.ceil(len(h) / nc)))
+        axes[(len(rows) - 1, j)].legend(handles=h, loc="upper center", bbox_to_anchor=(0.5, -0.27), fontsize=5.3,
+                                        ncol=nc, handlelength=1.3, columnspacing=0.8, frameon=False,
+                                        borderaxespad=0.0)
     files = finish(fig, D, "S7s_convergence_all_N", "convergence curves for ALL N (supplementary)",
                    "Seed medians on the normalised budget axis; colour = N (light = small N).", outdir, gs,
-                   extra=["Every planned N is listed in the legends (bottom row); an N without curves is greyed with its "
-                          "status. Right column: median FR curve / median ABF curve at the same N (below 0 = FR lower)."],
-                   top_extra=0.0, bottom_extra=0.5)
+                   extra=["Every planned N is listed in the legends (below the bottom row); an N without curves is greyed "
+                          "with its status. Right column: median FR curve / median ABF curve at the same N (below 0 = FR "
+                          "lower)."],
+                   top_extra=0.0, bottom_extra=0.75 + 0.115 * leg_rows)
     return files, plotted
 
 
@@ -1405,7 +1438,7 @@ def fig_best(D, outdir, keys, fid, title):
                 ax.set_ylim(*lim)
                 set_log_ticks(ax)
             yc = None
-        n_axis(ax, D, top_T=True, label=False)
+        n_axis(ax, D, top_T=True)
         ax.set_xlim(min(D.Ns) * 2 ** -0.6, xb * 2 ** 0.6)
         ax.xaxis.set_major_locator(FixedLocator(D.Ns + [xb]))
         ax.xaxis.set_major_formatter(FixedFormatter([str(n) for n in D.Ns] + ["best"]))
@@ -1492,6 +1525,7 @@ def draw_best_freq(ax, D, b):
     Ns = D.Ns
     has_cens = bool(b) and any(fnum(((b.get(m) or {}).get("boot_frac_censored")) or 0) > 0 for m in ("abf", "fr"))
     xc = max(Ns) * 2 ** 1.35
+    heights, labels = {}, []
     for m in ("abf", "fr"):
         x = (b or {}).get(m)
         if not x:
@@ -1503,6 +1537,7 @@ def draw_best_freq(ax, D, b):
                 continue
             c = N * 2 ** (-0.11 if m == "abf" else 0.11)
             ax.bar(c * 2 ** -0.085, f, width=c * (2 ** 0.085 - 2 ** -0.085), align="edge", color=COL[m], lw=0, zorder=3)
+            heights[(N, m)] = f
         fc = fnum(x.get("boot_frac_censored", 0) or 0)
         if has_cens and fc > 0:
             c = xc * 2 ** (-0.11 if m == "abf" else 0.11)
@@ -1511,9 +1546,26 @@ def draw_best_freq(ax, D, b):
         if fq:
             kbest = max(fq, key=fq.get)
             if fq[kbest] > 0:
-                c = kbest * 2 ** (-0.11 if m == "abf" else 0.11)
-                ax.annotate(f"{fq[kbest]:.2f}", xy=(c, fq[kbest]), xytext=(0, 1.5), textcoords="offset points",
-                            ha="center", va="bottom", fontsize=5.6, color=C_INK2)
+                labels.append((kbest, m, fq[kbest]))
+    # value label of each method's modal N, centred over its own bar and drawn in the method colour.  Labels whose
+    # bars are less than one octave apart (the same N: 0.22 octave; ABF at N with FR at N/2: 0.78 octave, where one
+    # 5.6 pt label is ~0.9 octave wide once the 'all cens.' column widens the axis) are one group: they sit above the
+    # tallest bar at the group's N, stacked one row per label (taller bar's label lowest), so a label never covers the
+    # neighbouring bar or the other method's label (the two bars at one N are narrower than one label)
+    xlab = lambda lb: lb[0] * 2 ** (-0.11 if lb[1] == "abf" else 0.11)  # noqa: E731
+    groups = []
+    for lb in sorted(labels, key=xlab):
+        if groups and math.log2(xlab(lb) / xlab(groups[-1][-1])) < 1.0:
+            groups[-1].append(lb)
+        else:
+            groups.append([lb])
+    for grp in groups:
+        here = sorted(grp, key=lambda lb: (-lb[2], lb[1] != "abf"))
+        top = max(heights.get((lb[0], m), 0.0) for lb in grp for m in ("abf", "fr"))
+        for row, lb in enumerate(here):
+            ax.annotate(f"{lb[2]:.2f}", xy=(xlab(lb), top), xytext=(0, 1.5 + 7.2 * row),
+                        textcoords="offset points", ha="center", va="bottom", fontsize=5.6, color=COL[lb[1]],
+                        annotation_clip=False)
     n_axis(ax, D, label=True)
     if has_cens:
         ax.set_xlim(min(Ns) * 2 ** -0.6, xc * 2 ** 0.6)
@@ -1626,12 +1678,16 @@ def fig_cross(datas, out_root):
     files = layout_save(fig, gs, "Cross-system: FR relative improvement vs replica fraction at equal budget",
                         "Paired per seed at each N; median of G with seed-bootstrap 95 % CI (filled = CI excludes 0); each "
                         "system at its own frozen budget B and anchor N0.", foot, outdir, "X1_cross_system_gain",
-                        bottom_extra=1.45)
+                        bottom_extra=1.45, right_in=0.7)     # room for the direct end labels of the right panel
+    leg = LEGIBILITY.pop("X1_cross_system_gain", None) or dict(status="not checked")
+    if leg.get("status") != "pass":
+        LEGIBILITY_FAILED.append(("cross_system", "X1_cross_system_gain"))
     man["figures"].append(dict(id="X1_cross_system_gain", files=files, title="G_F(N) vs N/N0 for every system with paired data",
-                               metrics=["Ibar_F", "final_e_F"], per_system=per,
+                               metrics=["Ibar_F", "final_e_F"], per_system=per, legibility=leg,
                                sources={D.system: dict(summary=D.summary_path, sha256=sha256(D.summary_path),
                                                        generated_utc=D.S.get("generated_utc"), stale=bool(D.stale_reasons),
                                                        fixture=D.fixture, N0=D.N0, B=D.B) for D in have}))
+    man["legibility_summary"] = LG.summarize({"X1_cross_system_gain": leg})
     with open(os.path.join(outdir, "MANIFEST.json"), "w") as fh:
         json.dump(M.json_safe(man), fh, indent=1, allow_nan=False)
     return outdir, man
@@ -1642,9 +1698,13 @@ def plot_system(D, fig_root):
     outdir = os.path.join(fig_root, D.out_dir, "synthesis")
     os.makedirs(outdir, exist_ok=True)
     figs = []
+    LEGIBILITY.clear()
 
     def add(fid, files, title, metrics, details=None):
-        figs.append(dict(id=fid, files=files, title=title, metrics=metrics, details=details or {}))
+        leg = LEGIBILITY.pop(fid, None) or dict(status="not checked")
+        figs.append(dict(id=fid, files=files, title=title, metrics=metrics, details=details or {}, legibility=leg))
+        if leg.get("status") != "pass":
+            LEGIBILITY_FAILED.append((D.system, fid))
 
     f, sh = fig_abs(D, outdir, "S1_free_energy_abs_vs_N", "absolute free-energy error vs N",
                     [("Ibar_F", f"Ī_F, integrated e_F{units(D, 'F')}", "e_F"),
@@ -1725,6 +1785,7 @@ def plot_system(D, fig_root):
         plan=dict(B=D.B, h=D.h, N_ladder=D.Ns_ladder, N0=D.N0, seeds=D.seeds, thresholds=D.thr,
                   T_N={str(N): D.T[N] for N in D.Ns}),
         status=status, not_run_N=nr, incomplete_N=inc, figures=figs,
+        legibility_summary=LG.summarize({f["id"]: f["legibility"] for f in figs}),
         notes=D.notes + ["Every planned N is on every N axis; N without data are marked (NOT RUN / RUNNING / incomplete), "
                          "never omitted.", "FR is not defined at N = 1 (ABF only, by design).",
                          "No metric is recomputed here: every number comes from the analysis summary or its per-run cache."],
@@ -1784,6 +1845,8 @@ def main(argv=None):
     ap.add_argument("--fig-root", default=None)
     ap.add_argument("--refresh-analysis", action="store_true", help="re-run analyze_ladder (cached) before plotting")
     ap.add_argument("--allow-stale", action="store_true", help="plot a stale summary, stamped STALE")
+    ap.add_argument("--strict-legibility", action="store_true",
+                    help="exit 1 when any figure fails the legibility check (figures and manifests are still written)")
     a = ap.parse_args(argv)
     results_root = os.path.abspath(a.results_root or os.path.join(ROOT, "results", "equal_budget_v2"))
     analysis_root = os.path.abspath(a.analysis_root) if a.analysis_root else None
@@ -1817,7 +1880,10 @@ def main(argv=None):
         outdir, man = fig_cross(datas, fig_root)
         print(f"cross-system: X1_cross_system_gain -> {outdir}" if outdir else f"cross-system: skipped ({man.get('skipped')})",
               flush=True)
-    if errors:
+    if LEGIBILITY_FAILED:
+        print(f"legibility: {len(LEGIBILITY_FAILED)} figure(s) FAIL the check (details in the manifests' 'legibility' "
+              f"fields): {LEGIBILITY_FAILED}", file=sys.stderr, flush=True)
+    if errors or (a.strict_legibility and LEGIBILITY_FAILED):
         sys.exit(1)
 
 

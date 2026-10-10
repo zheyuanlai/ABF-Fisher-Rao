@@ -2,7 +2,7 @@
  "schema": "eqb_synthesis_manifest/1",
  "script": "scripts/equal_budget/plot_synthesis.py",
  "script_version": "plot_synthesis/2",
- "generated_utc": "2026-10-10T08:11:06Z",
+ "generated_utc": "2026-10-10T09:48:41Z",
  "systems_considered": [
   "gateway",
   "lta300",
@@ -347,6 +347,28 @@
      }
     }
    },
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 2,
+    "n_data_axes": 2,
+    "n_texts": 59,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   },
    "sources": {
     "gateway": {
      "summary": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2/gateway/analysis/summary.json",
@@ -377,5 +399,12 @@
     }
    }
   }
- ]
+ ],
+ "legibility_summary": {
+  "n_figures": 1,
+  "n_pass": 1,
+  "n_fail": 0,
+  "failing": {},
+  "n_waived": 0
+ }
 }

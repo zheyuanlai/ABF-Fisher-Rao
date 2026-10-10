@@ -3,6 +3,7 @@
 
     python scripts/equal_budget/plot_config.py --system gateway|lta300|lta150 \
         [--results-root PATH] [--config PATH] [--fig-root PATH] [--only-N 8 2] [--skip-invalid] [--dpi 160]
+        [--strict-legibility]
 
 --results-root  directory holding <out_dir>/N<N>/s<seed>_<abf|fr>.npz (default results/equal_budget_v2)
 --config        ladder config (default configs/equal_budget_v2/<system>_production.json)
@@ -36,6 +37,10 @@ difference to F_ref removed over the full circle); each snapshot profile is chec
 (|RMS(profile - reference) - e_F| < 1e-9) before it is drawn.  Nothing is smoothed.  Uncertainty convention:
 line = median across seeds, band = interquartile range (25th-75th percentile) across seeds.
 CPU only; reads result files, writes figures only.
+Every figure is checked at save time by fig_legibility.check_figure (axis labels, colourbar labels, legends, text
+overlaps, text cut off by the canvas, legends struck through by data; intentional exceptions are passed as documented
+waivers); the result is the 'legibility' field of its manifest entry and the manifest's 'legibility_summary'.  A
+failure is printed to stderr; --strict-legibility makes it exit 1 (after writing every figure and manifest).
 """
 from __future__ import annotations
 
@@ -61,12 +66,13 @@ from matplotlib.collections import LineCollection  # noqa: E402
 from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 from matplotlib.patches import Patch  # noqa: E402
-from matplotlib.transforms import blended_transform_factory  # noqa: E402
+from matplotlib.transforms import ScaledTranslation, blended_transform_factory  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import eqb_metrics as M  # noqa: E402
 import analyze_ladder as AL  # noqa: E402
+import fig_legibility as LG  # noqa: E402
 
 ROOT = M.ROOT
 PLOT_VERSION = "eqb_plot_config/2"
@@ -132,7 +138,8 @@ def setup_style():
         "axes.grid": True, "grid.color": GRID, "grid.linewidth": 0.6, "grid.linestyle": "-",
         "axes.spines.top": False, "axes.spines.right": False, "axes.axisbelow": True,
         "figure.facecolor": "white", "axes.facecolor": "white", "savefig.facecolor": "white",
-        "legend.frameon": False, "pdf.fonttype": 42, "ps.fonttype": 42, "mathtext.default": "regular",
+        "legend.frameon": True, "legend.framealpha": 0.85, "legend.facecolor": "white", "legend.edgecolor": "none",
+        "legend.fancybox": False, "pdf.fonttype": 42, "ps.fonttype": 42, "mathtext.default": "regular",
         "lines.solid_capstyle": "round", "lines.dash_capstyle": "butt",
     })
 
@@ -505,7 +512,7 @@ class Writer:
         self.header2 = (f"n_steps = {cd.n_steps:,}  ·  h = {cd.h:g}  ·  B = N n_steps = {int(si.P['B']):.4g} "
                         f"walker-steps  ·  {seeds}")
 
-    def finish(self, fig, tag, title, desc, handles=None, ncol=None, notes=(), stats=True):
+    def finish(self, fig, tag, title, desc, handles=None, ncol=None, notes=(), stats=True, waivers=()):
         W, H = fig.get_size_inches()
         chars = max(60, int(W * 14.5))
         lines = []
@@ -516,27 +523,48 @@ class Writer:
         lh = 0.16
         foot = 0.08 + lh * len(lines)
         leg = 0.0
+        lkw = dict(frameon=False, fontsize=9.5, handlelength=2.6, columnspacing=1.6)
         if handles:
-            ncol = ncol or len(handles)
+            ncol = min(ncol or len(handles), len(handles))
+            rend = fig.canvas.get_renderer()
+            while ncol > 1:             # fewer columns until the legend fits the canvas (it ran off both edges)
+                trial = fig.legend(handles=handles, ncol=ncol, **lkw)
+                wide = trial.get_window_extent(rend).width > fig.bbox.width - 0.2 * fig.dpi
+                trial.remove()
+                if not wide:
+                    break
+                ncol -= 1
             leg = 0.34 * math.ceil(len(handles) / ncol) + 0.06
-        top = 0.86
+        h2, cur = [], ""                # header2 wrapped at its '  ·  ' separators to the width (9.2 pt: ~12.5 chr/in)
+        for seg in self.header2.split("  ·  "):
+            cand = seg if not cur else cur + "  ·  " + seg
+            if cur and len(cand) > max(60, int(W * 12.5)):
+                h2.append(cur)
+                cand = seg
+            cur = cand
+        h2.append(cur)
+        dh = 0.18 * (len(h2) - 1)
+        top = 0.86 + dh
         fig.get_layout_engine().set(rect=(0.0, (foot + leg) / H, 1.0, 1.0 - (top + foot + leg) / H))
         fig.text(0.5, 1 - 0.08 / H, self.header, ha="center", va="top", fontsize=12, color=INK, weight="semibold")
-        fig.text(0.5, 1 - 0.33 / H, self.header2, ha="center", va="top", fontsize=9.2, color=INK2)
-        fig.text(0.5, 1 - 0.55 / H, title, ha="center", va="top", fontsize=10.5, color=INK)
+        fig.text(0.5, 1 - 0.33 / H, "\n".join(h2), ha="center", va="top", fontsize=9.2, color=INK2, linespacing=1.25)
+        fig.text(0.5, 1 - (0.55 + dh) / H, title, ha="center", va="top", fontsize=10.5, color=INK)
         if handles:
-            fig.legend(handles=handles, loc="lower center", bbox_to_anchor=(0.5, (foot + 0.02) / H), ncol=ncol,
-                       frameon=False, fontsize=9.5, handlelength=2.6, columnspacing=1.6)
+            fig.legend(handles=handles, loc="lower center", bbox_to_anchor=(0.5, (foot + 0.02) / H), ncol=ncol, **lkw)
         for i, ln in enumerate(reversed(lines)):
             fig.text(0.012, (0.06 + i * lh) / H, ln, ha="left", va="bottom", fontsize=8.2,
                      color=INK2 if i else MUTED)
+        repel_right_labels(fig)
         files = []
         for ext in ("png", "pdf"):
             fn = f"{self.prefix}_{tag}.{ext}"
             fig.savefig(os.path.join(self.out_dir, fn), dpi=self.dpi if ext == "png" else None)
             files.append(fn)
+        lres = LG.check_figure_safe(fig, waivers=waivers)       # on the saved layout (fig_legibility.py)
+        if lres["status"] != "pass":
+            print(LG.one_line(f"{self.prefix}_{tag}", lres), file=sys.stderr, flush=True)
         plt.close(fig)
-        self.entries.append(dict(tag=tag, title=title, description=desc, files=files))
+        self.entries.append(dict(tag=tag, title=title, description=desc, files=files, legibility=lres))
 
 
 def new_fig(w, h):
@@ -593,7 +621,32 @@ def set_xaxis(ax, cd, axis, scale="log"):
 
 def thr_label(ax, y, text, color=MUTED):
     tr = blended_transform_factory(ax.transAxes, ax.transData)
-    ax.text(1.005, y, text, transform=tr, ha="left", va="center", fontsize=8, color=color, clip_on=False)
+    t = ax.text(1.005, y, text, transform=tr, ha="left", va="center", fontsize=8, color=color, clip_on=False)
+    ax.__dict__.setdefault("_eqb_rlabels", []).append(t)        # de-overlapped by repel_right_labels at save time
+
+
+def repel_right_labels(fig, gap_pt=1.5, passes=2):
+    """Labels right of an axes (thr_label: threshold / floor / noise names, two-line with the censored counts) sit at
+    their data y; when the final layout puts two of them closer than their height (a short axes, thresholds half a
+    decade apart) they would print on top of each other.  After the layout is final, push each one up just enough to
+    clear the one below (in points, so it survives the save); a label moves only when it would overlap."""
+    for _ in range(passes):
+        fig.canvas.draw()
+        rend = fig.canvas.get_renderer()
+        gap, moved = gap_pt * fig.dpi / 72.0, False
+        for ax in fig.axes:
+            labs = [t for t in ax.__dict__.get("_eqb_rlabels", []) if t.get_visible() and t.get_text().strip()]
+            if len(labs) < 2:
+                continue
+            top = None
+            for bb, t in sorted(((t.get_window_extent(rend), t) for t in labs), key=lambda bt: bt[0].y0):
+                dy = (top + gap - bb.y0) if (top is not None and bb.y0 < top + gap) else 0.0
+                if dy > 0:
+                    t.set_transform(t.get_transform() + ScaledTranslation(0, dy / fig.dpi, fig.dpi_scale_trans))
+                    moved = True
+                top = bb.y1 + dy
+        if not moved:
+            break
 
 
 def censored_counts(cd, key, name):
@@ -811,7 +864,7 @@ def fig_profiles(W, cd, which):
         ua = cd.snap_u_actual[j]
         ax.set_title(f"u = {ua:.2g}   (t = {ua * cd.T:.3g} t.u.)", fontsize=10)
         ename = "e_F" if which == "F" else ("e_F′" if which == "Fp" else "e_F′ proj.")
-        axd.set_title(f"median {ename}\n" + "  |  ".join(f"{lab} {fmt(e)}" for lab, e, _ in txt), fontsize=8.2,
+        axd.set_title(f"median {ename}\n" + " | ".join(f"{lab} {fmt(e)}" for lab, e, _ in txt), fontsize=8.2,
                       color=INK2, loc="left")
         si.cv_ticks(ax)
         si.cv_ticks(axd)
@@ -866,7 +919,10 @@ def fig_profiles(W, cd, which):
     title = {"F": "Free-energy profile snapshots F̂_t vs reference (top) and difference (bottom)",
              "Fp": "Mean-force snapshots (bin mean force) vs reference (top) and difference (bottom)",
              "Fp_proj": "Periodically projected mean-force snapshots vs reference (top) and difference (bottom)"}[which]
-    W.finish(fig, tag, title, title + " at the frozen snapshot fractions u", handles=hs, ncol=len(hs), notes=notes)
+    W.finish(fig, tag, title, title + " at the frozen snapshot fractions u", handles=hs, ncol=len(hs), notes=notes,
+             waivers=[dict(check="axis_label_y", where="[median ",
+                           why="difference row: one quantity (estimate - reference) with its own y-scale per column "
+                               "(not shared); the row's y label sits on the first column")])
 
 
 def med_scalar_curve(cd, m, key, i):
@@ -966,7 +1022,8 @@ def fig_tv(W, cd, axis):
     a1, a2 = fig.subplots(1, 2)
     fmean, fse = tv_axes(a1, a2, cd, axis)
     thr = float(cd.si.thr["TV_half"])
-    panel_title(a1, "a", "TV_half: visitation over the trailing half C_all(t) − C_all(≈ t/2)  ·  "
+    # second line for the censoring note: on one line it ran into panel (b)'s title (legibility check, N = 2)
+    panel_title(a1, "a", "TV_half: visitation over the trailing half C_all(t) − C_all(≈ t/2)\n"
                 + cens_text(cd, "TV_half", "").replace("cens.", "censored tau:"))
     panel_title(a2, "b", "TV_inst: instantaneous walker histogram (descriptive)")
     hs = method_handles(cd) + [
@@ -1347,7 +1404,10 @@ def fig_establishment(W, cd, axis):
               "read the cumulative-visitation version." if cd.N <= 2 else None), est_null_note(cd)]
     W.finish(fig, f"D_establishment_vs_{axis}", "Establishment and crossings vs "
              + ("physical time" if axis == "t" else "budget fraction u"),
-             "region fractions, true crossings, first-arrival ECDF, establishment times", handles=hs, ncol=4, notes=notes)
+             "region fractions, true crossings, first-arrival ECDF, establishment times", handles=hs, ncol=4, notes=notes,
+             waivers=[dict(check="axis_label_y", where="(f) establishment time per seed",
+                           why="categorical y axis: its tick labels name every row (method: instantaneous / cumulative "
+                               "visitation)")])
 
 
 # =============================================================================================== E genealogy
@@ -1419,7 +1479,8 @@ def genealogy_axes(axs, cd, axis, compact=False):
             else:                                     # FR inactive: no realised death in any seed
                 ax.text(0.5, 0.5, "no realised death in any seed\n(FR inactive: the FR arm equals ABF)",
                         transform=ax.transAxes, ha="center", va="center", fontsize=9, color="#b03030")
-            ax.legend(loc="lower left", fontsize=8)
+            # key below the axes: inside, the rising curves ran through it (no corner is free for every data set)
+            ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.2), fontsize=8, frameon=False, borderaxespad=0.0)
         set_xaxis(ax, cd, axis, "log")
         ax.set_ylabel("cumulative fraction since the start")
     for name, k_run, k_win, ylab in (("ess", "gen_ess_run", "gen_ess_win", "ESS / N"),
@@ -1444,8 +1505,13 @@ def genealogy_axes(axs, cd, axis, compact=False):
         ax.set_ylim(-0.02, 1.05)
         set_xaxis(ax, cd, axis, "log")
         ax.set_ylabel(ylab)
-        if not compact:
-            ax.legend(loc="lower left" if name != "maxfam" else "upper left", fontsize=8)
+        if not compact and name != "maxfam":
+            ax.legend(loc="lower left", fontsize=8)
+        elif not compact:
+            # no key here: at small N the largest-family curves fill the panel and ran through any in-axes legend
+            # (legibility check, N = 2); the line styles are those keyed in the ESS / N panel of the same figure
+            # (said in the y label: an in-axes note would sit on the curves at large N, where they hug 0)
+            ax.set_ylabel(ylab + "\n(line styles as in ESS / N)")
 
 
 def fig_genealogy(W, cd, axis):
@@ -1552,7 +1618,8 @@ def fig_summary(W, cd, axis):
     sub = gs[1, 0].subgridspec(2, 2, hspace=0.08, wspace=0.08)
     want = [0.1, 1.0]
     js = [int(np.argmin(np.abs(np.asarray(cd.snap_u) - w))) for w in want]
-    p_axes = [[fig.add_subplot(sub[r, c]) for c in range(2)] for r in range(2)]
+    p_axes = [[fig.add_subplot(sub[0, c]) for c in range(2)]]
+    p_axes.append([fig.add_subplot(sub[1, c], sharex=p_axes[0][c]) for c in range(2)])   # x label on the bottom row
     for c, j in enumerate(js):
         profile_mini(p_axes[0][c], cd, "F", [j])
         profile_mini(p_axes[1][c], cd, "Fp", [j])
@@ -1568,7 +1635,9 @@ def fig_summary(W, cd, axis):
     p_axes[1][0].set_ylabel(f"F′ ({si.Fp_unit})", fontsize=9)
     # 5: heat map
     sub5 = gs[1, 1].subgridspec(len(cd.planned_methods), 1, hspace=0.12)
-    h_axes = [fig.add_subplot(sub5[r, 0]) for r in range(len(cd.planned_methods))]
+    share = all(m in cd.methods for m in cd.planned_methods)          # no_data() would clear shared ticks
+    h_axes = [fig.add_subplot(sub5[0, 0])]
+    h_axes += [fig.add_subplot(sub5[r, 0], sharex=h_axes[0] if share else None) for r in range(1, len(cd.planned_methods))]
     mp = heatmap_axes(h_axes, cd, axis if axis == "t" else "u", letters=["5a", "5b"])
     for ax in h_axes:
         ax.title.set_fontsize(9.5)
@@ -1593,16 +1662,17 @@ def fig_summary(W, cd, axis):
             band(a6, x, Y, C_FR, lw=1.5, ls=ls, alpha=0.12, label=lab)
         o = cd.stack("fr", "opps_cum")
         band(a6, x, cum_ratio(cd.stack("fr", "opps_event_cum"), o), INK2, lw=1.1, alpha=0.08,
-             label="opportunities with ≥ 1 realised death (cumulative)")
+             label="opportunities with ≥ 1 death (cum.)")
         a6.set_ylim(-0.02, 1.05)
         set_xaxis(a6, cd, axis, "log")
         a6.set_ylabel("fraction")
         dm = med_scalar(cd.runs["fr"], "fr_deaths")
-        h6, l6 = a6.get_legend_handles_labels()
-        h6.append(Line2D([], [], color="none", label=f"median realised deaths {fmt(dm)}; cap "
-                         f"{int(med_scalar(cd.runs['fr'], 'fr_cap'))}"))
-        a6.legend(handles=h6, loc="lower left", fontsize=8)
-        panel_title(a6, "6", "FR events and genealogy (ABF+FR arm)")
+        # the key goes BELOW the axes (two columns): the curves span the whole panel, so any inside position struck
+        # them through; the death count / cap (formerly a blank legend row) goes into the title
+        a6.legend(loc="upper center", bbox_to_anchor=(0.5, -0.17), ncol=2, fontsize=8, borderaxespad=0.0,
+                  frameon=False)
+        panel_title(a6, "6", "FR events and genealogy (ABF+FR arm)\nmedian realised deaths "
+                    f"{fmt(dm)} · cap {int(med_scalar(cd.runs['fr'], 'fr_cap'))}")
     hs = method_handles(cd) + threshold_handles() + [Line2D([], [], color=REF_INK, lw=1.0, label="reference")]
     notes = [heatmap_note(cd), f"(1)-(3): markers = persistent crossing of the seed-median curve; 'cens. a | b' = seeds "
              f"with a censored tau per arm; shaded below the grey line = {si.noise_label}"
@@ -1680,6 +1750,7 @@ def write_manifest(fig_dir, cd, entries, args, config_path, results_root):
         noise=dict(F=si.noise_F, Fp=si.noise_Fp, label=si.noise_label),
         tv_floor=dict(zip(("mean", "se"), M.tv_floor(cd.N))),
         figures=entries, removed_stale=removed, sources=cd.sources,
+        legibility_summary=LG.summarize({e["tag"]: e.get("legibility") or dict(status="not checked") for e in entries}),
     )
     with open(mp + ".tmp", "w") as fh:
         json.dump(M.json_safe(man), fh, indent=1, allow_nan=False)
@@ -1697,6 +1768,8 @@ def main(argv=None):
     ap.add_argument("--skip-invalid", action="store_true",
                     help="record result files that violate the contract instead of stopping")
     ap.add_argument("--dpi", type=int, default=160)
+    ap.add_argument("--strict-legibility", action="store_true",
+                    help="exit 1 when any figure fails the legibility check (figures and manifests are still written)")
     a = ap.parse_args(argv)
     setup_style()
     config = a.config or M.default_config_path(a.system)
@@ -1708,6 +1781,7 @@ def main(argv=None):
     Ns = [int(n) for n in P["N_ladder"] if not a.only_N or int(n) in a.only_N]
     si = None
     out = {}
+    failed = []
     t0 = time.time()
     for N in Ns:
         if si is None:
@@ -1724,12 +1798,18 @@ def main(argv=None):
         entries = plot_config(cd, fig_dir, a.dpi)
         mp = write_manifest(fig_dir, cd, entries, a, config, results_root)
         out[N] = mp
+        failed += [(N, e["tag"]) for e in entries if (e.get("legibility") or {}).get("status") != "pass"]
         print(f"{a.system} N {N}: {sum(len(e['files']) for e in entries)} files ({len(entries)} figures) in "
               f"{time.time() - t1:.1f} s -> {fig_dir}", flush=True)
     if not out:
         print(f"{a.system}: no configuration with complete runs under {results_root}", flush=True)
     else:
         print(f"done in {time.time() - t0:.1f} s", flush=True)
+    if failed:
+        print(f"legibility: {len(failed)} figure(s) FAIL the check (details in the manifests' 'legibility' fields): "
+              f"{failed}", file=sys.stderr, flush=True)
+        if a.strict_legibility:
+            sys.exit(1)
     return out
 
 
