@@ -1,0 +1,171 @@
+{
+ "N": 512,
+ "T": 120.0,
+ "T_K": 300.0,
+ "affinity": [
+  63
+ ],
+ "allowed_gpus": [
+  3
+ ],
+ "backend": "cpu_numba_1core",
+ "bitwise_vs_production": {
+  "path": "results/equal_budget_v2/lta_T300/N512/s30007_fr.npz",
+  "per_key": {
+   "C_all": true,
+   "C_prod": true,
+   "M_all": true,
+   "M_prod": true,
+   "save_step": true
+  },
+  "status": "equal"
+ },
+ "budget_fraction": 1.0,
+ "config": "configs/equal_budget_v2/lta_300K_production.json",
+ "cpu_busy_fraction": {
+  "191": 0.006622516556291391,
+  "63": 1.0
+ },
+ "device": null,
+ "diagnostics": false,
+ "engine_cfg": {
+  "abf_force_clip": 60.0,
+  "burn_in_steps": 20000,
+  "cap_min": 1,
+  "deposit_clip": 480.0,
+  "diagnostics": true,
+  "fr_every": 5,
+  "fr_rate": 0.2,
+  "fr_start_steps": 20000,
+  "genealogy_window_tu": 4.0,
+  "h": 0.0002,
+  "kde_bandwidth": 0.1,
+  "max_event_fraction": 0.02,
+  "n_grid": 180,
+  "score_clip": 2.0,
+  "warmup_steps": 20000
+ },
+ "engine_import_s": 0.12070230580866337,
+ "engine_meta": {
+  "cap": 10,
+  "compile_target": {
+   "cpu_features": "+64bit,+adx,+aes,-amx-avx512,-amx-bf16,-amx-complex,-amx-fp16,-amx-fp8,-amx-int8,-amx-movrs,-amx-tf32,-amx-tile,+avx,-avx10.1,-avx10.2,+avx2,+avx512bf16,+avx512bitalg,+avx512bw,+avx512cd,+avx512dq,+avx512f,-avx512fp16,+avx512ifma,+avx512vbmi,+avx512vbmi2,+avx512vl,+avx512vnni,-avx512vp2intersect,+avx512vpopcntdq,-avxifma,-avxneconvert,-avxvnni,-avxvnniint16,-avxvnniint8,+bmi,+bmi2,-ccmp,-cf,-cldemote,+clflushopt,+clwb,+clzero,+cmov,-cmpccxadd,+crc32,+cx16,+cx8,-egpr,-enqcmd,+f16c,+fma,-fma4,+fsgsbase,+fxsr,+gfni,-hreset,+invpcid,-kl,-lwp,+lzcnt,+mmx,+movbe,-movdir64b,-movdiri,-movrs,+mwaitx,-ndd,-nf,+pclmul,-pconfig,+pku,+popcnt,-ppx,-prefetchi,+prfchw,-ptwrite,-push2pop2,-raoint,+rdpid,+rdpru,+rdrnd,+rdseed,-rtm,+sahf,-serialize,-sgx,+sha,-sha512,+shstk,-sm3,-sm4,+sse,+sse2,+sse3,+sse4.1,+sse4.2,+sse4a,+ssse3,-tbm,-tsxldtrk,-uintr,-usermsr,+vaes,+vpclmulqdq,-waitpkg,+wbnoinvd,-widekl,-xop,+xsave,+xsavec,+xsaveopt,+xsaves,-zu",
+   "cpu_features_sha256": "efd41a143d0c9ac864750a60c994989e71a3fc40dd7b8d87e29bc545fd853e8d",
+   "cpu_name": "znver4",
+   "triple": "x86_64-unknown-linux-gnu"
+  },
+  "diagnostics": false,
+  "engine": "lta_ladder_numba/2",
+  "engine_sha256": "d2d3c4313fc52bc37e047e30cb607e958b168fcff2dee8b24d9aa12b925a804b",
+  "peak_rss_method": "VmHWM after reset at run start"
+ },
+ "engine_wall_s": 267.3807301502675,
+ "finished_utc": "2026-10-10T15:28:30Z",
+ "fr_timing": true,
+ "gpu_monitor": null,
+ "gpu_occupancy": null,
+ "gpu_processes_after": null,
+ "gpu_processes_before": null,
+ "h": 0.0002,
+ "harness": "parallel_benchmark/2",
+ "host": "atlas",
+ "import_s": 0.8990328311920166,
+ "kind": "lta",
+ "loadavg_after": [
+  49.34912109375,
+  39.650390625,
+  26.697265625
+ ],
+ "loadavg_before": [
+  25.51416015625,
+  15.45849609375,
+  16.4541015625
+ ],
+ "method": "fr",
+ "n_saves": 230,
+ "n_steps": 600000,
+ "n_steps_full": 600000,
+ "numpy": "2.4.6",
+ "physical_gpu": null,
+ "pid": 1333839,
+ "pinned": true,
+ "process_wall_s": 268.6266372203827,
+ "provenance": {
+  "files": {
+   "scripts/mechanism/parallel_benchmark.py": {
+    "git_dirty": false,
+    "sha256": "ff98903e21791309f9bd0ffd0e7242f93f5532d00f000a7c7704086591e51a99"
+   },
+   "src/lta_ladder_numba.py": {
+    "git_dirty": false,
+    "sha256": "d2d3c4313fc52bc37e047e30cb607e958b168fcff2dee8b24d9aa12b925a804b"
+   }
+  },
+  "git_commit": "d3595341579d66bd9dac7ba7d9bb46d0bae793b4"
+ },
+ "python": "3.14.4",
+ "save_grid_rule": "run_ladder.save_grid (budget grid + physical checkpoints <= T)",
+ "scalars": {
+  "gpu_reserved_end_mb": NaN,
+  "monitor_s": 0.0,
+  "n_force_evals": 307200512,
+  "n_fr_opps": 116001,
+  "ns_per_walker_step": 870.3906442739632,
+  "peak_gpu_alloc_mb": NaN,
+  "peak_gpu_device_mb": NaN,
+  "peak_gpu_reserved_mb": NaN,
+  "peak_rss_mb": 262.80859375,
+  "us_per_step": 445.64000986826915,
+  "wall_total_s": 267.3840059209615
+ },
+ "seed": 30007,
+ "signature": {
+  "N": 512,
+  "backend": "cpu_numba_1core",
+  "config": "configs/equal_budget_v2/lta_300K_production.json",
+  "device_type": "cpu",
+  "diagnostics": false,
+  "engine_cfg_sha": "928064a01a4b95a5",
+  "harness": "parallel_benchmark/2",
+  "method": "fr",
+  "n_steps": 600000,
+  "seed": 30007,
+  "system": "lta300"
+ },
+ "smt_sibling_busy_max": 0.006622516556291391,
+ "smt_siblings": [
+  191
+ ],
+ "smt_state": "uncontended",
+ "status": "complete",
+ "system": "lta300",
+ "telemetry_window": "timed run: begin right before t0, end right after the final device sync",
+ "threshold_e_F_mid": 0.094,
+ "thresholds": {
+  "TV_half": 0.1,
+  "e_F": [
+   0.03,
+   0.094,
+   0.5
+  ],
+  "e_Fp": [
+   0.04,
+   0.12,
+   1.0
+  ]
+ },
+ "timing_definitions": {
+  "engine_import_s": "import of the engine modules (torch + engines, or numba + engine)",
+  "fr_time_s_at_save": "cumulative device time inside the FR blocks (CUDA events / perf_counter); NaN = not measurable (numba)",
+  "import_s": "process start (/proc) to run_one entry (interpreter start-up + numpy + this module)",
+  "monitor_s": "gpu_torch: nvidia-smi sampling at saves (device idle), excluded from every stamp and the total",
+  "peak_gpu_device_mb": "nvidia-smi used_memory of this process (context + workspaces + allocator cache), max over the samples during and right after the timed run",
+  "peak_rss_mb": "host VmHWM; torch backends: reset right before the timed run, read right after it",
+  "process_wall_s": "process start (/proc) to the end of the run (before writing): the allocated device time",
+  "wall_s_at_save": "elapsed wall at each save (gateway: right after step k - 1; LTA: after the sub-chunk that evaluates step k, which includes k's move); device synchronised before each stamp",
+  "wall_total_s": "perf_counter from the start of the timed run to its end (after a device sync)",
+  "warmup_s": "one short run of the same code path before the timed run (JIT compile / numba cache load, CUDA kernel and library loading)"
+ },
+ "warmup_s": 0.1956701446324587,
+ "warmup_steps": 60
+}

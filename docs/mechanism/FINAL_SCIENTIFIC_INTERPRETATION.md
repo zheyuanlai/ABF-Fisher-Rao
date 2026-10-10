@@ -69,8 +69,10 @@ This document keeps three kinds of statement apart:
   frozen mid accuracy in 0.35× (gateway, 8/8 seeds) and 0.36× (LTA 150 K, 6/6 uncontended) of ABF's wall-clock time.
   LTA 300 K gives 0.76 [0.66, 1.11], not significant. FR's added cost is 0.5–1.6 %.
 * **[observed] GPU (existing torch engines, LTA only):** at N = 512 a single run is *slower* than one CPU core, and FR
-  costs about 21 % more per step there. The time-to-accuracy ratio is in `EXP3_PARALLEL_EFFICIENCY.md`
-  (**{{GPU_RESULT}}**).
+  costs about 21 % more per step there. FR/ABF wall-clock time to accuracy:
+  **0.45 [0.28, 0.71]** for LTA 150 K (5/5 pairs; incomplete, 5 of 8 pairs, because another user took the GPU) and
+  **1.04 [0.56, 1.97]** for LTA 300 K (8 pairs, no advantage). The GPU backend is statistically consistent with the
+  validated engine for LTA 300 K.
 * **NOT TESTED:**
   * a walker-parallel CPU build (none exists);
   * the gateway on the GPU (would need 16.9 GPU-h, over the 8 GPU-h ceiling);

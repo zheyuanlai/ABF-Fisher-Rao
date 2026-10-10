@@ -47,6 +47,10 @@ first draft of this table carried estimated times up to 60 minutes late; they we
 | 15:24–15:26 | Experiment III launched. CPU single-core campaign: 48 runs on separate idle cores. GPU campaign: the first launch was refused by the harness guard (CUDA_VISIBLE_DEVICES not pinned); relaunched pinned to GPU 3, one run at a time. |
 | 15:29 | CPU campaign complete: 48/48 runs, each bitwise equal to its production file. |
 | 15:30–15:45 | Exploratory figure fix: S3/S5 moved to a log-ratio axis. A single seed with FR 75× worse had flattened the linear axis; the per-figure legibility check cannot see this. Tick thinning; 159/159 legible. Experiment I/II reports written and pushed (94bcf123). |
+| 15:24–18:58 | GPU campaign on GPU 3 (one run at a time): LTA 300 K 16/16 runs; LTA 150 K 11 runs. |
+| 18:5x | Another user's process (yifanchen) started on GPU 3. The harness guard refused the last 5 LTA 150 K jobs (abf 15005–15007, fr 15006–15007). No GPU was idle (0, 1: yesom; 2: the user's own `levy-GM-theory` job; 3: yifanchen), so nothing was shared or interrupted. LTA 150 K GPU stays INCOMPLETE (5 pairs) and is resumable. |
+| 19:01 | Final benchmark analysis (`analyze_parallel_benchmark.py`): 4 figures, legible. LTA 300 K GPU equivalence CONSISTENT; LTA 150 K GPU INCOMPLETE. |
+| 19:02 | `EXP3_PARALLEL_EFFICIENCY.md` written; GPU numbers filled into `FINAL_SCIENTIFIC_INTERPRETATION.md`. |
 
 ## Resource ledger
 
@@ -56,6 +60,6 @@ first draft of this table carried estimated times up to 60 minutes late; they we
 | smoke runs (T4) | 72 | 0 | ≈ 0.6 | 0 | `results/mechanism/smoke/T4/*/ledger.csv` |
 | production, Experiments I + II | 1 152 (+128 aliases) | 0 | 97.2 | 0 | `results/mechanism/*/ledger.csv` |
 | Experiment III, cpu_numba_1core | 48 | 0 | ≈ 3.5 | 0 | `results/mechanism/parallel_benchmark/` |
-| Experiment III, gpu_torch (LTA) | {{GPU_RUNS}} | | ≈ host | {{GPU_H}} | `results/mechanism/parallel_benchmark/` |
+| Experiment III, gpu_torch (LTA, GPU 3) | 27 complete (LTA 300 K 16; LTA 150 K 11) + 5 refused | 0 failed, 5 refused by the guard | ≈ 3.6 (host) | 3.54 | `results/mechanism/parallel_benchmark/` |
 | tests, review agents' checks, analyses, figures (bounded) | | | ≤ 15 | ≤ 0.2 | |
-| **total** | | | **≤ 175** | **{{GPU_H_TOTAL}}** | ceilings 400 core-h / 8 GPU-h |
+| **total** | | | **≤ 180** | **≈ 3.8** | ceilings 400 core-h / 8 GPU-h |

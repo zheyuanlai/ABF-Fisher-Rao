@@ -1,0 +1,173 @@
+{
+ "N": 512,
+ "T": 160.0,
+ "T_K": null,
+ "affinity": [
+  47
+ ],
+ "allowed_gpus": [
+  3
+ ],
+ "backend": "cpu_numba_1core",
+ "bitwise_vs_production": {
+  "path": "results/equal_budget_v2/gateway/N512/s8107_fr.npz",
+  "per_key": {
+   "C_all": true,
+   "M_all": true,
+   "save_step": true
+  },
+  "status": "equal"
+ },
+ "budget_fraction": 1.0,
+ "config": "configs/equal_budget_v2/gateway_production.json",
+ "cpu_busy_fraction": {
+  "175": 0.005080061773551166,
+  "47": 1.0
+ },
+ "device": null,
+ "diagnostics": false,
+ "engine_cfg": {
+  "H": 0.5,
+  "beta": 16.0,
+  "cap_min": 1,
+  "eta": 0.1,
+  "fr_interval_t": 0.004,
+  "gamma": 1.5,
+  "genealogy_window_t": 1.6,
+  "h": 2.5e-05,
+  "max_event_fraction": 0.08,
+  "min_count": 1.0,
+  "nb": 180,
+  "omega_in": 32.0,
+  "omega_out": 1.0,
+  "ramp_t": 4.0,
+  "s": 0.1,
+  "score_clip": 3.0,
+  "system": "gateway",
+  "trace_early_dt_t": 0.1,
+  "trace_early_until_t": 40.0,
+  "trace_late_dt_t": 10.0,
+  "trace_max": 5000
+ },
+ "engine_import_s": 0.12566149607300758,
+ "engine_meta": {
+  "cap": 40,
+  "chunk_steps": 16384,
+  "diagnostics": false,
+  "engine": "gateway_ladder_numba/2",
+  "engine_sha256": "bdeaa40a42f82d509fcdbe1c209559a93c0d0fae9391633c8858488bc25074ce",
+  "fr_every": 160,
+  "noise_seed": 1668627908,
+  "peak_rss_source": "max over sessions of VmHWM, reset to the current RSS at run_arm entry (/proc/self/clear_refs 5)",
+  "ramp_steps": 160000.0
+ },
+ "engine_wall_s": 246.1772823529318,
+ "finished_utc": "2026-10-10T15:27:53Z",
+ "fr_timing": true,
+ "gpu_monitor": null,
+ "gpu_occupancy": null,
+ "gpu_processes_after": null,
+ "gpu_processes_before": null,
+ "h": 2.5e-05,
+ "harness": "parallel_benchmark/2",
+ "host": "atlas",
+ "import_s": 0.8912944793701172,
+ "kind": "gateway",
+ "loadavg_after": [
+  58.73095703125,
+  39.556640625,
+  26.09130859375
+ ],
+ "loadavg_before": [
+  12.35205078125,
+  12.4248046875,
+  15.5029296875
+ ],
+ "method": "fr",
+ "n_saves": 228,
+ "n_steps": 6400000,
+ "n_steps_full": 6400000,
+ "numpy": "2.4.6",
+ "physical_gpu": null,
+ "pid": 1332587,
+ "pinned": true,
+ "process_wall_s": 247.40147256851196,
+ "provenance": {
+  "files": {
+   "scripts/mechanism/parallel_benchmark.py": {
+    "git_dirty": false,
+    "sha256": "ff98903e21791309f9bd0ffd0e7242f93f5532d00f000a7c7704086591e51a99"
+   },
+   "src/gateway_ladder_numba.py": {
+    "git_dirty": false,
+    "sha256": "bdeaa40a42f82d509fcdbe1c209559a93c0d0fae9391633c8858488bc25074ce"
+   }
+  },
+  "git_commit": "d3595341579d66bd9dac7ba7d9bb46d0bae793b4"
+ },
+ "python": "3.14.4",
+ "save_grid_rule": "run_ladder.save_grid (budget grid + physical checkpoints <= T)",
+ "scalars": {
+  "gpu_reserved_end_mb": NaN,
+  "monitor_s": 0.0,
+  "n_force_evals": 3276800000,
+  "n_fr_opps": 40000,
+  "ns_per_walker_step": 75.12744594833975,
+  "peak_gpu_alloc_mb": NaN,
+  "peak_gpu_device_mb": NaN,
+  "peak_gpu_reserved_mb": NaN,
+  "peak_rss_mb": 168.0,
+  "us_per_step": 38.465252325549955,
+  "wall_total_s": 246.1776148835197
+ },
+ "seed": 8107,
+ "signature": {
+  "N": 512,
+  "backend": "cpu_numba_1core",
+  "config": "configs/equal_budget_v2/gateway_production.json",
+  "device_type": "cpu",
+  "diagnostics": false,
+  "engine_cfg_sha": "87cc5012df2bbf53",
+  "harness": "parallel_benchmark/2",
+  "method": "fr",
+  "n_steps": 6400000,
+  "seed": 8107,
+  "system": "gateway"
+ },
+ "smt_sibling_busy_max": 0.005080061773551166,
+ "smt_siblings": [
+  175
+ ],
+ "smt_state": "uncontended",
+ "status": "complete",
+ "system": "gateway",
+ "telemetry_window": "timed run: begin right before t0, end right after the final device sync",
+ "threshold_e_F_mid": 0.0055,
+ "thresholds": {
+  "TV_half": 0.1,
+  "e_F": [
+   0.002,
+   0.0055,
+   0.02
+  ],
+  "e_Fp": [
+   0.012,
+   0.035,
+   0.1
+  ]
+ },
+ "timing_definitions": {
+  "engine_import_s": "import of the engine modules (torch + engines, or numba + engine)",
+  "fr_time_s_at_save": "cumulative device time inside the FR blocks (CUDA events / perf_counter); NaN = not measurable (numba)",
+  "import_s": "process start (/proc) to run_one entry (interpreter start-up + numpy + this module)",
+  "monitor_s": "gpu_torch: nvidia-smi sampling at saves (device idle), excluded from every stamp and the total",
+  "peak_gpu_device_mb": "nvidia-smi used_memory of this process (context + workspaces + allocator cache), max over the samples during and right after the timed run",
+  "peak_rss_mb": "host VmHWM; torch backends: reset right before the timed run, read right after it",
+  "process_wall_s": "process start (/proc) to the end of the run (before writing): the allocated device time",
+  "wall_s_at_save": "elapsed wall at each save (gateway: right after step k - 1; LTA: after the sub-chunk that evaluates step k, which includes k's move); device synchronised before each stamp",
+  "wall_total_s": "perf_counter from the start of the timed run to its end (after a device sync)",
+  "warmup_s": "one short run of the same code path before the timed run (JIT compile / numba cache load, CUDA kernel and library loading)"
+ },
+ "warmup_s": 0.18141164537519217,
+ "warmup_steps": 320
+}

@@ -1,0 +1,3963 @@
+{
+ "config": "configs/mechanism/parallel_benchmark.json",
+ "cost_projection": {
+  "cpu_numba_1core": {
+   "all_measured": true,
+   "ceiling_check": {
+    "plan_exp3_cpu_estimate_core_h": 20.0,
+    "total_within_estimate": true
+   },
+   "per_system_h": {
+    "gateway": 1.1024582945731365,
+    "lta150": 1.1758612010793552,
+    "lta300": 1.1768835344269044
+   },
+   "rows": {
+    "gateway/abf": {
+     "host_smt_states": [
+      "uncontended"
+     ],
+     "measured_n_steps": [
+      6400000
+     ],
+     "n_steps_full": 6400000,
+     "overhead_s": 1.2273230566643178,
+     "runs": 8,
+     "s_per_run": 247.54019895615056,
+     "s_total": 1980.3215916492045,
+     "source": "measured (8 runs)",
+     "us_per_step": 38.486386859294726
+    },
+    "gateway/fr": {
+     "host_smt_states": [
+      "uncontended"
+     ],
+     "measured_n_steps": [
+      6400000
+     ],
+     "n_steps_full": 6400000,
+     "overhead_s": 1.2268683188594878,
+     "runs": 8,
+     "s_per_run": 248.56603360176086,
+     "s_total": 1988.528268814087,
+     "source": "measured (8 runs)",
+     "us_per_step": 38.64674457545334
+    },
+    "lta150/abf": {
+     "host_smt_states": [
+      "contended",
+      "uncontended"
+     ],
+     "measured_n_steps": [
+      600000
+     ],
+     "n_steps_full": 600000,
+     "overhead_s": 1.242226591333747,
+     "runs": 8,
+     "s_per_run": 262.58392605697736,
+     "s_total": 2100.671408455819,
+     "source": "measured (8 runs)",
+     "us_per_step": 435.569499109406
+    },
+    "lta150/fr": {
+     "host_smt_states": [
+      "contended",
+      "uncontended"
+     ],
+     "measured_n_steps": [
+      600000
+     ],
+     "n_steps_full": 600000,
+     "overhead_s": 1.2438599807210267,
+     "runs": 8,
+     "s_per_run": 266.55361442873254,
+     "s_total": 2132.4289154298604,
+     "source": "measured (8 runs)",
+     "us_per_step": 442.18292408001923
+    },
+    "lta300/abf": {
+     "host_smt_states": [
+      "contended",
+      "uncontended"
+     ],
+     "measured_n_steps": [
+      600000
+     ],
+     "n_steps_full": 600000,
+     "overhead_s": 1.234437805134803,
+     "runs": 8,
+     "s_per_run": 262.8117640945129,
+     "s_total": 2102.4941127561033,
+     "source": "measured (8 runs)",
+     "us_per_step": 435.9622104822969
+    },
+    "lta300/fr": {
+     "host_smt_states": [
+      "uncontended"
+     ],
+     "measured_n_steps": [
+      600000
+     ],
+     "n_steps_full": 600000,
+     "overhead_s": 1.2329796669073403,
+     "runs": 8,
+     "s_per_run": 266.78582639759406,
+     "s_total": 2134.2866111807525,
+     "source": "measured (8 runs)",
+     "us_per_step": 442.5880778844779
+    }
+   },
+   "seeds_per_arm": 8,
+   "total_h": 3.4552030300793963,
+   "unit": "core-h"
+  },
+  "gpu_torch": {
+   "all_measured": false,
+   "ceiling_check": {
+    "per_system": {
+     "gateway": {
+      "equivalence_gate": "CANNOT BE EVALUATED within the plan's 8 GPU-h ceiling (its 8 x 2 full-budget runs alone need 16.9 GPU-h)",
+      "gpu_h": 16.87111111111111,
+      "within_ceiling": false,
+      "within_estimate": false
+     },
+     "lta150": {
+      "equivalence_gate": "evaluable within the GPU ceiling",
+      "gpu_h": 2.086738448146109,
+      "within_ceiling": true,
+      "within_estimate": true
+     },
+     "lta300": {
+      "equivalence_gate": "evaluable within the GPU ceiling",
+      "gpu_h": 2.084835155977764,
+      "within_ceiling": true,
+      "within_estimate": true
+     }
+    },
+    "plan_exp3_gpu_estimate_h": 3.0,
+    "plan_gpu_ceiling_h": 8.0,
+    "total_within_ceiling": false
+   },
+   "per_system_h": {
+    "gateway": 16.87111111111111,
+    "lta150": 2.086738448146109,
+    "lta300": 2.084835155977764
+   },
+   "rows": {
+    "gateway/abf": {
+     "host_smt_states": [
+      "contended"
+     ],
+     "measured_n_steps": [],
+     "n_steps_full": 6400000,
+     "overhead_s": 20.0,
+     "runs": 8,
+     "s_per_run": 3795.9999999999995,
+     "s_total": 30367.999999999996,
+     "source": "fallback (FALLBACK_US_PER_STEP)",
+     "us_per_step": 590.0
+    },
+    "gateway/fr": {
+     "host_smt_states": [
+      "contended"
+     ],
+     "measured_n_steps": [],
+     "n_steps_full": 6400000,
+     "overhead_s": 20.0,
+     "runs": 8,
+     "s_per_run": 3795.9999999999995,
+     "s_total": 30367.999999999996,
+     "source": "fallback (FALLBACK_US_PER_STEP)",
+     "us_per_step": 590.0
+    },
+    "lta150/abf": {
+     "host_smt_states": [
+      "uncontended"
+     ],
+     "measured_n_steps": [
+      600000
+     ],
+     "n_steps_full": 600000,
+     "overhead_s": 7.547861881554127,
+     "runs": 8,
+     "s_per_run": 416.196418762207,
+     "s_total": 3329.571350097656,
+     "source": "measured (5 runs)",
+     "us_per_step": 681.0809281344215
+    },
+    "lta150/fr": {
+     "host_smt_states": [
+      "uncontended"
+     ],
+     "measured_n_steps": [
+      600000
+     ],
+     "n_steps_full": 600000,
+     "overhead_s": 8.50678363069892,
+     "runs": 8,
+     "s_per_run": 522.8358829035423,
+     "s_total": 4182.687063228338,
+     "source": "measured (6 runs)",
+     "us_per_step": 857.215165454739
+    },
+    "lta300/abf": {
+     "host_smt_states": [
+      "uncontended"
+     ],
+     "measured_n_steps": [
+      600000
+     ],
+     "n_steps_full": 600000,
+     "overhead_s": 7.566845488734543,
+     "runs": 8,
+     "s_per_run": 417.9561422611587,
+     "s_total": 3343.6491380892694,
+     "source": "measured (8 runs)",
+     "us_per_step": 683.9821612873735
+    },
+    "lta300/fr": {
+     "host_smt_states": [
+      "uncontended"
+     ],
+     "measured_n_steps": [
+      600000
+     ],
+     "n_steps_full": 600000,
+     "overhead_s": 8.44069771002978,
+     "runs": 8,
+     "s_per_run": 520.2196779288352,
+     "s_total": 4161.757423430681,
+     "source": "measured (8 runs)",
+     "us_per_step": 852.9649670313422
+    }
+   },
+   "seeds_per_arm": 8,
+   "total_h": 21.042684715234984,
+   "unit": "GPU-h (one device, runs sequential)"
+  }
+ },
+ "definitions": {
+  "W1": "backends.<b>.W1 (W1_RULE): FR / ABF wall-clock to accuracy on the SAME backend, primary on the uncontended pairs; paired.tau_wall = the same ratio on all pairs (sensitivity)",
+  "effective_parallelism": "wall_total(1 CPU core) / wall_total(1 GPU), same seed and n_steps; 'uncontended' (primary) restricts to pairs with both runs uncontended",
+  "fr_overhead": "(wall_total FR - wall_total ABF) / wall_total ABF, paired seeds, equal steps; fr_overhead_uncontended (primary): the pairs in which neither run had its pinned CPU's SMT sibling busy > 0.1 of the timed run (unknown excluded)",
+  "memory": "peak_rss_mb = host VmHWM of the timed run (every backend); peak_gpu_device_mb = the process's nvidia-smi device memory incl. CUDA context (gpu_torch, THE GPU footprint); peak_gpu_reserved/alloc_mb = torch tensor memory only (secondary)",
+  "ratio": "FR / ABF per seed (both finite), median + 10 000-resample seed bootstrap 95 % CI; rank part with censoring and exact sign test",
+  "resources": "timed = sum of wall_total_s; allocated = sum of process_wall_s (process start to the end of the run)",
+  "smt_state": "per run: contended (sibling busy > 0.10 of the timed run) / uncontended / unknown (not pinned to one logical CPU, or telemetry missing)",
+  "tau": "eqb_metrics.tau_persistent at the frozen mid e_F threshold over every save of the run; t / force evaluations / wall at its first save; inf = censored"
+ },
+ "early_rule": "EXPLORATORY (not preregistered; proposed for the Experiment III amendment): for shortened-budget runs of one n_steps, Ebar_common = mean e_F over the saves common to the run's grid and the production N = 512 grid (identical integration steps, hence identical simulation times), scored with the same scorer; the EQUIVALENCE_RULE tests (reference without seeds sharing randomness; permutation median and Mann-Whitney per arm, permutation on the paired G; Holm at 0.05; >= 8 complete pairs, else INCOMPLETE) against the production per-seed Ebar_common at the same saves.  It tests equality in law up to the run's end only.",
+ "equivalence_rule": "reference = production per-seed values minus seeds sharing randomness with the backend runs; R1/R2: two-sample permutation test of the median Ibar_F difference per arm (20 000 relabellings); R3/R4: two-sided Mann-Whitney U per arm; R5: permutation test of the median paired G(Ibar_F) difference; Holm over R1-R5 at 0.05 -> CONSISTENT / INCONSISTENT, only with >= 8 complete backend pairs (else INCOMPLETE); minimum detectable shift (80 % power) reported with every verdict",
+ "generated_utc": "2026-10-10T19:01:26Z",
+ "plan": "docs/mechanism/SCIENTIFIC_PLAN.md section 8",
+ "root": "/home/zheyuanlai/ABF-Fisher-Rao/results/mechanism/parallel_benchmark",
+ "systems": {
+  "gateway": {
+   "backends": {
+    "cpu_numba_1core": {
+     "G_Ibar_F": {
+      "G_ci95": [
+       -0.4098443497114054,
+       -0.10432135055404237
+      ],
+      "G_median": -0.2829609509665565,
+      "abf_median": 0.007794670702653474,
+      "fr_median": 0.005590083887282661,
+      "losses": 0,
+      "n": 8,
+      "n_common": 8,
+      "per_seed": {
+       "8100": -0.10432135055404237,
+       "8101": -0.3274982004664573,
+       "8102": -0.053211670121011724,
+       "8103": -0.18151723755159854,
+       "8104": -0.33875041342564965,
+       "8105": -0.4520161055125043,
+       "8106": -0.23842370146665576,
+       "8107": -0.4098443497114054
+      },
+      "ties": 0,
+      "wins": 8
+     },
+     "W1": {
+      "agree": true,
+      "excluded": [],
+      "n_pairs": 8,
+      "n_pairs_excluded": 0,
+      "n_pairs_uncontended": 8,
+      "primary": {
+       "abf_median": 60.200426580850035,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 24.634960615541786,
+       "n_both_finite": 8,
+       "per_seed": {
+        "8100": [
+         58.8726326553151,
+         32.896069530397654
+        ],
+        "8101": [
+         51.599057213403285,
+         18.471399919129908
+        ],
+        "8102": [
+         61.52822050638497,
+         44.45662681479007
+        ],
+        "8103": [
+         54.19179725460708,
+         16.079084151424468
+        ],
+        "8104": [
+         70.18226546794176,
+         21.003739793784916
+        ],
+        "8105": [
+         82.31422889698297,
+         28.266181437298656
+        ],
+        "8106": [
+         90.89180202130228,
+         32.13759133219719
+        ],
+        "8107": [
+         56.8918025335297,
+         19.695161963813007
+        ]
+       },
+       "rank": {
+        "losses": 0,
+        "sign_test_p": 0.0078125,
+        "ties": 0,
+        "wins": 8
+       },
+       "ratio_ci95": [
+        0.2992741777960861,
+        0.558766748601105
+       ],
+       "ratio_median": 0.3498835181635739
+      },
+      "rule": "W1 on one backend = the paired FR / ABF wall-clock time-to-accuracy ratio (median over both-finite pairs + seed-bootstrap 95 % CI, censoring-aware rank part) computed ONLY on the pairs in which NEITHER run was SMT-contended (each run pinned to one logical CPU, sibling busy <= 0.10 of its timed run, telemetry present); excluded pairs (contended or unknown) are counted; the same ratio on ALL pairs is reported as a sensitivity analysis and AGREES iff its median lies inside the primary 95 % CI; with no uncontended pair W1 is NOT EVALUABLE on that backend.  The same primary / all-pairs split is applied to the FR overhead and to the effective parallelism.",
+      "sensitivity_all_pairs": {
+       "abf_median": 60.200426580850035,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 24.634960615541786,
+       "n_both_finite": 8,
+       "per_seed": {
+        "8100": [
+         58.8726326553151,
+         32.896069530397654
+        ],
+        "8101": [
+         51.599057213403285,
+         18.471399919129908
+        ],
+        "8102": [
+         61.52822050638497,
+         44.45662681479007
+        ],
+        "8103": [
+         54.19179725460708,
+         16.079084151424468
+        ],
+        "8104": [
+         70.18226546794176,
+         21.003739793784916
+        ],
+        "8105": [
+         82.31422889698297,
+         28.266181437298656
+        ],
+        "8106": [
+         90.89180202130228,
+         32.13759133219719
+        ],
+        "8107": [
+         56.8918025335297,
+         19.695161963813007
+        ]
+       },
+       "rank": {
+        "losses": 0,
+        "sign_test_p": 0.0078125,
+        "ties": 0,
+        "wins": 8
+       },
+       "ratio_ci95": [
+        0.2992741777960861,
+        0.558766748601105
+       ],
+       "ratio_median": 0.3498835181635739
+      },
+      "status": "EVALUATED"
+     },
+     "abf": {
+      "Ibar_F_median": 0.007794670702653474,
+      "bitwise_vs_production": [
+       "equal"
+      ],
+      "cuda_init_s_median": 0.0,
+      "engine_import_s_median": 0.12338784104213119,
+      "final_e_F_median": 0.0013740682711874226,
+      "fr_time_frac_median": null,
+      "gpu_occupancy": [
+       "n/a"
+      ],
+      "import_s_median": 0.8983597755432129,
+      "n_censored": 0,
+      "n_smt_contended": 0,
+      "n_smt_unknown": 0,
+      "ns_per_walker_step_median": 75.16872433456001,
+      "other_gpu_processes": 0,
+      "peak_gpu_alloc_mb_max": null,
+      "peak_gpu_device_mb_max": null,
+      "peak_gpu_reserved_mb_max": null,
+      "peak_rss_mb_max": 166.0,
+      "per_seed": {
+       "8100": {
+        "Ibar_F": 0.0069378304368838874,
+        "final_e_F": 0.0010080661462810072,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 166.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.048345035105315945,
+        "smt_state": "uncontended",
+        "tau_fe": 737280000.0,
+        "tau_t": 36.0,
+        "tau_wall": 58.8726326553151,
+        "us_per_step": 38.96622432934237,
+        "wall_total_s": 249.38383570779115,
+        "warmup_s": 0.18430085387080908
+       },
+       "8101": {
+        "Ibar_F": 0.00782216028181709,
+        "final_e_F": 0.000764013873549244,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 166.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.0047591929710380735,
+        "smt_state": "uncontended",
+        "tau_fe": 688128000.0,
+        "tau_t": 33.6,
+        "tau_wall": 51.599057213403285,
+        "us_per_step": 38.42656202832586,
+        "wall_total_s": 245.9299969812855,
+        "warmup_s": 0.18442647345364094
+       },
+       "8102": {
+        "Ibar_F": 0.007767181123489857,
+        "final_e_F": 0.0014744310859430656,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 166.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.004913107032645769,
+        "smt_state": "uncontended",
+        "tau_fe": 819200000.0,
+        "tau_t": 40.0,
+        "tau_wall": 61.52822050638497,
+        "us_per_step": 38.48534148593899,
+        "wall_total_s": 246.30618551000953,
+        "warmup_s": 0.18402566388249397
+       },
+       "8103": {
+        "Ibar_F": 0.006395571586592558,
+        "final_e_F": 0.00039320531267001866,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 166.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.005845341993099249,
+        "smt_state": "uncontended",
+        "tau_fe": 720896000.0,
+        "tau_t": 35.2,
+        "tau_wall": 54.19179725460708,
+        "us_per_step": 38.5225528893352,
+        "wall_total_s": 246.5443384917453,
+        "warmup_s": 0.18111340515315533
+       },
+       "8104": {
+        "Ibar_F": 0.008030481426595066,
+        "final_e_F": 0.001521064600982336,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 166.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.005522842639593908,
+        "smt_state": "uncontended",
+        "tau_fe": 933888000.0,
+        "tau_t": 45.6,
+        "tau_wall": 70.18226546794176,
+        "us_per_step": 38.48743223265046,
+        "wall_total_s": 246.31956628896296,
+        "warmup_s": 0.17975584510713816
+       },
+       "8105": {
+        "Ibar_F": 0.010712021485095456,
+        "final_e_F": 0.002340435291379233,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 166.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.0054148684960508104,
+        "smt_state": "uncontended",
+        "tau_fe": 1097728000.0,
+        "tau_t": 53.6,
+        "tau_wall": 82.31422889698297,
+        "us_per_step": 38.403540838480694,
+        "wall_total_s": 245.78266136627644,
+        "warmup_s": 0.17908994387835264
+       },
+       "8106": {
+        "Ibar_F": 0.00896777569739514,
+        "final_e_F": 0.002056964731520248,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 166.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.0052524429967426714,
+        "smt_state": "uncontended",
+        "tau_fe": 1212416000.0,
+        "tau_t": 59.2,
+        "tau_wall": 90.89180202130228,
+        "us_per_step": 38.3846538249054,
+        "wall_total_s": 245.66178447939456,
+        "warmup_s": 0.18045928422361612
+       },
+       "8107": {
+        "Ibar_F": 0.007734829461295598,
+        "final_e_F": 0.0012737054564317795,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 166.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.0051243643817257285,
+        "smt_state": "uncontended",
+        "tau_fe": 737280000.0,
+        "tau_t": 36.0,
+        "tau_wall": 56.8918025335297,
+        "us_per_step": 39.65689211967401,
+        "wall_total_s": 253.80410956591368,
+        "warmup_s": 0.1804485647007823
+       }
+      },
+      "tau_fe_median": 778240000.0,
+      "tau_t_median": 38.0,
+      "tau_wall_median": 60.200426580850035,
+      "us_per_step_median": 38.486386859294726,
+      "wall_total_s_median": 246.31287589948624,
+      "warmup_s_median": 0.18078634468838573
+     },
+     "budget_fraction": [
+      1.0
+     ],
+     "fr": {
+      "Ibar_F_median": 0.005590083887282661,
+      "bitwise_vs_production": [
+       "equal"
+      ],
+      "cuda_init_s_median": 0.0,
+      "engine_import_s_median": 0.12506259139627218,
+      "final_e_F_median": 0.0009600732807439895,
+      "fr_time_frac_median": null,
+      "gpu_occupancy": [
+       "n/a"
+      ],
+      "import_s_median": 0.8944704532623291,
+      "n_censored": 0,
+      "n_smt_contended": 0,
+      "n_smt_unknown": 0,
+      "ns_per_walker_step_median": 75.4819229989323,
+      "other_gpu_processes": 0,
+      "peak_gpu_alloc_mb_max": null,
+      "peak_gpu_device_mb_max": null,
+      "peak_gpu_reserved_mb_max": null,
+      "peak_rss_mb_max": 168.0,
+      "per_seed": {
+       "8100": {
+        "Ibar_F": 0.0062140665957932184,
+        "final_e_F": 0.0007863600801248987,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 168.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.012345679012345678,
+        "smt_state": "uncontended",
+        "tau_fe": 425984000.0,
+        "tau_t": 20.8,
+        "tau_wall": 32.896069530397654,
+        "us_per_step": 39.376562082761666,
+        "wall_total_s": 252.00999732967466,
+        "warmup_s": 0.1861062040552497
+       },
+       "8101": {
+        "Ibar_F": 0.005260416865761797,
+        "final_e_F": 0.001325528573883114,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 168.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.004658510896864619,
+        "smt_state": "uncontended",
+        "tau_fe": 245760000.0,
+        "tau_t": 12.0,
+        "tau_wall": 18.471399919129908,
+        "us_per_step": 38.575897398841335,
+        "wall_total_s": 246.88574335258454,
+        "warmup_s": 0.18378512375056744
+       },
+       "8102": {
+        "Ibar_F": 0.0073538764437765655,
+        "final_e_F": 0.0017545429248451228,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 168.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.005388185322111225,
+        "smt_state": "uncontended",
+        "tau_fe": 573440000.0,
+        "tau_t": 28.0,
+        "tau_wall": 44.45662681479007,
+        "us_per_step": 39.756134241761174,
+        "wall_total_s": 254.4392591472715,
+        "warmup_s": 0.18196949362754822
+       },
+       "8103": {
+        "Ibar_F": 0.005234665099630782,
+        "final_e_F": 0.000842174447443333,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 168.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.027385725741780272,
+        "smt_state": "uncontended",
+        "tau_fe": 212992000.0,
+        "tau_t": 10.4,
+        "tau_wall": 16.079084151424468,
+        "us_per_step": 38.97408280870877,
+        "wall_total_s": 249.43412997573614,
+        "warmup_s": 0.1868004947900772
+       },
+       "8104": {
+        "Ibar_F": 0.005310152523328986,
+        "final_e_F": 0.0002355100696633867,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 168.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.005376561426203663,
+        "smt_state": "uncontended",
+        "tau_fe": 278528000.0,
+        "tau_t": 13.600000000000001,
+        "tau_wall": 21.003739793784916,
+        "us_per_step": 38.65675792272668,
+        "wall_total_s": 247.40325070545077,
+        "warmup_s": 0.18103059474378824
+       },
+       "8105": {
+        "Ibar_F": 0.005870015251236335,
+        "final_e_F": 0.0010779721140446459,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 168.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.0037032515362389615,
+        "smt_state": "uncontended",
+        "tau_fe": 376832000.0,
+        "tau_t": 18.400000000000002,
+        "tau_wall": 28.266181437298656,
+        "us_per_step": 38.427099351538345,
+        "wall_total_s": 245.9334358498454,
+        "warmup_s": 0.1799094444140792
+       },
+       "8106": {
+        "Ibar_F": 0.006829645421699471,
+        "final_e_F": 0.001420338099777033,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 168.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.005339589822418187,
+        "smt_state": "uncontended",
+        "tau_fe": 425984000.0,
+        "tau_t": 20.8,
+        "tau_wall": 32.13759133219719,
+        "us_per_step": 38.63673122818,
+        "wall_total_s": 247.27507986035198,
+        "warmup_s": 0.183312495239079
+       },
+       "8107": {
+        "Ibar_F": 0.004564753310602284,
+        "final_e_F": 0.0006050357896904739,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 168.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.005080061773551166,
+        "smt_state": "uncontended",
+        "tau_fe": 262144000.0,
+        "tau_t": 12.8,
+        "tau_wall": 19.695161963813007,
+        "us_per_step": 38.465252325549955,
+        "wall_total_s": 246.1776148835197,
+        "warmup_s": 0.18141164537519217
+       }
+      },
+      "tau_fe_median": 327680000.0,
+      "tau_t_median": 16.0,
+      "tau_wall_median": 24.634960615541786,
+      "us_per_step_median": 38.64674457545334,
+      "wall_total_s_median": 247.33916528290138,
+      "warmup_s_median": 0.1826409944333136
+     },
+     "fr_overhead": {
+      "ci95": [
+       0.0006134463787267542,
+       0.011721183709467346
+      ],
+      "median": 0.005483323114579669,
+      "n": 8,
+      "per_seed": {
+       "8100": 0.010530600808308387,
+       "8101": 0.0038862537430590775,
+       "8102": 0.03302017616984073,
+       "8103": 0.011721183709467346,
+       "8104": 0.00439950602712786,
+       "8105": 0.0006134463787267542,
+       "8106": 0.006567140202031478,
+       "8107": -0.03004874387352402
+      }
+     },
+     "fr_overhead_uncontended": {
+      "ci95": [
+       0.0006134463787267542,
+       0.011721183709467346
+      ],
+      "median": 0.005483323114579669,
+      "n": 8,
+      "per_seed": {
+       "8100": 0.010530600808308387,
+       "8101": 0.0038862537430590775,
+       "8102": 0.03302017616984073,
+       "8103": 0.011721183709467346,
+       "8104": 0.00439950602712786,
+       "8105": 0.0006134463787267542,
+       "8106": 0.006567140202031478,
+       "8107": -0.03004874387352402
+      }
+     },
+     "n_seeds": {
+      "abf": 8,
+      "fr": 8
+     },
+     "n_steps": [
+      6400000
+     ],
+     "paired": {
+      "tau_fe": {
+       "abf_median": 778240000.0,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 327680000.0,
+       "n_both_finite": 8,
+       "per_seed": {
+        "8100": [
+         737280000.0,
+         425984000.0
+        ],
+        "8101": [
+         688128000.0,
+         245760000.0
+        ],
+        "8102": [
+         819200000.0,
+         573440000.0
+        ],
+        "8103": [
+         720896000.0,
+         212992000.0
+        ],
+        "8104": [
+         933888000.0,
+         278528000.0
+        ],
+        "8105": [
+         1097728000.0,
+         376832000.0
+        ],
+        "8106": [
+         1212416000.0,
+         425984000.0
+        ],
+        "8107": [
+         737280000.0,
+         262144000.0
+        ]
+       },
+       "rank": {
+        "losses": 0,
+        "sign_test_p": 0.0078125,
+        "ties": 0,
+        "wins": 8
+       },
+       "ratio_ci95": [
+        0.2982456140350877,
+        0.5777777777777777
+       ],
+       "ratio_median": 0.35345345345345347
+      },
+      "tau_t": {
+       "abf_median": 38.0,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 16.0,
+       "n_both_finite": 8,
+       "per_seed": {
+        "8100": [
+         36.0,
+         20.8
+        ],
+        "8101": [
+         33.6,
+         12.0
+        ],
+        "8102": [
+         40.0,
+         28.0
+        ],
+        "8103": [
+         35.2,
+         10.4
+        ],
+        "8104": [
+         45.6,
+         13.600000000000001
+        ],
+        "8105": [
+         53.6,
+         18.400000000000002
+        ],
+        "8106": [
+         59.2,
+         20.8
+        ],
+        "8107": [
+         36.0,
+         12.8
+        ]
+       },
+       "rank": {
+        "losses": 0,
+        "sign_test_p": 0.0078125,
+        "ties": 0,
+        "wins": 8
+       },
+       "ratio_ci95": [
+        0.29824561403508776,
+        0.5777777777777778
+       ],
+       "ratio_median": 0.35345345345345347
+      },
+      "tau_wall": {
+       "abf_median": 60.200426580850035,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 24.634960615541786,
+       "n_both_finite": 8,
+       "per_seed": {
+        "8100": [
+         58.8726326553151,
+         32.896069530397654
+        ],
+        "8101": [
+         51.599057213403285,
+         18.471399919129908
+        ],
+        "8102": [
+         61.52822050638497,
+         44.45662681479007
+        ],
+        "8103": [
+         54.19179725460708,
+         16.079084151424468
+        ],
+        "8104": [
+         70.18226546794176,
+         21.003739793784916
+        ],
+        "8105": [
+         82.31422889698297,
+         28.266181437298656
+        ],
+        "8106": [
+         90.89180202130228,
+         32.13759133219719
+        ],
+        "8107": [
+         56.8918025335297,
+         19.695161963813007
+        ]
+       },
+       "rank": {
+        "losses": 0,
+        "sign_test_p": 0.0078125,
+        "ties": 0,
+        "wins": 8
+       },
+       "ratio_ci95": [
+        0.2992741777960861,
+        0.558766748601105
+       ],
+       "ratio_median": 0.3498835181635739
+      }
+     },
+     "production_crosscheck": {
+      "mismatches": [],
+      "n_runs_compared": 16,
+      "status": "EQUAL"
+     },
+     "resources": {
+      "allocated_definition": "process start to the end of each run (process_wall_s)",
+      "allocated_device_s": 3988.947244167328,
+      "timed_device_s": 3969.290989495814,
+      "unit": "core-seconds"
+     }
+    }
+   },
+   "effective_parallelism": "NOT TESTED (needs runs of both cpu_numba_1core and gpu_torch)",
+   "not_tested": [
+    {
+     "backend": "gpu_torch",
+     "label": "NOT TESTED",
+     "why": "no runs"
+    },
+    {
+     "backend": "cpu_numba_threads",
+     "label": "NOT TESTED",
+     "why": "no walker-parallel numba build exists (none written): NOT TESTED"
+    }
+   ],
+   "wall_to_accuracy_by_backend": {
+    "cpu_numba_1core/abf": 60.200426580850035,
+    "cpu_numba_1core/fr": 24.634960615541786
+   }
+  },
+  "lta150": {
+   "backends": {
+    "cpu_numba_1core": {
+     "G_Ibar_F": {
+      "G_ci95": [
+       -0.34802589660388844,
+       -0.31240349089922015
+      ],
+      "G_median": -0.3337627449222029,
+      "abf_median": 0.28061305038536966,
+      "fr_median": 0.18350518842755134,
+      "losses": 0,
+      "n": 8,
+      "n_common": 8,
+      "per_seed": {
+       "15000": -0.34802589660388844,
+       "15001": -0.45172051696793175,
+       "15002": -0.31240349089922015,
+       "15003": -0.3245505065888229,
+       "15004": -0.23147132096666906,
+       "15005": -0.31668358878489694,
+       "15006": -0.3429749832555829,
+       "15007": -0.3461931487906577
+      },
+      "ties": 0,
+      "wins": 8
+     },
+     "W1": {
+      "agree": true,
+      "excluded": [
+       {
+        "abf": "uncontended",
+        "fr": "contended",
+        "seed": 15002
+       },
+       {
+        "abf": "contended",
+        "fr": "contended",
+        "seed": 15007
+       }
+      ],
+      "n_pairs": 8,
+      "n_pairs_excluded": 2,
+      "n_pairs_uncontended": 6,
+      "primary": {
+       "abf_median": 152.42931546689942,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 57.6738782110624,
+       "n_both_finite": 6,
+       "per_seed": {
+        "15000": [
+         179.0967353619635,
+         59.64526155218482
+        ],
+        "15001": [
+         160.8090592669323,
+         55.70249486993998
+        ],
+        "15003": [
+         162.00762687250972,
+         60.92273336369544
+        ],
+        "15004": [
+         143.57703223079443,
+         83.44496970251203
+        ],
+        "15005": [
+         118.98487179353833,
+         54.21333833504468
+        ],
+        "15006": [
+         144.04957166686654,
+         46.293573449365795
+        ]
+       },
+       "rank": {
+        "losses": 0,
+        "sign_test_p": 0.03125,
+        "ties": 0,
+        "wins": 6
+       },
+       "ratio_ci95": [
+        0.3272031452231273,
+        0.5184091277352184
+       ],
+       "ratio_median": 0.36121879311923066
+      },
+      "rule": "W1 on one backend = the paired FR / ABF wall-clock time-to-accuracy ratio (median over both-finite pairs + seed-bootstrap 95 % CI, censoring-aware rank part) computed ONLY on the pairs in which NEITHER run was SMT-contended (each run pinned to one logical CPU, sibling busy <= 0.10 of its timed run, telemetry present); excluded pairs (contended or unknown) are counted; the same ratio on ALL pairs is reported as a sensitivity analysis and AGREES iff its median lies inside the primary 95 % CI; with no uncontended pair W1 is NOT EVALUABLE on that backend.  The same primary / all-pairs split is applied to the FR overhead and to the effective parallelism.",
+      "sensitivity_all_pairs": {
+       "abf_median": 152.42931546689942,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 54.95791660249233,
+       "n_both_finite": 8,
+       "per_seed": {
+        "15000": [
+         179.0967353619635,
+         59.64526155218482
+        ],
+        "15001": [
+         160.8090592669323,
+         55.70249486993998
+        ],
+        "15002": [
+         165.95945682376623,
+         53.0979659082368
+        ],
+        "15003": [
+         162.00762687250972,
+         60.92273336369544
+        ],
+        "15004": [
+         143.57703223079443,
+         83.44496970251203
+        ],
+        "15005": [
+         118.98487179353833,
+         54.21333833504468
+        ],
+        "15006": [
+         144.04957166686654,
+         46.293573449365795
+        ],
+        "15007": [
+         138.61181172914803,
+         48.128926885314286
+        ]
+       },
+       "rank": {
+        "losses": 0,
+        "sign_test_p": 0.0078125,
+        "ties": 0,
+        "wins": 8
+       },
+       "ratio_ci95": [
+        0.32137251720835197,
+        0.45563219523499815
+       ],
+       "ratio_median": 0.34680499951657573
+      },
+      "status": "EVALUATED"
+     },
+     "abf": {
+      "Ibar_F_median": 0.28061305038536966,
+      "bitwise_vs_production": [
+       "equal"
+      ],
+      "cuda_init_s_median": 0.0,
+      "engine_import_s_median": 0.1190085168927908,
+      "final_e_F_median": 0.0798709041807682,
+      "fr_time_frac_median": null,
+      "gpu_occupancy": [
+       "n/a"
+      ],
+      "import_s_median": 0.9015315771102905,
+      "n_censored": 0,
+      "n_smt_contended": 1,
+      "n_smt_unknown": 0,
+      "ns_per_walker_step_median": 850.7216779480586,
+      "other_gpu_processes": 0,
+      "peak_gpu_alloc_mb_max": null,
+      "peak_gpu_device_mb_max": null,
+      "peak_gpu_reserved_mb_max": null,
+      "peak_rss_mb_max": 258.41796875,
+      "per_seed": {
+       "15000": {
+        "Ibar_F": 0.29871949924464586,
+        "final_e_F": 0.08868404385407058,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 258.41796875,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.006624798958413111,
+        "smt_state": "uncontended",
+        "tau_fe": 210432512.0,
+        "tau_t": 82.2,
+        "tau_wall": 179.0967353619635,
+        "us_per_step": 435.59683283325285,
+        "wall_total_s": 261.3580996999517,
+        "warmup_s": 0.2116892645135522
+       },
+       "15001": {
+        "Ibar_F": 0.28375462128602913,
+        "final_e_F": 0.08341794200976904,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 258.0078125,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.007309046379917343,
+        "smt_state": "uncontended",
+        "tau_fe": 188928512.0,
+        "tau_t": 73.8,
+        "tau_wall": 160.8090592669323,
+        "us_per_step": 435.740850030755,
+        "wall_total_s": 261.444510018453,
+        "warmup_s": 0.22084787394851446
+       },
+       "15002": {
+        "Ibar_F": 0.28847395603691484,
+        "final_e_F": 0.08145757005896934,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 258.0078125,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.008311946987398016,
+        "smt_state": "uncontended",
+        "tau_fe": 195072512.0,
+        "tau_t": 76.2,
+        "tau_wall": 165.95945682376623,
+        "us_per_step": 435.2710593600447,
+        "wall_total_s": 261.1626356160268,
+        "warmup_s": 0.21371353417634964
+       },
+       "15003": {
+        "Ibar_F": 0.2774714794847102,
+        "final_e_F": 0.07847525782633541,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 258.0078125,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.0023736600306278714,
+        "smt_state": "uncontended",
+        "tau_fe": 190464512.0,
+        "tau_t": 74.4,
+        "tau_wall": 162.00762687250972,
+        "us_per_step": 435.42900600625825,
+        "wall_total_s": 261.25740360375494,
+        "warmup_s": 0.19220599345862865
+       },
+       "15004": {
+        "Ibar_F": 0.323313748219257,
+        "final_e_F": 0.08126655053520097,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 258.0078125,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.0010736196319018406,
+        "smt_state": "uncontended",
+        "tau_fe": 168960512.0,
+        "tau_t": 66.0,
+        "tau_wall": 143.57703223079443,
+        "us_per_step": 435.07637540188927,
+        "wall_total_s": 261.04582524113357,
+        "warmup_s": 0.19160719402134418
+       },
+       "15005": {
+        "Ibar_F": 0.2612878720661161,
+        "final_e_F": 0.0571640241217115,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 258.01171875,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.0006513409961685823,
+        "smt_state": "uncontended",
+        "tau_fe": 139776512.0,
+        "tau_t": 54.6,
+        "tau_wall": 118.98487179353833,
+        "us_per_step": 435.5421653855592,
+        "wall_total_s": 261.3252992313355,
+        "warmup_s": 0.19430871400982141
+       },
+       "15006": {
+        "Ibar_F": 0.27334180894814675,
+        "final_e_F": 0.06282921232162775,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 257.00390625,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.003934300993124523,
+        "smt_state": "uncontended",
+        "tau_fe": 168960512.0,
+        "tau_t": 66.0,
+        "tau_wall": 144.04957166686654,
+        "us_per_step": 436.5370580398788,
+        "wall_total_s": 261.9222348239273,
+        "warmup_s": 0.19267723429948092
+       },
+       "15007": {
+        "Ibar_F": 0.2587316511878429,
+        "final_e_F": 0.07109523958028387,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 257.421875,
+        "smt_contended": true,
+        "smt_sibling_busy_max": 0.2674160573320237,
+        "smt_state": "contended",
+        "tau_fe": 162816512.0,
+        "tau_t": 63.6,
+        "tau_wall": 138.61181172914803,
+        "us_per_step": 458.4391960051532,
+        "wall_total_s": 275.0635176030919,
+        "warmup_s": 0.19061591383069754
+       }
+      },
+      "tau_fe_median": 178944512.0,
+      "tau_t_median": 69.9,
+      "tau_wall_median": 152.42931546689942,
+      "us_per_step_median": 435.569499109406,
+      "wall_total_s_median": 261.3416994656436,
+      "warmup_s_median": 0.19349297415465117
+     },
+     "budget_fraction": [
+      1.0
+     ],
+     "fr": {
+      "Ibar_F_median": 0.18350518842755134,
+      "bitwise_vs_production": [
+       "equal"
+      ],
+      "cuda_init_s_median": 0.0,
+      "engine_import_s_median": 0.12017134577035904,
+      "final_e_F_median": 0.04958675442377079,
+      "fr_time_frac_median": null,
+      "gpu_occupancy": [
+       "n/a"
+      ],
+      "import_s_median": 0.8980545997619629,
+      "n_censored": 0,
+      "n_smt_contended": 2,
+      "n_smt_unknown": 0,
+      "ns_per_walker_step_median": 863.6385235937876,
+      "other_gpu_processes": 0,
+      "peak_gpu_alloc_mb_max": null,
+      "peak_gpu_device_mb_max": null,
+      "peak_gpu_reserved_mb_max": null,
+      "peak_rss_mb_max": 263.21875,
+      "per_seed": {
+       "15000": {
+        "Ibar_F": 0.1947573776869634,
+        "final_e_F": 0.05318544558109406,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 262.80859375,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.005849277331220046,
+        "smt_state": "uncontended",
+        "tau_fe": 69120512.0,
+        "tau_t": 27.0,
+        "tau_wall": 59.64526155218482,
+        "us_per_step": 441.98374391222995,
+        "wall_total_s": 265.19024634733796,
+        "warmup_s": 0.21984547283500433
+       },
+       "15001": {
+        "Ibar_F": 0.15557683706666436,
+        "final_e_F": 0.026349219544852597,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 261.8046875,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.006562075727862423,
+        "smt_state": "uncontended",
+        "tau_fe": 64512512.0,
+        "tau_t": 25.200000000000003,
+        "tau_wall": 55.70249486993998,
+        "us_per_step": 442.3241809522733,
+        "wall_total_s": 265.394508571364,
+        "warmup_s": 0.21331107337027788
+       },
+       "15002": {
+        "Ibar_F": 0.19835368513747448,
+        "final_e_F": 0.05605215947257162,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 262.796875,
+        "smt_contended": true,
+        "smt_sibling_busy_max": 0.13000550559735732,
+        "smt_state": "contended",
+        "tau_fe": 61440512.0,
+        "tau_t": 24.0,
+        "tau_wall": 53.0979659082368,
+        "us_per_step": 454.25323564714444,
+        "wall_total_s": 272.55194138828665,
+        "warmup_s": 0.21079158317297697
+       },
+       "15003": {
+        "Ibar_F": 0.1874179702539973,
+        "final_e_F": 0.05304664834093487,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 261.8046875,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.0024906600249066002,
+        "smt_state": "uncontended",
+        "tau_fe": 70656512.0,
+        "tau_t": 27.6,
+        "tau_wall": 60.92273336369544,
+        "us_per_step": 442.0416672077651,
+        "wall_total_s": 265.22500032465905,
+        "warmup_s": 0.18863198533654213
+       },
+       "15004": {
+        "Ibar_F": 0.24847588783226054,
+        "final_e_F": 0.06523265875328253,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 262.80859375,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.0026396168784644973,
+        "smt_state": "uncontended",
+        "tau_fe": 96768512.0,
+        "tau_t": 37.800000000000004,
+        "tau_wall": 83.44496970251203,
+        "us_per_step": 441.99996159411967,
+        "wall_total_s": 265.1999769564718,
+        "warmup_s": 0.19070526398718357
+       },
+       "15005": {
+        "Ibar_F": 0.17854229103424943,
+        "final_e_F": 0.031246926746757213,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 263.21875,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.0022264150943396227,
+        "smt_state": "uncontended",
+        "tau_fe": 62976512.0,
+        "tau_t": 24.6,
+        "tau_wall": 54.21333833504468,
+        "us_per_step": 441.7366317349176,
+        "wall_total_s": 265.04197904095054,
+        "warmup_s": 0.192413124255836
+       },
+       "15006": {
+        "Ibar_F": 0.17959240660110537,
+        "final_e_F": 0.03793061326928924,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 262.80859375,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.035431742341869445,
+        "smt_state": "uncontended",
+        "tau_fe": 53760512.0,
+        "tau_t": 21.0,
+        "tau_wall": 46.293573449365795,
+        "us_per_step": 444.6302653476596,
+        "wall_total_s": 266.77815920859575,
+        "warmup_s": 0.19327522348612547
+       },
+       "15007": {
+        "Ibar_F": 0.16916052617131747,
+        "final_e_F": 0.04612686050660671,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 262.8046875,
+        "smt_contended": true,
+        "smt_sibling_busy_max": 0.20702396452827532,
+        "smt_state": "contended",
+        "tau_fe": 55296512.0,
+        "tau_t": 21.6,
+        "tau_wall": 48.128926885314286,
+        "us_per_step": 473.86808631165576,
+        "wall_total_s": 284.32085178699344,
+        "warmup_s": 0.1947303144261241
+       }
+      },
+      "tau_fe_median": 63744512.0,
+      "tau_t_median": 24.900000000000002,
+      "tau_wall_median": 54.95791660249233,
+      "us_per_step_median": 442.18292408001923,
+      "wall_total_s_median": 265.3097544480115,
+      "warmup_s_median": 0.19400276895612478
+     },
+     "fr_overhead": {
+      "ci95": [
+       0.01466243690853925,
+       0.03365525993621442
+      ],
+      "median": 0.015550019397744384,
+      "n": 8,
+      "per_seed": {
+       "15000": 0.01466243690853925,
+       "15001": 0.015108362966321951,
+       "15002": 0.04361001237943129,
+       "15003": 0.015186542720610147,
+       "15004": 0.015913496074878623,
+       "15005": 0.014222426303719119,
+       "15006": 0.018539565332942355,
+       "15007": 0.03365525993621442
+      }
+     },
+     "fr_overhead_uncontended": {
+      "ci95": [
+       0.014442431606129184,
+       0.01722653070391049
+      ],
+      "median": 0.01514745284346605,
+      "n": 6,
+      "per_seed": {
+       "15000": 0.01466243690853925,
+       "15001": 0.015108362966321951,
+       "15003": 0.015186542720610147,
+       "15004": 0.015913496074878623,
+       "15005": 0.014222426303719119,
+       "15006": 0.018539565332942355
+      }
+     },
+     "n_seeds": {
+      "abf": 8,
+      "fr": 8
+     },
+     "n_steps": [
+      600000
+     ],
+     "paired": {
+      "tau_fe": {
+       "abf_median": 178944512.0,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 63744512.0,
+       "n_both_finite": 8,
+       "per_seed": {
+        "15000": [
+         210432512.0,
+         69120512.0
+        ],
+        "15001": [
+         188928512.0,
+         64512512.0
+        ],
+        "15002": [
+         195072512.0,
+         61440512.0
+        ],
+        "15003": [
+         190464512.0,
+         70656512.0
+        ],
+        "15004": [
+         168960512.0,
+         96768512.0
+        ],
+        "15005": [
+         139776512.0,
+         62976512.0
+        ],
+        "15006": [
+         168960512.0,
+         53760512.0
+        ],
+        "15007": [
+         162816512.0,
+         55296512.0
+        ]
+       },
+       "rank": {
+        "losses": 0,
+        "sign_test_p": 0.0078125,
+        "ties": 0,
+        "wins": 8
+       },
+       "ratio_ci95": [
+        0.3181838842912597,
+        0.45055146318145356
+       ],
+       "ratio_median": 0.3405449587212832
+      },
+      "tau_t": {
+       "abf_median": 69.9,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 24.900000000000002,
+       "n_both_finite": 8,
+       "per_seed": {
+        "15000": [
+         82.2,
+         27.0
+        ],
+        "15001": [
+         73.8,
+         25.200000000000003
+        ],
+        "15002": [
+         76.2,
+         24.0
+        ],
+        "15003": [
+         74.4,
+         27.6
+        ],
+        "15004": [
+         66.0,
+         37.800000000000004
+        ],
+        "15005": [
+         54.6,
+         24.6
+        ],
+        "15006": [
+         66.0,
+         21.0
+        ],
+        "15007": [
+         63.6,
+         21.6
+        ]
+       },
+       "rank": {
+        "losses": 0,
+        "sign_test_p": 0.0078125,
+        "ties": 0,
+        "wins": 8
+       },
+       "ratio_ci95": [
+        0.3181818181818182,
+        0.45054945054945056
+       ],
+       "ratio_median": 0.34054302807179015
+      },
+      "tau_wall": {
+       "abf_median": 152.42931546689942,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 54.95791660249233,
+       "n_both_finite": 8,
+       "per_seed": {
+        "15000": [
+         179.0967353619635,
+         59.64526155218482
+        ],
+        "15001": [
+         160.8090592669323,
+         55.70249486993998
+        ],
+        "15002": [
+         165.95945682376623,
+         53.0979659082368
+        ],
+        "15003": [
+         162.00762687250972,
+         60.92273336369544
+        ],
+        "15004": [
+         143.57703223079443,
+         83.44496970251203
+        ],
+        "15005": [
+         118.98487179353833,
+         54.21333833504468
+        ],
+        "15006": [
+         144.04957166686654,
+         46.293573449365795
+        ],
+        "15007": [
+         138.61181172914803,
+         48.128926885314286
+        ]
+       },
+       "rank": {
+        "losses": 0,
+        "sign_test_p": 0.0078125,
+        "ties": 0,
+        "wins": 8
+       },
+       "ratio_ci95": [
+        0.32137251720835197,
+        0.45563219523499815
+       ],
+       "ratio_median": 0.34680499951657573
+      }
+     },
+     "production_crosscheck": {
+      "mismatches": [],
+      "n_runs_compared": 16,
+      "status": "EQUAL"
+     },
+     "resources": {
+      "allocated_definition": "process start to the end of each run (process_wall_s)",
+      "allocated_device_s": 4274.431380748749,
+      "timed_device_s": 4254.282189462334,
+      "unit": "core-seconds"
+     }
+    },
+    "gpu_torch": {
+     "G_Ibar_F": {
+      "G_ci95": [
+       -0.3956694961402506,
+       -0.18337576255274135
+      ],
+      "G_median": -0.35880368515480926,
+      "abf_median": 0.2742421898882126,
+      "fr_median": 0.17021249002071323,
+      "losses": 0,
+      "n": 5,
+      "n_common": 5,
+      "per_seed": {
+       "15000": -0.3291707104631783,
+       "15001": -0.35880368515480926,
+       "15002": -0.37836833132980385,
+       "15003": -0.3956694961402506,
+       "15004": -0.18337576255274135
+      },
+      "ties": 0,
+      "wins": 5
+     },
+     "W1": {
+      "agree": true,
+      "excluded": [],
+      "n_pairs": 5,
+      "n_pairs_excluded": 0,
+      "n_pairs_uncontended": 5,
+      "primary": {
+       "abf_median": 211.6285858610645,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 85.51006713416427,
+       "n_both_finite": 5,
+       "per_seed": {
+        "15000": [
+         149.82172913756222,
+         85.51006713416427
+        ],
+        "15001": [
+         173.87342130672187,
+         77.98266063723713
+        ],
+        "15002": [
+         258.4668505946174,
+         108.71626595966518
+        ],
+        "15003": [
+         236.69144632387906,
+         66.9940397683531
+        ],
+        "15004": [
+         211.6285858610645,
+         150.81314419023693
+        ]
+       },
+       "rank": {
+        "losses": 0,
+        "sign_test_p": 0.0625,
+        "ties": 0,
+        "wins": 5
+       },
+       "ratio_ci95": [
+        0.28304377200298636,
+        0.7126312524209121
+       ],
+       "ratio_median": 0.4485024798567207
+      },
+      "rule": "W1 on one backend = the paired FR / ABF wall-clock time-to-accuracy ratio (median over both-finite pairs + seed-bootstrap 95 % CI, censoring-aware rank part) computed ONLY on the pairs in which NEITHER run was SMT-contended (each run pinned to one logical CPU, sibling busy <= 0.10 of its timed run, telemetry present); excluded pairs (contended or unknown) are counted; the same ratio on ALL pairs is reported as a sensitivity analysis and AGREES iff its median lies inside the primary 95 % CI; with no uncontended pair W1 is NOT EVALUABLE on that backend.  The same primary / all-pairs split is applied to the FR overhead and to the effective parallelism.",
+      "sensitivity_all_pairs": {
+       "abf_median": 211.6285858610645,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 85.51006713416427,
+       "n_both_finite": 5,
+       "per_seed": {
+        "15000": [
+         149.82172913756222,
+         85.51006713416427
+        ],
+        "15001": [
+         173.87342130672187,
+         77.98266063723713
+        ],
+        "15002": [
+         258.4668505946174,
+         108.71626595966518
+        ],
+        "15003": [
+         236.69144632387906,
+         66.9940397683531
+        ],
+        "15004": [
+         211.6285858610645,
+         150.81314419023693
+        ]
+       },
+       "rank": {
+        "losses": 0,
+        "sign_test_p": 0.0625,
+        "ties": 0,
+        "wins": 5
+       },
+       "ratio_ci95": [
+        0.28304377200298636,
+        0.7126312524209121
+       ],
+       "ratio_median": 0.4485024798567207
+      },
+      "status": "EVALUATED"
+     },
+     "abf": {
+      "Ibar_F_median": 0.2742421898882126,
+      "bitwise_vs_production": [
+       "not applicable (torch backend: different random streams)"
+      ],
+      "cuda_init_s_median": 0.19060189370065928,
+      "engine_import_s_median": 2.399245338514447,
+      "final_e_F_median": 0.055825838423697614,
+      "fr_time_frac_median": null,
+      "gpu_occupancy": [
+       "exclusive"
+      ],
+      "import_s_median": 0.8930084705352783,
+      "n_censored": 0,
+      "n_smt_contended": 0,
+      "n_smt_unknown": 0,
+      "ns_per_walker_step_median": 1330.236187762542,
+      "other_gpu_processes": 0,
+      "peak_gpu_alloc_mb_max": 32.11474609375,
+      "peak_gpu_device_mb_max": 654.0,
+      "peak_gpu_reserved_mb_max": 42.0,
+      "peak_rss_mb_max": 1022.0,
+      "per_seed": {
+       "15000": {
+        "Ibar_F": 0.253734433894855,
+        "final_e_F": 0.04614390628550657,
+        "peak_gpu_device_mb": 654.0,
+        "peak_rss_mb": 1020.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.004480441151128727,
+        "smt_state": "uncontended",
+        "tau_fe": 115200512.0,
+        "tau_t": 45.0,
+        "tau_wall": 149.82172913756222,
+        "us_per_step": 672.5960661238059,
+        "wall_total_s": 403.55763967428356,
+        "warmup_s": 0.28691753186285496
+       },
+       "15001": {
+        "Ibar_F": 0.25638687941006155,
+        "final_e_F": 0.053830322811780205,
+        "peak_gpu_device_mb": 654.0,
+        "peak_rss_mb": 1020.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.014503351614868982,
+        "smt_state": "uncontended",
+        "tau_fe": 130560512.0,
+        "tau_t": 51.0,
+        "tau_wall": 173.87342130672187,
+        "us_per_step": 681.0809281344215,
+        "wall_total_s": 408.6485568806529,
+        "warmup_s": 0.2864658012986183
+       },
+       "15002": {
+        "Ibar_F": 0.3099827892087421,
+        "final_e_F": 0.08780291472636911,
+        "peak_gpu_device_mb": 654.0,
+        "peak_rss_mb": 1022.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.004746446313511387,
+        "smt_state": "uncontended",
+        "tau_fe": 196608512.0,
+        "tau_t": 76.8,
+        "tau_wall": 258.4668505946174,
+        "us_per_step": 674.03697281455,
+        "wall_total_s": 404.42218368873,
+        "warmup_s": 0.2865849416702986
+       },
+       "15003": {
+        "Ibar_F": 0.27762273865278714,
+        "final_e_F": 0.059970540794601235,
+        "peak_gpu_device_mb": 654.0,
+        "peak_rss_mb": 1020.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.004645037711002035,
+        "smt_state": "uncontended",
+        "tau_fe": 175104512.0,
+        "tau_t": 68.4,
+        "tau_wall": 236.69144632387906,
+        "us_per_step": 694.3883558005715,
+        "wall_total_s": 416.6330134803429,
+        "warmup_s": 0.2875322215259075
+       },
+       "15004": {
+        "Ibar_F": 0.2742421898882126,
+        "final_e_F": 0.055825838423697614,
+        "peak_gpu_device_mb": 654.0,
+        "peak_rss_mb": 1020.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.005453667953667953,
+        "smt_state": "uncontended",
+        "tau_fe": 158208512.0,
+        "tau_t": 61.800000000000004,
+        "tau_wall": 211.6285858610645,
+        "us_per_step": 690.3328880714253,
+        "wall_total_s": 414.19973284285516,
+        "warmup_s": 0.28626279067248106
+       }
+      },
+      "tau_fe_median": 158208512.0,
+      "tau_t_median": 61.800000000000004,
+      "tau_wall_median": 211.6285858610645,
+      "us_per_step_median": 681.0809281344215,
+      "wall_total_s_median": 408.6485568806529,
+      "warmup_s_median": 0.2865849416702986
+     },
+     "budget_fraction": [
+      1.0
+     ],
+     "early_window_consistency": {
+      "backend": "gpu_torch",
+      "label": "EXPLORATORY",
+      "rule": "EXPLORATORY (not preregistered; proposed for the Experiment III amendment): for shortened-budget runs of one n_steps, Ebar_common = mean e_F over the saves common to the run's grid and the production N = 512 grid (identical integration steps, hence identical simulation times), scored with the same scorer; the EQUIVALENCE_RULE tests (reference without seeds sharing randomness; permutation median and Mann-Whitney per arm, permutation on the paired G; Holm at 0.05; >= 8 complete pairs, else INCOMPLETE) against the production per-seed Ebar_common at the same saves.  It tests equality in law up to the run's end only.",
+      "status": "NOT APPLICABLE (needs shortened-budget runs of ONE n_steps)",
+      "system": "lta150"
+     },
+     "equivalence": {
+      "backend": "gpu_torch",
+      "detail": {
+       "G_Ibar_F": {
+        "backend_median": -0.35880368515480926,
+        "backend_n": 5,
+        "inside_production_ci95_descriptive": true,
+        "perm": {
+         "backend_median": -0.35880368515480926,
+         "backend_median_null95": [
+          -0.38687955049354356,
+          -0.2854819644616423
+         ],
+         "d": -0.014219619131688954,
+         "mds_abs": {
+          "0.01": 0.09053151081621554,
+          "0.05": 0.0742166535319493
+         },
+         "mds_rel": {
+          "0.01": 0.26272692136072595,
+          "0.05": 0.21538039871805806
+         },
+         "n": 5,
+         "n_reference": 16,
+         "nperm": 20000,
+         "p": 0.5911704414779261,
+         "reference_median": -0.3445840660231203,
+         "sd_null": 0.026490949856573902
+        },
+        "production_ci95_own_median": [
+         -0.3589366146193085,
+         -0.3097711466978658
+        ],
+        "production_median": -0.3445840660231203,
+        "production_median_all_seeds": -0.3445840660231203,
+        "production_n": 16
+       },
+       "abf": {
+        "backend_median": 0.2742421898882126,
+        "backend_n": 5,
+        "inside_production_ci95_descriptive": true,
+        "mannwhitney_p": 0.5476436188510492,
+        "perm": {
+         "backend_median": 0.2742421898882126,
+         "backend_median_null95": [
+          0.25596326808701886,
+          0.3061568773940019
+         ],
+         "d": -0.006857111215336664,
+         "mds_abs": {
+          "0.01": 0.04760223752658624,
+          "0.05": 0.03902374695842826
+         },
+         "mds_rel": {
+          "0.01": 0.16934313724618932,
+          "0.05": 0.13882548553207888
+         },
+         "n": 5,
+         "n_reference": 16,
+         "nperm": 20000,
+         "p": 0.5632718364081796,
+         "reference_median": 0.28109930110354925,
+         "sd_null": 0.013929166496928134
+        },
+        "production_ci95_own_median": [
+         0.2612878720661161,
+         0.29871949924464586
+        ],
+        "production_median": 0.28109930110354925,
+        "production_n": 16
+       },
+       "fr": {
+        "backend_median": 0.17337604456324796,
+        "backend_n": 6,
+        "inside_production_ci95_descriptive": false,
+        "mannwhitney_p": 0.4494123008054896,
+        "perm": {
+         "backend_median": 0.17337604456324796,
+         "backend_median_null95": [
+          0.16490016121356574,
+          0.20261233329759074
+         ],
+         "d": -0.01121667195758591,
+         "mds_abs": {
+          "0.01": 0.0370769952752126,
+          "0.05": 0.030395278809964347
+         },
+         "mds_rel": {
+          "0.01": 0.2008583869073076,
+          "0.05": 0.16466131157744684
+         },
+         "n": 6,
+         "n_reference": 16,
+         "nperm": 20000,
+         "p": 0.34823258837058146,
+         "reference_median": 0.18459271652083387,
+         "sd_null": 0.010849314385816666
+        },
+        "production_ci95_own_median": [
+         0.1785295382366747,
+         0.1947573776869634
+        ],
+        "production_median": 0.18459271652083387,
+        "production_n": 16
+       }
+      },
+      "holm": {
+       "R_mannwhitney_abf": {
+        "p_adj": 1.0,
+        "rejected": false
+       },
+       "R_mannwhitney_fr": {
+        "p_adj": 1.0,
+        "rejected": false
+       },
+       "R_median_G": {
+        "p_adj": 1.0,
+        "rejected": false
+       },
+       "R_median_abf": {
+        "p_adj": 1.0,
+        "rejected": false
+       },
+       "R_median_fr": {
+        "p_adj": 1.0,
+        "rejected": false
+       }
+      },
+      "min_detectable_shift": {
+       "G_Ibar_F": {
+        "abs": {
+         "0.01": 0.09053151081621554,
+         "0.05": 0.0742166535319493
+        },
+        "note": "normal approximation from the permutation null; alpha = per-test level (0.01 = Holm's strictest step, 0.05 = its most lenient)",
+        "power": 0.8,
+        "rel_to_reference_median": {
+         "0.01": 0.26272692136072595,
+         "0.05": 0.21538039871805806
+        }
+       },
+       "abf": {
+        "abs": {
+         "0.01": 0.04760223752658624,
+         "0.05": 0.03902374695842826
+        },
+        "note": "normal approximation from the permutation null; alpha = per-test level (0.01 = Holm's strictest step, 0.05 = its most lenient)",
+        "power": 0.8,
+        "rel_to_reference_median": {
+         "0.01": 0.16934313724618932,
+         "0.05": 0.13882548553207888
+        }
+       },
+       "fr": {
+        "abs": {
+         "0.01": 0.0370769952752126,
+         "0.05": 0.030395278809964347
+        },
+        "note": "normal approximation from the permutation null; alpha = per-test level (0.01 = Holm's strictest step, 0.05 = its most lenient)",
+        "power": 0.8,
+        "rel_to_reference_median": {
+         "0.01": 0.2008583869073076,
+         "0.05": 0.16466131157744684
+        }
+       }
+      },
+      "min_pairs": 8,
+      "n_complete_pairs": 5,
+      "p_values": {
+       "R_mannwhitney_abf": 0.5476436188510492,
+       "R_mannwhitney_fr": 0.4494123008054896,
+       "R_median_G": 0.5911704414779261,
+       "R_median_abf": 0.5632718364081796,
+       "R_median_fr": 0.34823258837058146
+      },
+      "production": {
+       "G_ci95": [
+        -0.3589366146193085,
+        -0.3097711466978658
+       ],
+       "G_median": -0.3445840660231203,
+       "n_seeds": {
+        "abf": 16,
+        "fr": 16
+       },
+       "path": "results/equal_budget_v2/lta_T150/analysis/summary.json",
+       "reference_excludes_seeds": [],
+       "why_excluded": "nothing excluded: independent randomness"
+      },
+      "rejected": [],
+      "rule": "reference = production per-seed values minus seeds sharing randomness with the backend runs; R1/R2: two-sample permutation test of the median Ibar_F difference per arm (20 000 relabellings); R3/R4: two-sided Mann-Whitney U per arm; R5: permutation test of the median paired G(Ibar_F) difference; Holm over R1-R5 at 0.05 -> CONSISTENT / INCONSISTENT, only with >= 8 complete backend pairs (else INCOMPLETE); minimum detectable shift (80 % power) reported with every verdict",
+      "status": "INCOMPLETE (5 complete pairs < 8: tests reported, no verdict)",
+      "system": "lta150"
+     },
+     "fr": {
+      "Ibar_F_median": 0.17337604456324796,
+      "bitwise_vs_production": [
+       "not applicable (torch backend: different random streams)"
+      ],
+      "cuda_init_s_median": 0.1973273539915681,
+      "engine_import_s_median": 2.38624107837677,
+      "final_e_F_median": 0.03552736172836861,
+      "fr_time_frac_median": 0.17711869797298188,
+      "gpu_occupancy": [
+       "exclusive",
+       "shared"
+      ],
+      "import_s_median": 0.896897554397583,
+      "n_censored": 0,
+      "n_smt_contended": 0,
+      "n_smt_unknown": 0,
+      "ns_per_walker_step_median": 1674.2483700287871,
+      "other_gpu_processes": 2,
+      "peak_gpu_alloc_mb_max": 64.1298828125,
+      "peak_gpu_device_mb_max": 752.0,
+      "peak_gpu_reserved_mb_max": 74.0,
+      "peak_rss_mb_max": 1162.0,
+      "per_seed": {
+       "15000": {
+        "Ibar_F": 0.17021249002071323,
+        "final_e_F": 0.024972358959842948,
+        "peak_gpu_device_mb": 752.0,
+        "peak_rss_mb": 1162.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.009651505519274114,
+        "smt_state": "uncontended",
+        "tau_fe": 53760512.0,
+        "tau_t": 21.0,
+        "tau_wall": 85.51006713416427,
+        "us_per_step": 861.8141200471049,
+        "wall_total_s": 517.0884720282629,
+        "warmup_s": 0.3515677498653531
+       },
+       "15001": {
+        "Ibar_F": 0.16439432225238979,
+        "final_e_F": 0.02998794053705428,
+        "peak_gpu_device_mb": 752.0,
+        "peak_rss_mb": 1162.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.006587512873826781,
+        "smt_state": "uncontended",
+        "tau_fe": 49152512.0,
+        "tau_t": 19.2,
+        "tau_wall": 77.98266063723713,
+        "us_per_step": 855.0803275592625,
+        "wall_total_s": 513.0481965355575,
+        "warmup_s": 0.39129740931093693
+       },
+       "15002": {
+        "Ibar_F": 0.19269511851487203,
+        "final_e_F": 0.04696372368806582,
+        "peak_gpu_device_mb": 752.0,
+        "peak_rss_mb": 1162.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.004674431631608429,
+        "smt_state": "uncontended",
+        "tau_fe": 67584512.0,
+        "tau_t": 26.400000000000002,
+        "tau_wall": 108.71626595966518,
+        "us_per_step": 859.3500033502156,
+        "wall_total_s": 515.6100020101294,
+        "warmup_s": 0.385593238286674
+       },
+       "15003": {
+        "Ibar_F": 0.16777588953296238,
+        "final_e_F": 0.022560106986080533,
+        "peak_gpu_device_mb": 752.0,
+        "peak_rss_mb": 1162.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.0047787404328062475,
+        "smt_state": "uncontended",
+        "tau_fe": 43008512.0,
+        "tau_t": 16.8,
+        "tau_wall": 66.9940397683531,
+        "us_per_step": 853.1525029521435,
+        "wall_total_s": 511.89150177128613,
+        "warmup_s": 0.35234363935887814
+       },
+       "15004": {
+        "Ibar_F": 0.2239528191933279,
+        "final_e_F": 0.06405833070494915,
+        "peak_gpu_device_mb": 752.0,
+        "peak_rss_mb": 1162.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.0068530382450009706,
+        "smt_state": "uncontended",
+        "tau_fe": 92160512.0,
+        "tau_t": 36.0,
+        "tau_wall": 150.81314419023693,
+        "us_per_step": 854.0969340022033,
+        "wall_total_s": 512.458160401322,
+        "warmup_s": 0.35111612919718027
+       },
+       "15005": {
+        "Ibar_F": 0.17653959910578265,
+        "final_e_F": 0.04106678291968294,
+        "peak_gpu_device_mb": 752.0,
+        "peak_rss_mb": 1162.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.013948580199539524,
+        "smt_state": "uncontended",
+        "tau_fe": 50688512.0,
+        "tau_t": 19.8,
+        "tau_wall": 80.60801314562559,
+        "us_per_step": 866.9171992052967,
+        "wall_total_s": 520.150319523178,
+        "warmup_s": 0.34968444984406233
+       }
+      },
+      "tau_fe_median": 52224512.0,
+      "tau_t_median": 20.4,
+      "tau_wall_median": 83.05904013989493,
+      "us_per_step_median": 857.215165454739,
+      "wall_total_s_median": 514.3290992728435,
+      "warmup_s_median": 0.3519556946121156
+     },
+     "fr_overhead": {
+      "ci95": [
+       0.22863883851930417,
+       0.28132494888614057
+      ],
+      "median": 0.25547536605003807,
+      "n": 5,
+      "per_seed": {
+       "15000": 0.28132494888614057,
+       "15001": 0.25547536605003807,
+       "15002": 0.2749300676517213,
+       "15003": 0.22863883851930417,
+       "15004": 0.23722474875604382
+      }
+     },
+     "fr_overhead_uncontended": {
+      "ci95": [
+       0.22863883851930417,
+       0.28132494888614057
+      ],
+      "median": 0.25547536605003807,
+      "n": 5,
+      "per_seed": {
+       "15000": 0.28132494888614057,
+       "15001": 0.25547536605003807,
+       "15002": 0.2749300676517213,
+       "15003": 0.22863883851930417,
+       "15004": 0.23722474875604382
+      }
+     },
+     "n_seeds": {
+      "abf": 5,
+      "fr": 6
+     },
+     "n_steps": [
+      600000
+     ],
+     "paired": {
+      "tau_fe": {
+       "abf_median": 158208512.0,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 53760512.0,
+       "n_both_finite": 5,
+       "per_seed": {
+        "15000": [
+         115200512.0,
+         53760512.0
+        ],
+        "15001": [
+         130560512.0,
+         49152512.0
+        ],
+        "15002": [
+         196608512.0,
+         67584512.0
+        ],
+        "15003": [
+         175104512.0,
+         43008512.0
+        ],
+        "15004": [
+         158208512.0,
+         92160512.0
+        ]
+       },
+       "rank": {
+        "losses": 0,
+        "sign_test_p": 0.0625,
+        "ties": 0,
+        "wins": 5
+       },
+       "ratio_ci95": [
+        0.24561624088818454,
+        0.5825256228944243
+       ],
+       "ratio_median": 0.37647303343908456
+      },
+      "tau_t": {
+       "abf_median": 61.800000000000004,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 21.0,
+       "n_both_finite": 5,
+       "per_seed": {
+        "15000": [
+         45.0,
+         21.0
+        ],
+        "15001": [
+         51.0,
+         19.2
+        ],
+        "15002": [
+         76.8,
+         26.400000000000002
+        ],
+        "15003": [
+         68.4,
+         16.8
+        ],
+        "15004": [
+         61.800000000000004,
+         36.0
+        ]
+       },
+       "rank": {
+        "losses": 0,
+        "sign_test_p": 0.0625,
+        "ties": 0,
+        "wins": 5
+       },
+       "ratio_ci95": [
+        0.24561403508771928,
+        0.5825242718446602
+       ],
+       "ratio_median": 0.3764705882352941
+      },
+      "tau_wall": {
+       "abf_median": 211.6285858610645,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 85.51006713416427,
+       "n_both_finite": 5,
+       "per_seed": {
+        "15000": [
+         149.82172913756222,
+         85.51006713416427
+        ],
+        "15001": [
+         173.87342130672187,
+         77.98266063723713
+        ],
+        "15002": [
+         258.4668505946174,
+         108.71626595966518
+        ],
+        "15003": [
+         236.69144632387906,
+         66.9940397683531
+        ],
+        "15004": [
+         211.6285858610645,
+         150.81314419023693
+        ]
+       },
+       "rank": {
+        "losses": 0,
+        "sign_test_p": 0.0625,
+        "ties": 0,
+        "wins": 5
+       },
+       "ratio_ci95": [
+        0.28304377200298636,
+        0.7126312524209121
+       ],
+       "ratio_median": 0.4485024798567207
+      }
+     },
+     "resources": {
+      "allocated_definition": "process start to the end of each run (process_wall_s)",
+      "allocated_device_s": 5226.34779882431,
+      "timed_device_s": 5137.7077788366005,
+      "unit": "GPU-seconds"
+     }
+    }
+   },
+   "effective_parallelism": {
+    "abf": {
+     "ci95": [
+      0.62706841548955,
+      0.6476351182718214
+     ],
+     "definition": "wall_total(cpu_numba_1core) / wall_total(gpu_torch), same seed and n_steps",
+     "median": 0.6397783758595499,
+     "n": 5,
+     "n_smt_contended_pairs": 0,
+     "per_seed": {
+      "15000": 0.6476351182718214,
+      "15001": 0.6397783758595499,
+      "15002": 0.6457673346055488,
+      "15003": 0.62706841548955,
+      "15004": 0.6302414138450755
+     },
+     "uncontended": {
+      "ci95": [
+       0.62706841548955,
+       0.6476351182718214
+      ],
+      "median": 0.6397783758595499,
+      "n": 5
+     }
+    },
+    "fr": {
+     "ci95": [
+      0.5112007840275575,
+      0.5233641670819269
+     ],
+     "definition": "wall_total(cpu_numba_1core) / wall_total(gpu_torch), same seed and n_steps",
+     "median": 0.5173976208542072,
+     "n": 6,
+     "n_smt_contended_pairs": 1,
+     "per_seed": {
+      "15000": 0.5128527528512437,
+      "15001": 0.5172896237887281,
+      "15002": 0.5286009587202155,
+      "15003": 0.5181273754436384,
+      "15004": 0.5175056179196862,
+      "15005": 0.5095488152038714
+     },
+     "uncontended": {
+      "ci95": [
+       0.5095488152038714,
+       0.5181273754436384
+      ],
+      "median": 0.5172896237887281,
+      "n": 5
+     }
+    }
+   },
+   "not_tested": [
+    {
+     "backend": "cpu_numba_threads",
+     "label": "NOT TESTED",
+     "why": "no walker-parallel numba build exists (none written): NOT TESTED"
+    }
+   ],
+   "wall_to_accuracy_by_backend": {
+    "cpu_numba_1core/abf": 152.42931546689942,
+    "cpu_numba_1core/fr": 54.95791660249233,
+    "gpu_torch/abf": 211.6285858610645,
+    "gpu_torch/fr": 83.05904013989493
+   }
+  },
+  "lta300": {
+   "backends": {
+    "cpu_numba_1core": {
+     "G_Ibar_F": {
+      "G_ci95": [
+       -0.21916858767625852,
+       -0.0769715662634244
+      ],
+      "G_median": -0.10844841231318134,
+      "abf_median": 0.22931417554030428,
+      "fr_median": 0.20098361325420977,
+      "losses": 0,
+      "n": 8,
+      "n_common": 8,
+      "per_seed": {
+       "30000": -0.13131504123992072,
+       "30001": -0.21916858767625852,
+       "30002": -0.09465872735471957,
+       "30003": -0.10673897182074026,
+       "30004": -0.23969169457695033,
+       "30005": -0.051626054225349834,
+       "30006": -0.0769715662634244,
+       "30007": -0.11015785280562242
+      },
+      "ties": 0,
+      "wins": 8
+     },
+     "W1": {
+      "agree": true,
+      "excluded": [
+       {
+        "abf": "contended",
+        "fr": "uncontended",
+        "seed": 30007
+       }
+      ],
+      "n_pairs": 8,
+      "n_pairs_excluded": 1,
+      "n_pairs_uncontended": 7,
+      "primary": {
+       "abf_median": 122.87422117870301,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 107.44970219861716,
+       "n_both_finite": 7,
+       "per_seed": {
+        "30000": [
+         253.76054896693677,
+         169.86773721687496
+        ],
+        "30001": [
+         121.63230840489268,
+         67.56752627715468
+        ],
+        "30002": [
+         109.79878493864089,
+         107.44970219861716
+        ],
+        "30003": [
+         90.26348517928272,
+         59.74293222930282
+        ],
+        "30004": [
+         140.24290863983333,
+         105.90836611390114
+        ],
+        "30005": [
+         122.87422117870301,
+         136.96449661813676
+        ],
+        "30006": [
+         152.95166780147702,
+         189.88593014050275
+        ]
+       },
+       "rank": {
+        "losses": 2,
+        "sign_test_p": 0.453125,
+        "ties": 0,
+        "wins": 5
+       },
+       "ratio_ci95": [
+        0.6618726510575178,
+        1.1146723479039713
+       ],
+       "ratio_median": 0.755178048865851
+      },
+      "rule": "W1 on one backend = the paired FR / ABF wall-clock time-to-accuracy ratio (median over both-finite pairs + seed-bootstrap 95 % CI, censoring-aware rank part) computed ONLY on the pairs in which NEITHER run was SMT-contended (each run pinned to one logical CPU, sibling busy <= 0.10 of its timed run, telemetry present); excluded pairs (contended or unknown) are counted; the same ratio on ALL pairs is reported as a sensitivity analysis and AGREES iff its median lies inside the primary 95 % CI; with no uncontended pair W1 is NOT EVALUABLE on that backend.  The same primary / all-pairs split is applied to the FR overhead and to the effective parallelism.",
+      "sensitivity_all_pairs": {
+       "abf_median": 122.25326479179785,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 106.67903415625915,
+       "n_both_finite": 8,
+       "per_seed": {
+        "30000": [
+         253.76054896693677,
+         169.86773721687496
+        ],
+        "30001": [
+         121.63230840489268,
+         67.56752627715468
+        ],
+        "30002": [
+         109.79878493864089,
+         107.44970219861716
+        ],
+        "30003": [
+         90.26348517928272,
+         59.74293222930282
+        ],
+        "30004": [
+         140.24290863983333,
+         105.90836611390114
+        ],
+        "30005": [
+         122.87422117870301,
+         136.96449661813676
+        ],
+        "30006": [
+         152.95166780147702,
+         189.88593014050275
+        ],
+        "30007": [
+         99.45547777600586,
+         86.80674442276359
+        ]
+       },
+       "rank": {
+        "losses": 2,
+        "sign_test_p": 0.2890625,
+        "ties": 0,
+        "wins": 6
+       },
+       "ratio_ci95": [
+        0.6618726510575178,
+        1.1146723479039713
+       ],
+       "ratio_median": 0.8139990963762236
+      },
+      "status": "EVALUATED"
+     },
+     "abf": {
+      "Ibar_F_median": 0.22931417554030428,
+      "bitwise_vs_production": [
+       "equal"
+      ],
+      "cuda_init_s_median": 0.0,
+      "engine_import_s_median": 0.11921453708782792,
+      "final_e_F_median": 0.05667196800869987,
+      "fr_time_frac_median": null,
+      "gpu_occupancy": [
+       "n/a"
+      ],
+      "import_s_median": 0.8939423561096191,
+      "n_censored": 0,
+      "n_smt_contended": 1,
+      "n_smt_unknown": 0,
+      "ns_per_walker_step_median": 851.488692348236,
+      "other_gpu_processes": 0,
+      "peak_gpu_alloc_mb_max": null,
+      "peak_gpu_device_mb_max": null,
+      "peak_gpu_reserved_mb_max": null,
+      "peak_rss_mb_max": 258.01171875,
+      "per_seed": {
+       "30000": {
+        "Ibar_F": 0.26830546185618986,
+        "final_e_F": 0.09068322960606202,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 258.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.0034819207958676104,
+        "smt_state": "uncontended",
+        "tau_fe": 297984512.0,
+        "tau_t": 116.4,
+        "tau_wall": 253.76054896693677,
+        "us_per_step": 435.9126730418454,
+        "wall_total_s": 261.5476038251072,
+        "warmup_s": 0.19221653509885073
+       },
+       "30001": {
+        "Ibar_F": 0.21058488689292928,
+        "final_e_F": 0.04943468380328729,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 258.01171875,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.005046836168992545,
+        "smt_state": "uncontended",
+        "tau_fe": 142848512.0,
+        "tau_t": 55.800000000000004,
+        "tau_wall": 121.63230840489268,
+        "us_per_step": 436.0117479227483,
+        "wall_total_s": 261.607048753649,
+        "warmup_s": 0.19535421393811703
+       },
+       "30002": {
+        "Ibar_F": 0.2283667466783096,
+        "final_e_F": 0.03234648861343379,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 258.0078125,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.005128205128205128,
+        "smt_state": "uncontended",
+        "tau_fe": 129024512.0,
+        "tau_t": 50.400000000000006,
+        "tau_wall": 109.79878493864089,
+        "us_per_step": 435.55116455381113,
+        "wall_total_s": 261.3306987322867,
+        "warmup_s": 0.19510725419968367
+       },
+       "30003": {
+        "Ibar_F": 0.2003531325183384,
+        "final_e_F": 0.02942085263740587,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 258.01171875,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.005353728489483747,
+        "smt_state": "uncontended",
+        "tau_fe": 105984512.0,
+        "tau_t": 41.4,
+        "tau_wall": 90.26348517928272,
+        "us_per_step": 436.1488047180076,
+        "wall_total_s": 261.6892828308046,
+        "warmup_s": 0.19279026426374912
+       },
+       "30004": {
+        "Ibar_F": 0.23026160440229895,
+        "final_e_F": 0.08032467945581784,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 257.41796875,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.005036630036630037,
+        "smt_state": "uncontended",
+        "tau_fe": 164352512.0,
+        "tau_t": 64.2,
+        "tau_wall": 140.24290863983333,
+        "us_per_step": 436.8757531636705,
+        "wall_total_s": 262.1254518982023,
+        "warmup_s": 0.19273991417139769
+       },
+       "30005": {
+        "Ibar_F": 0.25616775270722303,
+        "final_e_F": 0.06586162339805188,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 257.41796875,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.005627655909038704,
+        "smt_state": "uncontended",
+        "tau_fe": 144384512.0,
+        "tau_t": 56.400000000000006,
+        "tau_wall": 122.87422117870301,
+        "us_per_step": 435.68860973386717,
+        "wall_total_s": 261.4131658403203,
+        "warmup_s": 0.19289381429553032
+       },
+       "30006": {
+        "Ibar_F": 0.23485692586165716,
+        "final_e_F": 0.05907460726891317,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 257.00390625,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.005814620710760874,
+        "smt_state": "uncontended",
+        "tau_fe": 179712512.0,
+        "tau_t": 70.2,
+        "tau_wall": 152.95166780147702,
+        "us_per_step": 435.78384201352793,
+        "wall_total_s": 261.47030520811677,
+        "warmup_s": 0.19740383327007294
+       },
+       "30007": {
+        "Ibar_F": 0.21938428749000688,
+        "final_e_F": 0.05426932874848657,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 258.01171875,
+        "smt_contended": true,
+        "smt_sibling_busy_max": 0.12442344889153399,
+        "smt_state": "contended",
+        "tau_fe": 116736512.0,
+        "tau_t": 45.6,
+        "tau_wall": 99.45547777600586,
+        "us_per_step": 448.3809045376256,
+        "wall_total_s": 269.02854272257537,
+        "warmup_s": 0.21268094424158335
+       }
+      },
+      "tau_fe_median": 143616512.0,
+      "tau_t_median": 56.10000000000001,
+      "tau_wall_median": 122.25326479179785,
+      "us_per_step_median": 435.9622104822969,
+      "wall_total_s_median": 261.5773262893781,
+      "warmup_s_median": 0.194000534247607
+     },
+     "budget_fraction": [
+      1.0
+     ],
+     "fr": {
+      "Ibar_F_median": 0.20098361325420977,
+      "bitwise_vs_production": [
+       "equal"
+      ],
+      "cuda_init_s_median": 0.0,
+      "engine_import_s_median": 0.11793794669210911,
+      "final_e_F_median": 0.05101868833250171,
+      "fr_time_frac_median": null,
+      "gpu_occupancy": [
+       "n/a"
+      ],
+      "import_s_median": 0.8947850465774536,
+      "n_censored": 0,
+      "n_smt_contended": 0,
+      "n_smt_unknown": 0,
+      "ns_per_walker_step_median": 864.4298396181209,
+      "other_gpu_processes": 0,
+      "peak_gpu_alloc_mb_max": null,
+      "peak_gpu_device_mb_max": null,
+      "peak_gpu_reserved_mb_max": null,
+      "peak_rss_mb_max": 263.27734375,
+      "per_seed": {
+       "30000": {
+        "Ibar_F": 0.23307291906764832,
+        "final_e_F": 0.06475987015454802,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 262.21875,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.005086086727197378,
+        "smt_state": "uncontended",
+        "tau_fe": 196608512.0,
+        "tau_t": 76.8,
+        "tau_wall": 169.86773721687496,
+        "us_per_step": 442.51832106150687,
+        "wall_total_s": 265.5109926369041,
+        "warmup_s": 0.19200156535953283
+       },
+       "30001": {
+        "Ibar_F": 0.16443129464664133,
+        "final_e_F": 0.04114593738804312,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 262.21484375,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.005126851886756889,
+        "smt_state": "uncontended",
+        "tau_fe": 78336512.0,
+        "tau_t": 30.6,
+        "tau_wall": 67.56752627715468,
+        "us_per_step": 442.2270224879806,
+        "wall_total_s": 265.3362134927884,
+        "warmup_s": 0.19263745471835136
+       },
+       "30002": {
+        "Ibar_F": 0.2067498410676032,
+        "final_e_F": 0.02777532557283935,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 261.8125,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.005048031644377472,
+        "smt_state": "uncontended",
+        "tau_fe": 124416512.0,
+        "tau_t": 48.6,
+        "tau_wall": 107.44970219861716,
+        "us_per_step": 442.47962926359224,
+        "wall_total_s": 265.48777755815536,
+        "warmup_s": 0.1913427235558629
+       },
+       "30003": {
+        "Ibar_F": 0.17896764515226643,
+        "final_e_F": 0.04455430356329179,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 263.27734375,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.004965019183028662,
+        "smt_state": "uncontended",
+        "tau_fe": 69120512.0,
+        "tau_t": 27.0,
+        "tau_wall": 59.74293222930282,
+        "us_per_step": 443.15352332778275,
+        "wall_total_s": 265.89211399666965,
+        "warmup_s": 0.19343677442520857
+       },
+       "30004": {
+        "Ibar_F": 0.17506981024710455,
+        "final_e_F": 0.045574752926649295,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 262.21484375,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.0042725347852389595,
+        "smt_state": "uncontended",
+        "tau_fe": 122880512.0,
+        "tau_t": 48.0,
+        "tau_wall": 105.90836611390114,
+        "us_per_step": 441.78880106812966,
+        "wall_total_s": 265.0732806408778,
+        "warmup_s": 0.19512386340647936
+       },
+       "30005": {
+        "Ibar_F": 0.24294282241517393,
+        "final_e_F": 0.06868951459058809,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 262.80859375,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.006017752369489995,
+        "smt_state": "uncontended",
+        "tau_fe": 158208512.0,
+        "tau_t": 61.800000000000004,
+        "tau_wall": 136.96449661813676,
+        "us_per_step": 443.31036355501664,
+        "wall_total_s": 265.98621813300997,
+        "warmup_s": 0.1918676644563675
+       },
+       "30006": {
+        "Ibar_F": 0.21677962043027246,
+        "final_e_F": 0.07249333249948094,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 263.21875,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.0077633314490295835,
+        "smt_state": "uncontended",
+        "tau_fe": 219648512.0,
+        "tau_t": 85.8,
+        "tau_wall": 189.88593014050275,
+        "us_per_step": 442.6578347074489,
+        "wall_total_s": 265.5947008244693,
+        "warmup_s": 0.19657973386347294
+       },
+       "30007": {
+        "Ibar_F": 0.19521738544081635,
+        "final_e_F": 0.05646262373835414,
+        "peak_gpu_device_mb": null,
+        "peak_rss_mb": 262.80859375,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.006622516556291391,
+        "smt_state": "uncontended",
+        "tau_fe": 99840512.0,
+        "tau_t": 39.0,
+        "tau_wall": 86.80674442276359,
+        "us_per_step": 445.64000986826915,
+        "wall_total_s": 267.3840059209615,
+        "warmup_s": 0.1956701446324587
+       }
+      },
+      "tau_fe_median": 123648512.0,
+      "tau_t_median": 48.3,
+      "tau_wall_median": 106.67903415625915,
+      "us_per_step_median": 442.5880778844779,
+      "wall_total_s_median": 265.5528467306867,
+      "warmup_s_median": 0.19303711457177997
+     },
+     "fr_overhead": {
+      "ci95": [
+       0.011245869950165263,
+       0.016060387037639626
+      ],
+      "median": 0.015463731281229843,
+      "n": 8,
+      "per_seed": {
+       "30000": 0.015153603985785928,
+       "30001": 0.014254832799444447,
+       "30002": 0.015907349752763932,
+       "30003": 0.016060387037639626,
+       "30004": 0.011245869950165263,
+       "30005": 0.017493580623567564,
+       "30006": 0.01577385857667376,
+       "30007": -0.00611287109156194
+      }
+     },
+     "fr_overhead_uncontended": {
+      "ci95": [
+       0.014254832799444447,
+       0.016060387037639626
+      ],
+      "median": 0.01577385857667376,
+      "n": 7,
+      "per_seed": {
+       "30000": 0.015153603985785928,
+       "30001": 0.014254832799444447,
+       "30002": 0.015907349752763932,
+       "30003": 0.016060387037639626,
+       "30004": 0.011245869950165263,
+       "30005": 0.017493580623567564,
+       "30006": 0.01577385857667376
+      }
+     },
+     "n_seeds": {
+      "abf": 8,
+      "fr": 8
+     },
+     "n_steps": [
+      600000
+     ],
+     "paired": {
+      "tau_fe": {
+       "abf_median": 143616512.0,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 123648512.0,
+       "n_both_finite": 8,
+       "per_seed": {
+        "30000": [
+         297984512.0,
+         196608512.0
+        ],
+        "30001": [
+         142848512.0,
+         78336512.0
+        ],
+        "30002": [
+         129024512.0,
+         124416512.0
+        ],
+        "30003": [
+         105984512.0,
+         69120512.0
+        ],
+        "30004": [
+         164352512.0,
+         122880512.0
+        ],
+        "30005": [
+         144384512.0,
+         158208512.0
+        ],
+        "30006": [
+         179712512.0,
+         219648512.0
+        ],
+        "30007": [
+         116736512.0,
+         99840512.0
+        ]
+       },
+       "rank": {
+        "losses": 2,
+        "sign_test_p": 0.2890625,
+        "ties": 0,
+        "wins": 6
+       },
+       "ratio_ci95": [
+        0.6521755933546215,
+        1.0957443413321228
+       ],
+       "ratio_median": 0.8014640650984697
+      },
+      "tau_t": {
+       "abf_median": 56.10000000000001,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 48.3,
+       "n_both_finite": 8,
+       "per_seed": {
+        "30000": [
+         116.4,
+         76.8
+        ],
+        "30001": [
+         55.800000000000004,
+         30.6
+        ],
+        "30002": [
+         50.400000000000006,
+         48.6
+        ],
+        "30003": [
+         41.4,
+         27.0
+        ],
+        "30004": [
+         64.2,
+         48.0
+        ],
+        "30005": [
+         56.400000000000006,
+         61.800000000000004
+        ],
+        "30006": [
+         70.2,
+         85.8
+        ],
+        "30007": [
+         45.6,
+         39.0
+        ]
+       },
+       "rank": {
+        "losses": 2,
+        "sign_test_p": 0.2890625,
+        "ties": 0,
+        "wins": 6
+       },
+       "ratio_ci95": [
+        0.6521739130434783,
+        1.0957446808510638
+       ],
+       "ratio_median": 0.801463354648303
+      },
+      "tau_wall": {
+       "abf_median": 122.25326479179785,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 106.67903415625915,
+       "n_both_finite": 8,
+       "per_seed": {
+        "30000": [
+         253.76054896693677,
+         169.86773721687496
+        ],
+        "30001": [
+         121.63230840489268,
+         67.56752627715468
+        ],
+        "30002": [
+         109.79878493864089,
+         107.44970219861716
+        ],
+        "30003": [
+         90.26348517928272,
+         59.74293222930282
+        ],
+        "30004": [
+         140.24290863983333,
+         105.90836611390114
+        ],
+        "30005": [
+         122.87422117870301,
+         136.96449661813676
+        ],
+        "30006": [
+         152.95166780147702,
+         189.88593014050275
+        ],
+        "30007": [
+         99.45547777600586,
+         86.80674442276359
+        ]
+       },
+       "rank": {
+        "losses": 2,
+        "sign_test_p": 0.2890625,
+        "ties": 0,
+        "wins": 6
+       },
+       "ratio_ci95": [
+        0.6618726510575178,
+        1.1146723479039713
+       ],
+       "ratio_median": 0.8139990963762236
+      }
+     },
+     "production_crosscheck": {
+      "mismatches": [],
+      "n_runs_compared": 16,
+      "status": "EQUAL"
+     },
+     "resources": {
+      "allocated_definition": "process start to the end of each run (process_wall_s)",
+      "allocated_device_s": 4246.300134897232,
+      "timed_device_s": 4226.477403014898,
+      "unit": "core-seconds"
+     }
+    },
+    "gpu_torch": {
+     "G_Ibar_F": {
+      "G_ci95": [
+       -0.18480715790689362,
+       -0.047425421940376786
+      ],
+      "G_median": -0.11820528296627505,
+      "abf_median": 0.2287287143473543,
+      "fr_median": 0.18979813502411064,
+      "losses": 1,
+      "n": 8,
+      "n_common": 8,
+      "per_seed": {
+       "30000": -0.13037725938887706,
+       "30001": 0.032540921582642934,
+       "30002": -0.1285813917184384,
+       "30003": -0.21199686687155717,
+       "30004": -0.18480715790689362,
+       "30005": -0.0722803252608246,
+       "30006": -0.047425421940376786,
+       "30007": -0.1078291742141117
+      },
+      "ties": 0,
+      "wins": 7
+     },
+     "W1": {
+      "agree": true,
+      "excluded": [],
+      "n_pairs": 8,
+      "n_pairs_excluded": 0,
+      "n_pairs_uncontended": 8,
+      "primary": {
+       "abf_median": 197.64493903471157,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 202.69836141122505,
+       "n_both_finite": 8,
+       "per_seed": {
+        "30000": [
+         235.78354279417545,
+         199.68459833133966
+        ],
+        "30001": [
+         177.34137302823365,
+         349.03770516160876
+        ],
+        "30002": [
+         129.22803937550634,
+         72.14634339790791
+        ],
+        "30003": [
+         343.42636777460575,
+         238.5250209607184
+        ],
+        "30004": [
+         410.33401387091726,
+         131.48582778219134
+        ],
+        "30005": [
+         217.9485050411895,
+         450.53246962092817
+        ],
+        "30006": [
+         165.77631378546357,
+         205.71212449111044
+        ],
+        "30007": [
+         155.9505894575268,
+         195.092369614169
+        ]
+       },
+       "rank": {
+        "losses": 4,
+        "sign_test_p": 1.0,
+        "ties": 0,
+        "wins": 4
+       },
+       "ratio_ci95": [
+        0.5582870694824021,
+        1.9681685057555078
+       ],
+       "ratio_median": 1.0438998684304215
+      },
+      "rule": "W1 on one backend = the paired FR / ABF wall-clock time-to-accuracy ratio (median over both-finite pairs + seed-bootstrap 95 % CI, censoring-aware rank part) computed ONLY on the pairs in which NEITHER run was SMT-contended (each run pinned to one logical CPU, sibling busy <= 0.10 of its timed run, telemetry present); excluded pairs (contended or unknown) are counted; the same ratio on ALL pairs is reported as a sensitivity analysis and AGREES iff its median lies inside the primary 95 % CI; with no uncontended pair W1 is NOT EVALUABLE on that backend.  The same primary / all-pairs split is applied to the FR overhead and to the effective parallelism.",
+      "sensitivity_all_pairs": {
+       "abf_median": 197.64493903471157,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 202.69836141122505,
+       "n_both_finite": 8,
+       "per_seed": {
+        "30000": [
+         235.78354279417545,
+         199.68459833133966
+        ],
+        "30001": [
+         177.34137302823365,
+         349.03770516160876
+        ],
+        "30002": [
+         129.22803937550634,
+         72.14634339790791
+        ],
+        "30003": [
+         343.42636777460575,
+         238.5250209607184
+        ],
+        "30004": [
+         410.33401387091726,
+         131.48582778219134
+        ],
+        "30005": [
+         217.9485050411895,
+         450.53246962092817
+        ],
+        "30006": [
+         165.77631378546357,
+         205.71212449111044
+        ],
+        "30007": [
+         155.9505894575268,
+         195.092369614169
+        ]
+       },
+       "rank": {
+        "losses": 4,
+        "sign_test_p": 1.0,
+        "ties": 0,
+        "wins": 4
+       },
+       "ratio_ci95": [
+        0.5582870694824021,
+        1.9681685057555078
+       ],
+       "ratio_median": 1.0438998684304215
+      },
+      "status": "EVALUATED"
+     },
+     "abf": {
+      "Ibar_F_median": 0.2287287143473543,
+      "bitwise_vs_production": [
+       "not applicable (torch backend: different random streams)"
+      ],
+      "cuda_init_s_median": 0.18724945420399308,
+      "engine_import_s_median": 2.38823434850201,
+      "final_e_F_median": 0.06073125852317529,
+      "fr_time_frac_median": null,
+      "gpu_occupancy": [
+       "exclusive"
+      ],
+      "import_s_median": 0.8960435390472412,
+      "n_censored": 0,
+      "n_smt_contended": 0,
+      "n_smt_unknown": 0,
+      "ns_per_walker_step_median": 1335.9026587644016,
+      "other_gpu_processes": 0,
+      "peak_gpu_alloc_mb_max": 32.11474609375,
+      "peak_gpu_device_mb_max": 654.0,
+      "peak_gpu_reserved_mb_max": 42.0,
+      "peak_rss_mb_max": 1022.0,
+      "per_seed": {
+       "30000": {
+        "Ibar_F": 0.23795638086035772,
+        "final_e_F": 0.059297547111441855,
+        "peak_gpu_device_mb": 654.0,
+        "peak_rss_mb": 1020.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.03407460545193687,
+        "smt_state": "uncontended",
+        "tau_fe": 172032512.0,
+        "tau_t": 67.2,
+        "tau_wall": 235.78354279417545,
+        "us_per_step": 697.4230582173914,
+        "wall_total_s": 418.4538349304348,
+        "warmup_s": 0.2718732114881277
+       },
+       "30001": {
+        "Ibar_F": 0.2224166672742328,
+        "final_e_F": 0.037332025562079006,
+        "peak_gpu_device_mb": 654.0,
+        "peak_rss_mb": 1022.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.007094974800606743,
+        "smt_state": "uncontended",
+        "tau_fe": 135168512.0,
+        "tau_t": 52.800000000000004,
+        "tau_wall": 177.34137302823365,
+        "us_per_step": 680.1747849397361,
+        "wall_total_s": 408.1048709638417,
+        "warmup_s": 0.2697544516995549
+       },
+       "30002": {
+        "Ibar_F": 0.19454059668769882,
+        "final_e_F": 0.051356742740307895,
+        "peak_gpu_device_mb": 654.0,
+        "peak_rss_mb": 1020.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.00746287037265092,
+        "smt_state": "uncontended",
+        "tau_fe": 98304512.0,
+        "tau_t": 38.4,
+        "tau_wall": 129.22803937550634,
+        "us_per_step": 674.705224619247,
+        "wall_total_s": 404.8231347715482,
+        "warmup_s": 0.26984832249581814
+       },
+       "30003": {
+        "Ibar_F": 0.23504076142047586,
+        "final_e_F": 0.07795184217965244,
+        "peak_gpu_device_mb": 654.0,
+        "peak_rss_mb": 1020.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.004788354721317755,
+        "smt_state": "uncontended",
+        "tau_fe": 253440512.0,
+        "tau_t": 99.0,
+        "tau_wall": 343.42636777460575,
+        "us_per_step": 694.0959575617065,
+        "wall_total_s": 416.4575745370239,
+        "warmup_s": 0.27055786177515984
+       },
+       "30004": {
+        "Ibar_F": 0.23845083469684114,
+        "final_e_F": 0.09300177713891462,
+        "peak_gpu_device_mb": 654.0,
+        "peak_rss_mb": 1020.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.004137330333163969,
+        "smt_state": "uncontended",
+        "tau_fe": 305664512.0,
+        "tau_t": 119.4,
+        "tau_wall": 410.33401387091726,
+        "us_per_step": 687.3566364978129,
+        "wall_total_s": 412.4139818986878,
+        "warmup_s": 0.26888366136699915
+       },
+       "30005": {
+        "Ibar_F": 0.2618502424941063,
+        "final_e_F": 0.06290049881806369,
+        "peak_gpu_device_mb": 654.0,
+        "peak_rss_mb": 1022.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.005141830885428199,
+        "smt_state": "uncontended",
+        "tau_fe": 165888512.0,
+        "tau_t": 64.8,
+        "tau_wall": 217.9485050411895,
+        "us_per_step": 674.1241628785307,
+        "wall_total_s": 404.47449772711843,
+        "warmup_s": 0.2716201916337013
+       },
+       "30006": {
+        "Ibar_F": 0.19107076129618902,
+        "final_e_F": 0.062164969934908734,
+        "peak_gpu_device_mb": 654.0,
+        "peak_rss_mb": 1020.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.004864236968200959,
+        "smt_state": "uncontended",
+        "tau_fe": 124416512.0,
+        "tau_t": 48.6,
+        "tau_wall": 165.77631378546357,
+        "us_per_step": 688.8160350065058,
+        "wall_total_s": 413.28962100390345,
+        "warmup_s": 0.28699650056660175
+       },
+       "30007": {
+        "Ibar_F": 0.20644928360803097,
+        "final_e_F": 0.030976164810087824,
+        "peak_gpu_device_mb": 654.0,
+        "peak_rss_mb": 1020.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.004766305140800545,
+        "smt_state": "uncontended",
+        "tau_fe": 118272512.0,
+        "tau_t": 46.2,
+        "tau_wall": 155.9505894575268,
+        "us_per_step": 680.6076860769341,
+        "wall_total_s": 408.3646116461605,
+        "warmup_s": 0.2873850604519248
+       }
+      },
+      "tau_fe_median": 150528512.0,
+      "tau_t_median": 58.8,
+      "tau_wall_median": 197.64493903471157,
+      "us_per_step_median": 683.9821612873735,
+      "wall_total_s_median": 410.38929677242413,
+      "warmup_s_median": 0.2710890267044306
+     },
+     "budget_fraction": [
+      1.0
+     ],
+     "early_window_consistency": {
+      "backend": "gpu_torch",
+      "label": "EXPLORATORY",
+      "rule": "EXPLORATORY (not preregistered; proposed for the Experiment III amendment): for shortened-budget runs of one n_steps, Ebar_common = mean e_F over the saves common to the run's grid and the production N = 512 grid (identical integration steps, hence identical simulation times), scored with the same scorer; the EQUIVALENCE_RULE tests (reference without seeds sharing randomness; permutation median and Mann-Whitney per arm, permutation on the paired G; Holm at 0.05; >= 8 complete pairs, else INCOMPLETE) against the production per-seed Ebar_common at the same saves.  It tests equality in law up to the run's end only.",
+      "status": "NOT APPLICABLE (needs shortened-budget runs of ONE n_steps)",
+      "system": "lta300"
+     },
+     "equivalence": {
+      "backend": "gpu_torch",
+      "detail": {
+       "G_Ibar_F": {
+        "backend_median": -0.11820528296627505,
+        "backend_n": 8,
+        "inside_production_ci95_descriptive": true,
+        "perm": {
+         "backend_median": -0.11820528296627505,
+         "backend_median_null95": [
+          -0.17252315138234076,
+          -0.056126651348494594
+         ],
+         "d": -0.012809191796357922,
+         "mds_abs": {
+          "0.01": 0.10017147235830655,
+          "0.05": 0.08211937910650735
+         },
+         "mds_rel": {
+          "0.01": 0.9504287231754395,
+          "0.05": 0.779150139203136
+         },
+         "n": 8,
+         "n_reference": 16,
+         "nperm": 20000,
+         "p": 0.6526673666316685,
+         "reference_median": -0.10539609116991713,
+         "sd_null": 0.02931175485064115
+        },
+        "production_ci95_own_median": [
+         -0.17459348899540353,
+         -0.0769715662634244
+        ],
+        "production_median": -0.10539609116991713,
+        "production_median_all_seeds": -0.10539609116991713,
+        "production_n": 16
+       },
+       "abf": {
+        "backend_median": 0.2287287143473543,
+        "backend_n": 8,
+        "inside_production_ci95_descriptive": true,
+        "mannwhitney_p": 0.4523006345593503,
+        "perm": {
+         "backend_median": 0.2287287143473543,
+         "backend_median_null95": [
+          0.20288241714971791,
+          0.2585895895245721
+         ],
+         "d": -0.0005854611929499709,
+         "mds_abs": {
+          "0.01": 0.048514743486850025,
+          "0.05": 0.03977180846859368
+         },
+         "mds_rel": {
+          "0.01": 0.21156452004129622,
+          "0.05": 0.17343807191545987
+         },
+         "n": 8,
+         "n_reference": 16,
+         "nperm": 20000,
+         "p": 0.9981500924953752,
+         "reference_median": 0.22931417554030428,
+         "sd_null": 0.014196180152386129
+        },
+        "production_ci95_own_median": [
+         0.21174102418504326,
+         0.25616775270722303
+        ],
+        "production_median": 0.22931417554030428,
+        "production_n": 16
+       },
+       "fr": {
+        "backend_median": 0.18979813502411064,
+        "backend_n": 8,
+        "inside_production_ci95_descriptive": true,
+        "mannwhitney_p": 0.741723331035486,
+        "perm": {
+         "backend_median": 0.18979813502411064,
+         "backend_median_null95": [
+          0.1779621258823561,
+          0.24606983103994426
+         ],
+         "d": -0.017755172625215143,
+         "mds_abs": {
+          "0.01": 0.06710648796086248,
+          "0.05": 0.05501309899541841
+         },
+         "mds_rel": {
+          "0.01": 0.3233216985115123,
+          "0.05": 0.26505527480374563
+         },
+         "n": 8,
+         "n_reference": 16,
+         "nperm": 20000,
+         "p": 0.47157642117894105,
+         "reference_median": 0.20755330764932578,
+         "sd_null": 0.019636418210570425
+        },
+        "production_ci95_own_median": [
+         0.17888177950718934,
+         0.23307291906764832
+        ],
+        "production_median": 0.20755330764932578,
+        "production_n": 16
+       }
+      },
+      "holm": {
+       "R_mannwhitney_abf": {
+        "p_adj": 1.0,
+        "rejected": false
+       },
+       "R_mannwhitney_fr": {
+        "p_adj": 1.0,
+        "rejected": false
+       },
+       "R_median_G": {
+        "p_adj": 1.0,
+        "rejected": false
+       },
+       "R_median_abf": {
+        "p_adj": 1.0,
+        "rejected": false
+       },
+       "R_median_fr": {
+        "p_adj": 1.0,
+        "rejected": false
+       }
+      },
+      "min_detectable_shift": {
+       "G_Ibar_F": {
+        "abs": {
+         "0.01": 0.10017147235830655,
+         "0.05": 0.08211937910650735
+        },
+        "note": "normal approximation from the permutation null; alpha = per-test level (0.01 = Holm's strictest step, 0.05 = its most lenient)",
+        "power": 0.8,
+        "rel_to_reference_median": {
+         "0.01": 0.9504287231754395,
+         "0.05": 0.779150139203136
+        }
+       },
+       "abf": {
+        "abs": {
+         "0.01": 0.048514743486850025,
+         "0.05": 0.03977180846859368
+        },
+        "note": "normal approximation from the permutation null; alpha = per-test level (0.01 = Holm's strictest step, 0.05 = its most lenient)",
+        "power": 0.8,
+        "rel_to_reference_median": {
+         "0.01": 0.21156452004129622,
+         "0.05": 0.17343807191545987
+        }
+       },
+       "fr": {
+        "abs": {
+         "0.01": 0.06710648796086248,
+         "0.05": 0.05501309899541841
+        },
+        "note": "normal approximation from the permutation null; alpha = per-test level (0.01 = Holm's strictest step, 0.05 = its most lenient)",
+        "power": 0.8,
+        "rel_to_reference_median": {
+         "0.01": 0.3233216985115123,
+         "0.05": 0.26505527480374563
+        }
+       }
+      },
+      "min_pairs": 8,
+      "n_complete_pairs": 8,
+      "p_values": {
+       "R_mannwhitney_abf": 0.4523006345593503,
+       "R_mannwhitney_fr": 0.741723331035486,
+       "R_median_G": 0.6526673666316685,
+       "R_median_abf": 0.9981500924953752,
+       "R_median_fr": 0.47157642117894105
+      },
+      "production": {
+       "G_ci95": [
+        -0.17459348899540353,
+        -0.0769715662634244
+       ],
+       "G_median": -0.10539609116991713,
+       "n_seeds": {
+        "abf": 16,
+        "fr": 16
+       },
+       "path": "results/equal_budget_v2/lta_T300/analysis/summary.json",
+       "reference_excludes_seeds": [],
+       "why_excluded": "nothing excluded: independent randomness"
+      },
+      "rejected": [],
+      "rule": "reference = production per-seed values minus seeds sharing randomness with the backend runs; R1/R2: two-sample permutation test of the median Ibar_F difference per arm (20 000 relabellings); R3/R4: two-sided Mann-Whitney U per arm; R5: permutation test of the median paired G(Ibar_F) difference; Holm over R1-R5 at 0.05 -> CONSISTENT / INCONSISTENT, only with >= 8 complete backend pairs (else INCOMPLETE); minimum detectable shift (80 % power) reported with every verdict",
+      "status": "CONSISTENT",
+      "system": "lta300"
+     },
+     "fr": {
+      "Ibar_F_median": 0.18979813502411064,
+      "bitwise_vs_production": [
+       "not applicable (torch backend: different random streams)"
+      ],
+      "cuda_init_s_median": 0.18627759953960776,
+      "engine_import_s_median": 2.3865990596823394,
+      "final_e_F_median": 0.06007963388618053,
+      "fr_time_frac_median": 0.17716424325835844,
+      "gpu_occupancy": [
+       "exclusive"
+      ],
+      "import_s_median": 0.8950557708740234,
+      "n_censored": 0,
+      "n_smt_contended": 0,
+      "n_smt_unknown": 0,
+      "ns_per_walker_step_median": 1665.9472012330905,
+      "other_gpu_processes": 0,
+      "peak_gpu_alloc_mb_max": 64.1298828125,
+      "peak_gpu_device_mb_max": 752.0,
+      "peak_gpu_reserved_mb_max": 74.0,
+      "peak_rss_mb_max": 1162.0,
+      "per_seed": {
+       "30000": {
+        "Ibar_F": 0.20693228006968845,
+        "final_e_F": 0.042893812601957675,
+        "peak_gpu_device_mb": 752.0,
+        "peak_rss_mb": 1162.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.004583741429970617,
+        "smt_state": "uncontended",
+        "tau_fe": 122880512.0,
+        "tau_t": 48.0,
+        "tau_wall": 199.68459833133966,
+        "us_per_step": 845.1860282104462,
+        "wall_total_s": 507.11161692626774,
+        "warmup_s": 0.3323456207290292
+       },
+       "30001": {
+        "Ibar_F": 0.22965431060267638,
+        "final_e_F": 0.06102831713326034,
+        "peak_gpu_device_mb": 752.0,
+        "peak_rss_mb": 1162.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.004630986576000938,
+        "smt_state": "uncontended",
+        "tau_fe": 211968512.0,
+        "tau_t": 82.8,
+        "tau_wall": 349.03770516160876,
+        "us_per_step": 848.081100252457,
+        "wall_total_s": 508.8486601514742,
+        "warmup_s": 0.33242916967719793
+       },
+       "30002": {
+        "Ibar_F": 0.16952629601985908,
+        "final_e_F": 0.05690197569597023,
+        "peak_gpu_device_mb": 752.0,
+        "peak_rss_mb": 1162.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.004975897994091121,
+        "smt_state": "uncontended",
+        "tau_fe": 46080512.0,
+        "tau_t": 18.0,
+        "tau_wall": 72.14634339790791,
+        "us_per_step": 853.082061749883,
+        "wall_total_s": 511.8492370499298,
+        "warmup_s": 0.3340654904022813
+       },
+       "30003": {
+        "Ibar_F": 0.18521285641222981,
+        "final_e_F": 0.059130950639100725,
+        "peak_gpu_device_mb": 752.0,
+        "peak_rss_mb": 1162.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.004663907188246954,
+        "smt_state": "uncontended",
+        "tau_fe": 144384512.0,
+        "tau_t": 56.400000000000006,
+        "tau_wall": 238.5250209607184,
+        "us_per_step": 852.9304057219997,
+        "wall_total_s": 511.7582434331998,
+        "warmup_s": 0.3351109903305769
+       },
+       "30004": {
+        "Ibar_F": 0.19438341363599143,
+        "final_e_F": 0.06517141329983836,
+        "peak_gpu_device_mb": 752.0,
+        "peak_rss_mb": 1162.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.004870192867398812,
+        "smt_state": "uncontended",
+        "tau_fe": 81408512.0,
+        "tau_t": 31.8,
+        "tau_wall": 131.48582778219134,
+        "us_per_step": 852.9995283406848,
+        "wall_total_s": 511.7997170044109,
+        "warmup_s": 0.33310470078140497
+       },
+       "30005": {
+        "Ibar_F": 0.24292362179700652,
+        "final_e_F": 0.08092875893334345,
+        "peak_gpu_device_mb": 752.0,
+        "peak_rss_mb": 1162.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.005119487269671923,
+        "smt_state": "uncontended",
+        "tau_fe": 271872512.0,
+        "tau_t": 106.2,
+        "tau_wall": 450.53246962092817,
+        "us_per_step": 849.3787932458023,
+        "wall_total_s": 509.6272759474814,
+        "warmup_s": 0.3702403586357832
+       },
+       "30006": {
+        "Ibar_F": 0.18200914982124825,
+        "final_e_F": 0.062039665801705016,
+        "peak_gpu_device_mb": 752.0,
+        "peak_rss_mb": 1162.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.005671296296296297,
+        "smt_state": "uncontended",
+        "tau_fe": 124416512.0,
+        "tau_t": 48.6,
+        "tau_wall": 205.71212449111044,
+        "us_per_step": 862.0832669331381,
+        "wall_total_s": 517.2499601598829,
+        "warmup_s": 0.35490278992801905
+       },
+       "30007": {
+        "Ibar_F": 0.18418802783948204,
+        "final_e_F": 0.035723977703272354,
+        "peak_gpu_device_mb": 752.0,
+        "peak_rss_mb": 1162.0,
+        "smt_contended": false,
+        "smt_sibling_busy_max": 0.004734665481389866,
+        "smt_state": "uncontended",
+        "tau_fe": 118272512.0,
+        "tau_t": 46.2,
+        "tau_wall": 195.092369614169,
+        "us_per_step": 856.9548128638417,
+        "wall_total_s": 514.172887718305,
+        "warmup_s": 0.3903395179659128
+       }
+      },
+      "tau_fe_median": 123648512.0,
+      "tau_t_median": 48.3,
+      "tau_wall_median": 202.69836141122505,
+      "us_per_step_median": 852.9649670313422,
+      "wall_total_s_median": 511.7789802188054,
+      "warmup_s_median": 0.3345882403664291
+     },
+     "fr_overhead": {
+      "ci95": [
+       0.22883644030756728,
+       0.25997381494075067
+      ],
+      "median": 0.24920057609626056,
+      "n": 8,
+      "per_seed": {
+       "30000": 0.21186992350200756,
+       "30001": 0.24685760047338043,
+       "30002": 0.2643774356887461,
+       "30003": 0.22883644030756728,
+       "30004": 0.24098536778061494,
+       "30005": 0.25997381494075067,
+       "30006": 0.2515435517191407,
+       "30007": 0.25910246151256905
+      }
+     },
+     "fr_overhead_uncontended": {
+      "ci95": [
+       0.22883644030756728,
+       0.25997381494075067
+      ],
+      "median": 0.24920057609626056,
+      "n": 8,
+      "per_seed": {
+       "30000": 0.21186992350200756,
+       "30001": 0.24685760047338043,
+       "30002": 0.2643774356887461,
+       "30003": 0.22883644030756728,
+       "30004": 0.24098536778061494,
+       "30005": 0.25997381494075067,
+       "30006": 0.2515435517191407,
+       "30007": 0.25910246151256905
+      }
+     },
+     "n_seeds": {
+      "abf": 8,
+      "fr": 8
+     },
+     "n_steps": [
+      600000
+     ],
+     "paired": {
+      "tau_fe": {
+       "abf_median": 150528512.0,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 123648512.0,
+       "n_both_finite": 8,
+       "per_seed": {
+        "30000": [
+         172032512.0,
+         122880512.0
+        ],
+        "30001": [
+         135168512.0,
+         211968512.0
+        ],
+        "30002": [
+         98304512.0,
+         46080512.0
+        ],
+        "30003": [
+         253440512.0,
+         144384512.0
+        ],
+        "30004": [
+         305664512.0,
+         81408512.0
+        ],
+        "30005": [
+         165888512.0,
+         271872512.0
+        ],
+        "30006": [
+         124416512.0,
+         124416512.0
+        ],
+        "30007": [
+         118272512.0,
+         118272512.0
+        ]
+       },
+       "rank": {
+        "losses": 2,
+        "sign_test_p": 0.6875,
+        "ties": 2,
+        "wins": 4
+       },
+       "ratio_ci95": [
+        0.4687527669126723,
+        1.5681796659861136
+       ],
+       "ratio_median": 0.8571432823116598
+      },
+      "tau_t": {
+       "abf_median": 58.8,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 48.3,
+       "n_both_finite": 8,
+       "per_seed": {
+        "30000": [
+         67.2,
+         48.0
+        ],
+        "30001": [
+         52.800000000000004,
+         82.8
+        ],
+        "30002": [
+         38.4,
+         18.0
+        ],
+        "30003": [
+         99.0,
+         56.400000000000006
+        ],
+        "30004": [
+         119.4,
+         31.8
+        ],
+        "30005": [
+         64.8,
+         106.2
+        ],
+        "30006": [
+         48.6,
+         48.6
+        ],
+        "30007": [
+         46.2,
+         46.2
+        ]
+       },
+       "rank": {
+        "losses": 2,
+        "sign_test_p": 0.6875,
+        "ties": 2,
+        "wins": 4
+       },
+       "ratio_ci95": [
+        0.46875,
+        1.568181818181818
+       ],
+       "ratio_median": 0.8571428571428572
+      },
+      "tau_wall": {
+       "abf_median": 197.64493903471157,
+       "censored_frac_abf": 0.0,
+       "censored_frac_fr": 0.0,
+       "fr_median": 202.69836141122505,
+       "n_both_finite": 8,
+       "per_seed": {
+        "30000": [
+         235.78354279417545,
+         199.68459833133966
+        ],
+        "30001": [
+         177.34137302823365,
+         349.03770516160876
+        ],
+        "30002": [
+         129.22803937550634,
+         72.14634339790791
+        ],
+        "30003": [
+         343.42636777460575,
+         238.5250209607184
+        ],
+        "30004": [
+         410.33401387091726,
+         131.48582778219134
+        ],
+        "30005": [
+         217.9485050411895,
+         450.53246962092817
+        ],
+        "30006": [
+         165.77631378546357,
+         205.71212449111044
+        ],
+        "30007": [
+         155.9505894575268,
+         195.092369614169
+        ]
+       },
+       "rank": {
+        "losses": 4,
+        "sign_test_p": 1.0,
+        "ties": 0,
+        "wins": 4
+       },
+       "ratio_ci95": [
+        0.5582870694824021,
+        1.9681685057555078
+       ],
+       "ratio_median": 1.0438998684304215
+      }
+     },
+     "resources": {
+      "allocated_definition": "process start to the end of each run (process_wall_s)",
+      "allocated_device_s": 7507.197549581528,
+      "timed_device_s": 7378.7997258696705,
+      "unit": "GPU-seconds"
+     }
+    }
+   },
+   "effective_parallelism": {
+    "abf": {
+     "ci95": [
+      0.62836960792879,
+      0.6463032090015339
+     ],
+     "definition": "wall_total(cpu_numba_1core) / wall_total(gpu_torch), same seed and n_steps",
+     "median": 0.6383085791743297,
+     "n": 8,
+     "n_smt_contended_pairs": 1,
+     "per_seed": {
+      "30000": 0.6250333537236856,
+      "30001": 0.6410289789871867,
+      "30002": 0.645542895861824,
+      "30003": 0.62836960792879,
+      "30004": 0.6355881793614726,
+      "30005": 0.6463032090015339,
+      "30006": 0.6326563550591735,
+      "30007": 0.6587949470893013
+     },
+     "uncontended": {
+      "ci95": [
+       0.62836960792879,
+       0.645542895861824
+      ],
+      "median": 0.6355881793614726,
+      "n": 7
+     }
+    },
+    "fr": {
+     "ci95": [
+      0.5179238515260712,
+      0.5219230419692462
+     ],
+     "definition": "wall_total(cpu_numba_1core) / wall_total(gpu_torch), same seed and n_steps",
+     "median": 0.5197966476162574,
+     "n": 8,
+     "n_smt_contended_pairs": 0,
+     "per_seed": {
+      "30000": 0.5235750548296125,
+      "30001": 0.5214442608806379,
+      "30002": 0.5186835465230119,
+      "30003": 0.5195658641723018,
+      "30004": 0.5179238515260712,
+      "30005": 0.5219230419692462,
+      "30006": 0.5134745699011238,
+      "30007": 0.520027431060213
+     },
+     "uncontended": {
+      "ci95": [
+       0.5179238515260712,
+       0.5219230419692462
+      ],
+      "median": 0.5197966476162574,
+      "n": 8
+     }
+    }
+   },
+   "not_tested": [
+    {
+     "backend": "cpu_numba_threads",
+     "label": "NOT TESTED",
+     "why": "no walker-parallel numba build exists (none written): NOT TESTED"
+    }
+   ],
+   "wall_to_accuracy_by_backend": {
+    "cpu_numba_1core/abf": 122.25326479179785,
+    "cpu_numba_1core/fr": 106.67903415625915,
+    "gpu_torch/abf": 197.64493903471157,
+    "gpu_torch/fr": 202.69836141122505
+   }
+  }
+ },
+ "thresholds": {
+  "gateway": 0.0055,
+  "lta150": 0.13,
+  "lta300": 0.094
+ },
+ "unavailable_backends": {
+  "cpu_numba_threads": "no walker-parallel numba build exists (none written): NOT TESTED"
+ },
+ "version": "analyze_parallel_benchmark/1",
+ "w1_rule": "W1 on one backend = the paired FR / ABF wall-clock time-to-accuracy ratio (median over both-finite pairs + seed-bootstrap 95 % CI, censoring-aware rank part) computed ONLY on the pairs in which NEITHER run was SMT-contended (each run pinned to one logical CPU, sibling busy <= 0.10 of its timed run, telemetry present); excluded pairs (contended or unknown) are counted; the same ratio on ALL pairs is reported as a sensitivity analysis and AGREES iff its median lies inside the primary 95 % CI; with no uncontended pair W1 is NOT EVALUABLE on that backend.  The same primary / all-pairs split is applied to the FR overhead and to the effective parallelism."
+}
