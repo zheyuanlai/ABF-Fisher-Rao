@@ -8,37 +8,19 @@
  "experiment_label": "II: transverse mobility lambda on V_1 (conditional relaxation), Gibbs law unchanged",
  "cell": "lam1",
  "cell_label": "II: lambda = 1 (original gateway)",
- "out_dir": "gateway",
- "results_dir": "results/equal_budget_v2/gateway",
+ "out_dir": "lam1",
+ "results_dir": "results/mechanism/conditional_relaxation/lam1",
  "analysis_dir": "results/mechanism/conditional_relaxation/lam1/analysis",
  "fig_dir": "figures/mechanism/conditional_relaxation/lam1",
  "reference_file": "results/mechanism/references/conditional_relaxation_lam1_reference.npz",
- "ledger": "results/equal_budget_v2/gateway/ledger.csv",
- "ledger_filter": null,
- "engine": "src/gateway_ladder_numba.py run_job (equal-budget production files, reused)",
- "engine_version": "gateway_ladder_numba/2",
- "reuse": {
-  "source": "results/equal_budget_v2/gateway",
-  "engine": "gateway_ladder_numba/2",
-  "condition": "results/equal_budget_v2/gateway (as Experiment I alpha1)",
-  "missing_model_fields": {
-   "variant": "alpha",
-   "alpha": 1.0,
-   "kappa": null,
-   "lam": 1.0
-  },
-  "eqb_config": "configs/equal_budget_v2/gateway_production.json",
-  "eqb_config_sha256": "bfda33b0caa87b569a2552b1e5753e1a44469d6d91a17805b954750b996b4d35",
-  "eqb_B": 3276800000,
-  "eqb_h": 2.5e-05,
-  "gate_record": "results/mechanism/reuse_gate/reuse_gate.json",
-  "gate_required_N": [
-   2048,
-   128
-  ],
-  "gate_min_jobs": 4,
-  "note": "valid only if the new engine reproduces these files bitwise (SCIENTIFIC_PLAN section 5): gate_record (scripts/mechanism/reuse_gate.py) must record a PASS; otherwise regenerate the cell configs with --rerun-reuse-cells"
+ "ledger": "results/mechanism/conditional_relaxation/ledger.csv",
+ "ledger_filter": {
+  "experiment": "conditional_relaxation",
+  "variant": "lam1"
  },
+ "engine": "src/gateway_family_numba.py run_job",
+ "engine_version": "gateway_family_numba/1",
+ "reuse": null,
  "engine_cfg": {
   "system": "gateway_family",
   "beta": 16.0,
