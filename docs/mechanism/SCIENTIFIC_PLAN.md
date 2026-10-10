@@ -317,7 +317,7 @@ total.
 
 ---
 
-## Amendment 1 (2026-10-10 ≈ 12:30 UTC, after the implementation review and BEFORE any validation-gate run, smoke run or production run)
+## Amendment 1 (2026-10-10, committed 11:51 UTC (bf56da4) — the header first said "≈ 12:30", an estimate, corrected from the commit time; after the implementation review and BEFORE any validation-gate run, smoke run or production run)
 
 The implementation review raised four points that the frozen text left ambiguous, or that would make it fail for
 reasons unrelated to its purpose. No gate, smoke or performance data existed when this was written.
