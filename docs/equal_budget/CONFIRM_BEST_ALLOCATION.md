@@ -46,3 +46,34 @@ Re-using the same seeds cannot remove the winner's curse. A fresh-seed paired co
 
 (32 + 32 + 64) seeds × 2 arms = 256 runs of about 4.5 min each ≈ 19 core-h, i.e. about 15 min of wall time on 110
 workers. Ledgers: `results/equal_budget_v2/confirm_best_*/ledger.csv`.
+
+---
+
+## Results (appended after the runs; nothing above this line was changed)
+
+*Runs 08:35–08:49 UTC, 256/256 complete, 0 failed, 22.1 core-h.*
+
+Analysis: `scripts/equal_budget/analyze_ladder.py --system <s> --config configs/equal_budget_v2/confirm_best_<s>.json`,
+written to `results/equal_budget_v2/confirm_best_*/analysis/{summary.json,tables.md}`. G = (FR − ABF)/ABF at N\*:
+the paired median, a 10 000-resample seed-bootstrap 95 % CI, and wins.
+
+| system | N\* | seeds | G Ī_F (primary) | G final e_F | G Ī_F′ | Ī_TV_half (marginal) | verdict by the frozen rule |
+|---|---|---|---|---|---|---|---|
+| LTA 300 K | 16 | 32 | +6.2 % [−1.2, +22.4], 11/32 | +6.3 % [−24.7, +31.4] | −0.2 % [−3.1, +6.2] | −6.5 % [−13.0, −1.8], 24/32 | **tie** (weak A); any FR advantage ≤ 1.2 % |
+| LTA 150 K | 2 | 32 | −3.0 % [−8.7, +3.3], 19/32 | −3.2 % [−17.5, +13.0] | −2.8 % [−5.4, +1.0] | −4.6 % [−11.4, +5.3], 20/32 | **tie** (weak A); any FR advantage ≤ 8.7 % |
+| gateway | 16 | 64 | **+24.0 % [+1.1, +52.9]**, 22/64 | **+21.4 % [+2.0, +51.9]** | +0.3 % [+0.0, +0.6]; Ī_F′_stat **+12.0 % [+4.5, +17.2]** | −31.3 % [−34.7, −27.8], 63/64 | **ABF better: strict A** |
+
+**τ(e_F mid)**
+* LTA 300 K: 0.09 vs 0.09 (14/17/1, p = 0.72).
+* LTA 150 K: 0.035 vs 0.0375 (6/6/20).
+* gateway: 0.020 vs 0.025 (26/34/4, p = 0.37).
+* No arm is censored.
+
+**Reading**
+* At the best allocation, FR never beats ABF on fresh seeds.
+* In the gateway, FR at N\* = 16 is significantly *worse* on the free energy and on the floor-free mean force,
+  while it still improves the marginal (−31 %, 63/64). That is outcome C at the best allocation.
+* In LTA the two arms are statistically tied at N\*.
+* This independent test agrees with the production best-allocation bootstrap: +3.4 % [−13.2, +12.4],
+  +5.2 % [−10.9, +24.1], +15.9 % [−4.2, +26.6]. It also sharpens it: the gateway moves from "unresolved" to
+  "ABF better", and the bounds on a possible FR advantage tighten to ≤ 1.2 % (300 K) and ≤ 8.7 % (150 K).
