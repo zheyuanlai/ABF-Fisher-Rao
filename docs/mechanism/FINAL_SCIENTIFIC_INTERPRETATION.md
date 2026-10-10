@@ -140,3 +140,102 @@ At most two, and only because each answers a question this campaign could not.
    materially faster per walker-step than N = 16. Then compare wall-clock time-to-accuracy of large-N FR against the
    best small-N ABF on the same hardware. Without such an implementation the "FR saves wall-clock" claim stays limited
    to fixed N.
+
+## 4. Validation status, experiment table and resources
+
+**Numerical validation.** All seven dynamics PASS the frozen gate at the common h = 2.5 × 10⁻⁵:
+* α = 1, 0.5, 0 and the shifted fibre at λ = 1;
+* λ = 0.5, 0.25, 0.1 on V₁.
+The gate covers V1–V5, Holm on V4, and the ABF-bias smoke test (`EXP1_TIMESTEP_VALIDATION.md`).
+
+**Experiment table**
+
+| experiment | cells | N | seeds × arms | runs | status |
+|---|---|---|---|---|---|
+| I matched free energy | α = 1, 0.5, 0, shifted fibre | 2048, 512, 128 | 32 × 2 | 768 | complete. α = 1 is bitwise equal to the equal-budget data (192/192). |
+| II conditional relaxation | λ = 0.5, 0.25, 0.1 (λ = 1 = I α = 1 by hard link) | 2048, 512 | 32 × 2 | 384 (+128 links) | complete |
+| III wall-clock, 1 CPU core | gateway, LTA 300 K, LTA 150 K | 512 | 8 × 2 | 48 | complete |
+| III wall-clock, GPU | LTA 300 K / LTA 150 K | 512 | 8 × 2 | 16 / 11 | LTA 300 K complete; **LTA 150 K incomplete (5 pairs)**; gateway GPU and threaded CPU **NOT TESTED** |
+
+**Resources.** About 180 CPU core-h of the 400 ceiling and about 3.8 GPU-h of 8 (`EXECUTION_LOG.md`). Only GPU 3 was
+used, and only while no other process was on it. No other user's process was touched.
+
+## 5. Implementation defects found and fixed (none affected a reported result)
+
+**Engine build review** (`src/gateway_family_numba.py`, `scripts/mechanism/run_cells.py`)
+* The driver skipped any "complete" file without checking that it came from the same run. A signature check was
+  added; stale files are now refused, never overwritten.
+* Smoke output paths could collide.
+* Reuse cells were always dropped. A licensed-reuse gate was added.
+* Experiment II λ = 1 jobs duplicated the α = 1 jobs; they are now hard links.
+* The reused equal-budget files lacked the D1–D3 diagnostics, which led to Amendment A4 (re-run, plus a 192-job
+  bitwise check).
+
+**Validation harness review**
+* An exact-sampler failure could trigger a timestep refinement. V4 is now an h-independent precondition, with the Holm
+  rule of A3.
+* A signed z_f made the force ACF sign-dependent; it is now sign-invariant.
+* The shifted fibre's ACF stride was under-resolved.
+* MALA test M6 could not tell MALA from EM.
+* There was no check that gate data matched the frozen design (a partial run could have read PASS).
+* The figure always plotted the first candidate h.
+
+**Analysis extension review**
+* Editing `eqb_metrics.py` would have marked every equal-budget analysis stale. The mechanism code moved to a separate
+  `eqb_family.py`, and the equal-budget outputs are byte-identical.
+* Foreign or stale summaries were accepted by the cross-cell tool.
+* The audit could never pass on the driver's ledgers.
+* Multiplicity labels on the trend rows were wrong.
+
+**Mechanism-analysis review**
+* **Critical:** the bootstrap CI of the debiased bias B under-covered, excluding a true B = 0 in 20 of 20
+  simulations. It is now a reflected (basic) interval with 60/60 coverage.
+* `cross_cell.json` was not verified against the analysed summaries.
+* p-values from fewer than 10 seeds were not flagged.
+* The labelling of preregistered vs exploratory readouts was wrong.
+
+**Benchmark review**
+* The equivalence test was too permissive: 8–12 % false alarms, now 3–4 %.
+* There was no minimum seed count.
+* GPU memory was under-stated.
+* SMT-contended pairs were counted.
+* The GPU-guard and resource-guard had gaps.
+
+**Process errors of the main session**
+* Estimated, not measured, timestamps written into the execution log, twice.
+* A miscount of the production runs (1 024 vs 1 152).
+* An outlier-flattened linear axis in S3/S5 that the per-figure legibility check cannot see.
+* The first GPU launch was refused by the harness guard (CUDA_VISIBLE_DEVICES not pinned).
+
+All are corrected and noted in `EXECUTION_LOG.md`.
+
+## 6. Files, scripts, configurations and commits
+
+**Configs (preregistered)**
+* `configs/mechanism/{matched_free_energy,conditional_relaxation,parallel_benchmark}.json`.
+* Cell configs: `configs/mechanism/cells/`.
+
+**Engine and harness**
+* `src/gateway_family_numba.py`, `src/gateway_family_validation.py`.
+* `scripts/mechanism/{run_cells, run_validation, analyze_validation, abf_smoke, compare_alpha1_bitwise, make_cell_configs, build_references, reuse_gate, cross_cell, mech_analysis, parallel_benchmark, analyze_parallel_benchmark, bench_torch_engines, bench_step_costs}.py`.
+* `scripts/equal_budget/eqb_family.py`, plus the `gateway_family` system in
+  `analyze_ladder/plot_config/plot_synthesis/audit_completeness`.
+
+**Tests**
+* `tests/test_gateway_family_numba.py` (83), `test_gateway_family_validation.py` (57), `test_mech_cross_cell.py`,
+  `test_mech_pipeline.py`, `test_mech_analysis.py`, `test_parallel_benchmark.py`.
+* The existing suites are unchanged and pass.
+
+**Commits on `main`, in order**
+1. 44735ea7: preregistration.
+2. c40a859e: implementation.
+3. bf56da4a: Amendment 1.
+4. af3ee74e: A3 / V5 tools.
+5. bd0c3bd8: gate PASS.
+6. 2ccf40d2: Experiments I + II production and analysis.
+7. 7df73a2d: mechanism analysis and benchmark harness.
+8. d3595341: Amendment 2.
+9. 25074257: figure fix.
+10. 94bcf123: Experiment I/II reports.
+11. a9553f4e: Experiment III and final interpretation.
+12. Log corrections: e1f1ff7a, 4cfacb94, 572f190e, 7a0c52bf, 1453f528.
