@@ -748,3 +748,22 @@ def test_M12_acf_resolved_flag_from_measured_decay():
     assert fine["resolved"] and fine["resolved_y"] and fine["resolved_f"] and fine["rho_y_first_lag"] > 0.9
     assert not coarse["resolved"] and not coarse["resolved_y"] and coarse["rho_y_first_lag"] < 0.5
     assert abs(fine["tau_e_y"] / tau - 1) < 0.25
+
+
+# --- Amendment 1 (A3): Holm-Bonferroni over the V4 family of 3-se clauses -------------------------------------------
+def test_holm_reject_known_answers():
+    import importlib.util, os, sys
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    sys.path.insert(0, os.path.join(root, "scripts", "mechanism"))
+    import analyze_validation as AV
+    # classic example: p = 0.01, 0.04, 0.03, 0.005 at alpha 0.05 -> sorted 0.005 (<= .0125 rej), 0.01 (<= .0167 rej),
+    # 0.03 (> .025 stop) -> rejected exactly the first two smallest
+    assert AV.holm_reject([0.01, 0.04, 0.03, 0.005]) == [True, False, False, True]
+    assert AV.holm_reject([]) == []
+    # a single 3.2-se excursion among 32 clauses (t_15) is NOT rejected (unadjusted it would FAIL the 3-se clause)
+    p_single = AV.t_two_sided(3.2, 15)
+    assert p_single > 0.05 / 32
+    assert AV.holm_reject([p_single] + [0.5] * 31) == [False] * 32
+    # an extreme one is rejected
+    p_ext = AV.t_two_sided(8.0, 15)
+    assert AV.holm_reject([p_ext] + [0.5] * 31)[0] is True

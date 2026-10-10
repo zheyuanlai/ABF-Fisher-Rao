@@ -468,6 +468,20 @@ def family_rate(k, dof, z=Z_3SE):
     return float(1.0 - (1.0 - t_two_sided(z, dof)) ** k) if k > 0 else 0.0
 
 
+def holm_reject(pvals, alpha=0.05):
+    """Holm-Bonferroni step-down at family-wise level alpha: list of booleans (True = rejected), in input order.
+    Amendment 1 (A3, docs/mechanism/SCIENTIFIC_PLAN.md): the V4 family of 3-se clauses is judged this way."""
+    k = len(pvals)
+    order = sorted(range(k), key=lambda i: pvals[i])
+    rej = [False] * k
+    for r, i in enumerate(order):
+        if pvals[i] <= alpha / (k - r):
+            rej[i] = True
+        else:
+            break
+    return rej
+
+
 def family_summary(zs, dof):
     """Counts, per-test null rate, family-wise null rate and the Bonferroni-adjusted p of the largest |z| of a family
     of 3-se clauses (descriptive; zs = list of finite z values)."""
@@ -718,6 +732,7 @@ def analyse_all(res, abf_path, smoke):
         observed={})
     table = {}
     v4 = {}
+    v4_family = []
     z_v4 = []
     z_h = {f"{h:g}": dict(plan=[], strict=[]) for h in H_CANDIDATES}
     dof_seen = []
@@ -749,8 +764,22 @@ def analyse_all(res, abf_path, smoke):
                 z_v4 += vals
         dof_seen += [o["n_groups"] - 1 for o in (o_mala, o_ex) if o.get("n_groups")]
         fails = [c for st_, c in ((s_mala, c_mala), (s_ex, c_ex)) if st_ == FAIL]
-        D["V4"] = dict(status=combine(s_mala, s_ex), mala=s_mala, exact=s_ex, mala_components=c_mala, exact_components=c_ex,
-                       mala_z=zm, exact_z=ze, fail_3se_clauses_only=bool(fails) and all(three_se_only(c) for c in fails))
+        # Amendment 1 (A3): the 3-se clauses are judged as ONE Holm family over all dynamics after the loop; here
+        # only the non-3se components (tolerances, finiteness) set the provisional status.
+        def _non3se(o_, comp):
+            if not o_.get("n_groups"):
+                return NO_DATA
+            return status(*[c for k, c in comp.items() if not k.endswith("_3se")])
+        D["V4"] = dict(status=combine(_non3se(o_mala, c_mala), _non3se(o_ex, c_ex)), mala=s_mala, exact=s_ex,
+                       mala_components=c_mala, exact_components=c_ex, mala_z=zm, exact_z=ze,
+                       status_unadjusted_3se=combine(s_mala, s_ex),
+                       fail_3se_clauses_only=bool(fails) and all(three_se_only(c) for c in fails))
+        for samp, o_, zz in (("mala", o_mala, zm), ("exact", o_ex, ze)):
+            if o_.get("n_groups"):
+                for clause, vals in zz.items():
+                    for j, zval in enumerate(vals):
+                        v4_family.append(dict(dynamics=name, sampler=samp, clause=clause, index=j, z=float(zval),
+                                              dof=int(o_["n_groups"] - 1)))
         v4[name] = D["V4"]["status"]
         D["mala"] = o_mala
         D["exact_flat"] = o_ex
@@ -789,6 +818,25 @@ def analyse_all(res, abf_path, smoke):
     S["multiplicity"]["observed"] = dict(V4=family_summary(z_v4, dof),
                                          per_h={hk: dict(V1_plan=family_summary(v["plan"], dof), V1_strict=family_summary(v["strict"], dof))
                                                 for hk, v in z_h.items() if v["strict"]})
+    # Amendment 1 (A3): Holm-Bonferroni over the whole V4 family of 3-se clauses (per-test two-sided t_dof p)
+    fam = [f for f in v4_family if np.isfinite(f["z"]) and f["dof"] > 0]
+    pv = [t_two_sided(f["z"], f["dof"]) for f in fam]
+    rej = holm_reject(pv, 0.05)
+    for f, p_, r_ in zip(fam, pv, rej):
+        f.update(p=p_, holm_rejected=bool(r_))
+    rejected_dyn = sorted({f["dynamics"] for f in fam if f["holm_rejected"]})
+    for d in names:
+        if d in S["dynamics"] and "V4" in S["dynamics"][d]:
+            V = S["dynamics"][d]["V4"]
+            if d in rejected_dyn and V["status"] != NO_DATA:
+                V["status"] = FAIL
+            V["holm_rejected_clauses"] = [f for f in fam if f["dynamics"] == d and f["holm_rejected"]]
+            v4[d] = V["status"]
+            for hk, ph in S["dynamics"][d].get("per_h", {}).items():
+                ph["gates"]["V4"] = V["status"]
+    S["multiplicity"]["V4_holm"] = dict(rule="Amendment 1 (A3): Holm-Bonferroni, family-wise 0.05, two-sided t_dof p per 3-se clause",
+                                        n_tests=len(fam), n_rejected=int(sum(rej)), rejected_dynamics=rejected_dyn,
+                                        min_p=min(pv) if pv else None)
     sel = decide(table, names, v4)
     sel["table"] = table
     v4f = sel["harness"]["V4_fail"]
