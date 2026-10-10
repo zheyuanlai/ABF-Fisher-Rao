@@ -1966,6 +1966,29 @@ def fig_s2(W, exp, N, curves, xkey, banners, thresholds=None):
            f"{exp} N {N}, x = {xkey}")
 
 
+def lr(g):
+    """G = (FR - ABF)/ABF -> log(FR/ABF) = log1p(G): the log-ratio axis of the gain figures (a single seed with FR 75x
+    worse otherwise flattens every median on a linear axis; added 2026-10-10 after reading the production S3)."""
+    g = fnum(g)
+    return math.log1p(g) if math.isfinite(g) and g > -1.0 else float("nan")
+
+
+def logratio_axis(ax, lab):
+    """Ticks of a log(FR/ABF) axis labelled as G in %."""
+    lo, hi = ax.get_ylim()
+    cand = [-0.95, -0.9, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 1.0, 2.0, 4.0, 9.0, 24.0, 49.0, 99.0]
+    t0 = [math.log1p(c) for c in cand if lo <= math.log1p(c) <= hi]
+    gap = 0.09 * (hi - lo)                       # thin: labels at least 9 % of the span apart, 0 always kept
+    t = [0.0] if lo <= 0.0 <= hi else []
+    for v in sorted(t0, key=lambda v: abs(v)):
+        if all(abs(v - u) >= gap for u in t):
+            t.append(v)
+    t = sorted(t)
+    ax.set_yticks(t)
+    ax.set_yticklabels([f"{100 * math.expm1(v):+.0f} %" for v in t])
+    ax.set_ylabel(f"{lab} = (FR - ABF)/ABF (log-ratio axis)")
+
+
 def seed_strip(ax, x0, vals, color, dx=0.004, spread=0.0025, marker="o", seed=0):
     """Per-seed values as a jittered strip just right of a summary marker."""
     v = np.asarray(vals, float)
@@ -1993,11 +2016,11 @@ def fig_s3(W, summ, ent, Ns, banners):
                         missing.append(f"{c} N{N}")
                     continue
                 x0 = ent[c] + offs[N] + (0.045 if c == "shift" else 0.0)
-                seed_strip(ax, x0, list(g["per_seed"].values()), N_COLOR.get(N, INK2), seed=N)
-                errpt(ax, x0, g["G"], g["lo"], g["hi"], N_COLOR.get(N, INK2), marker="D" if c == "shift" else
+                seed_strip(ax, x0, [lr(v) for v in g["per_seed"].values()], N_COLOR.get(N, INK2), seed=N)
+                errpt(ax, x0, lr(g["G"]), lr(g["lo"]), lr(g["hi"]), N_COLOR.get(N, INK2), marker="D" if c == "shift" else
                       N_MARKER.get(N, "o"), filled=(c != "shift"))
-                if c in alpha_of and math.isfinite(g["G"]):
-                    line.append((x0, g["G"]))
+                if c in alpha_of and math.isfinite(lr(g["G"])):
+                    line.append((x0, lr(g["G"])))
                 rows.setdefault(met, []).append(dict(cell=c, N=N, entropic_fraction=ent[c],
                                                      **{kk: g[kk] for kk in ("G", "lo", "hi", "n")}))
             if len(line) >= 2:
@@ -2006,7 +2029,7 @@ def fig_s3(W, summ, ent, Ns, banners):
         ax.axhline(0, color=MUTED, lw=0.8)
         ax.set_title(f"({'abc'[k]}) {lab}", loc="left")
         ax.set_xlabel("entropic fraction of the F* barrier (shift: offset right of 0)")
-        ax.set_ylabel(f"{lab} = (FR - ABF) / ABF")
+        logratio_axis(ax, lab)
         sec = ax.secondary_xaxis("top")
         sec.set_xticks([ent[c] for c in alpha_of if c in ent] + ([ent["shift"] + 0.045] if "shift" in ent else []))
         sec.set_xticklabels([f"alpha {alpha_of[c]:g}" for c in alpha_of if c in ent] + (["shift"] if "shift" in ent
@@ -2181,14 +2204,14 @@ def fig_s5(W, summ, d2keep, lam_cells, Ns, banners):
                         missing.append(f"{c} N{N}")
                     continue
                 x0 = lamv[c] * (1.0 + nshift[N])
-                vals = np.array(list(g["per_seed"].values()), float)
+                vals = np.array([lr(v) for v in g["per_seed"].values()], float)
                 vals = vals[np.isfinite(vals)]
                 jit = np.random.default_rng(N).uniform(-0.012, 0.012, vals.size)
                 ax.plot(x0 * (1.035 + jit), vals, ls="none", marker="o", ms=2.6, color=N_COLOR.get(N, INK2),
                         alpha=0.45, mew=0)
-                errpt(ax, x0, g["G"], g["lo"], g["hi"], N_COLOR.get(N, INK2), marker=N_MARKER.get(N, "o"))
+                errpt(ax, x0, lr(g["G"]), lr(g["lo"]), lr(g["hi"]), N_COLOR.get(N, INK2), marker=N_MARKER.get(N, "o"))
                 xs.append(x0)
-                gs.append(g["G"])
+                gs.append(lr(g["G"]))
                 rows.setdefault(met, []).append(dict(cell=c, lam=lamv[c], N=N,
                                                      **{kk: g[kk] for kk in ("G", "lo", "hi", "n")}))
             if xs:
@@ -2198,7 +2221,7 @@ def fig_s5(W, summ, d2keep, lam_cells, Ns, banners):
         lam_axis(ax, lams)
         ax.set_title(f"({'abc'[k]}) {lab} vs lambda", loc="left")
         ax.set_xlabel("transverse mobility lambda")
-        ax.set_ylabel(f"{lab} = (FR - ABF) / ABF")
+        logratio_axis(ax, lab)
     ax = axs[0, 3]
     for N in Ns:
         for c in lam_cells:
