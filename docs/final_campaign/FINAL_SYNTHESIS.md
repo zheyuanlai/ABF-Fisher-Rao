@@ -6,7 +6,7 @@ tied to one of the four claim types that must not be conflated (`EVIDENCE_LEDGER
 **(1)** algorithmic benefit at fixed N and fixed physical time per replica; **(2)** benefit at an equal force-evaluation
 budget; **(3)** wall-clock benefit on specified hardware; **(4)** correctness of the limiting free-energy estimate.
 
-Sources: `EVIDENCE_LEDGER.md` (claims C1–C8, WCA W1–W10), `docs/mechanism/EXPA_SHIFTED_FIBRE_MOBILITY_v2.md`
+Sources: `EVIDENCE_LEDGER.md` (claims C1–C8, WCA W1–W10), `docs/mechanism/EXPA_SHIFTED_FIBRE_MOBILITY_v3.md`
 (Experiment A), `EXPB_PARALLEL_BACKEND.md` and `EXPB_WALLCLOCK.md` (Experiment B), `docs/equal_budget/FINAL_RESULTS.md`,
 `docs/mechanism/*`, `docs/numerical_validation/*`.
 
@@ -23,9 +23,11 @@ Sources: `EVIDENCE_LEDGER.md` (claims C1–C8, WCA W1–W10), `docs/mechanism/EX
   N ≥ 256; `docs/equal_budget/FINAL_RESULTS.md` §8).
 * Conditions under which it fails: small N (≤ 8–16; the KDE score is noise; neutral or harmful in all three equal-budget
   systems); slow transverse/orthogonal dynamics at N ≤ 512 (gateway λ = 0.1; shifted fibre λ ≤ 4, see Q2; at N 2048
-  both still gain 21–23 %); WCA (validated harmful, Q7); alanine and valine (ABF is not establishment-limited; neutral).
+  gateway λ = 0.1 and shifted fibre λ = 1 still gain 23 % / 21 %; λ = 4 was not run at N 2048); WCA (validated harmful,
+  Q7); alanine dipeptide (ABF is not establishment-limited; FR neutral or harmful). Valine is not an FR failure: its
+  ABF-only screen found no under-established region, and no FR arm was run.
 
-## Q2. Does that benefit require fast conditional relaxation? — **At N ≤ 512 in the tested toy family, fast transverse dynamics is required. At N 2048, slow transverse dynamics shrinks the Ī_F gain but does not remove it. That conditional relaxation per se is the operative variable is a hypothesis.**
+## Q2. Does that benefit require fast conditional relaxation? — **At N ≤ 512 in the tested toy family, fast transverse dynamics is required. At N 2048, slow transverse dynamics shrinks the Ī_F gain but does not remove it. That conditional relaxation per se is the operative variable is a hypothesis.** [observed + hypothesis; claim type 1]
 
 * [observed] Straight fibre, original gateway (`EXP2_CONDITIONAL_RELAXATION.md`). At N 512, slowing the transverse
   mobility to λ = 0.1 removes the gain (−41 % → +4 %; final +126 %) while the marginal gain grows. At N 2048 the gain
@@ -49,7 +51,7 @@ Sources: `EVIDENCE_LEDGER.md` (claims C1–C8, WCA W1–W10), `docs/mechanism/EX
 * [hypothesis] Score-directed selection holds a population whose orthogonal coordinates lag the channel; FR helps only
   when that lag relaxes faster than the selection renews it. Experiment A cannot separate relaxation from transport.
 
-## Q3. Is marginal improvement alone predictive of free-energy improvement? — **No** [observed]
+## Q3. Is marginal improvement alone predictive of free-energy improvement? — **No** [observed; claim type 1]
 
 FR improves the reaction-coordinate marginal by 63–92 % in every Experiment I/II cell and by 73–92 % in every
 Experiment A cell. That includes the four Experiment A cells where it worsens the free energy (final error in all four,
@@ -68,7 +70,8 @@ N ≥ 256 the two gains are close (1.1–1.3×), so the marginal is informative 
 Guards g1–g4 hold (no genealogy collapse; ESS/N is λ-independent); the λ = 1 cells replicate Experiment I on fresh
 seeds. Caveats: the rescue is attributed to transverse mobility, not conditional relaxation alone, and mobility also
 makes ABF 7–25× better; λ = 4 is worse than λ = 1 at N 512 (T1 R 1.17), so the dependence is not monotone; at N 128
-FR's final error is not better than ABF's at high λ (median n.s.; mean companions +107 % at λ 16, +46.5 % at λ 128).
+FR's final error is not better than ABF's at high λ (median n.s.; worse by both mean companions at λ 16 and by the
+arithmetic mean of G only at λ 128).
 
 ## Q5. Does FR beat the best ABF allocation at equal force evaluations? — **No** [observed; claim type 2]
 
@@ -84,14 +87,18 @@ re-opened.
 *Placeholder: LTA 150 K confirmatory decision (if licensed by V-B4 and F1/F1b); gateway exploratory decision (after
 the frozen V-B4 FAIL, Amendment 3) with its law-insensitive hybrid projection.*
 
-## Q7. What do the corrected WCA negatives imply for generality? [observed + hypothesis]
+## Q7. What do the corrected WCA negatives imply for generality? [observed + hypothesis; claim types 1 and 4, kept separate]
 
-* [observed] At the gate-passing timestep dt\* = 0.000125 against an exact Metropolis-MC reference, FR is harmful
-  (+9.9 % [+2.3, +13.2] Ī_F, 4/16; final +131 %), the matched-turnover sham is neutral (−0.8 %), and FR's long-run
-  limit is tilted by 0.017 kT. Every historical WCA gain at dt 0.002 is refuted or not established (W1–W6).
-* [observed] So FR's benefit does not transfer to the only many-body solvated system tested. The two atomistic
-  controls (alanine dipeptide over N, T, γ, CV, estimator, dose and start; valine) are neutral, because ABF there is
-  not establishment-limited.
+* [observed; claim type 1] At the gate-passing timestep dt\* = 0.000125, N = 256, scored against an exact
+  Metropolis-MC reference, FR is harmful (+9.9 % [+2.3, +13.2] Ī_F, 4/16; final +131 %), and the matched-turnover sham
+  is neutral (−0.8 %). Every historical WCA gain at dt 0.002 is refuted or not established (W1–W6).
+* [observed; claim type 4] FR's pooled long-run limit is tilted by 0.017 kT from ABF's, and the tilt does not fall as
+  O(dt) (`WCA_CONFIRMATORY.md`).
+* [observed] So FR's benefit does not transfer to the only many-body solvated system tested. Neither atomistic control
+  shows an FR benefit, because ABF there is not establishment-limited. On alanine dipeptide FR was run and is neutral
+  over N, T, start and the histogram estimator, and harmful at early high dose under the kernel estimator and on the
+  φ-only 1-D CV; there was no FR arm on the γ ladder. On valine an ABF-only screen found no under-established region
+  (gate V3.2 FAIL), so no FR arm was run.
 * [hypothesis] The low-mobility shifted fibre reproduces WCA's phenomenology (FR error floor while ABF converges; a
   population-wide bias that is not cloning *per se*). A solvent coordinate that relaxes slowly relative to the
   selection renewal is a plausible cause in WCA, but it is untested there.
@@ -107,16 +114,16 @@ the frozen V-B4 FAIL, Amendment 3) with its law-insensitive hybrid projection.*
 | Gateway α 1/0.5/0, N 512–2048 | −24 to −41 % | VALIDATED positive | establishment-limited ABF, fast fibre |
 | LTA 150 K, N ≥ 256 | −29 to −34 % (−28.5 % vs exact) | VALIDATED positive | establishment-limited (2× later than 300 K) |
 | LTA 300 K, N ≥ 128 | −10 to −13 % (mostly transient) | VALIDATED positive (weak) | establishes early |
-| Shifted fibre λ 16 / 128 (Exp A) | −23 to −34 % (final error at N 128 not better; mean companion worse) | VALIDATED positive (Ī_F) | fast transverse mobility |
+| Shifted fibre λ 16 / 128 (Exp A) | −23 to −34 % (final error at N 128 not better than ABF's) | VALIDATED positive (Ī_F) | fast transverse mobility |
 | **WCA dimer, dt\* (exact MC)** | **+9.9 %**, final +131 % | **VALIDATED NEGATIVE** | stationary 0.017 kT tilt; mechanism open |
 | WCA dt 0.0005 (corroborating) | +12 to +161 % (N 1024–16) | negative (dt not gate-passing) | FR error floor |
 | Shifted fibre λ 1 (Exp I, Exp A) | −21.0 % (Exp I, N 2048, 32/32); +2 % / −7 % (N 512; final error +46 % in Exp A); +105 % / +92 % (N 128) | positive at N 2048; mixed at N 512; negative at N 128 | slow x-coupled relaxation, hindered transport |
 | Shifted fibre λ 4 (Exp A) | +10 % / +125 % | negative | as λ 1; transport doubled only |
 | Gateway λ = 0.1 (straight fibre) | N 512: −41 % → +4 %, final +126 %; N 2048: −31 % → −23.2 % [−31.7, −3.4], final −9 % n.s. | negative at N 512; reduced positive at N 2048 | slow conditional relaxation |
 | Small N (≤ 8–16), all equal-budget systems | neutral; LTA 150 K N 4 +11.7 %; gateway marginal +53 to +140 % | neutral / harmful | KDE score is noise |
-| Alanine dipeptide (N, T, γ, CV, estimator, dose, start) | neutral (all CIs within ±4 % in the histogram study) | NEUTRAL control | ABF converges before the marginal matters |
-| Valine | neutral | NEUTRAL control | ABF establishes all regions by 52 ps |
-| Equal-budget best allocation (3 systems) | +3 to +24 % (ABF best or tie) | no FR advantage | FR does not change the best N |
+| Alanine dipeptide (N, T, start, dose, estimator; 1-D CV) | (φ, ψ): neutral at every N, T and start, and in all six histogram-estimator arms (CIs within ±4 %); HARMFUL under the kernel estimator at early high dose (+10.5 %) and on the φ-only 1-D CV at high dose (+18.9 % Ī_F, final +67 %); γ ladder: no FR arm (kill rule) | NEUTRAL-to-HARMFUL control (never positive) | ABF converges before the marginal matters |
+| Valine | not measured: no FR arm was run (ABF-only establishment screen; gate V3.2 FAIL) | ABF-sufficient control (no FR measurement) | ABF establishes all regions by 52 ps |
+| Equal-budget best allocation (3 systems) | production: +3.4 / +5.2 / +15.9 % (LTA 300 K / LTA 150 K / gateway); fresh-seed confirmation at N\*: +6.2 / −3.0 / +24.0 % (ABF better in the gateway; LTA ties) | no FR advantage | FR does not change the best N |
 
 ## Final decision (the five items of the task)
 

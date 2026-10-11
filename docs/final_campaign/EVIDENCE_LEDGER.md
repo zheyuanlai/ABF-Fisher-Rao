@@ -105,3 +105,22 @@ new WCA run is authorised by the current campaign.
   an effect to conditional relaxation alone.
 * **Experiment B** — with a genuinely walker-parallel CPU backend, does large-N FR beat the best small-N ABF in
   wall-clock time on the same hardware? Tests the open part of C6.
+
+---
+
+## Errata (2026-10-11, after the campaign's adversarial audits; the text above is kept as written at the freeze)
+
+* **C1 counter-evidence, alanine**: "alanine (neutral across N, T, γ, CV)" overstates the record. FR was neutral across
+  N, T, start and the histogram estimator, and harmful at early high dose under the kernel estimator (+10.5 %,
+  `docs/ALANINE_HISTOGRAM_ABF.md`) and on the φ-only 1-D CV at rate 0.15 (+18.9 % Ī_F, `docs/ALANINE_1D_CV.md`). No FR
+  arm was run on the γ (friction) ladder (closed by its kill rule, `docs/ALANINE_FRICTION.md`). Alanine is a
+  neutral-to-harmful control, never positive.
+* **Valine** (cited elsewhere as a neutrality control): no FR arm was ever run. Its ABF-only establishment screen failed
+  gate V3.2 (no under-established region), so valine is an ABF-sufficient control, not a measured FR-neutral result
+  (`results/valine/closure/valine_gate_ledger.md`).
+* **C4 scope**: the straight-fibre λ = 0.1 loss (−41 % → +4 %) is at N 512. At N 2048 the gain shrinks but survives
+  (−31 % → −23.2 % [−31.7, −3.4], `docs/mechanism/EXP2_CONDITIONAL_RELAXATION.md`), and the curved shifted fibre at λ = 1
+  gains −21.0 % at N 2048 (`docs/mechanism/EXP1_MATCHED_FREE_ENERGY.md`).
+* **C4 / §4 "Experiment A"**: the preregistered expectation that λ changes gate transport at least as much as
+  conditional relaxation held at λ 4 and 16 by the flank 1/e time, but not at λ 128, and not from λ 16 on by the flank
+  integral (`docs/mechanism/EXPA_SHIFTED_FIBRE_MOBILITY_v3.md` §2.2).
