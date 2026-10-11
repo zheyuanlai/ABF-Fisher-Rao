@@ -646,11 +646,19 @@ def test_production_problems_catch_a_changed_engine_knob_or_generator_hash():
     assert any("thresholds" in x for x in C.production_problems(Q))
 
 
+def _pre_amendment_prereg():
+    """PREREGISTRATION.md as frozen: everything up to and including the amendments line (no amendment yet)."""
+    t = open(C.PREREG).read()
+    cut = t.index("*Amendments (dated")
+    return t[: t.index("\n", cut) + 1]
+
+
 def test_prereg_amendment_detection():
     """Finding 6: the outcome resolutions count only as a dated amendment BELOW the frozen amendments line."""
-    base = open(C.PREREG).read()
+    base = _pre_amendment_prereg()
     a = XO.prereg_amendment(base)
     assert not a["found"] and XO.AMENDMENT_MARKER not in base
+    assert XO.prereg_amendment(open(C.PREREG).read())["found"]   # the live file carries Amendment 1 (A1.6)
     above = base.replace("## 1. Experiment A", f"[{XO.AMENDMENT_MARKER}]\n\n## 1. Experiment A")
     assert not XO.prereg_amendment(above)["found"]              # above the line: not an amendment
     txt = (base + f"\n### Amendment 1 (2026-10-11): outcome resolutions [{XO.AMENDMENT_MARKER}]\n\nr1 ... r3 ...\n"
@@ -742,8 +750,11 @@ def fixture_root(tmp_path_factory):
     return root
 
 
-def test_end_to_end_on_tiny_real_cells(fixture_root):
+def test_end_to_end_on_tiny_real_cells(fixture_root, monkeypatch, tmp_path):
     root = fixture_root
+    pre = tmp_path / "PREREGISTRATION_pre_amendment.md"         # the "no amendment yet" state this test checks
+    pre.write_text(_pre_amendment_prereg())
+    monkeypatch.setattr(C, "PREREG", str(pre))
     cdir, syn, tab, fig = (str(root / "configs" / "cells" / "expA"), str(root / "syn"), str(root / "tables"),
                            str(root / "figs"))
     assert XC.main(["--cells-dir", cdir, "--out-dir", syn, "--n-boot", str(NB)]) == 0
