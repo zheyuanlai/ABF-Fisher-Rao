@@ -1,0 +1,539 @@
+{
+ "B": 307200000,
+ "abf_arms": [
+  "abf2",
+  "abf64",
+  "abf512",
+  "abf32"
+ ],
+ "agreement": "robust to the backend's law",
+ "agreement_on_available_seeds_descriptive": "robust to the backend's law",
+ "amendment": "PREREGISTRATION.md Amendment 3, A3.3 (b)",
+ "compare": {
+  "arms_without_data": [],
+  "decision": {
+   "abf_advantage_arms": [],
+   "contrasts": {
+    "fr512|abf2": {
+     "abf_better": false,
+     "budget_label": "comparable",
+     "ci95": [
+      0.38961979656486684,
+      1.1094887540275733
+     ],
+     "ci97p5": [
+      0.3803431347418938,
+      1.232765282252859
+     ],
+     "ci98p75": [
+      0.37570480383040733,
+      1.3717863670721355
+     ],
+     "fr_better": false,
+     "frac_below_1": 0.9424,
+     "frac_undefined": 0.0,
+     "lower_ABF_level": 0.37570480383040733,
+     "n_boot": 10000,
+     "n_undefined": 0,
+     "point": 0.6455465256810049,
+     "unresolved": false,
+     "upper_FR_level": 1.232765282252859
+    },
+    "fr512|abf32": {
+     "abf_better": true,
+     "budget_label": "comparable",
+     "ci95": [
+      1.5481268567326005,
+      2.6124640707362636
+     ],
+     "ci97p5": [
+      1.496522628174847,
+      2.6705188278637357
+     ],
+     "ci98p75": [
+      1.4430753914543168,
+      2.6995462064274722
+     ],
+     "fr_better": false,
+     "frac_below_1": 0.0,
+     "frac_undefined": 0.0,
+     "lower_ABF_level": 1.4430753914543168,
+     "n_boot": 10000,
+     "n_undefined": 0,
+     "point": 2.3479923993777776,
+     "unresolved": false,
+     "upper_FR_level": 2.6705188278637357
+    },
+    "fr512|abf512": {
+     "abf_better": false,
+     "budget_label": "comparable",
+     "ci95": [
+      0.3968903902379709,
+      0.47492800221707626
+     ],
+     "ci97p5": [
+      0.390106085220006,
+      0.4842727660069591
+     ],
+     "ci98p75": [
+      0.3801837068678724,
+      0.5062006246646185
+     ],
+     "fr_better": true,
+     "frac_below_1": 1.0,
+     "frac_undefined": 0.0,
+     "lower_ABF_level": 0.3801837068678728,
+     "n_boot": 10000,
+     "n_undefined": 0,
+     "point": 0.4542005941506763,
+     "unresolved": false,
+     "upper_FR_level": 0.4842727660069591
+    },
+    "fr512|abf64": {
+     "abf_better": true,
+     "budget_label": "comparable",
+     "ci95": [
+      1.3822354792146263,
+      2.29441781566603
+     ],
+     "ci97p5": [
+      1.2877556677777944,
+      2.431304264438661
+     ],
+     "ci98p75": [
+      1.24328058976977,
+      2.569446552190858
+     ],
+     "fr_better": false,
+     "frac_below_1": 0.0,
+     "frac_undefined": 0.0,
+     "lower_ABF_level": 1.24328058976977,
+     "n_boot": 10000,
+     "n_undefined": 0,
+     "point": 1.6499369493402989,
+     "unresolved": false,
+     "upper_FR_level": 2.431304264438661
+    },
+    "fr64|abf2": {
+     "abf_better": false,
+     "budget_label": "comparable",
+     "ci95": [
+      0.10541587497884895,
+      0.48943084811608434
+     ],
+     "ci97p5": [
+      0.10541587497884895,
+      0.5446486873907196
+     ],
+     "ci98p75": [
+      0.10541587497884895,
+      0.5900360780066128
+     ],
+     "fr_better": true,
+     "frac_below_1": 1.0,
+     "frac_undefined": 0.0,
+     "lower_ABF_level": 0.10541587497884895,
+     "n_boot": 10000,
+     "n_undefined": 0,
+     "point": 0.1746596359943674,
+     "unresolved": false,
+     "upper_FR_level": 0.5446486873907196
+    },
+    "fr64|abf32": {
+     "abf_better": false,
+     "budget_label": "comparable",
+     "ci95": [
+      0.42221346504599483,
+      1.3403602064952216
+     ],
+     "ci97p5": [
+      0.40597448562114885,
+      1.4660189758541486
+     ],
+     "ci98p75": [
+      0.39093839356110627,
+      1.5580763438967589
+     ],
+     "fr_better": false,
+     "frac_below_1": 0.8907,
+     "frac_undefined": 0.0,
+     "lower_ABF_level": 0.39093839356110627,
+     "n_boot": 10000,
+     "n_undefined": 0,
+     "point": 0.6352748895367978,
+     "unresolved": false,
+     "upper_FR_level": 1.4660189758541486
+    },
+    "fr64|abf512": {
+     "abf_better": false,
+     "budget_label": "comparable",
+     "ci95": [
+      0.10577779801285,
+      0.2835897978398807
+     ],
+     "ci97p5": [
+      0.1019078785733555,
+      0.29304279110121
+     ],
+     "ci98p75": [
+      0.10149529606900994,
+      0.30113319073928463
+     ],
+     "fr_better": true,
+     "frac_below_1": 1.0,
+     "frac_undefined": 0.0,
+     "lower_ABF_level": 0.10149529606900994,
+     "n_boot": 10000,
+     "n_undefined": 0,
+     "point": 0.12288891239728164,
+     "unresolved": false,
+     "upper_FR_level": 0.29304279110121
+    },
+    "fr64|abf64": {
+     "abf_better": false,
+     "budget_label": "comparable",
+     "ci95": [
+      0.38782991588787763,
+      1.0439088569315373
+     ],
+     "ci97p5": [
+      0.35551075623055445,
+      1.0988514283489867
+     ],
+     "ci98p75": [
+      0.34700571421546955,
+      1.1928281993689285
+     ],
+     "fr_better": false,
+     "frac_below_1": 0.9623,
+     "frac_undefined": 0.0,
+     "lower_ABF_level": 0.34700571421546955,
+     "n_boot": 10000,
+     "n_undefined": 0,
+     "point": 0.4464083927667759,
+     "unresolved": false,
+     "upper_FR_level": 1.0988514283489867
+    }
+   },
+   "decision": "unresolved",
+   "fr_advantage_arms": [],
+   "levels": {
+    "abf_side": 0.9875,
+    "alpha": 0.05,
+    "fr_side": 0.975,
+    "n_abf": 4,
+    "n_fr": 2
+   },
+   "unresolved_contrasts": []
+  },
+  "n_boot": 10000,
+  "pairs": [
+   [
+    "abf512",
+    "fr512"
+   ]
+  ],
+  "per_arm": {
+   "abf2": {
+    "boot_unit": "abf2",
+    "ci95": [
+     6.558961964270566,
+     17.053301107103472
+    ],
+    "frac_reached": 1.0,
+    "median": 11.150235339259963,
+    "n": 16,
+    "n_censored": 0
+   },
+   "abf32": {
+    "boot_unit": "abf32",
+    "ci95": [
+     2.7249740617908538,
+     4.428082850410138
+    ],
+    "frac_reached": 1.0,
+    "median": 3.0655958195147104,
+    "n": 16,
+    "n_censored": 0
+   },
+   "abf512": {
+    "boot_unit": "abf512+fr512",
+    "ci95": [
+     14.700275407632581,
+     17.640330489159098
+    ],
+    "frac_reached": 1.0,
+    "median": 15.847613976033173,
+    "n": 16,
+    "n_censored": 0
+   },
+   "abf64": {
+    "boot_unit": "abf64",
+    "ci95": [
+     2.99927947827382,
+     5.180573644291144
+    ],
+    "frac_reached": 1.0,
+    "median": 4.3625883320346475,
+    "n": 16,
+    "n_censored": 0
+   },
+   "fr512": {
+    "boot_unit": "abf512+fr512",
+    "ci95": [
+     6.327908293437213,
+     7.435292244788725
+    ],
+    "frac_reached": 1.0,
+    "median": 7.197995683784829,
+    "n": 16,
+    "n_censored": 0
+   },
+   "fr64": {
+    "boot_unit": "fr64",
+    "ci95": [
+     1.7976886574830861,
+     4.494221643707715
+    ],
+    "frac_reached": 1.0,
+    "median": 1.9474960456066768,
+    "n": 16,
+    "n_censored": 0
+   }
+  },
+  "rho_best": {
+   "best_abf_freq": {
+    "abf2": 0.0001,
+    "abf32": 0.9173,
+    "abf512": 0.0,
+    "abf64": 0.0826
+   },
+   "best_abf_point": "abf32",
+   "best_fr_freq": {
+    "fr512": 0.0,
+    "fr64": 1.0
+   },
+   "best_fr_point": "fr64",
+   "ci": [
+    0.43980569275624454,
+    1.368284377463872
+   ],
+   "frac_below_1": 0.8878,
+   "level": 0.95,
+   "n_undefined": 0,
+   "note": "descriptive (winner's curse not removed); frac_below_1 is not a probability",
+   "point": 0.6352748895367978
+  },
+  "seed": 20261010,
+  "tests": {
+   "fr512|abf2": {
+    "G": -90.0,
+    "budget": {
+     "frac_runs_budget_limited_x": 0.0,
+     "frac_runs_budget_limited_y": 0.0,
+     "label": "comparable",
+     "x_detail": null,
+     "x_limited": false,
+     "y_detail": null,
+     "y_limited": false
+    },
+    "convention": "inf ranked last (censored), inf vs inf tied; G > 0: x tends to be slower",
+    "kind": "Gehan-Wilcoxon (unpaired)",
+    "n_perm": 20000,
+    "n_x": 16,
+    "n_y": 16,
+    "p_normal": 0.08926743765191669,
+    "p_perm": 0.09029548522573871,
+    "prob_x_less": 0.67578125,
+    "var": 2805.1612903225805,
+    "z": -1.6992746978108204
+   },
+   "fr512|abf32": {
+    "G": 242.0,
+    "budget": {
+     "frac_runs_budget_limited_x": 0.0,
+     "frac_runs_budget_limited_y": 0.0,
+     "label": "comparable",
+     "x_detail": null,
+     "x_limited": false,
+     "y_detail": null,
+     "y_limited": false
+    },
+    "convention": "inf ranked last (censored), inf vs inf tied; G > 0: x tends to be slower",
+    "kind": "Gehan-Wilcoxon (unpaired)",
+    "n_perm": 20000,
+    "n_x": 16,
+    "n_y": 16,
+    "p_normal": 4.906636731583092e-06,
+    "p_perm": 4.999750012499375e-05,
+    "prob_x_less": 0.02734375,
+    "var": 2805.6774193548385,
+    "z": 4.568740566125334
+   },
+   "fr512|abf512": {
+    "budget": {
+     "frac_runs_budget_limited_x": 0.0,
+     "frac_runs_budget_limited_y": 0.0,
+     "label": "comparable",
+     "x_detail": null,
+     "x_limited": false,
+     "y_detail": null,
+     "y_limited": false
+    },
+    "fr_losses": 0,
+    "fr_wins": 16,
+    "kind": "paired sign test",
+    "n_common": 16,
+    "p": 3.0517578125e-05,
+    "ties": 0
+   },
+   "fr512|abf64": {
+    "G": 192.0,
+    "budget": {
+     "frac_runs_budget_limited_x": 0.0,
+     "frac_runs_budget_limited_y": 0.0,
+     "label": "comparable",
+     "x_detail": null,
+     "x_limited": false,
+     "y_detail": null,
+     "y_limited": false
+    },
+    "convention": "inf ranked last (censored), inf vs inf tied; G > 0: x tends to be slower",
+    "kind": "Gehan-Wilcoxon (unpaired)",
+    "n_perm": 20000,
+    "n_x": 16,
+    "n_y": 16,
+    "p_normal": 0.00029219670295055344,
+    "p_perm": 0.000199990000499975,
+    "prob_x_less": 0.125,
+    "var": 2809.8064516129034,
+    "z": 3.622121599113648
+   },
+   "fr64|abf2": {
+    "G": -222.0,
+    "budget": {
+     "frac_runs_budget_limited_x": 0.0,
+     "frac_runs_budget_limited_y": 0.0,
+     "label": "comparable",
+     "x_detail": null,
+     "x_limited": false,
+     "y_detail": null,
+     "y_limited": false
+    },
+    "convention": "inf ranked last (censored), inf vs inf tied; G > 0: x tends to be slower",
+    "kind": "Gehan-Wilcoxon (unpaired)",
+    "n_perm": 20000,
+    "n_x": 16,
+    "n_y": 16,
+    "p_normal": 2.700679070044565e-05,
+    "p_perm": 4.999750012499375e-05,
+    "prob_x_less": 0.93359375,
+    "var": 2797.4193548387098,
+    "z": -4.197340354517431
+   },
+   "fr64|abf32": {
+    "G": -86.0,
+    "budget": {
+     "frac_runs_budget_limited_x": 0.0,
+     "frac_runs_budget_limited_y": 0.0,
+     "label": "comparable",
+     "x_detail": null,
+     "x_limited": false,
+     "y_detail": null,
+     "y_limited": false
+    },
+    "convention": "inf ranked last (censored), inf vs inf tied; G > 0: x tends to be slower",
+    "kind": "Gehan-Wilcoxon (unpaired)",
+    "n_perm": 20000,
+    "n_x": 16,
+    "n_y": 16,
+    "p_normal": 0.10398226356433438,
+    "p_perm": 0.10629468526573671,
+    "prob_x_less": 0.66796875,
+    "var": 2797.935483870968,
+    "z": -1.6258467349685275
+   },
+   "fr64|abf512": {
+    "G": -256.0,
+    "budget": {
+     "frac_runs_budget_limited_x": 0.0,
+     "frac_runs_budget_limited_y": 0.0,
+     "label": "comparable",
+     "x_detail": null,
+     "x_limited": false,
+     "y_detail": null,
+     "y_limited": false
+    },
+    "convention": "inf ranked last (censored), inf vs inf tied; G > 0: x tends to be slower",
+    "kind": "Gehan-Wilcoxon (unpaired)",
+    "n_perm": 20000,
+    "n_x": 16,
+    "n_y": 16,
+    "p_normal": 1.3326146641734482e-06,
+    "p_perm": 4.999750012499375e-05,
+    "prob_x_less": 1.0,
+    "var": 2803.6129032258063,
+    "z": -4.834827016840291
+   },
+   "fr64|abf64": {
+    "G": -128.0,
+    "budget": {
+     "frac_runs_budget_limited_x": 0.0,
+     "frac_runs_budget_limited_y": 0.0,
+     "label": "comparable",
+     "x_detail": null,
+     "x_limited": false,
+     "y_detail": null,
+     "y_limited": false
+    },
+    "convention": "inf ranked last (censored), inf vs inf tied; G > 0: x tends to be slower",
+    "kind": "Gehan-Wilcoxon (unpaired)",
+    "n_perm": 20000,
+    "n_x": 16,
+    "n_y": 16,
+    "p_normal": 0.015602588915710092,
+    "p_perm": 0.014949252537373132,
+    "prob_x_less": 0.75,
+    "var": 2802.064516129032,
+    "z": -2.4180813329667274
+   }
+  }
+ },
+ "fr_arms": [
+  "fr512",
+  "fr64"
+ ],
+ "generated_utc": "2026-10-11T12:59:11Z",
+ "hybrid_decision": "unresolved",
+ "measured_decision": "unresolved",
+ "measured_decision_on_available_seeds": "unresolved",
+ "measured_stage_status": "COMPLETE",
+ "n_uncontended_records": {
+  "abf2": 32,
+  "abf32": 32,
+  "abf512": 32,
+  "abf64": 32,
+  "fr512": 32,
+  "fr64": 32
+ },
+ "omitted": [],
+ "paired": [
+  [
+   "abf512",
+   "fr512"
+  ]
+ ],
+ "role": "descriptive (A3.3 b is frozen for the gateway only)",
+ "system": "lta150",
+ "tau_key": "tau_bgrid_e_F_mid_u",
+ "tau_source": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2/lta_T150/analysis/summary.json",
+ "version": "expB_hybrid/1",
+ "w_arm": {
+  "abf2": 8.540315057643966e-07,
+  "abf32": 2.2175895685146922e-07,
+  "abf512": 9.337065172530857e-08,
+  "abf64": 1.7751417366677439e-07,
+  "fr512": 1.0299329904682963e-07,
+  "fr64": 1.9506170328592514e-07
+ }
+}
