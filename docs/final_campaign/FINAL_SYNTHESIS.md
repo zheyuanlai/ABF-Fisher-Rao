@@ -1,6 +1,6 @@
 # Final synthesis: ABF + marginal Fisher–Rao birth–death
 
-**2026-10-11 — DRAFT (Experiment B pending).** Structure frozen in `PREREGISTRATION.md` §7. Every answer is typed
+**2026-10-11 — final.** Structure frozen in `PREREGISTRATION.md` §7. Every answer is typed
 **[identity]** (exact), **[observed]** (measured with validated numerics, seed-bootstrap CIs) or **[hypothesis]**, and
 tied to one of the four claim types that must not be conflated (`EVIDENCE_LEDGER.md` §2):
 **(1)** algorithmic benefit at fixed N and fixed physical time per replica; **(2)** benefit at an equal force-evaluation
@@ -82,10 +82,28 @@ is a few long replicas (N 2–16). WCA (dt 0.0005): serial or few-replica ABF is
 and 512; at λ ≥ 16 FR at N 128 is the better of those four arms, but smaller-N ABF was not run, so Q5 is not
 re-opened.
 
-## Q6. Does genuine hardware parallelism change that conclusion? — *PENDING (Experiment B)*
+## Q6. Does genuine hardware parallelism change that conclusion? — **No resolved change** [observed; claim type 3]
 
-*Placeholder: LTA 150 K confirmatory decision (if licensed by V-B4 and F1/F1b); gateway exploratory decision (after
-the frozen V-B4 FAIL, Amendment 3) with its law-insensitive hybrid projection.*
+A walker-parallel CPU backend was built and validated (`EXPB_PARALLEL_BACKEND.md`). Replay mode is bitwise identical to
+the validated engines. N 512 runs 8.2–9.1× faster than the serial engine on 16 cores, so F1/F1b pass in both systems.
+On 8 dedicated cores per arm (`EXPB_WALLCLOCK.md`):
+
+| system | status | best FR | best ABF | ρ_best (wall-clock to mid accuracy) | decision |
+|---|---|---|---|---|---|
+| LTA 150 K | confirmatory | FR 64, 2.37 s | ABF 32, 3.31 s | 0.717 [0.536, 1.196] | **unresolved** |
+| gateway | exploratory (frozen V-B4 FAIL; Amendment 3) | FR 64, 1.30 s | ABF 64, 1.71 s | 0.763 [0.515, 1.109] | **unresolved**; hybrid projection agrees (robust to the backend's law) |
+
+* [observed] The point estimates favour FR by 24–28 %, but neither preregistered test resolves it. All sensitivity
+  analyses agree (interpolation, flagged seeds, CCD-wide contention).
+* [observed] The best FR allocation is **N 64, not N 512**, in both systems. Parallel hardware makes large N cheap in
+  wall-clock, but large N is not where either method does best.
+* [observed] FR's wall-clock lead is at early and intermediate accuracy. Gateway: FR advantage at the loose threshold
+  (0.65 [0.58, 0.73]) and on Ī_F^wall (0.85 [0.79, 0.94]), both exploratory. LTA: at the strict threshold FR reaches
+  the target within the budget less often (50 % vs 72–78 %).
+* [observed] FR is not cheaper in CPU: a small-N ABF arm uses the fewest force evaluations and core-hours to mid
+  accuracy in both systems (gateway ABF 16; LTA ABF 2).
+* [observed] At **fixed N** the FR gain carries over to wall-clock on 8–16 cores (FR 512 first in 60/64 and 31/32
+  seeds; overhead 3 % / 10 %).
 
 ## Q7. What do the corrected WCA negatives imply for generality? [observed + hypothesis; claim types 1 and 4, kept separate]
 
@@ -127,10 +145,56 @@ the frozen V-B4 FAIL, Amendment 3) with its law-insensitive hybrid projection.*
 
 ## Final decision (the five items of the task)
 
-1. **Publishable as a conditional finite-time accelerator?** *(see PUBLICATION_READINESS.md; draft verdict pending Exp B)*
-2. **Claims that survive:** C1 (conditional, fixed N), C2 (establishment not discovery, N ≥ 16), C3, C4 (effect;
-   mechanism a hypothesis), C5 (no equal-force-evaluation advantage), C6 (fixed-N wall-clock on one core), C7, C8, and
-   the Experiment A rescue (transverse mobility). WCA is a validated negative.
-3. **Computational advantage beyond fixed-N acceleration?** *PENDING (Experiment B).*
-4. **Stop or continue?** *PENDING.*
-5. **Publication figure and table set:** *PENDING.*
+1. **Publishable as a conditional finite-time accelerator?** **Not as an "FR accelerates ABF" methods paper.** The
+   construction has close prior art: parallel ABF with marginal birth–death selection (Lelièvre, Rousset & Stoltz,
+   J. Chem. Phys. 2007, tested on a WCA dimer) and multiple-walker ABF with walker selection (Minoukadeh et al. 2010;
+   Comer et al. 2014, in NAMD). The project's own evidence also fails both accepted cost standards: no advantage at
+   equal force evaluations, and an unresolved wall-clock advantage. It **is publishable, after targeted additions,** as
+   a cost-controlled analysis of when and why marginal birth–death helps or hurts adaptive biasing. That paper would
+   rest on the necessary conditions, the conditional-law corollary, the validated negatives, the equal-budget null and
+   the wall-clock test (`PUBLICATION_READINESS.md`, `PRIOR_ART_NOVELTY.md`).
+2. **Claims that survive** (claim type in brackets):
+   * C1 conditional fixed-N benefit (1);
+   * C2 establishment, not discovery, at N ≥ 16 (1);
+   * C3 marginal improvement is not predictive (1);
+   * C4 slow orthogonal dynamics makes FR harmful (1). The effect is established at N ≤ 512; the mechanism is a
+     hypothesis.
+   * C5 no advantage at equal force evaluations (2), re-confirmed in Experiment B force counts;
+   * C6 fixed-N wall-clock gain (3), now on 8–16 cores as well as one;
+   * C7 the gain is not an integrator artefact (1);
+   * C8 an entropic bottleneck is not necessary (1);
+   * the Experiment A rescue by transverse mobility (1), outcome A at both N, with the transport confound stated;
+   * WCA as a validated negative (1 and 4);
+   * the Experiment B wall-clock null (3): unresolved in both systems, point estimates 0.72–0.76.
+   **Withdrawn or never established:** every dt-0.002 WCA gain; "FR reduces the total cost of free-energy estimation";
+   "FR beats the best ABF allocation on parallel hardware"; valine as a measured FR control.
+3. **Computational advantage beyond fixed-N acceleration?** **No, not demonstrated.** There is no advantage at equal
+   force evaluations (three systems, fresh-seed confirmation), and none in CPU core-hours. A wall-clock advantage on
+   idle cores is unresolved: a 24–28 % point estimate with CIs up to 1.11–1.20, confined to early and intermediate
+   accuracy. Only fixed-N acceleration (more accuracy per unit of per-replica time when N is fixed) is established.
+4. **Stop or continue?** **Stop the open-ended search for regimes where FR wins.** Across this campaign and the earlier
+   ones, every attempt to turn the fixed-N gain into a cost advantage has failed or stayed unresolved. **Continue only
+   with the three items a publication needs** (`PUBLICATION_READINESS.md` §5):
+   1. a head-to-head of the FR rule against the published selection rules (the Lelièvre–Rousset–Stoltz Laplacian
+      rule and count-based selection) on the gateway and LTA 150 K, at validated settings;
+   2. a reconciliation with the Lelièvre–Rousset–Stoltz 2007 WCA positive (same metric, horizon and rule);
+   3. optionally, a powered wall-clock study (≥ 128 seeds per arm) if a wall-time claim is wanted.
+5. **Publication figure and table set:**
+   * Figures:
+     * (F1) the regime map: FR/ABF Ī_F ratio across systems and N, with WCA, alanine and the small-N cells as
+       negatives (from `EVIDENCE_LEDGER.md` and the equal-budget summaries);
+     * (F2) the equal-budget N-ladders with best-allocation markers (`figures/equal_budget_v2/*/synthesis/`, `figures/equal_budget_v2/cross_system/synthesis/X1_cross_system_gain.png`);
+     * (F3) the Experiment A mobility result: A1 (Ī_F vs λ), A3 (FR/ABF ratio and contrasts), A7 (convergence curves
+       showing the FR floor at λ ≤ 4) and A4/A4b (MC1/MC2), from `figures/final_campaign/expA/`;
+     * (F4) the mechanism panel: A5 (deposit bias by clone age, MC3) and the gateway λ = 0.1 / matched-F results
+       (`figures/mechanism/synthesis/mech_s5_lambda`, `mech_s5b_d2_conditional_relaxation`);
+     * (F5) the WCA validated negative at dt\* (`docs/numerical_validation/WCA_CONFIRMATORY.md`);
+     * (F6) wall-clock: B3 (W_mid per arm), B4 (e_F vs wall-clock), B5 (ρ bootstrap), B1 (scaling), from
+       `figures/final_campaign/expB/`.
+   * Tables:
+     * (T1) the claim ledger with status (this section and `EVIDENCE_LEDGER.md`);
+     * (T2) the Experiment A per-cell table (`EXPA_SHIFTED_FIBRE_MOBILITY_v3.md` §3.2);
+     * (T3) best allocation at equal force evaluations, production and confirmation;
+     * (T4) the Experiment B decision tables, with secondary endpoints, for both systems;
+     * (T5) the validation summary (timestep gates, V-B1…V-B5, null controls);
+     * (T6) the compute ledger.

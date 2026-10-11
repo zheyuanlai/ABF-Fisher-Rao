@@ -89,6 +89,81 @@ walker-steps per run, mid threshold 0.13 kJ/mol.
   the same pattern as FR's higher final error at N ≤ 64. A stationary bias, as in WCA, is not established here; the
   LTA validation found none at the budgets used.
 
-## 2. Gateway (exploratory, Amendment 3)
+## 2. Gateway (exploratory, Amendment 3): **exploratory decision UNRESOLVED; robust to the backend's law**
 
-*(pending: production in progress)*
+64 seeds 8400–8463 × 5 arms; 320/320 runs plus contention repeats; 28.2 used core-h; drift reference 1.04–1.07 × 10⁸
+walker-steps/s. Stage COMPLETE. B = 3.2768 × 10⁹ walker-steps per run, mid threshold e_F 0.0055. Every number in this
+section is **exploratory (after a frozen V-B4 FAIL; Amendment 3)**.
+
+### 2.1 Primary endpoint W_mid (0 censored in every arm)
+
+| arm | implementation | median W_mid (s) | ρ(FR 64, arm) [95 % CI] |
+|---|---|---|---|
+| **FR 64** (completion arm) | parallel t 8 | **1.30** [0.89, 1.67] | — |
+| **ABF 64** | parallel t 8 | **1.71** [1.41, 2.07] | **0.763 [0.488, 1.087]** |
+| ABF 16 | parallel t 2 | 1.77 [1.42, 2.46] | 0.735 [0.429, 1.026] |
+| FR 512 | parallel t 8 | 2.86 [2.64, 3.33] | — |
+| ABF 512 | parallel t 8 | 7.61 [7.18, 8.10] | 0.171 [0.116, 0.221] |
+
+* **[observed, exploratory] Decision: unresolved.** FR 64 beats ABF 512 but not ABF 16 or ABF 64 at the IUT level (FR-side
+  upper bounds 1.10 and 1.12). ρ_best = 0.763 [0.515, 1.109]. FR 64 is the best FR arm in 100 % of resamples; the best
+  ABF arm is ABF 64 in 64 % and ABF 16 in 36 %. The fraction of resamples with ρ_best < 1 is 0.90 (descriptive).
+* **[observed] A3.3 (b) hybrid projection** (validated-engine τ_mid × measured wall per walker-step): unresolved,
+  ρ_best 0.719 [0.527, 1.187]. The measured and projected labels agree, so the exploratory decision is **robust to the
+  backend's law**: the V-B4 question (whether counter-mode noise changes the law) does not change the answer.
+* **Sensitivities (all unresolved):** interpolated 0.756 [0.513, 1.110]; flagged seeds included and CCD-wide
+  contention scope both 0.763 [0.515, 1.109].
+* **[observed, exploratory] Fixed N.** FR 512 vs ABF 512, paired at t 8: FR first in 60/64 seeds (sign test
+  p 7 × 10⁻¹⁴), ρ 0.375 [0.340, 0.447]; FR adds +0.91 s [0.77, 1.00] per ≈ 30 s run (≈ 3 %).
+
+### 2.2 Secondary endpoints (exploratory)
+
+| arm | W_loose (s) | W_strict (s) (censored /64) | final e_F | force evaluations to mid | used core-h to mid (×10⁻³) | speed-up vs serial (efficiency) |
+|---|---|---|---|---|---|---|
+| FR 64 | **0.21** | **5.53** (1) | 5.1e-4 | 8.81e7 | 2.90 | 5.20 (0.65) |
+| ABF 64 | 0.32 | 6.30 (0) | **4.4e-4** | 1.21e8 | 3.80 | 5.39 (0.67) |
+| ABF 16 | 0.39 | 16.9 (0) | 5.2e-4 | **5.16e7** | **0.99** | 2.21 (1.10) |
+| FR 512 | 0.71 | 12.2 (1) | 7.5e-4 | 3.10e8 | 6.35 | 8.19 (1.02) |
+| ABF 512 | 1.22 | 24.0 (13) | 1.6e-3 | 8.51e8 | 16.9 | 8.44 (1.06) |
+
+* **Loose threshold (0.02):** FR advantage, ρ_best 0.654 [0.581, 0.732]: FR 64 beats every ABF arm.
+* **Strict threshold (0.002):** unresolved, ρ_best 0.878 [0.662, 1.485]; all contrasts comparable.
+* **Integrated error against wall-clock**, Ī_F^wall at W\* = 29.3 s: FR advantage, ρ_best 0.85 [0.79, 0.94]. FR 64
+  0.0026, ABF 64 0.0030, ABF 16 0.0038.
+* **Force evaluations (claim type 2):** ABF 16 needs the fewest to the mid threshold (5.2e7, against 8.8e7 for FR 64).
+  This matches the equal-budget result that the best gateway allocation is ABF at N 16.
+* **Core-hours:** ABF 16 on 2 threads is the cheapest (1.0 × 10⁻³ core-h to mid), about 3× cheaper than FR 64.
+* Efficiencies above 1 mean the parallel engine's counter-mode noise is cheaper than the serial engine's MT19937 noise
+  (1.24–1.52×, §4.1 of the backend report). They are not superlinear scaling.
+
+## 3. Combined reading (claim type 3)
+
+* **[observed] Neither system resolves a wall-clock advantage of the best FR allocation over the best ABF allocation at
+  the mid threshold** on 8 dedicated cores (LTA confirmatory: ρ_best 0.717 [0.536, 1.196]; gateway exploratory: 0.763
+  [0.515, 1.109]). The point estimates favour FR by 24–28 % in both. The preregistered resolution statement predicted
+  CI widths of ×/÷1.22–1.3 (from resampling τ at fixed throughput), but the observed ρ_best CIs are ×/÷1.47–1.49, so
+  the design was underpowered for an effect of this size.
+* **[observed] The best FR allocation is N 64 in both systems, not N 512.** On this hardware the parallel backend
+  makes N 512 fast (8.2–9.1× the serial engine), but N 512 is not the best allocation for either method. The decisive
+  comparison is therefore moderate-N FR (8 threads) against moderate-N ABF (8 threads, or 2 threads at N 16), not "large
+  N against small N".
+* **[observed] FR helps earlier accuracy more than late accuracy.** Gateway: FR wins at the loose threshold and on
+  Ī_F^wall, and is unresolved at mid and strict. LTA: unresolved at loose and mid, and worse at strict (FR reaches it
+  less often within the budget).
+* **[observed] FR does not reduce CPU cost.** In core-hours and force evaluations to mid accuracy, a small-N ABF arm is
+  cheapest in both systems (gateway ABF 16; LTA ABF 2). This agrees with the equal-budget result (`EVIDENCE_LEDGER.md`
+  C5).
+* **[observed] At fixed N, FR's simulation-time gain carries over to wall-clock on 8–16 cores** (FR 512 first in 60/64
+  and 31/32 seeds; overhead 3 % / 10 %), extending C6 beyond a single core.
+* **[hypothesis]** A larger study (≥ 128 seeds per arm) could resolve an FR advantage of ≈ 25 % at the mid threshold
+  on idle cores. Even then it would be a wall-time advantage at higher CPU cost, confined to early and intermediate
+  accuracy.
+
+## 4. Compute and files
+
+* Used core-hours: LTA production 25.6, gateway production 28.2. The whole of Experiment B used ≈ 92 of its 160 cap
+  (Amendment 4); 0 GPU-h.
+* Records: `results/final_campaign/expB/prod/<system>/<arm>/s<seed>[.rep<k>].json` (science arrays `.npz` gitignored,
+  sha256 in the records); analysis `results/final_campaign/expB/analysis/<system>/{summary.json, hybrid_projection.json}`;
+  seed tables `results/final_campaign/expB/tables/<system>_seeds.{csv,md}`; figures `figures/final_campaign/expB/` B1–B7
+  (all pass the legibility check).
