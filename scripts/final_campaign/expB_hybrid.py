@@ -55,8 +55,13 @@ def hybrid_values(tau_by_arm, w_by_arm, B):
     return vals, comp
 
 
+DECISION_LABELS = ("FR advantage", "ABF advantage", "unresolved")
+
+
 def agreement(measured_label, hybrid_label):
-    if measured_label is None or hybrid_label is None:
+    """A3.3 (b): robust iff the two DECISION labels agree; anything else (an INCOMPLETE stage, no data) is not
+    evaluable."""
+    if measured_label not in DECISION_LABELS or hybrid_label not in DECISION_LABELS:
         return "not evaluable"
     return "robust to the backend's law" if measured_label == hybrid_label else "law-sensitive"
 
@@ -103,7 +108,10 @@ def run(system, out_root=C.OUT_ROOT, write=True, key=BN.TAU_KEY):
                tau_source=spec["eqb_summary"], B=spec["B"], w_arm=w, n_uncontended_records=n_w, omitted=omitted,
                fr_arms=Fh, abf_arms=Ah, paired=pairs, compare=AN._strip(res),
                hybrid_decision=hyb_label, measured_decision=meas_label,
-               agreement=agreement(meas_label, hyb_label))
+               measured_stage_status=meas.get("stage_status"),
+               measured_decision_on_available_seeds=meas.get("decision_on_available_seeds"),
+               agreement=agreement(meas_label, hyb_label),
+               agreement_on_available_seeds_descriptive=agreement(meas.get("decision_on_available_seeds"), hyb_label))
     if write:
         C.write_json(os.path.join(out_root, "analysis", system, "hybrid_projection.json"), out)
     return out

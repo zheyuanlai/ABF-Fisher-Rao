@@ -35,6 +35,12 @@ import expB_common as C  # noqa: E402
 import expB_stats as S  # noqa: E402
 
 SYSTEM_LABEL = {"gateway": "entropic gateway", "lta150": "ethane / LTA 150 K"}
+# Amendment 3 (A3.3 a): every gateway Experiment B result carries the exploratory label
+EXPLORATORY_TAG = {"gateway": "\n[exploratory (after a frozen V-B4 FAIL; Amendment 3)]"}
+
+
+def tag(s):
+    return EXPLORATORY_TAG.get(s, "")
 METHOD_LABEL = {"abf": "ABF", "fr": "ABF+FR"}
 TIMER_LABEL = {"t_force_move_s": "force / move", "t_abf_s": "ABF deposit + bias read", "t_sync_s": "synchronisation",
                "t_fr_s": "FR", "t_save_s": "saves"}
@@ -119,13 +125,16 @@ def fig_b1(systems, out_root, fig_dir, manifest):
                 if math.isfinite(t1):
                     ax.axhline(4.0 * t1, color="tab:green", ls="-.", lw=0.9, label="F1b: 4x parallel t=1 (FR 512)")
             ax.plot([], [], "s", color="0.3", ms=4, label="square: validated serial engine")
-            ax.plot([], [], "o", mfc="white", color="0.3", ms=4, label="open: t = 32 (descriptive)")
-            ax.set_xticks(list(xs.values()))
-            ax.set_xticklabels(["serial", "1", "2", "4", "8", "16", "32*"])
+            has32 = any(v["threads"] == 32 and v["n"] for v in summ.values())
+            if has32:
+                ax.plot([], [], "o", mfc="white", color="0.3", ms=4, label="open: t = 32 (descriptive)")
+            ticks = ["serial", 1, 2, 4, 8, 16] + ([32] if has32 else [])
+            ax.set_xticks([xs[t] for t in ticks])
+            ax.set_xticklabels(["serial", "1", "2", "4", "8", "16"] + (["32*"] if has32 else []))
             ax.set_yscale("log")
-            ax.set_xlabel("threads (32*: descriptive)")
+            ax.set_xlabel("threads (32*: descriptive)" if has32 else "threads (t = 32 not measured; Amendment 4)")
             ax.set_ylabel("throughput (walker-steps / s)")
-            ax.set_title(f"{SYSTEM_LABEL.get(s, s)}: {METHOD_LABEL[m]}")
+            ax.set_title(f"{SYSTEM_LABEL.get(s, s)}: {METHOD_LABEL[m]}{tag(s)}", fontsize=9)
             ax.legend(loc="upper left", bbox_to_anchor=(1.01, 1.0), frameon=False)
     fig.subplots_adjust(left=0.12, right=0.66, hspace=0.6, top=0.95, bottom=0.08)
     save(fig, fig_dir, "B1_throughput_vs_threads", manifest, [f"bench/{s}/summary.json" for s in have])
@@ -164,7 +173,7 @@ def fig_b2(systems, out_root, fig_dir, manifest):
         ax.set_yscale("log")
         ax.set_xlabel("N (walkers)")
         ax.set_ylabel("wall time per walker-step (us)")
-        ax.set_title(SYSTEM_LABEL.get(s, s))
+        ax.set_title(SYSTEM_LABEL.get(s, s) + tag(s), fontsize=9)
         ax.legend(frameon=False, loc="best")
     fig.tight_layout()
     save(fig, fig_dir, "B2_wall_per_walker_step_vs_N", manifest, [f"bench/{s}/summary.json" for s in have])
@@ -217,7 +226,9 @@ def fig_b3(systems, out_root, fig_dir, manifest):
         ax.set_xticklabels([f"{METHOD_LABEL[C.parse_arm(a)[0]]}\nN = {C.parse_arm(a)[1]}" for a in arms])
         ax.set_xlabel("arm")
         ax.set_ylabel("W_mid (wall s to persistent mid accuracy)")
-        ax.set_title(f"{SYSTEM_LABEL.get(s, s)}: {A.get('decision_primary')}")
+        dec_txt = (f"exploratory decision: {A.get('decision_primary')}" if A.get("exploratory")
+                   else f"decision: {A.get('decision_primary')}")
+        ax.set_title(f"{SYSTEM_LABEL.get(s, s)}: {dec_txt}{tag(s)}", fontsize=9)
     fig.tight_layout()
     save(fig, fig_dir, "B3_W_mid_per_arm", manifest, [f"analysis/{s}/summary.json" for s in have])
 
@@ -247,7 +258,7 @@ def fig_b4(systems, out_root, fig_dir, manifest):
         ax.set_yscale("log")
         ax.set_xlabel("wall-clock time since timed start (s)")
         ax.set_ylabel("e_F (median, IQR)")
-        ax.set_title(SYSTEM_LABEL.get(s, s))
+        ax.set_title(SYSTEM_LABEL.get(s, s) + tag(s), fontsize=9)
         ax.legend(frameon=False, loc="lower left")
     fig.tight_layout()
     save(fig, fig_dir, "B4_eF_vs_wall", manifest, [f"analysis/{s}/curves.npz" for s in have])
@@ -293,7 +304,7 @@ def fig_b5(systems, out_root, fig_dir, manifest):
             extra.append(f"rho=inf: {int(np.sum(np.isinf(d)))}")
         if np.any(np.isnan(r)):
             extra.append(f"undef.: {int(np.sum(np.isnan(r)))}")
-        ax.set_title(f"{s}: {key.replace('|', ' / ')}" + ("\n" + ", ".join(extra) if extra else ""), fontsize=8)
+        ax.set_title(f"{s}: {key.replace('|', ' / ')}" + ("\n" + ", ".join(extra) if extra else "") + tag(s), fontsize=8)
         ax.set_xlabel("log10 rho (W_mid ratio)")
         ax.set_ylabel("resamples")
     for k in range(len(panels), nr * nc):
@@ -333,7 +344,7 @@ def fig_b6(systems, out_root, fig_dir, manifest):
             ax.set_xticklabels([f"{METHOD_LABEL[C.parse_arm(a)[0]]}\n{C.parse_arm(a)[1]}" for a in arms], fontsize=7)
             ax.set_xlabel("arm (method, N)")
             ax.set_ylabel(lab)
-            ax.set_title(SYSTEM_LABEL.get(s, s), fontsize=8.5)
+            ax.set_title(SYSTEM_LABEL.get(s, s) + tag(s), fontsize=8.5)
     fig.tight_layout()
     save(fig, fig_dir, "B6_cost_to_accuracy", manifest, [f"analysis/{s}/summary.json" for s in have])
 
@@ -362,22 +373,30 @@ def fig_b7(systems, out_root, fig_dir, manifest):
                 if v["impl"] == "parallel" and v["N"] == 512 and v["threads"] == 16:
                     bars[f"{v['method']}512"] = {k: _num(v["timer_fractions"].get(k)) for k in C.TIMER_KEYS}
         names = list(bars)
+        seen = set()
         for x, a in enumerate(names):
+            if not any(math.isfinite(bars[a][k]) for k in C.TIMER_KEYS):     # serial engine: no in-engine timers
+                ax.annotate("no in-engine timers\n(serial engine)", (x, 0.5), ha="center", va="center", fontsize=6.5,
+                            rotation=90)
+                continue
             bottom = 0.0
             for j, k in enumerate(C.TIMER_KEYS):
                 v = bars[a][k]
                 if not math.isfinite(v):
                     continue
-                ax.bar(x, v, bottom=bottom, color=cols(j), width=0.6, label=TIMER_LABEL[k] if x == 0 else None)
+                ax.bar(x, v, bottom=bottom, color=cols(j), width=0.6, label=None if k in seen else TIMER_LABEL[k])
+                seen.add(k)
                 bottom += v
             if bottom < 1.0:
-                ax.bar(x, 1.0 - bottom, bottom=bottom, color="0.85", width=0.6, label="other" if x == 0 else None)
+                ax.bar(x, 1.0 - bottom, bottom=bottom, color="0.85", width=0.6,
+                       label=None if "other" in seen else "other")
+                seen.add("other")
         ax.set_xticks(range(len(names)))
         ax.set_xticklabels([f"{METHOD_LABEL[C.parse_arm(a)[0]]}\nN = {C.parse_arm(a)[1]}" for a in names], fontsize=7)
         ax.set_xlabel("arm")
         ax.set_ylabel("fraction of wall time")
         ax.set_ylim(0, 1.0)
-        ax.set_title(f"{SYSTEM_LABEL.get(s, s)} ({src})", fontsize=8.5)
+        ax.set_title(f"{SYSTEM_LABEL.get(s, s)} ({src}){tag(s)}", fontsize=8.5)
         ax.legend(frameon=False, fontsize=6.5, loc="upper left", bbox_to_anchor=(1.0, 1.0))
     fig.tight_layout()
     save(fig, fig_dir, "B7_overhead_split", manifest, [s for s in have])

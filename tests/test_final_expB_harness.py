@@ -1425,6 +1425,31 @@ def test_analysis_flagged_seeds_and_decision(tmp_path, fake_engine):
     assert s2["decision_on_available_seeds"] == "unresolved" and "abf8" in s2["abf_arms"]
 
 
+def test_analysis_pending_repeats_ccd_sensitivity_and_stage_label(tmp_path, fake_engine):
+    """Audit fixes: a seed whose repeats are not exhausted makes the stage INCOMPLETE (prereg 2.5); the A2.4 CCD-wide
+    sensitivity is computed; the A3.3 (a) exploratory label is carried into the summary."""
+    import expB_analyze as AN
+    S, out, L = _scheduler(tmp_path, fake_engine, contended={("abf16", 3): 9})
+    S.run()
+    C.write_json(os.path.join(out, "prod", "gateway", "STAGE_LABEL.json"),
+                 dict(label="exploratory (after a frozen V-B4 FAIL; Amendment 3)", exploratory=True))
+    bench = {"abf16_serial": dict(n=3, wall_per_walker_step=1e-7), "abf512_serial": dict(n=3, wall_per_walker_step=1e-7),
+             "fr512_serial": dict(n=3, wall_per_walker_step=1.3e-7)}
+    kw = dict(out_root=out, spec=S.spec, decision=DECISION, bench_summary=bench, n_boot=300, gehan_perm=50, write=False)
+    s = AN.analyze("gateway", **kw)
+    assert s["stage_status"] == "COMPLETE" and s["n_pending_repeats"] == 0       # seed 3 exhausted its repeats
+    assert s["exploratory"] and s["decision_role"].startswith("exploratory decision")
+    ccd = s["results"]["W_mid_sensitivity_ccd_scope"]
+    assert 3 in ccd["flagged_seeds"]["abf16"] and ccd["per_arm"]["abf16"]["n"] == 5
+    assert ccd["decision"]["decision"] in ("FR advantage", "ABF advantage", "unresolved")
+    # drop abf16 s3's last repeat: 3 contended records < 1 + MAX_REPEATS -> a repeat is still due
+    os.remove(R.job_paths(R.prod_job(S.spec, S.by_arm["abf16"], 3, R.MAX_REPEATS), out)["json"])
+    s2 = AN.analyze("gateway", **kw)
+    assert s2["stage_status"] == "INCOMPLETE" and s2["decision_primary"] == "INCOMPLETE"
+    assert s2["pending_repeats"] == [dict(arm="abf16", seed=3, n_complete_records=R.MAX_REPEATS)]
+    assert s2["decision_on_available_seeds"] in ("FR advantage", "ABF advantage", "unresolved")
+
+
 # ============================================================================================ real subprocess
 def test_real_pinned_subprocess_child(tmp_path, fake_engine, monkeypatch):
     """One production job through the CLI child (taskset to 2 of our cores, omp_env), as the scheduler runs it."""

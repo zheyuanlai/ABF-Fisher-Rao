@@ -28,6 +28,7 @@ def test_agreement_labels():
     assert H.agreement("FR advantage", "FR advantage") == "robust to the backend's law"
     assert H.agreement("unresolved", "FR advantage") == "law-sensitive"
     assert H.agreement(None, "unresolved") == "not evaluable"
+    assert H.agreement("INCOMPLETE", "FR advantage") == "not evaluable"      # an incomplete stage has no decision
 
 
 def test_decision_on_hybrid_values_runs_through_compare_arms():

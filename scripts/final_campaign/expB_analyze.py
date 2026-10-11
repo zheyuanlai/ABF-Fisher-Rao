@@ -76,6 +76,15 @@ def select(recs, window):
     return (recs[0], False) if recs else (None, False)
 
 
+def select_ccd(recs, window):
+    """Amendment 2 (A2.4) sensitivity: the first replicate whose CCD-WIDE verdict for ``window`` is uncontended
+    (else the first replicate, flagged)."""
+    for r in recs:
+        if r.get("contention", {}).get(window, {}).get("ccd_scope", {}).get("status") == "uncontended":
+            return r, True
+    return (recs[0], False) if recs else (None, False)
+
+
 def bench_serial_c(bench_summary, method, N):
     s = (bench_summary or {}).get(f"{method}{N}_serial")
     return float(s["wall_per_walker_step"]) if s and s.get("n") else math.nan
@@ -121,7 +130,11 @@ def analyze(system, out_root=C.OUT_ROOT, spec=None, decision=None, bench_summary
                                                             "no complete record"))
                     for a in decision["arms"] for s in spec["seeds"]
                     if int(s) not in recs.get(a["arm"], {})]
-    stage_status = "INCOMPLETE" if missing_runs else "COMPLETE"
+    # a seed with no uncontended replicate whose repeats are not exhausted is not final (prereg 2.5: excluded only
+    # after up to 3 repeats); the stage is then INCOMPLETE like one with missing runs
+    pending_repeats = [dict(arm=a, seed=int(s), n_complete_records=len(rr))
+                       for a, per in recs.items() for s, rr in sorted(per.items()) if R.needs_repeat(rr)]
+    stage_status = "INCOMPLETE" if (missing_runs or pending_repeats) else "COMPLETE"
 
     # ---- W endpoints (primary / sensitivity), completion
     vals = {"primary": {}, "sensitivity": {}}
@@ -161,6 +174,27 @@ def analyze(system, out_root=C.OUT_ROOT, spec=None, decision=None, bench_summary
     results["W_mid_interp"] = comp("primary", "W_mid", values={a: interp[a] for a in interp})
     results["W_strict"] = comp("primary", "W_strict")
     results["W_loose"] = comp("primary", "W_loose")
+
+    # ---- Amendment 2 (A2.4): the W_mid decision repeated with the CCD-wide contention verdict
+    ccd_vals, ccd_flags = {}, {}
+    for a, per in recs.items():
+        ccd_vals[a], ccd_flags[a] = {}, []
+        for s, rr in per.items():
+            r, prim = select_ccd(rr, "W_mid")
+            if r is None:
+                continue
+            if prim:
+                ccd_vals[a][s] = C.num(r["endpoints"]["W_mid"])
+            else:
+                ccd_flags[a].append(int(s))
+    v_ccd = {a: x for a, x in ccd_vals.items() if x}
+    if any(a in v_ccd for a in F) and any(a in v_ccd for a in A_):
+        ccd_res = S.compare_arms(v_ccd, F, A_, pairs=pairs, completion={a: completion[a]["W_mid"] for a in v_ccd},
+                                 n_boot=n_boot, gehan_perm=gehan_perm)
+    else:
+        ccd_res = dict(status="no data")
+    results["W_mid_sensitivity_ccd_scope"] = dict(ccd_res, flagged_seeds=ccd_flags,
+                                                  n_seeds={a: len(x) for a, x in ccd_vals.items()})
 
     # ---- Ibar_F^wall(W*) on whole-run uncontended replicates; e_F cached per (arm, seed)
     whole, ecache, wcomp = {}, {}, {}
@@ -274,7 +308,7 @@ def analyze(system, out_root=C.OUT_ROOT, spec=None, decision=None, bench_summary
 
     # ---- curves (median e_F vs wall) and tables
     curves = {}
-    allw = [float(r["wall_total_s"]) for per in whole.values() for (r, p) in per.values() if r is not None]
+    allw = [float(r["wall_total_s"]) for per in whole.values() for (r, p) in per.values() if r is not None and p]
     if allw:
         lo = 1e-3 * min(allw)
         grid = np.logspace(math.log10(max(lo, 1e-6)), math.log10(max(allw)), N_CURVE)
@@ -282,7 +316,7 @@ def analyze(system, out_root=C.OUT_ROOT, spec=None, decision=None, bench_summary
         for a, per in whole.items():
             rows = []
             for s, (r, p) in per.items():
-                if r is None:
+                if r is None or not p:                 # curves use the Ibar_F^wall set: whole-run uncontended only
                     continue
                 res = R.load_science(r["job"], out_root)
                 key = (a, s)
@@ -295,7 +329,7 @@ def analyze(system, out_root=C.OUT_ROOT, spec=None, decision=None, bench_summary
                 curves[f"{a}_q25"] = np.percentile(Y, 25, axis=0)
                 curves[f"{a}_q75"] = np.percentile(Y, 75, axis=0)
                 curves[f"{a}_completion_median"] = np.array([np.median([float(r["wall_total_s"])
-                                                                        for (r, p) in per.values() if r])])
+                                                                        for (r, p) in per.values() if r and p])])
     table = []
     for a, per in recs.items():
         for s, rr in sorted(per.items()):
@@ -313,14 +347,20 @@ def analyze(system, out_root=C.OUT_ROOT, spec=None, decision=None, bench_summary
                               threads=int(rm["job"]["threads"]), impl=rm["job"]["impl"],
                               contention_W_mid=rm.get("contention_status", {}).get("W_mid")))
     dec_avail = results["W_mid"].get("decision", {}).get("decision") if isinstance(results["W_mid"], dict) else None
+    lp = os.path.join(out_root, "prod", system, "STAGE_LABEL.json")
+    stage = C.read_json(lp) if os.path.exists(lp) else {}
     summary = dict(version=ANALYZE_VERSION, system=system, generated_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ",
                                                                                          time.gmtime()),
                    arms=[a["arm"] for a in arms], planned_arms=[a["arm"] for a in decision["arms"]], fr_arms=F,
                    abf_arms=A_, paired=pairs, n_runs=n_runs, planned_seeds=[int(s) for s in spec["seeds"]],
                    stage_status=stage_status, missing_runs=missing_runs, n_missing_runs=len(missing_runs),
                    thresholds=spec["thresholds"], B=spec["B"], e_flat=scorer.e_flat, results=_strip(results),
-                   decision_primary=("INCOMPLETE" if missing_runs else dec_avail),
+                   pending_repeats=pending_repeats, n_pending_repeats=len(pending_repeats),
+                   decision_primary=("INCOMPLETE" if stage_status == "INCOMPLETE" else dec_avail),
                    decision_on_available_seeds=dec_avail,
+                   stage_label=stage.get("label"), exploratory=bool(stage.get("exploratory")),
+                   decision_role=("exploratory decision (after a frozen V-B4 FAIL; Amendment 3)"
+                                  if stage.get("exploratory") else "confirmatory decision (section 2.7)"),
                    notes=["W in seconds from the engine's timed start; inf = censored",
                           "rho_best is descriptive; frac_below_1 is not a probability",
                           "a contrast labelled 'not comparable (budget artefact)' is reported but not interpreted"])
