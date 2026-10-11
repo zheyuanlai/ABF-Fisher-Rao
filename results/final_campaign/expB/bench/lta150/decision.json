@@ -1,0 +1,673 @@
+{
+ "arms": [
+  {
+   "N": 2,
+   "arm": "abf2",
+   "impl": "serial",
+   "implementation_table": [
+    {
+     "cores": 1,
+     "impl": "serial",
+     "n": 3,
+     "threads": 1,
+     "throughput": 1170621.2679520948,
+     "tied_with_best": true
+    },
+    {
+     "cores": 1,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 1,
+     "throughput": 593161.4467048906,
+     "tied_with_best": false
+    },
+    {
+     "cores": 2,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 2,
+     "throughput": 654804.1381070027,
+     "tied_with_best": false
+    }
+   ],
+   "method": "abf",
+   "noise": "replay",
+   "projected_run_wall_s": 262.4247554782778,
+   "source": "core",
+   "threads": 1,
+   "throughput": 1170621.2679520948,
+   "wall_per_walker_step": 8.542472509058523e-07
+  },
+  {
+   "N": 64,
+   "arm": "abf64",
+   "impl": "parallel",
+   "implementation_table": [
+    {
+     "cores": 1,
+     "impl": "serial",
+     "n": 3,
+     "threads": 1,
+     "throughput": 1170822.7062712198,
+     "tied_with_best": false
+    },
+    {
+     "cores": 1,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 1,
+     "throughput": 1000253.6474895002,
+     "tied_with_best": false
+    },
+    {
+     "cores": 2,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 2,
+     "throughput": 1897024.075817386,
+     "tied_with_best": false
+    },
+    {
+     "cores": 4,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 4,
+     "throughput": 3412390.5116552687,
+     "tied_with_best": false
+    },
+    {
+     "cores": 8,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 8,
+     "throughput": 5628373.784531302,
+     "tied_with_best": true
+    },
+    {
+     "cores": 16,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 16,
+     "throughput": 5155954.617632656,
+     "tied_with_best": false
+    }
+   ],
+   "method": "abf",
+   "noise": "counter",
+   "projected_run_wall_s": 54.58059676922858,
+   "source": "core",
+   "threads": 8,
+   "throughput": 5628373.784531302,
+   "wall_per_walker_step": 1.7767121344149928e-07
+  },
+  {
+   "N": 512,
+   "arm": "abf512",
+   "impl": "parallel",
+   "implementation_table": [
+    {
+     "cores": 1,
+     "impl": "serial",
+     "n": 3,
+     "threads": 1,
+     "throughput": 1174519.2359886002,
+     "tied_with_best": false
+    },
+    {
+     "cores": 1,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 1,
+     "throughput": 1023882.4321640847,
+     "tied_with_best": false
+    },
+    {
+     "cores": 2,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 2,
+     "throughput": 2014864.0475915764,
+     "tied_with_best": false
+    },
+    {
+     "cores": 4,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 4,
+     "throughput": 3919709.249312279,
+     "tied_with_best": false
+    },
+    {
+     "cores": 8,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 8,
+     "throughput": 7336642.742611463,
+     "tied_with_best": false
+    },
+    {
+     "cores": 16,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 16,
+     "throughput": 10719037.595819067,
+     "tied_with_best": true
+    }
+   ],
+   "method": "abf",
+   "noise": "counter",
+   "projected_run_wall_s": 28.659289348870516,
+   "source": "core",
+   "threads": 16,
+   "throughput": 10719037.595819067,
+   "wall_per_walker_step": 9.329195751585454e-08
+  },
+  {
+   "N": 512,
+   "arm": "fr512",
+   "impl": "parallel",
+   "implementation_table": [
+    {
+     "cores": 1,
+     "impl": "serial",
+     "n": 3,
+     "threads": 1,
+     "throughput": 1163240.78278448,
+     "tied_with_best": false
+    },
+    {
+     "cores": 1,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 1,
+     "throughput": 1014933.1046732749,
+     "tied_with_best": false
+    },
+    {
+     "cores": 2,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 2,
+     "throughput": 1986546.1037598248,
+     "tied_with_best": false
+    },
+    {
+     "cores": 4,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 4,
+     "throughput": 3811044.8538179947,
+     "tied_with_best": false
+    },
+    {
+     "cores": 8,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 8,
+     "throughput": 6994999.608814324,
+     "tied_with_best": false
+    },
+    {
+     "cores": 16,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 16,
+     "throughput": 9951225.042062826,
+     "tied_with_best": true
+    }
+   ],
+   "method": "fr",
+   "noise": "counter",
+   "projected_run_wall_s": 30.870571080595255,
+   "source": "core",
+   "threads": 16,
+   "throughput": 9951225.042062826,
+   "wall_per_walker_step": 1.0049014023631268e-07
+  },
+  {
+   "N": 32,
+   "arm": "abf32",
+   "impl": "parallel",
+   "implementation_table": [
+    {
+     "cores": 1,
+     "impl": "serial",
+     "n": 3,
+     "threads": 1,
+     "throughput": 1172823.419161129,
+     "tied_with_best": false
+    },
+    {
+     "cores": 1,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 1,
+     "throughput": 979069.1878362007,
+     "tied_with_best": false
+    },
+    {
+     "cores": 2,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 2,
+     "throughput": 1778581.9485215524,
+     "tied_with_best": false
+    },
+    {
+     "cores": 4,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 4,
+     "throughput": 3044599.550862489,
+     "tied_with_best": false
+    },
+    {
+     "cores": 8,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 8,
+     "throughput": 4489687.91913685,
+     "tied_with_best": true
+    },
+    {
+     "cores": 16,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 16,
+     "throughput": 3189048.1995847113,
+     "tied_with_best": false
+    }
+   ],
+   "method": "abf",
+   "noise": "counter",
+   "projected_run_wall_s": 68.42346406541765,
+   "source": "completion",
+   "threads": 8,
+   "throughput": 4489687.91913685,
+   "wall_per_walker_step": 2.227326304212814e-07
+  },
+  {
+   "N": 64,
+   "arm": "fr64",
+   "impl": "parallel",
+   "implementation_table": [
+    {
+     "cores": 1,
+     "impl": "serial",
+     "n": 3,
+     "threads": 1,
+     "throughput": 1148459.8670290357,
+     "tied_with_best": false
+    },
+    {
+     "cores": 1,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 1,
+     "throughput": 982863.9230182471,
+     "tied_with_best": false
+    },
+    {
+     "cores": 2,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 2,
+     "throughput": 1831104.753240684,
+     "tied_with_best": false
+    },
+    {
+     "cores": 4,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 4,
+     "throughput": 3201845.58897448,
+     "tied_with_best": false
+    },
+    {
+     "cores": 8,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 8,
+     "throughput": 5084539.42203147,
+     "tied_with_best": true
+    },
+    {
+     "cores": 16,
+     "impl": "parallel",
+     "n": 3,
+     "threads": 16,
+     "throughput": 4913479.706064324,
+     "tied_with_best": false
+    }
+   ],
+   "method": "fr",
+   "noise": "counter",
+   "projected_run_wall_s": 60.41845180094243,
+   "source": "completion",
+   "threads": 8,
+   "throughput": 5084539.42203147,
+   "wall_per_walker_step": 1.9667464778952613e-07
+  }
+ ],
+ "competitor_completion": {
+  "added": {
+   "abf": "abf32",
+   "fr": "fr64"
+  },
+  "alternative": {
+   "W_proj_s": {
+    "abf1": 13.98830981401261,
+    "abf128": 5.341757563571446,
+    "abf16": 5.187252163281664,
+    "abf2": 11.15305210782681,
+    "abf256": 9.106670217262582,
+    "abf32": 3.0790558829437944,
+    "abf4": 7.0321838587522505,
+    "abf512": 15.83425736525096,
+    "abf64": 4.366447741538287,
+    "abf8": 4.160829252307304,
+    "fr128": 3.906399394432082,
+    "fr256": 4.9739519784227015,
+    "fr512": 7.0230549208354205,
+    "fr64": 1.9635996835306289
+   },
+   "added": {
+    "abf": "abf32",
+    "fr": "fr64"
+   },
+   "selection_differs": false,
+   "tau_key": "tau_e_F_mid_u"
+  },
+  "rows": {
+   "abf1": {
+    "N": 1,
+    "W_proj_s": 13.98830981401261,
+    "c_star": 8.673307176347104e-07,
+    "core": false,
+    "method": "abf",
+    "n_tau": 16,
+    "n_tau_censored": 0,
+    "tau_mid_u_median": 0.052500000000000005
+   },
+   "abf128": {
+    "N": 128,
+    "W_proj_s": 5.341757563571446,
+    "c_star": 1.3638065674967949e-07,
+    "core": false,
+    "method": "abf",
+    "n_tau": 16,
+    "n_tau_censored": 0,
+    "tau_mid_u_median": 0.1275
+   },
+   "abf16": {
+    "N": 16,
+    "W_proj_s": 5.187252163281664,
+    "c_star": 3.0701066307301516e-07,
+    "core": false,
+    "method": "abf",
+    "n_tau": 16,
+    "n_tau_censored": 0,
+    "tau_mid_u_median": 0.055
+   },
+   "abf2": {
+    "N": 2,
+    "W_proj_s": 11.15305210782681,
+    "c_star": 8.542472509058523e-07,
+    "core": true,
+    "method": "abf",
+    "n_tau": 16,
+    "n_tau_censored": 0,
+    "tau_mid_u_median": 0.0425
+   },
+   "abf256": {
+    "N": 256,
+    "W_proj_s": 9.106670217262582,
+    "c_star": 1.1186456143453446e-07,
+    "core": false,
+    "method": "abf",
+    "n_tau": 16,
+    "n_tau_censored": 0,
+    "tau_mid_u_median": 0.265
+   },
+   "abf32": {
+    "N": 32,
+    "W_proj_s": 3.0790558829437944,
+    "best_of_method": true,
+    "c_star": 2.227326304212814e-07,
+    "core": false,
+    "method": "abf",
+    "n_tau": 16,
+    "n_tau_censored": 0,
+    "tau_mid_u_median": 0.045
+   },
+   "abf4": {
+    "N": 4,
+    "W_proj_s": 7.0321838587522505,
+    "c_star": 8.324081272197266e-07,
+    "core": false,
+    "method": "abf",
+    "n_tau": 16,
+    "n_tau_censored": 0,
+    "tau_mid_u_median": 0.0275
+   },
+   "abf512": {
+    "N": 512,
+    "W_proj_s": 15.83425736525096,
+    "c_star": 9.329195751585454e-08,
+    "core": true,
+    "method": "abf",
+    "n_tau": 16,
+    "n_tau_censored": 0,
+    "tau_mid_u_median": 0.5525
+   },
+   "abf64": {
+    "N": 64,
+    "W_proj_s": 4.366447741538287,
+    "c_star": 1.7767121344149928e-07,
+    "core": true,
+    "method": "abf",
+    "n_tau": 16,
+    "n_tau_censored": 0,
+    "tau_mid_u_median": 0.08
+   },
+   "abf8": {
+    "N": 8,
+    "W_proj_s": 4.160829252307304,
+    "c_star": 4.925224020250122e-07,
+    "core": false,
+    "method": "abf",
+    "n_tau": 16,
+    "n_tau_censored": 0,
+    "tau_mid_u_median": 0.0275
+   },
+   "fr128": {
+    "N": 128,
+    "W_proj_s": 3.906399394432082,
+    "c_star": 1.496016924951012e-07,
+    "core": false,
+    "method": "fr",
+    "n_tau": 16,
+    "n_tau_censored": 0,
+    "tau_mid_u_median": 0.08499999999999999
+   },
+   "fr256": {
+    "N": 256,
+    "W_proj_s": 4.9739519784227015,
+    "c_star": 1.2454807638277998e-07,
+    "core": false,
+    "method": "fr",
+    "n_tau": 16,
+    "n_tau_censored": 0,
+    "tau_mid_u_median": 0.13
+   },
+   "fr512": {
+    "N": 512,
+    "W_proj_s": 7.0230549208354205,
+    "c_star": 1.0049014023631268e-07,
+    "core": true,
+    "method": "fr",
+    "n_tau": 16,
+    "n_tau_censored": 0,
+    "tau_mid_u_median": 0.2275
+   },
+   "fr64": {
+    "N": 64,
+    "W_proj_s": 1.9635996835306289,
+    "best_of_method": true,
+    "c_star": 1.9667464778952613e-07,
+    "core": false,
+    "method": "fr",
+    "n_tau": 16,
+    "n_tau_censored": 0,
+    "tau_mid_u_median": 0.0325
+   }
+  },
+  "rule": "W_proj = Q50_s[tau_bgrid_e_F_mid_u] x B x c*, c* = best median wall per walker-step over serial and parallel t in {1,2,4,8,16} (t <= N); smallest W_proj per method added if not a core arm",
+  "tau_key": "tau_bgrid_e_F_mid_u"
+ },
+ "created_utc": "2026-10-11T11:58:42Z",
+ "engine_sources": {
+  "parallel": {
+   "src/lta_ladder_numba.py": "d2d3c4313fc52bc37e047e30cb607e958b168fcff2dee8b24d9aa12b925a804b",
+   "src/parallel/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "src/parallel/lta_parallel.py": "83a82eadb7c9db6cef263181bb65cd5538c29fae9e3330023d01c6e0b4b954c4",
+   "src/parallel/philox.py": "db996b3819dc06541a96d3b614abf14cd34fc21de320dc5c5e403bb12dcf7f59"
+  },
+  "serial": {
+   "scripts/mechanism/parallel_benchmark.py": "ff98903e21791309f9bd0ffd0e7242f93f5532d00f000a7c7704086591e51a99",
+   "src/lta_ladder_numba.py": "d2d3c4313fc52bc37e047e30cb607e958b168fcff2dee8b24d9aa12b925a804b"
+  }
+ },
+ "gate": {
+  "F1": {
+   "abf": {
+    "best_parallel_throughput": 10719037.595819067,
+    "best_threads": 16,
+    "parallel_by_threads": {
+     "1": 1023882.4321640847,
+     "16": 10719037.595819067,
+     "2": 2014864.0475915764,
+     "4": 3919709.249312279,
+     "8": 7336642.742611463
+    },
+    "passed": true,
+    "ratio": 9.126319320599961,
+    "serial_throughput": 1174519.2359886002,
+    "threshold": 6.0
+   },
+   "fr": {
+    "best_parallel_throughput": 9951225.042062826,
+    "best_threads": 16,
+    "parallel_by_threads": {
+     "1": 1014933.1046732749,
+     "16": 9951225.042062826,
+     "2": 1986546.1037598248,
+     "4": 3811044.8538179947,
+     "8": 6994999.608814324
+    },
+    "passed": true,
+    "ratio": 8.554742224771658,
+    "serial_throughput": 1163240.78278448,
+    "threshold": 6.0
+   }
+  },
+  "F1_pass": true,
+  "F1b": {
+   "best_parallel_throughput": 9951225.042062826,
+   "best_threads": 16,
+   "parallel_t1_throughput": 1014933.1046732749,
+   "passed": true,
+   "ratio": 9.80480880586342,
+   "threshold": 4.0
+  },
+  "F1b_pass": true,
+  "rng_only_speedup": {
+   "abf1": 0.373727845033687,
+   "abf128": 0.8635245755709803,
+   "abf16": 0.7965114757374923,
+   "abf2": 0.506706535190991,
+   "abf256": 0.8686255053825734,
+   "abf32": 0.8347967578414213,
+   "abf4": 0.63912940584767,
+   "abf512": 0.8717459883083792,
+   "abf64": 0.8543169193182633,
+   "abf8": 0.7404114100142563,
+   "fr128": 0.8732819621210608,
+   "fr256": 0.8695384233029726,
+   "fr512": 0.8725047468193154,
+   "fr64": 0.8558104216221585
+  },
+  "rule": "F1: for abf512 and fr512, best parallel throughput over t <= 16 >= 6.0 x serial engine at N 512; F1b: fr512 best parallel throughput over t <= 16 >= 4.0 x parallel t = 1",
+  "verdict": "PASS"
+ },
+ "gate_uncontended_only_sensitivity": {
+  "F1": {
+   "abf": {
+    "best_parallel_throughput": 10719037.595819067,
+    "best_threads": 16,
+    "parallel_by_threads": {
+     "1": 1023882.4321640847,
+     "16": 10719037.595819067,
+     "2": 2014864.0475915764,
+     "4": 3919709.249312279,
+     "8": 7353137.799718728
+    },
+    "passed": true,
+    "ratio": 9.126319320599961,
+    "serial_throughput": 1174519.2359886002,
+    "threshold": 6.0
+   },
+   "fr": {
+    "best_parallel_throughput": 9951225.042062826,
+    "best_threads": 16,
+    "parallel_by_threads": {
+     "1": 1014933.1046732749,
+     "16": 9951225.042062826,
+     "2": 1986546.1037598248,
+     "4": 3811044.8538179947,
+     "8": 7014147.076964426
+    },
+    "passed": true,
+    "ratio": 8.554742224771658,
+    "serial_throughput": 1163240.78278448,
+    "threshold": 6.0
+   }
+  },
+  "F1_pass": true,
+  "F1b": {
+   "best_parallel_throughput": 9951225.042062826,
+   "best_threads": 16,
+   "parallel_t1_throughput": 1014933.1046732749,
+   "passed": true,
+   "ratio": 9.80480880586342,
+   "threshold": 4.0
+  },
+  "F1b_pass": true,
+  "rng_only_speedup": {
+   "abf1": 0.373727845033687,
+   "abf128": 0.8635245755709803,
+   "abf16": 0.7965114757374923,
+   "abf2": 0.506706535190991,
+   "abf256": 0.8686255053825734,
+   "abf32": 0.8347967578414213,
+   "abf4": 0.63912940584767,
+   "abf512": 0.8717459883083792,
+   "abf64": 0.8543169193182633,
+   "abf8": 0.738811475160575,
+   "fr128": 0.8732819621210608,
+   "fr256": 0.8695384233029726,
+   "fr512": 0.8725047468193154,
+   "fr64": 0.8558104216221585
+  },
+  "rule": "F1: for abf512 and fr512, best parallel throughput over t <= 16 >= 6.0 x serial engine at N 512; F1b: fr512 best parallel throughput over t <= 16 >= 4.0 x parallel t = 1",
+  "verdict": "PASS"
+ },
+ "implementation_rule": "fastest median throughput among serial and parallel t in {1,2,4,8,16} (t <= N); within 3 % of the best = tied; ties to fewer cores (serial = 1 core, wins a tie with parallel t = 1); serial-engine arms run the validated replay noise",
+ "license_problems": [],
+ "n_runs": 222,
+ "note": "validation V-B1..V-B5 must also have passed (prereg 2.3); this file records the benchmark side only; expB_run.py prod refuses to start if the current engine sources differ from engine_sources",
+ "production_licensed": true,
+ "system": "lta150",
+ "vb4_engine_match": true,
+ "version": "expB_bench/1"
+}
