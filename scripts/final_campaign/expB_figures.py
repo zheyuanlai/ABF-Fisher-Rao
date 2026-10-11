@@ -37,10 +37,11 @@ import expB_stats as S  # noqa: E402
 SYSTEM_LABEL = {"gateway": "entropic gateway", "lta150": "ethane / LTA 150 K"}
 # Amendment 3 (A3.3 a): every gateway Experiment B result carries the exploratory label
 EXPLORATORY_TAG = {"gateway": "\n[exploratory (after a frozen V-B4 FAIL; Amendment 3)]"}
+EXPLORATORY_TAG_SHORT = {"gateway": "\n[exploratory; Amendment 3]"}      # for narrow panels (same meaning)
 
 
-def tag(s):
-    return EXPLORATORY_TAG.get(s, "")
+def tag(s, short=False):
+    return (EXPLORATORY_TAG_SHORT if short else EXPLORATORY_TAG).get(s, "")
 METHOD_LABEL = {"abf": "ABF", "fr": "ABF+FR"}
 TIMER_LABEL = {"t_force_move_s": "force / move", "t_abf_s": "ABF deposit + bias read", "t_sync_s": "synchronisation",
                "t_fr_s": "FR", "t_save_s": "saves"}
@@ -237,7 +238,7 @@ def fig_b4(systems, out_root, fig_dir, manifest):
     have = [s for s in systems if os.path.exists(os.path.join(out_root, "analysis", s, "curves.npz"))]
     if not have:
         return skip(manifest, "B4_eF_vs_wall", "no production curves")
-    fig, axes = plt.subplots(1, len(have), figsize=(4.8 * len(have), 3.7), squeeze=False)
+    fig, axes = plt.subplots(1, len(have), figsize=(6.4 * len(have), 3.9), squeeze=False)
     for i, s in enumerate(have):
         ax = axes[0][i]
         A = _analysis(out_root, s)
@@ -252,14 +253,14 @@ def fig_b4(systems, out_root, fig_dir, manifest):
                 ax.fill_between(g, z[f"{a}_q25"], z[f"{a}_q75"], color=col, alpha=0.18, lw=0)
         for name, thr in A["thresholds"].items():
             ax.axhline(thr, color=THR_COLOR[name], ls="--", lw=0.8)
-            ax.annotate(name, (g[0], thr), textcoords="offset points", xytext=(2, 2), fontsize=7,
+            ax.annotate(name, (g[-1], thr), textcoords="offset points", xytext=(-2, 2), fontsize=7, ha="right",
                         color=THR_COLOR[name])
         ax.set_xscale("log")
         ax.set_yscale("log")
         ax.set_xlabel("wall-clock time since timed start (s)")
         ax.set_ylabel("e_F (median, IQR)")
         ax.set_title(SYSTEM_LABEL.get(s, s) + tag(s), fontsize=9)
-        ax.legend(frameon=False, loc="lower left")
+        ax.legend(frameon=False, fontsize=7, loc="upper left", bbox_to_anchor=(1.01, 1.0))
     fig.tight_layout()
     save(fig, fig_dir, "B4_eF_vs_wall", manifest, [f"analysis/{s}/curves.npz" for s in have])
 
@@ -304,7 +305,8 @@ def fig_b5(systems, out_root, fig_dir, manifest):
             extra.append(f"rho=inf: {int(np.sum(np.isinf(d)))}")
         if np.any(np.isnan(r)):
             extra.append(f"undef.: {int(np.sum(np.isnan(r)))}")
-        ax.set_title(f"{s}: {key.replace('|', ' / ')}" + ("\n" + ", ".join(extra) if extra else "") + tag(s), fontsize=8)
+        ax.set_title(f"{s}: {key.replace('|', ' / ')}" + ("\n" + ", ".join(extra) if extra else "") + tag(s, short=True),
+                     fontsize=7.5)
         ax.set_xlabel("log10 rho (W_mid ratio)")
         ax.set_ylabel("resamples")
     for k in range(len(panels), nr * nc):
@@ -344,7 +346,7 @@ def fig_b6(systems, out_root, fig_dir, manifest):
             ax.set_xticklabels([f"{METHOD_LABEL[C.parse_arm(a)[0]]}\n{C.parse_arm(a)[1]}" for a in arms], fontsize=7)
             ax.set_xlabel("arm (method, N)")
             ax.set_ylabel(lab)
-            ax.set_title(SYSTEM_LABEL.get(s, s) + tag(s), fontsize=8.5)
+            ax.set_title(SYSTEM_LABEL.get(s, s) + tag(s, short=True), fontsize=8.5)
     fig.tight_layout()
     save(fig, fig_dir, "B6_cost_to_accuracy", manifest, [f"analysis/{s}/summary.json" for s in have])
 

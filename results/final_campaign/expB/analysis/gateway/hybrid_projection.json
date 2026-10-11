@@ -1,0 +1,430 @@
+{
+ "B": 3276800000,
+ "abf_arms": [
+  "abf16",
+  "abf64",
+  "abf512"
+ ],
+ "agreement": "robust to the backend's law",
+ "agreement_on_available_seeds_descriptive": "robust to the backend's law",
+ "amendment": "PREREGISTRATION.md Amendment 3, A3.3 (b)",
+ "compare": {
+  "arms_without_data": [],
+  "decision": {
+   "abf_advantage_arms": [],
+   "contrasts": {
+    "fr512|abf16": {
+     "abf_better": false,
+     "budget_label": "comparable",
+     "ci95": [
+      0.9983520771319694,
+      2.284690330359699
+     ],
+     "ci97p5": [
+      0.9407548419128174,
+      2.4728412987422628
+     ],
+     "ci98p3333": [
+      0.9071564547016453,
+      2.62067420247142
+     ],
+     "fr_better": false,
+     "frac_below_1": 0.0258,
+     "frac_undefined": 0.0,
+     "lower_ABF_level": 0.9071564547016453,
+     "n_boot": 10000,
+     "n_undefined": 0,
+     "point": 1.523126886906466,
+     "unresolved": false,
+     "upper_FR_level": 2.4728412987422628
+    },
+    "fr512|abf512": {
+     "abf_better": false,
+     "budget_label": "comparable",
+     "ci95": [
+      0.2528876489509325,
+      0.43427016605406726
+     ],
+     "ci97p5": [
+      0.2445908898067891,
+      0.450796111167705
+     ],
+     "ci98p3333": [
+      0.24321608369324796,
+      0.46126995698436823
+     ],
+     "fr_better": true,
+     "frac_below_1": 1.0,
+     "frac_undefined": 0.0,
+     "lower_ABF_level": 0.24321608369324796,
+     "n_boot": 10000,
+     "n_undefined": 0,
+     "point": 0.3209697081908071,
+     "unresolved": false,
+     "upper_FR_level": 0.450796111167705
+    },
+    "fr512|abf64": {
+     "abf_better": false,
+     "budget_label": "comparable",
+     "ci95": [
+      0.9838800783082654,
+      2.3255347305468095
+     ],
+     "ci97p5": [
+      0.9411026835992107,
+      2.6236802088220412
+     ],
+     "ci98p3333": [
+      0.9182880730877145,
+      2.7056702153477303
+     ],
+     "fr_better": false,
+     "frac_below_1": 0.0305,
+     "frac_undefined": 0.0,
+     "lower_ABF_level": 0.9182880730877145,
+     "n_boot": 10000,
+     "n_undefined": 0,
+     "point": 1.48675211833249,
+     "unresolved": false,
+     "upper_FR_level": 2.6236802088220412
+    },
+    "fr64|abf16": {
+     "abf_better": false,
+     "budget_label": "comparable",
+     "ci95": [
+      0.4315395079450383,
+      1.0788487698625957
+     ],
+     "ci97p5": [
+      0.4315395079450383,
+      1.1867336468488554
+     ],
+     "ci98p3333": [
+      0.4315395079450383,
+      1.2946185238351149
+     ],
+     "fr_better": false,
+     "frac_below_1": 0.9504,
+     "frac_undefined": 0.0,
+     "lower_ABF_level": 0.4315395079450383,
+     "n_boot": 10000,
+     "n_undefined": 0,
+     "point": 0.7192325132417304,
+     "unresolved": false,
+     "upper_FR_level": 1.1867336468488554
+    },
+    "fr64|abf512": {
+     "abf_better": false,
+     "budget_label": "comparable",
+     "ci95": [
+      0.11593348953823863,
+      0.20437759495916294
+     ],
+     "ci97p5": [
+      0.11200354074033222,
+      0.21090028415998727
+     ],
+     "ci98p3333": [
+      0.10833129350294429,
+      0.21456793123128257
+     ],
+     "fr_better": true,
+     "frac_below_1": 1.0,
+     "frac_undefined": 0.0,
+     "lower_ABF_level": 0.10833129350294429,
+     "n_boot": 10000,
+     "n_undefined": 0,
+     "point": 0.15156442439632112,
+     "unresolved": false,
+     "upper_FR_level": 0.21090028415998727
+    },
+    "fr64|abf64": {
+     "abf_better": false,
+     "budget_label": "comparable",
+     "ci95": [
+      0.4434038280045602,
+      1.0530840915108306
+     ],
+     "ci97p5": [
+      0.42123363660433216,
+      1.2285981067626357
+     ],
+     "ci98p3333": [
+      0.42123363660433216,
+      1.3068481052290972
+     ],
+     "fr_better": false,
+     "frac_below_1": 0.9559,
+     "frac_undefined": 0.0,
+     "lower_ABF_level": 0.42123363660433216,
+     "n_boot": 10000,
+     "n_undefined": 0,
+     "point": 0.7020560610072202,
+     "unresolved": false,
+     "upper_FR_level": 1.2285981067626357
+    }
+   },
+   "decision": "unresolved",
+   "fr_advantage_arms": [],
+   "levels": {
+    "abf_side": 0.9833333333333333,
+    "alpha": 0.05,
+    "fr_side": 0.975,
+    "n_abf": 3,
+    "n_fr": 2
+   },
+   "unresolved_contrasts": []
+  },
+  "n_boot": 10000,
+  "pairs": [
+   [
+    "abf512",
+    "fr512"
+   ]
+  ],
+  "per_arm": {
+   "abf16": {
+    "boot_unit": "abf16",
+    "ci95": [
+     1.1222461106069386,
+     2.244492221213877
+    ],
+    "frac_reached": 1.0,
+    "median": 1.683369165910408,
+    "n": 32,
+    "n_censored": 0
+   },
+   "abf512": {
+    "boot_unit": "abf512+fr512",
+    "ci95": [
+     6.742372375172565,
+     8.940972062728834
+    ],
+    "frac_reached": 1.0,
+    "median": 7.988245531454451,
+    "n": 32,
+    "n_censored": 0
+   },
+   "abf64": {
+    "boot_unit": "abf64",
+    "ci95": [
+     1.1497029018588365,
+     2.299405803717673
+    ],
+    "frac_reached": 1.0,
+    "median": 1.7245543527882548,
+    "n": 32,
+    "n_censored": 0
+   },
+   "fr512": {
+    "boot_unit": "abf512+fr512",
+    "ci95": [
+     2.0361056060018017,
+     3.3180980245955287
+    ],
+    "frac_reached": 1.0,
+    "median": 2.563984837187454,
+    "n": 32,
+    "n_censored": 0
+   },
+   "fr64": {
+    "boot_unit": "fr64",
+    "ci95": [
+     0.9685870687291026,
+     1.4528806030936539
+    ],
+    "frac_reached": 1.0,
+    "median": 1.2107338359113782,
+    "n": 32,
+    "n_censored": 0
+   }
+  },
+  "rho_best": {
+   "best_abf_freq": {
+    "abf16": 0.4732,
+    "abf512": 0.0,
+    "abf64": 0.5268
+   },
+   "best_abf_point": "abf16",
+   "best_fr_freq": {
+    "fr512": 0.0,
+    "fr64": 1.0
+   },
+   "best_fr_point": "fr64",
+   "ci": [
+    0.5265420457554152,
+    1.1867336468488554
+   ],
+   "frac_below_1": 0.9114,
+   "level": 0.95,
+   "n_undefined": 0,
+   "note": "descriptive (winner's curse not removed); frac_below_1 is not a probability",
+   "point": 0.7192325132417304
+  },
+  "seed": 20261010,
+  "tests": {
+   "fr512|abf16": {
+    "G": 314.0,
+    "budget": {
+     "frac_runs_budget_limited_x": 0.0,
+     "frac_runs_budget_limited_y": 0.0,
+     "label": "comparable",
+     "x_detail": null,
+     "x_limited": false,
+     "y_detail": null,
+     "y_limited": false
+    },
+    "convention": "inf ranked last (censored), inf vs inf tied; G > 0: x tends to be slower",
+    "kind": "Gehan-Wilcoxon (unpaired)",
+    "n_perm": 20000,
+    "n_x": 32,
+    "n_y": 32,
+    "p_normal": 0.03458178082903118,
+    "p_perm": 0.034498275086245686,
+    "prob_x_less": 0.3466796875,
+    "var": 22078.47619047619,
+    "z": 2.1132218868463504
+   },
+   "fr512|abf512": {
+    "budget": {
+     "frac_runs_budget_limited_x": 0.0,
+     "frac_runs_budget_limited_y": 0.0,
+     "label": "comparable",
+     "x_detail": null,
+     "x_limited": false,
+     "y_detail": null,
+     "y_limited": false
+    },
+    "fr_losses": 0,
+    "fr_wins": 32,
+    "kind": "paired sign test",
+    "n_common": 32,
+    "p": 4.656612873077393e-10,
+    "ties": 0
+   },
+   "fr512|abf64": {
+    "G": 392.0,
+    "budget": {
+     "frac_runs_budget_limited_x": 0.0,
+     "frac_runs_budget_limited_y": 0.0,
+     "label": "comparable",
+     "x_detail": null,
+     "x_limited": false,
+     "y_detail": null,
+     "y_limited": false
+    },
+    "convention": "inf ranked last (censored), inf vs inf tied; G > 0: x tends to be slower",
+    "kind": "Gehan-Wilcoxon (unpaired)",
+    "n_perm": 20000,
+    "n_x": 32,
+    "n_y": 32,
+    "p_normal": 0.008423928661069446,
+    "p_perm": 0.007699615019249037,
+    "prob_x_less": 0.30859375,
+    "var": 22138.4126984127,
+    "z": 2.63458871616393
+   },
+   "fr64|abf16": {
+    "G": -350.0,
+    "budget": {
+     "frac_runs_budget_limited_x": 0.0,
+     "frac_runs_budget_limited_y": 0.0,
+     "label": "comparable",
+     "x_detail": null,
+     "x_limited": false,
+     "y_detail": null,
+     "y_limited": false
+    },
+    "convention": "inf ranked last (censored), inf vs inf tied; G > 0: x tends to be slower",
+    "kind": "Gehan-Wilcoxon (unpaired)",
+    "n_perm": 20000,
+    "n_x": 32,
+    "n_y": 32,
+    "p_normal": 0.0183939356520626,
+    "p_perm": 0.017799110044497773,
+    "prob_x_less": 0.6708984375,
+    "var": 22039.365079365078,
+    "z": -2.357591216640388
+   },
+   "fr64|abf512": {
+    "G": -1000.0,
+    "budget": {
+     "frac_runs_budget_limited_x": 0.0,
+     "frac_runs_budget_limited_y": 0.0,
+     "label": "comparable",
+     "x_detail": null,
+     "x_limited": false,
+     "y_detail": null,
+     "y_limited": false
+    },
+    "convention": "inf ranked last (censored), inf vs inf tied; G > 0: x tends to be slower",
+    "kind": "Gehan-Wilcoxon (unpaired)",
+    "n_perm": 20000,
+    "n_x": 32,
+    "n_y": 32,
+    "p_normal": 1.786215619858922e-11,
+    "p_perm": 4.999750012499375e-05,
+    "prob_x_less": 0.98828125,
+    "var": 22127.74603174603,
+    "z": -6.7225092872703724
+   },
+   "fr64|abf64": {
+    "G": -212.0,
+    "budget": {
+     "frac_runs_budget_limited_x": 0.0,
+     "frac_runs_budget_limited_y": 0.0,
+     "label": "comparable",
+     "x_detail": null,
+     "x_limited": false,
+     "y_detail": null,
+     "y_limited": false
+    },
+    "convention": "inf ranked last (censored), inf vs inf tied; G > 0: x tends to be slower",
+    "kind": "Gehan-Wilcoxon (unpaired)",
+    "n_perm": 20000,
+    "n_x": 32,
+    "n_y": 32,
+    "p_normal": 0.1538426947229241,
+    "p_perm": 0.1567921603919804,
+    "prob_x_less": 0.603515625,
+    "var": 22099.301587301587,
+    "z": -1.4260888573544483
+   }
+  }
+ },
+ "fr_arms": [
+  "fr512",
+  "fr64"
+ ],
+ "generated_utc": "2026-10-11T13:39:22Z",
+ "hybrid_decision": "unresolved",
+ "measured_decision": "unresolved",
+ "measured_decision_on_available_seeds": "unresolved",
+ "measured_stage_status": "COMPLETE",
+ "n_uncontended_records": {
+  "abf16": 64,
+  "abf512": 64,
+  "abf64": 64,
+  "fr512": 64,
+  "fr64": 64
+ },
+ "omitted": [],
+ "paired": [
+  [
+   "abf512",
+   "fr512"
+  ]
+ ],
+ "role": "frozen robustness analysis of the exploratory gateway decision",
+ "system": "gateway",
+ "tau_key": "tau_bgrid_e_F_mid_u",
+ "tau_source": "/home/zheyuanlai/ABF-Fisher-Rao/results/equal_budget_v2/gateway/analysis/summary.json",
+ "version": "expB_hybrid/1",
+ "w_arm": {
+  "abf16": 3.424823335592464e-08,
+  "abf512": 8.946125030746545e-09,
+  "abf64": 1.40344592512065e-08,
+  "fr512": 9.205483244727474e-09,
+  "fr64": 1.4779465770402567e-08
+ }
+}
