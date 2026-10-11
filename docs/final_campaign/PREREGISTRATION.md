@@ -552,3 +552,58 @@ PUBLICATION_READINESS.md`.
 
 ---
 *Amendments (dated, appended below; nothing above is edited after the freeze commit).*
+
+## Amendment 1 (2026-10-11, ≈ 07:55 UTC; written after the Experiment A tooling was built, adversarially reviewed and fixed, and BEFORE any G-A1 gate run, check-4b run, smoke run or production run of Experiment A, and before any V-B4 run or feasibility benchmark of Experiment B; no performance quantity of either experiment existed)
+
+Implementation clarifications. None changes a hypothesis, contrast, threshold, seed block or decision rule.
+
+**A1.1 Pairing checks — event rule [EXPA-CHECK6-EVENT-RULE].** An FR opportunity with clone candidates but no death
+candidates can permute walker slots without any death; because noise is per slot and deposits are summed in slot order,
+the ABF and FR arms legitimately diverge from the first FR opportunity with a non-zero number of events, which can
+precede the first realised death. Check 6 (Experiment A) and V-B5 (Experiment B) therefore compare all shared saved
+arrays up to the last save before the first realised FR death **or, when the first FR event realised no death, up to the
+last save before that first FR event**; such pairs additionally require the dedicated short replay of §1.3 (state
+bitwise equal at the event step). The frozen "before first death" comparison is reported alongside for every pair.
+
+**A1.2 Experiment A smoke length (check 9).** "T = 4 t.u." is read as in the mechanism campaign: 4 t.u. at the anchor
+N₀ = 2048, i.e. 327 680 000 walker-steps per smoke run (16 t.u. at N 512, 64 t.u. at N 128), which carries FR past its
+4 t.u. ramp.
+
+**A1.3 MC2 measurement.** `src/gateway_family_validation.run_chain` gains one passive output, per-walker hysteresis side
+changes (x < −0.5 ↔ x > 0.5, the engine's `events_cum` label rule), appended at the end of the returned tuple;
+bit-inertness of every old output for all seven old dynamics is proven by test against the 189c2408 harness. MC2 at
+λ = 1 comes from replaying its 16 frozen em_flat chains with their stored seeds (≈ 3 core-h); each replay must reproduce
+its stored record bitwise on the old outputs (a full-length inertness check; a non-bitwise replay makes the gate
+HARNESS_FAIL), and the λ = 1 inputs are design-checked like the new dynamics.
+
+**A1.4 Check 4b details.** Lags that are not whole steps are rounded half up and compared with φ^ℓ at the realised lag;
+the 64 chains are two engine runs of 32 traced walkers; labels 8650–8653 (λ 1/4/16/128 at 2.5e-5), 8654–8655
+(resolvable case λ 1/16), 8656–8659 (λ 1/4/16/128 at 1.25e-5, refinement only); in the resolvable case
+`fr_interval_t = h` (no effect on the ABF arm).
+
+**A1.5 λ = 1 under refinement** is re-gated with its frozen per-clause rule (|z| ≤ 3), as its G-A2 record.
+
+**A1.6 Outcome-table resolutions [EXPA-OUTCOME-RESOLUTIONS-r1-r3].** (r1) p_Holm < 0.05, R > 1 and G_hi < 0 meets both
+the I and the C-reverse rule: it is labelled **C-reverse** ("also satisfies I", the I wording appended), because rows of
+significant contrasts decide on R and the combination rule treats a significant R > 1 as C-reverse. (r2) A guard that
+cannot be evaluated does not hold: a case that would be A is A-qualified, naming "gX (not evaluable)". (r3) Fewer than 10
+paired seeds → "no-claim"; non-finite inputs → "not-available" (both outside the seven labels); either at one N makes the
+combination "no global claim (incomplete)". When both N carry rescue labels, the combined wording is only the governing
+(weaker) label's wording.
+
+**A1.7 Within-cell mean companions** (§1.6) are reported as the mean of G and of L with seed-bootstrap 95 % CIs.
+
+**A1.8 Gate-excess decomposition** (§1.5 item 7, descriptive) is reported for the whole gate and for each flank, in a
+signed and in an additive squared-bias form.
+
+**A1.9 Experiment B save grid** has 666 saves per run (200 uniform u ∪ 466 log-spaced u, ratio 1.02 from 1e-4).
+
+**A1.10 LTA V-B1, N = 16 FR arm.** At the minimum 200 000 steps FR realises fewer than 50 deaths; the run length is
+doubled, decided on the validated engine alone, until ≥ 50 deaths (800 000 steps for seed 15400); every attempt is
+recorded.
+
+**A1.11 Compute and records.** The G-A1 job set measures ≈ 15.9 core-h at h 2.5e-5 (≈ 12.8 without the λ = 1 replay),
+within the Experiment A cap. Validation and check runs log to their own ledgers in the `compute_ledger.csv` layout, which
+are folded into `results/final_campaign/compute_ledger.csv`. The production driver refuses to start unless
+`scripts/final_campaign/expA_gate.py` confirms the gate (summary PASS, h_A equal to the cell h) and current PASS records
+for checks 1/7, 2, 4b, 6, 8 (incl. the harness-inertness part), 9.

@@ -47,6 +47,15 @@ sample; at each sample t and lag l the product z(t - l) z(t) is accumulated into
 is exactly the estimator ``acf_offline`` applies to recorded traces (tested equal); storing the lag sums instead
 of full-resolution traces keeps the files small.  The first ``acf_rec`` samples of each level are also recorded
 raw (x, z_y, z_f) for the offline cross-check and the figure.
+
+Gate transport (passive; added 2026-10-11 for the final campaign, docs/final_campaign/PREREGISTRATION.md section 1.3
+MC2, APPENDED as the LAST element of run_chain's tuple and as chain()'s key "side_changes" -- every earlier output is
+bitwise unchanged for every dynamics, tested against the harness at 189c2408 in tests/test_final_expA_validation.py):
+per walker, the number of hysteresis side changes x < -HYST_X <-> x > HYST_X (HYST_X = 0.5; the label rule of the
+production engine's events_cum: label -1 / +1 set when x < -0.5 / x > 0.5, kept in between, initial label from x0, 0
+inside the gate, and only a true -1 <-> +1 flip counts) of the moves made at steps >= burn (EM: every move; MALA: every
+accepted move), so side_changes / (T = (n_steps - burn) h) is the side-change rate per walker per t.u.  Pure integer
+bookkeeping on the post-move x: no floating-point operation, draw or accumulator of the dynamics is touched.
 """
 from __future__ import annotations
 
@@ -66,6 +75,7 @@ ACF_KEYS = ("n", "y0", "y1", "y00", "y11", "y01", "f0", "f1", "f00", "f11", "f01
 ACF_WINDOWS = (-1.0, -0.21, 0.0)
 ACF_HALF_WIDTH = 0.02
 ZH_NB, ZH_LIM = 100, 5.0
+HYST_X = 0.5                # gate-transport hysteresis half-width (production engine X_BASIN; module docstring)
 PHYS = dict(beta=16.0, H=0.5, omega_out=1.0, omega_in=32.0, s=0.1)
 DYNAMICS_ORDER = ("alpha1", "alpha0.5", "alpha0", "shift", "lam0.5", "lam0.25", "lam0.1")
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
@@ -385,11 +395,20 @@ def run_chain(scheme, x0, y0, n_steps, burn, h, beta, H, oout, oin, s, var_code,
     """N independent walkers (x0, y0) for n_steps (see the module docstring).  Returns
     (A1 (9, nb1), A2 (9, nb2), n_acc, n_prop, n_reflect, max|dx|, n_nonfinite, traces_x, traces_y, X, Y,
      crossings (N,) of x = 0, zhist (W, ZH_NB) of z_y for x in each window (all walkers),
-     acc0 (W, K0, 11), acc1 (W, K1, 11), rec0 (acf_rec, n_acf, 3), rec1, n_samples (2,))."""
+     acc0 (W, K0, 11), acc1 (W, K1, 11), rec0 (acf_rec, n_acf, 3), rec1, n_samples (2,),
+     side_changes (N,) int64 -- the last element, appended 2026-10-11 (module docstring, gate transport))."""
     np.random.seed(seed)
     N = x0.shape[0]
     X = x0.copy()
     Y = y0.copy()
+    # gate-transport hysteresis labels (passive, integer only): -1 left of -HYST_X, +1 right of HYST_X, 0 in between
+    hlab = np.zeros(N, np.int64)
+    sidec = np.zeros(N, np.int64)
+    for i in range(N):
+        if x0[i] > HYST_X:
+            hlab[i] = 1
+        elif x0[i] < -HYST_X:
+            hlab[i] = -1
     A1 = np.zeros((9, nb1))
     A2 = np.zeros((9, nb2))
     amp = math.sqrt(2.0 * h / beta)
@@ -509,6 +528,14 @@ def run_chain(scheme, x0, y0, n_steps, burn, h, beta, H, oout, oin, s, var_code,
                     nonfin += 1
                 if (xn < 0.0) != (x < 0.0):
                     cross[i] += 1
+                if xn > HYST_X:
+                    if post and hlab[i] == -1:
+                        sidec[i] += 1
+                    hlab[i] = 1
+                elif xn < -HYST_X:
+                    if post and hlab[i] == 1:
+                        sidec[i] += 1
+                    hlab[i] = -1
                 X[i] = xn
                 Y[i] = yn
             else:
@@ -539,6 +566,14 @@ def run_chain(scheme, x0, y0, n_steps, burn, h, beta, H, oout, oin, s, var_code,
                         nonfin += 1
                     if (xn < 0.0) != (x < 0.0):
                         cross[i] += 1
+                    if xn > HYST_X:
+                        if post and hlab[i] == -1:
+                            sidec[i] += 1
+                        hlab[i] = 1
+                    elif xn < -HYST_X:
+                        if post and hlab[i] == 1:
+                            sidec[i] += 1
+                        hlab[i] = -1
                     X[i] = xn
                     Y[i] = yn
         if s0:
@@ -549,7 +584,7 @@ def run_chain(scheme, x0, y0, n_steps, burn, h, beta, H, oout, oin, s, var_code,
     ns[0] = cnt0
     ns[1] = cnt1
     return (A1, A2, n_acc, n_prop, n_refl, maxdx, nonfin, trx[:kt], tryy[:kt], X, Y, cross, zh, acc0, acc1,
-            rec0, rec1, ns)
+            rec0, rec1, ns, sidec)
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -611,7 +646,8 @@ def chain(m, scheme, x0, y0, n_steps, burn, h, flat_bias, seed, trace_every=10 *
                     np.asarray(st, np.int64), np.asarray(l0, np.int64), np.asarray(l1, np.int64),
                     np.asarray(ACF_WINDOWS, np.float64), float(ACF_HALF_WIDTH), int(acf_rec))
     keys = ("A1", "A2", "n_acc", "n_prop", "n_reflect", "max_dx", "nonfinite", "traces_x", "traces_y", "X", "Y",
-            "crossings", "zhist", "acf0", "acf1", "acf_rec0", "acf_rec1", "acf_nsamples")
+            "crossings", "zhist", "acf0", "acf1", "acf_rec0", "acf_rec1", "acf_nsamples",
+            "side_changes")                                   # appended 2026-10-11 (gate transport, MC2)
     r = dict(zip(keys, out))
     r["acf_stride"] = np.asarray(st, np.int64)
     r["lags0"] = np.asarray(l0, np.int64)
