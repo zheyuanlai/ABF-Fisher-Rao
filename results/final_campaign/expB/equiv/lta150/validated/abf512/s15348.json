@@ -1,0 +1,94 @@
+{
+ "Ibar_F": 0.26766444349470314,
+ "alloc_core_h_run": null,
+ "allocation": null,
+ "child_wall_s": 261.3550329208374,
+ "cpus_after_run": [
+  73
+ ],
+ "disk_pause_s": 0.0,
+ "engine": "lta_ladder_numba/2 (validated)",
+ "final_e_F": 0.07122506689803972,
+ "finalized_utc": "2026-10-11T09:50:56Z",
+ "finished_utc": "2026-10-11T09:50:55Z",
+ "host": {
+  "cpus": [
+   73
+  ],
+  "host": "atlas",
+  "numpy": "2.4.6",
+  "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.39",
+  "python": "3.14.4"
+ },
+ "job": {
+  "N": 512,
+  "arm": "abf512",
+  "grid": "eqb",
+  "impl": "validated",
+  "kind": "equiv_validated",
+  "method": "abf",
+  "n_steps": 600000,
+  "noise": "replay",
+  "replicate": 0,
+  "seed": 15348,
+  "system": "lta150",
+  "threads": 1
+ },
+ "meta": {
+  "engine": "lta_ladder_numba/2",
+  "engine_sha256": "d2d3c4313fc52bc37e047e30cb607e958b168fcff2dee8b24d9aa12b925a804b",
+  "git_commit": "ff067f4f07ca675da13094dbf32b9d09e4070caf",
+  "implementation": "validated (V-B4 reference)"
+ },
+ "n_saves": 230,
+ "noise_mode": "replay",
+ "npz": "s15348.npz",
+ "npz_sha256": "9f9c869dedddd94a6a80cc2d8115c760d01805eaf228269a51ea2c24cbed11f8",
+ "peak_rss_mb": 258.94921875,
+ "pid": 3023000,
+ "proc_wall_s": 262.44669246673584,
+ "process_age_s": 261.59999999962747,
+ "science_sha256": {
+  "C_all": "07e05b7b5ffb115915b7473592f931c8728e9b35546ee105a7cd45a52319d7d6",
+  "C_prod": "fe60d1bdfb326552ad15f02a4723459cad1a0c322d95809b952f32fb5fc1532e",
+  "M_all": "fcf3b9dee6ba747bd6c3ba7be89e27457f92e9ac53c2c12b4ee684a83f6469c2",
+  "M_prod": "4b45a947b2ce5e301562a9df0e6dbaa545c4122affb05e8f3fa73c3afa300f78",
+  "save_step": "ea29666c405970b38de12a1937ccae38080ae0cc080af0d8a4d9bfdfd392017b"
+ },
+ "signature": {
+  "B": 307200000,
+  "N": 512,
+  "arm": "abf512",
+  "engine_cfg": "928064a01a4b95a5",
+  "engine_sources": {
+   "src/lta_ladder_numba.py": "d2d3c4313fc52bc37e047e30cb607e958b168fcff2dee8b24d9aa12b925a804b"
+  },
+  "grid_sha": "ea29666c405970b38de12a1937ccae38080ae0cc080af0d8a4d9bfdfd392017b",
+  "impl": "validated",
+  "kind": "equiv_validated",
+  "method": "abf",
+  "n_steps": 600000,
+  "noise": "replay",
+  "seed": 15348,
+  "system": "lta150",
+  "threads": 1,
+  "version": "expB_run/1"
+ },
+ "status": "complete",
+ "t0_epoch": 1791711993.7752538,
+ "t0_epoch_source": null,
+ "telemetry": null,
+ "threads": 1,
+ "timers": {
+  "t_abf_s": null,
+  "t_force_move_s": null,
+  "t_fr_s": null,
+  "t_save_s": null,
+  "t_sync_s": null
+ },
+ "used_core_h_run": 0.07290185901853774,
+ "used_wall_s": 262.44669246673584,
+ "version": "expB_run/1",
+ "wall_total_s": 261.19843398500234,
+ "warmup_s": 0.0
+}
