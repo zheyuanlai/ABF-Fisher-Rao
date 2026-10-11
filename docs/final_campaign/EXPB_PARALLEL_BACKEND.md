@@ -116,6 +116,23 @@ with 1 Hz telemetry and the A2.4 contention rule. The descriptive t = 32 points 
 * **Implementation per arm** (fastest; ties within 3 % to fewer cores): ABF 16 parallel t 2; ABF 64 t 8; ABF 512 t 8;
   FR 512 t 8 (t 16 is within 3 %); FR 64 t 8.
 
-### 4.2 LTA 150 K
+### 4.2 LTA 150 K (confirmatory) — F1 and F1b **PASS**
 
-*(pending: benchmark in progress)*
+222/222 runs, 6 contended; the verdict is the same on uncontended runs only
+(`results/final_campaign/expB/bench/lta150/summary.json`, `decision.json`). Median walker-steps per second:
+
+| configuration | serial engine | parallel t 1 | t 2 | t 4 | t 8 | t 16 |
+|---|---|---|---|---|---|---|
+| ABF 512 | 1.17e+06 | 1.02e+06 | 2.01e+06 | 3.92e+06 | 7.34e+06 | **1.07e+07** |
+| FR 512 | 1.16e+06 | 1.01e+06 | — | — | 6.99e+06 | **9.95e+06** |
+| ABF 2 | **1.17e+06** | 5.93e+05 | 6.55e+05 | — | — | — |
+
+* **F1**: ABF 512 9.13× (t 16), FR 512 8.55× (t 16). **F1b**: 9.80× (FR 512 vs its own t 1). [observed]
+* Unlike the gateway, the parallel engine at one thread is *slower* than the serial engine (0.37–0.87×): numba
+  `parallel=True` has a fixed per-step launch cost, which dominates at small N (ABF 2: the serial engine is the
+  implementation). The force/CV work (≈ 87 % of the serial step at N 512) parallelises well up to t 16.
+* **Competitor completion** (A2.3, `tau_bgrid_e_F_mid_u`): best ABF = **ABF 32 (W_proj 3.08 s, added)**, best FR =
+  **FR 64 (1.96 s, added)**; FR 128 3.91 s, ABF 8 4.16 s, ABF 64 4.37 s, FR 512 7.02 s, ABF 2 11.15 s, ABF 512 15.83 s.
+  The selection is the same under `tau_e_F_mid_u`.
+* **Implementation per arm**: ABF 2 serial engine (validated replay noise); ABF 64 t 8; ABF 512 t 16; FR 512 t 16;
+  ABF 32 t 8; FR 64 t 8. Production licensed (confirmatory).
