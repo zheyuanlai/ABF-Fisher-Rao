@@ -706,3 +706,18 @@ driver (`expB_alloc.Monitor`: a run whose allocation names another driver pid is
 `test_monitor_samples_only_its_own_drivers_runs`; no engine change). Every timed run still holds its own CCD(s) per
 §2.4, and no two runs of this campaign share a CCD or SMT siblings. The LTA benchmark may run before its V-B4 verdict;
 per §2.3 it is interpreted only after that verdict.
+
+## Amendment 4 (2026-10-11, ≈ 10:50 UTC; resource and benchmark-coverage only; written after the gateway feasibility benchmark (exploratory, F1/F1b PASS) and BEFORE the LTA 150 K benchmark finished, before the LTA V-B4 extension finished, and before any Experiment B production run of either system — no Experiment B free-energy outcome at the production budget exists)
+
+**A4.1 Stage caps.** Experiment A finished at 57.0 used core-h of its 110 cap (`compute_ledger.csv`). Experiment B
+validation and equivalence cost more than the planned ≈ 25 (36.8 used by 10:45, mostly the LTA V-B4 runs and the
+post-hoc gateway diagnostic). 50 of Experiment A's unused core-hours move to Experiment B: **Experiment B cap 160**
+(was 110). The campaign ceiling (250), the slack (30), the projection gates and the 12 h production wall limit are
+unchanged. Priority is unchanged (A3.3 d): the LTA 150 K confirmatory production, if licensed, is launched first; the
+exploratory gateway production runs only if its projection fits the remaining Experiment B cap.
+
+**A4.2 Descriptive t = 32 benchmark points.** On this host at most 2–3 CCDs were idle at a time (all 16 CCDs sampled
+repeatedly, 09:39–10:45); a t = 32 run needs four idle CCDs of one NUMA node. Under the frozen allocation rule each such
+run would wait 30 min and then run flagged on loaded CCDs (42 runs in all), which would measure contention, not
+scaling. The t = 32 points are therefore **not measured**. They never entered the gate, c\* or the implementation rule
+(§2.4), so no decision changes.

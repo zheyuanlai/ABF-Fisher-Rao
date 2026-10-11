@@ -1,0 +1,223 @@
+{
+ "N": 512,
+ "allocation": {
+  "busy_at_launch": {
+   "208": 0.0,
+   "209": 0.0,
+   "210": 0.0,
+   "211": 0.0,
+   "212": 0.0,
+   "213": 0.0,
+   "214": 0.0,
+   "215": 0.0,
+   "80": 0.0,
+   "81": 0.0,
+   "82": 0.0,
+   "83": 0.0,
+   "84": 0.0,
+   "85": 0.0,
+   "86": 0.0,
+   "87": 0.0
+  },
+  "ccds": [
+   10
+  ],
+  "cores": [
+   80
+  ],
+  "cpus": [
+   80,
+   81,
+   82,
+   83,
+   84,
+   85,
+   86,
+   87,
+   208,
+   209,
+   210,
+   211,
+   212,
+   213,
+   214,
+   215
+  ],
+  "flagged": false,
+  "max_busy_at_launch": 0.0,
+  "run_id": "bench-gateway-fr512_serial-r0-3024181",
+  "threads": 1,
+  "wait_s": 9.96515154838562e-08
+ },
+ "attempt": "00eb15f3",
+ "config": "fr512_serial",
+ "contention": {
+  "busy_threshold": 0.1,
+  "ccd_max_foreign_busy": 0.01308698999230177,
+  "ccd_max_foreign_busy_lower": 0.01308698999230177,
+  "contended": false,
+  "covered": true,
+  "ctx_per_thread_s": 1.615260373592251,
+  "ctx_threshold": 5.0,
+  "foreign_busy": {
+   "208": 0.006153846153846154,
+   "209": 0.006158583525789068,
+   "210": 0.006923076923076923,
+   "211": 0.006928406466512702,
+   "212": 0.007692307692307693,
+   "213": 0.007692307692307693,
+   "214": 0.01308698999230177,
+   "215": 0.006917755572636433,
+   "80": 0.0007698229407236335,
+   "81": 0.002307692307692308,
+   "82": 0.006917755572636433,
+   "83": 0.0015360983102918587,
+   "84": 0.0,
+   "85": 0.006153846153846154,
+   "86": 0.006933744221879815,
+   "87": 0.006158583525789068
+  },
+  "gap": false,
+  "max_foreign_busy": 0.006153846153846154,
+  "max_foreign_busy_lower": 0.006153846153846154,
+  "mean_freq_mhz": 3576.923076923077,
+  "mixed_pid": false,
+  "n_incomplete": 0,
+  "n_intervals": 13,
+  "n_rows_own_moved": 0,
+  "overlap": false,
+  "reasons": [],
+  "scope": "own",
+  "status": "uncontended",
+  "threads": 1,
+  "window": [
+   1791713051.732182,
+   1791713064.160979
+  ],
+  "worst_cpu": 208
+ },
+ "cpus_after_run": [
+  80
+ ],
+ "descriptive": false,
+ "engine": "gateway_ladder_numba/2 (validated serial)",
+ "engine_threads": 1,
+ "env": {
+  "NUMBA_NUM_THREADS": "1",
+  "NUMBA_THREADING_LAYER": "omp",
+  "OMP_NUM_THREADS": "1",
+  "OMP_PLACES": "{80}",
+  "OMP_PROC_BIND": "close",
+  "OMP_WAIT_POLICY": "active"
+ },
+ "finished_utc": "2026-10-11T10:04:24Z",
+ "fr_deaths": 587,
+ "holds": {
+  "end": {
+   "boundary": "end",
+   "row_t": 1791713064.514,
+   "seen": true,
+   "waited_s": 0.3523525595664978
+  },
+  "start": {
+   "boundary": "start",
+   "row_t": 1791713051.513,
+   "seen": true,
+   "waited_s": 0.5519498335197568
+  }
+ },
+ "host": {
+  "cpus": [
+   80
+  ],
+  "host": "atlas",
+  "numpy": "2.4.6",
+  "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.39",
+  "python": "3.14.4"
+ },
+ "impl": "serial",
+ "meta": {
+  "compiler": "numba (validated engine)",
+  "cpus": [
+   80
+  ],
+  "diagnostics": false,
+  "engine": "gateway_ladder_numba/2",
+  "engine_meta_digest": "e3dafeb450dcc51cc4ca5f8c41ccf8d150f491ca2e9ad92d9408f96ee771fbcd",
+  "engine_sha256": "bdeaa40a42f82d509fcdbe1c209559a93c0d0fae9391633c8858488bc25074ce",
+  "git_commit": "bb22c4bbfb05e336938b34ccbcb9024896b4ae0c",
+  "git_dirty": true,
+  "host": "atlas",
+  "implementation": "serial",
+  "noise": "replay (the validated engine's own stream)",
+  "numba": "0.68.0",
+  "numpy": "2.4.6",
+  "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.39",
+  "python": "3.14.4",
+  "sources": {
+   "scripts/final_campaign/expB_common.py": "2dcd3e78652e6cd869549fd992d228cc6b127a65a6cc4b6dc004c49b1f8bb439",
+   "scripts/mechanism/parallel_benchmark.py": "ff98903e21791309f9bd0ffd0e7242f93f5532d00f000a7c7704086591e51a99",
+   "src/gateway_ladder_numba.py": "bdeaa40a42f82d509fcdbe1c209559a93c0d0fae9391633c8858488bc25074ce"
+  },
+  "t0_epoch": 1791713051.732182,
+  "timing": "parallel_benchmark SaveClock hooks"
+ },
+ "method": "fr",
+ "n_saves": 661,
+ "n_steps": 320000,
+ "noise_mode": "replay",
+ "peak_rss_mb": 168.0,
+ "pid": 3056297,
+ "proc_start_ticks": 606538394,
+ "proc_wall_s": 13.951617956161499,
+ "process_age_s": 13.419999999925494,
+ "recovered": false,
+ "repeat": 0,
+ "science_sha256": {
+  "C_all": "a8ede14811f421409db89db627e4b85272cc134ad893e2a116c2c6155b1877bb",
+  "M_all": "924c947fcc544fe909f4b2a3d910c1bfedd9caa88c202b5c9e290f89330f0e59"
+ },
+ "seed": 8600,
+ "signature": {
+  "config": "fr512_serial",
+  "engine_cfg": "87cc5012df2bbf53",
+  "engine_sources": {
+   "scripts/mechanism/parallel_benchmark.py": "ff98903e21791309f9bd0ffd0e7242f93f5532d00f000a7c7704086591e51a99",
+   "src/gateway_ladder_numba.py": "bdeaa40a42f82d509fcdbe1c209559a93c0d0fae9391633c8858488bc25074ce"
+  },
+  "grid_sha": "8d9c4dfc6c43e2a731d6383ef96483922cead97d00a9d5a367078eb91dce39f1",
+  "n_steps": 320000,
+  "repeat": 0,
+  "seed": 8600,
+  "system": "gateway",
+  "version": "expB_bench/1",
+  "walker_steps": 163840000
+ },
+ "status": "complete",
+ "system": "gateway",
+ "t0_epoch": 1791713051.732182,
+ "t0_epoch_source": "serial wrapper clock start",
+ "telemetry": "fr512_serial_r0.telemetry.npz",
+ "threads": 1,
+ "throughput": 13182289.518145593,
+ "timer_fractions": {
+  "t_abf_s": null,
+  "t_force_move_s": null,
+  "t_fr_s": null,
+  "t_save_s": null,
+  "t_sync_s": null
+ },
+ "timers": {
+  "t_abf_s": null,
+  "t_force_move_s": null,
+  "t_fr_s": null,
+  "t_save_s": null,
+  "t_sync_s": null
+ },
+ "us_per_walker_step": 0.07585935649672138,
+ "version": "expB_bench/1",
+ "walker_steps": 163840000,
+ "wall_per_walker_step": 7.585935649672137e-08,
+ "wall_total_s": 12.42879696842283,
+ "warmup_s": 0.1797898355871439
+}
