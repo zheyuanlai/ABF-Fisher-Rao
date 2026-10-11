@@ -1445,3 +1445,17 @@ def test_real_pinned_subprocess_child(tmp_path, fake_engine, monkeypatch):
     assert rec["host"]["cpus"] == [120, 121] and rec["threads"] == 2
     res = C.load_run(paths["npz"])
     assert res["M_prod"].shape[1] == 180 and np.all(np.diff(res["wall_s_at_save"]) >= 0)
+
+
+def test_prod_cli_needs_validation_or_explicit_exploratory_label(tmp_path, capsys):
+    """Production refuses without --validation-passed unless an explicit --exploratory LABEL is given (Amendment 3);
+    the two are exclusive."""
+    import expB_run as R
+    d = tmp_path / "bench" / "gateway"
+    d.mkdir(parents=True)
+    (d / "decision.json").write_text(json.dumps(dict(arms=[], production_licensed=False)))
+    base = ["prod", "--system", "gateway", "--cap", "1", "--out-root", str(tmp_path),
+            "--registry", str(tmp_path / "reg")]
+    assert R.main(base) == 2 and "--exploratory LABEL" in capsys.readouterr().out
+    assert R.main(base + ["--validation-passed", "--exploratory", "x"]) == 2
+    assert "exclusive" in capsys.readouterr().out

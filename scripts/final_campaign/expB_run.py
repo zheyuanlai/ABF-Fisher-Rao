@@ -1142,6 +1142,10 @@ def main(argv=None):
     p.add_argument("--cap", type=float, required=True, help="remaining stage cap in used core-hours")
     p.add_argument("--validation-passed", action="store_true",
                    help="operator assertion that V-B1..V-B5 passed for this system (recorded)")
+    p.add_argument("--exploratory", default=None, metavar="LABEL",
+                   help="run WITHOUT the validation assertion as a labelled exploratory stage (e.g. the gateway after "
+                        "its frozen V-B4 FAIL, PREREGISTRATION.md Amendment 3); the label is recorded in the event "
+                        "log and in prod/<system>/STAGE_LABEL.json")
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--decision", default=None)
     p.add_argument("--out-root", default=C.OUT_ROOT)
@@ -1188,12 +1192,23 @@ def main(argv=None):
         pending, n_complete, repeats, mismatch = s.plan()
         print(json.dumps(dict(s.projection(repeats + pending), complete=n_complete, mismatch=mismatch), indent=1))
         return 0
-    if not a.validation_passed and not a.dry_run:
-        print("refusing: production needs --validation-passed (V-B1..V-B5 passed for this system)")
+    label = (a.exploratory or "").strip()
+    if a.validation_passed and label:
+        print("refusing: --validation-passed and --exploratory are exclusive")
+        return 2
+    if not a.validation_passed and not label and not a.dry_run:
+        print("refusing: production needs --validation-passed (V-B1..V-B5 passed for this system) or an explicit "
+              "--exploratory LABEL")
         return 2
     s = Scheduler(a.system, dec, a.out_root, registry_root=a.registry, cap_core_h=a.cap, max_cores=a.max_cores,
                   max_ccds=a.max_ccds, engine_module=a.engine_module, drift=not a.no_drift,
                   monitor_allowed=A.parse_cpu_list(a.monitor_cpus) if a.monitor_cpus else None)
+    if not a.dry_run:
+        stage = dict(system=a.system, validation_passed_assertion=bool(a.validation_passed),
+                     exploratory=bool(label), label=(label or "confirmatory (V-B1..V-B5 passed)"),
+                     utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
+        C.write_json(os.path.join(a.out_root, "prod", a.system, "STAGE_LABEL.json"), stage)
+        s.event(event="stage_label", **stage)
     r = s.run(dry_run=a.dry_run)
     print(json.dumps(r, indent=1, default=str))
     return 0
