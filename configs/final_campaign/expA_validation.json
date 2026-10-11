@@ -1,0 +1,99 @@
+{
+ "_frozen": "2026-10-11, before any engine change, validation run, smoke run or performance run of this campaign (docs/final_campaign/PREREGISTRATION.md section 1, revised after the pre-freeze adversarial review).",
+ "purpose": "Timestep gate G-A1 for the two new dynamics of Experiment A (PREREGISTRATION.md section 1.3); harness src/gateway_family_validation.py extended inertly for the seven old dynamics",
+ "engine_cfg": {
+  "beta": 16.0,
+  "H": 0.5,
+  "omega_out": 1.0,
+  "omega_in": 32.0,
+  "s": 0.1
+ },
+ "variants": [
+  {
+   "name": "shift_lam4",
+   "variant": "shift",
+   "alpha": null,
+   "kappa": 1.0,
+   "lam": 4.0,
+   "dynamics_index": 7
+  },
+  {
+   "name": "shift_lam16",
+   "variant": "shift",
+   "alpha": null,
+   "kappa": 1.0,
+   "lam": 16.0,
+   "dynamics_index": 8
+  },
+  {
+   "name": "shift_lam128",
+   "variant": "shift",
+   "alpha": null,
+   "kappa": 1.0,
+   "lam": 128.0,
+   "dynamics_index": 9
+  }
+ ],
+ "reuse_gate_record": {
+  "shift_lam1": "results/mechanism/validation/summary.json dynamics.shift (h 2.5e-5, all clauses PASS)"
+ },
+ "h_candidates": [
+  2.5e-05,
+  1.25e-05
+ ],
+ "run_length_rule": "em_flat T = 500 / min(lam, 1) t.u. after 10 t.u. burn-in (500 t.u. for lam >= 1); trace stride 0.05/(min(lam,1) h); MALA and em_unbiased lengths unchanged",
+ "acf_rule": "conditional ACF horizon of the new dynamics >= 6 t.u. absolute; tau read-outs at fixed cuts 0.3125, 1.25, 5 t.u. and the 1/e time",
+ "seed_rule": {
+  "note": "dprime = DYNAMICS_ORDER index - 7 (0: shift_lam4, 1: shift_lam16, 2: shift_lam128); k = index in the FIXED list h_candidates (0: 2.5e-5, 1: 1.25e-5)",
+  "em_flat": "400000 + 1000*dprime + 100*k + g",
+  "mala_flat": "410000 + 100*dprime + g",
+  "em_unbiased": "411000 + 100*dprime + 10*k",
+  "exact_flat": "420000 + 100*dprime + g",
+  "exact_unbiased": "421000 + 100*dprime + g"
+ },
+ "thresholds": "identical to the frozen mechanism gate (configs/equal_budget_v2/gateway_validation.json as enforced by scripts/mechanism/analyze_validation.py)",
+ "frozen_x_relaxation_test": {
+  "engine": "src/gateway_family_numba.run_arm(..., _freeze_x_test=True) (production y-update), as tests/test_gateway_family_numba.py::test_f4",
+  "x0": -0.21,
+  "x0_note": "kappa constant: other x0 are replicates of the same AR(1)",
+  "chains": 64,
+  "start": "EM stationary law",
+  "length": "200 relaxation times = 200/(lam kappa^2) t.u. per chain",
+  "lam": [
+   1.0,
+   4.0,
+   16.0,
+   128.0
+  ],
+  "h": "h_A",
+  "resolvable_inflation_case": {
+   "lam": [
+    1.0,
+    16.0
+   ],
+   "h": "0.1/lam (phi = 0.9, EM excess 5.3 %)"
+  },
+  "estimators": "known mean 0, normalised by the known EM variance; se from the between-chain spread (t_63)",
+  "pass_rule": "stationary variance vs (1/(beta kappa^2))/(1 - lam kappa^2 h/2) and ACF at lags l h in {0.25,0.5,1,2}/(lam kappa^2) vs phi^l (phi = 1 - lam kappa^2 h): Holm over the 30 two-sided p, FWER 5 %",
+  "seeds": [
+   8650,
+   8651,
+   8652,
+   8653,
+   8654,
+   8655,
+   8656,
+   8657,
+   8658,
+   8659,
+   8660,
+   8661
+  ],
+  "meaning": "verifies the y integrator (drift and noise scaling with lam); NOT evidence about coupled relaxation (that is MC1)"
+ },
+ "out_root": "results/final_campaign/expA/validation",
+ "registry_rule": "new dynamics only via an explicit registry accepted only with --out results/final_campaign/expA/validation; refused for results/mechanism/validation; defaults = the seven old dynamics",
+ "multiplicity": "all 3-se clauses decided by two-sided p (t_15, 16-group jackknife) with Holm at FWER 5 %: one family for the V1 shifted-fibre mean clauses of the new dynamics per h, one family for their V4 clauses",
+ "inertness_test": "before any G-A1 run: short chains of each old dynamics bitwise equal at HEAD 189c2408 vs extended harness; settings/seed/ACF-plan identical for all old (dynamics, chain, h, group); analyzer on results/mechanism/validation reproduces summary.json byte for byte apart from its generation timestamp; run_validation --dry-run defaults list exactly the old jobs",
+ "scouting_record": "results/final_campaign/expA/scout/ (scripts/final_campaign/expA_scout_transport.py; flat bias, no ABF/FR)"
+}

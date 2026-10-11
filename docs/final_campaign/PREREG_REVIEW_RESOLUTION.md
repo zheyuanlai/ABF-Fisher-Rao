@@ -1,0 +1,33 @@
+# Pre-freeze adversarial review of the preregistration: findings and resolution
+
+*2026-10-11. Five independent reviewers (lenses: task-spec compliance, statistics, numerics, Experiment B fairness,
+factual accuracy) read the draft preregistration, configs and evidence ledger; each major/critical finding was then
+re-checked by an independent skeptic. 61 findings (2 critical, 33 major, 26 minor). Every critical and major finding
+was accepted and resolved before the freeze; the skeptics' only "refutations" were findings already fixed in the
+revised files. Minor findings were adopted where they changed a rule. No performance data of this campaign existed at
+any point of the review.*
+
+## Critical
+
+| finding | resolution |
+|---|---|
+| **Numerics: λ on the shifted fibre is not a pure conditional-relaxation intervention.** With x free the residual d = y − m(x) relaxes at κ²(λ + m′²); m′² = 33 on the flank, so λ = 4 / 16 speed flank relaxation only ≈ 1.1× / 1.4–1.6×, while gate transport rises ≈ 2.5× / 4.8× | Confirmed first-hand by committed scouting (`scripts/final_campaign/expA_scout_transport.py`, flat bias, no ABF/FR): side-change rates 0.0043 / 0.0108 / 0.0204 / 0.0298, flank 1/e times 0.037 / 0.033 / 0.023 / 0.0066 at λ = 1 / 4 / 16 / 128. Prereg §1.1 rewritten (λ changes transport and relaxation; the design tests *transverse mobility* and cannot isolate relaxation); HA1 renamed; manipulation checks MC1 (relaxation), MC2 (transport), MC3 (young-clone bias) and ABF-only cross-λ descriptors preregistered; E decomposition into ABF and FR parts; interpretation map gets confound rows. **λ = 128 added as a preregistered extension cell** (E2, separate Holm family) because it is the only mobility at which flank relaxation changes materially (×5.6); the task-specified λ ∈ {1, 4, 16} and primary contrast E1 are unchanged |
+| **Exp B: asymmetric, non-optimised arm sets.** The small-N ABF arms were the equal-force-evaluation optimum, not the wall-clock optimum; FR ran at one N only | Benchmark now covers ABF at every N ∈ {1, …, 512} and FR at N ∈ {64, 128, 256, 512}; a frozen mechanical **competitor-completion** rule (projected W = equal-budget τ_mid × measured cost per walker-step) adds the projected-best ABF and FR allocations as arms; the decision rule is an intersection–union test over all FR and ABF arms (best FR allocation vs best ABF allocation) |
+
+## Major (grouped)
+
+| area | findings | resolution |
+|---|---|---|
+| Exp B implementations | small-N arms forced onto the parallel engine (handicap); unequal tuning | every arm picks the fastest of {validated serial engine, parallel engine t ∈ {1, 2, 4, 8, 16}} (3 % tie rule, ties to fewer cores); backend commit frozen before the first benchmark; first complete attempt decides |
+| Exp B environment | single-threaded runs co-scheduled; telemetry only on siblings; no run order; no idle-CCD fallback; frequency uncontrolled | every timed run gets its own CCD(s); monitor outside allocations samples all CCD cores + siblings and frequencies; involuntary context switches recorded; seed-major randomised order; drift reference every 30 min; contended runs repeated (counter mode is deterministic, only timing changes); wait/fallback rule |
+| Exp B save grid | coarse Δu = 0.005 biases W toward FR | dense log grid (ratio 1.02) identical in u for all arms; interpolated-W sensitivity |
+| Exp B censoring / statistics | budget-defined censoring; undefined ∞/∞; existing helpers drop non-finite W; false cross-N pairing; best-of re-selection is not winner's-curse free | ratio conventions frozen; new tested estimator module; ∞-aware medians; only ABF 512/FR 512 paired; IUT decision; "not comparable (budget artefact)" label; ρ_best descriptive only |
+| Exp B power and budget | 24 gateway seeds underpowered; allocated-core-hour budget overrun | 64 gateway / 32 LTA seeds; resolvable ρ stated; ceiling counted in used core-hours with allocated reported; projection gates before each production stage |
+| Exp B equivalence | V-B4 passed on non-rejection; 16-seed LTA reference | equivalence margins (ratio of medians in [0.85, 1.18]; paired-G difference within ±0.10) with 16 extra validated LTA runs and one pre-specified extension; R1–R5 descriptive only; small-N arm included |
+| Exp B feasibility | F2 never binds; RNG change could pass F1 | F2 replaced by F1b (≥ 4× own t = 1 throughput, same RNG); RNG-only speed-up reported |
+| Exp B V-B1 | ≥ 50 deaths unattainable at LTA N = 2 (FR-degenerate) | N = 2 ABF only; FR path tested at LTA N = 16; explicit run lengths; reassociated-LJ fallback criterion pre-specified |
+| Exp A outcome rules | C conflated inconclusive with "no rescue"; gap between A and C; no N-combination rule; HA2 was a manipulation check; guards undefined | labels A / A-qualified / B / I / C-equivalent / C-reverse / C-inconclusive with allowed wordings; combination rule across N; MC3 as manipulation check decided by Holm-adjusted p; g3 as a CI rule on a defined time average; HA3 decision rule; resolution (MDE) stated |
+| Exp A checks | nine checks not all gating; check 6 only post hoc; frozen-x test miscalibrated (1 % rule fails by chance; biased ACF estimator; replicate x₀) | all nine checks gate production; check 6 on smoke runs pre-production and on production; frozen-x test through the production engine, one x₀, known-mean estimators, between-chain se, one Holm family, plus a resolvable-inflation case; stated as an integrator test, not a relaxation test |
+| Exp A harness | appending dynamics breaks reproducibility of the frozen analysis / default launch | explicit registry only with the new output directory; full inertness test (bitwise chains, settings, analyzer reproduces `summary.json`, default dry-run) before any gate run; Holm over all 3-se clauses |
+| Ledger | wrong reference for the −22.83 % row; the report's quoted −17.97 % headline and the Q1 −17.62 % row missing; W7 status outside the vocabulary; W4 evidence; C2 scope; gateway stationary-bias claim unsupported | W1a/W1b/W1c split with correct references; "corrected reference" = v2 TI noted; new status CORROBORATING NEGATIVE for W7 with its exact-Gibbs rescoring; W4 exact-Gibbs numbers; C2 scoped and reworded; gateway stationary bias marked OPEN; C4 rewritten for the curved-channel coupling |
+| Spec items | no synthesis structure; unversioned Exp A report name; harness change not recorded as deviation; LTA N = 16 benchmark point missing | §7 frozen synthesis structure; `EXPA_SHIFTED_FIBRE_MOBILITY_v1.md`; the gateway C kernel recorded as a justified deviation licensed only by V-B1; LTA benchmark covers every N |
