@@ -16,13 +16,16 @@ deterministic; repeats are sha256-checked against the first replicate): they use
 with a complete record, contended or not.
 
 Completeness.  Every planned (arm, seed) -- all decision.json arms, including an arm without an implementation, x the
-configured seeds -- without a complete record is listed under ``missing_runs``; the stage status is then INCOMPLETE
-and ``decision_primary`` reads "INCOMPLETE" (the decision computed on the available seeds is kept beside it as
+configured seeds -- without a complete record is listed under ``missing_runs``, and every (arm, seed) with no
+uncontended replicate whose repeats are not exhausted (expB_run.needs_repeat) under ``pending_repeats``; with either,
+the stage status is INCOMPLETE and ``decision_primary`` reads "INCOMPLETE" (the decision computed on the available seeds is kept beside it as
 ``decision_on_available_seeds``).  An arm without any usable run also makes the IUT 'unresolved' (it must cover
 every arm).
 
 Endpoints.  Primary: W_mid (decision: expB_stats.compare_arms -> IUT, rho_best, Gehan-Wilcoxon / paired sign test,
-budget-artefact labels).  Sensitivities: W_mid interpolated (same replicates), W_mid including the flagged seeds.
+budget-artefact labels).  Sensitivities: W_mid interpolated (same replicates), W_mid including the flagged seeds, and
+W_mid with the CCD-wide contention verdict (Amendment 2, A2.4).  The A3.3 (a) stage label (prod/<system>/STAGE_LABEL.json)
+is carried into the summary (``exploratory``, ``decision_role``).
 Secondary: (1) W_strict, W_loose (same machinery, budget-artefact labels); (2) Ibar_F^wall(W*) with W* = the smallest
 of the arms' median completion wall times over runs uncontended for the whole run, fixed before the bootstrap;
 (3) force evaluations to accuracy (N x completed steps at the threshold save); (4) used (t_arm x W) and allocated
@@ -176,20 +179,21 @@ def analyze(system, out_root=C.OUT_ROOT, spec=None, decision=None, bench_summary
     results["W_loose"] = comp("primary", "W_loose")
 
     # ---- Amendment 2 (A2.4): the W_mid decision repeated with the CCD-wide contention verdict
-    ccd_vals, ccd_flags = {}, {}
+    ccd_vals, ccd_flags, ccd_comp = {}, {}, {}
     for a, per in recs.items():
-        ccd_vals[a], ccd_flags[a] = {}, []
+        ccd_vals[a], ccd_flags[a], ccd_comp[a] = {}, [], {}
         for s, rr in per.items():
             r, prim = select_ccd(rr, "W_mid")
             if r is None:
                 continue
             if prim:
                 ccd_vals[a][s] = C.num(r["endpoints"]["W_mid"])
+                ccd_comp[a][s] = float(r["wall_total_s"])     # completion of the SAME (CCD-selected) replicate
             else:
                 ccd_flags[a].append(int(s))
     v_ccd = {a: x for a, x in ccd_vals.items() if x}
     if any(a in v_ccd for a in F) and any(a in v_ccd for a in A_):
-        ccd_res = S.compare_arms(v_ccd, F, A_, pairs=pairs, completion={a: completion[a]["W_mid"] for a in v_ccd},
+        ccd_res = S.compare_arms(v_ccd, F, A_, pairs=pairs, completion={a: ccd_comp[a] for a in v_ccd},
                                  n_boot=n_boot, gehan_perm=gehan_perm)
     else:
         ccd_res = dict(status="no data")
