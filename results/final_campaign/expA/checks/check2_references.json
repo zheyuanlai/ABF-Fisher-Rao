@@ -1,0 +1,88 @@
+{
+ "check": "2",
+ "rule": "PREREGISTRATION.md 1.3 check 2: primary arrays (x_grid, eval_mask, F_ref, Fp_ref) bitwise equal to each other and to results/equal_budget_v2/references/gateway_reference.npz",
+ "generated_utc": "2026-10-11T07:52:49Z",
+ "files": {
+  "results/equal_budget_v2/references/gateway_reference.npz": "9d551298568cbe9512ae908a5bd9b830cd8b0b87859a2d54d4ec74d6d6eb86c5",
+  "results/final_campaign/references/expA_shift_lam1_reference.npz": "31fc5dafdac7f84eec97dd6ed93d8d4f96c68c6f6a0d7d83712e03fc237652b7",
+  "results/final_campaign/references/expA_shift_lam4_reference.npz": "64f8acb906f24e25152c47950e2a238ba3b348d3661a4815bafe054e7f51f85c",
+  "results/final_campaign/references/expA_shift_lam16_reference.npz": "f0416c62f2a74ab76de447d77a17209d4ce11a1f6eaa44808f75c832e2a6f12c",
+  "results/final_campaign/references/expA_shift_lam128_reference.npz": "f6ce66cda7442f98b810e9ea0957d3c094cc8e80385be45ee70156f4c933906a",
+  "results/final_campaign/references/references_summary.json": "196378f4f41b2cd1c8bffaa4ca44f782a93eb470823fe98433945239f33ee8b2"
+ },
+ "problems": [],
+ "git_commit": "014c4be094ccf32a1978b54c9fb165b6bacb2dd8",
+ "tool": "scripts/final_campaign/expA_check_references.py",
+ "summary_primary_digests": [
+  "8c48b7cee8a2942d1787df5b497a7c243d5feb3ac10420121c369f8ffb207666"
+ ],
+ "primary": {
+  "x_grid": {
+   "equal_to_equal_budget": {
+    "shift_lam1": true,
+    "shift_lam4": true,
+    "shift_lam16": true,
+    "shift_lam128": true
+   },
+   "equal_across_cells": true
+  },
+  "eval_mask": {
+   "equal_to_equal_budget": {
+    "shift_lam1": true,
+    "shift_lam4": true,
+    "shift_lam16": true,
+    "shift_lam128": true
+   },
+   "equal_across_cells": true
+  },
+  "F_ref": {
+   "equal_to_equal_budget": {
+    "shift_lam1": true,
+    "shift_lam4": true,
+    "shift_lam16": true,
+    "shift_lam128": true
+   },
+   "equal_across_cells": true
+  },
+  "Fp_ref": {
+   "equal_to_equal_budget": {
+    "shift_lam1": true,
+    "shift_lam4": true,
+    "shift_lam16": true,
+    "shift_lam128": true
+   },
+   "equal_across_cells": true
+  }
+ },
+ "secondary_descriptive": {
+  "F_ref_em": {
+   "equal_across_cells": true
+  },
+  "Fp_bin_ref": {
+   "equal_across_cells": true
+  },
+  "Fp_bin_em": {
+   "equal_across_cells": true
+  },
+  "F_ref_em_equal_to_equal_budget_F_ref_em": {
+   "shift_lam1": false,
+   "shift_lam4": false,
+   "shift_lam16": false,
+   "shift_lam128": false
+  },
+  "max_abs_F_ref_em_minus_F_ref": {
+   "shift_lam1": 3.0999909306217432e-09,
+   "shift_lam4": 3.0999909306217432e-09,
+   "shift_lam16": 3.0999909306217432e-09,
+   "shift_lam128": 3.0999909306217432e-09
+  }
+ },
+ "n_cells": 4,
+ "verdict": "PASS",
+ "input_signature": "c00d905437c9a1bd74ba4eb0b0228f6f63f0402c9a10c6120204bd737c449f4f",
+ "supersedes": {
+  "generated_utc": "2026-10-11T06:27:41Z",
+  "verdict": "PASS",
+  "input_signature": null
+ }
+}

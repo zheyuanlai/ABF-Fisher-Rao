@@ -1,0 +1,200 @@
+{
+ "check": "8",
+ "rule": "PREREGISTRATION.md 1.3 check 8: (8a) engine sha256 = 69087f2c...; (8b) the four stored production jobs re-run at HEAD bitwise equal on all shared arrays (session bookkeeping excluded); (8c) the harness inertness test (record check8c, expA_record_tests.py)",
+ "generated_utc": "2026-10-11T07:58:17Z",
+ "tool": "scripts/final_campaign/expA_check_old_bitwise.py",
+ "input_signature": "dda6d3ab6b5af0480f0a9d8ee83dd54ca47a9e5ac2f7e2c45c0db6b4eb2e02b3",
+ "part_8ab_input_signature": "20cdfa5cf1d79e82093a2aa77b8d6f9b43486235ae5383a24175b2739a29b91f",
+ "provenance": {
+  "git_commit": "014c4be094ccf32a1978b54c9fb165b6bacb2dd8",
+  "engine_file_sha256": "69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed",
+  "host": "atlas",
+  "python": "3.14.4",
+  "utc": "2026-10-11T07:58:17Z",
+  "numpy": "2.4.6",
+  "numba": "0.68.0",
+  "cpu_set": "48 49 50 51"
+ },
+ "engine": {
+  "expected": "69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed",
+  "file": "69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed",
+  "file_and_import_equal_expected": true,
+  "stored_meta_engine_sha256": {
+   "results/mechanism/matched_free_energy/shift/N128/s8100_abf.npz": "69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed",
+   "results/mechanism/matched_free_energy/shift/N128/s8100_fr.npz": "69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed",
+   "results/mechanism/matched_free_energy/alpha1/N512/s8100_abf.npz": "69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed",
+   "results/mechanism/matched_free_energy/alpha1/N512/s8100_fr.npz": "69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed"
+  },
+  "stored_equal_expected": true
+ },
+ "excluded_keys": [
+  "cfg_json",
+  "meta_json",
+  "wall_s",
+  "peak_rss_mb",
+  "n_checkpoints_written",
+  "resumed_from"
+ ],
+ "n_jobs": 4,
+ "n_equal": 4,
+ "part_8ab_verdict": "PASS",
+ "part_8c": {
+  "record": "results/final_campaign/expA/checks/check8c_harness_inertness.json",
+  "present": true,
+  "verdict": "PASS",
+  "current": true,
+  "reason": "current",
+  "sha256": "0b7a66f2b986a6accf223721272c8821e3b1a49701fd84fe30407695072b624b",
+  "generated_utc": "2026-10-11T07:52:47Z",
+  "counts": {
+   "passed": 6,
+   "failed": 0,
+   "error": 0,
+   "skipped": 0
+  }
+ },
+ "verdict": "PASS",
+ "verdict_note": "8a, 8b and 8c pass",
+ "jobs": [
+  {
+   "started_utc": "2026-10-11T07:53:22Z",
+   "file": "results/mechanism/matched_free_energy/shift/N128/s8100_abf.npz",
+   "file_sha256": "7b879238749ed101e5ad84e05813d92ba614a472244efe28932925260b1e2799",
+   "method": "abf",
+   "N": 128,
+   "seed": 8100,
+   "n_steps": 25600000,
+   "h": 2.5e-05,
+   "diagnostics": true,
+   "chunk_steps": 65536,
+   "stored_engine_sha256": "69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed",
+   "stored_git_commit": "e1f1ff7afc34d44b41314d02234da3ddb3379360",
+   "stored_engine": "gateway_family_numba/1",
+   "call": "run_job default call (prereg_save_grid, default trace / snapshot grids, default noise seed)",
+   "signature_attempts": [
+    {
+     "call": "run_job default call (prereg_save_grid, default trace / snapshot grids, default noise seed)",
+     "signature_mismatch": []
+    }
+   ],
+   "signature_reproduced": true,
+   "n_compared": 48,
+   "mismatched": [],
+   "missing_in_rerun": [],
+   "extra_in_rerun": [],
+   "cfg_json_equal": true,
+   "run_signature_equal": true,
+   "rerun_engine_sha256": "69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed",
+   "rerun_git_commit": "014c4be094ccf32a1978b54c9fb165b6bacb2dd8",
+   "status": "EQUAL",
+   "wall_s": 279.4993693828583,
+   "start_epoch": 1791705202.0156035,
+   "input_signature": "3234cbfb101167f30d290e4b4e6e87345fc57af62aab48bbe03f04055b3e28bd"
+  },
+  {
+   "started_utc": "2026-10-11T07:53:22Z",
+   "file": "results/mechanism/matched_free_energy/shift/N128/s8100_fr.npz",
+   "file_sha256": "91ef1ada9d72c437482d1213063b92ce145faa904ba40aa20ebd490447dfc599",
+   "method": "fr",
+   "N": 128,
+   "seed": 8100,
+   "n_steps": 25600000,
+   "h": 2.5e-05,
+   "diagnostics": true,
+   "chunk_steps": 65536,
+   "stored_engine_sha256": "69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed",
+   "stored_git_commit": "e1f1ff7afc34d44b41314d02234da3ddb3379360",
+   "stored_engine": "gateway_family_numba/1",
+   "call": "run_job default call (prereg_save_grid, default trace / snapshot grids, default noise seed)",
+   "signature_attempts": [
+    {
+     "call": "run_job default call (prereg_save_grid, default trace / snapshot grids, default noise seed)",
+     "signature_mismatch": []
+    }
+   ],
+   "signature_reproduced": true,
+   "n_compared": 48,
+   "mismatched": [],
+   "missing_in_rerun": [],
+   "extra_in_rerun": [],
+   "cfg_json_equal": true,
+   "run_signature_equal": true,
+   "rerun_engine_sha256": "69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed",
+   "rerun_git_commit": "014c4be094ccf32a1978b54c9fb165b6bacb2dd8",
+   "status": "EQUAL",
+   "wall_s": 285.51743364334106,
+   "start_epoch": 1791705202.014006,
+   "input_signature": "3bb6ff661c3e59af8b98c2589bd33c0a1eab4c276f89eac9954a07c2b3b293eb"
+  },
+  {
+   "started_utc": "2026-10-11T07:53:22Z",
+   "file": "results/mechanism/matched_free_energy/alpha1/N512/s8100_abf.npz",
+   "file_sha256": "2f58c3232749137fb4bc650a90d69eefeffa222ab0a68b9c432ae815d4348d11",
+   "method": "abf",
+   "N": 512,
+   "seed": 8100,
+   "n_steps": 6400000,
+   "h": 2.5e-05,
+   "diagnostics": true,
+   "chunk_steps": 16384,
+   "stored_engine_sha256": "69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed",
+   "stored_git_commit": "e1f1ff7afc34d44b41314d02234da3ddb3379360",
+   "stored_engine": "gateway_family_numba/1",
+   "call": "run_job default call (prereg_save_grid, default trace / snapshot grids, default noise seed)",
+   "signature_attempts": [
+    {
+     "call": "run_job default call (prereg_save_grid, default trace / snapshot grids, default noise seed)",
+     "signature_mismatch": []
+    }
+   ],
+   "signature_reproduced": true,
+   "n_compared": 48,
+   "mismatched": [],
+   "missing_in_rerun": [],
+   "extra_in_rerun": [],
+   "cfg_json_equal": true,
+   "run_signature_equal": true,
+   "rerun_engine_sha256": "69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed",
+   "rerun_git_commit": "014c4be094ccf32a1978b54c9fb165b6bacb2dd8",
+   "status": "EQUAL",
+   "wall_s": 278.9789345264435,
+   "start_epoch": 1791705202.029644,
+   "input_signature": "b00fb078401dab30c5d5b21a9f3ccf4a74a3f9cc3de52d54e7248843591b32a5"
+  },
+  {
+   "started_utc": "2026-10-11T07:53:22Z",
+   "file": "results/mechanism/matched_free_energy/alpha1/N512/s8100_fr.npz",
+   "file_sha256": "20c86b0af84fe8829fbc8f808d3f94e44ba05b3a2a5113f6da6d615f88b13c32",
+   "method": "fr",
+   "N": 512,
+   "seed": 8100,
+   "n_steps": 6400000,
+   "h": 2.5e-05,
+   "diagnostics": true,
+   "chunk_steps": 16384,
+   "stored_engine_sha256": "69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed",
+   "stored_git_commit": "e1f1ff7afc34d44b41314d02234da3ddb3379360",
+   "stored_engine": "gateway_family_numba/1",
+   "call": "run_job default call (prereg_save_grid, default trace / snapshot grids, default noise seed)",
+   "signature_attempts": [
+    {
+     "call": "run_job default call (prereg_save_grid, default trace / snapshot grids, default noise seed)",
+     "signature_mismatch": []
+    }
+   ],
+   "signature_reproduced": true,
+   "n_compared": 48,
+   "mismatched": [],
+   "missing_in_rerun": [],
+   "extra_in_rerun": [],
+   "cfg_json_equal": true,
+   "run_signature_equal": true,
+   "rerun_engine_sha256": "69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed",
+   "rerun_git_commit": "014c4be094ccf32a1978b54c9fb165b6bacb2dd8",
+   "status": "EQUAL",
+   "wall_s": 295.37004590034485,
+   "start_epoch": 1791705202.0219305,
+   "input_signature": "a1279a8600edd31ce7eebea1db787cd70344c3fbb59c1de271327ece050be898"
+  }
+ ]
+}

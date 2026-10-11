@@ -19,3 +19,13 @@ All times UTC, 2026-10-11, measured from command output or commit metadata (not 
 | 07:01–07:13 | Disk fell again (13.7 → 6.4 GB, ≈ 5–19 GB/h) from accounts not readable here; the user's own `levy-GM-theory` job writes 0.5–1 GB checkpoints every ≈ 40 min | `df`, `find`, `du` snapshots |
 | 07:24 | Both build workflows resumed after a subagent session-limit interruption (fix stages and the Exp B harness review had failed; completed implement/review stages replayed from cache) | workflows wf_49b9d228, wf_63252a8d |
 | 07:26 | **Disk at 1.07 GB.** With the user's approval ("delete old Claude scratch"), removed past-session Claude scratch data: ABF sessions 01755893 and c27bfa13 (whole, no open handles) and the `scratchpad/` subfolders of b25e8a63 and f927818a (their `tasks/` dirs are held open by still-running idle sessions and were kept). The levy-GM-theory session 4ee891d2 was **not** touched: it is held open by a live `claude --continue` process (pid 1262331) writing task output. Freed 3.6 GB → 4.6 GB free | `lsof`, `df` |
+| 07:50 | Exp A tooling workflow complete (implement → review → fix; 45 + 28 + 9 + 62 tests pass) | wf_49b9d228 |
+| 07:52 | **Amendment 1 + Exp A tooling committed and pushed: 014c4be0** (before any gate/smoke/production run) | `git log` |
+| 07:52 | Checks 1/7 PASS (39 tests), 8c harness inertness PASS (6 tests), 2 references PASS (bitwise across λ and vs equal-budget reference) | `results/final_campaign/expA/checks/` |
+| 07:53 | Launched (detached): G-A1 gate chains (121 jobs, 32 workers, cores 8–39), check 4b (core 0), check 8 (4 workers, 48–51), smoke (32 runs, 8 workers, 52–59) | `results/final_campaign/expA/logs/` |
+| ≈ 07:56 | Check 4b PASS: 0/30 Holm rejections; resolvable-inflation cases (λ 1, 16 at h = 0.1/λ) match the EM AR(1) law | `check4b_frozen_x.json` |
+| ≈ 08:03 | Check 8 PASS: 4/4 stored production jobs re-run bitwise equal (48 arrays each); 8c PASS | `check8_old_bitwise.json` |
+| ≈ 08:00 | Smoke: 32/32 runs complete, 0 failed | `logs/smoke.log` |
+| 08:05 | Check 9 PASS (32/32 files) incl. check 6 PASS on the frozen first-death rule (16/16 pairs, 16–25 compared saves each) | `check9_smoke.json`, `check6_pairing_smoke.json` |
+| 08:06 | V5 ABF-bias smoke PASS for λ 4, 16, 128 (finite; final max|Γ| 7.89–7.90 vs 15.78) | `validation/abf_smoke.json` |
+| 08:06 | G-A1 chains 32/121 done; every λ = 1 replay so far bitwise equal to its frozen record | `logs/gate_run.log` |

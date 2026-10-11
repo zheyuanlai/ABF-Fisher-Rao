@@ -1,0 +1,98 @@
+{
+ "check": "check8c",
+ "title": "check 8, harness-inertness part (PREREGISTRATION.md 1.3 G-A1 'Inertness test (before any G-A1 run)')",
+ "verdict": "PASS",
+ "problems": [],
+ "nodes": [
+  "tests/test_final_expA_validation.py::test_a_old_dynamics_bitwise_identical_to_189c2408",
+  "tests/test_final_expA_validation.py::test_a_raw_kernel_tuple_appended_at_the_end",
+  "tests/test_final_expA_validation.py::test_b_settings_seeds_traces_plans_identical_for_old_dynamics",
+  "tests/test_final_expA_validation.py::test_b_runner_reproduces_run_validation_bitwise_for_old_dynamics",
+  "tests/test_final_expA_validation.py::test_c_unmodified_analyzer_reproduces_frozen_summary",
+  "tests/test_final_expA_validation.py::test_d_run_validation_dry_run_unchanged"
+ ],
+ "counts": {
+  "passed": 6,
+  "failed": 0,
+  "error": 0,
+  "skipped": 0
+ },
+ "n_cases": 6,
+ "per_node": {
+  "tests/test_final_expA_validation.py::test_a_old_dynamics_bitwise_identical_to_189c2408": 1,
+  "tests/test_final_expA_validation.py::test_a_raw_kernel_tuple_appended_at_the_end": 1,
+  "tests/test_final_expA_validation.py::test_b_settings_seeds_traces_plans_identical_for_old_dynamics": 1,
+  "tests/test_final_expA_validation.py::test_b_runner_reproduces_run_validation_bitwise_for_old_dynamics": 1,
+  "tests/test_final_expA_validation.py::test_c_unmodified_analyzer_reproduces_frozen_summary": 1,
+  "tests/test_final_expA_validation.py::test_d_run_validation_dry_run_unchanged": 1
+ },
+ "cases": [
+  {
+   "node": "tests/test_final_expA_validation.py::test_a_old_dynamics_bitwise_identical_to_189c2408",
+   "classname": "tests.test_final_expA_validation",
+   "name": "test_a_old_dynamics_bitwise_identical_to_189c2408",
+   "outcome": "passed",
+   "time_s": 6.766
+  },
+  {
+   "node": "tests/test_final_expA_validation.py::test_a_raw_kernel_tuple_appended_at_the_end",
+   "classname": "tests.test_final_expA_validation",
+   "name": "test_a_raw_kernel_tuple_appended_at_the_end",
+   "outcome": "passed",
+   "time_s": 0.001
+  },
+  {
+   "node": "tests/test_final_expA_validation.py::test_b_settings_seeds_traces_plans_identical_for_old_dynamics",
+   "classname": "tests.test_final_expA_validation",
+   "name": "test_b_settings_seeds_traces_plans_identical_for_old_dynamics",
+   "outcome": "passed",
+   "time_s": 0.017
+  },
+  {
+   "node": "tests/test_final_expA_validation.py::test_b_runner_reproduces_run_validation_bitwise_for_old_dynamics",
+   "classname": "tests.test_final_expA_validation",
+   "name": "test_b_runner_reproduces_run_validation_bitwise_for_old_dynamics",
+   "outcome": "passed",
+   "time_s": 22.12
+  },
+  {
+   "node": "tests/test_final_expA_validation.py::test_c_unmodified_analyzer_reproduces_frozen_summary",
+   "classname": "tests.test_final_expA_validation",
+   "name": "test_c_unmodified_analyzer_reproduces_frozen_summary",
+   "outcome": "passed",
+   "time_s": 7.435
+  },
+  {
+   "node": "tests/test_final_expA_validation.py::test_d_run_validation_dry_run_unchanged",
+   "classname": "tests.test_final_expA_validation",
+   "name": "test_d_run_validation_dry_run_unchanged",
+   "outcome": "passed",
+   "time_s": 1.936
+  }
+ ],
+ "pytest_exit_code": 0,
+ "pytest_output_tail": "......                                                                   [100%]\n6 passed in 38.58s\n",
+ "command": "-m pytest -q -p no:cacheprovider --junitxml=/tmp/expA_record_tests_w0rmdsob/junit.xml --basetemp=/tmp/expA_record_tests_w0rmdsob/bt -o junit_family=xunit1 tests/test_final_expA_validation.py::test_a_old_dynamics_bitwise_identical_to_189c2408 tests/test_final_expA_validation.py::test_a_raw_kernel_tuple_appended_at_the_end tests/test_final_expA_validation.py::test_b_settings_seeds_traces_plans_identical_for_old_dynamics tests/test_final_expA_validation.py::test_b_runner_reproduces_run_validation_bitwise_for_old_dynamics tests/test_final_expA_validation.py::test_c_unmodified_analyzer_reproduces_frozen_summary tests/test_final_expA_validation.py::test_d_run_validation_dry_run_unchanged",
+ "wall_s": 39.179970502853394,
+ "files_sha256": {
+  "tests/test_final_expA_validation.py": "2c114bdfac621b311dfb9e0d32f45465cc7653f6ca0a4150d762251d8f12f066",
+  "results/mechanism/validation/summary.json": "2f90ba8a253ba3bb9e965fb074e7e9a08c912da7b321f130ffe9ca383dfc5d2b",
+  "scripts/final_campaign/expA_validation.py": "4b4d49ee625585ac241eb6c08b0fcf752cc5f98203ba36dfd670cda194cf7713",
+  "scripts/mechanism/analyze_validation.py": "af2984befd3d65b1bdf9454ea4840d951cf0f7606d5179306b55b887aaba723a",
+  "scripts/mechanism/run_validation.py": "84055e7af5787156a9d72591780c22c7c56cfdcacf92e8f7a48f13b0a12a3bd3",
+  "src/gateway_family_validation.py": "f7bfd772cc63d86a6dfacea900f7670c89935cf0a0d1c05a7487fd98b4a6b4da"
+ },
+ "input_signature": "f921f71140685bb4fdb5f816d6d69486ed748bc2eded9c39f09a3d777fe9db84",
+ "generated_utc": "2026-10-11T07:52:47Z",
+ "tool": "scripts/final_campaign/expA_record_tests.py",
+ "provenance": {
+  "git_commit": "014c4be094ccf32a1978b54c9fb165b6bacb2dd8",
+  "engine_file_sha256": "69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed",
+  "host": "atlas",
+  "python": "3.14.4",
+  "utc": "2026-10-11T07:52:47Z",
+  "numpy": "2.4.6",
+  "numba": "0.68.0",
+  "cpu_set": "0 1 2 3"
+ }
+}

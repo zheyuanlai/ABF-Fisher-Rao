@@ -1,0 +1,335 @@
+{
+ "check": "check1_7",
+ "title": "checks 1 and 7 (PREREGISTRATION.md 1.3): analytic forces vs finite differences and the kernel deposit force; independent Langevin / FR streams, FR arm's Langevin stream = ABF arm's",
+ "verdict": "PASS",
+ "problems": [],
+ "nodes": [
+  "tests/test_final_expA_checks.py::test_c1_grad_V_matches_central_differences",
+  "tests/test_final_expA_checks.py::test_c1_kernel_deposit_force_equals_grad_V",
+  "tests/test_final_expA_checks.py::test_c7_langevin_and_fr_streams",
+  "tests/test_final_expA_checks.py::test_c7_streams_and_initial_state_independent_of_lam",
+  "tests/test_final_expA_checks.py::test_c7_fr_arm_paired_with_abf_before_first_event",
+  "tests/test_gateway_family_numba.py::test_f1_gradient_matches_finite_differences",
+  "tests/test_gateway_family_numba.py::test_f1_kernel_force_and_one_em_step",
+  "tests/test_gateway_family_numba.py::test_f6_fr_gamma0_equals_abf",
+  "tests/test_gateway_family_numba.py::test_f6_stream_separation_and_chunk_independence",
+  "tests/test_gateway_family_numba.py::test_f6_fr_helpers_equal_original"
+ ],
+ "counts": {
+  "passed": 39,
+  "failed": 0,
+  "error": 0,
+  "skipped": 0
+ },
+ "n_cases": 39,
+ "per_node": {
+  "tests/test_final_expA_checks.py::test_c1_grad_V_matches_central_differences": 4,
+  "tests/test_final_expA_checks.py::test_c1_kernel_deposit_force_equals_grad_V": 4,
+  "tests/test_final_expA_checks.py::test_c7_langevin_and_fr_streams": 4,
+  "tests/test_final_expA_checks.py::test_c7_streams_and_initial_state_independent_of_lam": 1,
+  "tests/test_final_expA_checks.py::test_c7_fr_arm_paired_with_abf_before_first_event": 3,
+  "tests/test_gateway_family_numba.py::test_f1_gradient_matches_finite_differences": 4,
+  "tests/test_gateway_family_numba.py::test_f1_kernel_force_and_one_em_step": 7,
+  "tests/test_gateway_family_numba.py::test_f6_fr_gamma0_equals_abf": 7,
+  "tests/test_gateway_family_numba.py::test_f6_stream_separation_and_chunk_independence": 1,
+  "tests/test_gateway_family_numba.py::test_f6_fr_helpers_equal_original": 4
+ },
+ "cases": [
+  {
+   "node": "tests/test_final_expA_checks.py::test_c1_grad_V_matches_central_differences",
+   "classname": "tests.test_final_expA_checks",
+   "name": "test_c1_grad_V_matches_central_differences[1.0]",
+   "outcome": "passed",
+   "time_s": 0.001
+  },
+  {
+   "node": "tests/test_final_expA_checks.py::test_c1_grad_V_matches_central_differences",
+   "classname": "tests.test_final_expA_checks",
+   "name": "test_c1_grad_V_matches_central_differences[4.0]",
+   "outcome": "passed",
+   "time_s": 0.001
+  },
+  {
+   "node": "tests/test_final_expA_checks.py::test_c1_grad_V_matches_central_differences",
+   "classname": "tests.test_final_expA_checks",
+   "name": "test_c1_grad_V_matches_central_differences[16.0]",
+   "outcome": "passed",
+   "time_s": 0.001
+  },
+  {
+   "node": "tests/test_final_expA_checks.py::test_c1_grad_V_matches_central_differences",
+   "classname": "tests.test_final_expA_checks",
+   "name": "test_c1_grad_V_matches_central_differences[128.0]",
+   "outcome": "passed",
+   "time_s": 0.001
+  },
+  {
+   "node": "tests/test_final_expA_checks.py::test_c1_kernel_deposit_force_equals_grad_V",
+   "classname": "tests.test_final_expA_checks",
+   "name": "test_c1_kernel_deposit_force_equals_grad_V[1.0]",
+   "outcome": "passed",
+   "time_s": 0.107
+  },
+  {
+   "node": "tests/test_final_expA_checks.py::test_c1_kernel_deposit_force_equals_grad_V",
+   "classname": "tests.test_final_expA_checks",
+   "name": "test_c1_kernel_deposit_force_equals_grad_V[4.0]",
+   "outcome": "passed",
+   "time_s": 0.003
+  },
+  {
+   "node": "tests/test_final_expA_checks.py::test_c1_kernel_deposit_force_equals_grad_V",
+   "classname": "tests.test_final_expA_checks",
+   "name": "test_c1_kernel_deposit_force_equals_grad_V[16.0]",
+   "outcome": "passed",
+   "time_s": 0.003
+  },
+  {
+   "node": "tests/test_final_expA_checks.py::test_c1_kernel_deposit_force_equals_grad_V",
+   "classname": "tests.test_final_expA_checks",
+   "name": "test_c1_kernel_deposit_force_equals_grad_V[128.0]",
+   "outcome": "passed",
+   "time_s": 0.003
+  },
+  {
+   "node": "tests/test_final_expA_checks.py::test_c7_langevin_and_fr_streams",
+   "classname": "tests.test_final_expA_checks",
+   "name": "test_c7_langevin_and_fr_streams[1.0]",
+   "outcome": "passed",
+   "time_s": 0.014
+  },
+  {
+   "node": "tests/test_final_expA_checks.py::test_c7_langevin_and_fr_streams",
+   "classname": "tests.test_final_expA_checks",
+   "name": "test_c7_langevin_and_fr_streams[4.0]",
+   "outcome": "passed",
+   "time_s": 0.012
+  },
+  {
+   "node": "tests/test_final_expA_checks.py::test_c7_langevin_and_fr_streams",
+   "classname": "tests.test_final_expA_checks",
+   "name": "test_c7_langevin_and_fr_streams[16.0]",
+   "outcome": "passed",
+   "time_s": 0.012
+  },
+  {
+   "node": "tests/test_final_expA_checks.py::test_c7_langevin_and_fr_streams",
+   "classname": "tests.test_final_expA_checks",
+   "name": "test_c7_langevin_and_fr_streams[128.0]",
+   "outcome": "passed",
+   "time_s": 0.012
+  },
+  {
+   "node": "tests/test_final_expA_checks.py::test_c7_streams_and_initial_state_independent_of_lam",
+   "classname": "tests.test_final_expA_checks",
+   "name": "test_c7_streams_and_initial_state_independent_of_lam",
+   "outcome": "passed",
+   "time_s": 0.003
+  },
+  {
+   "node": "tests/test_final_expA_checks.py::test_c7_fr_arm_paired_with_abf_before_first_event",
+   "classname": "tests.test_final_expA_checks",
+   "name": "test_c7_fr_arm_paired_with_abf_before_first_event[4.0]",
+   "outcome": "passed",
+   "time_s": 0.072
+  },
+  {
+   "node": "tests/test_final_expA_checks.py::test_c7_fr_arm_paired_with_abf_before_first_event",
+   "classname": "tests.test_final_expA_checks",
+   "name": "test_c7_fr_arm_paired_with_abf_before_first_event[16.0]",
+   "outcome": "passed",
+   "time_s": 0.072
+  },
+  {
+   "node": "tests/test_final_expA_checks.py::test_c7_fr_arm_paired_with_abf_before_first_event",
+   "classname": "tests.test_final_expA_checks",
+   "name": "test_c7_fr_arm_paired_with_abf_before_first_event[128.0]",
+   "outcome": "passed",
+   "time_s": 0.072
+  },
+  {
+   "node": "tests/test_gateway_family_numba.py::test_f1_gradient_matches_finite_differences",
+   "classname": "tests.test_gateway_family_numba",
+   "name": "test_f1_gradient_matches_finite_differences[alpha1]",
+   "outcome": "passed",
+   "time_s": 0.001
+  },
+  {
+   "node": "tests/test_gateway_family_numba.py::test_f1_gradient_matches_finite_differences",
+   "classname": "tests.test_gateway_family_numba",
+   "name": "test_f1_gradient_matches_finite_differences[alpha05]",
+   "outcome": "passed",
+   "time_s": 0.001
+  },
+  {
+   "node": "tests/test_gateway_family_numba.py::test_f1_gradient_matches_finite_differences",
+   "classname": "tests.test_gateway_family_numba",
+   "name": "test_f1_gradient_matches_finite_differences[alpha0]",
+   "outcome": "passed",
+   "time_s": 0.001
+  },
+  {
+   "node": "tests/test_gateway_family_numba.py::test_f1_gradient_matches_finite_differences",
+   "classname": "tests.test_gateway_family_numba",
+   "name": "test_f1_gradient_matches_finite_differences[shift]",
+   "outcome": "passed",
+   "time_s": 0.001
+  },
+  {
+   "node": "tests/test_gateway_family_numba.py::test_f1_kernel_force_and_one_em_step",
+   "classname": "tests.test_gateway_family_numba",
+   "name": "test_f1_kernel_force_and_one_em_step[alpha1]",
+   "outcome": "passed",
+   "time_s": 0.003
+  },
+  {
+   "node": "tests/test_gateway_family_numba.py::test_f1_kernel_force_and_one_em_step",
+   "classname": "tests.test_gateway_family_numba",
+   "name": "test_f1_kernel_force_and_one_em_step[alpha05]",
+   "outcome": "passed",
+   "time_s": 0.003
+  },
+  {
+   "node": "tests/test_gateway_family_numba.py::test_f1_kernel_force_and_one_em_step",
+   "classname": "tests.test_gateway_family_numba",
+   "name": "test_f1_kernel_force_and_one_em_step[alpha0]",
+   "outcome": "passed",
+   "time_s": 0.003
+  },
+  {
+   "node": "tests/test_gateway_family_numba.py::test_f1_kernel_force_and_one_em_step",
+   "classname": "tests.test_gateway_family_numba",
+   "name": "test_f1_kernel_force_and_one_em_step[shift]",
+   "outcome": "passed",
+   "time_s": 0.003
+  },
+  {
+   "node": "tests/test_gateway_family_numba.py::test_f1_kernel_force_and_one_em_step",
+   "classname": "tests.test_gateway_family_numba",
+   "name": "test_f1_kernel_force_and_one_em_step[lam05]",
+   "outcome": "passed",
+   "time_s": 0.003
+  },
+  {
+   "node": "tests/test_gateway_family_numba.py::test_f1_kernel_force_and_one_em_step",
+   "classname": "tests.test_gateway_family_numba",
+   "name": "test_f1_kernel_force_and_one_em_step[lam025]",
+   "outcome": "passed",
+   "time_s": 0.003
+  },
+  {
+   "node": "tests/test_gateway_family_numba.py::test_f1_kernel_force_and_one_em_step",
+   "classname": "tests.test_gateway_family_numba",
+   "name": "test_f1_kernel_force_and_one_em_step[lam01]",
+   "outcome": "passed",
+   "time_s": 0.003
+  },
+  {
+   "node": "tests/test_gateway_family_numba.py::test_f6_fr_gamma0_equals_abf",
+   "classname": "tests.test_gateway_family_numba",
+   "name": "test_f6_fr_gamma0_equals_abf[alpha1]",
+   "outcome": "passed",
+   "time_s": 0.059
+  },
+  {
+   "node": "tests/test_gateway_family_numba.py::test_f6_fr_gamma0_equals_abf",
+   "classname": "tests.test_gateway_family_numba",
+   "name": "test_f6_fr_gamma0_equals_abf[alpha05]",
+   "outcome": "passed",
+   "time_s": 0.067
+  },
+  {
+   "node": "tests/test_gateway_family_numba.py::test_f6_fr_gamma0_equals_abf",
+   "classname": "tests.test_gateway_family_numba",
+   "name": "test_f6_fr_gamma0_equals_abf[alpha0]",
+   "outcome": "passed",
+   "time_s": 0.061
+  },
+  {
+   "node": "tests/test_gateway_family_numba.py::test_f6_fr_gamma0_equals_abf",
+   "classname": "tests.test_gateway_family_numba",
+   "name": "test_f6_fr_gamma0_equals_abf[shift]",
+   "outcome": "passed",
+   "time_s": 0.063
+  },
+  {
+   "node": "tests/test_gateway_family_numba.py::test_f6_fr_gamma0_equals_abf",
+   "classname": "tests.test_gateway_family_numba",
+   "name": "test_f6_fr_gamma0_equals_abf[lam05]",
+   "outcome": "passed",
+   "time_s": 0.059
+  },
+  {
+   "node": "tests/test_gateway_family_numba.py::test_f6_fr_gamma0_equals_abf",
+   "classname": "tests.test_gateway_family_numba",
+   "name": "test_f6_fr_gamma0_equals_abf[lam025]",
+   "outcome": "passed",
+   "time_s": 0.059
+  },
+  {
+   "node": "tests/test_gateway_family_numba.py::test_f6_fr_gamma0_equals_abf",
+   "classname": "tests.test_gateway_family_numba",
+   "name": "test_f6_fr_gamma0_equals_abf[lam01]",
+   "outcome": "passed",
+   "time_s": 0.059
+  },
+  {
+   "node": "tests/test_gateway_family_numba.py::test_f6_stream_separation_and_chunk_independence",
+   "classname": "tests.test_gateway_family_numba",
+   "name": "test_f6_stream_separation_and_chunk_independence",
+   "outcome": "passed",
+   "time_s": 0.284
+  },
+  {
+   "node": "tests/test_gateway_family_numba.py::test_f6_fr_helpers_equal_original",
+   "classname": "tests.test_gateway_family_numba",
+   "name": "test_f6_fr_helpers_equal_original[2]",
+   "outcome": "passed",
+   "time_s": 0.013
+  },
+  {
+   "node": "tests/test_gateway_family_numba.py::test_f6_fr_helpers_equal_original",
+   "classname": "tests.test_gateway_family_numba",
+   "name": "test_f6_fr_helpers_equal_original[3]",
+   "outcome": "passed",
+   "time_s": 0.001
+  },
+  {
+   "node": "tests/test_gateway_family_numba.py::test_f6_fr_helpers_equal_original",
+   "classname": "tests.test_gateway_family_numba",
+   "name": "test_f6_fr_helpers_equal_original[37]",
+   "outcome": "passed",
+   "time_s": 0.001
+  },
+  {
+   "node": "tests/test_gateway_family_numba.py::test_f6_fr_helpers_equal_original",
+   "classname": "tests.test_gateway_family_numba",
+   "name": "test_f6_fr_helpers_equal_original[2048]",
+   "outcome": "passed",
+   "time_s": 0.004
+  }
+ ],
+ "pytest_exit_code": 0,
+ "pytest_output_tail": ".......................................                                  [100%]\n39 passed in 1.97s\n",
+ "command": "-m pytest -q -p no:cacheprovider --junitxml=/tmp/expA_record_tests_7z0h_32j/junit.xml --basetemp=/tmp/expA_record_tests_7z0h_32j/bt -o junit_family=xunit1 tests/test_final_expA_checks.py::test_c1_grad_V_matches_central_differences tests/test_final_expA_checks.py::test_c1_kernel_deposit_force_equals_grad_V tests/test_final_expA_checks.py::test_c7_langevin_and_fr_streams tests/test_final_expA_checks.py::test_c7_streams_and_initial_state_independent_of_lam tests/test_final_expA_checks.py::test_c7_fr_arm_paired_with_abf_before_first_event tests/test_gateway_family_numba.py::test_f1_gradient_matches_finite_differences tests/test_gateway_family_numba.py::test_f1_kernel_force_and_one_em_step tests/test_gateway_family_numba.py::test_f6_fr_gamma0_equals_abf tests/test_gateway_family_numba.py::test_f6_stream_separation_and_chunk_independence tests/test_gateway_family_numba.py::test_f6_fr_helpers_equal_original",
+ "wall_s": 2.4721643924713135,
+ "files_sha256": {
+  "tests/test_final_expA_checks.py": "80d54b2e147c2109533d03f37edfca44440e697e7e71ea03a9f570b76cd16eec",
+  "tests/test_gateway_family_numba.py": "2e3907a381c76747031d5c8d062b29f9af431ad10eaf640e5407ff4fc54a7f0a",
+  "src/gateway_family_numba.py": "69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed",
+  "src/gateway_ladder_numba.py": "bdeaa40a42f82d509fcdbe1c209559a93c0d0fae9391633c8858488bc25074ce"
+ },
+ "input_signature": "6d74e4952fc30520ece1015faf3fa472c42d1647a42ccbb8fa037365b498dd3b",
+ "generated_utc": "2026-10-11T07:52:06Z",
+ "tool": "scripts/final_campaign/expA_record_tests.py",
+ "provenance": {
+  "git_commit": "014c4be094ccf32a1978b54c9fb165b6bacb2dd8",
+  "engine_file_sha256": "69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed",
+  "host": "atlas",
+  "python": "3.14.4",
+  "utc": "2026-10-11T07:52:06Z",
+  "numpy": "2.4.6",
+  "numba": "0.68.0",
+  "cpu_set": "0 1 2 3"
+ }
+}

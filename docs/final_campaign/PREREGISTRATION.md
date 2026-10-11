@@ -607,3 +607,41 @@ within the Experiment A cap. Validation and check runs log to their own ledgers 
 are folded into `results/final_campaign/compute_ledger.csv`. The production driver refuses to start unless
 `scripts/final_campaign/expA_gate.py` confirms the gate (summary PASS, h_A equal to the cell h) and current PASS records
 for checks 1/7, 2, 4b, 6, 8 (incl. the harness-inertness part), 9.
+
+## Amendment 2 (2026-10-11, ≈ 08:40 UTC; written after the Experiment B backend, harness and statistics were built, adversarially reviewed and fixed, and BEFORE any formal V-B1…V-B5 run, any V-B4 equivalence run and any feasibility benchmark; only development probes of throughput existed, and no free-energy outcome of Experiment B)
+
+Engineering decisions for Experiment B. None changes a gate threshold (F1 6.0×, F1b 4.0×, V-B4 bands), an endpoint,
+the decision rule or a seed block.
+
+**A2.1 Gateway kernel variant.** The C kernel exists in four variants that are bitwise identical in every result
+(tested at N 16/64/512, threads 1/4/16, both arms): bin-owner deposit with two OpenMP barriers per step; replicated
+per-thread tables (every thread adds all N deposits in slot order into its own copy) with one barrier per step; and
+each of these with a C11 dissemination barrier instead of the OpenMP barrier. All gateway parallel-engine runs
+(V-B runs, benchmark, V-B4, production) use **`replicated_dissem`**, the fastest variant in development probes at
+t ≥ 4 (7.7 vs 8.5–8.7 µs/step at N 512, t 4) and equal at t = 1. The choice is fixed now so that the benchmark does not
+select among variants.
+
+**A2.2 V-B5** uses the event rule of A1.1 [EXPA-CHECK6-EVENT-RULE]; the frozen first-death comparison is reported
+alongside.
+
+**A2.3 Competitor completion τ.** W_proj uses the equal-budget per-seed **`tau_bgrid_e_F_mid_u`** — persistence over
+the common budget save grid, which is identical in u at every N and is the equal-budget pipeline's cross-N comparable
+time-to-threshold — rather than `tau_e_F_mid_u`, whose persistence window includes physical checkpoints that differ
+by N. The selection under `tau_e_F_mid_u` is computed and reported alongside; it does not decide.
+
+**A2.4 Contention scope.** A run's contention verdict (repeat rule, primary analysis set) uses the foreign busy
+fraction on the run's **own cores and their SMT siblings** (> 0.10 contended) and its involuntary context switches
+(> 5 per thread-second), where foreign load directly takes cycles or core resources. Foreign load on the other cpus of
+the run's CCDs (L3 co-tenancy) is measured and recorded per run as a covariate (`ccd_max_foreign_busy`), and the
+primary analysis is repeated with the CCD-wide verdict as a sensitivity analysis. Reason: on this shared host other
+users' unpinned processes migrate across all CCDs (pre-benchmark sampling found 2–6 fully idle CCDs at a time and
+foreign load appearing on idle cores of an allocated CCD within seconds), so the CCD-wide rule would flag most runs
+regardless of arm, while the working sets of both systems (< 1 MB) make L3 co-tenancy a second-order effect.
+
+**A2.5 Timers.** In-kernel phase timers are sampled on ≈ 1 step in 256 (a step set fixed by the global step number,
+identical at every thread count and segmentation); step-loop totals are exact. Measured overhead ≤ 0.3 % at every N
+(it was up to 26 % at N 1 with per-step timers). The LTA kernel checks itself once per process (replay vs the
+validated engine, counter vs replay fed with the Philox block) and aborts on mismatch.
+
+**A2.6 Run boundaries.** Each timed child waits for one monitor sample after importing the engine and after writing
+its record (≈ 1 s per run, outside the timed region), so the telemetry intervals bracket the timed window exactly.
