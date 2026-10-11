@@ -1,0 +1,621 @@
+{
+ "schema": "final_expA_tables/2",
+ "input_signature": "7db2f68196383f3d8ec9108e36ecc5abd3c7e6b7f74feabcb81017098d4315b5",
+ "provenance": {
+  "git_commit": "ef8ebc2080768d6aadfddf70b36738a17e8c1a96",
+  "git_dirty": true,
+  "engine": "src/gateway_family_numba.py",
+  "engine_sha256": "69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed",
+  "engine_sha256_is_frozen": true,
+  "code": {
+   "scripts/final_campaign/expA_tables.py": "dc73b6e58c3c47af9874312f00db4c7c6773fce8c5bd6990dff6b5dfcf92deda",
+   "scripts/final_campaign/expA_analysis_common.py": "3a375c6c8a9a3f0406a5d57b60de97a854ea2038db37d75918756182e8741dcc"
+  },
+  "python": "3.14.4",
+  "numpy": "2.4.6",
+  "scipy": "1.17.1",
+  "matplotlib": "3.10.9",
+  "host": "atlas",
+  "pid": 2984193,
+  "cpu_affinity": [
+   32,
+   33,
+   34,
+   35
+  ],
+  "generated_utc": "2026-10-11T09:28:01Z"
+ },
+ "inputs": {
+  "1": {
+   "config": "e2263b5f5a9e00b8f93b1effc4a7723fd76131f16f51eb5f3a536098f232d927",
+   "summary": "ba93f10797332c4bac78d29d31105c02d805c7444471fa2a2a3bab7a710861b1"
+  },
+  "4": {
+   "config": "267ee75cc6611a4c0aa8bf752a5fb0ed5c9cd0cdf76bc3e66b3bca7f4264c5ef",
+   "summary": "321b41ba5c5b700b5ba0cfa361a679e144f55bc3e2ac6a591aa97c0545d3c109"
+  },
+  "16": {
+   "config": "7f8c2787befe0cf73eed1f2407b56a3ac00b30163a21f9fd997e6cd655ef7035",
+   "summary": "dc4c2d8c5e1f0d9f954305ace52aded91029c1e690fb42312b9958146b083dfc"
+  },
+  "128": {
+   "config": "a592fe91cd9ccd1ea3966de6fa477eb9106027b4da376a8b36c3d28addf3c842",
+   "summary": "4fae68906ebee27173306f4a740108e5b376eaaae052be2b4a400d3d9e8c6fa3"
+  }
+ },
+ "complete": true,
+ "completeness": {
+  "complete": true,
+  "reasons": [],
+  "audits": {
+   "1": {
+    "path": "results/final_campaign/expA/shift_lam1/analysis/completeness_audit.json",
+    "present": true,
+    "verdict": "PASS",
+    "generated_utc": "2026-10-11T09:27:12Z",
+    "n_failures": 0,
+    "failure_codes": [],
+    "summary_sha256": "ba93f10797332c4bac78d29d31105c02d805c7444471fa2a2a3bab7a710861b1",
+    "config_sha256": "e2263b5f5a9e00b8f93b1effc4a7723fd76131f16f51eb5f3a536098f232d927",
+    "engines": [
+     "gateway_family_numba/1 69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed"
+    ],
+    "current": true,
+    "passes": true,
+    "problems": []
+   },
+   "4": {
+    "path": "results/final_campaign/expA/shift_lam4/analysis/completeness_audit.json",
+    "present": true,
+    "verdict": "PASS",
+    "generated_utc": "2026-10-11T09:27:14Z",
+    "n_failures": 0,
+    "failure_codes": [],
+    "summary_sha256": "321b41ba5c5b700b5ba0cfa361a679e144f55bc3e2ac6a591aa97c0545d3c109",
+    "config_sha256": "267ee75cc6611a4c0aa8bf752a5fb0ed5c9cd0cdf76bc3e66b3bca7f4264c5ef",
+    "engines": [
+     "gateway_family_numba/1 69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed"
+    ],
+    "current": true,
+    "passes": true,
+    "problems": []
+   },
+   "16": {
+    "path": "results/final_campaign/expA/shift_lam16/analysis/completeness_audit.json",
+    "present": true,
+    "verdict": "PASS",
+    "generated_utc": "2026-10-11T09:27:14Z",
+    "n_failures": 0,
+    "failure_codes": [],
+    "summary_sha256": "dc4c2d8c5e1f0d9f954305ace52aded91029c1e690fb42312b9958146b083dfc",
+    "config_sha256": "7f8c2787befe0cf73eed1f2407b56a3ac00b30163a21f9fd997e6cd655ef7035",
+    "engines": [
+     "gateway_family_numba/1 69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed"
+    ],
+    "current": true,
+    "passes": true,
+    "problems": []
+   },
+   "128": {
+    "path": "results/final_campaign/expA/shift_lam128/analysis/completeness_audit.json",
+    "present": true,
+    "verdict": "PASS",
+    "generated_utc": "2026-10-11T09:27:15Z",
+    "n_failures": 0,
+    "failure_codes": [],
+    "summary_sha256": "4fae68906ebee27173306f4a740108e5b376eaaae052be2b4a400d3d9e8c6fa3",
+    "config_sha256": "a592fe91cd9ccd1ea3966de6fa477eb9106027b4da376a8b36c3d28addf3c842",
+    "engines": [
+     "gateway_family_numba/1 69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed"
+    ],
+    "current": true,
+    "passes": true,
+    "problems": []
+   }
+  }
+ },
+ "provisional": false,
+ "freshness_verified": true,
+ "n_boot": 10000,
+ "fixture": false,
+ "design_problems": [],
+ "n_rows": 512,
+ "columns": [
+  "lambda",
+  "cell",
+  "N",
+  "seed",
+  "arm",
+  "Ibar_F",
+  "final_e_F",
+  "tau_e_F_mid_u",
+  "tau_e_F_mid_t",
+  "G_Ibar_F",
+  "G_final_e_F",
+  "L_Ibar_F",
+  "complete"
+ ],
+ "files": {
+  "csv": "seed_level.csv",
+  "md": "seed_level.md"
+ },
+ "file_sha256": {
+  "csv": "a6e5f1009028f7fc8b52d2faeef67f8ba75af5ce9e798120c400e718c6292081",
+  "md": "739cfe32cc04c33c5d35434a83201a03e36b5e08f54892740f3206a0030d2b8c"
+ },
+ "cell_summaries": {
+  "1": {
+   "512": {
+    "Ibar_F": {
+     "median_G": -0.07148830753722059,
+     "G_ci95": [
+      -0.13989727394888737,
+      -0.0004530819645363719
+     ],
+     "wins": 21,
+     "n": 32,
+     "mean": {
+      "G": {
+       "n": 32,
+       "mean": -0.07382854831128555,
+       "ci95": [
+        -0.12215017624118771,
+        -0.026298769932887135
+       ]
+      },
+      "L": {
+       "n": 32,
+       "mean": -0.08785119219287088,
+       "ci95": [
+        -0.14210591789962077,
+        -0.035996200633029884
+       ]
+      },
+      "definition": "mean G = mean_s (FR - ABF)/ABF; mean L = mean_s log(FR/ABF); percentile seed-bootstrap 95 % CIs (mean-based companions of the median G, PREREGISTRATION 1.6)"
+     }
+    },
+    "final_e_F": {
+     "median_G": 0.45933507064753765,
+     "G_ci95": [
+      0.3132914105041641,
+      0.5728736090159978
+     ],
+     "wins": 1,
+     "n": 32,
+     "mean": {
+      "G": {
+       "n": 32,
+       "mean": 0.47621030342539017,
+       "ci95": [
+        0.3903766906940502,
+        0.5642347990747707
+       ]
+      },
+      "L": {
+       "n": 32,
+       "mean": 0.37510000834865614,
+       "ci95": [
+        0.3149282620656461,
+        0.4340677888948081
+       ]
+      },
+      "definition": "mean G = mean_s (FR - ABF)/ABF; mean L = mean_s log(FR/ABF); percentile seed-bootstrap 95 % CIs (mean-based companions of the median G, PREREGISTRATION 1.6)"
+     }
+    }
+   },
+   "128": {
+    "Ibar_F": {
+     "median_G": 0.9228821954269294,
+     "G_ci95": [
+      0.7443648735599249,
+      1.4143650295186785
+     ],
+     "wins": 1,
+     "n": 32,
+     "mean": {
+      "G": {
+       "n": 32,
+       "mean": 1.0778740960517172,
+       "ci95": [
+        0.8394670065161524,
+        1.3172370533625741
+       ]
+      },
+      "L": {
+       "n": 32,
+       "mean": 0.6740579828353597,
+       "ci95": [
+        0.5470736645554526,
+        0.7919911694307374
+       ]
+      },
+      "definition": "mean G = mean_s (FR - ABF)/ABF; mean L = mean_s log(FR/ABF); percentile seed-bootstrap 95 % CIs (mean-based companions of the median G, PREREGISTRATION 1.6)"
+     }
+    },
+    "final_e_F": {
+     "median_G": 10.936675783824736,
+     "G_ci95": [
+      8.292406267027133,
+      13.452184072412063
+     ],
+     "wins": 0,
+     "n": 32,
+     "mean": {
+      "G": {
+       "n": 32,
+       "mean": 13.330382828660458,
+       "ci95": [
+        10.357932174715897,
+        16.52222991663999
+       ]
+      },
+      "L": {
+       "n": 32,
+       "mean": 2.4681785870004145,
+       "ci95": [
+        2.2444105137374946,
+        2.680077400728686
+       ]
+      },
+      "definition": "mean G = mean_s (FR - ABF)/ABF; mean L = mean_s log(FR/ABF); percentile seed-bootstrap 95 % CIs (mean-based companions of the median G, PREREGISTRATION 1.6)"
+     }
+    }
+   }
+  },
+  "4": {
+   "512": {
+    "Ibar_F": {
+     "median_G": 0.10110588796548517,
+     "G_ci95": [
+      0.02834685151846387,
+      0.20584638045843046
+     ],
+     "wins": 7,
+     "n": 32,
+     "mean": {
+      "G": {
+       "n": 32,
+       "mean": 0.11984020534574036,
+       "ci95": [
+        0.06405274548848475,
+        0.17855843151296746
+       ]
+      },
+      "L": {
+       "n": 32,
+       "mean": 0.10285375878342345,
+       "ci95": [
+        0.05285251309381153,
+        0.1526679350865382
+       ]
+      },
+      "definition": "mean G = mean_s (FR - ABF)/ABF; mean L = mean_s log(FR/ABF); percentile seed-bootstrap 95 % CIs (mean-based companions of the median G, PREREGISTRATION 1.6)"
+     }
+    },
+    "final_e_F": {
+     "median_G": 1.4558047727091816,
+     "G_ci95": [
+      1.2967666599870997,
+      1.5485935387358194
+     ],
+     "wins": 0,
+     "n": 32,
+     "mean": {
+      "G": {
+       "n": 32,
+       "mean": 1.420275377429913,
+       "ci95": [
+        1.3019206694548462,
+        1.5416352109066274
+       ]
+      },
+      "L": {
+       "n": 32,
+       "mean": 0.8738148884248116,
+       "ci95": [
+        0.8240632590077893,
+        0.9235236708421727
+       ]
+      },
+      "definition": "mean G = mean_s (FR - ABF)/ABF; mean L = mean_s log(FR/ABF); percentile seed-bootstrap 95 % CIs (mean-based companions of the median G, PREREGISTRATION 1.6)"
+     }
+    }
+   },
+   "128": {
+    "Ibar_F": {
+     "median_G": 1.2514473805120008,
+     "G_ci95": [
+      1.0232070910199453,
+      1.3538910157083321
+     ],
+     "wins": 0,
+     "n": 32,
+     "mean": {
+      "G": {
+       "n": 32,
+       "mean": 1.2728383352273875,
+       "ci95": [
+        1.0589135987688245,
+        1.4952347851681753
+       ]
+      },
+      "L": {
+       "n": 32,
+       "mean": 0.7821498429068168,
+       "ci95": [
+        0.6836641005368077,
+        0.8788368651704873
+       ]
+      },
+      "definition": "mean G = mean_s (FR - ABF)/ABF; mean L = mean_s log(FR/ABF); percentile seed-bootstrap 95 % CIs (mean-based companions of the median G, PREREGISTRATION 1.6)"
+     }
+    },
+    "final_e_F": {
+     "median_G": 8.106518777484867,
+     "G_ci95": [
+      5.101990215028172,
+      8.458479389252298
+     ],
+     "wins": 0,
+     "n": 32,
+     "mean": {
+      "G": {
+       "n": 32,
+       "mean": 9.51675352380717,
+       "ci95": [
+        7.010561916178954,
+        12.672608428624374
+       ]
+      },
+      "L": {
+       "n": 32,
+       "mean": 2.1483552008263334,
+       "ci95": [
+        1.9451436978907777,
+        2.3675908233845115
+       ]
+      },
+      "definition": "mean G = mean_s (FR - ABF)/ABF; mean L = mean_s log(FR/ABF); percentile seed-bootstrap 95 % CIs (mean-based companions of the median G, PREREGISTRATION 1.6)"
+     }
+    }
+   }
+  },
+  "16": {
+   "512": {
+    "Ibar_F": {
+     "median_G": -0.33681122620402276,
+     "G_ci95": [
+      -0.39687612849558335,
+      -0.2988207159607285
+     ],
+     "wins": 32,
+     "n": 32,
+     "mean": {
+      "G": {
+       "n": 32,
+       "mean": -0.3432345092976684,
+       "ci95": [
+        -0.38753572650138957,
+        -0.3006127936438135
+       ]
+      },
+      "L": {
+       "n": 32,
+       "mean": -0.440273000508626,
+       "ci95": [
+        -0.5143270464313934,
+        -0.37259166787143105
+       ]
+      },
+      "definition": "mean G = mean_s (FR - ABF)/ABF; mean L = mean_s log(FR/ABF); percentile seed-bootstrap 95 % CIs (mean-based companions of the median G, PREREGISTRATION 1.6)"
+     }
+    },
+    "final_e_F": {
+     "median_G": -0.26763210050163805,
+     "G_ci95": [
+      -0.3762762623196706,
+      -0.05694377520776808
+     ],
+     "wins": 25,
+     "n": 32,
+     "mean": {
+      "G": {
+       "n": 32,
+       "mean": -0.19463445522977854,
+       "ci95": [
+        -0.30126931314130656,
+        -0.08342069700858093
+       ]
+      },
+      "L": {
+       "n": 32,
+       "mean": -0.29198010128459206,
+       "ci95": [
+        -0.43526079665111406,
+        -0.15573372424098367
+       ]
+      },
+      "definition": "mean G = mean_s (FR - ABF)/ABF; mean L = mean_s log(FR/ABF); percentile seed-bootstrap 95 % CIs (mean-based companions of the median G, PREREGISTRATION 1.6)"
+     }
+    }
+   },
+   "128": {
+    "Ibar_F": {
+     "median_G": -0.22889990284734313,
+     "G_ci95": [
+      -0.3510275904410355,
+      -0.0710354106309485
+     ],
+     "wins": 24,
+     "n": 32,
+     "mean": {
+      "G": {
+       "n": 32,
+       "mean": -0.1387606340036675,
+       "ci95": [
+        -0.27142836966465844,
+        0.004990909273292003
+       ]
+      },
+      "L": {
+       "n": 32,
+       "mean": -0.25479181963984443,
+       "ci95": [
+        -0.42830590422984616,
+        -0.09507727707556875
+       ]
+      },
+      "definition": "mean G = mean_s (FR - ABF)/ABF; mean L = mean_s log(FR/ABF); percentile seed-bootstrap 95 % CIs (mean-based companions of the median G, PREREGISTRATION 1.6)"
+     }
+    },
+    "final_e_F": {
+     "median_G": 0.45161893042222695,
+     "G_ci95": [
+      -0.09203032762009215,
+      1.393346539527314
+     ],
+     "wins": 11,
+     "n": 32,
+     "mean": {
+      "G": {
+       "n": 32,
+       "mean": 1.0731256132431688,
+       "ci95": [
+        0.488651585348856,
+        1.7523954120123046
+       ]
+      },
+      "L": {
+       "n": 32,
+       "mean": 0.37451494689203213,
+       "ci95": [
+        0.07705682934914503,
+        0.6695619348380091
+       ]
+      },
+      "definition": "mean G = mean_s (FR - ABF)/ABF; mean L = mean_s log(FR/ABF); percentile seed-bootstrap 95 % CIs (mean-based companions of the median G, PREREGISTRATION 1.6)"
+     }
+    }
+   }
+  },
+  "128": {
+   "512": {
+    "Ibar_F": {
+     "median_G": -0.34183160657113454,
+     "G_ci95": [
+      -0.3801940653456354,
+      -0.3015381430699354
+     ],
+     "wins": 30,
+     "n": 32,
+     "mean": {
+      "G": {
+       "n": 32,
+       "mean": -0.29837044314931827,
+       "ci95": [
+        -0.3521374944782737,
+        -0.23643756787982892
+       ]
+      },
+      "L": {
+       "n": 32,
+       "mean": -0.37859088952771436,
+       "ci95": [
+        -0.44690778682037896,
+        -0.304364599104151
+       ]
+      },
+      "definition": "mean G = mean_s (FR - ABF)/ABF; mean L = mean_s log(FR/ABF); percentile seed-bootstrap 95 % CIs (mean-based companions of the median G, PREREGISTRATION 1.6)"
+     }
+    },
+    "final_e_F": {
+     "median_G": -0.5819306483007699,
+     "G_ci95": [
+      -0.6886404726257037,
+      -0.23730307274212464
+     ],
+     "wins": 25,
+     "n": 32,
+     "mean": {
+      "G": {
+       "n": 32,
+       "mean": -0.1711749655015579,
+       "ci95": [
+        -0.4720147952240041,
+        0.19869688238633612
+       ]
+      },
+      "L": {
+       "n": 32,
+       "mean": -0.6902386178187213,
+       "ci95": [
+        -1.020722570585721,
+        -0.34910388007400656
+       ]
+      },
+      "definition": "mean G = mean_s (FR - ABF)/ABF; mean L = mean_s log(FR/ABF); percentile seed-bootstrap 95 % CIs (mean-based companions of the median G, PREREGISTRATION 1.6)"
+     }
+    }
+   },
+   "128": {
+    "Ibar_F": {
+     "median_G": -0.31966773621752675,
+     "G_ci95": [
+      -0.43751381141762513,
+      -0.23276984801174577
+     ],
+     "wins": 28,
+     "n": 32,
+     "mean": {
+      "G": {
+       "n": 32,
+       "mean": -0.3115196766761318,
+       "ci95": [
+        -0.41861861555494084,
+        -0.20022657330774093
+       ]
+      },
+      "L": {
+       "n": 32,
+       "mean": -0.49632949298155116,
+       "ci95": [
+        -0.6862518439263937,
+        -0.3201755402986799
+       ]
+      },
+      "definition": "mean G = mean_s (FR - ABF)/ABF; mean L = mean_s log(FR/ABF); percentile seed-bootstrap 95 % CIs (mean-based companions of the median G, PREREGISTRATION 1.6)"
+     }
+    },
+    "final_e_F": {
+     "median_G": 0.05003954230739074,
+     "G_ci95": [
+      -0.39193655595986443,
+      0.5146056513465339
+     ],
+     "wins": 16,
+     "n": 32,
+     "mean": {
+      "G": {
+       "n": 32,
+       "mean": 0.4649160863489514,
+       "ci95": [
+        0.031776974146684185,
+        0.9714100168063613
+       ]
+      },
+      "L": {
+       "n": 32,
+       "mean": -0.00045610119987657405,
+       "ci95": [
+        -0.3024647635458187,
+        0.30155779050120624
+       ]
+      },
+      "definition": "mean G = mean_s (FR - ABF)/ABF; mean L = mean_s log(FR/ABF); percentile seed-bootstrap 95 % CIs (mean-based companions of the median G, PREREGISTRATION 1.6)"
+     }
+    }
+   }
+  }
+ },
+ "note": "G and L are pair-level (repeated on both arm rows); empty = pair incomplete; inf = censored tau"
+}

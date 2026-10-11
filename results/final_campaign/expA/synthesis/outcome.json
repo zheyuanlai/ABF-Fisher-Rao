@@ -1,0 +1,498 @@
+{
+ "schema": "final_expA_outcome/1",
+ "input_signature": "6d7cb95016912885165a82027a260d2e5c34223b9453b9fee38251d67857701d",
+ "provenance": {
+  "git_commit": "ef8ebc2080768d6aadfddf70b36738a17e8c1a96",
+  "git_dirty": true,
+  "engine": "src/gateway_family_numba.py",
+  "engine_sha256": "69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed",
+  "engine_sha256_is_frozen": true,
+  "code": {
+   "scripts/final_campaign/expA_outcome.py": "a312cb21d5979fa58a7acaaf9a4618d5bec4911616df0f5c718f2602b51aec59",
+   "scripts/final_campaign/expA_analysis_common.py": "3a375c6c8a9a3f0406a5d57b60de97a854ea2038db37d75918756182e8741dcc"
+  },
+  "python": "3.14.4",
+  "numpy": "2.4.6",
+  "scipy": "1.17.1",
+  "matplotlib": "3.10.9",
+  "host": "atlas",
+  "pid": 2984420,
+  "cpu_affinity": [
+   32,
+   33,
+   34,
+   35
+  ],
+  "generated_utc": "2026-10-11T09:28:10Z"
+ },
+ "inputs": {
+  "cross_cell": "results/final_campaign/expA/synthesis/cross_cell.json",
+  "cross_cell_sha256": "c7145c941486018cc2101afb9c7d31fa6d1373d307b26506698a92c99d95fb29",
+  "mech": "results/final_campaign/expA/synthesis/mech.json",
+  "mech_sha256": "a8d77fea4bcfce2f1eac810ced4a5033a3b38716b4128cd9b92fb8989220706e",
+  "cross_cell_signature": "f4292a660a44813aea408b75afd87b50b59fe1a7a33b0be8d43222e234a6b6c8",
+  "mech_signature": "e9e6888eaf227e2507462f9709daa56f4661d331d338bfad7989a8f44f103415"
+ },
+ "complete": true,
+ "completeness": {
+  "complete": true,
+  "reasons": [],
+  "audits": {
+   "1": {
+    "path": "results/final_campaign/expA/shift_lam1/analysis/completeness_audit.json",
+    "present": true,
+    "verdict": "PASS",
+    "generated_utc": "2026-10-11T09:27:12Z",
+    "n_failures": 0,
+    "failure_codes": [],
+    "summary_sha256": "ba93f10797332c4bac78d29d31105c02d805c7444471fa2a2a3bab7a710861b1",
+    "config_sha256": "e2263b5f5a9e00b8f93b1effc4a7723fd76131f16f51eb5f3a536098f232d927",
+    "engines": [
+     "gateway_family_numba/1 69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed"
+    ],
+    "current": true,
+    "passes": true,
+    "problems": []
+   },
+   "4": {
+    "path": "results/final_campaign/expA/shift_lam4/analysis/completeness_audit.json",
+    "present": true,
+    "verdict": "PASS",
+    "generated_utc": "2026-10-11T09:27:14Z",
+    "n_failures": 0,
+    "failure_codes": [],
+    "summary_sha256": "321b41ba5c5b700b5ba0cfa361a679e144f55bc3e2ac6a591aa97c0545d3c109",
+    "config_sha256": "267ee75cc6611a4c0aa8bf752a5fb0ed5c9cd0cdf76bc3e66b3bca7f4264c5ef",
+    "engines": [
+     "gateway_family_numba/1 69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed"
+    ],
+    "current": true,
+    "passes": true,
+    "problems": []
+   },
+   "16": {
+    "path": "results/final_campaign/expA/shift_lam16/analysis/completeness_audit.json",
+    "present": true,
+    "verdict": "PASS",
+    "generated_utc": "2026-10-11T09:27:14Z",
+    "n_failures": 0,
+    "failure_codes": [],
+    "summary_sha256": "dc4c2d8c5e1f0d9f954305ace52aded91029c1e690fb42312b9958146b083dfc",
+    "config_sha256": "7f8c2787befe0cf73eed1f2407b56a3ac00b30163a21f9fd997e6cd655ef7035",
+    "engines": [
+     "gateway_family_numba/1 69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed"
+    ],
+    "current": true,
+    "passes": true,
+    "problems": []
+   },
+   "128": {
+    "path": "results/final_campaign/expA/shift_lam128/analysis/completeness_audit.json",
+    "present": true,
+    "verdict": "PASS",
+    "generated_utc": "2026-10-11T09:27:15Z",
+    "n_failures": 0,
+    "failure_codes": [],
+    "summary_sha256": "4fae68906ebee27173306f4a740108e5b376eaaae052be2b4a400d3d9e8c6fa3",
+    "config_sha256": "a592fe91cd9ccd1ea3966de6fa477eb9106027b4da376a8b36c3d28addf3c842",
+    "engines": [
+     "gateway_family_numba/1 69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed"
+    ],
+    "current": true,
+    "passes": true,
+    "problems": []
+   }
+  }
+ },
+ "provisional": false,
+ "freshness_verified": true,
+ "cells_dir": "configs/final_campaign/cells/expA",
+ "fixture": false,
+ "labels": [
+  "A",
+  "A-qualified",
+  "B",
+  "I",
+  "C-equivalent",
+  "C-reverse",
+  "C-inconclusive"
+ ],
+ "wording": {
+  "A": "faster mobility rescues FR",
+  "A-qualified": "FR better than ABF but with a new problem: {guards}",
+  "B": "reduces FR's disadvantage; FR not better than ABF",
+  "I": "FR better than ABF at the higher lambda; improvement over lambda = 1 not supported",
+  "C-equivalent": "no rescue",
+  "C-reverse": "faster mobility makes FR relatively worse",
+  "C-inconclusive": "no detectable rescue; R bounded by its CI",
+  "no-claim": "no claim (fewer than 10 complete seed pairs)",
+  "not-available": "not available (contrast or G(Ibar_F) not computable)"
+ },
+ "resolutions": {
+  "r1": "p_Holm < 0.05, R > 1 and G_hi < 0 satisfy both the I and the C-reverse rule: labelled C-reverse (the contrast is significant; the significant-contrast rows decide on R, consistent with the combination rule's 'opposite significant signs -> N-dependent'), also_satisfies I, I wording appended; a top-down reading would give I",
+  "r2": "a guard that cannot be evaluated does not hold: an A case becomes A-qualified naming 'gX (not evaluable)'",
+  "r3": "n < 10 paired seeds -> 'no-claim'; non-finite inputs -> 'not-available' (outside the seven frozen labels); either at one N makes the combination 'no global claim (incomplete)'"
+ },
+ "prereg_amendment": {
+  "found": true,
+  "marker": "EXPA-OUTCOME-RESOLUTIONS-r1-r3",
+  "line": "**A1.6 Outcome-table resolutions [EXPA-OUTCOME-RESOLUTIONS-r1-r3].** (r1) p_Holm < 0.05, R > 1 and G_hi < 0 meets both",
+  "block_sha256": "79a31f068453760edac48a5b80bad137687b21ed9eabd313abab0ad3abac3f79",
+  "path": "docs/final_campaign/PREREGISTRATION.md",
+  "line_no": 586
+ },
+ "families": {
+  "E1": {
+   "lam_hi": "16",
+   "lam_ref": "1",
+   "per_N": {
+    "512": {
+     "inputs": {
+      "R": 0.6524844913362925,
+      "p_holm": 0.00039996000399960006,
+      "R_ci95": [
+       0.6267698621009966,
+       0.7848468494296961
+      ],
+      "G_hi": -0.2988207159607285,
+      "guards": {
+       "g1": true,
+       "g2": true,
+       "g3": true,
+       "g4": true
+      },
+      "n": 32
+     },
+     "failed_guards": [],
+     "also_satisfies": [],
+     "resolution": null,
+     "label": "A",
+     "wording": "faster mobility rescues FR",
+     "rule": "p_Holm < 0.05, R < 1, G_hi < 0, g1-g4 hold",
+     "contrast": {
+      "ratio_ci975": [
+       0.6109492466069995,
+       0.786167707243622
+      ],
+      "p": 0.00019998000199980003,
+      "wins_a": 29,
+      "equivalent": false
+     }
+    },
+    "128": {
+     "inputs": {
+      "R": 0.37264598904071805,
+      "p_holm": 0.00039996000399960006,
+      "R_ci95": [
+       0.29370807020298384,
+       0.45657983657867807
+      ],
+      "G_hi": -0.0710354106309485,
+      "guards": {
+       "g1": true,
+       "g2": true,
+       "g3": true,
+       "g4": true
+      },
+      "n": 32
+     },
+     "failed_guards": [],
+     "also_satisfies": [],
+     "resolution": null,
+     "label": "A",
+     "wording": "faster mobility rescues FR",
+     "rule": "p_Holm < 0.05, R < 1, G_hi < 0, g1-g4 hold",
+     "contrast": {
+      "ratio_ci975": [
+       0.2765037348421726,
+       0.4731030427755036
+      ],
+      "p": 0.00019998000199980003,
+      "wins_a": 29,
+      "equivalent": false
+     }
+    }
+   },
+   "combined": {
+    "per_N": {
+     "512": "A",
+     "128": "A"
+    },
+    "family": "faster mobility (lambda 16 vs 1)",
+    "global_label": "rescue (A governs)",
+    "governing_label": "A",
+    "wording": "faster mobility rescues FR",
+    "wording_context": "faster mobility (lambda 16 vs 1): A, A-qualified or B at both N (N = 512: A; N = 128: A); the weaker label A governs the wording"
+   },
+   "mc3": {
+    "per_N": {
+     "512": {
+      "n_seeds": 32,
+      "p_calibrated": true,
+      "B_excess_did": -0.1374707825150021,
+      "B_excess_did_ci95": [
+       -0.1471430066149434,
+       -0.1284090102824452
+      ],
+      "B_excess_did_p": 0.00019998000199980003,
+      "excess_hi": 0.0035441862566442245,
+      "excess_hi_ci95": [
+       -0.00037833041494979725,
+       0.0059646363015123365
+      ],
+      "excess_ref": 0.14101496877164632,
+      "excess_ref_ci95": [
+       0.13148576439668727,
+       0.1506734141235544
+      ],
+      "p_holm": 0.00039996000399960006,
+      "passes": true
+     },
+     "128": {
+      "n_seeds": 32,
+      "p_calibrated": true,
+      "B_excess_did": -0.14935557463139235,
+      "B_excess_did_ci95": [
+       -0.15910579104691777,
+       -0.1396046198103343
+      ],
+      "B_excess_did_p": 0.00019998000199980003,
+      "excess_hi": -4.5793539553618716e-05,
+      "excess_hi_ci95": [
+       -0.0018751050949941386,
+       0.0017766170200949713
+      ],
+      "excess_ref": 0.14930978109183873,
+      "excess_ref_ci95": [
+       0.13972227758727956,
+       0.15869349655909448
+      ],
+      "p_holm": 0.00039996000399960006,
+      "passes": true
+     }
+    },
+    "passes_all_N": true,
+    "passes_any_N": true
+   },
+   "abf_decomposition": {
+    "512": {
+     "n": 32,
+     "median_log_ratio": -2.017691547826613,
+     "median_log_ratio_ci95": [
+      -2.049926061729015,
+      -1.9561889556215326
+     ],
+     "ratio": 0.13296204760619998,
+     "ratio_ci95": [
+      0.12874442237588796,
+      0.14139626283298296
+     ],
+     "p": 0.00019998000199980003,
+     "wins_a": 32,
+     "losses_a": 0
+    },
+    "128": {
+     "n": 32,
+     "median_log_ratio": -2.1129435360106754,
+     "median_log_ratio_ci95": [
+      -2.242577381693516,
+      -1.946367073896599
+     ],
+     "ratio": 0.12088162282573664,
+     "ratio_ci95": [
+      0.10618447347176539,
+      0.14279188279042457
+     ],
+     "p": 0.00019998000199980003,
+     "wins_a": 32,
+     "losses_a": 0
+    }
+   },
+   "interpretation": [
+    "[identity] lambda changes gate transport (MC2) as well as conditional relaxation (MC1): any change in R is attributed to transverse mobility; an attribution to conditional relaxation alone is a [hypothesis].  Read with MC1 / MC2 (results/final_campaign/expA/validation), the ABF-only descriptors and the decomposition.",
+    "[observed] N = 512: ABF improves strongly with lambda (ABF Ibar_F ratio 16/1 CI upper 0.141 < 1) while R changes: the change may come from ABF's own improved transport / establishment rather than from FR's clones (confound).",
+    "[hypothesis] N = 512: rescue (A) with MC3 passing: consistent with the clone fibre-lag hypothesis.",
+    "[observed] N = 128: ABF improves strongly with lambda (ABF Ibar_F ratio 16/1 CI upper 0.143 < 1) while R changes: the change may come from ABF's own improved transport / establishment rather than from FR's clones (confound).",
+    "[hypothesis] N = 128: rescue (A) with MC3 passing: consistent with the clone fibre-lag hypothesis.",
+    "(E1 vs E2) other family: rescue (A governs)"
+   ]
+  },
+  "E2": {
+   "lam_hi": "128",
+   "lam_ref": "1",
+   "per_N": {
+    "512": {
+     "inputs": {
+      "R": 0.779683916142237,
+      "p_holm": 0.00039996000399960006,
+      "R_ci95": [
+       0.6629438410503903,
+       0.8184227834221081
+      ],
+      "G_hi": -0.3015381430699354,
+      "guards": {
+       "g1": true,
+       "g2": true,
+       "g3": true,
+       "g4": true
+      },
+      "n": 32
+     },
+     "failed_guards": [],
+     "also_satisfies": [],
+     "resolution": null,
+     "label": "A",
+     "wording": "faster mobility rescues FR",
+     "rule": "p_Holm < 0.05, R < 1, G_hi < 0, g1-g4 hold",
+     "contrast": {
+      "ratio_ci975": [
+       0.6625984533548608,
+       0.8266756940206348
+      ],
+      "p": 0.00019998000199980003,
+      "wins_a": 30,
+      "equivalent": false
+     }
+    },
+    "128": {
+     "inputs": {
+      "R": 0.324022081897622,
+      "p_holm": 0.00039996000399960006,
+      "R_ci95": [
+       0.26819304603290545,
+       0.3840559968906579
+      ],
+      "G_hi": -0.23276984801174577,
+      "guards": {
+       "g1": true,
+       "g2": true,
+       "g3": true,
+       "g4": true
+      },
+      "n": 32
+     },
+     "failed_guards": [],
+     "also_satisfies": [],
+     "resolution": null,
+     "label": "A",
+     "wording": "faster mobility rescues FR",
+     "rule": "p_Holm < 0.05, R < 1, G_hi < 0, g1-g4 hold",
+     "contrast": {
+      "ratio_ci975": [
+       0.2651811491094814,
+       0.38760127801188027
+      ],
+      "p": 0.00019998000199980003,
+      "wins_a": 31,
+      "equivalent": false
+     }
+    }
+   },
+   "combined": {
+    "per_N": {
+     "512": "A",
+     "128": "A"
+    },
+    "family": "faster mobility (lambda 128 vs 1)",
+    "global_label": "rescue (A governs)",
+    "governing_label": "A",
+    "wording": "faster mobility rescues FR",
+    "wording_context": "faster mobility (lambda 128 vs 1): A, A-qualified or B at both N (N = 512: A; N = 128: A); the weaker label A governs the wording"
+   },
+   "mc3": {
+    "per_N": {
+     "512": {
+      "n_seeds": 32,
+      "p_calibrated": true,
+      "B_excess_did": -0.14105534880104967,
+      "B_excess_did_ci95": [
+       -0.15081234894624762,
+       -0.1312293029415179
+      ],
+      "B_excess_did_p": 0.00019998000199980003,
+      "excess_hi": -4.038002940334111e-05,
+      "excess_hi_ci95": [
+       -0.0011668188047882495,
+       0.0014180355867557312
+      ],
+      "excess_ref": 0.14101496877164632,
+      "excess_ref_ci95": [
+       0.13148576439668727,
+       0.1506734141235544
+      ],
+      "p_holm": 0.00039996000399960006,
+      "passes": true
+     },
+     "128": {
+      "n_seeds": 32,
+      "p_calibrated": true,
+      "B_excess_did": -0.14791265186494518,
+      "B_excess_did_ci95": [
+       -0.15757592368606405,
+       -0.13819560754376115
+      ],
+      "B_excess_did_p": 0.00019998000199980003,
+      "excess_hi": 0.0013971292268935619,
+      "excess_hi_ci95": [
+       -0.0002449160973672732,
+       0.0021835681980374886
+      ],
+      "excess_ref": 0.14930978109183873,
+      "excess_ref_ci95": [
+       0.13972227758727956,
+       0.15869349655909448
+      ],
+      "p_holm": 0.00039996000399960006,
+      "passes": true
+     }
+    },
+    "passes_all_N": true,
+    "passes_any_N": true
+   },
+   "abf_decomposition": {
+    "512": {
+     "n": 32,
+     "median_log_ratio": -3.0261706366418823,
+     "median_log_ratio_ci95": [
+      -3.1027241478372667,
+      -2.9699549755867247
+     ],
+     "ratio": 0.048501010963782065,
+     "ratio_ci95": [
+      0.04492664870925287,
+      0.051305620285367656
+     ],
+     "p": 0.00019998000199980003,
+     "wins_a": 32,
+     "losses_a": 0
+    },
+    "128": {
+     "n": 32,
+     "median_log_ratio": -3.2132736486988485,
+     "median_log_ratio_ci95": [
+      -3.3206844491491294,
+      -3.014060824497154
+     ],
+     "ratio": 0.04022471590811297,
+     "ratio_ci95": [
+      0.03612809544545211,
+      0.04909191977145088
+     ],
+     "p": 0.00019998000199980003,
+     "wins_a": 32,
+     "losses_a": 0
+    }
+   },
+   "interpretation": [
+    "[identity] lambda changes gate transport (MC2) as well as conditional relaxation (MC1): any change in R is attributed to transverse mobility; an attribution to conditional relaxation alone is a [hypothesis].  Read with MC1 / MC2 (results/final_campaign/expA/validation), the ABF-only descriptors and the decomposition.",
+    "[observed] N = 512: ABF improves strongly with lambda (ABF Ibar_F ratio 128/1 CI upper 0.0513 < 1) while R changes: the change may come from ABF's own improved transport / establishment rather than from FR's clones (confound).",
+    "[hypothesis] N = 512: rescue (A) with MC3 passing: consistent with the clone fibre-lag hypothesis.",
+    "[observed] N = 128: ABF improves strongly with lambda (ABF Ibar_F ratio 128/1 CI upper 0.0491 < 1) while R changes: the change may come from ABF's own improved transport / establishment rather than from FR's clones (confound).",
+    "[hypothesis] N = 128: rescue (A) with MC3 passing: consistent with the clone fibre-lag hypothesis.",
+    "(E1 vs E2) other family: rescue (A governs)"
+   ]
+  }
+ },
+ "e1_e2_disagree": false,
+ "notes": []
+}

@@ -1,0 +1,382 @@
+{
+ "N": 512,
+ "T_tu": 6.0,
+ "cli_wall_s": 37.561351619660854,
+ "cpus": [
+  64,
+  65,
+  66,
+  67,
+  68,
+  69,
+  70,
+  71,
+  72,
+  73,
+  74,
+  75,
+  76,
+  77,
+  78,
+  79
+ ],
+ "cpus_master_bound": [
+  64
+ ],
+ "engine": "gateway_parallel/1",
+ "git_commit": "ef8ebc2080768d6aadfddf70b36738a17e8c1a96",
+ "h": 2.5e-05,
+ "host": "atlas",
+ "identical_all": true,
+ "kernel_build": {
+  "built_in_this_process": false,
+  "cflags": [
+   "-O3",
+   "-march=native",
+   "-fopenmp",
+   "-fno-fast-math",
+   "-ffp-contract=off",
+   "-fPIC",
+   "-shared"
+  ],
+  "command": "/usr/bin/gcc -O3 -march=native -fopenmp -fno-fast-math -ffp-contract=off -fPIC -shared -o /home/zheyuanlai/.cache/final_campaign_build/gw_kernel_b11d8c60d6ad4817.so /home/zheyuanlai/ABF-Fisher-Rao/src/parallel/gw_kernel.c -lm",
+  "compiler": "/usr/bin/gcc",
+  "compiler_version": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+  "so_path": "/home/zheyuanlai/.cache/final_campaign_build/gw_kernel_b11d8c60d6ad4817.so",
+  "so_sha256": "79acd361bd39963448024ae228f8c1f2866445292406ab1f6b485a1274effaf6",
+  "source_sha256": "e6199ce5687fac59b1d6b03aa1511e64a002af18e54d79e2249215871e879931",
+  "tag": "b11d8c60d6ad4817"
+ },
+ "kernel_variant": "replicated_dissem",
+ "keys_compared": [
+  "C_all",
+  "M_all",
+  "X_final",
+  "Y_final",
+  "cfg",
+  "fr_deaths_cum",
+  "fr_deaths_hist",
+  "fr_deaths_hist_cum",
+  "fr_events_hist",
+  "fr_events_hist_cum",
+  "fr_kc_cum",
+  "fr_kd_cum",
+  "fr_opp_cum",
+  "fr_opp_death_cum",
+  "fr_opp_event_cum",
+  "max_abs_bias",
+  "n_force_evals",
+  "n_fr_steps",
+  "save_step",
+  "save_t",
+  "save_u"
+ ],
+ "length_requirements_met": true,
+ "method": "fr",
+ "n_steps": 240000,
+ "prereg_lengths": "gateway >= 12 t.u. at N 16, >= 6 t.u. at N 64/512; >= 20 saves; FR >= 50 realised deaths",
+ "runs": [
+  {
+   "identical": true,
+   "mismatches": [],
+   "omp_binding": {
+    "num_places": 16,
+    "places": [
+     [
+      64
+     ],
+     [
+      65
+     ],
+     [
+      66
+     ],
+     [
+      67
+     ],
+     [
+      68
+     ],
+     [
+      69
+     ],
+     [
+      70
+     ],
+     [
+      71
+     ],
+     [
+      72
+     ],
+     [
+      73
+     ],
+     [
+      74
+     ],
+     [
+      75
+     ],
+     [
+      76
+     ],
+     [
+      77
+     ],
+     [
+      78
+     ],
+     [
+      79
+     ]
+    ],
+    "proc_bind": 3,
+    "proc_bind_close": true,
+    "team_cpus": [
+     [
+      64
+     ]
+    ],
+    "team_place": [
+     0
+    ],
+    "team_size": 1
+   },
+   "threads": 1,
+   "wall_total_s": 8.732151079922915
+  },
+  {
+   "identical": true,
+   "mismatches": [],
+   "omp_binding": {
+    "num_places": 16,
+    "places": [
+     [
+      64
+     ],
+     [
+      65
+     ],
+     [
+      66
+     ],
+     [
+      67
+     ],
+     [
+      68
+     ],
+     [
+      69
+     ],
+     [
+      70
+     ],
+     [
+      71
+     ],
+     [
+      72
+     ],
+     [
+      73
+     ],
+     [
+      74
+     ],
+     [
+      75
+     ],
+     [
+      76
+     ],
+     [
+      77
+     ],
+     [
+      78
+     ],
+     [
+      79
+     ]
+    ],
+    "proc_bind": 3,
+    "proc_bind_close": true,
+    "team_cpus": [
+     [
+      64
+     ],
+     [
+      65
+     ],
+     [
+      66
+     ],
+     [
+      67
+     ]
+    ],
+    "team_place": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "team_size": 4
+   },
+   "threads": 4,
+   "wall_total_s": 8.068796359933913
+  },
+  {
+   "identical": true,
+   "mismatches": [],
+   "omp_binding": {
+    "num_places": 16,
+    "places": [
+     [
+      64
+     ],
+     [
+      65
+     ],
+     [
+      66
+     ],
+     [
+      67
+     ],
+     [
+      68
+     ],
+     [
+      69
+     ],
+     [
+      70
+     ],
+     [
+      71
+     ],
+     [
+      72
+     ],
+     [
+      73
+     ],
+     [
+      74
+     ],
+     [
+      75
+     ],
+     [
+      76
+     ],
+     [
+      77
+     ],
+     [
+      78
+     ],
+     [
+      79
+     ]
+    ],
+    "proc_bind": 3,
+    "proc_bind_close": true,
+    "team_cpus": [
+     [
+      64
+     ],
+     [
+      65
+     ],
+     [
+      66
+     ],
+     [
+      67
+     ],
+     [
+      68
+     ],
+     [
+      69
+     ],
+     [
+      70
+     ],
+     [
+      71
+     ],
+     [
+      72
+     ],
+     [
+      73
+     ],
+     [
+      74
+     ],
+     [
+      75
+     ],
+     [
+      76
+     ],
+     [
+      77
+     ],
+     [
+      78
+     ],
+     [
+      79
+     ]
+    ],
+    "team_place": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14,
+     15
+    ],
+    "team_size": 16
+   },
+   "threads": 16,
+   "wall_total_s": 9.888227905146778
+  }
+ ],
+ "seed": 8600,
+ "sources_sha256": {
+  "src/parallel/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "src/parallel/gateway_parallel.py": "615fde5748c9fc5624b4051e27f11b4468393b625ed560a85583750a5306e66c",
+  "src/parallel/gw_kernel.c": "e6199ce5687fac59b1d6b03aa1511e64a002af18e54d79e2249215871e879931"
+ },
+ "test": "V-B1 replay identity",
+ "utc": "2026-10-11T08:35:58Z",
+ "validated": {
+  "fr_candidate_events": 436,
+  "fr_opportunities": 1500,
+  "max_abs_bias": 7.926113171852099,
+  "n_force_evals": 122880000,
+  "n_saves": 224,
+  "opportunities_with_death": 436,
+  "realised_deaths": 479,
+  "wall_s": 9.479205517098308
+ },
+ "validated_engine": "gateway_ladder_numba/2",
+ "verdict": "PASS"
+}

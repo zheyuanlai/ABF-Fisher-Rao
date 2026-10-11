@@ -1,0 +1,1477 @@
+{
+ "schema": "eqb_figures_manifest/1",
+ "plot_version": "eqb_plot_config/2",
+ "metrics_version": "eqb_metrics/2",
+ "generated_utc": "2026-10-11T09:26:07Z",
+ "system": "gateway_family",
+ "system_dir": "shift_lam128",
+ "name": "Gateway family expA/shift_lam128",
+ "N": 512,
+ "n_steps": 6400000,
+ "T": 160.0,
+ "h": 2.5e-05,
+ "B": 3276800000,
+ "fixture": false,
+ "config": "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA/shift_lam128.json",
+ "results_root": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA",
+ "seeds": {
+  "abf": [
+   8300,
+   8301,
+   8302,
+   8303,
+   8304,
+   8305,
+   8306,
+   8307,
+   8308,
+   8309,
+   8310,
+   8311,
+   8312,
+   8313,
+   8314,
+   8315,
+   8316,
+   8317,
+   8318,
+   8319,
+   8320,
+   8321,
+   8322,
+   8323,
+   8324,
+   8325,
+   8326,
+   8327,
+   8328,
+   8329,
+   8330,
+   8331
+  ],
+  "fr": [
+   8300,
+   8301,
+   8302,
+   8303,
+   8304,
+   8305,
+   8306,
+   8307,
+   8308,
+   8309,
+   8310,
+   8311,
+   8312,
+   8313,
+   8314,
+   8315,
+   8316,
+   8317,
+   8318,
+   8319,
+   8320,
+   8321,
+   8322,
+   8323,
+   8324,
+   8325,
+   8326,
+   8327,
+   8328,
+   8329,
+   8330,
+   8331
+  ]
+ },
+ "status": {
+  "abf": {
+   "complete": [
+    8300,
+    8301,
+    8302,
+    8303,
+    8304,
+    8305,
+    8306,
+    8307,
+    8308,
+    8309,
+    8310,
+    8311,
+    8312,
+    8313,
+    8314,
+    8315,
+    8316,
+    8317,
+    8318,
+    8319,
+    8320,
+    8321,
+    8322,
+    8323,
+    8324,
+    8325,
+    8326,
+    8327,
+    8328,
+    8329,
+    8330,
+    8331
+   ],
+   "missing": [],
+   "running": [],
+   "invalid": []
+  },
+  "fr": {
+   "complete": [
+    8300,
+    8301,
+    8302,
+    8303,
+    8304,
+    8305,
+    8306,
+    8307,
+    8308,
+    8309,
+    8310,
+    8311,
+    8312,
+    8313,
+    8314,
+    8315,
+    8316,
+    8317,
+    8318,
+    8319,
+    8320,
+    8321,
+    8322,
+    8323,
+    8324,
+    8325,
+    8326,
+    8327,
+    8328,
+    8329,
+    8330,
+    8331
+   ],
+   "missing": [],
+   "running": [],
+   "invalid": []
+  }
+ },
+ "invalid": {},
+ "trace_seed": 8300,
+ "profile_snapshot_u": [
+  0.01,
+  0.05,
+  0.1,
+  0.25,
+  0.5,
+  0.75,
+  1.0
+ ],
+ "profile_snapshot_u_actual": [
+  0.01,
+  0.05,
+  0.1,
+  0.25,
+  0.5,
+  0.75,
+  1.0
+ ],
+ "conventions": {
+  "uncertainty": "line = median across seeds; band = interquartile range (25th-75th percentile) across seeds",
+  "colours": {
+   "ABF": "#2a78d6",
+   "ABF_FR": "#eb6834"
+  },
+  "smoothing": "none (metrics and profiles unsmoothed)",
+  "alignment": "gateway: accepted-scorer profile centred on the eval window [-1.5, 1.5] (as F_ref)",
+  "tau_markers": "persistent crossing of the seed-median curve (per-seed tau in summary.json)",
+  "heatmap": "seed-mean hist_inst / N on 36 display bins, density / uniform, diverging scale [0, 4] (extended), identical for every panel and N"
+ },
+ "reference": {
+  "path": "results/final_campaign/references/expA_shift_lam128_reference.npz",
+  "sha256": "f6ce66cda7442f98b810e9ea0957d3c094cc8e80385be45ee70156f4c933906a",
+  "n_eval_nodes": 151,
+  "em_floor_F_rms": 1.0496374093956405e-09,
+  "em_bias_Fp_bin_rms": 0.0,
+  "zero_noise_floor": {
+   "e_F": 4.3256636482096847e-16,
+   "e_Fp": 0.03226728107956156,
+   "e_Fp_stat": 0.0,
+   "e_F_em": 1.0496374370342412e-09,
+   "e_Fp_em": 0.03226728107956156,
+   "e_Fp_em_stat": 0.0
+  },
+  "floor_is_lower_bound": {
+   "e_F": false,
+   "e_Fp": true,
+   "e_F_em": false,
+   "e_Fp_em": true,
+   "e_Fp_stat": true,
+   "e_Fp_em_stat": true
+  },
+  "floor_definition": "errors of the scorer fed the exact bin-averaged reference mean force (Gamma_j = <F'_ref>_j on the Gauss-Legendre sub-grid, infinite counts); for e_Fp / e_Fp_em it is a HARD lower bound: e_Fp^2 = e_Fp_stat^2 + floor^2 for every Gamma (within-bin variation of F'_ref, steep at the gate); e_F at Gamma = <F'_ref> is ~0",
+  "units": "reduced (energy; force per unit x)",
+  "scorer": "scripts/analyze_gateway_replica_ladder.py Scorer (analytic primary, identical for every variant and lambda); secondary = eqb_family.family_mean_force (per-dynamics EM-consistent)",
+  "cell": {
+   "beta": 16.0,
+   "H": 0.5,
+   "omega_out": 1.0,
+   "omega_in": 32.0,
+   "s": 0.1,
+   "dt": 2.5e-05
+  },
+  "em_bias_definition": "em_floor_F_rms: RMS of F_ref_em - F_ref on the eval window (centred); em_bias_Fp_bin_rms: RMS over the eval bins of <F'_em>_j - <F'_ref>_j, F'_em = this dynamics' frozen-x EM-consistent mean force (NOT the e_F' floor)",
+  "model": {
+   "variant": "shift",
+   "alpha": null,
+   "kappa": 1.0,
+   "lam": 128.0
+  },
+  "secondary_definition": "per-dynamics frozen-x Euler-Maruyama-consistent mean force at the cell's h and lambda: alpha family 4Hx(x^2-1) + ((1-alpha)/beta) w'/w + (alpha/beta)(w'/w) / (1 - lam w^(2 alpha) h/2) (the EM y-update y <- (1 - lam w^(2 alpha) h) y + sqrt(2 lam h/beta) z has stationary variance 1/(beta w^(2 alpha) (1 - lam w^(2 alpha) h/2))); shifted fibre: F*'(x) exactly (the frozen-x EM chain of y has mean m(x) exactly)",
+  "primary_reference": {
+   "path": "results/equal_budget_v2/references/gateway_reference.npz",
+   "sha256": "9d551298568cbe9512ae908a5bd9b830cd8b0b87859a2d54d4ec74d6d6eb86c5",
+   "identical_bitwise": true,
+   "arrays": [
+    "x_grid",
+    "eval_mask",
+    "F_ref",
+    "Fp_ref"
+   ],
+   "digest": "8c48b7cee8a2942d1787df5b497a7c243d5feb3ac10420121c369f8ffb207666"
+  },
+  "secondary_equals_equal_budget_em": null
+ },
+ "noise": {
+  "F": 0.0,
+  "Fp": 0.0,
+  "label": "EM bias at h (analytic vs this dynamics' EM-consistent reference)"
+ },
+ "tv_floor": {
+  "mean": 0.07281445669778666,
+  "se": 0.0
+ },
+ "figures": [
+  {
+   "tag": "A1_eF_vs_t",
+   "title": "Free-energy error e_F vs physical time",
+   "description": "e_F median + IQR across seeds, frozen thresholds, persistent-crossing markers, reference noise",
+   "files": [
+    "shift_lam128_N512_A1_eF_vs_t.png",
+    "shift_lam128_N512_A1_eF_vs_t.pdf"
+   ],
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 2,
+    "n_data_axes": 2,
+    "n_texts": 35,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "tag": "A2_eF_vs_u",
+   "title": "Free-energy error e_F vs budget fraction u",
+   "description": "e_F median + IQR across seeds, frozen thresholds, persistent-crossing markers, reference noise",
+   "files": [
+    "shift_lam128_N512_A2_eF_vs_u.png",
+    "shift_lam128_N512_A2_eF_vs_u.pdf"
+   ],
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 4,
+    "n_data_axes": 4,
+    "n_texts": 67,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "tag": "A3_F_profiles",
+   "title": "Free-energy profile snapshots F\u0302_t vs reference (top) and difference (bottom)",
+   "description": "Free-energy profile snapshots F\u0302_t vs reference (top) and difference (bottom) at the frozen snapshot fractions u",
+   "files": [
+    "shift_lam128_N512_A3_F_profiles.png",
+    "shift_lam128_N512_A3_F_profiles.pdf"
+   ],
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 14,
+    "n_data_axes": 14,
+    "n_texts": 88,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 6,
+    "waived": [
+     {
+      "check": "axis_label_y",
+      "where": "axes 8 [median e_F ABF 0.00514 | ABF+FR 0.00174]",
+      "reason": "empty y label, no shared-y partner with one",
+      "why": "difference row: one quantity (estimate - reference) with its own y-scale per column (not shared); the row's y label sits on the first column"
+     },
+     {
+      "check": "axis_label_y",
+      "where": "axes 9 [median e_F ABF 0.00286 | ABF+FR 0.00116]",
+      "reason": "empty y label, no shared-y partner with one",
+      "why": "difference row: one quantity (estimate - reference) with its own y-scale per column (not shared); the row's y label sits on the first column"
+     },
+     {
+      "check": "axis_label_y",
+      "where": "axes 10 [median e_F ABF 0.00167 | ABF+FR 0.000573]",
+      "reason": "empty y label, no shared-y partner with one",
+      "why": "difference row: one quantity (estimate - reference) with its own y-scale per column (not shared); the row's y label sits on the first column"
+     },
+     {
+      "check": "axis_label_y",
+      "where": "axes 11 [median e_F ABF 0.000871 | ABF+FR 0.0003\u2026]",
+      "reason": "empty y label, no shared-y partner with one",
+      "why": "difference row: one quantity (estimate - reference) with its own y-scale per column (not shared); the row's y label sits on the first column"
+     },
+     {
+      "check": "axis_label_y",
+      "where": "axes 12 [median e_F ABF 0.000679 | ABF+FR 0.0002\u2026]",
+      "reason": "empty y label, no shared-y partner with one",
+      "why": "difference row: one quantity (estimate - reference) with its own y-scale per column (not shared); the row's y label sits on the first column"
+     },
+     {
+      "check": "axis_label_y",
+      "where": "axes 13 [median e_F ABF 0.000588 | ABF+FR 0.0001\u2026]",
+      "reason": "empty y label, no shared-y partner with one",
+      "why": "difference row: one quantity (estimate - reference) with its own y-scale per column (not shared); the row's y label sits on the first column"
+     }
+    ],
+    "notes": []
+   }
+  },
+  {
+   "tag": "B1_eFp_vs_t",
+   "title": "Mean-force error e_F\u2032 vs physical time",
+   "description": "e_F\u2032 median + IQR across seeds, frozen thresholds, persistent-crossing markers, reference noise",
+   "files": [
+    "shift_lam128_N512_B1_eFp_vs_t.png",
+    "shift_lam128_N512_B1_eFp_vs_t.pdf"
+   ],
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 2,
+    "n_data_axes": 2,
+    "n_texts": 39,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "tag": "B2_eFp_vs_u",
+   "title": "Mean-force error e_F\u2032 vs budget fraction u",
+   "description": "e_F\u2032 median + IQR across seeds, frozen thresholds, persistent-crossing markers, reference noise",
+   "files": [
+    "shift_lam128_N512_B2_eFp_vs_u.png",
+    "shift_lam128_N512_B2_eFp_vs_u.pdf"
+   ],
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 4,
+    "n_data_axes": 4,
+    "n_texts": 73,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "tag": "B3_Fp_profiles",
+   "title": "Mean-force snapshots (bin mean force) vs reference (top) and difference (bottom)",
+   "description": "Mean-force snapshots (bin mean force) vs reference (top) and difference (bottom) at the frozen snapshot fractions u",
+   "files": [
+    "shift_lam128_N512_B3_Fp_profiles.png",
+    "shift_lam128_N512_B3_Fp_profiles.pdf"
+   ],
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 14,
+    "n_data_axes": 14,
+    "n_texts": 92,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 6,
+    "waived": [
+     {
+      "check": "axis_label_y",
+      "where": "axes 8 [median e_F\u2032 ABF 0.0347 | ABF+FR 0.0333]",
+      "reason": "empty y label, no shared-y partner with one",
+      "why": "difference row: one quantity (estimate - reference) with its own y-scale per column (not shared); the row's y label sits on the first column"
+     },
+     {
+      "check": "axis_label_y",
+      "where": "axes 9 [median e_F\u2032 ABF 0.0331 | ABF+FR 0.0327]",
+      "reason": "empty y label, no shared-y partner with one",
+      "why": "difference row: one quantity (estimate - reference) with its own y-scale per column (not shared); the row's y label sits on the first column"
+     },
+     {
+      "check": "axis_label_y",
+      "where": "axes 10 [median e_F\u2032 ABF 0.0326 | ABF+FR 0.0324]",
+      "reason": "empty y label, no shared-y partner with one",
+      "why": "difference row: one quantity (estimate - reference) with its own y-scale per column (not shared); the row's y label sits on the first column"
+     },
+     {
+      "check": "axis_label_y",
+      "where": "axes 11 [median e_F\u2032 ABF 0.0324 | ABF+FR 0.0324]",
+      "reason": "empty y label, no shared-y partner with one",
+      "why": "difference row: one quantity (estimate - reference) with its own y-scale per column (not shared); the row's y label sits on the first column"
+     },
+     {
+      "check": "axis_label_y",
+      "where": "axes 12 [median e_F\u2032 ABF 0.0323 | ABF+FR 0.0323]",
+      "reason": "empty y label, no shared-y partner with one",
+      "why": "difference row: one quantity (estimate - reference) with its own y-scale per column (not shared); the row's y label sits on the first column"
+     },
+     {
+      "check": "axis_label_y",
+      "where": "axes 13 [median e_F\u2032 ABF 0.0323 | ABF+FR 0.0323]",
+      "reason": "empty y label, no shared-y partner with one",
+      "why": "difference row: one quantity (estimate - reference) with its own y-scale per column (not shared); the row's y label sits on the first column"
+     }
+    ],
+    "notes": []
+   }
+  },
+  {
+   "tag": "C1_marginal_inst_snapshots",
+   "title": "Instantaneous marginal snapshots (seed-pooled), ABF vs ABF+FR",
+   "description": "seed-pooled instantaneous walker histograms at the snapshot u, 18 coarse bins",
+   "files": [
+    "shift_lam128_N512_C1_marginal_inst_snapshots.png",
+    "shift_lam128_N512_C1_marginal_inst_snapshots.pdf"
+   ],
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 7,
+    "n_data_axes": 7,
+    "n_texts": 50,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "tag": "C2_TV_vs_t",
+   "title": "Marginal convergence: TV_half and TV_inst with the finite-N floor vs physical time",
+   "description": "TV_half (threshold, persistent crossing) and TV_inst with E_N[TV]",
+   "files": [
+    "shift_lam128_N512_C2_TV_vs_t.png",
+    "shift_lam128_N512_C2_TV_vs_t.pdf"
+   ],
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 2,
+    "n_data_axes": 2,
+    "n_texts": 29,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "tag": "C2_TV_vs_u",
+   "title": "Marginal convergence: TV_half and TV_inst with the finite-N floor vs budget fraction u",
+   "description": "TV_half (threshold, persistent crossing) and TV_inst with E_N[TV]",
+   "files": [
+    "shift_lam128_N512_C2_TV_vs_u.png",
+    "shift_lam128_N512_C2_TV_vs_u.pdf"
+   ],
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 2,
+    "n_data_axes": 2,
+    "n_texts": 31,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "tag": "C3_density_heatmap_u",
+   "title": "Seed-averaged instantaneous CV density vs budget fraction u",
+   "description": "paired time x CV heat maps of the seed-mean instantaneous density",
+   "files": [
+    "shift_lam128_N512_C3_density_heatmap_u.png",
+    "shift_lam128_N512_C3_density_heatmap_u.pdf"
+   ],
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 3,
+    "n_data_axes": 2,
+    "n_texts": 39,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "tag": "C3_density_heatmap_t",
+   "title": "Seed-averaged instantaneous CV density vs physical time",
+   "description": "paired time x CV heat maps of the seed-mean instantaneous density",
+   "files": [
+    "shift_lam128_N512_C3_density_heatmap_t.png",
+    "shift_lam128_N512_C3_density_heatmap_t.pdf"
+   ],
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 3,
+    "n_data_axes": 2,
+    "n_texts": 37,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "tag": "C4_visitation_snapshots",
+   "title": "Cumulative visitation histograms (C_all, normalised) at the snapshot u",
+   "description": "cumulative visitation histograms at the snapshot u",
+   "files": [
+    "shift_lam128_N512_C4_visitation_snapshots.png",
+    "shift_lam128_N512_C4_visitation_snapshots.pdf"
+   ],
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 7,
+    "n_data_axes": 7,
+    "n_texts": 48,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "tag": "C5_traces",
+   "title": "Walker traces of slots 0\u201331, seed 8300",
+   "description": "traces of the first min(N, 32) slots of the first seed, coloured by ancestor for FR",
+   "files": [
+    "shift_lam128_N512_C5_traces.png",
+    "shift_lam128_N512_C5_traces.pdf"
+   ],
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 4,
+    "n_data_axes": 4,
+    "n_texts": 90,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "tag": "D_establishment_vs_t",
+   "title": "Establishment and crossings vs physical time",
+   "description": "region fractions, true crossings, first-arrival ECDF, establishment times",
+   "files": [
+    "shift_lam128_N512_D_establishment_vs_t.png",
+    "shift_lam128_N512_D_establishment_vs_t.pdf"
+   ],
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 6,
+    "n_data_axes": 6,
+    "n_texts": 89,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 1,
+    "waived": [
+     {
+      "check": "axis_label_y",
+      "where": "axes 5 [(f) establishment time per seed (bar = \u2026]",
+      "reason": "empty y label, no shared-y partner with one",
+      "why": "categorical y axis: its tick labels name every row (method: instantaneous / cumulative visitation)"
+     }
+    ],
+    "notes": []
+   }
+  },
+  {
+   "tag": "D_establishment_vs_u",
+   "title": "Establishment and crossings vs budget fraction u",
+   "description": "region fractions, true crossings, first-arrival ECDF, establishment times",
+   "files": [
+    "shift_lam128_N512_D_establishment_vs_u.png",
+    "shift_lam128_N512_D_establishment_vs_u.pdf"
+   ],
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 6,
+    "n_data_axes": 6,
+    "n_texts": 94,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 1,
+    "waived": [
+     {
+      "check": "axis_label_y",
+      "where": "axes 5 [(f) establishment time per seed (bar = \u2026]",
+      "reason": "empty y label, no shared-y partner with one",
+      "why": "categorical y axis: its tick labels name every row (method: instantaneous / cumulative visitation)"
+     }
+    ],
+    "notes": []
+   }
+  },
+  {
+   "tag": "E_genealogy_vs_t",
+   "title": "FR genealogy and activity vs physical time",
+   "description": "FR deaths, events per opportunity, event fraction, ESS, unique ancestors, families",
+   "files": [
+    "shift_lam128_N512_E_genealogy_vs_t.png",
+    "shift_lam128_N512_E_genealogy_vs_t.pdf"
+   ],
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 6,
+    "n_data_axes": 6,
+    "n_texts": 95,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "tag": "E_genealogy_vs_u",
+   "title": "FR genealogy and activity vs budget fraction u",
+   "description": "FR deaths, events per opportunity, event fraction, ESS, unique ancestors, families",
+   "files": [
+    "shift_lam128_N512_E_genealogy_vs_u.png",
+    "shift_lam128_N512_E_genealogy_vs_u.pdf"
+   ],
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 6,
+    "n_data_axes": 6,
+    "n_texts": 100,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "tag": "F_summary_t",
+   "title": "Configuration summary vs physical time",
+   "description": "six-panel summary",
+   "files": [
+    "shift_lam128_N512_F_summary_t.png",
+    "shift_lam128_N512_F_summary_t.pdf"
+   ],
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 11,
+    "n_data_axes": 10,
+    "n_texts": 105,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "tag": "F_summary_u",
+   "title": "Configuration summary vs budget fraction u (budget-normalised)",
+   "description": "six-panel summary",
+   "files": [
+    "shift_lam128_N512_F_summary_u.png",
+    "shift_lam128_N512_F_summary_u.pdf"
+   ],
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 11,
+    "n_data_axes": 10,
+    "n_texts": 111,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  }
+ ],
+ "removed_stale": [],
+ "sources": [
+  {
+   "method": "abf",
+   "seed": 8300,
+   "src_sha256": "dbfc44adb23b5f4978b0366fbae3229eeb5b871d4660fd76703446ab60561c9d",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8300_abf.npz",
+   "src_mtime_ns": 1791707847816673637,
+   "src_size": 723189
+  },
+  {
+   "method": "abf",
+   "seed": 8301,
+   "src_sha256": "bae423cdb046098962c79df8831a5bbb50b61f513705db0cd81f23b15c323f99",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8301_abf.npz",
+   "src_mtime_ns": 1791707843412673769,
+   "src_size": 721872
+  },
+  {
+   "method": "abf",
+   "seed": 8302,
+   "src_sha256": "135d0c27add772169fc5a5e0e4e36b1ab3f6cf45ef75a469bf972f02476f62a0",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8302_abf.npz",
+   "src_mtime_ns": 1791707840895673844,
+   "src_size": 720888
+  },
+  {
+   "method": "abf",
+   "seed": 8303,
+   "src_sha256": "db8c1d85b78b0fe1fb1bde6f2875fef4e1d656bbbdab2b4e29a8467bc0002532",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8303_abf.npz",
+   "src_mtime_ns": 1791708130473665214,
+   "src_size": 722608
+  },
+  {
+   "method": "abf",
+   "seed": 8304,
+   "src_sha256": "d57e02d9587d013b9f175dfedb5db4919b70a9349421228e2d53f46c61815ac5",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8304_abf.npz",
+   "src_mtime_ns": 1791708136551665032,
+   "src_size": 722595
+  },
+  {
+   "method": "abf",
+   "seed": 8305,
+   "src_sha256": "d2f5663c37a3bc7790089c88fc00a5dc43f23b6814a38b39713e55e7fdbb6955",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8305_abf.npz",
+   "src_mtime_ns": 1791708142183664865,
+   "src_size": 720055
+  },
+  {
+   "method": "abf",
+   "seed": 8306,
+   "src_sha256": "bc895a027196e7b960aabe69e9fe46edbfc26e12396516781a56627cee559b1d",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8306_abf.npz",
+   "src_mtime_ns": 1791708410368656872,
+   "src_size": 721829
+  },
+  {
+   "method": "abf",
+   "seed": 8307,
+   "src_sha256": "701fa714efdf6ea6f31a80d118cfee009e03582050b3d4e62977f506d4535031",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8307_abf.npz",
+   "src_mtime_ns": 1791708422792656502,
+   "src_size": 720438
+  },
+  {
+   "method": "abf",
+   "seed": 8308,
+   "src_sha256": "d15120ccf53a11a487c0f67cd12fc5dd4fefb58da50b7db9f1aa3d089813e4ea",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8308_abf.npz",
+   "src_mtime_ns": 1791708421609656537,
+   "src_size": 724622
+  },
+  {
+   "method": "abf",
+   "seed": 8309,
+   "src_sha256": "178e90205531d21b11ea30e90dcc92f3a06fde9046de6acb4197147e4bc5d37f",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8309_abf.npz",
+   "src_mtime_ns": 1791708695881648363,
+   "src_size": 723044
+  },
+  {
+   "method": "abf",
+   "seed": 8310,
+   "src_sha256": "9f0f9848d37170d58a885aaf7c5f482cb88a6877b77fa7f9eb578c354478f883",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8310_abf.npz",
+   "src_mtime_ns": 1791708704193648115,
+   "src_size": 721877
+  },
+  {
+   "method": "abf",
+   "seed": 8311,
+   "src_sha256": "7fb1ec62f32d43431cb390f5532ace71cd1ba35f520939ce3a81b67a1351a668",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8311_abf.npz",
+   "src_mtime_ns": 1791708714798647799,
+   "src_size": 722061
+  },
+  {
+   "method": "abf",
+   "seed": 8312,
+   "src_sha256": "2b5017e526dbeb5e0842dc420ec75bb502bb205b04e746b5201f062945e0b7f8",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8312_abf.npz",
+   "src_mtime_ns": 1791708976080640013,
+   "src_size": 722961
+  },
+  {
+   "method": "abf",
+   "seed": 8313,
+   "src_sha256": "be8a8d9ef346da208179073bddacc9a13dc45dbf4d45fd46cb1e22716521a859",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8313_abf.npz",
+   "src_mtime_ns": 1791708984904639750,
+   "src_size": 721152
+  },
+  {
+   "method": "abf",
+   "seed": 8314,
+   "src_sha256": "63c478b1416a86c95eef126a132b51a04f8d586d44203e98aedccd5e438c496f",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8314_abf.npz",
+   "src_mtime_ns": 1791709009991639002,
+   "src_size": 722045
+  },
+  {
+   "method": "abf",
+   "seed": 8315,
+   "src_sha256": "065d870259e027140a76c289fbdb0b71ad1219cc50bd330c40deb2f70783c09f",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8315_abf.npz",
+   "src_mtime_ns": 1791709262389631480,
+   "src_size": 722361
+  },
+  {
+   "method": "abf",
+   "seed": 8316,
+   "src_sha256": "696701ac2ea6d097ccec2f48e876df56ca73f67fae58bad7b2be702e517d8f48",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8316_abf.npz",
+   "src_mtime_ns": 1791709271793631200,
+   "src_size": 721361
+  },
+  {
+   "method": "abf",
+   "seed": 8317,
+   "src_sha256": "2aaae817a2ca1cc20e64f3946c8aabc5abd7b0437d1dbddd9bb525b3325792a6",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8317_abf.npz",
+   "src_mtime_ns": 1791709300952630331,
+   "src_size": 719762
+  },
+  {
+   "method": "abf",
+   "seed": 8318,
+   "src_sha256": "76c61055599d6c506733d6df66bf927d3a2d085a674afdf8a7062b5abc5927c7",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8318_abf.npz",
+   "src_mtime_ns": 1791709551800622855,
+   "src_size": 723078
+  },
+  {
+   "method": "abf",
+   "seed": 8319,
+   "src_sha256": "a46c312040ad19ae068310e4a6c86fb9f210f93e2c7bdf34e6a1ee88d31af6fc",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8319_abf.npz",
+   "src_mtime_ns": 1791709553300622810,
+   "src_size": 721433
+  },
+  {
+   "method": "abf",
+   "seed": 8320,
+   "src_sha256": "7f6a2071e65161a0b7e275edd6af3aa9241371a6a2186bb576519a070f8ccf75",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8320_abf.npz",
+   "src_mtime_ns": 1791709585561621849,
+   "src_size": 721573
+  },
+  {
+   "method": "abf",
+   "seed": 8321,
+   "src_sha256": "16be26c4f5346b25c660a42072f78d818bc6a6183ffea7bbbd508e3c6185575c",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8321_abf.npz",
+   "src_mtime_ns": 1791709830860614538,
+   "src_size": 719756
+  },
+  {
+   "method": "abf",
+   "seed": 8322,
+   "src_sha256": "f192d12811a98a387faee7f77de15a5db2d11886d66fe8e590e462b321a3f7c4",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8322_abf.npz",
+   "src_mtime_ns": 1791709835946614387,
+   "src_size": 723197
+  },
+  {
+   "method": "abf",
+   "seed": 8323,
+   "src_sha256": "df07f6b1ef83cafb7f22a269172d29a58ad6b4ac6a35d52c7420c4d112f8ff6e",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8323_abf.npz",
+   "src_mtime_ns": 1791709890990612746,
+   "src_size": 721537
+  },
+  {
+   "method": "abf",
+   "seed": 8324,
+   "src_sha256": "abab4dfa05cb6e997064ffe62100202e198a8c5a8010fc9d75199dd2f48d9b03",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8324_abf.npz",
+   "src_mtime_ns": 1791710112865606134,
+   "src_size": 723448
+  },
+  {
+   "method": "abf",
+   "seed": 8325,
+   "src_sha256": "c106a898517cf75e29dfb64524968e8366da28ab08e1c4f1f96721f551df36c4",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8325_abf.npz",
+   "src_mtime_ns": 1791710124164605797,
+   "src_size": 721117
+  },
+  {
+   "method": "abf",
+   "seed": 8326,
+   "src_sha256": "ca76e543c92bbf391cc8ddaae4cdc38e6ecbd5656ddc6d51efd27b9768b45a58",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8326_abf.npz",
+   "src_mtime_ns": 1791710167044604519,
+   "src_size": 721507
+  },
+  {
+   "method": "abf",
+   "seed": 8327,
+   "src_sha256": "95771e1c23e00ba6b6aa6380f74c2d46885bb40318263a9f0c9ecaca73130a83",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8327_abf.npz",
+   "src_mtime_ns": 1791710390885597848,
+   "src_size": 720317
+  },
+  {
+   "method": "abf",
+   "seed": 8328,
+   "src_sha256": "de282cb1468489f0924143622c7df0996b0044065f8086f796dc8e22f7adf447",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8328_abf.npz",
+   "src_mtime_ns": 1791710408887597312,
+   "src_size": 722385
+  },
+  {
+   "method": "abf",
+   "seed": 8329,
+   "src_sha256": "d302ef91539e33f29172e1374884af513c876c66c2473bde5fa8eddf4e43fab7",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8329_abf.npz",
+   "src_mtime_ns": 1791710467151595575,
+   "src_size": 720923
+  },
+  {
+   "method": "abf",
+   "seed": 8330,
+   "src_sha256": "aadcbfb623ff977520c80b27a4b0229fbd3f8b274462fad1d65695577dda888a",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8330_abf.npz",
+   "src_mtime_ns": 1791710673816589416,
+   "src_size": 721541
+  },
+  {
+   "method": "abf",
+   "seed": 8331,
+   "src_sha256": "5c46f718a4fdae4df2bff3e1121d4e07e37be381686d47bef6e3f2feb5dcebaa",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8331_abf.npz",
+   "src_mtime_ns": 1791710693042588843,
+   "src_size": 722207
+  },
+  {
+   "method": "fr",
+   "seed": 8300,
+   "src_sha256": "681bcc9f620e1d420907b01bb45294398999daa1e263be420b2700514c6f61dd",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8300_fr.npz",
+   "src_mtime_ns": 1791707850924673545,
+   "src_size": 857114
+  },
+  {
+   "method": "fr",
+   "seed": 8301,
+   "src_sha256": "8ff194e7adec7515f8df66c06ecd8002e42b0f275796c0059a1a38ecb5b6131c",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8301_fr.npz",
+   "src_mtime_ns": 1791707849720673581,
+   "src_size": 855586
+  },
+  {
+   "method": "fr",
+   "seed": 8302,
+   "src_sha256": "9154126f2a1bee21c993a50c2d9f92efc7fde795c9e28354761985c485041668",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8302_fr.npz",
+   "src_mtime_ns": 1791707853126673479,
+   "src_size": 856294
+  },
+  {
+   "method": "fr",
+   "seed": 8303,
+   "src_sha256": "85a58086d9fdd85c70bbff0be0ed406adbb2211dd8d7b08418121a05443ef846",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8303_fr.npz",
+   "src_mtime_ns": 1791708135736665057,
+   "src_size": 853705
+  },
+  {
+   "method": "fr",
+   "seed": 8304,
+   "src_sha256": "6a5c250ceb7f3233fa8b752b79c835454b8a70d1329d69727afbcffb726e38e9",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8304_fr.npz",
+   "src_mtime_ns": 1791708138389664978,
+   "src_size": 856301
+  },
+  {
+   "method": "fr",
+   "seed": 8305,
+   "src_sha256": "9fd0994bae0ae94c52a843fdc375446b6deb5b95f4267a7b1e21551c19656555",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8305_fr.npz",
+   "src_mtime_ns": 1791708147647664702,
+   "src_size": 855289
+  },
+  {
+   "method": "fr",
+   "seed": 8306,
+   "src_sha256": "e0a20ee985bf4f4280f56483d8bb3a5953df12305d6650cada68be4dd852647f",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8306_fr.npz",
+   "src_mtime_ns": 1791708421108656552,
+   "src_size": 856355
+  },
+  {
+   "method": "fr",
+   "seed": 8307,
+   "src_sha256": "284388fb103721d23e7097fc94f85e2dc16f4f8596f347fb31f4cc2dadfe579d",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8307_fr.npz",
+   "src_mtime_ns": 1791708421584656538,
+   "src_size": 858816
+  },
+  {
+   "method": "fr",
+   "seed": 8308,
+   "src_sha256": "c3768f696095131451f9f44e314c80fc8a697363a7dbcd846c78c6a7500f9556",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8308_fr.npz",
+   "src_mtime_ns": 1791708430923656259,
+   "src_size": 854489
+  },
+  {
+   "method": "fr",
+   "seed": 8309,
+   "src_sha256": "83dfe379ed36853cbb26b359e4d928c0fbe3bddbd1b63ad399b9911d91323c61",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8309_fr.npz",
+   "src_mtime_ns": 1791708707185648026,
+   "src_size": 856237
+  },
+  {
+   "method": "fr",
+   "seed": 8310,
+   "src_sha256": "fe5bdcb852c00c45625a33ff6938c0e453e06278f657af69410593c5e823e7bc",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8310_fr.npz",
+   "src_mtime_ns": 1791708709803647948,
+   "src_size": 857230
+  },
+  {
+   "method": "fr",
+   "seed": 8311,
+   "src_sha256": "f0de3a778b5fbb777c713f98b926bc75964be6be1f475c83a237f3c879d5d9db",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8311_fr.npz",
+   "src_mtime_ns": 1791708728473647392,
+   "src_size": 855156
+  },
+  {
+   "method": "fr",
+   "seed": 8312,
+   "src_sha256": "5b5acc009cbd10fc4ea41041a392659695087a20785bdd47e76bc8a649ee6e54",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8312_fr.npz",
+   "src_mtime_ns": 1791708982351639826,
+   "src_size": 855924
+  },
+  {
+   "method": "fr",
+   "seed": 8313,
+   "src_sha256": "dc258077b26351a90f8b29a31cf6f351f987830164619c56e168ae8d1b2aa326",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8313_fr.npz",
+   "src_mtime_ns": 1791708996188639413,
+   "src_size": 856267
+  },
+  {
+   "method": "fr",
+   "seed": 8314,
+   "src_sha256": "6881513bb1c7f165659c04f9ce9c6f94176904131de336b1be399475be234819",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8314_fr.npz",
+   "src_mtime_ns": 1791709016631638804,
+   "src_size": 855603
+  },
+  {
+   "method": "fr",
+   "seed": 8315,
+   "src_sha256": "7a02f126081e3e84444ae622bbcab932f970d4a76341ee3fb6058ad0b92ba0e7",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8315_fr.npz",
+   "src_mtime_ns": 1791709262947631463,
+   "src_size": 856230
+  },
+  {
+   "method": "fr",
+   "seed": 8316,
+   "src_sha256": "38bde21caf131c5321d4975597b861ffb964da2812d9bdad6c50d5d24998fb25",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8316_fr.npz",
+   "src_mtime_ns": 1791709277093631042,
+   "src_size": 855281
+  },
+  {
+   "method": "fr",
+   "seed": 8317,
+   "src_sha256": "7934625d87dea24b114c45acf422d5986d0b1fbe741229a2254b16ba2a0060e6",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8317_fr.npz",
+   "src_mtime_ns": 1791709306655630161,
+   "src_size": 856875
+  },
+  {
+   "method": "fr",
+   "seed": 8318,
+   "src_sha256": "028a9e8ed657f5ff89f1f7e66f9904f113fb0da8b636b99b7a75fe84d30ed3b1",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8318_fr.npz",
+   "src_mtime_ns": 1791709552095622846,
+   "src_size": 855516
+  },
+  {
+   "method": "fr",
+   "seed": 8319,
+   "src_sha256": "675fa844bd563d41fda918ac0e2f05500443ad5596006631f54277a3862acddc",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8319_fr.npz",
+   "src_mtime_ns": 1791709558237622663,
+   "src_size": 857011
+  },
+  {
+   "method": "fr",
+   "seed": 8320,
+   "src_sha256": "5da6f09bb2be770ed9650ba33ee7597f3c80a2d79d024184ab620f1c1b340a81",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8320_fr.npz",
+   "src_mtime_ns": 1791709609777621127,
+   "src_size": 857058
+  },
+  {
+   "method": "fr",
+   "seed": 8321,
+   "src_sha256": "13d423d8c6be76cb33bedb545d9b3d8e654cff8b1a1e755d5bf18601b148425e",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8321_fr.npz",
+   "src_mtime_ns": 1791709834114614441,
+   "src_size": 855553
+  },
+  {
+   "method": "fr",
+   "seed": 8322,
+   "src_sha256": "8ce97222daecb426bf2e6d57e51ffa9367f94aec3e89d3494d4061347b71858d",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8322_fr.npz",
+   "src_mtime_ns": 1791709840736614244,
+   "src_size": 856206
+  },
+  {
+   "method": "fr",
+   "seed": 8323,
+   "src_sha256": "38cc917638be169477a8a26306113284a36bc9d9ab7fedfae265c877d4be6c8d",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8323_fr.npz",
+   "src_mtime_ns": 1791709897372612556,
+   "src_size": 857842
+  },
+  {
+   "method": "fr",
+   "seed": 8324,
+   "src_sha256": "e88737a8db3caf657db187487e28e712208890b121f3dd9fe55737f709ccbfea",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8324_fr.npz",
+   "src_mtime_ns": 1791710114718606078,
+   "src_size": 855043
+  },
+  {
+   "method": "fr",
+   "seed": 8325,
+   "src_sha256": "6381a3aefbca98f002e8ba4b270878b38f9ea34e3dcb66b6268044b8a11726cd",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8325_fr.npz",
+   "src_mtime_ns": 1791710129238605646,
+   "src_size": 856461
+  },
+  {
+   "method": "fr",
+   "seed": 8326,
+   "src_sha256": "c6bfb0c4e7a73659a4e632ed6df6114c615f0b8b549bfba7b0df2f580bfd24c8",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8326_fr.npz",
+   "src_mtime_ns": 1791710175987604253,
+   "src_size": 854057
+  },
+  {
+   "method": "fr",
+   "seed": 8327,
+   "src_sha256": "86c9fdca5b7e93f5b970fb82faf17146c68c62ef019fb6fc5d1b6fda148edc80",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8327_fr.npz",
+   "src_mtime_ns": 1791710407223597361,
+   "src_size": 854301
+  },
+  {
+   "method": "fr",
+   "seed": 8328,
+   "src_sha256": "ec75701db24513d6f1d311c85ace91d02317108f9df56b0ee7439e400d9415a1",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8328_fr.npz",
+   "src_mtime_ns": 1791710410678597258,
+   "src_size": 857240
+  },
+  {
+   "method": "fr",
+   "seed": 8329,
+   "src_sha256": "17685db429946d45466d14663220ae06945d83edb002db6cb6ddbb4cd02f77e1",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8329_fr.npz",
+   "src_mtime_ns": 1791710467133595576,
+   "src_size": 855696
+  },
+  {
+   "method": "fr",
+   "seed": 8330,
+   "src_sha256": "c44d4d0869ec1b2b8b9accc6d1439da7843417f3f9f85a710a16358c3cbe2aa7",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8330_fr.npz",
+   "src_mtime_ns": 1791710682277589164,
+   "src_size": 854613
+  },
+  {
+   "method": "fr",
+   "seed": 8331,
+   "src_sha256": "46fe9cd6f2f4fe494ce198c41d0cd4a902b1eaa799cb7e239211293a021b18ff",
+   "src_path": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/shift_lam128/N512/s8331_fr.npz",
+   "src_mtime_ns": 1791710693150588840,
+   "src_size": 857657
+  }
+ ],
+ "legibility_summary": {
+  "n_figures": 19,
+  "n_pass": 19,
+  "n_fail": 0,
+  "failing": {},
+  "n_waived": 14
+ },
+ "cell": {
+  "experiment": "expA",
+  "cell": "shift_lam128",
+  "cell_label": "A: shifted fibre, kappa = 1, transverse mobility lambda = 128 (preregistered extension)",
+  "model": {
+   "variant": "shift",
+   "alpha": null,
+   "kappa": 1.0,
+   "lam": 128.0
+  },
+  "engine_version": "gateway_family_numba/1",
+  "results_dir": "results/final_campaign/expA/shift_lam128",
+  "fig_dir": "figures/final_campaign/expA/shift_lam128"
+ }
+}

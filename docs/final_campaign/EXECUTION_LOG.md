@@ -29,3 +29,12 @@ All times UTC, 2026-10-11, measured from command output or commit metadata (not 
 | 08:05 | Check 9 PASS (32/32 files) incl. check 6 PASS on the frozen first-death rule (16/16 pairs, 16–25 compared saves each) | `check9_smoke.json`, `check6_pairing_smoke.json` |
 | 08:06 | V5 ABF-bias smoke PASS for λ 4, 16, 128 (finite; final max|Γ| 7.89–7.90 vs 15.78) | `validation/abf_smoke.json` |
 | 08:06 | G-A1 chains 32/121 done; every λ = 1 replay so far bitwise equal to its frozen record | `logs/gate_run.log` |
+| 08:16–08:26 | Exp B backend workflow complete (implement → review → fix; gateway 36, LTA 37, harness+stats 64 tests pass); Amendment-2 code defaults applied (replicated_dissem variant, tau_bgrid competitor completion, own-core contention scope) and tests re-run (64 + 36 pass) | wf_63252a8d |
+| 08:30 | User: another session removed large files (32 GB free); **user instruction: no GPU, CPU only** (campaign already 0 GPU-h; verified no GPU process of this account) | `nvidia-smi`, `df` |
+| 08:23 | G-A1 chains 121/121 complete; λ = 1 replay 16/16 bitwise | `logs/gate_run.log` |
+| 08:31 | **G-A1 SELECTION PASS, h_A = 2.5e-5** (λ 4, 16, 128: V1, V2, V3, V3b, V5 PASS, V4 holds). MC1 flank 1/e ×1.14 / ×1.65 / ×6.2; MC2 transport ×2.0 / ×3.7 / ×5.3 vs λ = 1 | `validation/summary.{json,md}` |
+| 08:31 | Amendment 2 committed with gate records and Exp B code: **ef8ebc20** | `git log` |
+| 08:32 | Production gate SATISFIED (`expA_gate.py`) | — |
+| 08:33 | **Exp A production launched**: 512 runs, 48 workers on idle physical cores, seed-major | `logs/production.log` |
+| 08:34 | Exp B formal V-B1/V-B2/V-B3/V-B5 correctness gates launched on cores 64–79 (sequential driver `expB_run_vb_gates.sh`) | `results/final_campaign/expB/validation/` |
+| 08:47 | **Exp B correctness gates PASS** (766 s on 16 cores): V-B1 replay bitwise vs validated engines (gateway N 16/64/512 both arms, LTA N 2/16/64/512, threads 1/4/16); V-B2 counter-mode thread invariance (threads 1–16); V-B5 pairing (frozen first-death rule and event rule); V-B3 RNG (Philox = numpy oracle, counter-map injectivity, 10⁸-normal battery, kernel noise = Philox module) | `results/final_campaign/expB/validation/` |

@@ -1,0 +1,80 @@
+{
+ "N": 64,
+ "amendment": "EXPA-CHECK6-EVENT-RULE",
+ "cli_wall_s": 2.218320284038782,
+ "cpus": [
+  64,
+  65,
+  66,
+  67,
+  68,
+  69,
+  70,
+  71,
+  72,
+  73,
+  74,
+  75,
+  76,
+  77,
+  78,
+  79
+ ],
+ "cpus_master_bound": [
+  64
+ ],
+ "differs_after_first_event": true,
+ "engine": "gateway_parallel/1",
+ "first_save_after_first_death": 10800,
+ "first_save_after_first_event": 10800,
+ "fr_arm": {
+  "fr_candidate_events": 72,
+  "fr_opportunities": 1500,
+  "max_abs_bias": 7.903217619801215,
+  "n_force_evals": 15360000,
+  "n_saves": 224,
+  "opportunities_with_death": 72,
+  "realised_deaths": 72
+ },
+ "gating_criterion": "event: bitwise identical at every save before FR's first opportunity with a candidate (first gather); NOT preregistered -- gates only with a recorded amendment",
+ "gating_criterion_name": "event",
+ "git_commit": "ef8ebc2080768d6aadfddf70b36738a17e8c1a96",
+ "host": "atlas",
+ "identical_before_first_death": true,
+ "identical_before_first_event": true,
+ "kernel_build": {
+  "built_in_this_process": false,
+  "cflags": [
+   "-O3",
+   "-march=native",
+   "-fopenmp",
+   "-fno-fast-math",
+   "-ffp-contract=off",
+   "-fPIC",
+   "-shared"
+  ],
+  "command": "/usr/bin/gcc -O3 -march=native -fopenmp -fno-fast-math -ffp-contract=off -fPIC -shared -o /home/zheyuanlai/.cache/final_campaign_build/gw_kernel_b11d8c60d6ad4817.so /home/zheyuanlai/ABF-Fisher-Rao/src/parallel/gw_kernel.c -lm",
+  "compiler": "/usr/bin/gcc",
+  "compiler_version": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+  "so_path": "/home/zheyuanlai/.cache/final_campaign_build/gw_kernel_b11d8c60d6ad4817.so",
+  "so_sha256": "79acd361bd39963448024ae228f8c1f2866445292406ab1f6b485a1274effaf6",
+  "source_sha256": "e6199ce5687fac59b1d6b03aa1511e64a002af18e54d79e2249215871e879931",
+  "tag": "b11d8c60d6ad4817"
+ },
+ "kernel_variant": "replicated_dissem",
+ "n_saves_before_first_death": 32,
+ "n_saves_before_first_event": 32,
+ "n_steps": 240000,
+ "seed": 8600,
+ "sources_sha256": {
+  "src/parallel/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "src/parallel/gateway_parallel.py": "615fde5748c9fc5624b4051e27f11b4468393b625ed560a85583750a5306e66c",
+  "src/parallel/gw_kernel.c": "e6199ce5687fac59b1d6b03aa1511e64a002af18e54d79e2249215871e879931"
+ },
+ "test": "V-B5 ABF/FR pairing (counter mode)",
+ "threads": 16,
+ "utc": "2026-10-11T08:36:25Z",
+ "verdict": "PASS",
+ "verdict_death_criterion": "PASS",
+ "verdict_event_criterion": "PASS"
+}

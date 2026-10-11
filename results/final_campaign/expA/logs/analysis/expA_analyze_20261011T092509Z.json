@@ -1,0 +1,575 @@
+{
+ "schema": "final_expA_analyze/1",
+ "started_utc": "2026-10-11T09:25:09Z",
+ "wall_s": 181.60694861412048,
+ "used_core_seconds": 550.3224453926086,
+ "args": {
+  "cells_dir": "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA",
+  "log_dir": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/logs/analysis",
+  "stages": "an,pc,ps,audit,cross,mech,tables,figures,outcome",
+  "workers": 4,
+  "n_boot": 10000,
+  "synthesis_dir": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/synthesis",
+  "tables_dir": "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/tables",
+  "fig_dir": "/home/zheyuanlai/ABF-Fisher-Rao/figures/final_campaign/expA",
+  "only_lams": null,
+  "force_cell": false,
+  "force_synthesis": false,
+  "allow_audit_fail": false,
+  "compute_ledger": "results/final_campaign/compute_ledger.csv",
+  "dry_run": false
+ },
+ "stages": [
+  "an",
+  "pc",
+  "ps",
+  "audit",
+  "cross",
+  "mech",
+  "tables",
+  "figures",
+  "outcome"
+ ],
+ "production_design": true,
+ "fixture": false,
+ "design_problems": [],
+ "cells_missing": [],
+ "cell_ok": {
+  "shift_lam1": true,
+  "shift_lam4": true,
+  "shift_lam16": true,
+  "shift_lam128": true
+ },
+ "audit_failed": [],
+ "audit_not_passing": [],
+ "audit_problems_on_disk": {},
+ "provisional": false,
+ "synthesis_ok": true,
+ "steps": [
+  {
+   "cell": "shift_lam1",
+   "lam": "1",
+   "stage": "an",
+   "N": null,
+   "decision": "run",
+   "reason": "no summary yet",
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/equal_budget/analyze_ladder.py",
+    "--system",
+    "gateway_family",
+    "--config",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA/shift_lam1.json",
+    "--n-boot",
+    "10000"
+   ],
+   "exit": 0,
+   "wall_s": 9.25554084777832,
+   "log": "results/final_campaign/expA/logs/analysis/an_shift_lam1.log"
+  },
+  {
+   "cell": "shift_lam4",
+   "lam": "4",
+   "stage": "an",
+   "N": null,
+   "decision": "run",
+   "reason": "no summary yet",
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/equal_budget/analyze_ladder.py",
+    "--system",
+    "gateway_family",
+    "--config",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA/shift_lam4.json",
+    "--n-boot",
+    "10000"
+   ],
+   "exit": 0,
+   "wall_s": 9.309768438339233,
+   "log": "results/final_campaign/expA/logs/analysis/an_shift_lam4.log"
+  },
+  {
+   "cell": "shift_lam16",
+   "lam": "16",
+   "stage": "an",
+   "N": null,
+   "decision": "run",
+   "reason": "no summary yet",
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/equal_budget/analyze_ladder.py",
+    "--system",
+    "gateway_family",
+    "--config",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA/shift_lam16.json",
+    "--n-boot",
+    "10000"
+   ],
+   "exit": 0,
+   "wall_s": 9.408443927764893,
+   "log": "results/final_campaign/expA/logs/analysis/an_shift_lam16.log"
+  },
+  {
+   "cell": "shift_lam128",
+   "lam": "128",
+   "stage": "an",
+   "N": null,
+   "decision": "run",
+   "reason": "no summary yet",
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/equal_budget/analyze_ladder.py",
+    "--system",
+    "gateway_family",
+    "--config",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA/shift_lam128.json",
+    "--n-boot",
+    "10000"
+   ],
+   "exit": 0,
+   "wall_s": 9.426958084106445,
+   "log": "results/final_campaign/expA/logs/analysis/an_shift_lam128.log"
+  },
+  {
+   "cell": "shift_lam1",
+   "lam": "1",
+   "stage": "pc",
+   "N": 512,
+   "decision": "run",
+   "reason": "not drawn yet",
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/equal_budget/plot_config.py",
+    "--system",
+    "gateway_family",
+    "--config",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA/shift_lam1.json",
+    "--only-N",
+    "512"
+   ],
+   "exit": 0,
+   "wall_s": 46.82397770881653,
+   "log": "results/final_campaign/expA/logs/analysis/pc_shift_lam1_N512.log"
+  },
+  {
+   "cell": "shift_lam4",
+   "lam": "4",
+   "stage": "pc",
+   "N": 512,
+   "decision": "run",
+   "reason": "not drawn yet",
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/equal_budget/plot_config.py",
+    "--system",
+    "gateway_family",
+    "--config",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA/shift_lam4.json",
+    "--only-N",
+    "512"
+   ],
+   "exit": 0,
+   "wall_s": 48.255419969558716,
+   "log": "results/final_campaign/expA/logs/analysis/pc_shift_lam4_N512.log"
+  },
+  {
+   "cell": "shift_lam16",
+   "lam": "16",
+   "stage": "pc",
+   "N": 512,
+   "decision": "run",
+   "reason": "not drawn yet",
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/equal_budget/plot_config.py",
+    "--system",
+    "gateway_family",
+    "--config",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA/shift_lam16.json",
+    "--only-N",
+    "512"
+   ],
+   "exit": 0,
+   "wall_s": 48.64069485664368,
+   "log": "results/final_campaign/expA/logs/analysis/pc_shift_lam16_N512.log"
+  },
+  {
+   "cell": "shift_lam128",
+   "lam": "128",
+   "stage": "pc",
+   "N": 512,
+   "decision": "run",
+   "reason": "not drawn yet",
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/equal_budget/plot_config.py",
+    "--system",
+    "gateway_family",
+    "--config",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA/shift_lam128.json",
+    "--only-N",
+    "512"
+   ],
+   "exit": 0,
+   "wall_s": 48.771899700164795,
+   "log": "results/final_campaign/expA/logs/analysis/pc_shift_lam128_N512.log"
+  },
+  {
+   "cell": "shift_lam1",
+   "lam": "1",
+   "stage": "pc",
+   "N": 128,
+   "decision": "run",
+   "reason": "not drawn yet",
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/equal_budget/plot_config.py",
+    "--system",
+    "gateway_family",
+    "--config",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA/shift_lam1.json",
+    "--only-N",
+    "128"
+   ],
+   "exit": 0,
+   "wall_s": 47.58159875869751,
+   "log": "results/final_campaign/expA/logs/analysis/pc_shift_lam1_N128.log"
+  },
+  {
+   "cell": "shift_lam4",
+   "lam": "4",
+   "stage": "pc",
+   "N": 128,
+   "decision": "run",
+   "reason": "not drawn yet",
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/equal_budget/plot_config.py",
+    "--system",
+    "gateway_family",
+    "--config",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA/shift_lam4.json",
+    "--only-N",
+    "128"
+   ],
+   "exit": 0,
+   "wall_s": 47.797574281692505,
+   "log": "results/final_campaign/expA/logs/analysis/pc_shift_lam4_N128.log"
+  },
+  {
+   "cell": "shift_lam16",
+   "lam": "16",
+   "stage": "pc",
+   "N": 128,
+   "decision": "run",
+   "reason": "not drawn yet",
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/equal_budget/plot_config.py",
+    "--system",
+    "gateway_family",
+    "--config",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA/shift_lam16.json",
+    "--only-N",
+    "128"
+   ],
+   "exit": 0,
+   "wall_s": 47.69442677497864,
+   "log": "results/final_campaign/expA/logs/analysis/pc_shift_lam16_N128.log"
+  },
+  {
+   "cell": "shift_lam128",
+   "lam": "128",
+   "stage": "pc",
+   "N": 128,
+   "decision": "run",
+   "reason": "not drawn yet",
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/equal_budget/plot_config.py",
+    "--system",
+    "gateway_family",
+    "--config",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA/shift_lam128.json",
+    "--only-N",
+    "128"
+   ],
+   "exit": 0,
+   "wall_s": 48.15931296348572,
+   "log": "results/final_campaign/expA/logs/analysis/pc_shift_lam128_N128.log"
+  },
+  {
+   "cell": "shift_lam1",
+   "lam": "1",
+   "stage": "ps",
+   "N": null,
+   "decision": "run",
+   "reason": "not drawn yet",
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/equal_budget/plot_synthesis.py",
+    "--system",
+    "gateway_family",
+    "--config",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA/shift_lam1.json"
+   ],
+   "exit": 0,
+   "wall_s": 13.267444610595703,
+   "log": "results/final_campaign/expA/logs/analysis/ps_shift_lam1.log"
+  },
+  {
+   "cell": "shift_lam4",
+   "lam": "4",
+   "stage": "ps",
+   "N": null,
+   "decision": "run",
+   "reason": "not drawn yet",
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/equal_budget/plot_synthesis.py",
+    "--system",
+    "gateway_family",
+    "--config",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA/shift_lam4.json"
+   ],
+   "exit": 0,
+   "wall_s": 13.297187566757202,
+   "log": "results/final_campaign/expA/logs/analysis/ps_shift_lam4.log"
+  },
+  {
+   "cell": "shift_lam16",
+   "lam": "16",
+   "stage": "ps",
+   "N": null,
+   "decision": "run",
+   "reason": "not drawn yet",
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/equal_budget/plot_synthesis.py",
+    "--system",
+    "gateway_family",
+    "--config",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA/shift_lam16.json"
+   ],
+   "exit": 0,
+   "wall_s": 13.076700210571289,
+   "log": "results/final_campaign/expA/logs/analysis/ps_shift_lam16.log"
+  },
+  {
+   "cell": "shift_lam128",
+   "lam": "128",
+   "stage": "ps",
+   "N": null,
+   "decision": "run",
+   "reason": "not drawn yet",
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/equal_budget/plot_synthesis.py",
+    "--system",
+    "gateway_family",
+    "--config",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA/shift_lam128.json"
+   ],
+   "exit": 0,
+   "wall_s": 12.890592813491821,
+   "log": "results/final_campaign/expA/logs/analysis/ps_shift_lam128.log"
+  },
+  {
+   "cell": "shift_lam1",
+   "lam": "1",
+   "stage": "audit",
+   "N": null,
+   "decision": "run",
+   "reason": "PASS",
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/equal_budget/audit_completeness.py",
+    "--system",
+    "gateway_family",
+    "--config",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA/shift_lam1.json"
+   ],
+   "exit": 0,
+   "wall_s": 5.035705089569092,
+   "log": "results/final_campaign/expA/logs/analysis/audit_shift_lam1.log"
+  },
+  {
+   "cell": "shift_lam4",
+   "lam": "4",
+   "stage": "audit",
+   "N": null,
+   "decision": "run",
+   "reason": "PASS",
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/equal_budget/audit_completeness.py",
+    "--system",
+    "gateway_family",
+    "--config",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA/shift_lam4.json"
+   ],
+   "exit": 0,
+   "wall_s": 5.137708425521851,
+   "log": "results/final_campaign/expA/logs/analysis/audit_shift_lam4.log"
+  },
+  {
+   "cell": "shift_lam16",
+   "lam": "16",
+   "stage": "audit",
+   "N": null,
+   "decision": "run",
+   "reason": "PASS",
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/equal_budget/audit_completeness.py",
+    "--system",
+    "gateway_family",
+    "--config",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA/shift_lam16.json"
+   ],
+   "exit": 0,
+   "wall_s": 5.5554187297821045,
+   "log": "results/final_campaign/expA/logs/analysis/audit_shift_lam16.log"
+  },
+  {
+   "cell": "shift_lam128",
+   "lam": "128",
+   "stage": "audit",
+   "N": null,
+   "decision": "run",
+   "reason": "PASS",
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/equal_budget/audit_completeness.py",
+    "--system",
+    "gateway_family",
+    "--config",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA/shift_lam128.json"
+   ],
+   "exit": 0,
+   "wall_s": 5.555097579956055,
+   "log": "results/final_campaign/expA/logs/analysis/audit_shift_lam128.log"
+  },
+  {
+   "stage": "cross",
+   "decision": "run",
+   "reason": null,
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/final_campaign/expA_cross_cell.py",
+    "--cells-dir",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA",
+    "--out-dir",
+    "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/synthesis",
+    "--n-boot",
+    "10000"
+   ],
+   "exit": 0,
+   "wall_s": 3.622703790664673,
+   "log": "results/final_campaign/expA/logs/analysis/cross.log"
+  },
+  {
+   "stage": "mech",
+   "decision": "run",
+   "reason": null,
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/final_campaign/expA_mech.py",
+    "--cells-dir",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA",
+    "--out-dir",
+    "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/synthesis",
+    "--n-boot",
+    "10000"
+   ],
+   "exit": 0,
+   "wall_s": 41.84685468673706,
+   "log": "results/final_campaign/expA/logs/analysis/mech.log"
+  },
+  {
+   "stage": "tables",
+   "decision": "run",
+   "reason": null,
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/final_campaign/expA_tables.py",
+    "--cells-dir",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA",
+    "--out-dir",
+    "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/tables",
+    "--n-boot",
+    "10000"
+   ],
+   "exit": 0,
+   "wall_s": 0.9641292095184326,
+   "log": "results/final_campaign/expA/logs/analysis/tables.log"
+  },
+  {
+   "stage": "figures",
+   "decision": "run",
+   "reason": null,
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/final_campaign/expA_figures.py",
+    "--cells-dir",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA",
+    "--synthesis-dir",
+    "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/synthesis",
+    "--fig-dir",
+    "/home/zheyuanlai/ABF-Fisher-Rao/figures/final_campaign/expA"
+   ],
+   "exit": 0,
+   "wall_s": 8.09825325012207,
+   "log": "results/final_campaign/expA/logs/analysis/figures.log"
+  },
+  {
+   "stage": "outcome",
+   "decision": "run",
+   "reason": null,
+   "cmd": [
+    "/home/zheyuanlai/miniconda3/envs/abffr/bin/python",
+    "/home/zheyuanlai/ABF-Fisher-Rao/scripts/final_campaign/expA_outcome.py",
+    "--cells-dir",
+    "/home/zheyuanlai/ABF-Fisher-Rao/configs/final_campaign/cells/expA",
+    "--synthesis-dir",
+    "/home/zheyuanlai/ABF-Fisher-Rao/results/final_campaign/expA/synthesis"
+   ],
+   "exit": 0,
+   "wall_s": 0.8490331172943115,
+   "log": "results/final_campaign/expA/logs/analysis/outcome.log"
+  }
+ ],
+ "provenance": {
+  "git_commit": "ef8ebc2080768d6aadfddf70b36738a17e8c1a96",
+  "git_dirty": true,
+  "engine": "src/gateway_family_numba.py",
+  "engine_sha256": "69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed",
+  "engine_sha256_is_frozen": true,
+  "code": {
+   "scripts/final_campaign/expA_analyze.py": "6e532fdd2942bdee3f9238c5ce797d55d6c4ab522858a4a51bb059a9fa9d1886",
+   "scripts/final_campaign/expA_analysis_common.py": "3a375c6c8a9a3f0406a5d57b60de97a854ea2038db37d75918756182e8741dcc",
+   "scripts/equal_budget/analyze_ladder.py": "edc6a490c67e5eca1272819124e9a9ce8de4e2ca6c29c69848f90281b6423284",
+   "scripts/equal_budget/plot_config.py": "7de9aab9fed5b34030a83330da89c6f15f36379477dd84e7e89b57ebbd14521e",
+   "scripts/equal_budget/plot_synthesis.py": "45a86ab1e9f92f88c1f9972cba16d65f6fd6aa373050aa94bd12327d5b1a2e51",
+   "scripts/equal_budget/audit_completeness.py": "a75462575dfde04beaf399a1881aa31ef5345b13d670efe14f38de800db4ddd0",
+   "scripts/final_campaign/expA_cross_cell.py": "9859fd7a70b623a6dcf9f5f9c85b6095370ecfdf939aaeb3d644a6c005792686",
+   "scripts/final_campaign/expA_mech.py": "7f4e84155aaff8ae0b128a5b46dce7d09f277615d0d83951a77148cf987df687",
+   "scripts/final_campaign/expA_tables.py": "dc73b6e58c3c47af9874312f00db4c7c6773fce8c5bd6990dff6b5dfcf92deda",
+   "scripts/final_campaign/expA_figures.py": "3e8f79944712a2ae34f6e724cbb503d73cec815708577bf8b78f0d54f41db2aa",
+   "scripts/final_campaign/expA_outcome.py": "a312cb21d5979fa58a7acaaf9a4618d5bec4911616df0f5c718f2602b51aec59"
+  },
+  "python": "3.14.4",
+  "numpy": "2.4.6",
+  "scipy": "1.17.1",
+  "matplotlib": "3.10.9",
+  "host": "atlas",
+  "pid": 2979225,
+  "cpu_affinity": [
+   32,
+   33,
+   34,
+   35
+  ],
+  "generated_utc": "2026-10-11T09:28:11Z"
+ }
+}

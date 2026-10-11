@@ -1,0 +1,386 @@
+{
+ "schema": "final_expA_figures/1",
+ "input_signature": "6f0e85e8f8b70f7f0d7a3181251c03efd0bb8438473da87efa5e70f2036cf059",
+ "provenance": {
+  "git_commit": "ef8ebc2080768d6aadfddf70b36738a17e8c1a96",
+  "git_dirty": true,
+  "engine": "src/gateway_family_numba.py",
+  "engine_sha256": "69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed",
+  "engine_sha256_is_frozen": true,
+  "code": {
+   "scripts/final_campaign/expA_figures.py": "3e8f79944712a2ae34f6e724cbb503d73cec815708577bf8b78f0d54f41db2aa",
+   "scripts/final_campaign/expA_analysis_common.py": "3a375c6c8a9a3f0406a5d57b60de97a854ea2038db37d75918756182e8741dcc",
+   "scripts/mechanism/mech_analysis.py": "d59dec74ca9b89fed70d6b2a0bf964eac1296fdeeb39fd63516a05c5290d085e",
+   "scripts/equal_budget/fig_legibility.py": "ebafa4d9272d4bcbb29a622eb497cf0962b9045e3cdd8b6f92bebe60fd565c79"
+  },
+  "python": "3.14.4",
+  "numpy": "2.4.6",
+  "scipy": "1.17.1",
+  "matplotlib": "3.10.9",
+  "host": "atlas",
+  "pid": 2984227,
+  "cpu_affinity": [
+   32,
+   33,
+   34,
+   35
+  ],
+  "generated_utc": "2026-10-11T09:28:09Z"
+ },
+ "inputs": {
+  "cross_cell": "c7145c941486018cc2101afb9c7d31fa6d1373d307b26506698a92c99d95fb29",
+  "mech": "a8d77fea4bcfce2f1eac810ced4a5033a3b38716b4128cd9b92fb8989220706e",
+  "median_curves": {
+   "1": "ac5b8f26afc320533c732cd76a76a241a449d227fa13e3aa5f1b5f4a662b28ab",
+   "4": "0890522f1383ae27affe7796f9073611122e76feb280b853e121658f695fe477",
+   "16": "4658393f72b4e627e4b84e8e1609ebac1a6fcadfee82c93d6e4269a9cd4d2f6d",
+   "128": "8991a4a3aab068e1a192e4ffd52ad65c3a107ac5460cb6cec3c284d0bbba5b56"
+  }
+ },
+ "input_paths": {
+  "cross_cell": "results/final_campaign/expA/synthesis/cross_cell.json",
+  "mech": "results/final_campaign/expA/synthesis/mech.json",
+  "median_curves": {
+   "1": "results/final_campaign/expA/shift_lam1/analysis/median_curves.npz",
+   "4": "results/final_campaign/expA/shift_lam4/analysis/median_curves.npz",
+   "16": "results/final_campaign/expA/shift_lam16/analysis/median_curves.npz",
+   "128": "results/final_campaign/expA/shift_lam128/analysis/median_curves.npz"
+  }
+ },
+ "complete": true,
+ "completeness": {
+  "complete": true,
+  "reasons": [],
+  "audits": {
+   "1": {
+    "path": "results/final_campaign/expA/shift_lam1/analysis/completeness_audit.json",
+    "present": true,
+    "verdict": "PASS",
+    "generated_utc": "2026-10-11T09:27:12Z",
+    "n_failures": 0,
+    "failure_codes": [],
+    "summary_sha256": "ba93f10797332c4bac78d29d31105c02d805c7444471fa2a2a3bab7a710861b1",
+    "config_sha256": "e2263b5f5a9e00b8f93b1effc4a7723fd76131f16f51eb5f3a536098f232d927",
+    "engines": [
+     "gateway_family_numba/1 69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed"
+    ],
+    "current": true,
+    "passes": true,
+    "problems": []
+   },
+   "4": {
+    "path": "results/final_campaign/expA/shift_lam4/analysis/completeness_audit.json",
+    "present": true,
+    "verdict": "PASS",
+    "generated_utc": "2026-10-11T09:27:14Z",
+    "n_failures": 0,
+    "failure_codes": [],
+    "summary_sha256": "321b41ba5c5b700b5ba0cfa361a679e144f55bc3e2ac6a591aa97c0545d3c109",
+    "config_sha256": "267ee75cc6611a4c0aa8bf752a5fb0ed5c9cd0cdf76bc3e66b3bca7f4264c5ef",
+    "engines": [
+     "gateway_family_numba/1 69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed"
+    ],
+    "current": true,
+    "passes": true,
+    "problems": []
+   },
+   "16": {
+    "path": "results/final_campaign/expA/shift_lam16/analysis/completeness_audit.json",
+    "present": true,
+    "verdict": "PASS",
+    "generated_utc": "2026-10-11T09:27:14Z",
+    "n_failures": 0,
+    "failure_codes": [],
+    "summary_sha256": "dc4c2d8c5e1f0d9f954305ace52aded91029c1e690fb42312b9958146b083dfc",
+    "config_sha256": "7f8c2787befe0cf73eed1f2407b56a3ac00b30163a21f9fd997e6cd655ef7035",
+    "engines": [
+     "gateway_family_numba/1 69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed"
+    ],
+    "current": true,
+    "passes": true,
+    "problems": []
+   },
+   "128": {
+    "path": "results/final_campaign/expA/shift_lam128/analysis/completeness_audit.json",
+    "present": true,
+    "verdict": "PASS",
+    "generated_utc": "2026-10-11T09:27:15Z",
+    "n_failures": 0,
+    "failure_codes": [],
+    "summary_sha256": "4fae68906ebee27173306f4a740108e5b376eaaae052be2b4a400d3d9e8c6fa3",
+    "config_sha256": "a592fe91cd9ccd1ea3966de6fa477eb9106027b4da376a8b36c3d28addf3c842",
+    "engines": [
+     "gateway_family_numba/1 69087f2c0c7edbe5e076615b9a4425ba7580a6c4537a61854ae6c633df9da4ed"
+    ],
+    "current": true,
+    "passes": true,
+    "problems": []
+   }
+  }
+ },
+ "provisional": false,
+ "freshness_verified": true,
+ "inputs_complete": {
+  "cross_cell": true,
+  "mech": true
+ },
+ "fixture": false,
+ "figures": [
+  {
+   "id": "A1",
+   "name": "A1_Ibar_F_vs_lambda",
+   "description": "seed-median Ibar_F of both arms vs lambda per N with bootstrap CIs",
+   "files": [
+    "A1_Ibar_F_vs_lambda.pdf",
+    "A1_Ibar_F_vs_lambda.png"
+   ],
+   "file_sha256": {
+    "A1_Ibar_F_vs_lambda.pdf": "75a8b892692353d6ac627fcfc508744eac508dd996569f536d96d9d3249624d2",
+    "A1_Ibar_F_vs_lambda.png": "40f6a72b0780a4e458a28c371362c7f660eb8d5a7ce87b3265c17df573dfa268"
+   },
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 2,
+    "n_data_axes": 2,
+    "n_texts": 28,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "id": "A2",
+   "name": "A2_final_eF_vs_lambda",
+   "description": "seed-median final e_F of both arms vs lambda per N with bootstrap CIs",
+   "files": [
+    "A2_final_eF_vs_lambda.pdf",
+    "A2_final_eF_vs_lambda.png"
+   ],
+   "file_sha256": {
+    "A2_final_eF_vs_lambda.pdf": "79009f16956353d6bc9dec26f5dcc3ba2566e96e329726dff0a0d223a273e3b7",
+    "A2_final_eF_vs_lambda.png": "27d2c45db64935a3fb99ce06888859676ebc7f7489faf3e6b46252cce66dfae3"
+   },
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 2,
+    "n_data_axes": 2,
+    "n_texts": 21,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "id": "A3",
+   "name": "A3_ratio_and_contrasts",
+   "description": "FR/ABF Ibar_F ratio vs lambda and the E1/E2/T1-T3 contrasts with CIs",
+   "files": [
+    "A3_ratio_and_contrasts.pdf",
+    "A3_ratio_and_contrasts.png"
+   ],
+   "file_sha256": {
+    "A3_ratio_and_contrasts.pdf": "6cc10ea125d321f256cbbe04b19bd24156465cce8006ae4f8ab6c310d2643954",
+    "A3_ratio_and_contrasts.png": "732d3b76a5a980f139b76ca699a629b191944e9b95b32b86d39e183f4e0b4e33"
+   },
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 4,
+    "n_data_axes": 4,
+    "n_texts": 56,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "id": "A5",
+   "name": "A5_young_clone_bias",
+   "description": "D2 B_c by clone-age class, young-clone matched excess and MC3 vs lambda",
+   "files": [
+    "A5_young_clone_bias.pdf",
+    "A5_young_clone_bias.png"
+   ],
+   "file_sha256": {
+    "A5_young_clone_bias.pdf": "9472584c1b02bd7088d367363c4370726f4d61aa8efe61d9da8f3743e1995a0d",
+    "A5_young_clone_bias.png": "2765007fc377a8fb74cd17b59791ceac0a12b5786538bfc959b415b58180106e"
+   },
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 6,
+    "n_data_axes": 6,
+    "n_texts": 92,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "id": "A6",
+   "name": "A6_marginal_TV_half",
+   "description": "Ibar_TV_half arm medians and G(Ibar_TV_half) vs lambda per N (HA3)",
+   "files": [
+    "A6_marginal_TV_half.pdf",
+    "A6_marginal_TV_half.png"
+   ],
+   "file_sha256": {
+    "A6_marginal_TV_half.pdf": "6bf14f2446253c0a81ddbf609dbcd7eb799ae4471c60736cad87500ded1258bd",
+    "A6_marginal_TV_half.png": "43cd69feefad1b0b2d496f4904af6760f8e9f440dd811988f885a54d069cf1b7"
+   },
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 4,
+    "n_data_axes": 4,
+    "n_texts": 49,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "id": "A7",
+   "name": "A7_eF_convergence",
+   "description": "median e_F(u) curves, ABF vs FR, one panel per (lambda, N)",
+   "files": [
+    "A7_eF_convergence.pdf",
+    "A7_eF_convergence.png"
+   ],
+   "file_sha256": {
+    "A7_eF_convergence.pdf": "a49448ef5bc7bf95c701aad35a80a49ae457bdf9c96236e5db3e03e2a114b1b8",
+    "A7_eF_convergence.png": "19e78a929ee06d7698ee7caaa63d97199b32bdf48fa9b90da233751f00ed1cae"
+   },
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 8,
+    "n_data_axes": 8,
+    "n_texts": 34,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  },
+  {
+   "id": "A8",
+   "name": "A8_genealogy",
+   "description": "FR genealogy (ESS/N time average, max lineage fraction, deaths/walker/t.u.) vs lambda",
+   "files": [
+    "A8_genealogy.pdf",
+    "A8_genealogy.png"
+   ],
+   "file_sha256": {
+    "A8_genealogy.pdf": "0859cbf6ef7caf3c4320bf746b7d003afd628505cc3ad87f91e8335fb5b16fb8",
+    "A8_genealogy.png": "34a823a0ec31b8918ef2a4065c1a5aa6a80e48f702e0f886b99243404a85e2e0"
+   },
+   "legibility": {
+    "status": "pass",
+    "checks": [
+     "axis_label_x",
+     "axis_label_y",
+     "colorbar",
+     "legend",
+     "text_overlap",
+     "text_overlap_across",
+     "text_outside",
+     "legend_over_data"
+    ],
+    "tol_pt": 0.25,
+    "n_axes": 3,
+    "n_data_axes": 3,
+    "n_texts": 41,
+    "n_failures": 0,
+    "failures": [],
+    "n_waived": 0,
+    "waived": [],
+    "notes": []
+   }
+  }
+ ],
+ "legibility_summary": {
+  "n_figures": 7,
+  "n_pass": 7,
+  "n_fail": 0,
+  "failing": {},
+  "n_waived": 0
+ },
+ "not_drawn_here": {
+  "A4": "MC1 conditional relaxation: validation tool",
+  "A4b": "MC2 gate transport: validation tool"
+ }
+}

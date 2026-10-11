@@ -1,0 +1,824 @@
+{
+ "counter_map": [
+  {
+   "N": 2,
+   "deaths": 0,
+   "kernel_equals_philox_module": true,
+   "keys_differing": [],
+   "method": "abf",
+   "n_steps": 40000,
+   "reference": "replay mode fed with parallel.philox.lta_noise_block(key, step0, n_moves, N)",
+   "seed": 15400,
+   "threads": 16
+  },
+  {
+   "N": 16,
+   "deaths": 0,
+   "kernel_equals_philox_module": true,
+   "keys_differing": [],
+   "method": "abf",
+   "n_steps": 200000,
+   "reference": "replay mode fed with parallel.philox.lta_noise_block(key, step0, n_moves, N)",
+   "seed": 15400,
+   "threads": 16
+  },
+  {
+   "N": 16,
+   "deaths": 85,
+   "kernel_equals_philox_module": true,
+   "keys_differing": [],
+   "method": "fr",
+   "n_steps": 800000,
+   "reference": "replay mode fed with parallel.philox.lta_noise_block(key, step0, n_moves, N)",
+   "seed": 15400,
+   "threads": 16
+  },
+  {
+   "N": 64,
+   "deaths": 0,
+   "kernel_equals_philox_module": true,
+   "keys_differing": [],
+   "method": "abf",
+   "n_steps": 200000,
+   "reference": "replay mode fed with parallel.philox.lta_noise_block(key, step0, n_moves, N)",
+   "seed": 15400,
+   "threads": 16
+  },
+  {
+   "N": 64,
+   "deaths": 72,
+   "kernel_equals_philox_module": true,
+   "keys_differing": [],
+   "method": "fr",
+   "n_steps": 200000,
+   "reference": "replay mode fed with parallel.philox.lta_noise_block(key, step0, n_moves, N)",
+   "seed": 15400,
+   "threads": 16
+  },
+  {
+   "N": 512,
+   "deaths": 0,
+   "kernel_equals_philox_module": true,
+   "keys_differing": [],
+   "method": "abf",
+   "n_steps": 60000,
+   "reference": "replay mode fed with parallel.philox.lta_noise_block(key, step0, n_moves, N)",
+   "seed": 15400,
+   "threads": 16
+  },
+  {
+   "N": 512,
+   "deaths": 143,
+   "kernel_equals_philox_module": true,
+   "keys_differing": [],
+   "method": "fr",
+   "n_steps": 60000,
+   "reference": "replay mode fed with parallel.philox.lta_noise_block(key, step0, n_moves, N)",
+   "seed": 15400,
+   "threads": 16
+  }
+ ],
+ "counter_map_passed": true,
+ "engine": "lta_parallel/1",
+ "meta": {
+  "compile_target": {
+   "cpu_features_sha256": "efd41a143d0c9ac864750a60c994989e71a3fc40dd7b8d87e29bc545fd853e8d",
+   "cpu_name": "znver4"
+  },
+  "cpus": [
+   64,
+   65,
+   66,
+   67,
+   68,
+   69,
+   70,
+   71,
+   72,
+   73,
+   74,
+   75,
+   76,
+   77,
+   78,
+   79
+  ],
+  "engine": "lta_parallel/1",
+  "git_commit": "ef8ebc2080768d6aadfddf70b36738a17e8c1a96",
+  "git_dirty": false,
+  "git_status": "",
+  "host": "atlas",
+  "imported_utc": "2026-10-11T08:40:54Z",
+  "numba": "0.68.0",
+  "numba_cache": {
+   "dependency_files": [
+    "src/parallel/lta_parallel.py",
+    "src/parallel/philox.py",
+    "src/parallel/__init__.py",
+    "src/lta_ladder_numba.py"
+   ],
+   "dependency_fingerprint": "170a9d1e81e2ce8b0c67825916a93cb5451335085e6005f3b01c8f55aa1598a2",
+   "kernel_cache_hits": 1,
+   "kernel_cache_misses": 0,
+   "kernel_cache_path": "/home/zheyuanlai/.cache/numba_final_par/parallel_7cab55283539d1e7df6691e4247fdffb3abd4af6",
+   "locator": "DepUserProvidedCacheLocator",
+   "mode": "dependency-keyed",
+   "numba_cache_dir": "/home/zheyuanlai/.cache/numba_final_par"
+  },
+  "numpy": "2.4.6",
+  "selfcheck": {
+   "N": 16,
+   "dependency_fingerprint": "170a9d1e81e2ce8b0c67825916a93cb5451335085e6005f3b01c8f55aa1598a2",
+   "fr_events": 21,
+   "kernel_counter_equals_philox_module": true,
+   "kernel_equals_validated": true,
+   "keys_differing_philox": [],
+   "keys_differing_validated": [],
+   "n_steps": 200,
+   "passed": true,
+   "pid": 2934775,
+   "seed": 15409,
+   "threads": 1,
+   "wall_s": 0.2846937607973814
+  },
+  "sources_sha256": {
+   "src/lta_ladder_numba.py": "d2d3c4313fc52bc37e047e30cb607e958b168fcff2dee8b24d9aa12b925a804b",
+   "src/parallel/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "src/parallel/lta_parallel.py": "83a82eadb7c9db6cef263181bb65cd5538c29fae9e3330023d01c6e0b4b954c4",
+   "src/parallel/philox.py": "db996b3819dc06541a96d3b614abf14cd34fc21de320dc5c5e403bb12dcf7f59"
+  }
+ },
+ "rows": [
+  {
+   "N": 2,
+   "deaths": 0,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 0,
+     "n_steps": 40000
+    }
+   ],
+   "method": "abf",
+   "n_steps": 40000,
+   "threads": 1,
+   "vs_threads": 1,
+   "wall_total_s": 0.13430276606231928
+  },
+  {
+   "N": 2,
+   "deaths": 0,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 0,
+     "n_steps": 40000
+    }
+   ],
+   "method": "abf",
+   "n_steps": 40000,
+   "threads": 2,
+   "vs_threads": 1,
+   "wall_total_s": 0.21271298360079527
+  },
+  {
+   "N": 2,
+   "deaths": 0,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 0,
+     "n_steps": 40000
+    }
+   ],
+   "method": "abf",
+   "n_steps": 40000,
+   "threads": 4,
+   "vs_threads": 1,
+   "wall_total_s": 0.24128969199955463
+  },
+  {
+   "N": 2,
+   "deaths": 0,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 0,
+     "n_steps": 40000
+    }
+   ],
+   "method": "abf",
+   "n_steps": 40000,
+   "threads": 8,
+   "vs_threads": 1,
+   "wall_total_s": 0.28329765144735575
+  },
+  {
+   "N": 2,
+   "deaths": 0,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 0,
+     "n_steps": 40000
+    }
+   ],
+   "method": "abf",
+   "n_steps": 40000,
+   "threads": 16,
+   "vs_threads": 1,
+   "wall_total_s": 0.3872552588582039
+  },
+  {
+   "N": 16,
+   "deaths": 0,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 0,
+     "n_steps": 200000
+    }
+   ],
+   "method": "abf",
+   "n_steps": 200000,
+   "threads": 1,
+   "vs_threads": 1,
+   "wall_total_s": 3.4584555169567466
+  },
+  {
+   "N": 16,
+   "deaths": 0,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 0,
+     "n_steps": 200000
+    }
+   ],
+   "method": "abf",
+   "n_steps": 200000,
+   "threads": 2,
+   "vs_threads": 1,
+   "wall_total_s": 2.6695937803015113
+  },
+  {
+   "N": 16,
+   "deaths": 0,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 0,
+     "n_steps": 200000
+    }
+   ],
+   "method": "abf",
+   "n_steps": 200000,
+   "threads": 4,
+   "vs_threads": 1,
+   "wall_total_s": 2.0034053698182106
+  },
+  {
+   "N": 16,
+   "deaths": 0,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 0,
+     "n_steps": 200000
+    }
+   ],
+   "method": "abf",
+   "n_steps": 200000,
+   "threads": 8,
+   "vs_threads": 1,
+   "wall_total_s": 1.6754018208011985
+  },
+  {
+   "N": 16,
+   "deaths": 0,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 0,
+     "n_steps": 200000
+    }
+   ],
+   "method": "abf",
+   "n_steps": 200000,
+   "threads": 16,
+   "vs_threads": 1,
+   "wall_total_s": 1.9929624013602734
+  },
+  {
+   "N": 16,
+   "deaths": 85,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 20,
+     "n_steps": 200000
+    },
+    {
+     "deaths": 41,
+     "n_steps": 400000
+    },
+    {
+     "deaths": 85,
+     "n_steps": 800000
+    }
+   ],
+   "method": "fr",
+   "n_steps": 800000,
+   "threads": 1,
+   "vs_threads": 1,
+   "wall_total_s": 14.179706797003746
+  },
+  {
+   "N": 16,
+   "deaths": 85,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 20,
+     "n_steps": 200000
+    },
+    {
+     "deaths": 41,
+     "n_steps": 400000
+    },
+    {
+     "deaths": 85,
+     "n_steps": 800000
+    }
+   ],
+   "method": "fr",
+   "n_steps": 800000,
+   "threads": 2,
+   "vs_threads": 1,
+   "wall_total_s": 9.028036461211741
+  },
+  {
+   "N": 16,
+   "deaths": 85,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 20,
+     "n_steps": 200000
+    },
+    {
+     "deaths": 41,
+     "n_steps": 400000
+    },
+    {
+     "deaths": 85,
+     "n_steps": 800000
+    }
+   ],
+   "method": "fr",
+   "n_steps": 800000,
+   "threads": 4,
+   "vs_threads": 1,
+   "wall_total_s": 7.95906060282141
+  },
+  {
+   "N": 16,
+   "deaths": 85,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 20,
+     "n_steps": 200000
+    },
+    {
+     "deaths": 41,
+     "n_steps": 400000
+    },
+    {
+     "deaths": 85,
+     "n_steps": 800000
+    }
+   ],
+   "method": "fr",
+   "n_steps": 800000,
+   "threads": 8,
+   "vs_threads": 1,
+   "wall_total_s": 7.2000967264175415
+  },
+  {
+   "N": 16,
+   "deaths": 85,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 20,
+     "n_steps": 200000
+    },
+    {
+     "deaths": 41,
+     "n_steps": 400000
+    },
+    {
+     "deaths": 85,
+     "n_steps": 800000
+    }
+   ],
+   "method": "fr",
+   "n_steps": 800000,
+   "threads": 16,
+   "vs_threads": 1,
+   "wall_total_s": 7.853105606511235
+  },
+  {
+   "N": 64,
+   "deaths": 0,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 0,
+     "n_steps": 200000
+    }
+   ],
+   "method": "abf",
+   "n_steps": 200000,
+   "threads": 1,
+   "vs_threads": 1,
+   "wall_total_s": 12.79326339904219
+  },
+  {
+   "N": 64,
+   "deaths": 0,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 0,
+     "n_steps": 200000
+    }
+   ],
+   "method": "abf",
+   "n_steps": 200000,
+   "threads": 2,
+   "vs_threads": 1,
+   "wall_total_s": 6.773141568526626
+  },
+  {
+   "N": 64,
+   "deaths": 0,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 0,
+     "n_steps": 200000
+    }
+   ],
+   "method": "abf",
+   "n_steps": 200000,
+   "threads": 4,
+   "vs_threads": 1,
+   "wall_total_s": 4.4267234187573195
+  },
+  {
+   "N": 64,
+   "deaths": 0,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 0,
+     "n_steps": 200000
+    }
+   ],
+   "method": "abf",
+   "n_steps": 200000,
+   "threads": 8,
+   "vs_threads": 1,
+   "wall_total_s": 3.0429146895185113
+  },
+  {
+   "N": 64,
+   "deaths": 0,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 0,
+     "n_steps": 200000
+    }
+   ],
+   "method": "abf",
+   "n_steps": 200000,
+   "threads": 16,
+   "vs_threads": 1,
+   "wall_total_s": 4.564110303297639
+  },
+  {
+   "N": 64,
+   "deaths": 72,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 72,
+     "n_steps": 200000
+    }
+   ],
+   "method": "fr",
+   "n_steps": 200000,
+   "threads": 1,
+   "vs_threads": 1,
+   "wall_total_s": 13.042724430561066
+  },
+  {
+   "N": 64,
+   "deaths": 72,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 72,
+     "n_steps": 200000
+    }
+   ],
+   "method": "fr",
+   "n_steps": 200000,
+   "threads": 2,
+   "vs_threads": 1,
+   "wall_total_s": 6.984687391668558
+  },
+  {
+   "N": 64,
+   "deaths": 72,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 72,
+     "n_steps": 200000
+    }
+   ],
+   "method": "fr",
+   "n_steps": 200000,
+   "threads": 4,
+   "vs_threads": 1,
+   "wall_total_s": 4.6791253900155425
+  },
+  {
+   "N": 64,
+   "deaths": 72,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 72,
+     "n_steps": 200000
+    }
+   ],
+   "method": "fr",
+   "n_steps": 200000,
+   "threads": 8,
+   "vs_threads": 1,
+   "wall_total_s": 3.365108059719205
+  },
+  {
+   "N": 64,
+   "deaths": 72,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 72,
+     "n_steps": 200000
+    }
+   ],
+   "method": "fr",
+   "n_steps": 200000,
+   "threads": 16,
+   "vs_threads": 1,
+   "wall_total_s": 2.936321153305471
+  },
+  {
+   "N": 512,
+   "deaths": 0,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 0,
+     "n_steps": 60000
+    }
+   ],
+   "method": "abf",
+   "n_steps": 60000,
+   "threads": 1,
+   "vs_threads": 1,
+   "wall_total_s": 30.039056884124875
+  },
+  {
+   "N": 512,
+   "deaths": 0,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 0,
+     "n_steps": 60000
+    }
+   ],
+   "method": "abf",
+   "n_steps": 60000,
+   "threads": 2,
+   "vs_threads": 1,
+   "wall_total_s": 16.043667322024703
+  },
+  {
+   "N": 512,
+   "deaths": 0,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 0,
+     "n_steps": 60000
+    }
+   ],
+   "method": "abf",
+   "n_steps": 60000,
+   "threads": 4,
+   "vs_threads": 1,
+   "wall_total_s": 8.462944228202105
+  },
+  {
+   "N": 512,
+   "deaths": 0,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 0,
+     "n_steps": 60000
+    }
+   ],
+   "method": "abf",
+   "n_steps": 60000,
+   "threads": 8,
+   "vs_threads": 1,
+   "wall_total_s": 4.790161916986108
+  },
+  {
+   "N": 512,
+   "deaths": 0,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 0,
+     "n_steps": 60000
+    }
+   ],
+   "method": "abf",
+   "n_steps": 60000,
+   "threads": 16,
+   "vs_threads": 1,
+   "wall_total_s": 4.561036253347993
+  },
+  {
+   "N": 512,
+   "deaths": 143,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 143,
+     "n_steps": 60000
+    }
+   ],
+   "method": "fr",
+   "n_steps": 60000,
+   "threads": 1,
+   "vs_threads": 1,
+   "wall_total_s": 30.33214231673628
+  },
+  {
+   "N": 512,
+   "deaths": 143,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 143,
+     "n_steps": 60000
+    }
+   ],
+   "method": "fr",
+   "n_steps": 60000,
+   "threads": 2,
+   "vs_threads": 1,
+   "wall_total_s": 16.376169712282717
+  },
+  {
+   "N": 512,
+   "deaths": 143,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 143,
+     "n_steps": 60000
+    }
+   ],
+   "method": "fr",
+   "n_steps": 60000,
+   "threads": 4,
+   "vs_threads": 1,
+   "wall_total_s": 8.688943341374397
+  },
+  {
+   "N": 512,
+   "deaths": 143,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 143,
+     "n_steps": 60000
+    }
+   ],
+   "method": "fr",
+   "n_steps": 60000,
+   "threads": 8,
+   "vs_threads": 1,
+   "wall_total_s": 4.90087288338691
+  },
+  {
+   "N": 512,
+   "deaths": 143,
+   "invariant": true,
+   "keys_differing": [],
+   "length_attempts": [
+    {
+     "deaths": 143,
+     "n_steps": 60000
+    }
+   ],
+   "method": "fr",
+   "n_steps": 60000,
+   "threads": 16,
+   "vs_threads": 1,
+   "wall_total_s": 4.277767783030868
+  }
+ ],
+ "test": "V-B2 counter thread invariance + V-B5 pairing (LTA 150 K)",
+ "utc": "2026-10-11T08:45:53Z",
+ "vb2_passed": true,
+ "vb5": [
+  {
+   "N": 16,
+   "first_death_step": 21145,
+   "n_saves_before_death": 287,
+   "n_steps": 800000,
+   "passed": true,
+   "saves_before_death_identical": true,
+   "state_at_d_differs": true,
+   "state_at_d_minus_1_identical": true
+  },
+  {
+   "N": 64,
+   "first_death_step": 20395,
+   "n_saves_before_death": 354,
+   "n_steps": 200000,
+   "passed": true,
+   "saves_before_death_identical": true,
+   "state_at_d_differs": true,
+   "state_at_d_minus_1_identical": true
+  },
+  {
+   "N": 512,
+   "first_death_step": 20005,
+   "n_saves_before_death": 413,
+   "n_steps": 60000,
+   "passed": true,
+   "saves_before_death_identical": true,
+   "state_at_d_differs": true,
+   "state_at_d_minus_1_identical": true
+  }
+ ],
+ "vb5_passed": true
+}
