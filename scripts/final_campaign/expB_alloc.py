@@ -583,6 +583,9 @@ class Monitor:
             path = info.get("telemetry")
             if not rid or not path:
                 continue
+            drv = (info.get("driver") or {}).get("pid")
+            if self.parent is not None and drv is not None and int(drv) != int(self.parent):
+                continue                      # another driver's run: its own monitor samples it (no double rows)
             live.add(rid)
             cpus = [int(c) for c in info.get("cpus", [])]
             cores = [int(c) for c in info.get("cores", [])]

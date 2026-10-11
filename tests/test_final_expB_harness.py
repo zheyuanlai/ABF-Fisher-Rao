@@ -514,6 +514,35 @@ def test_monitor_first_sight_and_exit_rows(tmp_path):
     assert list(T2["init"]) == [1] and T2["own"][0, T2["cpus"].index(121)] == 0
 
 
+def test_monitor_samples_only_its_own_drivers_runs(tmp_path):
+    """Concurrent drivers each start a monitor (--parent = driver pid): a monitor writes rows only for runs whose
+    allocation names its parent as driver (or no driver), so two monitors never append to the same telemetry file."""
+    reg = A.Registry(str(tmp_path / "reg"))
+    tel_a, tel_b = str(tmp_path / "a.telemetry.jsonl"), str(tmp_path / "b.telemetry.jsonl")
+    reg.acquire([OUR_CCD], dict(run_id="ra", telemetry=tel_a, cores=[120], cpus=A.ccd_cpus(OUR_CCD), threads=1,
+                                driver=dict(pid=111, start=0)))
+    reg.acquire([OUR_CCD - 1], dict(run_id="rb", telemetry=tel_b, cores=[112], cpus=A.ccd_cpus(OUR_CCD - 1),
+                                    threads=1, driver=dict(pid=222, start=0)))
+    stat = IncStat({120: 1.0, 112: 1.0})
+    t = [5000.0]
+
+    def clock():
+        t[0] += 1.0
+        return t[0]
+    kw = dict(reader=stat, task_stats=lambda pid: {}, freq=lambda cs: [0] * len(cs), clock=clock, pin=False,
+              uptime=lambda: 100.0, proc_start=lambda pid: 0)
+    mon_a, mon_b = A.Monitor(reg, parent=111, **kw), A.Monitor(reg, parent=222, **kw)
+    for _ in range(3):
+        mon_a.sample_once()
+        mon_b.sample_once()
+    hdr = lambda p: [json.loads(x)["monitor_pid"] for x in open(p) if '"hdr"' in x]
+    assert len(hdr(tel_a)) == 1 and len(hdr(tel_b)) == 1             # one header each: one monitor per file
+    assert set(mon_a.runs) == {"ra"} and set(mon_b.runs) == {"rb"}
+    mon_any = A.Monitor(reg, **kw)                                     # no parent (tests, ad hoc): every run
+    mon_any.sample_once()
+    assert set(mon_any.runs) == {"ra", "rb"}
+
+
 def _tel_rows(cpus, cores, rows):
     """telemetry dict from rows (t, tp, busy{cpu: j}, own{cpu: j}, init, x, pid)."""
     return dict(cpus=list(cpus), cores=list(cores), t=np.array([r[0] for r in rows], float),

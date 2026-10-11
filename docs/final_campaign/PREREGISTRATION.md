@@ -645,3 +645,64 @@ validated engine, counter vs replay fed with the Philox block) and aborts on mis
 
 **A2.6 Run boundaries.** Each timed child waits for one monitor sample after importing the engine and after writing
 its record (≈ 1 s per run, outside the timed region), so the telemetry intervals bracket the timed window exactly.
+
+## Amendment 3 (2026-10-11, ≈ 09:50 UTC; written AFTER the gateway V-B4 verdict (FAIL, 09:04) and a post-hoc diagnostic of it (09:25–09:45), and BEFORE any feasibility benchmark of either system, any Experiment B production run, and the LTA 150 K V-B4 verdict — its runs are in progress (98/144); their per-run Ī_F values scroll in the runner log, and no comparison has been computed)
+
+**A3.1 The frozen gateway verdict stands.** Gateway V-B4 (`results/final_campaign/expB/equiv/gateway/vb4.json`):
+ABF 16 ratio of median Ī_F 1.30 [1.07, 1.46] — FAIL (point outside the extension window [0.93, 1.075]); G difference
+at N 512 +0.056 [−0.034, +0.180] — FAIL (point outside ±0.05); ABF 512 0.94 [0.87, 1.08] PASS; FR 512 1.06
+[0.91, 1.21] EXTEND. By §3 stopping rule (ii) the **confirmatory** Experiment B for the gateway is stopped. Nothing
+below changes that: no gateway Experiment B result is a preregistered confirmatory finding.
+
+**A3.2 Post-hoc diagnostic (not preregistered).** `scripts/final_campaign/expB_diag_vb4_abf16.py`, seeds outside every
+preregistered block, 68 single-thread runs, 4.0 core-h; `results/final_campaign/expB/diagnostics/vb4_abf16/`
+(`diagnostic_summary.json`, `null_control_ratios.json`). All ratios below use the frozen V-B4 bootstrap
+(`expB_equivalence.ratio_of_medians`):
+
+| comparison (ABF N 16, full budget) | ratio of median Ī_F [95 % CI] |
+|---|---|
+| parallel engine, replay mode, full length, seeds 8500–8503 vs validated engine | **bitwise identical 4/4** |
+| counter 8500–8531 vs validated engine on the **same labels** 8500–8531 | 1.05 [0.84, 1.35] (MW p 0.46; per-seed Spearman 0.16) |
+| counter **fresh** 8740–8771 vs validated confirmation 8200–8263 | 1.00 [0.83, 1.20] |
+| all counter (64) vs all validated (128) | 1.11 [0.99, 1.25] (MW p 0.09) |
+| **null control:** validated 8500–8531 vs validated 8100–8131 (the frozen reference) | **1.24 [0.90, 1.54]** |
+| null control: validated 8200–8231 vs validated 8100–8131 | 1.15 [0.91, 1.36] |
+| null control: validated 8232–8263 vs validated 8100–8131 | 1.08 [0.91, 1.25] |
+
+Reading: (i) the parallel kernel performs the validated engine's arithmetic exactly (bitwise over the whole budget);
+counter mode differs only in its noise source, which passed V-B3. (ii) No law difference is detected (same labels
+1.05, fresh block 1.00 against the larger validated block). (iii) **The frozen ABF-16 criterion is not attainable at
+n = 32 per side: the validated engine fails it against itself in 3/3 null controls** (upper CI ends 1.25–1.54 > 1.18),
+because medians of ABF-16 Ī_F vary by up to ×1.24 between blocks of 32 validated seeds (sd of log Ī_F 0.30–0.39). The
+preregistered gate therefore had no power to certify equivalence for this arm — a design defect of the gate (its own
+null control fails it), recorded as such. (iv) The diagnostic does **not** demonstrate equivalence within the frozen
+band either (pooled upper bound 1.25). The G-difference criterion has no null control (one validated N 512 block); its
+CI includes 0 (descriptive permutation p 0.23).
+
+**A3.3 Exploratory gateway continuation (decided now, before any benchmark).**
+* (a) The gateway feasibility benchmark — and production only if the frozen F1/F1b gates pass — run under the
+  otherwise unchanged design (§2.4–§2.8, Amendment 2). Every gateway Experiment B result carries the label
+  **"exploratory (after a frozen V-B4 FAIL; Amendment 3)"**; the §2.7 decision is computed and reported as an
+  *exploratory decision*, and the final synthesis lists it with the hypotheses, not the established results.
+* (b) **Law-insensitive robustness analysis, frozen now.** For every gateway production arm, a hybrid projection
+  W_hyb(s) = τ_mid,u(s) × B × w̄_arm, with τ_mid,u the validated engine's per-seed persistent mid-threshold time from the
+  equal-budget production (8100–8131, same N and method, `tau_bgrid_e_F_mid_u` per A2.3, censored = ∞) and w̄_arm the
+  arm's median measured wall time per walker-step over its uncontended production runs. The §2.7 decision rule is
+  applied to W_hyb (bootstrap over the validated seeds, same conventions; an arm whose (N, method) has no validated
+  ladder point is omitted and listed). The exploratory decision is **"robust to the backend's law"** only if the
+  measured and the hybrid decisions carry the same label; otherwise it is **"law-sensitive"** and reported as such.
+* (c) The frozen V-B4 extension is not run for the gateway (not licensed by the frozen windows) and no further
+  gateway equivalence runs are made.
+* (d) Priority: the LTA 150 K confirmatory path, if its V-B4 licenses it, takes precedence for cores and budget; the
+  gateway runs only inside the unchanged Experiment B cap and projection gate.
+
+**A3.4 LTA 150 K.** Its V-B4 rule is unchanged. For transparency the analogous null control (validated production
+15000–15015 vs new validated 15340–15355, 16 vs 16) is reported beside the verdict; it does not decide.
+
+**A3.5 Concurrent benchmark drivers (engineering).** The benchmark is ≈ 1.3 h (gateway) and ≈ 4.5–6.5 h (LTA) of
+sequential runs. Up to three benchmark drivers may run at once (gateway; LTA in two disjoint halves of its
+configuration list), each with its own telemetry monitor. The monitor now samples only runs allocated by its own
+driver (`expB_alloc.Monitor`: a run whose allocation names another driver pid is skipped; test
+`test_monitor_samples_only_its_own_drivers_runs`; no engine change). Every timed run still holds its own CCD(s) per
+§2.4, and no two runs of this campaign share a CCD or SMT siblings. The LTA benchmark may run before its V-B4 verdict;
+per §2.3 it is interpreted only after that verdict.

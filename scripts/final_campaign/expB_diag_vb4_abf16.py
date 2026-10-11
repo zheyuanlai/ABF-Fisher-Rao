@@ -127,6 +127,11 @@ def main():
     ap.add_argument("--cpus", default="0-31")
     ap.add_argument("--which", default="all", choices=["A", "B", "C", "all"])
     ap.add_argument("--analyze", action="store_true")
+    ap.add_argument("--worker", type=int, default=None,
+                    help="static-partition mode: run jobs j with j %% nworkers == worker sequentially in THIS process "
+                         "(launch each worker under its own single-core taskset: the parallel engine's libgomp binds "
+                         "the master thread to the first cpu of the affinity set)")
+    ap.add_argument("--nworkers", type=int, default=1)
     a = ap.parse_args()
     if a.analyze:
         analyze()
@@ -142,6 +147,12 @@ def main():
         jobs += [("A", s) for s in SEEDS_A]
     if a.which in ("B", "all"):
         jobs += [("B", s) for s in SEEDS_B]
+    if a.worker is not None:
+        for j, job in enumerate(jobs):
+            if j % a.nworkers == a.worker:
+                rec = _job(job)
+                print(rec["which"], rec["seed"], round(rec["Ibar_F"], 7), flush=True)
+        return
     ctx = mp.get_context("spawn")
     with ctx.Pool(len(cpus), maxtasksperchild=1) as pool:
         for rec in pool.imap_unordered(_job, jobs):
