@@ -74,9 +74,13 @@ def main():
         assert arms[s]["abf"]["nfe"] == arms[s]["fr"]["nfe"], "force evaluations must match"
     out = {"n_seeds": len(seeds), "K": a.K, "seeds": seeds}
     for key in ("Ibar_F", "eF_T", "eG_T", "late_eF", "tv_mean", "transloc"):
-        d = [arms[s]["fr"][key] / arms[s]["abf"][key] - 1 for s in seeds]
+        if key == "transloc":      # a count: report the paired DIFFERENCE (fr - abf), not a ratio
+            d = [arms[s]["fr"][key] - arms[s]["abf"][key] for s in seeds]
+        else:
+            d = [arms[s]["fr"][key] / arms[s]["abf"][key] - 1 for s in seeds]
         med, lo, hi = boot_median(d)
         out[key] = dict(median_rel=med, ci95=[lo, hi], wins_fr=int(sum(x < 0 for x in d)),
+                        kind="difference" if key == "transloc" else "relative",
                         abf_median_abs=float(np.median([arms[s]["abf"][key] for s in seeds])),
                         fr_median_abs=float(np.median([arms[s]["fr"][key] for s in seeds])), per_seed=d)
     out["fr_genealogy"] = dict(min_essw=float(np.median([arms[s]["fr"]["essw_min"] for s in seeds])),
