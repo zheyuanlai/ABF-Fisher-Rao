@@ -45,8 +45,10 @@ $P scripts/eri_campaign/classify_screen.py results/overnight/ite/screen --refbas
 1. **Early-phase FR test (recommended).**
    * In all three cells, 34–57 % of ABF's integrated error accrues before the window population is established at
      3–11 t.u.
+   * Audit F3 correction: the share addressable AFTER the ramp is only 16–26 %, and ITE 300 K has the smallest
+     (16–20 %). A meaningful test needs FR from t = 0, i.e. during the ramp, as a separately preregistered variant.
    * Design:
-     * cell: ITE 300 K (the largest share, about 55 %);
+     * cell: ITE 150 K or ERI;
      * K 1024; two arms only;
      * FR start at the end of the ramp (t = 1 t.u.), or at t = 0 as a second preregistered variant, but not both
        without Holm;

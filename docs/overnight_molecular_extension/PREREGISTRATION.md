@@ -365,3 +365,60 @@ eligible, ≈ 35–45 core-h. The total stays under the remaining 143 core-h.
 * **dt clause on the screen:** D_MF 0.0107 ≤ ⅓ × min-K median e_F(T) = 0.0132. PASS.
 * **Decision:** no FR run for A′-150. Every cell of this extension (ERI 600 K, ITE 300 K, ITE 150 K) is
   ABF-sufficient, so no ABF vs ABF + FR comparison was licensed.
+
+---
+
+## Amendment 8 — audit findings and an EXPLORATORY predictor-validation FR experiment (2026-10-16 ~21:20 UTC; before any FR production run of any cell)
+
+**Audit** (`review/AUDIT_OVERNIGHT.md`, independent, read-only). No classification changes. Every Gate 1/2/3 number
+reproduced, and no walker ever left its channel family. Findings acted on:
+
+* **F1 (high).** The frozen classifier fails a positive control.
+  * Applied approximately to the repo's LTA 150 K ABF data (FR −28.5 % Ī_F against exact MC), it returns
+    ABF-SUFFICIENT.
+  * E′ fires there (21.6 t.u. against 12), but the information clause (I) fails (window deposit share 0.85, window
+    error share 0.07).
+  * So "ABF-sufficient" from this gate is **not** evidence that FR is unnecessary. Amendment 3's question cannot be
+    answered by the gate.
+* **F2.** The 150 K region check of §5 was not performed. Both regions fail the rule (W min βF 22.30 < 22.55; C max
+  βF 2.17 > 1.5). Re-derived regions leave the label unchanged (audit recomputation). Recorded as a deviation.
+* **F3.** Most of the "34–57 % early-phase I_F" accrues during the bias ramp, before FR can start. The share
+  addressable after the ramp is 16–26 %. The HANDOFF recommendation is corrected.
+* **F4.** The 150 K switch to 360 bins compared errors against two different references. With one common reference,
+  360 improves on 180 by 7.1 % (< 10 %), so 180 would have been kept. The label is unaffected; recorded.
+* **F5–F9:** wording, timestamp, reproducibility and horizon-dependence items, corrected in the docs.
+  * F7: Amendment 3's text was written before the full 150 K MC launch (18:48) but committed at 18:49. The 150 K
+    null control ran after the screen and before the classification.
+
+**Why an FR experiment now.**
+* The 2026-10-16 instruction (§11) asks whether ABF population establishment, information starvation, conditional
+  relaxation and replica diversity **predict FR performance**.
+* With the eligibility gate shown to give a false negative on the known positive, the only way to test the predictors
+  is to measure FR on characterised cells.
+* This is a **predictor-validation experiment, labelled EXPLORATORY**. It is NOT licensed by the frozen eligibility
+  gate, and it makes no claim of the "FR beats ABF on a confirmatory, gate-licensed cell" type. The frozen
+  classifications are unchanged.
+
+**Design (frozen now; the §6 FR protocol, verbatim):**
+
+| cell | system | K | config | FR calibration seeds | paired block seeds | pre-specified predictor values |
+|---|---|---|---|---|---|---|
+| X1 | ITE 300 K | 1024 | A′ frozen: dt 1e-4, T 50, ramp 1, pre-eq 5, 180 bins | 960 000–960 002 | 16 seeds, 980 000+ | E′ run 4 / 10 t.u.; early I_F share 52 %; window error share 0.009; conditional lag 0.87 / 0.78 |
+| X2 | ITE 150 K | 256 | A′-150 frozen: dt 1e-4, T 200, ramp 1, pre-eq 5, 360 bins | 961 000–961 002 | 16 seeds, 981 000+ | E′ run 8 / 40 t.u. (LTA-like horizon: 9.6 / 12); early I_F share 47 %; window error share 0.013; lag 1.27 / 1.17 |
+
+* X1 is the largest E′ ratio among our cells at the frozen horizons. X2 is where the audit found LTA-like deficits at
+  an LTA-like horizon. Both are chosen by the predictors, not by any FR data.
+* **FR rate:** the largest SAFE rate on {0.05, 0.1, 0.2, 0.5, 1, 2} by `scripts/overnight/fr_calibrate.py` (blind).
+* **Block:** one paired 16-seed block per cell. The separate 8-seed exploratory block is dropped: the design is fixed,
+  and the budget is better spent on n = 16.
+* **Analysis:** `scripts/overnight/analyze_two_arm.py`.
+  * Primary: ΔĪ_F, median with 95 % bootstrap CI and wins.
+  * Secondary: Δe_F(T), Δe_F′, Δ late e_F, ΔTV, translocations, genealogy, pooled long-time limits.
+* **Prediction from the predictors (recorded now):**
+  * E′ never fires and (I) is far from firing in both cells → expect |ΔĪ_F| < 10 %.
+  * X2 is closer to LTA's regime than X1 → if any cell shows an FR gain, X2 should show the larger one.
+  * Both directions are reported.
+* **Two arms only.** ABF and ABF + uniform FR share IC and noise streams slot by slot. Pairing is checked:
+  bitwise-identical states before the first FR event.
+* **Budget:** calibration about 11.7 (X1) + 4.7 (X2) core-h; blocks about 20.8 + 8.3 core-h; total ≈ 46 core-h,
+  giving a cumulative ≈ 163 of 200.

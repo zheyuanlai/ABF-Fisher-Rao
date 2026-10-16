@@ -112,6 +112,17 @@ Engine tests (above). FR is never run in production because no cell is eligible.
 | consistency at dt 1e-4 (Amendment 5) | 0.0390 vs 0.0411, ratio 0.95, **PASS** |
 | bins (dt 1e-4) | K 1024 e_F(T) 0.0380 / 0.0390 / 0.0348 for 90 / 180 / 360 bins; floor share of 180 = 10.2 % and 360 better by 10.7 % → **360 bins** (thin margins, rule applied as written) |
 
+### Deviations found by the independent audit (`review/AUDIT_OVERNIGHT.md`)
+
+* **F2.** The §5 region check was not run at 150 K, and both regions fail it. Re-derived regions (W |φ| < 0.454)
+  leave the label unchanged.
+* **F4.** The 360-bin switch compared errors against different references. With one common reference, 360 improves on
+  180 by 7.1 %, so 180 would have been kept. The label is unaffected. The smooth-vs-MC reference difference is 0.0020
+  RMS (0.0040 max), not "0.004 RMS".
+* **F6.** The dt clause used D_MF against MC F_density. Measured against F_MF it is 0.0147, still above ⅓ × 0.0411.
+  The decision stands.
+* **F7.** The null control ran after the screen but before the classification.
+
 ### Classifier null control at the 8 t.u. block design
 
 FP 0/300 at every K. Power for a 40 % deficit: 68 / 98 / 100 % at K 64 / 256 / 1024.

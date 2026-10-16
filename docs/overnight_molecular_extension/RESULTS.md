@@ -12,7 +12,12 @@ ESTABLISHMENT-LIMITED.*
 | ethane / Si-ITE (ITQ-3), 300 K, infinite dilution | labelled model (Dubbeldam 2004 UA FF); NOT a reproduction of Combariza 2011 | 39.7 kJ/mol = 15.9 kBT | **48 %** | **ABF-sufficient** at all K | no (not licensed) |
 | ethane / Si-ITE (ITQ-3), **150 K**, infinite dilution | same model; second temperature (Amendment 3; LTA 150 K was the repo's clearest establishment-limited cell) | 30.0 kJ/mol = 24.0 kBT | **33 %** | **ABF-sufficient** at all K | no (not licensed) |
 
-**No cell so far has met the preregistered condition for an ABF vs ABF + FR comparison.** No FR production result
+**Important (independent audit, F1):** the frozen eligibility gate also labels the repo's validated LTA 150 K FR
+positive (−28.5 % Ī_F) as ABF-sufficient: its information clause (I) fails there. **"ABF-sufficient" below is
+therefore a property of this gate. It is not evidence that FR is unnecessary.** The establishment test E′ alone does
+fire on LTA 150 K, and it does not fire on ERI or ITE at their frozen horizons.
+
+**No cell met the preregistered condition for an ABF vs ABF + FR comparison.** No FR production result
 exists in this extension, so no "FR helps" or "FR does not help" statement about these systems is supported. What
 is supported is narrower:
 
@@ -79,9 +84,10 @@ Times in t.u., errors in kJ/mol.
   * The barrier is half energetic and half entropic.
   * Crossing the window aligns the molecule with the channel: ⟨u_x²⟩ goes from 0.2–0.4 in the cage to 0.98 at the
     window.
-* **ITE temperature dependence.** ΔU = 20.6 / 20.2 kJ/mol at 300 / 150 K, while −TΔS = 19.1 / 9.8 kJ/mol. The entropy
-  of the window barrier is T-independent within noise (ΔS ≈ −64 / −65 J mol⁻¹ K⁻¹), so the barrier becomes more
-  energetic at low T.
+* **ITE temperature dependence.** ΔU = 20.61 / 20.16 kJ/mol at 300 / 150 K, while −TΔS = 19.09 / 9.81 kJ/mol.
+  * The barrier entropy changes only slightly: ΔS = −63.6 / −65.4 J mol⁻¹ K⁻¹. The 3 % difference is statistically
+    resolved (audit F5).
+  * So the barrier becomes more energetic at low T.
 * **Numerics.**
   * EM at dt 2e-4 is admissible for ERI at 600 K (D 0.037 kJ/mol against a 0.05 tolerance). It is NOT admissible for
     ITE at 300 K (D 0.036 against 0.03), so ITE uses dt 1e-4.
@@ -96,3 +102,11 @@ See `CANDIDATES.md`:
 * E (H-SAPO-34): parameters closed, and over 10³× the budget.
 * D (CH4 pair in a water-filled pore): feasible with model changes (smooth walls, a rigid-water integrator); the
   barrier is ≤ 3 kT and solvent-controlled, so it is expected to be ABF-sufficient. Deprioritised.
+
+## Exploratory predictor-validation FR experiment (Amendment 8)
+
+Status: running. Not licensed by the eligibility gate; labelled exploratory. Cells and seeds:
+* X1: ITE 300 K, K 1024;
+* X2: ITE 150 K, K 256.
+
+Results will be added here.
