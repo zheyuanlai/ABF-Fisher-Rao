@@ -187,3 +187,54 @@ first-window-entry time.
   freezes them before any FR error is computed.
 * **If no dilute cell is eligible:** the dilute cell is an ABF-sufficient result. The campaign proceeds to the
   loading study (§2.3 of the campaign prompt), which needs its own Gates 1–3 at each loading.
+
+---
+
+## Amendment 2 — classifier power repair, before the screen is classified (2026-10-16 17:25 UTC)
+
+**Why.** The independent audit (`audit/AUDIT1_PREREG.md` F1; `audit/AUDIT1_REFERENCE_STATISTICS.md` F1/F2) showed
+that the A1.4 establishment test (E) has no power:
+* its per-save threshold 0.5 N Q\* − 2 sd is ≤ 0 at N = 64 (vacuous);
+* at N = 256 / 1024 it needs a 74–91 % deficit;
+* its null false-positive rate is 0.
+
+The conditional-lag test 2(b) also has little power (a median of single-save ratios; η only). Both are replaced
+below. The new tests have measured null and power behaviour (`tests/test_eri_metrics.py`).
+
+**Blindness statement.**
+* The coordinator has not run the classifier on, or looked at classification statistics of, `screen_dilute`.
+* One auditor (statistics lens) did load the screen files to compute the positivity of the OLD threshold. It reported
+  "threshold positive in 3–13 % of [2, T]" and "longest positive-threshold span 1.1–5.1 t.u.". That figure measures
+  the old rule's vacuity, not the occupancy outcome. The design auditor did not read the screen.
+* The calibration runs at the frozen configuration were seen by everyone. They show window occupancy at 0.9–1.2× its
+  target and a window error share of 0.03–0.21.
+
+**A2.1 Establishment (E′), replacing A1.4-3(E).**
+* R(t) = window fraction / Q\*_W(t) is averaged over consecutive 2 t.u. blocks in [2, T].
+* A block is deficient if mean R < 0.75 AND 1 − mean R > 3 sd_null. sd_null is the binomial null sd of the block
+  mean, with n_eff = block/0.5 t.u. independent saves.
+* (E′) holds if the median over seeds of the longest run of consecutive deficient blocks is ≥ 0.2 T = 8 t.u.
+* Measured power (`metrics.establishment_blocks`; AR(1)-correlated synthetic occupancy, 12 t.u. deficit):
+
+  | N | detection rate by deficit |
+  |---|---|
+  | 1024 | 71 % at a 30 % deficit, 99 % at 40 % |
+  | 256 | 41 % at 30 %, 87 % at 40 %, 99 % at 50 % |
+  | 64 | 26 % at 50 %, 57 % at 60 %, 95 % at 80 % |
+
+  False positives: 0/200 at every N. Small-N power is limited by the binomial noise floor; this is reported, not
+  hidden.
+* The A1.4 (E) statistic is still computed and reported, labelled "frozen A1 rule (vacuous)".
+
+**A2.2 Conditional lag (2b′), replacing A1.4-2(b).**
+* For η and u_x², take the count-weighted RMS over coarse bins of (time-averaged population conditional mean over
+  saves in [T/2, T]) − (reference conditional mean).
+* Its iid floor uses n_eff = Σ_t n_b(t) · Δt/0.5 t.u. The reference conditional means and variances come from the
+  Gate 2 EM-2e-4 umbrella time series (the Gate 1 accumulators store no second moments).
+* (2b′) fires if either variable's statistic exceeds 3 × floor. Measured: a 0.15 lag in η at N = 256 fires; the null
+  does not (test).
+* (2a) is kept as frozen. A descriptive diagnostic is added, without changing the label: the ratio e_F(T) / e_F(late,
+  deposits after 2 t.u.), which records the early-deposit transient (audit F2/F7).
+
+**A2.3 Unchanged:** the discovery test, the information test (I), the classifier order and every threshold not named
+above.

@@ -181,3 +181,61 @@ def reference_smooth(ng, variant="gard_tait"):
     e = -math.pi + np.arange(ng + 1) * d
     G = (fs(e[1:]) - fs(e[:-1])) / d
     return histogram_pmf(G), G
+
+
+def establishment_blocks(t, frac, Q, N, t_from=2.0, block=2.0, deficit=0.25, z=3.0, tau_corr=0.5):
+    """Powered establishment test (PREREGISTRATION Amendment 2, replaces the vacuous per-save rule of A1.4-3E).
+
+    The window occupancy ratio R(t) = frac(t) / Q*_W(t) is averaged over consecutive blocks of ``block`` t.u. in
+    [t_from, T].  A block is DEFICIENT if  mean R < 1 - deficit  AND  1 - mean R > z * sd_null, where sd_null is the
+    binomial null sd of the block mean for an exactly equilibrated population, sd_null^2 = mean_t[(1 - Q)/(N Q)] / n_eff
+    with n_eff = block / max(tau_corr, save spacing) effectively independent saves.  Returns (block ratios,
+    deficiency flags, longest run of consecutive deficient blocks in t.u., sd_null per block)."""
+    t = np.asarray(t, float)
+    frac = np.asarray(frac, float)
+    Q = np.maximum(np.asarray(Q, float), 1e-12)
+    T = float(t[-1])
+    edges = np.arange(t_from, T + 1e-9, block)
+    ds = float(np.median(np.diff(t)))
+    n_eff = block / max(tau_corr, ds)
+    ratios, flags, sds = [], [], []
+    for a, b in zip(edges[:-1], edges[1:]):
+        sel = (t >= a) & (t < b)
+        if sel.sum() == 0:
+            continue
+        Rm = float(np.mean(frac[sel] / Q[sel]))
+        sd = float(np.sqrt(np.mean((1 - Q[sel]) / (N * Q[sel])) / n_eff))
+        ratios.append(Rm)
+        sds.append(sd)
+        flags.append(bool(Rm < 1.0 - deficit and (1.0 - Rm) > z * sd))
+    run = best = 0
+    for f in flags:
+        run = run + 1 if f else 0
+        best = max(best, run)
+    return np.array(ratios), np.array(flags), best * block, np.array(sds)
+
+
+def conditional_lag_timeavg(r, ref_means, var, t_from_frac=0.5, tau_corr=0.5, n_coarse=18):
+    """Time-averaged population conditional lag (Amendment 2, replaces A1.4-2b).  For each hidden variable X in
+    {eta, u_x^2} (columns 1, 2 of sv_cond) and coarse bin b, the population mean over saves t >= t_from_frac T is
+    compared with the reference conditional mean; statistic = count-weighted RMS over bins of the lag, floor = the
+    same RMS for iid sampling from the reference conditional law with n_eff = sum_t n_b(t) * ds / max(tau_corr, ds).
+    Returns {name: (stat, floor)}."""
+    sv = r["sv_cond"]
+    t = r["times"]
+    sel = t >= t_from_frac * t[-1]
+    ds = float(np.median(np.diff(t)))
+    w_eff = ds / max(tau_corr, ds)
+    out = {}
+    for col, name in ((1, "eta"), (2, "ux2")):
+        cnt = sv[sel, :, 0].sum(0)
+        s = sv[sel, :, col].sum(0)
+        occ = cnt > 0
+        m = np.where(occ, s / np.maximum(cnt, 1), np.nan)
+        lag = m - ref_means[name]
+        w = cnt / cnt.sum()
+        stat = float(np.sqrt(np.nansum(w * lag ** 2)))
+        n_eff = np.maximum(cnt * w_eff, 1e-12)
+        floor = float(np.sqrt(np.nansum(np.where(occ, w * var[name] / n_eff, 0.0))))
+        out[name] = (stat, floor)
+    return out
