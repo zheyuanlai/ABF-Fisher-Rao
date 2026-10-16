@@ -368,7 +368,7 @@ eligible, ≈ 35–45 core-h. The total stays under the remaining 143 core-h.
 
 ---
 
-## Amendment 8 — audit findings and an EXPLORATORY predictor-validation FR experiment (2026-10-16 ~21:20 UTC; before any FR production run of any cell)
+## Amendment 8 — audit findings and an EXPLORATORY predictor-validation FR experiment (committed 2026-10-16 21:04:11 UTC as 88543cac — an earlier draft said "~21:20", a clock error — before any FR production or calibration run of any cell; FR calibration launched 21:04)
 
 **Audit** (`review/AUDIT_OVERNIGHT.md`, independent, read-only). No classification changes. Every Gate 1/2/3 number
 reproduced, and no walker ever left its channel family. Findings acted on:
