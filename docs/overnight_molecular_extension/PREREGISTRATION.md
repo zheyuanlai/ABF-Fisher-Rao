@@ -250,3 +250,59 @@ eligible, ≈ 35–45 core-h. The total stays under the remaining 143 core-h.
   200 000 MC steps. Langevin runs 64 t.u. per molecule.
 * Gate 2 candidates are EM 2e-4 and EM 1e-4. LM 2e-4 and EM 5e-5 run only if both fail (budget). Config:
   `configs/overnight/ite150/reference.json`.
+
+## Amendment 4 — A′-150: Gate 1/2 verdicts and horizon (2026-10-16 ~19:58 UTC; ABF-only data only)
+
+* **Gate 1 (MC, 64 windows, κ 250, 16 groups): PASS on every check.**
+  * Min fine count: 298 429.
+  * D(F_density, F_MF): 0.0103 [0.0115].
+  * Split-half: 0.000 [0.0034].
+  * Equilibration: 0.000 [0.0040].
+  * Closure: 0.0013 ± 0.0007 (< 3 se).
+  * Noise: 0.0023 kJ/mol.
+  * Barrier: **29.97 kJ/mol = 24.03 kBT**. ΔU = 20.16 and −TΔS = 9.81 kJ/mol, so **33 % entropic**. ΔU is
+    unchanged from 300 K (20.61); the entropic part halves with T, as expected for a T-independent ΔS.
+* **Gate 2:**
+
+  | candidate | D_density [upper] | D_MF [upper] | bond-variance error | verdict |
+  |---|---|---|---|---|
+  | EM 2e-4 | 0.0161 [0.024] | 0.0168 [0.022] | +19.1 % | **ADMISSIBLE** |
+  | EM 1e-4 | 0.0026 [0.011] | 0.0107 [0.016] | – | admissible |
+
+  **Production dt = 2e-4** (the largest admissible EM dt). LM / 5e-5 were not needed.
+* **Gate 3a horizon:** at K 1024 (3 seeds), the median e_F is 0.140 / 0.0815 / 0.0493 / 0.0352 at 50 / 100 / 200 / 400
+  t.u. The ratios are 1.72 / 1.65 / 1.40, so **T = 200 t.u.** (1 000 000 steps). The establishment block is
+  0.04 T = 8 t.u., and the deficient-run threshold is 0.2 T = 40 t.u.
+* **dt second clause (provisional):** D_MF 0.0168 ≤ ⅓ × 0.0493 = 0.0164? It **fails narrowly** on the horizon-run
+  median. The frozen rule says it is checked on the screen median e_F(T) at the frozen Gate 3 configuration. If it
+  still fails there, the next smaller admissible dt (1e-4) is taken and Gate 3 plus the screen are re-run at 1e-4.
+* **P0 floor** at 180 bins: 0.0040 kJ/mol.
+* **Gate 3b launched:** ramp {1, 4} × pre-eq {0, 5}, T 200, seeds 944 000+.
+
+## Amendment 5 — A′-150: the dt second clause fails → dt 1e-4 (2026-10-16 ~20:05 UTC; no 150 K screen and no FR data exist)
+
+* **Gate 3b at dt 2e-4** (`results/overnight/ite150/calib_warm/warm_choice.json`): weighted scores
+
+  | ramp, pre-eq | score |
+  |---|---|
+  | 1, 0 | 1.000 |
+  | **1, 5** | **0.933** |
+  | 4, 0 | 1.208 |
+  | 4, 5 | 1.235 |
+
+  → **ramp 1, pre-eq 5.** The K 1024 median e_F(T = 200) at that setting is 0.0411.
+* **Second clause:** D_MF(2e-4) = 0.0168 > ⅓ × 0.0411 = 0.0137 → **FAILS**. By §3, the production dt becomes the
+  next smaller admissible EM dt, **1e-4**: D_MF 0.0107 [0.016] and D_density 0.0026 [0.011]. The clause is checked
+  again on the 1e-4 screen.
+* **Deviation from the letter of §3 ("Gate 3 is repeated"), decided now and blind to any screen or FR result:**
+  * The Gate 3a/3b choices (T = 200 t.u., ramp 1 t.u., pre-eq 5 t.u.) concern ABF dynamics in physical time. They are
+    carried over to dt 1e-4.
+  * They are verified by the Gate 3c bin ladder, which is run at dt 1e-4 (K 1024 / 64, 3 seeds, seeds 945 000+). Its
+    180-bin K 1024 runs must give a median e_F(T) within ±25 % of the dt 2e-4 Gate 3b value (0.0411). If they do
+    not, the full Gate 3 (3a, 3b) is repeated at dt 1e-4.
+  * Reason: budget. Repeating 3a and 3b at 1e-4 costs about 35 core-h. The verification is part of 3c, which is
+    needed anyway.
+* **Budget consequence.** An eligible cell at dt 1e-4 can afford the FR safety calibration and the exploratory
+  8-seed block (≈ 60 core-h). The 16-seed confirmatory block (≈ 60 core-h more) would exceed the 200 core-h ceiling.
+  If eligible, the exploratory block runs, the confirmatory block is reported as not run, and no confirmatory claim
+  is made.
