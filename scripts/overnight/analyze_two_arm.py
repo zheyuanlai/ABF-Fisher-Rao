@@ -48,6 +48,7 @@ def per_run(r, Fr, Gr):
                 tv_mean=float(tv.mean()), transloc=int(r["sv_i"][-1, 1]), repl=int(r["sv_i"][-1, 2]),
                 essw_min=float(np.nanmin(r["sv_u"][i0:, 2])), maxw_max=float(np.nanmax(r["sv_u"][i0:, 3])),
                 nfe=int(r["n_force_evals"]), wall=float(r["wall_seconds_session"]), eF_curve=e["eF"], t=t,
+                pre_fr=r["sv_C"][r["save_steps"] <= k0].copy(),
                 C=r["sv_C"][-1], M=r["sv_M"][-1], seed=int(c["seed"]))
 
 
@@ -74,7 +75,9 @@ def main():
     assert len(seeds) == len(arms), "every seed must have both arms (no discarding)"
     for s in seeds:
         assert arms[s]["abf"]["nfe"] == arms[s]["fr"]["nfe"], "force evaluations must match"
-    out = {"n_seeds": len(seeds), "K": a.K, "seeds": seeds}
+    # pairing check (prereg section 6): the two arms are bitwise identical at every save before the first FR event
+    paired = [bool(np.array_equal(arms[s]["abf"]["pre_fr"], arms[s]["fr"]["pre_fr"])) for s in seeds]
+    out = {"n_seeds": len(seeds), "K": a.K, "seeds": seeds, "paired_bitwise_before_fr_start": paired}
     for key in ("Ibar_F", "eF_T", "eG_T", "late_eF", "tv_mean", "transloc"):
         if key == "transloc":      # a count: report the paired DIFFERENCE (fr - abf), not a ratio
             d = [arms[s]["fr"][key] - arms[s]["abf"][key] for s in seeds]
