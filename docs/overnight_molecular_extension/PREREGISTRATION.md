@@ -422,3 +422,11 @@ reproduced, and no walker ever left its channel family. Findings acted on:
   bitwise-identical states before the first FR event.
 * **Budget:** calibration about 11.7 (X1) + 4.7 (X2) core-h; blocks about 20.8 + 8.3 core-h; total ≈ 46 core-h,
   giving a cumulative ≈ 163 of 200.
+
+**Amendment 8, FR rate calibration** (`results/overnight/ite/frcal/frcal_K1024.json`,
+`results/overnight/ite150/frcal/frcal_K256.json`; blind script, no error metric read):
+* **X1 (K 1024).** Every rate is safe. Min median windowed ESS/K is 0.97 / 0.93 / 0.87 / 0.73 / 0.57 / 0.31 for rates
+  0.05 → 2 → **rate 2.0**.
+* **X2 (K 256).** Rates 0.05–0.5 are safe. Rate 1 (ESS 0.20, lineage 0.070) and rate 2 (0.15, 0.090) are unsafe →
+  **rate 0.5**.
+* Paired blocks launched 21:15 UTC: X1 seeds 980 000–980 015, X2 seeds 981 000–981 015, both arms each.
