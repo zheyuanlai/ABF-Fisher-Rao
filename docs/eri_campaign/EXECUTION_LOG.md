@@ -80,3 +80,13 @@ Times are UTC on the host clock. Every entry is written when the step happens.
 * **17:25** Amendment 2 (powered tests + unit controls) frozen and committed (0e8d468a), BEFORE classifying.
 * **17:27** Screen classified: **ABF-SUFFICIENT at K 64 / 256 / 1024** → STOP FR for the dilute ERI cell
   (`RESULTS.md`).
+* **17:45** Forcefield/geometry audit lens returned (`audit/AUDIT1_FORCEFIELD_GEOMETRY.md`): **no result-affecting
+  defect.**
+  * Its independent direct quadrature of F(φ) reproduces the MC reference: shape RMS 0.024 kJ/mol, barrier 33.30 vs
+    33.29, ΔU 5.298, entropic share 0.84.
+  * The φ = 0 plane is open only at the 144 windows.
+  * Low/info items:
+    * Gard & Tait coordinates are stored rounded to 1e-4 fractional (≤ 1.3 mÅ, negligible);
+    * the within-row windows sit at φ = ±π (a symmetry-equivalent hidden hop, no bias);
+    * the generic orthorhombic builder lacked safety checks. Fixed: coordination and duplicate checks,
+      even-permutation guard, explicit cage/window positions.

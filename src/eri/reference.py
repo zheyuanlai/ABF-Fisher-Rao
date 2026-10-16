@@ -49,7 +49,7 @@ def window_stacks(fw):
     normals of the 8-ring window stacks.  Returns (W (K, 2), N (K, 2), cell (2,))."""
     if fw.variant not in ("gard_tait", "schlenker"):
         return np.zeros((1, 2)), np.array([[1.0, 0.0]]), np.ascontiguousarray(fw.box[:2].copy())
-    cell = fw.box[:2] / np.array([3.0, 2.0])
+    cell = fw.cell[:2].copy()
     win = fw.windows
     cages = fw.cages
     stacks, normals = [], []

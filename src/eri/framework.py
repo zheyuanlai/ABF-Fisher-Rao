@@ -172,6 +172,10 @@ def build_orthorhombic(path, reps, perm=(0, 1, 2), name="framework", n_t=None, n
     fpos, ftyp = expand_cell(asym, ops)
     if n_t is not None and ((ftyp == SI_TYPE).sum() != n_t or (ftyp == O_TYPE).sum() != n_o):
         raise ValueError(f"expected {n_t} T + {n_o} O per cell, got {(ftyp == SI_TYPE).sum()} + {(ftyp == O_TYPE).sum()}")
+    # an odd permutation of the axes is an improper map (it would build the MIRROR image of the framework)
+    sign = np.linalg.det(np.eye(3)[list(perm)])
+    if sign < 0:
+        raise ValueError(f"perm {perm} is odd (improper): use an even permutation such as (1, 2, 0)")
     L = np.array([a, b, c])
     cellv = L[list(perm)]
     repsv = np.asarray(reps, dtype=np.int64)
@@ -187,6 +191,13 @@ def build_orthorhombic(path, reps, perm=(0, 1, 2), name="framework", n_t=None, n
     cart = np.concatenate(cart) % box
     types = np.concatenate(types)
     ncell = int(np.prod(repsv))
+    # duplicate check across orbits (audit F5): no two atoms closer than 1.0 A (min image)
+    d = cart[:, None, :] - cart[None, :, :]
+    d -= box * np.round(d / box)
+    rr = np.sqrt((d * d).sum(-1))
+    rr[np.diag_indices_from(rr)] = np.inf
+    if rr.min() < 1.0:
+        raise ValueError(f"duplicate / overlapping framework atoms (min distance {rr.min():.3f} A)")
     return {"variant": name, "source": os.path.relpath(path, ROOT), "source_sha256": sha256_file(path),
             "a": a, "b": b, "c": c, "box": box, "pos": cart, "types": types, "reps": repsv, "asym": asym,
             "n_cells": ncell, "cell": cellv, "perm": np.array(perm)}
@@ -333,6 +344,18 @@ def sha256_file(path):
     with open(path, "rb") as f:
         h.update(f.read())
     return h.hexdigest()
+
+
+def save_generic(fw, path, cages, windows, P, x_window):
+    """Save a non-ERI framework with EXPLICIT cage centres and window centres (box coordinates), the CV period P and
+    the X offset of the phi = 0 windows.  Refuses a framework that fails the coordination check (audit F5)."""
+    ok, dmin, (lo, hi) = coordination_check(fw)
+    if not ok:
+        raise ValueError(f"coordination check failed (T-O range {lo:.3f}-{hi:.3f}, d_min {dmin:.3f})")
+    np.savez(path, pos=fw["pos"], types=fw["types"], box=fw["box"], a=fw["a"], c=fw["c"], b=fw["b"], reps=fw["reps"],
+             cell=fw["cell"], perm=fw["perm"], variant=fw["variant"], source=fw["source"],
+             source_sha256=fw["source_sha256"], cages=np.asarray(cages, float), windows=np.asarray(windows, float),
+             P=float(P), x_window=float(x_window))
 
 
 def save(fw, path):
