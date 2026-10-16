@@ -48,7 +48,7 @@ def per_run(r, Fr, Gr):
                 tv_mean=float(tv.mean()), transloc=int(r["sv_i"][-1, 1]), repl=int(r["sv_i"][-1, 2]),
                 essw_min=float(np.nanmin(r["sv_u"][i0:, 2])), maxw_max=float(np.nanmax(r["sv_u"][i0:, 3])),
                 nfe=int(r["n_force_evals"]), wall=float(r["wall_seconds_session"]), eF_curve=e["eF"], t=t,
-                pre_fr=r["sv_C"][r["save_steps"] <= k0].copy(),
+                pre_fr=r["sv_C"][r["save_steps"] < k0].copy(),     # strictly before: the save AT fr_start follows the first FR opportunity
                 C=r["sv_C"][-1], M=r["sv_M"][-1], seed=int(c["seed"]))
 
 
