@@ -28,10 +28,13 @@ def job(j):
     key = (c["variant"], c["T_K"], json.dumps(c["ff"], sort_keys=True))
     if key not in _MODEL:
         _MODEL[key] = Model(c["variant"], T_K=c["T_K"], params=c["ff"])
+    import numba
+    nt = int(j.get("threads", os.environ.get("NUMBA_NUM_THREADS", "1")))
+    numba.set_num_threads(min(nt, numba.config.NUMBA_NUM_THREADS))
     t0 = time.time()
     E.run(c, j["method"], out_path=out, checkpoint_path=out + ".ckpt.npz", model=_MODEL[key])
-    # core-seconds = wall x numba threads (the replica force loop is parallel)
-    return j["out"], (time.time() - t0) * int(os.environ.get("NUMBA_NUM_THREADS", "1")), "done"
+    # core-seconds = wall x numba threads (the replica force loop is parallel; idle threads are counted)
+    return j["out"], (time.time() - t0) * numba.get_num_threads(), "done"
 
 
 def main():
