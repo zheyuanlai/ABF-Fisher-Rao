@@ -114,6 +114,84 @@ def read_cif(path):
     return cell["_cell_length_a"], cell["_cell_length_c"], ops, sites
 
 
+def read_cif_general(path):
+    """Like read_cif but for any cell: returns ((a, b, c, alpha, beta, gamma), ops, sites).  Whitelist parser only."""
+    lines = open(path, encoding="utf-8", errors="replace").read().splitlines()
+    keys = ("_cell_length_a", "_cell_length_b", "_cell_length_c", "_cell_angle_alpha", "_cell_angle_beta",
+            "_cell_angle_gamma")
+    cell = {}
+    for ln in lines:
+        tok = ln.strip().split()
+        if tok and tok[0] in keys and len(tok) > 1:
+            cell[tok[0]] = float(re.sub(r"\(.*\)", "", tok[1]))
+    ops, sites = [], []
+    i = 0
+    while i < len(lines):
+        if lines[i].strip() == "loop_":
+            j = i + 1
+            heads = []
+            while j < len(lines) and lines[j].strip().startswith("_"):
+                heads.append(lines[j].strip().split()[0])
+                j += 1
+            rows = []
+            while j < len(lines) and lines[j].strip() and not lines[j].strip().startswith(("_", "loop_", "#")):
+                rows.append(lines[j].strip())
+                j += 1
+            symk = [k for k, h in enumerate(heads) if h in ("_symmetry_equiv_pos_as_xyz",
+                                                             "_space_group_symop_operation_xyz")]
+            if symk:
+                for r in rows:
+                    tok = re.findall(r"'[^']*'|\S+", r)
+                    ops.append(parse_symop(tok[symk[0]] if len(heads) > 1 else r))
+            if "_atom_site_fract_x" in heads:
+                ix = {h: k for k, h in enumerate(heads)}
+                for r in rows:
+                    tok = r.split()
+                    if len(tok) < len(heads):
+                        continue
+                    occ = float(re.sub(r"\(.*\)", "", tok[ix["_atom_site_occupancy"]])) \
+                        if "_atom_site_occupancy" in ix else 1.0
+                    typ = tok[ix["_atom_site_type_symbol"]] if "_atom_site_type_symbol" in ix else tok[0]
+                    sites.append((tok[ix["_atom_site_label"]], typ,
+                                  *[float(re.sub(r"\(.*\)", "", tok[ix[k]]))
+                                    for k in ("_atom_site_fract_x", "_atom_site_fract_y", "_atom_site_fract_z")],
+                                  occ))
+            i = j
+        else:
+            i += 1
+    return tuple(cell[k] for k in keys), ops, sites
+
+
+def build_orthorhombic(path, reps, perm=(0, 1, 2), name="framework", n_t=None, n_o=None):
+    """Orthorhombic supercell of an orthorhombic CIF.  ``perm`` maps (X, Y, Z) of the box to crystal axes (the CV
+    axis is X).  Returns a dict like ``build`` with ``cell`` (the unit cell in box axes)."""
+    (a, b, c, al, be, ga), ops, sites = read_cif_general(path)
+    if max(abs(al - 90), abs(be - 90), abs(ga - 90)) > 1e-6:
+        raise ValueError("not an orthorhombic cell")
+    asym = majority_framework_sites(sites)
+    fpos, ftyp = expand_cell(asym, ops)
+    if n_t is not None and ((ftyp == SI_TYPE).sum() != n_t or (ftyp == O_TYPE).sum() != n_o):
+        raise ValueError(f"expected {n_t} T + {n_o} O per cell, got {(ftyp == SI_TYPE).sum()} + {(ftyp == O_TYPE).sum()}")
+    L = np.array([a, b, c])
+    cellv = L[list(perm)]
+    repsv = np.asarray(reps, dtype=np.int64)
+    box = cellv * repsv
+    cart = []
+    types = []
+    for i in range(repsv[0]):
+        for j in range(repsv[1]):
+            for k in range(repsv[2]):
+                xyz = (fpos * L)[:, list(perm)] + cellv * np.array([i, j, k])
+                cart.append(xyz)
+                types.append(ftyp)
+    cart = np.concatenate(cart) % box
+    types = np.concatenate(types)
+    ncell = int(np.prod(repsv))
+    return {"variant": name, "source": os.path.relpath(path, ROOT), "source_sha256": sha256_file(path),
+            "a": a, "b": b, "c": c, "box": box, "pos": cart, "types": types, "reps": repsv, "asym": asym,
+            "n_cells": ncell, "cell": cellv, "perm": np.array(perm)}
+
+
 def majority_framework_sites(sites):
     """Group T (Si/Al) and O sites by position; keep positions whose summed occupancy >= 0.5.  Returns a list of
     (element 'Si'|'O', x, y, z)."""

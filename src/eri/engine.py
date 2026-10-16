@@ -79,9 +79,25 @@ NV = 9
 NU = 6
 
 
-def _engine_sha256():
-    with open(os.path.abspath(__file__), "rb") as f:
+_SRC_DIR = os.path.dirname(os.path.abspath(__file__))
+_PROV_FILES = (os.path.join(_SRC_DIR, "engine.py"), os.path.join(_SRC_DIR, "model.py"),
+               os.path.join(_SRC_DIR, "framework.py"),
+               os.path.normpath(os.path.join(_SRC_DIR, "..", "lta_ladder_numba.py")))
+
+
+def _sha(path):
+    with open(path, "rb") as f:
         return hashlib.sha256(f.read()).hexdigest()
+
+
+# provenance taken ONCE at import, i.e. of the code that runs (audit E2); covers every source the kernels compile from
+_PROVENANCE = {os.path.basename(p): _sha(p) for p in _PROV_FILES}
+_ENGINE_SHA = hashlib.sha256(json.dumps(_PROVENANCE, sort_keys=True).encode()).hexdigest()
+
+
+def _engine_sha256():
+    """Combined sha of engine.py, model.py, framework.py and lta_ladder_numba.py as imported (not as on disk now)."""
+    return _ENGINE_SHA
 
 
 @njit(cache=True, error_model="numpy")
@@ -128,7 +144,7 @@ def _labels(i, step, xt, P, xw, ph, cage_phi, window_phi, row, lastcage, ist, ev
                 ist[S_FIRSTTRANS] = step
 
 
-@njit(cache=True, error_model="numpy")
+@njit(cache=False, error_model="numpy")
 def _run_chunk(k0, k1, q, F, Cacc, Macc, Seta, Sux2, BH, DH, anc, ancw, row, lastcage, evwin, ist, fst,
                fp, ip, box, cell, nvox, s0, x0, y0, z0, s1, x1, y1, z1, pp, rc2, kb, r0, Kk,
                rng_noise, rng_fr, save_steps, isave, sv_C, sv_M, sv_h, sv_i, sv_u, sv_cond):
@@ -356,7 +372,7 @@ def initial_conditions(gen, model, N, M, r0=1.54):
     return q
 
 
-@njit(cache=True, error_model="numpy")
+@njit(cache=False, error_model="numpy")
 def _equilibrate(q, n_steps, dt, ns, rng, box, cell, nvox, s0, x0, y0, z0, s1, x1, y1, z1, pp, rc2, kb, r0):
     """Unbiased overdamped EM for every replica (no deposits, no bias, no FR): the starting configurations relax in
     their cages.  Uses the IC stream, so both arms of a (seed, N, M, T) start from the same equilibrated state."""
@@ -480,7 +496,8 @@ class Run:
     def result(self):
         c = self.c
         return dict(cfg=json.dumps(c, default=str), method=self.method, config_hash=config_hash(c, self.method),
-                    engine=ENGINE, engine_sha256=_engine_sha256(), save_steps=self.save_steps,
+                    engine=ENGINE, engine_sha256=_engine_sha256(), provenance=json.dumps(_PROVENANCE),
+                    save_steps=self.save_steps,
                     times=self.save_steps * c["dt"], sv_C=self.sv_C, sv_M=self.sv_M, sv_h=self.sv_h, sv_i=self.sv_i,
                     sv_u=self.sv_u, sv_cond=self.sv_cond, Seta=self.Seta, Sux2=self.Sux2, BH=self.BH, DH=self.DH,
                     ist=self.ist, fst=self.fst, q_final=self.q, n_force_evals=int(self.ist[S_NFE]),

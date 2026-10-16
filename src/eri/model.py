@@ -105,7 +105,7 @@ class Framework:
     unit-cell voxel lists evaluate (every atom within rc of a point of voxel v is within rc + half-diagonal of its
     centre; the stored image is the one within rc of the bead because L > 2 (rc + half-diagonal))."""
 
-    def __init__(self, variant, rc=PARAMS["rc"], h=1.0):
+    def __init__(self, variant, rc=PARAMS["rc"], h=1.0, include_si=True):
         fw = fwm.load(variant)
         self.variant = variant
         self.a = float(fw["a"])
@@ -117,7 +117,10 @@ class Framework:
         self.windows = fw["windows"]
         reps = np.asarray(fw["reps"], dtype=np.int64)
         self.cell = np.ascontiguousarray(self.box / reps)
-        assert np.allclose(self.cell, [self.a, math.sqrt(3.0) * self.a, self.c])
+        if "cell" in fw:                           # generic orthorhombic framework (overnight extension)
+            assert np.allclose(self.cell, fw["cell"])
+        else:                                      # ERI (hexagonal a1, sqrt(3) a, c orthorhombic cell)
+            assert np.allclose(self.cell, [self.a, math.sqrt(3.0) * self.a, self.c])
         assert rc < 0.5 * self.box.min(), "cutoff must fit the minimum image"
         self.nvox = np.ascontiguousarray(np.ceil(self.cell / h).astype(np.int64))
         hv = self.cell / self.nvox
@@ -128,6 +131,8 @@ class Framework:
         self.lists = []
         for t in (0, 1):
             Pt = np.ascontiguousarray(self.pos[self.types == t])
+            if t == 1 and not include_si:          # O-only force fields: no Si candidates at all
+                Pt = np.zeros((0, 3))
             start = np.zeros(nv + 1, dtype=np.int64)
             dummy = np.zeros(1)
             _build_cell_voxels(Pt, t, self.box, self.cell, self.nvox, rcut, True, start, dummy, dummy, dummy)
@@ -137,8 +142,8 @@ class Framework:
             Z = np.zeros(int(start[-1]))
             _build_cell_voxels(Pt, t, self.box, self.cell, self.nvox, rcut, False, start, X, Y, Z)
             self.lists.append((start, X, Y, Z))
-        self.P = self.a / 2.0                      # CV period
-        self.x_window = self.a / 4.0               # X of the between-row windows (mod P)
+        self.P = float(fw["P"]) if "P" in fw else self.a / 2.0                    # CV period
+        self.x_window = float(fw["x_window"]) if "x_window" in fw else self.a / 4.0  # X of the phi = 0 windows
 
     def packed(self):
         (s0, x0, y0, z0), (s1, x1, y1, z1) = self.lists
@@ -283,7 +288,7 @@ class Model:
         self.p = dict(PARAMS if params is None else params)
         if T_K is not None:
             self.p["T_K"] = float(T_K)
-        self.fw = Framework(variant, rc=self.p["rc"], h=h)
+        self.fw = Framework(variant, rc=self.p["rc"], h=h, include_si=self.p["eps_Si_K"] > 0.0)
         self.pp = pack_pair_params(self.p)
         self.rc2 = self.p["rc"] ** 2
         self.kb = self.p["k_bond_K"] * KB

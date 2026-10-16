@@ -119,7 +119,7 @@ def _bond_u(q, kb, r0):
     return 0.5 * kb * (r - r0) * (r - r0)
 
 
-@njit(cache=True, error_model="numpy")
+@njit(cache=False, error_model="numpy")
 def run_window(scheme, q0s, box, cell, nvox, s0, x0, y0, z0, s1, x1, y1, z1, pp, rc2, kb, r0, kT, P, xw, c_len,
                centre, kappa, dt, n_steps, burn_in, n_pre_mc, sample_every, d_bead, d_trans, d_rot, rng,
                WS, WN, cell2, s_max, C_fine, C, Mf, Mf2, MU, MU2, Mbond, Mbond2, Mux2, Muz2, Meta, Hs, Hx, ts, cnt,
