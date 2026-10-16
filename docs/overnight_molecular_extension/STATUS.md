@@ -3,44 +3,52 @@
 *Started 2026-10-16 17:12 UTC. Two adaptive arms only: histogram ABF and histogram ABF + uniform marginal FR. No sham,
 oracle, OPES or any other algorithmic arm.*
 
-## Current stage (2026-10-16 18:50 UTC)
+## Current stage (2026-10-16 ~20:45 UTC)
 
-**Cell A′-150 (ethane / rigid Si-ITE / Dubbeldam 2004, now at 150 K): Gate 1–2 reference running.** The cell was
-preregistered as Amendment 3 before any 150 K computation. The motivation is the repo's ethane/LTA, which uses the same
-O–CH3 pair and was establishment-limited at 150 K.
+**All three cells are complete and every one is ABF-sufficient, so no ABF vs ABF + FR comparison was licensed.** An
+independent read-only review of the overnight work is the last step. No experiment is running.
 
-## Results so far (two adaptive arms only; details in `RESULTS.md`)
+## Results (two adaptive arms only; details in `RESULTS.md`)
 
 | cell | barrier (exact MC) | entropic share | ABF-only classification | FR run |
 |---|---|---|---|---|
 | ethane / ERI 600 K | 6.67 kBT | 84 % | ABF-sufficient (K 64/256/1024) | not licensed |
 | ethane / ITE 300 K | 15.9 kBT | 48 % | ABF-sufficient (K 64/256/1024) | not licensed |
-| ethane / ITE 150 K | pilot ≈ 23.9 kBT | – | pending | – |
+| ethane / ITE 150 K | 24.0 kBT | 33 % | ABF-sufficient (K 64/256/1024) | not licensed |
+
+**Pattern.**
+* ABF establishes the window population at its bias-aware target within 3 / 5 / 11 t.u. That is 5.5–10 % of the
+  horizon, and the same at every K.
+* After that the window carries ≤ 7 % of the final error.
+* **Open lead (untested hypothesis):** 34–57 % of ABF's integrated error accrues in that short early phase. A new,
+  preregistered test of FR during the bias build-up is the natural next experiment (`HANDOFF.md`).
+
+**Summary figure:** `figures/overnight/summary/fig_overnight_summary.png`.
 
 ## Validation gates
 
-| cell | Gate 0 | Gate 1 | Gate 2 (dt) | Gate 3 | Gate 4 |
+| cell | Gate 0 | Gate 1 | Gate 2 (production dt) | Gate 3 | Gate 4 |
 |---|---|---|---|---|---|
-| ERI 600 K | PASS | PASS | EM 2e-4 | frozen | PASS (tests) |
-| ITE 300 K | PASS | PASS | EM 1e-4 (2e-4 failed) | T 50, ramp 1, pre-eq 5, 180 bins | PASS (tests) |
-| ITE 150 K | same model | running | running | – | – |
+| ERI 600 K | PASS | PASS | EM 2e-4 | 180 bins, T 40 | PASS |
+| ITE 300 K | PASS | PASS | EM 1e-4 (2e-4 failed) | 180 bins, T 50 | PASS |
+| ITE 150 K | PASS (shared) | PASS | EM 1e-4 (2e-4 failed the second clause) | 360 bins, T 200 | PASS |
 
 ## Candidates
 
-A (Combariza 2011), B, C and E are not reproducible. D is feasible with caveats and deprioritised. See
-`CANDIDATES.md`.
+* A (Combariza 2011), B, C and E: not reproducible.
+* D: feasible with caveats; deprioritised (expected ABF-sufficient).
+* See `CANDIDATES.md`.
 
 ## Active jobs
 
-* `run_reference.py` chain, ITE 150 K: MC (1024 jobs) → EM 2e-4 → EM 1e-4. 40 single-thread processes. Log:
-  `results/eri_campaign/logs/ite150_gate12.log`.
-* No GPU in use.
+None. Nothing is running on CPU or GPU.
 
-## Next automatic action
+## Next action (needs the user)
 
-Gate 1/2 analysis at 150 K → Gate 3 (horizon, ramp/pre-eq, bins) → ABF-only screen → frozen classifier. Two-arm
-production (calibration, then explore 8 + confirm 16 seeds) runs only if a K is ESTABLISHMENT-LIMITED.
+1. Decide whether to preregister an "early-phase FR" experiment. Recommended: ITE 300 K, K 1024, FR from t = 0 or
+   from the end of the ramp, endpoint I_F; two arms only.
+2. Optionally, the ERI loading study on GPU 3 (a new torch engine).
 
 ## Resource use
 
-57 of 200 CPU core-h (start of A′-150) and 0 of 24 GPU-h. See `COMPUTE_LEDGER.md`.
+About 117 of 200 CPU core-h and 0 of 24 GPU-h. See `COMPUTE_LEDGER.md`.

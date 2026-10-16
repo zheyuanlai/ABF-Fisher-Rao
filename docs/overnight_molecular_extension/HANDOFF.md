@@ -10,7 +10,7 @@
 |---|---|---|---|
 | ethane / ERI 600 K | `src/eri/*`, `scripts/eri_campaign/*`, `tests/test_eri_*.py` | `results/eri_campaign/` (npz local only) | ABF-sufficient; no FR run |
 | ethane / ITE 300 K | `scripts/overnight/*`, `configs/overnight/ite/`, `tests/test_overnight_ite.py` | `results/overnight/ite/` | ABF-sufficient; no FR run |
-| ethane / ITE 150 K | `configs/overnight/ite150/` | `results/overnight/ite150/` | in progress |
+| ethane / ITE 150 K | `configs/overnight/ite150/`, `scripts/overnight/fig_ite150_reference.py` | `results/overnight/ite150/` | ABF-sufficient; no FR run |
 
 ## Reproduce
 
@@ -40,10 +40,23 @@ $P scripts/eri_campaign/classify_screen.py results/overnight/ite/screen --refbas
   diffusion coefficients are not comparable with the MD literature.
 * The ERI loading study (2 and 5 molecules/cage) needs a GPU engine. CPU cost is about 6 core-h per N 256 run.
 
-## Next experiments (ranked)
+## Next experiments (ranked; each needs a fresh preregistration)
 
-1. Finish A′-150 (ITE at 150 K): Gates 1–3 → screen → FR only if establishment-limited.
-2. If nothing is eligible: run the ERI loading study on GPU 3 (a new torch engine, validated against the CPU engine),
-   or a labelled CH4-in-rigid-DDR model (Dubbeldam 2004 CH4–O).
-3. Candidate D (CH4 pair in a water-filled pore) only with an explicit smooth-wall surrogate and a rigid-water
-   integrator. It is expected to be ABF-sufficient.
+1. **Early-phase FR test (recommended).**
+   * In all three cells, 34–57 % of ABF's integrated error accrues before the window population is established at
+     3–11 t.u.
+   * Design:
+     * cell: ITE 300 K (the largest share, about 55 %);
+     * K 1024; two arms only;
+     * FR start at the end of the ramp (t = 1 t.u.), or at t = 0 as a second preregistered variant, but not both
+       without Holm;
+     * FR rate by the frozen safety-only rule;
+     * primary endpoint: Ī_F over [0, T] and over [0, 10 t.u.];
+     * fresh seeds.
+   * Eligibility must be declared in advance as an exploratory question ("does FR shorten the bias build-up phase?"),
+     not by changing the frozen classifier after the fact.
+   * Cost: about 3 core-h for 8 paired seeds plus about 5 for the rate calibration.
+2. **ERI loading study** (2 and 5 molecules/cage) on GPU 3: a new torch engine, validated against the CPU engine.
+3. **A labelled CH4-in-rigid-DDR model** (Dubbeldam 2004 CH4–O), as a new independently documented system.
+4. **Candidate D** only with an explicit smooth-wall surrogate and a rigid-water integrator. It is expected to be
+   ABF-sufficient.

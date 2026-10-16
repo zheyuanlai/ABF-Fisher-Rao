@@ -1,6 +1,6 @@
 # Results — overnight molecular extension (ABF vs ABF + FR only)
 
-*Last updated 2026-10-16 ~19:00 UTC. The only adaptive algorithms are histogram ABF (A) and the identical histogram
+*Last updated 2026-10-16 ~20:45 UTC. The only adaptive algorithms are histogram ABF (A) and the identical histogram
 ABF + uniform marginal FR (B). FR is run only for cells that the frozen ABF-only classifier labels
 ESTABLISHMENT-LIMITED.*
 
@@ -10,6 +10,7 @@ ESTABLISHMENT-LIMITED.*
 |---|---|---|---|---|---|
 | ethane / ERI, 600 K, infinite dilution | labelled surrogate of PNAS 2005 (Gard & Tait ERI, Schüring LJ); literature barrier reproduced (5.96 vs 6.13 kBT) | 33.3 kJ/mol = 6.67 kBT | **84 %** | **ABF-sufficient** at all K | no (not licensed) |
 | ethane / Si-ITE (ITQ-3), 300 K, infinite dilution | labelled model (Dubbeldam 2004 UA FF); NOT a reproduction of Combariza 2011 | 39.7 kJ/mol = 15.9 kBT | **48 %** | **ABF-sufficient** at all K | no (not licensed) |
+| ethane / Si-ITE (ITQ-3), **150 K**, infinite dilution | same model; second temperature (Amendment 3; LTA 150 K was the repo's clearest establishment-limited cell) | 30.0 kJ/mol = 24.0 kBT | **33 %** | **ABF-sufficient** at all K | no (not licensed) |
 
 **No cell so far has met the preregistered condition for an ABF vs ABF + FR comparison.** No FR production result
 exists in this extension, so no "FR helps" or "FR does not help" statement about these systems is supported. What
@@ -45,6 +46,22 @@ Times in t.u., errors in kJ/mol; T = 50 t.u.
 * The window is ~60 % under-populated relative to Q\* only in the first 2–4 t.u. after the ramp, while the bias is
   still being built. The frozen rule needs ≥ 10 t.u.
 * All file paths: `results/overnight/ite/screen/classification.json`.
+
+## ITE (150 K) — ABF-only screen (8 seeds per K; dt 1e-4, 360 bins, T = 200 t.u.)
+
+| K | first translocation | min block occupancy / Q\* | longest deficient run (thr. 40) | window deposit share | window error share | conditional lag / floor (η, u_x²) | e_F(T) | Ī_F | e_F(T) / e_F(late) |
+|---|---|---|---|---|---|---|---|---|---|
+| 64 | 9.0 | 0.41 | 8 | 1.03 | 0.011 | 1.50, 0.90 | 0.072 | 0.257 | 1.06 |
+| 256 | 6.2 | 0.42 | 8 | 1.03 | 0.013 | 1.27, 1.17 | 0.040 | 0.186 | 1.13 |
+| 1024 | 4.5 | 0.42 | 8 | 1.04 | 0.006 | 1.77, 1.62 | 0.041 | 0.174 | 1.15 |
+
+Times in t.u., errors in kJ/mol.
+
+* Figures: `figures/overnight/ite150/fig_screen_abf_only.png` and `fig_ite_reference.png` (from
+  `fig_ite150_reference.py`).
+* Gate decisions:
+  * dt 2e-4 was admissible but failed the second clause, so dt is 1e-4 (Amendment 5);
+  * the bin rule switched to 360 bins on thin margins (Amendment 6).
 * Figures:
   * `figures/overnight/ite/fig_screen_abf_only.png`: e_F(t), occupancy/Q\* in 2 t.u. blocks, translocations;
   * `figures/overnight/ite/fig_ite_reference.png`: F, U, −TS; hidden coordinates; channel geometry.
@@ -62,6 +79,9 @@ Times in t.u., errors in kJ/mol; T = 50 t.u.
   * The barrier is half energetic and half entropic.
   * Crossing the window aligns the molecule with the channel: ⟨u_x²⟩ goes from 0.2–0.4 in the cage to 0.98 at the
     window.
+* **ITE temperature dependence.** ΔU = 20.6 / 20.2 kJ/mol at 300 / 150 K, while −TΔS = 19.1 / 9.8 kJ/mol. The entropy
+  of the window barrier is T-independent within noise (ΔS ≈ −64 / −65 J mol⁻¹ K⁻¹), so the barrier becomes more
+  energetic at low T.
 * **Numerics.**
   * EM at dt 2e-4 is admissible for ERI at 600 K (D 0.037 kJ/mol against a 0.05 tolerance). It is NOT admissible for
     ITE at 300 K (D 0.036 against 0.03), so ITE uses dt 1e-4.

@@ -341,3 +341,27 @@ eligible, ≈ 35–45 core-h. The total stays under the remaining 143 core-h.
   | establishment blocks | 8 t.u. (deficient-run threshold 40 t.u.) |
 
 * **Screen:** K 1024 / 256 / 64 × 8 seeds, seeds 951 000+.
+
+## Amendment 7 — A′-150 classified (2026-10-16 ~20:40 UTC)
+
+* **Null control at the A′-150 block design** (8 t.u. blocks, 40 t.u. threshold, T 200), run before the
+  classification:
+  * FP 0/300 at K 64/256/1024.
+  * Power for a 48 t.u. deficit:
+
+    | K | 30 % | 40 % | 50 % |
+    |---|---|---|---|
+    | 64 | 17 % | 68 % | 96 % |
+    | 256 | 42 % | 98 % | – |
+    | 1024 | 88 % | 100 % | – |
+
+* **Screen** (`results/overnight/ite150/screen/classification.json`): **ABF-SUFFICIENT at K 64 / 256 / 1024.**
+  * Discovery: median first translocation 9.0 / 6.2 / 4.5 t.u. (threshold 20).
+  * Establishment: longest deficient run 8 t.u. (one block; threshold 40); median block ratio 0.96 / 1.00 / 0.99.
+  * Information: window deposit share 1.03 / 1.03 / 1.04; window share of the final squared MF error
+    0.011 / 0.013 / 0.006.
+  * Conditional lag / floor: η 1.50 / 1.27 / 1.77, u_x² 0.90 / 1.17 / 1.62 (threshold 3).
+  * e_F(T) 0.072 / 0.040 / 0.041 kJ/mol.
+* **dt clause on the screen:** D_MF 0.0107 ≤ ⅓ × min-K median e_F(T) = 0.0132. PASS.
+* **Decision:** no FR run for A′-150. Every cell of this extension (ERI 600 K, ITE 300 K, ITE 150 K) is
+  ABF-sufficient, so no ABF vs ABF + FR comparison was licensed.

@@ -81,6 +81,37 @@ noise.
 
 Engine tests (above). FR is never run in production because no cell is eligible.
 
-## ITE, 150 K (cell A′-150)
+## ITE, 150 K (cell A′-150): same model, Gate 0 shared
 
-In progress. See `STATUS.md`.
+### Gate 1 (64 windows, κ 250, 16 groups × 16 molecules × 200k MC steps): PASS
+
+| check | value |
+|---|---|
+| min fine-bin count | 298 429 |
+| D(F_density, F_MF) | 0.0103 [0.0115] |
+| split-half | 0.000 [0.0034] |
+| first vs second half | 0.000 [0.0040] |
+| closure | 0.0013 ± 0.0007 |
+| noise | 0.0023 |
+| barrier | **29.97 kJ/mol = 24.03 kBT** |
+| decomposition | ΔU 20.16, −TΔS 9.81 kJ/mol (33 % entropic) |
+
+### Gate 2
+
+| scheme | D_density [upper] | D_MF [upper] | bond-variance error | verdict |
+|---|---|---|---|---|
+| EM 2e-4 | 0.0161 [0.024] | 0.0168 [0.022] | +19.1 % | admissible, but **fails the second clause** (0.0168 > ⅓ × 0.041) |
+| **EM 1e-4** | 0.0026 [0.011] | 0.0107 [0.016] | – | **production** (second clause 0.0107 ≤ 0.0132 on the screen) |
+
+### Gate 3
+
+| step | result |
+|---|---|
+| horizon (dt 2e-4) | e_F 0.140 / 0.082 / 0.049 / 0.035 at 50 / 100 / 200 / 400 → **T = 200** |
+| ramp × pre-eq (dt 2e-4) | **1 t.u. / 5 t.u.** (score 0.933) |
+| consistency at dt 1e-4 (Amendment 5) | 0.0390 vs 0.0411, ratio 0.95, **PASS** |
+| bins (dt 1e-4) | K 1024 e_F(T) 0.0380 / 0.0390 / 0.0348 for 90 / 180 / 360 bins; floor share of 180 = 10.2 % and 360 better by 10.7 % → **360 bins** (thin margins, rule applied as written) |
+
+### Classifier null control at the 8 t.u. block design
+
+FP 0/300 at every K. Power for a 40 % deficit: 68 / 98 / 100 % at K 64 / 256 / 1024.
