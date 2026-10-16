@@ -14,10 +14,15 @@ FF = {"T_K": 300.0, "eps_O_K": 93.0, "sig_O": 3.48, "eps_Si_K": 0.0, "sig_Si": 1
       "sig_CC": 3.76, "rc": 12.0, "shift": True, "k_bond_K": 96500.0, "r0": 1.54}
 
 
+TEMP = 300.0          # set by --temp (A'-150: 150 K); seed bases are shifted by --seedshift (Amendment 3)
+SEEDSHIFT = 0
+
+
 def cfg(N, seed, dt, T, ramp, eq, ng, save_tu=None):
+    seed = seed + SEEDSHIFT
     n = int(round(T / dt))
     save_every = int(round((save_tu if save_tu else T / 400.0) / dt))
-    return dict(variant="ite_itq3", T_K=300.0, ff=FF, N=N, M=1, seed=seed, dt=dt, n_steps=n, save_every=save_every,
+    return dict(variant="ite_itq3", T_K=TEMP, ff=dict(FF, T_K=TEMP), N=N, M=1, seed=seed, dt=dt, n_steps=n, save_every=save_every,
                 n_grid=ng, warmup_steps=int(round(ramp / dt)), trust_count=200.0, fr_start_steps=10 ** 12,
                 fr_every=max(1, int(round(0.001 / dt))), genealogy_window_steps=int(round(0.05 * T / dt)),
                 equil_steps=int(round(eq / dt)), window_phi=0.5, cage_phi=2.0)
@@ -34,9 +39,14 @@ def main():
     ap.add_argument("--K", type=int, default=1024, help="eligible replica count (FR stages)")
     ap.add_argument("--rate", type=float, default=None, help="frozen FR rate (production)")
     ap.add_argument("--block", default="explore", help="production block: explore (8 seeds) | confirm (16 seeds)")
+    ap.add_argument("--temp", type=float, default=300.0)
+    ap.add_argument("--seedshift", type=int, default=0)
+    ap.add_argument("--cell", default="ite")
     a = ap.parse_args()
+    global TEMP, SEEDSHIFT
+    TEMP, SEEDSHIFT = a.temp, a.seedshift
     jobs = []
-    out = "results/overnight/ite"
+    out = f"results/overnight/{a.cell}"
     if a.stage == "horizon":          # 4a: T up to 400 t.u. (rule compares T and 2T), default ramp 1 / pre-eq 5
         for N in (1024, 64):
             for s in range(3):
@@ -79,8 +89,10 @@ def main():
         raise SystemExit(f"unknown stage {a.stage}")
     for j in jobs:                    # threads: the replica force loop is parallel; small K gains nothing from threads
         j["threads"] = 8 if j["cfg"]["N"] >= 512 else (2 if j["cfg"]["N"] >= 256 else 1)
-    path = os.path.join(ROOT, "configs", "overnight", "ite", f"jobs_{a.stage}.json")
-    json.dump(dict(stage=f"ITE {a.stage} (dt {a.dt}, T {a.T}, ramp {a.ramp}, eq {a.eq}, ng {a.ng})", jobs=jobs),
+    os.makedirs(os.path.join(ROOT, "configs", "overnight", a.cell), exist_ok=True)
+    path = os.path.join(ROOT, "configs", "overnight", a.cell, f"jobs_{a.stage}.json")
+    json.dump(dict(stage=f"{a.cell} {a.stage} ({a.temp} K, dt {a.dt}, T {a.T}, ramp {a.ramp}, eq {a.eq}, ng {a.ng})",
+                   jobs=jobs),
               open(path, "w"), indent=1)
     print(path, len(jobs))
 
