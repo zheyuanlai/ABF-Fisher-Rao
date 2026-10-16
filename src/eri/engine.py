@@ -66,6 +66,7 @@ DEFAULT_CFG = dict(
     genealogy_window_steps=20_000,
     init="cage",                           # "cage": tagged molecule (and guests) at random ERI-cage centres
     equil_steps=0,                         # unbiased EM pre-equilibration of the starting configurations (stream 0)
+    ff=None,                               # force-field parameter dict (None: model.PARAMS, the ERI/Schuering set)
 )
 
 # integer state layout
@@ -406,9 +407,10 @@ class Run:
             raise ValueError("no FR at N = 1")
         self.c = c
         self.method = method
-        self.model = model if model is not None else mdl.Model(c["variant"], T_K=c["T_K"])
-        if model is not None and (model.fw.variant != c["variant"] or abs(model.p["T_K"] - c["T_K"]) > 1e-9):
-            raise ValueError("model does not match the config (variant / T_K)")
+        self.model = model if model is not None else mdl.Model(c["variant"], T_K=c["T_K"], params=c["ff"])
+        ffp = dict(mdl.PARAMS if c["ff"] is None else c["ff"], T_K=c["T_K"])
+        if model is not None and (model.fw.variant != c["variant"] or model.p != ffp):
+            raise ValueError("model does not match the config (variant / T_K / force field)")
         m = self.model
         g_ic, self.g_noise, self.g_fr = seed_streams(c)
         N, M = int(c["N"]), int(c["M"])

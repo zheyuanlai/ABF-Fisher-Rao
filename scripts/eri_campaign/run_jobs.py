@@ -25,9 +25,9 @@ def job(j):
     from eri import engine as E
     from eri.model import Model
     c = E.make_cfg(**j["cfg"])
-    key = (c["variant"], c["T_K"])
+    key = (c["variant"], c["T_K"], json.dumps(c["ff"], sort_keys=True))
     if key not in _MODEL:
-        _MODEL[key] = Model(c["variant"], T_K=c["T_K"])
+        _MODEL[key] = Model(c["variant"], T_K=c["T_K"], params=c["ff"])
     t0 = time.time()
     E.run(c, j["method"], out_path=out, checkpoint_path=out + ".ckpt.npz", model=_MODEL[key])
     return j["out"], time.time() - t0, "done"
