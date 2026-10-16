@@ -126,3 +126,20 @@ Engine tests (above). FR is never run in production because no cell is eligible.
 ### Classifier null control at the 8 t.u. block design
 
 FP 0/300 at every K. Power for a 40 % deficit: 68 / 98 / 100 % at K 64 / 256 / 1024.
+
+## Gate 4 in production (Amendment 8 blocks)
+
+* **Pairing:** every one of the 32 ABF/FR pairs is bitwise identical at every save before the first FR opportunity.
+  The analysis checks this (`analyze_two_arm.py`).
+* **Force evaluations:** identical between arms (asserted).
+* **Replica count:** constant by construction.
+* **FR genealogy:**
+  * min windowed ESS/K is 0.34 (X1) and 0.40 (X2), against a 0.30 floor;
+  * max lineage share is 0.017 / 0.041, against a 0.05 limit.
+* **FR conditional distributions:** deposit-weighted ⟨η|φ⟩ and ⟨u_x²|φ⟩ in the FR arm match exact MC as well as
+  ABF's do (RMS 0.0007 / 0.0018).
+* **Long-time correctness (§6):**
+  * FR's late-half pooled estimate differs from ABF's by D 0.028 / 0.031 kJ/mol at noise 0.011 / 0.012. That is
+    2.5σ, below the frozen 3σ flag, so it is not formally flagged.
+  * FR's late estimate vs MC is 0.035 / 0.039, against ABF's 0.013 / 0.010.
+  * Reported as a likely FR-induced estimator bias that needs confirmation (`RESULTS.md`).

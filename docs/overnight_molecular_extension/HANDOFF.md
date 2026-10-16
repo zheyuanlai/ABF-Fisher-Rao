@@ -40,7 +40,33 @@ $P scripts/eri_campaign/classify_screen.py results/overnight/ite/screen --refbas
   diffusion coefficients are not comparable with the MD literature.
 * The ERI loading study (2 and 5 molecules/cage) needs a GPU engine. CPU cost is about 6 core-h per N 256 run.
 
+## Exploratory FR result (Amendment 8)
+
+* X1 (ITE 300 K, K 1024): −14.9 % Ī_F, 16/16, but a worse endpoint.
+* X2 (ITE 150 K, K 256): Ī_F n.s., endpoint +57 % worse.
+* Both show a late FR estimator bias at 2.5σ.
+
+Reproduce:
+
+```
+P=/home/zheyuanlai/miniconda3/envs/abffr/bin/python
+$P scripts/overnight/ite_jobs.py frcal --dt 1e-4 --T 50 --ramp 1 --eq 5 --ng 180 --K 1024 --temp 300 --seedshift 0 --cell ite
+$P scripts/overnight/fr_calibrate.py results/overnight/ite/frcal --K 1024
+$P scripts/overnight/ite_jobs.py prod --dt 1e-4 --T 50 --ramp 1 --eq 5 --ng 180 --K 1024 --temp 300 --seedshift 0 --cell ite --rate 2.0 --block confirm
+NUMBA_NUM_THREADS=8 $P scripts/eri_campaign/run_jobs.py configs/overnight/ite/jobs_prod.json --procs 16
+$P scripts/overnight/analyze_two_arm.py results/overnight/ite/prod_confirm --K 1024 --refbase results/overnight/ite/reference --variant ite_itq3 --T 300
+$P scripts/overnight/fr_mechanism.py results/overnight/ite/prod_confirm --K 1024 --refbase results/overnight/ite/reference
+$P scripts/overnight/fig_two_arm.py results/overnight/ite/prod_confirm --K 1024 --refbase results/overnight/ite/reference --out figures/overnight/ite
+# X2: --T 200 --ng 360 --K 256 --temp 150 --seedshift 1000 --cell ite150 --rate 0.5 (reference dir results/overnight/ite150/reference)
+```
+
 ## Next experiments (ranked; each needs a fresh preregistration)
+
+0. **Follow up X1/X2.**
+   * Run more seeds and a longer horizon to establish whether the late FR bias is stationary.
+   * Try an FR stop time (e.g. FR only until the window is established) or a lower rate. These are the same two arms
+     with a different FR schedule; freeze the schedule first.
+   * Run an equal-budget K-ladder only if a fixed-K gain survives at the endpoint too.
 
 1. **Early-phase FR test (recommended).**
    * In all three cells, 34–57 % of ABF's integrated error accrues before the window population is established at

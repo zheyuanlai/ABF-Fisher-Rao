@@ -430,3 +430,10 @@ reproduced, and no walker ever left its channel family. Findings acted on:
 * **X2 (K 256).** Rates 0.05–0.5 are safe. Rate 1 (ESS 0.20, lineage 0.070) and rate 2 (0.15, 0.090) are unsafe →
   **rate 0.5**.
 * Paired blocks launched 21:14:33 UTC: X1 seeds 980 000–980 015, X2 seeds 981 000–981 015, both arms each.
+
+**Amendment 8, results** (recorded after the blocks finished at 21:26 UTC; analysis scripts pre-written):
+* **X1:** ΔĪ_F −14.9 % [−17.0, −10.1], FR better 16/16 ("FR BETTER (useful)"). Δe_F(T) +14.0 % [+0.8, +21.3].
+* **X2:** ΔĪ_F −1.1 % [−8.3, +11.9], 9/16 ("NO RESOLVED DIFFERENCE"). Δe_F(T) +56.8 % [+29.3, +95.0], 0/16.
+* **Pre-specified predictions:** "|ΔĪ_F| < 10 % in both" FAILED (X1). "X2 gain > X1 gain" FAILED.
+* **Stationary-tilt rule:** FR vs ABF late-half D/noise = 2.5 in both cells, below 3, so not flagged. Reported with
+  the supporting paired evidence.

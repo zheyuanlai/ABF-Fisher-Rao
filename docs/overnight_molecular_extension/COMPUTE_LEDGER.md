@@ -26,8 +26,12 @@ total (the 2026-10-16 instruction preserves the existing allocation).
 | 20:18–20:32 | ITE 150 K ABF-only screen (24 runs, dt 1e-4, 360 bins) | 16.32 | 0 | 116.0 |
 | 20:32–20:45 | null controls, classification, deficit-phase analysis, figures | ~0.5 | 0 | 116.5 |
 
-**Remaining authorisation at 20:45:** about 83 CPU core-h and 24.0 GPU-h. No further experiment is licensed by the
-frozen gates.
+| 20:50–21:05 | independent audit agent (CPU checks), doc corrections | ~0.5 | 0 | 117.0 |
+| 21:04–21:14 | FR safety calibration X1 (18 runs, K 1024) + X2 (18 runs, K 256) | 13.15 + 5.44 | 0 | 135.6 |
+| 21:14–21:26 | paired blocks X1 (32 runs) + X2 (32 runs) | 23.74 + 10.98 | 0 | 170.3 |
+| 21:26–21:45 | two-arm analyses, mechanism diagnostics, figures | ~0.5 | 0 | 170.8 |
+
+**Remaining authorisation at 21:45:** about 29 CPU core-h and 24.0 GPU-h.
 
 **Earlier projection (20:20), superseded:**
 * An FR calibration plus the exploratory block at K 1024 would cost about 89 core-h, which exceeds the remaining

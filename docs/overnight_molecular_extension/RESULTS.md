@@ -1,6 +1,6 @@
 # Results — overnight molecular extension (ABF vs ABF + FR only)
 
-*Last updated 2026-10-16 ~20:45 UTC. The only adaptive algorithms are histogram ABF (A) and the identical histogram
+*Last updated 2026-10-16 ~21:45 UTC. The only adaptive algorithms are histogram ABF (A) and the identical histogram
 ABF + uniform marginal FR (B). FR is run only for cells that the frozen ABF-only classifier labels
 ESTABLISHMENT-LIMITED.*
 
@@ -17,7 +17,11 @@ positive (−28.5 % Ī_F) as ABF-sufficient: its information clause (I) fails th
 therefore a property of this gate. It is not evidence that FR is unnecessary.** The establishment test E′ alone does
 fire on LTA 150 K, and it does not fire on ERI or ITE at their frozen horizons.
 
-**No cell met the preregistered condition for an ABF vs ABF + FR comparison.** No FR production result
+**No cell met the preregistered condition for an ABF vs ABF + FR comparison.** An exploratory predictor-validation
+experiment was therefore run (Amendment 8; results at the end):
+* ITE 300 K, K 1024: FR **−14.9 % Ī_F (16/16)**, but a worse endpoint (+14 %).
+* ITE 150 K, K 256: no integrated effect, endpoint **+57 % worse (0/16)**.
+* Both cells show an FR-induced late-time estimator bias (2.5σ). No FR production result
 exists in this extension, so no "FR helps" or "FR does not help" statement about these systems is supported. What
 is supported is narrower:
 
@@ -103,10 +107,63 @@ See `CANDIDATES.md`:
 * D (CH4 pair in a water-filled pore): feasible with model changes (smooth walls, a rigid-water integrator); the
   barrier is ≤ 3 kT and solvent-controlled, so it is expected to be ABF-sufficient. Deprioritised.
 
-## Exploratory predictor-validation FR experiment (Amendment 8)
+## Exploratory predictor-validation FR experiment (Amendment 8): ABF vs ABF + uniform FR, 16 paired seeds per cell
 
-Status: running. Not licensed by the eligibility gate; labelled exploratory. Cells and seeds:
-* X1: ITE 300 K, K 1024;
-* X2: ITE 150 K, K 256.
+*EXPLORATORY: not licensed by the eligibility gate. The design and rates were frozen before any FR data: rates were
+chosen by the blind safety-only rule, and the analysis is pre-written. Fixed K, equal force evaluations per arm.
+Claim type 1 only; no equal-budget or wall-clock claim. Both arms are bitwise identical before FR starts in 32/32
+pairs.*
 
-Results will be added here.
+| | X1: ITE 300 K, K 1024, FR rate 2.0 | X2: ITE 150 K, K 256, FR rate 0.5 |
+|---|---|---|
+| **primary ΔĪ_F** (median, 95 % CI, FR better) | **−14.9 % [−17.0, −10.1], 16/16** (ABF 0.317 → FR 0.288 kJ/mol) | −1.1 % [−8.3, +11.9], 9/16 (no resolved difference) |
+| Δe_F(T) | **+14.0 % [+0.8, +21.3]**, 4/16 (ABF 0.076 → FR 0.087) | **+56.8 % [+29.3, +95.0], 0/16** (0.048 → 0.080) |
+| Δe_F′(T) | +11.0 % [+0.0, +28.2], 4/16 | +34.1 % [+22.7, +70.1], 1/16 |
+| Δ late-deposit e_F (deposits after FR start) | +16.5 % [+0.6, +23.9], 3/16 | +56.9 % [+30.2, +101], 0/16 |
+| ΔTV(p, uniform), time-average after FR start | −28.2 % [−29.8, −27.2], 16/16 | −13.7 % [−14.6, −12.8], 16/16 |
+| true translocations (FR − ABF) | −49 [−84, −43] | −61 [−73, −22] |
+| FR genealogy: min windowed ESS/K; max lineage share; replacements | 0.34; 0.017; 4640 | 0.40; 0.041; 2273 |
+| pooled late-half (t > T/2) estimate vs MC: ABF / FR | 0.013 / **0.035** kJ/mol | 0.010 / **0.039** kJ/mol |
+| pooled late-half FR vs ABF: D (noise) | 0.028 (0.011), 2.5σ, below the frozen 3σ tilt flag | 0.031 (0.012), 2.5σ, below the 3σ flag |
+| paired per-seed late-half error FR / ABF − 1 | +24.6 % [+6.9, +58.4], FR worse 12/16 | +39.8 % [+22.5, +86.5], FR worse 14/16 |
+
+Figures: `figures/overnight/ite/fig_two_arm_K1024.png`, `figures/overnight/ite150/fig_two_arm_K256.png`.
+Data: `results/overnight/ite*/prod_confirm/two_arm_K*.json`, `fr_mechanism_K*.json`,
+`results/overnight/fr_circulation_paired.json`.
+
+**Reading.**
+* **[observed, X1] FR gives a resolved fixed-K reduction of the integrated free-energy error (−15 %, 16/16) in a
+  realistic molecular system.** It does so by establishing the window population much faster: about 2–3 t.u. against
+  ABF's 6–8, after which ABF overshoots to about 1.15× uniform until t ≈ 20. The gain is confined to the bias
+  build-up phase. The error curves cross at t ≈ 30, and **FR ends worse** (e_F(T) +14 %).
+* **[observed, X2] At 150 K, FR is faster early (t < 40) but plateaus at a higher error floor** (0.080 vs 0.048
+  kJ/mol at T, 0/16 seeds). ABF keeps converging. The integrated effect nets to zero.
+* **[observed, both] FR's LATE deposits are biased.**
+  * The pooled late-half FR estimate is 3–4× further from exact MC than ABF's.
+  * The FR−ABF profile difference has the same shape in both cells: −0.05 kJ/mol over the left cage, stepping to
+    about +0.03 across the left flank and window. In mean force it sits in the flank and cage.
+  * The deposit-weighted conditional means of the hidden coordinates (η, u_x²) are NOT distorted by FR (RMS vs MC
+    0.0007 / 0.0018, same as ABF).
+  * The pooled 16-seed difference is 2.5σ, below the frozen 3σ stationary-tilt flag, so it is **not formally
+    flagged**. The paired per-seed late errors (12/16, 14/16 FR worse) and the identical profile shape in two cells
+    make it a likely real FR-induced estimator bias. More seeds would be needed to establish it.
+* **[hypothesis] Mechanism.** The applied histogram bias on a periodic CV is not mean-corrected. Its circular mean
+  (net circulation) is about 0.008–0.011 in ABF and 0.015–0.025 in FR, against 0.000 for exact MC. The paired FR−ABF
+  increase is resolved in X2 (+0.015 [+0.004, +0.023], 13/16) but not in X1 (+0.011 [−0.007, +0.017], 12/16).
+  * A circulating, non-conservative bias would drive a steady flux around the channel. That would bias the
+    conditional mean force on the flank the flux climbs, and FR's φ-selection would amplify it.
+  * This is untested.
+  * It is phenomenologically the same as the repo's "FR error floor while ABF converges" (WCA at dt\*; shifted fibre at
+    λ ≤ 4) and the gateway's "transient gain, then reversal".
+* **Predictors (pre-specified in Amendment 8) were WRONG in both directions.**
+  * They predicted |ΔĪ_F| < 10 % in both cells, because E′ never fires; X1 gave −15 %.
+  * They predicted the larger gain in X2; X2 gave none.
+  * The eligibility gate (E′ + (I)) therefore fails as a predictor: it misses the early-phase gain (X1) and does not
+    warn about the late-time harm (X2).
+  * The descriptive early-phase lead (34–57 % of I_F accrues before establishment) correctly pointed at where FR acts.
+* **Not established:**
+  * any advantage at equal force evaluations with free K, or in wall-clock;
+  * any confirmatory, gate-licensed claim;
+  * whether the late bias persists or decays beyond T;
+  * whether a lower FR rate or a later FR stop would keep the early gain without the late cost. That would be a new
+    preregistered study with the same two arms.
