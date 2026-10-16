@@ -346,7 +346,7 @@ def sha256_file(path):
     return h.hexdigest()
 
 
-def save_generic(fw, path, cages, windows, P, x_window):
+def save_generic(fw, path, cages, windows, P, x_window, eta_len=None):
     """Save a non-ERI framework with EXPLICIT cage centres and window centres (box coordinates), the CV period P and
     the X offset of the phi = 0 windows.  Refuses a framework that fails the coordination check (audit F5)."""
     ok, dmin, (lo, hi) = coordination_check(fw)
@@ -355,7 +355,7 @@ def save_generic(fw, path, cages, windows, P, x_window):
     np.savez(path, pos=fw["pos"], types=fw["types"], box=fw["box"], a=fw["a"], c=fw["c"], b=fw["b"], reps=fw["reps"],
              cell=fw["cell"], perm=fw["perm"], variant=fw["variant"], source=fw["source"],
              source_sha256=fw["source_sha256"], cages=np.asarray(cages, float), windows=np.asarray(windows, float),
-             P=float(P), x_window=float(x_window))
+             P=float(P), x_window=float(x_window), **({} if eta_len is None else {"eta_len": float(eta_len)}))
 
 
 def save(fw, path):

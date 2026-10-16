@@ -109,7 +109,9 @@ class Framework:
         fw = fwm.load(variant)
         self.variant = variant
         self.a = float(fw["a"])
-        self.c = float(fw["c"])
+        # self.c is used ONLY as the length of the hidden-variable diagnostic eta = cos(4 pi Z_com / c) (ERI: the
+        # crystal c, so eta = +1 at window heights); a generic framework may set "eta_len" in its npz
+        self.c = float(fw["eta_len"]) if "eta_len" in fw else float(fw["c"])
         self.box = np.ascontiguousarray(fw["box"], dtype=np.float64)
         self.pos = np.ascontiguousarray(fw["pos"], dtype=np.float64)
         self.types = np.ascontiguousarray(fw["types"], dtype=np.int64)
