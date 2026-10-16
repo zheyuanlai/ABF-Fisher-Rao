@@ -25,6 +25,7 @@ for i, K in enumerate((64, 256, 1024)):
     E, R, TR = [], [], []
     for p in sorted(f for f in glob.glob(os.path.join(d, f"abf_N{K}_s*.npz")) if not f.endswith("ckpt.npz")):
         r = mt.load_run(p); t = r["times"]
+        Fr, Gr = mt.reference_for_grid(r["sv_C"].shape[1], _a.variant)
         e = mt.errors(r, Fr, Gr); E.append(e["eF"])
         m = mt.marginal(r, Fr, KB * r["cfg"]["T_K"]); R.append(m["frac_win"] / np.maximum(m["Q_win"], 1e-12))
         TR.append(r["sv_i"][:, 1] / K)

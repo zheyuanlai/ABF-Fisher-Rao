@@ -247,3 +247,12 @@ def conditional_lag_timeavg(r, ref_means, var, t_from_frac=0.5, tau_corr=0.5, n_
         floor = float(np.sqrt(np.nansum(np.where(occ, w * var[name] / n_eff, 0.0))))
         out[name] = (stat, floor)
     return out
+
+
+def reference_for_grid(ng, variant="gard_tait"):
+    """The preregistered reference convention per grid: the unsmoothed MC pooled mean force when ng divides 180
+    (reference_on_grid), else the smooth Fourier P0-compatible reference (reference_smooth).  Returns (F, Gamma)."""
+    if 180 % ng == 0:
+        F, G, _ = reference_on_grid(ng, variant)
+        return F, G
+    return reference_smooth(ng, variant)

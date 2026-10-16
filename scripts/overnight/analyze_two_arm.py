@@ -60,14 +60,16 @@ def main():
     ap.add_argument("--T", type=float, required=True)
     a = ap.parse_args()
     mt.set_reference_base(a.refbase)
-    Fr, Gr, _ = mt.reference_on_grid(180, a.variant)
+    Fr = Gr = None
     arms = {}
     for method in ("abf", "fr"):
         for f in sorted(glob.glob(os.path.join(ROOT, a.dir, f"{method}_N{a.K}_s*.npz"))):
             if f.endswith((".ckpt.npz", ".tmp.npz")):
                 continue
             s = int(re.search(r"_s(\d+)\.npz$", f).group(1))
-            arms.setdefault(s, {})[method] = per_run(mt.load_run(f), Fr, Gr)
+            r = mt.load_run(f)
+            Fr, Gr = mt.reference_for_grid(r["sv_C"].shape[1], a.variant)
+            arms.setdefault(s, {})[method] = per_run(r, Fr, Gr)
     seeds = sorted(s for s in arms if len(arms[s]) == 2)
     assert len(seeds) == len(arms), "every seed must have both arms (no discarding)"
     for s in seeds:
@@ -93,7 +95,7 @@ def main():
     for m in ("abf", "fr"):
         C = sum(arms[s][m]["C"] for s in seeds)
         M = sum(arms[s][m]["M"] for s in seeds)
-        pooled[m] = mt.histogram_pmf(mt.mean_force(M, C))
+        pooled[m] = mt.histogram_pmf(mt.mean_force(M, C))       # same grid as Fr (last run loaded)
     out["pooled_rms_vs_ref"] = {m: float(mt.centred_rms(pooled[m] - Fr)) for m in pooled}
     out["pooled_rms_fr_vs_abf"] = float(mt.centred_rms(pooled["fr"] - pooled["abf"]))
     p = out["Ibar_F"]

@@ -306,3 +306,38 @@ eligible, ≈ 35–45 core-h. The total stays under the remaining 143 core-h.
   8-seed block (≈ 60 core-h). The 16-seed confirmatory block (≈ 60 core-h more) would exceed the 200 core-h ceiling.
   If eligible, the exploratory block runs, the confirmatory block is reported as not run, and no confirmatory claim
   is made.
+
+## Amendment 6 — A′-150: Gate 3c at dt 1e-4; screen launched (2026-10-16 ~20:22 UTC; no 150 K screen or FR data exist)
+
+* **Bin ladder at dt 1e-4, T 200, ramp 1, pre-eq 5** (3 seeds, 945 000+). References follow §4: MC F_MF for 90 and
+  180 bins, the smooth Fourier P0-compatible reference for 360.
+
+  | K | 90 bins | 180 bins | 360 bins |
+  |---|---|---|---|
+  | 1024 | 0.0380 | **0.0390** | **0.0348** |
+  | 64 | 0.0565 | 0.0650 | 0.0724 |
+
+  Median e_F(T); P0 floors 0.0158 / 0.0040 / 0.0010.
+* **Amendment 5 consistency check: PASS.** The 180-bin K 1024 median at dt 1e-4 is 0.0390 against 0.0411 at 2e-4
+  (ratio 0.95). The carried-over T / ramp / pre-eq stand.
+* **dt second clause at 1e-4: PASS.** D_MF 0.0107 ≤ ⅓ × 0.0390 = 0.0130.
+* **Bin rule (§4c): SWITCH to 360 bins.** The 180-bin floor is 10.2 % of e_F(T) (> 10 %), and 360 lowers the K 1024
+  median by 10.7 % (> 10 %).
+  * Both margins are thin. The per-seed (noise-paired) differences are +3 %, −6 % and −15 %. This is recorded but
+    the rule is applied as written.
+  * Every 360-bin read-out uses the smooth reference on the 360-bin grid (`metrics.reference_for_grid`). It differs
+    from the MC on-grid reference by 0.004 kJ/mol RMS at 180 bins.
+* **Frozen A′-150 configuration:**
+
+  | knob | value |
+  |---|---|
+  | dt | 1e-4 |
+  | T | 200 t.u. (2 000 000 steps) |
+  | bins | **360** |
+  | trust | 200 |
+  | ramp | 1 t.u. |
+  | pre-eq | 5 t.u. |
+  | saves | every 0.5 t.u. |
+  | establishment blocks | 8 t.u. (deficient-run threshold 40 t.u.) |
+
+* **Screen:** K 1024 / 256 / 64 × 8 seeds, seeds 951 000+.

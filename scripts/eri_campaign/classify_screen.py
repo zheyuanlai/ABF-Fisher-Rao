@@ -81,7 +81,7 @@ def classify(dirpath, T_frac_disc=0.1, span_frac=0.2, variant="gard_tait", hidde
         K = int(re.search(r"_N(\d+)_", os.path.basename(p)).group(1))
         byK.setdefault(K, []).append(p)
     ref = np.load(os.path.join(mt.REF_BASE, variant, "reference_profile.npz"))
-    Fr, Gr, _ = mt.reference_on_grid(180, variant)
+    Fr180, Gr180, _ = mt.reference_on_grid(180, variant)
     taus, var_eta, ref_means, ref_vars = hidden_stats(variant=variant, tag=hidden_tag, with_means=True,
                                                       base=mt.REF_BASE)
     # reference conditional means from the MC accumulators (exact, count-weighted per coarse bin)
@@ -96,6 +96,7 @@ def classify(dirpath, T_frac_disc=0.1, span_frac=0.2, variant="gard_tait", hidde
         for p in byK[K]:
             r = mt.load_run(p)
             c = r["cfg"]
+            Fr, Gr = mt.reference_for_grid(r["sv_C"].shape[1], variant)      # grid-matched reference
             dt = c["dt"]
             t = r["times"]
             T = float(t[-1])
