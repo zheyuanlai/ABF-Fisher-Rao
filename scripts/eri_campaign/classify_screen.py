@@ -75,7 +75,7 @@ def hidden_stats(variant="gard_tait", tag="EM_2e-04", sample_tu=1e-3, n_coarse=1
 
 
 def classify(dirpath, T_frac_disc=0.1, span_frac=0.2, variant="gard_tait", hidden_tag="EM_2e-04"):
-    files = sorted(glob.glob(os.path.join(dirpath, "abf_N*_s*.npz")))
+    files = sorted(f for f in glob.glob(os.path.join(dirpath, "abf_N*_s*.npz")) if not f.endswith((".ckpt.npz", ".tmp.npz")))
     byK = {}
     for p in files:
         K = int(re.search(r"_N(\d+)_", os.path.basename(p)).group(1))

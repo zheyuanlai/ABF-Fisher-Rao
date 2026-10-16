@@ -141,3 +141,70 @@ No ABF or FR run of ITE exists.
      allocation compared with a bootstrap over seeds that re-selects K);
   3. wall-clock (not claimed);
   4. long-time correctness (as above).
+
+---
+
+## Amendment 1 — Gate 1/2 verdicts and the Gate 3a horizon (2026-10-16 18:50 UTC; ABF-only data only, no FR run exists)
+
+* **Gate 1 (MC, 16 groups, 2000 bootstrap resamples): PASS on every check.**
+  * Overlap: min fine count 186 793.
+  * D(F_density, F_MF) = 0.0099 [0.012].
+  * Split-half: 0.0047 [0.011].
+  * Equilibration: 0.000 [0.0095].
+  * Closure: 0.0002 ± 0.0008.
+  * Noise: 0.004 kJ/mol.
+  * Barrier: 39.70 kJ/mol = **15.92 kBT**. ΔU = 20.61 and −TΔS = 19.09 kJ/mol, so **48 % entropic**.
+* **Gate 2:**
+
+  | candidate | D_density [upper] | D_MF [upper] | verdict |
+  |---|---|---|---|
+  | EM 2e-4 | 0.0357 [0.051] | 0.0301 [0.039] | **NOT ADMISSIBLE** (D_density > 0.03) |
+  | EM 1e-4 | 0.0148 [0.030] | 0.0129 [0.021] | **ADMISSIBLE** (bond var +8.8 %) |
+
+  **Production dt = 1e-4.** LM 2e-4 and EM 5e-5 are reported in VALIDATION.md.
+* **Gate 3a horizon rule:** at K 1024 (3 seeds; ramp 1, pre-eq 5), the median e_F is 0.0625 / 0.0457 / 0.0344 /
+  0.0234 at 50 / 100 / 200 / 400 t.u. The ratio e_F(50)/e_F(100) = 1.37 ≤ 1.5, so **T = 50 t.u.** (500 000 steps).
+  * The dt second clause is provisionally met: D_MF 0.0129 ≤ ⅓ × 0.0625 = 0.021. It is rechecked on the screen.
+  * The establishment block length is 2 t.u. (T ≤ 50).
+* **Gate 3b launched:** ramp {1, 4} × pre-eq {0, 5} t.u. at T 50, K 1024 and 64, 3 seeds (941 000+). The rule is
+  §4(b) with weights K 1024 : K 64 = 2 : 1.
+
+## Amendment 2 — Gate 3 frozen; screen launched (2026-10-16 18:38 UTC; ABF-only data only)
+
+* **Gate 3b** (`results/overnight/ite/calib_warm/warm_choice.json`): weighted normalised Ī_F (K 1024 : 64 = 2 : 1)
+
+  | ramp, pre-eq | score |
+  |---|---|
+  | 1, 0 | 1.000 |
+  | **1, 5** | **0.914** |
+  | 4, 0 | 1.324 |
+  | 4, 5 | 1.192 |
+
+  → **ramp 1 t.u., pre-eq 5 t.u.**
+* **Gate 3c:** the P0 floor of 180 bins is 0.0046 kJ/mol, ≈ 5 % of e_F(T) at K 1024. The switch condition (floor
+  > 10 % AND 360 better by > 10 %) cannot hold, so **180 bins**. The 90/180/360 ladder runs are reported anyway.
+* **Frozen ABF configuration:**
+
+  | knob | value |
+  |---|---|
+  | dt | 1e-4 |
+  | T | 50 t.u. |
+  | bins | 180 |
+  | trust | 200 |
+  | ramp | 1 t.u. |
+  | pre-eq | 5 t.u. |
+  | saves | every T/400 |
+
+  Regions verified on the reference: W bins βF ≥ 14.69 (needs ≥ 14.43); C bins βF ≤ 1.04 (needs ≤ 1.5).
+* **Null control and power** of the establishment test at T 50, 2 t.u. blocks, threshold 10 t.u.:
+  * FP 0/300 at K 64/256/1024.
+  * Power for a 12 t.u. deficit starting at t = 2:
+
+    | K | 30 % | 40 % | 50 % | 80 % |
+    |---|---|---|---|---|
+    | 1024 | 54 % | 100 % | – | – |
+    | 256 | 30 % | 84 % | 100 % | – |
+    | 64 | – | 3 % | 18 % | 93 % |
+* **Screen launched:** K 1024 / 256 / 64 × 8 seeds (950 000+).
+* **FR job stages written before any classification:** `scripts/overnight/ite_jobs.py` `frcal` / `prod`, exactly §6.
+  They run only for an ELIGIBLE K.

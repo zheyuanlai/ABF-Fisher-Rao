@@ -31,6 +31,9 @@ def main():
     ap.add_argument("--ramp", type=float, default=1.0)
     ap.add_argument("--eq", type=float, default=5.0)
     ap.add_argument("--ng", type=int, default=180)
+    ap.add_argument("--K", type=int, default=1024, help="eligible replica count (FR stages)")
+    ap.add_argument("--rate", type=float, default=None, help="frozen FR rate (production)")
+    ap.add_argument("--block", default="explore", help="production block: explore (8 seeds) | confirm (16 seeds)")
     a = ap.parse_args()
     jobs = []
     out = "results/overnight/ite"
@@ -57,8 +60,25 @@ def main():
             for s in range(8):
                 jobs.append(dict(cfg=cfg(N, 950000 + s, a.dt, a.T, a.ramp, a.eq, a.ng), method="abf",
                                  out=f"{out}/screen/abf_N{N}_s{s}.npz"))
+    elif a.stage == "frcal":          # section 6: safety-only rate ladder, FR arm only, 3 seeds (960 000+)
+        for rate in (0.05, 0.1, 0.2, 0.5, 1.0, 2.0):
+            for s in range(3):
+                c = cfg(a.K, 960000 + s, a.dt, a.T, a.ramp, a.eq, a.ng)
+                c.update(fr_rate=rate, fr_start_steps=int(round(a.ramp / a.dt)))
+                jobs.append(dict(cfg=c, method="fr", out=f"{out}/frcal/fr_N{a.K}_rate{rate:g}_s{s}.npz"))
+    elif a.stage == "prod":           # section 6: paired two-arm blocks on fresh seeds
+        if a.rate is None:
+            raise SystemExit("--rate (frozen by the safety calibration) is required")
+        base, n = (970000, 8) if a.block == "explore" else (980000, 16)
+        for s in range(n):
+            for method in ("abf", "fr"):
+                c = cfg(a.K, base + s, a.dt, a.T, a.ramp, a.eq, a.ng)
+                c.update(fr_rate=a.rate, fr_start_steps=int(round(a.ramp / a.dt)))
+                jobs.append(dict(cfg=c, method=method, out=f"{out}/prod_{a.block}/{method}_N{a.K}_s{s}.npz"))
     else:
         raise SystemExit(f"unknown stage {a.stage}")
+    for j in jobs:                    # threads: the replica force loop is parallel; small K gains nothing from threads
+        j["threads"] = 8 if j["cfg"]["N"] >= 512 else (2 if j["cfg"]["N"] >= 256 else 1)
     path = os.path.join(ROOT, "configs", "overnight", "ite", f"jobs_{a.stage}.json")
     json.dump(dict(stage=f"ITE {a.stage} (dt {a.dt}, T {a.T}, ramp {a.ramp}, eq {a.eq}, ng {a.ng})", jobs=jobs),
               open(path, "w"), indent=1)
