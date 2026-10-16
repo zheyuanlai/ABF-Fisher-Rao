@@ -18,7 +18,8 @@ import numpy as np
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 sys.path.insert(0, os.path.join(ROOT, "src"))
-CFG = json.load(open(os.path.join(ROOT, "configs", "eri_campaign", "reference.json")))
+CFG_PATH = os.environ.get("ERI_REFERENCE_CFG", os.path.join(ROOT, "configs", "eri_campaign", "reference.json"))
+CFG = json.load(open(CFG_PATH))
 _MODEL = {}
 
 
@@ -33,7 +34,7 @@ def job(args):
     from eri.model import Model
     from eri import reference as ref
     if variant not in _MODEL:
-        _MODEL[variant] = Model(variant, T_K=CFG["T_K"])
+        _MODEL[variant] = Model(variant, T_K=CFG["T_K"], params=CFG.get("params"))
     m = _MODEL[variant]
     K = CFG["windows"]["n"]
     centres = np.linspace(-np.pi, np.pi, K, endpoint=False)
@@ -70,7 +71,8 @@ def main():
     a = ap.parse_args()
     lo, hi = (int(x) for x in a.groups.split("-"))
     tag = tag_of(a.scheme, a.dt)
-    od = os.path.join(ROOT, "results", "eri_campaign", "reference", a.variant, tag)
+    od = os.path.join(ROOT, CFG.get("results_dir", os.path.join("results", "eri_campaign", "reference")), a.variant,
+                      tag)
     os.makedirs(od, exist_ok=True)
     jobs = [(a.variant, a.scheme, a.dt, g, w, os.path.join(od, f"g{g:02d}_w{w:02d}.npz"))
             for g in range(lo, hi + 1) for w in range(CFG["windows"]["n"])]

@@ -350,8 +350,9 @@ def config_hash(c, method):
 
 
 def seed_streams(c):
-    ss = np.random.SeedSequence([int(c["seed"]), int(c["N"]), int(c["M"]), int(round(c["T_K"])),
-                                 VARIANT_ID[c["variant"]]])
+    import zlib
+    vid = VARIANT_ID.get(c["variant"], zlib.crc32(c["variant"].encode()) % 1000003)
+    ss = np.random.SeedSequence([int(c["seed"]), int(c["N"]), int(c["M"]), int(round(c["T_K"])), vid])
     return [np.random.Generator(np.random.PCG64(s)) for s in ss.spawn(3)]
 
 
@@ -406,6 +407,8 @@ class Run:
         self.c = c
         self.method = method
         self.model = model if model is not None else mdl.Model(c["variant"], T_K=c["T_K"])
+        if model is not None and (model.fw.variant != c["variant"] or abs(model.p["T_K"] - c["T_K"]) > 1e-9):
+            raise ValueError("model does not match the config (variant / T_K)")
         m = self.model
         g_ic, self.g_noise, self.g_fr = seed_streams(c)
         N, M = int(c["N"]), int(c["M"])

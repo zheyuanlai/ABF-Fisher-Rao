@@ -44,8 +44,11 @@ ACC_KEYS = ("C_fine", "C", "Mf", "Mf2", "MU", "MU2", "Mbond", "Mbond2", "Mux2", 
 
 
 def window_stacks(fw):
-    """xy positions (in the orthorhombic unit cell, with the 3 x 3 neighbouring cell images) and horizontal unit
+    """ERI only (other frameworks: a dummy single stack, the |s| histogram is then meaningless and unused).
+    xy positions (in the orthorhombic unit cell, with the 3 x 3 neighbouring cell images) and horizontal unit
     normals of the 8-ring window stacks.  Returns (W (K, 2), N (K, 2), cell (2,))."""
+    if fw.variant not in ("gard_tait", "schlenker"):
+        return np.zeros((1, 2)), np.array([[1.0, 0.0]]), np.ascontiguousarray(fw.box[:2].copy())
     cell = fw.box[:2] / np.array([3.0, 2.0])
     win = fw.windows
     cages = fw.cages
