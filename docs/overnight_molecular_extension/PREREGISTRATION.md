@@ -208,3 +208,45 @@ No ABF or FR run of ITE exists.
 * **Screen launched:** K 1024 / 256 / 64 × 8 seeds (950 000+).
 * **FR job stages written before any classification:** `scripts/overnight/ite_jobs.py` `frcal` / `prod`, exactly §6.
   They run only for an ELIGIBLE K.
+
+---
+
+## Amendment 3 — second cell A′-150: the same ITE model at 150 K (2026-10-16 ~18:50 UTC, before any 150 K computation)
+
+**Result that triggered it.** The A′ (300 K) screen was classified ABF-sufficient at K 64/256/1024. FR is not licensed
+there, and no FR run of A′-300 will be made.
+
+**Why this cell.** The 2026-10-16 instruction (§11) allows another temperature when resources permit and the model
+stays valid.
+* The Hamiltonian is unchanged; only β changes.
+* The repo's validated ethane/LTA results used the same O–CH3 pair (93 K / 3.48 Å). That system was most clearly
+  establishment-limited at 150 K (FR −28.5 % Ī_F against exact MC, `docs/numerical_validation/LTA_VALIDATION.md`).
+* A′-150 therefore tests whether that regime appears in a 1-D 8-ring channel system at the same temperature.
+* Prediction (written now, without data):
+  * the barrier in kBT roughly doubles to about 25–30;
+  * ABF discovery slows;
+  * the classification could be discovery-limited, establishment-limited or ABF-sufficient. No direction is assumed.
+
+**Protocol.** Identical to sections 2–6 at T = 150 K, with these differences:
+* Seeds: MC 8 200 000 + 1000 g + w; Langevin 9 200 000 + 1000 g + w; ABF calibration 943 000+ / 944 000+ / 945 000+;
+  screen 951 000+; FR calibration 961 000+; production 971 000+ (explore) and 981 000+ (confirm).
+* Umbrella design: chosen by a short MC design pilot (recorded below before the full reference runs). Requirements:
+  min fine-bin count ≥ 200 and adjacent-window overlap. Window count and κ may change; tolerances may not.
+* Gate 2 run length per molecule: 64 t.u. (twice 300 K, since D ∝ kT).
+* Every gate tolerance and every classifier threshold is unchanged. The horizon candidates are {50, 100, 200} t.u.
+  (else 200), and the Gate 3a horizon runs are 400 t.u. long.
+* Results directory: `results/overnight/ite150/`.
+
+**Budget estimate.** Gates 1–3 plus the screen ≈ 45–60 core-h. FR calibration plus explore and confirm blocks, if
+eligible, ≈ 35–45 core-h. The total stays under the remaining 143 core-h.
+* If eligible, the equal-budget ladder (§6, claim type 2) runs only if ≥ 25 core-h remain after the confirmatory
+  block.
+* Otherwise it is reported as not done.
+
+**A′-150 design pilot (recorded before the full reference runs):**
+* Pilot: 64 windows, κ 250, 2 molecules × 20k MC steps. Acceptance: bead 0.64, translation 0.46, rotation 0.72;
+  min fine count 194; βΔF ≈ 23.9.
+* **Frozen:** 64 windows, κ 250 kJ/mol/rad², d_bead 0.07, d_trans 0.20, d_rot 0.40. 16 groups × 16 molecules ×
+  200 000 MC steps. Langevin runs 64 t.u. per molecule.
+* Gate 2 candidates are EM 2e-4 and EM 1e-4. LM 2e-4 and EM 5e-5 run only if both fail (budget). Config:
+  `configs/overnight/ite150/reference.json`.
