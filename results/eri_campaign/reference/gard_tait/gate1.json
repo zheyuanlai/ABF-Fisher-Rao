@@ -1,0 +1,63 @@
+{
+ "variant": "gard_tait",
+ "kT": 4.9886775708,
+ "tolerance": [
+  0.05,
+  0.075
+ ],
+ "nboot": 2000,
+ "overlap_min_fine_count": 200040.0,
+ "check1_overlap": "PASS",
+ "check2_density_vs_MF": {
+  "A": "MC F_density",
+  "B": "MC F_MF",
+  "D": 0.0,
+  "D_upper95": 0.008856016868988938,
+  "rms_obs": 0.005650777516870175,
+  "noise": 0.00837023780751896,
+  "max_abs": 0.014873178329465376,
+  "verdict": "PASS"
+ },
+ "check3_split_half": {
+  "A": "MC groups 0-7",
+  "B": "MC groups 8-15",
+  "D": 0.0,
+  "D_upper95": 0.01705320436709922,
+  "rms_obs": 0.012765829933296675,
+  "noise": 0.014115404737318486,
+  "max_abs": 0.03189884233450797,
+  "verdict": "PASS"
+ },
+ "check4_equilibration": {
+  "A": "MC first half",
+  "B": "MC second half",
+  "D": 0.013169715026816292,
+  "D_upper95": 0.0268849043072738,
+  "rms_obs": 0.019930931480379648,
+  "noise": 0.01495996777362965,
+  "max_abs": 0.049711438867761575,
+  "verdict": "PASS"
+ },
+ "check5_closure": {
+  "mean_gamma": -0.0012659286122742388,
+  "se": 0.0016269934789591971,
+  "verdict": "PASS"
+ },
+ "check6_reference_noise_rms": 0.007014766317560657,
+ "gate1": "PASS",
+ "barrier": {
+  "F_barrier": 33.27592110284629,
+  "jmin": 0,
+  "phi_min": -3.12413936106985,
+  "U_barrier": 5.303735031533908,
+  "mTS_barrier": 27.972186071312382,
+  "F_barrier_kT": 6.670288995548385
+ },
+ "acceptance": {
+  "bead": 0.7263548107328869,
+  "trans": 0.4749131259300595,
+  "rot": 0.7878067782738095
+ },
+ "bead_s_barrier_kT": 5.980967307033051,
+ "bead_x_barrier_kT": 6.133777336734
+}

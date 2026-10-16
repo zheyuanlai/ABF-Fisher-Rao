@@ -1,0 +1,413 @@
+{
+ "stage": "Gate 3a ABF-only warm-up / pre-equilibration calibration (dt 2e-4)",
+ "jobs": [
+  {
+   "cfg": {
+    "N": 1024,
+    "seed": 910000,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 5000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 0
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N1024_eq0_w5000_s0.npz"
+  },
+  {
+   "cfg": {
+    "N": 1024,
+    "seed": 910000,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 20000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 0
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N1024_eq0_w20000_s0.npz"
+  },
+  {
+   "cfg": {
+    "N": 1024,
+    "seed": 910000,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 5000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 10000
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N1024_eq10000_w5000_s0.npz"
+  },
+  {
+   "cfg": {
+    "N": 1024,
+    "seed": 910000,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 20000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 10000
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N1024_eq10000_w20000_s0.npz"
+  },
+  {
+   "cfg": {
+    "N": 1024,
+    "seed": 910000,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 5000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 25000
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N1024_eq25000_w5000_s0.npz"
+  },
+  {
+   "cfg": {
+    "N": 1024,
+    "seed": 910000,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 20000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 25000
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N1024_eq25000_w20000_s0.npz"
+  },
+  {
+   "cfg": {
+    "N": 1024,
+    "seed": 910001,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 5000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 0
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N1024_eq0_w5000_s1.npz"
+  },
+  {
+   "cfg": {
+    "N": 1024,
+    "seed": 910001,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 20000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 0
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N1024_eq0_w20000_s1.npz"
+  },
+  {
+   "cfg": {
+    "N": 1024,
+    "seed": 910001,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 5000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 10000
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N1024_eq10000_w5000_s1.npz"
+  },
+  {
+   "cfg": {
+    "N": 1024,
+    "seed": 910001,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 20000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 10000
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N1024_eq10000_w20000_s1.npz"
+  },
+  {
+   "cfg": {
+    "N": 1024,
+    "seed": 910001,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 5000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 25000
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N1024_eq25000_w5000_s1.npz"
+  },
+  {
+   "cfg": {
+    "N": 1024,
+    "seed": 910001,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 20000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 25000
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N1024_eq25000_w20000_s1.npz"
+  },
+  {
+   "cfg": {
+    "N": 64,
+    "seed": 910000,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 5000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 0
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N64_eq0_w5000_s0.npz"
+  },
+  {
+   "cfg": {
+    "N": 64,
+    "seed": 910000,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 20000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 0
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N64_eq0_w20000_s0.npz"
+  },
+  {
+   "cfg": {
+    "N": 64,
+    "seed": 910000,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 5000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 10000
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N64_eq10000_w5000_s0.npz"
+  },
+  {
+   "cfg": {
+    "N": 64,
+    "seed": 910000,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 20000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 10000
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N64_eq10000_w20000_s0.npz"
+  },
+  {
+   "cfg": {
+    "N": 64,
+    "seed": 910000,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 5000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 25000
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N64_eq25000_w5000_s0.npz"
+  },
+  {
+   "cfg": {
+    "N": 64,
+    "seed": 910000,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 20000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 25000
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N64_eq25000_w20000_s0.npz"
+  },
+  {
+   "cfg": {
+    "N": 64,
+    "seed": 910001,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 5000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 0
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N64_eq0_w5000_s1.npz"
+  },
+  {
+   "cfg": {
+    "N": 64,
+    "seed": 910001,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 20000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 0
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N64_eq0_w20000_s1.npz"
+  },
+  {
+   "cfg": {
+    "N": 64,
+    "seed": 910001,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 5000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 10000
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N64_eq10000_w5000_s1.npz"
+  },
+  {
+   "cfg": {
+    "N": 64,
+    "seed": 910001,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 20000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 10000
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N64_eq10000_w20000_s1.npz"
+  },
+  {
+   "cfg": {
+    "N": 64,
+    "seed": 910001,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 5000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 25000
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N64_eq25000_w5000_s1.npz"
+  },
+  {
+   "cfg": {
+    "N": 64,
+    "seed": 910001,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 20000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000,
+    "equil_steps": 25000
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/calib_warmup/abf_N64_eq25000_w20000_s1.npz"
+  }
+ ]
+}

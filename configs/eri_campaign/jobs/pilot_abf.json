@@ -1,0 +1,53 @@
+{
+ "stage": "pilot_abf (ABF only, design of Gate 3)",
+ "jobs": [
+  {
+   "cfg": {
+    "N": 1024,
+    "seed": 900000,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 5000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/pilot_abf/abf_N1024_s0.npz"
+  },
+  {
+   "cfg": {
+    "N": 256,
+    "seed": 900000,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 5000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/pilot_abf/abf_N256_s0.npz"
+  },
+  {
+   "cfg": {
+    "N": 64,
+    "seed": 900000,
+    "dt": 0.0002,
+    "n_steps": 200000,
+    "save_every": 500,
+    "warmup_steps": 5000,
+    "trust_count": 200.0,
+    "fr_start_steps": 1000000000,
+    "n_grid": 180,
+    "genealogy_window_steps": 10000
+   },
+   "method": "abf",
+   "out": "results/eri_campaign/pilot_abf/abf_N64_s0.npz"
+  }
+ ]
+}
