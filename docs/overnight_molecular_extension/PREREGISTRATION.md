@@ -429,4 +429,4 @@ reproduced, and no walker ever left its channel family. Findings acted on:
   0.05 → 2 → **rate 2.0**.
 * **X2 (K 256).** Rates 0.05–0.5 are safe. Rate 1 (ESS 0.20, lineage 0.070) and rate 2 (0.15, 0.090) are unsafe →
   **rate 0.5**.
-* Paired blocks launched 21:15 UTC: X1 seeds 980 000–980 015, X2 seeds 981 000–981 015, both arms each.
+* Paired blocks launched 21:14:33 UTC: X1 seeds 980 000–980 015, X2 seeds 981 000–981 015, both arms each.
