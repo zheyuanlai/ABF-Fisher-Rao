@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.join(ROOT, "src"))
 from eri import refanalysis as ra  # noqa: E402
 from eri.model import KB  # noqa: E402
 
-TOL, TOL_UP = 0.05, 0.075
+TOL, TOL_UP = 0.05, 0.075        # ERI defaults; overridden by --tol / --tolup (ITE: 0.03 / 0.045)
 
 
 def level(c):
@@ -56,9 +56,15 @@ def main():
     ap.add_argument("--nboot", type=int, default=2000)
     ap.add_argument("--skip-gate1", action="store_true")
     ap.add_argument("--tags", default="", help="comma list of Gate 2 tags (default: all)")
+    ap.add_argument("--base", default=os.path.join("results", "eri_campaign", "reference"))
+    ap.add_argument("--T", type=float, default=600.0)
+    ap.add_argument("--tol", type=float, default=0.05)
+    ap.add_argument("--tolup", type=float, default=0.075)
     a = ap.parse_args()
-    kT = KB * 600.0
-    base = os.path.join(ROOT, "results", "eri_campaign", "reference", a.variant)
+    global TOL, TOL_UP
+    TOL, TOL_UP = a.tol, a.tolup
+    kT = KB * a.T
+    base = os.path.join(ROOT, a.base, a.variant)
     mc = ra.load(os.path.join(base, "MC"), groups=list(range(16)))
     G = len(mc["groups"])
     allg = np.arange(G)

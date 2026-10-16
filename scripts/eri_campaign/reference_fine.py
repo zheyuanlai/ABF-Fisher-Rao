@@ -7,8 +7,13 @@ ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
 sys.path.insert(0, os.path.join(ROOT, "src"))
 from eri import refanalysis as ra
 from eri.model import KB
-kT = KB * 600.0
-base = os.path.join(ROOT, "results", "eri_campaign", "reference", "gard_tait")
+import argparse
+_ap = argparse.ArgumentParser()
+_ap.add_argument("--base", default=os.path.join("results", "eri_campaign", "reference", "gard_tait"))
+_ap.add_argument("--T", type=float, default=600.0)
+_a = _ap.parse_args()
+kT = KB * _a.T
+base = os.path.join(ROOT, _a.base)
 acc = ra.load(os.path.join(base, "MC"), groups=list(range(16)))
 H = acc["C_fine"].sum(0)
 p, f, _ = ra.wham(H, acc["centres"], acc["kappa"], kT)

@@ -39,7 +39,7 @@ import os
 import time
 
 import numpy as np
-from numba import njit
+from numba import njit, prange
 
 from . import model as mdl
 from .model import config_energy_force
@@ -145,6 +145,18 @@ def _labels(i, step, xt, P, xw, ph, cage_phi, window_phi, row, lastcage, ist, ev
                 ist[S_FIRSTTRANS] = step
 
 
+@njit(cache=False, parallel=True, error_model="numpy")
+def _forces_all(q, F, phi, jb, fl, box, cell, nvox, s0, x0, y0, z0, s1, x1, y1, z1, pp, rc2, kb, r0, P, xw, dphi, ng,
+                cf):
+    for i in prange(q.shape[0]):
+        config_energy_force(q[i], box, cell, nvox, s0, x0, y0, z0, s1, x1, y1, z1, pp, rc2, kb, r0, F[i])
+        xt = 0.5 * (q[i, 0, 0, 0] + q[i, 0, 1, 0])
+        ph = _wrap(TWO_PI * (xt - xw) / P)
+        phi[i] = ph
+        jb[i] = np.int64(math.floor((ph + math.pi) / dphi)) % ng
+        fl[i] = cf * (F[i, 0, 0, 0] + F[i, 0, 1, 0])
+
+
 @njit(cache=False, error_model="numpy")
 def _run_chunk(k0, k1, q, F, Cacc, Macc, Seta, Sux2, BH, DH, anc, ancw, row, lastcage, evwin, ist, fst,
                fp, ip, box, cell, nvox, s0, x0, y0, z0, s1, x1, y1, z1, pp, rc2, kb, r0, Kk,
@@ -199,16 +211,13 @@ def _run_chunk(k0, k1, q, F, Cacc, Macc, Seta, Sux2, BH, DH, anc, ancw, row, las
     fam = np.zeros(N, dtype=np.int64)
     dzw = 2.0 * TWO_PI / c_len
     for k in range(k0, k1):
-        # (1) forces / CV / labels at the start-of-step positions
+        # (1) forces / CV at the start-of-step positions: replicas are independent, so a parallel loop gives
+        #     bitwise the serial result (each iteration writes only its own slot); labels then in slot order
+        _forces_all(q, F, phi, jb, fl, box, cell, nvox, s0, x0, y0, z0, s1, x1, y1, z1, pp, rc2, kb, r0, P, xw, dphi,
+                    ng, cf)
         for i in range(N):
-            config_energy_force(q[i], box, cell, nvox, s0, x0, y0, z0, s1, x1, y1, z1, pp, rc2, kb, r0, F[i])
             xt = 0.5 * (q[i, 0, 0, 0] + q[i, 0, 1, 0])
-            ph = _wrap(TWO_PI * (xt - xw) / P)
-            phi[i] = ph
-            j = np.int64(math.floor((ph + math.pi) / dphi)) % ng
-            jb[i] = j
-            fl[i] = cf * (F[i, 0, 0, 0] + F[i, 0, 1, 0])
-            _labels(i, k, xt, P, xw, ph, cage_phi, window_phi, row, lastcage, ist, evwin)
+            _labels(i, k, xt, P, xw, phi[i], cage_phi, window_phi, row, lastcage, ist, evwin)
         ist[S_NFE] += N
         # (2) deposits of ALL walkers (sequential slot order), hidden-variable conditional sums
         for i in range(N):

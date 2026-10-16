@@ -30,7 +30,8 @@ def job(j):
         _MODEL[key] = Model(c["variant"], T_K=c["T_K"], params=c["ff"])
     t0 = time.time()
     E.run(c, j["method"], out_path=out, checkpoint_path=out + ".ckpt.npz", model=_MODEL[key])
-    return j["out"], time.time() - t0, "done"
+    # core-seconds = wall x numba threads (the replica force loop is parallel)
+    return j["out"], (time.time() - t0) * int(os.environ.get("NUMBA_NUM_THREADS", "1")), "done"
 
 
 def main():

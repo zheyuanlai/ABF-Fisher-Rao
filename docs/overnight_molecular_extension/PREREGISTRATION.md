@@ -1,6 +1,6 @@
 # Overnight molecular extension — preregistration
 
-*Frozen 2026-10-16 18:25 UTC for candidate A′. Amendments are appended below and never edit the text above them.
+*Frozen 2026-10-16 17:57 UTC (commit 41b5684e; an earlier draft line said "18:25", a clock error corrected here) for candidate A′. Amendments are appended below and never edit the text above them.
 **Two adaptive arms only**: histogram ABF (arm A) and the identical histogram ABF + uniform marginal FR (arm B). No
 sham, oracle, OPES or other algorithmic arm. Reference calculations (MC, umbrella/WHAM) are not arms.*
 

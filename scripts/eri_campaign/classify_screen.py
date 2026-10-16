@@ -44,10 +44,10 @@ def tau_int(x):
     return float(t)
 
 
-def hidden_stats(variant="gard_tait", tag="EM_2e-04", sample_tu=1e-3, n_coarse=18, with_means=False):
+def hidden_stats(variant="gard_tait", tag="EM_2e-04", sample_tu=1e-3, n_coarse=18, with_means=False, base=None):
     """tau_int(eta) (t.u.) per cage-region window from the Gate 2 umbrella time series of the first molecule, and the
     conditional variance Var(eta | coarse bin) pooled over all windows' time series."""
-    d = os.path.join(ROOT, "results", "eri_campaign", "reference", variant, tag)
+    d = os.path.join(base or os.path.join(ROOT, "results", "eri_campaign", "reference"), variant, tag)
     taus = []
     phis, etas, uxs = [], [], []
     for p in sorted(glob.glob(os.path.join(d, "g*_w*.npz"))):
@@ -74,15 +74,16 @@ def hidden_stats(variant="gard_tait", tag="EM_2e-04", sample_tu=1e-3, n_coarse=1
     return np.array(taus), var, means, vars_
 
 
-def classify(dirpath, T_frac_disc=0.1, span_frac=0.2):
+def classify(dirpath, T_frac_disc=0.1, span_frac=0.2, variant="gard_tait", hidden_tag="EM_2e-04"):
     files = sorted(glob.glob(os.path.join(dirpath, "abf_N*_s*.npz")))
     byK = {}
     for p in files:
         K = int(re.search(r"_N(\d+)_", os.path.basename(p)).group(1))
         byK.setdefault(K, []).append(p)
-    ref = np.load(os.path.join(ROOT, "results", "eri_campaign", "reference", "gard_tait", "reference_profile.npz"))
-    Fr, Gr, _ = mt.reference_on_grid(180)
-    taus, var_eta, ref_means, ref_vars = hidden_stats(with_means=True)
+    ref = np.load(os.path.join(mt.REF_BASE, variant, "reference_profile.npz"))
+    Fr, Gr, _ = mt.reference_on_grid(180, variant)
+    taus, var_eta, ref_means, ref_vars = hidden_stats(variant=variant, tag=hidden_tag, with_means=True,
+                                                      base=mt.REF_BASE)
     # reference conditional means from the MC accumulators (exact, count-weighted per coarse bin)
     cc = ref["counts"].reshape(18, -1)
     ref_means = {"eta": (ref["eta"].reshape(18, -1) * cc).sum(1) / cc.sum(1),
@@ -118,8 +119,12 @@ def classify(dirpath, T_frac_disc=0.1, span_frac=0.2):
             # 3 establishment + information
             m = mt.marginal(r, Fr, kT)
             T_est, f_under, span = mt.establishment(t, m["frac_win"], m["Q_win"], N, t_from=2.0)
-            ratios_b, flags_b, span_b, _ = mt.establishment_blocks(t, m["frac_win"], m["Q_win"], N)
-            ratios_u, flags_u, span_u, _ = mt.establishment_blocks(t, m["frac_win"], np.full_like(t, 0.15556), N)
+            blk = 2.0 if T <= 50 else 0.04 * T              # ERI A2 / overnight prereg section 5
+            ratios_b, flags_b, span_b, _ = mt.establishment_blocks(t, m["frac_win"], m["Q_win"], N, block=blk)
+            Wfrac = float((np.abs((np.arange(r["sv_C"].shape[1]) + 0.5) / r["sv_C"].shape[1] * TWO_PI - math.pi)
+                           < c["window_phi"]).mean())
+            ratios_u, flags_u, span_u, _ = mt.establishment_blocks(t, m["frac_win"], np.full_like(t, Wfrac), N,
+                                                                   block=blk)
             ng = r["sv_C"].shape[1]
             grid = (np.arange(ng) + 0.5) / ng * TWO_PI - math.pi
             W = np.abs(grid) < c["window_phi"]
@@ -189,8 +194,14 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("dir")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--refbase", default=None)
+    ap.add_argument("--variant", default="gard_tait")
+    ap.add_argument("--hidden-tag", default="EM_2e-04")
     a = ap.parse_args()
-    res = classify(os.path.join(ROOT, a.dir) if not os.path.isabs(a.dir) else a.dir)
+    if a.refbase:
+        mt.set_reference_base(a.refbase)
+    res = classify(os.path.join(ROOT, a.dir) if not os.path.isabs(a.dir) else a.dir, variant=a.variant,
+                   hidden_tag=a.hidden_tag)
     out = a.out or os.path.join(a.dir, "classification.json")
     json.dump(res, open(out, "w"), indent=1, default=float)
     print("->", out)

@@ -21,6 +21,14 @@ import numpy as np
 
 TWO_PI = 2.0 * math.pi
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+# directory holding <variant>/reference_profile.npz and reference_fine.npz (ERI default; the overnight extension
+# calls set_reference_base("results/overnight/ite/reference"))
+REF_BASE = os.path.join(ROOT, "results", "eri_campaign", "reference")
+
+
+def set_reference_base(path):
+    global REF_BASE
+    REF_BASE = path if os.path.isabs(path) else os.path.join(ROOT, path)
 
 
 def histogram_pmf(G):
@@ -37,7 +45,7 @@ def mean_force(M, C):
 
 def reference_on_grid(ng, variant="gard_tait"):
     """(F_ref, Gamma_ref, F_se) on ng bins from results/eri_campaign/reference/<variant>/reference_profile.npz."""
-    z = np.load(os.path.join(ROOT, "results", "eri_campaign", "reference", variant, "reference_profile.npz"))
+    z = np.load(os.path.join(REF_BASE, variant, "reference_profile.npz"))
     if 180 % ng == 0:
         k = 180 // ng
         g = z["gamma"] * z["counts"]
@@ -169,7 +177,7 @@ def reference_smooth(ng, variant="gard_tait"):
     profile: Gamma_ref,j = [F_s(e_{j+1}) - F_s(e_j)] / dphi (the exact long-time P0 limit for a uniform within-bin
     density), F_ref = histogram_pmf(Gamma_ref).  Used for the bin-width ladder; production at the frozen grid is
     scored with reference_on_grid (the unsmoothed MC mean force)."""
-    z = np.load(os.path.join(ROOT, "results", "eri_campaign", "reference", variant, "reference_fine.npz"))
+    z = np.load(os.path.join(REF_BASE, variant, "reference_fine.npz"))
     c, K = z["fourier_c"], int(z["fourier_K"])
 
     def fs(x):
