@@ -65,3 +65,18 @@ Times are UTC on the host clock. Every entry is written when the step happens.
     that N's (eq0, w5000) median.
   * Break ties within 5 % toward the shorter equilibration, then the shorter warm-up.
   * The N = 64 results were already visible. They favour equil > 0; warm-up is mixed.
+* **16:43–17:10** Adversarial audit, four lenses with verification (`audit/AUDIT1_*.md`).
+  * Engine, reference, WHAM and MC: correct; an independent re-implementation matches.
+  * Confirmed defects:
+    * the A1 establishment test has no power (F1, high);
+    * the conditional-lag test has low power;
+    * the classifier code had no tests;
+    * the numba cache does not track cross-file changes (E1, latent; results unaffected);
+    * provenance gaps in the sha recording (E2).
+  * The forcefield-lens report was not returned before the session's new instruction; that lens is re-done in the
+    overnight extension.
+* **17:12** New user instruction ("overnight molecular extension"): exactly two arms, new candidates A–E. The
+  aggregate compute ceiling is the existing one (≤ 200 core-h, ≤ 24 GPU-h in total).
+* **17:25** Amendment 2 (powered tests + unit controls) frozen and committed (0e8d468a), BEFORE classifying.
+* **17:27** Screen classified: **ABF-SUFFICIENT at K 64 / 256 / 1024** → STOP FR for the dilute ERI cell
+  (`RESULTS.md`).
