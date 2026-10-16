@@ -17,4 +17,16 @@ total (the 2026-10-16 instruction preserves the existing allocation).
 | 18:37–18:42 | ITE Gate 3c bins (18 runs) | 5.78 | 0 | 51.2 |
 | 18:37–18:42 | ITE ABF-only screen (24 runs) | 5.82 | 0 | 57.0 |
 
-**Remaining authorisation at 18:45:** about 143 CPU core-h and 24.0 GPU-h.
+| 18:45–20:15 | ERI/ITE docs, figures, deficit-phase analysis, script smokes | ~0.3 | 0 | 57.3 |
+| 18:47–19:03 | ITE 150 K Gate 1 MC (3.60) + Gate 2 EM 2e-4 / 1e-4 (2.14 / 4.06) | 9.80 | 0 | 67.1 |
+| 18:53–19:55 | ITE 150 K Gate 1/2 analyses (3 processes) | ~1.5 | 0 | 68.6 |
+| 19:03–19:17 | ITE 150 K Gate 3a horizon (6 runs, 400 t.u., dt 2e-4) | 5.54 | 0 | 74.1 |
+| 19:56–20:03 | ITE 150 K Gate 3b ramp / pre-eq (24 runs, dt 2e-4) | 10.09 | 0 | 84.2 |
+| 20:03–20:17 | ITE 150 K Gate 3c bins at dt 1e-4 (18 runs) | 15.52 | 0 | 99.7 |
+| 20:18– | ITE 150 K ABF-only screen (24 runs, dt 1e-4, 360 bins) | running (~27 est.) | 0 | ~127 |
+
+**Remaining authorisation at 20:20 (after the screen):** about 73 CPU core-h and 24.0 GPU-h.
+* An FR calibration plus the exploratory block at K 1024 would cost about 89 core-h, which exceeds the remaining
+  allowance.
+* If A′-150 is eligible at K 1024, the frozen FR protocol cannot be completed within budget. That will be reported,
+  and nothing will be shortened silently.
