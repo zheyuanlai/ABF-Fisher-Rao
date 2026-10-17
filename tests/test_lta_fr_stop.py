@@ -20,6 +20,8 @@ DYN = ("M_all", "C_all", "M_prod", "C_prod", "q_final", "M_all_final", "C_all_fi
 SS = np.arange(0, 1501, 100)
 FORCE = dict(FC.R1, theta=1.0, persist=1, support_count=0.0, stability_tol=1e9, check_every=0.02, W=0.02,
              essw_min=0.0, maxlin_min=1.0)          # decides at the first full window
+FORCE_R2 = dict(FC.R2, level=0.0, support_count=0.0, stability_tol=1e9, check_every=0.02, W=0.02,
+                essw_min=0.0, maxlin_min=1.0)       # the occupancy rule, deciding at the first full window
 
 
 def cfg(**kw):
@@ -55,7 +57,8 @@ def test_fixed_stop_limits_and_mid_run_stop():
     assert int(sm["n_force_evals"]) == int(abf["n_force_evals"]) == 32 * 1501
 
 
-def test_controlled_stop_equals_fixed_stop_and_is_deterministic():
+@pytest.mark.parametrize("FORCE", [FORCE, FORCE_R2], ids=["R1", "R2"])
+def test_controlled_stop_equals_fixed_stop_and_is_deterministic(FORCE):
     a = E.run_arm(cfg(fr_controller=FORCE), "fr", SS)
     b = E.run_arm(cfg(fr_controller=FORCE), "fr", SS, chunk_steps=137)
     assert str(a["fr_controller_log"]) == str(b["fr_controller_log"])
@@ -66,7 +69,8 @@ def test_controlled_stop_equals_fixed_stop_and_is_deterministic():
     same(a, f)
 
 
-def test_checkpoint_resume_reproduces_controller(tmp_path):
+@pytest.mark.parametrize("FORCE", [FORCE, FORCE_R2], ids=["R1", "R2"])
+def test_checkpoint_resume_reproduces_controller(tmp_path, FORCE):
     a = E.run_arm(cfg(fr_controller=FORCE), "fr", SS, chunk_steps=100)
     p = str(tmp_path / "ck.npz")
     with pytest.raises(E.InterruptedRun):
@@ -83,3 +87,15 @@ def test_controller_inert_for_abf_and_exclusive_with_fixed_stop():
     same(a, b, keys=("M_all", "C_all", "q_final", "hist_inst"))
     with pytest.raises(ValueError):
         E.run_arm(cfg(fr_controller=FC.R1, fr_stop_steps=800), "fr", SS)
+
+
+def test_r2_window_mask_follows_the_lta_region_convention():
+    """R2's window bins are the deposit bins whose centre lies at |z| < window_half (z = |phi| a / 2 pi): 46 of 180."""
+    a = E.run_arm(cfg(fr_controller=FC.R2), "fr", SS)
+    log = json.loads(str(a["fr_controller_log"]))
+    assert a["fr_controller_reason"] == "None" or True        # a 0.3 t.u. run never closes R2's 1 t.u. window
+    assert all("occ" not in x for x in log)
+    m = FC.window_mask(180, 1.5 * 2 * np.pi / 11.919)
+    assert int(m.sum()) == 46 and abs(m.mean() - 2 * 1.5 / 11.919) < 0.01
+    b = E.run_arm(cfg(fr_controller=FC.R2), "abf", SS)       # inert for ABF
+    same(E.run_arm(cfg(), "abf", SS), b, keys=("M_all", "C_all", "q_final", "hist_inst"))

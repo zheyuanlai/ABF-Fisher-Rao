@@ -492,7 +492,10 @@ class Run:
                 raise ValueError("fr_controller and a fixed fr_stop_steps are exclusive")
             if int(c["fr_start_steps"]) < 1:
                 raise ValueError("the online controller needs fr_start_steps >= 1")
-            self.ctl = OnlineStop(c["fr_controller"], N, c["fr_start_steps"] * c["dt"])
+            from .fr_controller import window_mask
+            # the engine's own window-region convention on the deposit grid (|phi| < window_phi), for the R2 trigger
+            self.ctl = OnlineStop(c["fr_controller"], N, c["fr_start_steps"] * c["dt"],
+                                  window_mask=window_mask(ng, c["window_phi"]))
             self.ctl_every = check_grid(c["fr_controller"], c["dt"])
 
     def advance(self, k_target, _internal=False):

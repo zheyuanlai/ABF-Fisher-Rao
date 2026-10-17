@@ -1,7 +1,8 @@
 """Online, reference-free stopping controller for the Fisher-Rao (FR) birth-death schedule of histogram ABF
-(docs/adaptive_fr_campaign/ONLINE_STOPPING_RULE.md).  Engine-agnostic: the host calls `observe` at fixed check
-times with the CURRENT cumulative state of the running FR simulation only.  It never receives a reference free
-energy, a mean-force reference, another trajectory or anything from the future, and it does no I/O.
+(docs/adaptive_fr_campaign/ONLINE_STOPPING_RULE.md for R1, docs/r2_campaign/PREREGISTRATION.md for R2).
+Engine-agnostic: the host calls `observe` at fixed check times with the CURRENT cumulative state of the running FR
+simulation only.  It never receives a reference free energy, a mean-force reference, another trajectory or anything
+from the future, and it does no I/O.
 
 Rule "R1" (frozen spec, all lengths in t.u.):
   checks at t = t_start + n * check_every (n >= 0; the record at t_start anchors the first window);
@@ -23,6 +24,24 @@ Rule "R1" (frozen spec, all lengths in t.u.):
   windowed max lineage share > max(maxlin_min, maxlin_k / K), FR stops at that check (reason 'safety'); safety can
   only bring a scheduled stop EARLIER.  A stop is never postponed and FR never restarts.  A run in which neither
   condition fires keeps FR to the horizon and is reported as 'never stopped'.
+
+Rule "R2" (frozen spec; the online form of the offline rule "stop at 2 x the window-establishment time"):
+  the same check grid, trailing window W, support, stability and safety guards as R1, but the trigger is the
+  WINDOW OCCUPANCY of the walkers' own deposits, not the birth-death flux:
+  window bins  a fixed boolean mask over the fine bins (the engine's own region convention: the bins whose centre
+    lies in the barrier window), share = (number of window bins) / n_grid = the flat-bias (uniform-marginal)
+    deposit share of those bins;
+  occ(t) = sum_{j in window} (C_j(t) - C_j(t-W)) / sum_j (C_j(t) - C_j(t-W))
+    = the trailing-W mean fraction of the population in the window bins (every walker deposits every step, so the
+    denominator is exactly K x the number of steps in W);
+  established(t) = occ(t) >= level * share  and  support(t)  and  t >= t_start + W
+                   [and stability(t) only if stability_gate is true; R2 freezes stability_gate = False: the
+                    stability statistic is LOGGED at every check (field 'stable', threshold stability_tol) but does
+                    not gate the decision -- development replay (docs/r2_campaign/DEVELOPMENT.md): it never binds in
+                    ITE and in ERI it delays the stop past continuous FR's crossing time];
+  t1 = t_est = the first check of the first run of `persist` consecutive established checks; decision at the check
+  that completes that run; FR stops at t_stop = max(stop_factor * t1, decision time); safety as in R1.
+  Nothing else differs: the directedness statistics are not evaluated by R2.
 """
 import math
 
@@ -30,6 +49,13 @@ import numpy as np
 
 R1 = dict(name="R1", check_every=0.25, W=1.0, R=18, theta=0.25, z_floor=2.0, persist=4, stop_factor=2.0,
           support_count=200.0, stability_tol=0.05, essw_min=0.15, maxlin_min=0.10, maxlin_k=6.0)
+
+R2 = dict(name="R2", trigger="occupancy", check_every=0.25, W=1.0, R=18, level=0.75, persist=1, stop_factor=2.0,
+          support_count=200.0, stability_tol=0.05, stability_gate=False, essw_min=0.15, maxlin_min=0.10, maxlin_k=6.0)
+
+
+def is_occupancy_rule(spec):
+    return spec.get("trigger", "directedness") == "occupancy"
 
 
 def directedness(b, d, K, W):
@@ -62,15 +88,30 @@ def coarse(x, R):
     return x.reshape(R, -1).sum(1)
 
 
+def window_mask(n_grid, half_width):
+    """Fine bins whose centre -pi + (j + 1/2) dphi lies strictly inside |phi| < half_width (radians): the engine's own
+    window-region convention expressed on the deposit grid (reference-free; a property of the CV bookkeeping)."""
+    dphi = 2.0 * math.pi / int(n_grid)
+    cen = -math.pi + (np.arange(int(n_grid)) + 0.5) * dphi
+    return np.abs(cen) < float(half_width)
+
+
 class OnlineStop:
     """Feed `observe(t, BH, DH, C, M, essw, maxlin)` at every check time (strictly increasing, spaced check_every,
-    starting at t_start).  Returns the scheduled stop time (float) once decided, else None."""
+    starting at t_start).  Returns the scheduled stop time (float) once decided, else None.
+    `window_mask` (bool array over the fine bins) is required by the occupancy rule R2 and ignored by R1."""
 
-    def __init__(self, spec, K, t_start):
+    def __init__(self, spec, K, t_start, window_mask=None):
         self.s = dict(spec)
         self.K = int(K)
         self.t_start = float(t_start)
-        self.hist = []                 # per check: t, BHc, DHc (coarse cumulative), G (fine), Csupp mask
+        self.occupancy = is_occupancy_rule(self.s)
+        self.mask = None if window_mask is None else np.asarray(window_mask, bool)
+        if self.occupancy:
+            if self.mask is None or self.mask.ndim != 1 or not self.mask.any() or self.mask.all():
+                raise ValueError("the occupancy rule needs a window mask over the fine bins (some, not all, bins)")
+            self.share = float(self.mask.mean())
+        self.hist = []                 # per check: t, BHc, DHc (coarse cumulative), G (fine), Csupp mask [, C]
         self.log = []                  # per check: dict of the statistics
         self.j_max = 0.0
         self.run = 0
@@ -82,20 +123,24 @@ class OnlineStop:
 
     # -- serialisation (checkpoint / result) --
     def state(self):
-        return dict(spec=self.s, K=self.K, t_start=self.t_start, j_max=self.j_max, run=self.run, t1=self.t1,
-                    t_first=self._t_first,
-                    t_decision=self.t_decision, t_stop=self.t_stop, reason=self.reason, log=self.log,
-                    hist=[dict(t=h["t"], BHc=h["BHc"].tolist(), DHc=h["DHc"].tolist(), G=h["G"].tolist(),
-                               sup=h["sup"].tolist()) for h in self.hist])
+        st = dict(spec=self.s, K=self.K, t_start=self.t_start, j_max=self.j_max, run=self.run, t1=self.t1,
+                  t_first=self._t_first,
+                  t_decision=self.t_decision, t_stop=self.t_stop, reason=self.reason, log=self.log,
+                  hist=[dict(t=h["t"], BHc=h["BHc"].tolist(), DHc=h["DHc"].tolist(), G=h["G"].tolist(),
+                             sup=h["sup"].tolist(), **({"C": h["C"].tolist()} if "C" in h else {})) for h in self.hist])
+        if self.mask is not None:
+            st["window_mask"] = self.mask.tolist()
+        return st
 
     @classmethod
     def from_state(cls, st):
-        c = cls(st["spec"], st["K"], st["t_start"])
+        c = cls(st["spec"], st["K"], st["t_start"], window_mask=st.get("window_mask"))
         for k in ("j_max", "run", "t1", "t_decision", "t_stop", "reason", "log"):
             setattr(c, k, st[k])
         c._t_first = st["t_first"]
         c.hist = [dict(t=h["t"], BHc=np.array(h["BHc"]), DHc=np.array(h["DHc"]), G=np.array(h["G"]),
-                       sup=np.array(h["sup"], bool)) for h in st["hist"]]
+                       sup=np.array(h["sup"], bool), **({"C": np.array(h["C"], float)} if "C" in h else {}))
+                  for h in st["hist"]]
         return c
 
     def _lag(self, t):
@@ -123,21 +168,32 @@ class OnlineStop:
         C = np.asarray(C, float)
         G = np.where(C > 0, np.asarray(M, float) / np.maximum(C, 1.0), 0.0)
         rec = dict(t=float(t), BHc=coarse(BH, s["R"]), DHc=coarse(DH, s["R"]), G=G, sup=C >= s["support_count"])
+        if self.occupancy:
+            rec["C"] = C.copy()
         lag = self._lag(t)
         row = dict(t=float(t), essw=float(essw), maxlin=float(maxlin))
         if lag is not None:
             b = rec["BHc"] - lag["BHc"]
             d = rec["DHc"] - lag["DHc"]
-            j = directedness(b, d, self.K, s["W"])
-            sj = directedness_noise_sd(b, d, self.K, s["W"])
-            self.j_max = max(self.j_max, j)
             sup = bool(rec["sup"].all())
             m = lag["sup"]
             stab = (float(np.linalg.norm((G - lag["G"])[m]) / (np.linalg.norm(lag["G"][m]) + 1e-12))
                     if m.any() else float("inf"))
-            low = (j <= max(s["theta"] * self.j_max, s["z_floor"] * sj)) and sup and stab <= s["stability_tol"]
-            row.update(j=j, j_max=self.j_max, s_j=sj, support=sup, stability=stab, low=bool(low),
-                       events=float((b + d).sum() / 2))
+            if self.occupancy:
+                dC = C - lag["C"]
+                tot = float(dC.sum())
+                occ = float(dC[self.mask].sum() / tot) if tot > 0 else 0.0
+                stable = stab <= s["stability_tol"]
+                low = (occ >= s["level"] * self.share) and sup and (stable or not s.get("stability_gate", True))
+                row.update(occ=occ, share=self.share, support=sup, stability=stab, stable=bool(stable),
+                           established=bool(low), events=float((b + d).sum() / 2))
+            else:
+                j = directedness(b, d, self.K, s["W"])
+                sj = directedness_noise_sd(b, d, self.K, s["W"])
+                self.j_max = max(self.j_max, j)
+                low = (j <= max(s["theta"] * self.j_max, s["z_floor"] * sj)) and sup and stab <= s["stability_tol"]
+                row.update(j=j, j_max=self.j_max, s_j=sj, support=sup, stability=stab, low=bool(low),
+                           events=float((b + d).sum() / 2))
             if low:
                 self.run += 1
                 if self.run == 1:

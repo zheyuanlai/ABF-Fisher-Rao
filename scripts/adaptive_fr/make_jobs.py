@@ -122,6 +122,40 @@ def main():
         base.update(N=Kc, n_steps=ns, save_every=10_000)                           # saves every 1 t.u. (E-A3)
         js = [dict(cfg=dict(base, seed=s), method="abf", out=f"{OUT}/{sub}/abf_N{Kc}_s{s}.npz", threads=1)
               for s in range(s0, s0 + 16)]
+    elif a.block.startswith("R2"):                         # R2 campaign (docs/r2_campaign/PREREGISTRATION.md): frozen rule R2
+        import sys
+        sys.path.insert(0, os.path.join(ROOT, "src"))
+        from eri.fr_controller import R2
+        OUT2 = "results/r2_campaign/raw"
+        js = []
+        if a.block in ("R2C1", "R2C2", "R2C5", "R2N256"):    # ITE / ERI engine cells
+            if a.block == "R2C1":      # E1 configuration: ITE 300 K, K1024, T50, rate 2.0 (in-sample)
+                src = json.load(open(os.path.join(ROOT, "configs/convergence_fr/jobs_E1.json")))["jobs"][0]["cfg"]
+                seeds, sub = range(1_400_000, 1_400_016), "R2C1_ite300_K1024_R2"
+            elif a.block == "R2C2":    # E2 configuration: ITE 150 K, K256, T100, rate 0.5 (in-sample)
+                src = json.load(open(os.path.join(ROOT, "configs/convergence_fr/jobs_E2.json")))["jobs"][0]["cfg"]
+                seeds, sub = range(1_410_000, 1_410_016), "R2C2_ite150_K256_R2"
+            elif a.block == "R2C5":    # ERI K1024 configuration: 600 K, T40, rate 2.0 (in-sample; equivalence test)
+                src = json.load(open(os.path.join(ROOT, "configs/convergence_fr/jobs_ERI_rate2_K1024.json")))["jobs"][0]["cfg"]
+                seeds, sub = range(1_440_000, 1_440_016), "R2C5_eri600_K1024_R2"
+            else:                      # ERI K256 configuration: 600 K, T40, rate 2.0 (held-out allocation; equivalence test)
+                src = json.load(open(os.path.join(ROOT, "configs/convergence_fr/jobs_ERI_rate2_K256.json")))["jobs"][0]["cfg"]
+                seeds, sub = range(1_470_000, 1_470_016), "R2N256_eri600_K256_R2"
+            base = {k: v for k, v in src.items() if k not in ("seed", "fr_stop_steps")}
+            for s in seeds:
+                js.append(dict(cfg=dict(base, seed=s), method="abf", out=f"{OUT2}/{sub}/abf_N{base['N']}_s{s}.npz", threads=1))
+                js.append(dict(cfg=dict(base, seed=s, fr_controller=R2), method="fr", out=f"{OUT2}/{sub}/fr_N{base['N']}_s{s}.npz", threads=1))
+        elif a.block in ("R2C3", "R2C4", "R2H80", "R2H350"):   # LTA numba engine, historical histogram production config
+            T_K, s0, sub, rate = {"R2C3": (150.0, 1_420_000, "R2C3_lta150_K1024_R2", 0.2),
+                                  "R2C4": (300.0, 1_430_000, "R2C4_lta300_K1024_R2", 0.2),
+                                  "R2H80": (80.0, 1_450_000, "R2H80_lta80_K1024_R2", 0.1),     # the sweep's 80 K rate
+                                  "R2H350": (350.0, 1_460_000, "R2H350_lta350_K1024_R2", 0.2)}[a.block]
+            for s in range(s0, s0 + 16):
+                for method, over in (("abf", dict(fr_rate=rate)), ("fr", dict(fr_rate=rate, fr_controller=R2))):
+                    js.append(dict(T_K=T_K, N=1024, seed=s, cfg=over, method=method, save_every=500,
+                                   out=f"{OUT2}/{sub}/{method}_N1024_s{s}.npz"))
+        else:
+            raise SystemExit(f"unknown R2 block {a.block}")
     else:
         raise SystemExit(f"unknown block {a.block}")
     os.makedirs(CFG, exist_ok=True)
