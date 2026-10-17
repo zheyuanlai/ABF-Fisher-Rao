@@ -62,6 +62,7 @@ DEFAULT_CFG = dict(
     n_grid=180, warmup_steps=10_000, trust_count=0.0, bias_clip=None,
     fr_start_steps=10_000, fr_every=10, fr_rate=0.2, score_clip=2.0, kde_bandwidth=0.10,
     max_event_fraction=0.02, cap_min=1,
+    fr_stop_steps=-1,                      # early-stopping FR: events only at steps fr_start <= k < fr_stop (-1: never stop)
     window_phi=0.5, cage_phi=2.0,          # region bookkeeping (rad): |phi| < window_phi window, >= cage_phi cage
     genealogy_window_steps=20_000,
     init="cage",                           # "cage": tagged molecule (and guests) at random ERI-cage centres
@@ -187,6 +188,7 @@ def _run_chunk(k0, k1, q, F, Cacc, Macc, Seta, Sux2, BH, DH, anc, ancw, row, las
     cap = ip[5]
     is_fr = ip[6] == 1
     gwin = ip[7]
+    frstop = ip[8]
     dphi = TWO_PI / ng
     gx = math.pi / P
     cf = -(P / TWO_PI)
@@ -303,8 +305,8 @@ def _run_chunk(k0, k1, q, F, Cacc, Macc, Seta, Sux2, BH, DH, anc, ancw, row, las
                             dr += bf * dt
                         q[i, m, bb, d] = q[i, m, bb, d] + dr + ns * rng_noise.standard_normal()
         nxt = k + 1
-        # (5) Fisher-Rao at the POST-move positions
-        if is_fr and nxt >= frstart and (nxt - frstart) % frevery == 0:
+        # (5) Fisher-Rao at the POST-move positions; after fr_stop no FR event and no FR-stream draw (ABF unchanged)
+        if is_fr and nxt >= frstart and (frstop < 0 or nxt < frstop) and (nxt - frstart) % frevery == 0:
             for i in range(N):
                 xt = 0.5 * (q[i, 0, 0, 0] + q[i, 0, 1, 0])
                 ph = _wrap(TWO_PI * (xt - xw) / P)
@@ -464,7 +466,7 @@ class Run:
                             -math.pi + 0.5 * dphi, 1.0 / (ng * dphi), math.log(1.0 / (ng * dphi)), m.fw.c])
         self.ip = np.array([ng, int(c["n_steps"]), int(c["warmup_steps"]), int(c["fr_start_steps"]),
                             int(c["fr_every"]), int(c["cap"]), 1 if method == "fr" else 0,
-                            int(c["genealogy_window_steps"])], dtype=np.int64)
+                            int(c["genealogy_window_steps"]), int(c["fr_stop_steps"])], dtype=np.int64)
         self.sessions = []
 
     def advance(self, k_target):
