@@ -122,3 +122,14 @@ def test_after_the_stop_the_run_is_exactly_abf_and_draws_no_fr_numbers(model):
     for k in KEYS + ("q", "C", "Msum", "anc", "ancw", "row", "lastcage"):
         assert np.array_equal(getattr(s, k), getattr(b, k)), k
     assert s.g_fr.bit_generator.state == fr_state
+
+
+def test_fr_rate_and_genealogy_fields_are_inert_for_abf(model):
+    """The ABF arm's historical fr_rate (and fr_start / fr_every / fr_stop) never touch an ABF run: reusing an ABF
+    baseline whose config carries another fr_rate is bitwise the same run."""
+    c = _cfg()
+    a = _done(dict(c, fr_rate=2.0), "abf", model)
+    b = _done(dict(c, fr_rate=1.0, fr_stop_steps=700, fr_every=5), "abf", model)
+    for k in KEYS + ("q", "C", "Msum", "anc"):
+        assert np.array_equal(getattr(a, k), getattr(b, k)), k
+    assert a.ist[E.S_NOPP] == 0 and a.ist[E.S_REPL] == 0
