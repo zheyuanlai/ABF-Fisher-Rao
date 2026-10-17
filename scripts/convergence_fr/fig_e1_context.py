@@ -43,7 +43,7 @@ def main():
         ax.fill_between(z["t"], lo, hi, color=col, alpha=0.2, lw=0)
         ax.plot(z["t"], med, color=col, lw=1.5, label=lab)
     ax.axhline(0, color=INK2, lw=0.8)
-    ax.set_ylabel("paired e_F(FR)/e_F(ABF) − 1 (%), median and 95 % CI")
+    ax.set_ylabel("paired e_F(FR)/e_F(ABF) − 1 (%)")
     ax.legend(fontsize=7, loc="lower right")
     for ax in axs[:2]:
         ax.axvline(1, color=MUTED, ls=":", lw=1)

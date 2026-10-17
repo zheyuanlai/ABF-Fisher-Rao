@@ -362,3 +362,13 @@ analysis-script smoke test on X1, before this freeze.
   * **Not run, for budget:** the matrix K1024 row (300 K and 150 K at the common rate 1.0, about 7.3 core-h even
     at 8 pairs). E1x is also not run. The 300 K vs 150 K contrast is answered at K256 only, plus E1 vs E2 at their
     own (K, rate). The latter is a cross-block comparison confounded by K and rate, and is reported as such.
+* **A3 (2026-10-17 03:38 UTC).** The exploratory ladder E1x, reduced for budget: about 196.4 of 200 core-h were
+  committed once EB is done.
+  * **Runs.** t_stop ∈ {5, 20} t.u. only, on X1 seeds 980000–980003: 8 runs × 0.227 core-h ≈ 1.8.
+  * **Pairing.** Each run is compared with the X1 ABF arm of the same seed (bitwise the same run) and, descriptively,
+    with the X1 continuous-FR arm of the same seed. Pairing is by cfg seed; the bitwise pre-FR check is
+    re-asserted.
+  * **Omitted.** t_stop = 10 on these seeds; E1 (other seeds) supplies the 10 t.u. point, descriptively.
+  * **Status.** **Exploratory, descriptive only**, never pooled with E1 or E2, and no claim rests on it.
+  * **Data seen.** E1, E2, ERI and the matrix K256 results had been read when this was written. That is why E1x is
+    labelled exploratory and its stops were fixed in §3 before any of it.

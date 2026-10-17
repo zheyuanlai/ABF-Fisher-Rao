@@ -65,7 +65,7 @@ def main():
         js = jobs_for(c, range(1_100_000, 1_100_016), [("abf", {}), ("fr", dict(fr_stop_steps=stop))], "E1_ite300_stop10")
     elif b == "E1x":
         c = ite(300)
-        arms = [("fr", dict(fr_stop_steps=s, _tag=f"_stop{s // 10000}")) for s in (50_000, 100_000, 200_000)]
+        arms = [("fr", dict(fr_stop_steps=s, _tag=f"_stop{s // 10000}")) for s in (50_000, 200_000)]   # A3: 10 omitted
         js = jobs_for(c, range(980_000, 980_004), arms, "E1x_ite300_ladder")
     elif b == "ERIcal":
         js = []

@@ -15,3 +15,12 @@ exists): **≤ 200 CPU core-h, ≤ 24 GPU device-h.**
 | date (UTC) | item | CPU core-h | GPU h | cumulative CPU |
 |---|---|---|---|---|
 | 10-17 02:52–03:10 | engine tests (12), reproduction pilot (X1 s0, 20 k steps, 1 thread), atlas (2 runs of the analysis, 1 process) | 0.10 | 0 | 171.2 |
+| 10-17 03:13–03:17 | ITE common-rate calibration rung 2.0 (6 × K256, T 50) | 0.343 | 0 | 171.5 |
+| 03:13–03:22 | ERI calibration rung 2.0 (3 × K256 + 3 × K1024, T 40) | 0.528 | 0 | 172.1 |
+| 03:17–03:21 | ITE calibration rung 1.0 (6 × K256, T 50) | 0.339 | 0 | 172.4 |
+| 03:20–03:23 | ERI K256 production (32 runs) | 1.168 | 0 | 173.6 |
+| 03:13–03:27 | **E1** ITE 300 K early-stopping (32 × K1024, T 50; 812–850 s each) | 7.259 | 0 | 180.8 |
+| 03:23–03:30 | matrix M300_256 (32 runs) | 1.853 | 0 | 182.7 |
+| 03:23–03:30 | matrix M150_256 (32 runs) | 1.824 | 0 | 184.5 |
+| 03:22–03:32 | ERI K1024 production (32 runs, 559–577 s each) | 4.801 | 0 | 189.3 |
+| 03:18–03:35 | analyses, figures, audit agent checks (single processes) | ~0.2 | 0 | 189.5 |
