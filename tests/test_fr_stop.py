@@ -102,3 +102,23 @@ def test_checkpoint_resume_across_the_stop(model, tmp_path):
         assert np.array_equal(getattr(r1, k), getattr(r3, k)), k
     with pytest.raises(RuntimeError):                 # a different stop time is a different config
         E.Run(dict(c, fr_stop_steps=1600), "fr", model=model).restore(p)
+
+
+def test_after_the_stop_the_run_is_exactly_abf_and_draws_no_fr_numbers(model):
+    """Transplant the stopped FR arm's full state at k = fr_stop into an ABF run; both must then evolve bitwise
+    identically to the end (same dynamics, deposits, bias), and the FR stream must not be touched after the stop."""
+    stop = 1500
+    c = _cfg(fr_stop_steps=stop)
+    s = E.Run(c, "fr", model=model)
+    s.advance(stop)                                   # steps 0 .. stop-1 done; last FR event at nxt = stop - fr_every
+    b = E.Run(_cfg(), "abf", model=model)
+    for k in E.Run._STATE:
+        setattr(b, k, np.array(getattr(s, k)))
+    b.k, b.isave = s.k, s.isave
+    b.g_noise.bit_generator.state = s.g_noise.bit_generator.state
+    fr_state = dict(s.g_fr.bit_generator.state)
+    s.advance(c["n_steps"] + 1)
+    b.advance(c["n_steps"] + 1)
+    for k in KEYS + ("q", "C", "Msum", "anc", "ancw", "row", "lastcage"):
+        assert np.array_equal(getattr(s, k), getattr(b, k)), k
+    assert s.g_fr.bit_generator.state == fr_state

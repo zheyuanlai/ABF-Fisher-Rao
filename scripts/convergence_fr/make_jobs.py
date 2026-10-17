@@ -56,6 +56,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("block")
     ap.add_argument("--rate", type=float, default=None)
+    ap.add_argument("--K", type=int, default=None, help="ERI: one replica count only (the calibrated rate may differ by K)")
     a = ap.parse_args()
     b = a.block
     if b == "E1":
@@ -75,7 +76,7 @@ def main():
                 js.append(dict(cfg=cc, method="fr", out=f"{OUT}/ERIcal/fr_N{K}_rate{a.rate:g}_s{s}.npz", threads=1))
     elif b == "ERI":
         js = []
-        for K in (1024, 256):
+        for K in ((1024, 256) if a.K is None else (a.K,)):
             c = dict(eri(), N=K, fr_rate=a.rate)
             js += jobs_for(c, range(1_111_000, 1_111_016), [("abf", {}), ("fr", {})], f"ERI_K{K}")
     elif b == "ITEcal":
@@ -94,6 +95,8 @@ def main():
         raise SystemExit(f"unknown block {b}")
     os.makedirs(CFG, exist_ok=True)
     tag = b if a.rate is None else f"{b}_rate{a.rate:g}"
+    if a.K is not None:
+        tag += f"_K{a.K}"
     path = os.path.join(CFG, f"jobs_{tag}.json")
     json.dump(dict(stage=tag, jobs=js), open(path, "w"), indent=1)
     print(path, len(js), "jobs")

@@ -55,6 +55,7 @@ def main():
     ap.add_argument("--ladder", choices=("kT", "abf"), required=True)
     ap.add_argument("--fr-glob", default=None)
     ap.add_argument("--out", default=None)
+    ap.add_argument("--expect-seeds", default=None, help="first:count of the preregistered seed block (asserted)")
     a = ap.parse_args()
     d = S.load_eri_cell(a.dir, a.K, a.refbase, a.variant, fr_glob=a.fr_glob, keep_runs=True)
     t, T = d["t"], d["T"]
@@ -67,18 +68,40 @@ def main():
     out = dict(block=a.block, dir=a.dir, K=d["K"], T=T, T_K=d["T_K"], dt=d["dt"], bins=d["bins"], rate=d["rate"],
                t_fr=d["t_fr"], t_stop=d["t_stop"], n_seeds=len(seeds), seeds=seeds, ladder_rule=a.ladder)
     # ---- integrity: config equality apart from the method, pairing before the first FR opportunity, parity ----
-    diff = {k for k in cfa if cfa[k] != cfb[k]}
+    # (Amendment A1: everything below is ASSERTED, not only reported)
+    diff = {k for k in set(cfa) | set(cfb) if cfa.get(k) != cfb.get(k)}
     out["config_keys_differing_between_arms"] = sorted(diff)
+    assert diff <= {"fr_stop_steps"}, f"arms differ in {diff}"
+    strip = lambda c: {k: v for k, v in c.items() if k != "seed"}
+    for arm_runs in (ra, rb):
+        assert all(strip(r_["cfg"]) == strip(arm_runs[0]["cfg"]) for r_ in arm_runs), "configs differ within an arm"
+    cfg_seeds = [int(x["cfg"]["seed"]) for x in ra]
+    assert cfg_seeds == [int(y["cfg"]["seed"]) for y in rb], "arms pair different seeds"
+    out["cfg_seeds"] = cfg_seeds
+    if a.expect_seeds:
+        s0, n = (int(v) for v in a.expect_seeds.split(":"))
+        assert sorted(cfg_seeds) == list(range(s0, s0 + n)), f"seed block {sorted(cfg_seeds)} != prereg {s0}+{n}"
     paired = []
     for x, y in zip(ra, rb):
         pre = x["save_steps"] < k0
         paired.append(bool(np.array_equal(x["sv_C"][pre], y["sv_C"][pre]) and np.array_equal(x["sv_M"][pre], y["sv_M"][pre])))
         assert int(x["n_force_evals"]) == int(y["n_force_evals"]), "force-evaluation parity"
     out["paired_bitwise_before_fr_start"] = paired
+    assert all(paired), "arms not bitwise paired before the first FR opportunity"
     out["force_evals_per_run"] = int(ra[0]["n_force_evals"])
     if kstop >= 0:
-        post = rb[0]["save_steps"] >= kstop
-        out["fr_events_after_stop"] = int(sum(int(y["sv_i"][-1, 2] - y["sv_i"][post, 2][0]) for y in rb))
+        fe = int(cfb["fr_every"])
+        n_exp = (kstop - 1 - k0) // fe + 1                       # opportunities at nxt = k0, k0+fe, ... < kstop
+        tot = 0
+        for y in rb:
+            i_s = int(np.searchsorted(y["save_steps"], kstop))
+            assert y["save_steps"][i_s] == kstop
+            assert int(y["sv_i"][i_s, 7]) == n_exp, "FR opportunities up to the stop"          # V_NOPP
+            assert (y["sv_i"][i_s:, 7] == y["sv_i"][i_s, 7]).all(), "FR opportunity after the stop"
+            tot += int(y["sv_i"][-1, 2] - y["sv_i"][i_s, 2])                                  # V_REPL
+        assert tot == 0, "FR event after the stop"
+        out["fr_events_after_stop"] = tot
+        out["fr_opportunities_per_run"] = n_exp
     # ---- ladder ----
     if a.ladder == "kT":
         eps = [e * d["kT"] for e in LADDER_KT]
@@ -105,6 +128,8 @@ def main():
                 median=float(np.exp(med)), ci95=[float(np.exp(lo)), float(np.exp(hi))],
                 fr_faster_seeds=int((logS > 0).sum()), abf_faster_seeds=int((logS < 0).sum()),
                 per_seed=[float(np.exp(x)) for x in logS])
+    prim["note"] = "median taken on the log scale (Amendment A1): with 16 seeds the mid-pair is averaged geometrically"
+    prim["verdict_bonferroni_975"] = ("SUPPORTED" if ci975[0] > 1 else "CONTRADICTED" if ci975[1] < 1 else "UNRESOLVED")
     prim["verdict"] = ("SUPPORTED (FR+ reaches the ladder sooner)" if prim["ci95"][0] > 1 else
                        "CONTRADICTED (ABF reaches the ladder sooner)" if prim["ci95"][1] < 1 else "UNRESOLVED")
     out["primary"] = prim
@@ -120,6 +145,9 @@ def main():
         sec["Ibar_F_early_post_ramp_to_2tstop"] = L.paired_rel(L.running_ibar(A["eF"], t, tr)[i2],
                                                                L.running_ibar(B["eF"], t, tr)[i2])
         sec["Ibar_F_early_post_ramp_to_2tstop"]["window"] = [tr, float(t[i2])]
+    i10 = int(np.searchsorted(t, 10.0 - 1e-9))          # ERI early-stopping trigger window [t_FR, 10] (prereg 4)
+    sec["Ibar_F_post_ramp_to_10"] = L.paired_rel(L.running_ibar(A["eF"], t, tr)[i10], L.running_ibar(B["eF"], t, tr)[i10])
+    sec["Ibar_F_post_ramp_to_10"]["window"] = [tr, float(t[i10])]
     sec["Ibar_F_late_window"] = L.paired_rel(L.running_ibar(A["eF"], t, 0.8 * T)[-1], L.running_ibar(B["eF"], t, 0.8 * T)[-1])
     sec["Ibar_F_late_window"]["window"] = [0.8 * T, T]
     sec["eF_T"] = L.paired_rel(A["eF"][-1], B["eF"][-1])
@@ -181,12 +209,23 @@ def main():
                               paired_late_mean_difference=L.boot_median(cb[late].mean(0) - ca[late].mean(0)),
                               applied_late_half_mean_abf=float(np.median(caa[late].mean(0))),
                               applied_late_half_mean_fr=float(np.median(cba[late].mean(0))))
+    if d["t_stop"] is not None:                          # circulation before vs after the stop (prereg 3, A1)
+        ts = d["t_stop"]
+        pre = (t >= ts - 5) & (t < ts)
+        post = (t >= ts) & (t < ts + 5)
+        late2 = t >= 0.8 * T
+        out["circulation_around_stop"] = {nm: dict(pre5=float(np.median(X[pre].mean(0))), post5=float(np.median(X[post].mean(0))),
+                                                   last20pct=float(np.median(X[late2].mean(0))))
+                                          for nm, X in (("abf", ca), ("fr", cb))}
+        out["circulation_around_stop"]["paired_fr_minus_abf_post5"] = L.boot_median(cb[post].mean(0) - ca[post].mean(0))
+        out["circulation_around_stop"]["paired_fr_minus_abf_last20pct"] = L.boot_median(cb[late2].mean(0) - ca[late2].mean(0))
     out["wall_seconds_median"] = dict(abf=float(np.median([x["wall_seconds_session"] for x in ra])),
                                       fr=float(np.median([y["wall_seconds_session"] for y in rb])))
     p = out["primary"]
     print(f"[{a.block}] n={len(seeds)} paired {sum(paired)}/{len(paired)}  PRIMARY S_geo {p['median']:.3f} "
           f"[{p['ci95'][0]:.3f}, {p['ci95'][1]:.3f}] FR faster {p['fr_faster_seeds']}/{len(seeds)} -> {p['verdict']}")
-    for k in ("Ibar_F_post_ramp", "Ibar_F_full", "Ibar_F_early_post_ramp_to_2tstop", "Ibar_F_late_window", "eF_T",
+    print(f"   Bonferroni 97.5 % CI [{p['ci975'][0]:.3f}, {p['ci975'][1]:.3f}] -> {p['verdict_bonferroni_975']}")
+    for k in ("Ibar_F_post_ramp", "Ibar_F_full", "Ibar_F_early_post_ramp_to_2tstop", "Ibar_F_post_ramp_to_10", "Ibar_F_late_window", "eF_T",
               "eG_T", "post_window_estimate_eF"):
         if k in sec:
             x = sec[k]

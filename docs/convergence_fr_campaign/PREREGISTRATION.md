@@ -302,3 +302,31 @@ analysis-script smoke test on X1, before this freeze.
 * **A0 (2026-10-17 03:15 UTC, clerical).** The header's "written 03:11–03:25" was an estimate. The freeze is commit
   4431ce30 at 03:13:20 UTC (git). E1, the ERI rate-2.0 rung and the ITE rate-2.0 rung were launched at 03:13:31,
   after it. Nothing in the design changed.
+* **A1 (2026-10-17 03:26 UTC; before any E1 or matrix data was read; ERI K256 had already been analysed).**
+  Response to the independent read-only audit (no BLOCKER). The audit independently reproduced the X1 primary
+  1.0600 [0.9491, 1.1528] from raw files.
+  1. **Integrity checks are now asserted, not only reported**, in `analyze_block.py`:
+     * bitwise pairing before the first FR opportunity;
+     * equal force evaluations;
+     * equal configuration within an arm and between arms, except `fr_stop_steps`;
+     * the cfg seeds match between arms and, with `--expect-seeds first:count`, the preregistered block;
+     * for a stopped schedule, the exact number of FR opportunities up to the stop, none after it, and zero
+       replacements after it.
+  2. **ERI co-primary Bonferroni (§4).** The JSON now carries `primary.verdict_bonferroni_975`, from the same
+     bootstrap's 97.5 % CI. That field is the ERI claim.
+  3. **Two statistics already defined in this file are now implemented:**
+     * post-ramp Ī_F over [t_FR, 10] (`Ibar_F_post_ramp_to_10`), the ERI early-stopping trigger of §4;
+     * circulation over 5 t.u. before and after the stop and over the last 20 % (`circulation_around_stop`), §3.
+  4. **Wording.** The primary median is taken on the log scale. With 16 seeds the two middle values are therefore
+     averaged geometrically; on X1 this changes the upper CI bound from 1.1557 to 1.1528.
+  5. **New test** (`tests/test_fr_stop.py`, 6/6). The stopped FR run's full state at k = fr_stop, transplanted into
+     an ABF run, evolves bitwise identically to the end, and the FR stream is untouched after the stop.
+  6. **Recorded limitations.**
+     * `wall_seconds_session` excludes the 69 s equilibration, which is identical in both arms. Totals come from
+       the runner's core-h.
+     * The LTA atlas reference is the MC *density* profile. That is the validated rescoring's convention; the
+       ERI-engine cells use the integrated MC mean force instead. The two LTA references differ by 0.006 / 0.008
+       kJ/mol RMS at 150 / 300 K, and the atlas reports this as a sensitivity.
+     * The E1x ladder needs a by-cfg-seed loader, which will be written only if E1x runs.
+
+  No hypothesis, metric, threshold, seed or run setting changed.
