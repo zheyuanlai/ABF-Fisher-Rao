@@ -210,6 +210,8 @@ DEFAULT_CFG = dict(
     accumulate_u=False,             # production U(z) accumulators (torch u_of_z); costs a 2nd LJ pass
     diagnostics=True,               # regions, true events, genealogy stats, traces, hist_inst
     record_events=False,            # per-opportunity counts + (step, death, source) log (tests)
+    fr_stop_steps=-1,               # early-stopping FR: opportunities only at fr_start <= nxt < fr_stop (-1: never)
+    fr_controller=None,             # online stop rule spec (src/eri/fr_controller.py), host-side, reference-free
     eps_go_K=93.0, sigma_go=3.48, rc=10.0, r0_bond=1.54, k_bond=400.0,
     framework_npz="cache/lta/framework.npz",
 )
@@ -221,7 +223,8 @@ F_WH, F_CM, F_BSCALE, F_GRID0, F_QV, F_LQ = range(21, 27)
 NFP = 27
 I_N, I_NG, I_NSTEPS, I_WARM, I_BURN, I_FRSTART, I_FREVERY, I_CAP, I_ISFR, I_FRON = range(10)
 I_GWIN, I_ACCU, I_DIAG, I_MODE, I_NTR, I_REC = range(10, 16)
-NIP = 16
+I_FRSTOP = 16
+NIP = 17
 (S_STEP, S_SP, S_TP, S_TRANS, S_PREVOK, S_REPL, S_NOPP, S_NOPPEV, S_WCROSS, S_TRANSLOC,
  S_FIRSTWIN, S_FIRSTOPP, S_NSCORE, S_RPU, S_RPP, S_RPS, S_NFE, S_EVLOG, S_BADSRC) = range(19)
 NIST = 19
@@ -585,6 +588,7 @@ def _run_chunk(n_eval, fp, ip, Ox, Oy, Oz, Kk, save_steps, trace_steps, noise, f
     burn = ip[I_BURN]
     fr_start = ip[I_FRSTART]
     fr_every = ip[I_FREVERY]
+    fr_stop = ip[I_FRSTOP]
     cap = ip[I_CAP]
     is_fr = ip[I_ISFR] != 0
     fr_on = ip[I_FRON] != 0
@@ -791,7 +795,7 @@ def _run_chunk(n_eval, fp, ip, Ox, Oy, Oz, Kk, save_steps, trace_steps, noise, f
         imove += 1
         nxt = step + 1
         # (7) Fisher-Rao at the POST-move positions
-        if is_fr and nxt >= fr_start and (nxt - fr_start) % fr_every == 0:
+        if is_fr and nxt >= fr_start and (fr_stop < 0 or nxt < fr_stop) and (nxt - fr_start) % fr_every == 0:
             for i in range(N):
                 x = (q[i, 0, 0] + q[i, 1, 0]) * 0.5
                 xn[i] = x
@@ -1024,8 +1028,10 @@ def trace_grid(c):
     return np.unique(np.concatenate([dense, sparse])), m
 
 
-def _n_opps_in(lo, hi, fr_start, fr_every):
-    """Number of FR opportunities nxt in [lo, hi]."""
+def _n_opps_in(lo, hi, fr_start, fr_every, fr_stop=-1):
+    """Number of FR opportunities nxt in [lo, hi] (and nxt < fr_stop when fr_stop >= 0)."""
+    if fr_stop >= 0:
+        hi = min(hi, fr_stop - 1)
     lo2 = max(lo, fr_start)
     if hi < lo2:
         return 0
@@ -1095,6 +1101,7 @@ def _params(c, method, O, a, L, mode):
     ip[I_MODE] = mode
     ip[I_NTR] = int(c["n_trace"])
     ip[I_REC] = 1 if c["record_events"] else 0
+    ip[I_FRSTOP] = int(c.get("fr_stop_steps", -1))
     return fp, ip, beta, fr_on
 
 
@@ -1285,6 +1292,13 @@ def run_arm(cfg, method, save_steps, *, checkpoint_path=None, checkpoint_every_s
     cap = int(c["cap"])
     fr_start, fr_every = int(c["fr_start_steps"]), int(c["fr_every"])
     n_opps_total = _n_opps_in(1, n_steps, fr_start, fr_every) if method == "fr" else 0
+    ctl = None
+    if method == "fr" and c.get("fr_controller"):
+        from eri.fr_controller import OnlineStop
+        if int(c.get("fr_stop_steps", -1)) >= 0:
+            raise ValueError("fr_controller and a fixed fr_stop_steps are exclusive")
+        ctl = OnlineStop(c["fr_controller"], N, fr_start * h)
+        ctl_every = int(round(float(c["fr_controller"]["check_every"]) / h))
     if chunk_steps is None:
         chunk_steps = max(1, 1_000_000 // N)
     chunk_steps = int(chunk_steps)
@@ -1322,6 +1336,10 @@ def run_arm(cfg, method, save_steps, *, checkpoint_path=None, checkpoint_every_s
                              f"a resume would not be bitwise continuous -- pass allow_engine_change / "
                              f"allow_platform_change to accept that")
         session["tolerated_mismatch"] = mism
+        if ctl is not None:
+            from eri.fr_controller import OnlineStop
+            ctl = OnlineStop.from_state(extra["fr_controller"])
+            ip[I_FRSTOP] = int(extra["fr_stop_effective"])
         gen_noise.bit_generator.state = extra["rng_noise"]
         gen_fr.bit_generator.state = extra["rng_fr"]
         resumed_from = list(extra.get("resumed_from", [])) + [int(st["ist"][S_STEP])]
@@ -1358,7 +1376,21 @@ def run_arm(cfg, method, save_steps, *, checkpoint_path=None, checkpoint_every_s
         return dict(fingerprint=fpr, signature=sig, rng_noise=gen_noise.bit_generator.state,
                     rng_fr=gen_fr.bit_generator.state, resumed_from=resumed_from, n_checkpoints_written=n_ckpt,
                     wall_s=wall_prev + (time.perf_counter() - t0), status=status, method=method,
-                    sessions=close_session())
+                    sessions=close_session(),
+                    **({} if ctl is None else dict(fr_controller=ctl.state(), fr_stop_effective=int(ip[I_FRSTOP]))))
+
+    def next_check(step0):
+        # controller check steps fr_start + n * ctl_every (n >= 0) strictly after step0 (a check at step0 is done)
+        n = max(0, (step0 - fr_start) // ctl_every + 1) if step0 >= fr_start else 0
+        return fr_start + n * ctl_every
+
+    def do_check():
+        lab = np.bincount(st["ancw"], minlength=N).astype(float)
+        essw = float(lab.sum() ** 2 / (lab ** 2).sum() / N)
+        ts = ctl.observe(int(ist[S_STEP]) * h, st["acc"][A_BH], st["acc"][A_DH], st["acc"][A_CS], st["acc"][A_FS],
+                         essw, float(lab.max() / N))
+        if ts is not None and ip[I_FRSTOP] < 0:
+            ip[I_FRSTOP] = max(int(ist[S_STEP]) + 1, int(round(ts / h)))
 
     t0 = time.perf_counter()
     t_last_ckpt = time.perf_counter()
@@ -1367,6 +1399,8 @@ def run_arm(cfg, method, save_steps, *, checkpoint_path=None, checkpoint_every_s
     while ist[S_STEP] <= n_steps:
         step0 = int(ist[S_STEP])
         n_eval = min(chunk_steps, n_steps + 1 - step0)
+        if ctl is not None and ip[I_FRSTOP] < 0:
+            n_eval = min(n_eval, next_check(step0) - step0)
         last = step0 + n_eval - 1
         n_moves = n_eval if last < n_steps else n_eval - 1
         if replay is not None:
@@ -1376,7 +1410,7 @@ def run_arm(cfg, method, save_steps, *, checkpoint_path=None, checkpoint_every_s
         else:
             noise = gen_noise.standard_normal((n_moves, N, 2, 3))
         if method == "fr" and fr_on and replay is None:
-            n_opp = _n_opps_in(step0 + 1, step0 + n_moves, fr_start, fr_every)
+            n_opp = _n_opps_in(step0 + 1, step0 + n_moves, fr_start, fr_every, int(ip[I_FRSTOP]))
             frb = gen_fr.random((n_opp, N + 2 * cap))
         else:
             n_opp = 0
@@ -1389,6 +1423,9 @@ def run_arm(cfg, method, save_steps, *, checkpoint_path=None, checkpoint_every_s
             raise RuntimeError(f"chunk accounting error: step {ist[S_STEP]} vs {step0 + n_eval}, "
                                f"moves {imove}/{n_moves}, opps {iopp}/{n_opp}")
         chunks += 1
+        if ctl is not None and ip[I_FRSTOP] < 0 and int(ist[S_STEP]) <= n_steps and \
+                int(ist[S_STEP]) >= fr_start and (int(ist[S_STEP]) - fr_start) % ctl_every == 0:
+            do_check()
         done = ist[S_STEP] > n_steps
         if checkpoint_path is not None and (done or time.perf_counter() - t_last_ckpt >= float(checkpoint_every_s)):
             n_ckpt += 1
@@ -1400,9 +1437,15 @@ def run_arm(cfg, method, save_steps, *, checkpoint_path=None, checkpoint_every_s
     if replay is not None and st["ist"][S_BADSRC] != 0:
         raise RuntimeError("replayed source with non-negative score")
     all_sessions = close_session()
-    return _build_result(c, method, st, save_steps, trace_steps, trace_mult, rng_info, fr_on, beta, h, a, L,
-                         wall, n_ckpt, resumed_from, replay is not None, sessions=all_sessions, signature=sig,
-                         peak_rss_method=_peak_rss_mb(reset_ok)[1])
+    res = _build_result(c, method, st, save_steps, trace_steps, trace_mult, rng_info, fr_on, beta, h, a, L,
+                        wall, n_ckpt, resumed_from, replay is not None, sessions=all_sessions, signature=sig,
+                        peak_rss_method=_peak_rss_mb(reset_ok)[1])
+    if ctl is not None:
+        res.update(fr_stop_effective_steps=np.int64(ip[I_FRSTOP]),
+                   fr_controller_t1=np.float64(-1.0 if ctl.t1 is None else ctl.t1),
+                   fr_controller_t_stop=np.float64(-1.0 if ctl.t_stop is None else ctl.t_stop),
+                   fr_controller_reason=np.str_(str(ctl.reason)), fr_controller_log=np.str_(json.dumps(ctl.log)))
+    return res
 
 
 def _build_result(c, method, st, save_steps, trace_steps, trace_mult, rng_info, fr_on, beta, h, a, L, wall, n_ckpt,
