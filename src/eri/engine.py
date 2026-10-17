@@ -40,6 +40,14 @@ diagnostic parent and killed slot, their CV bins, their ancestor tags, and the f
            separate arrays.  Both arms also histogram the four fibre coordinates per fine bin and half (``sel_fh``),
            which gives the ABF arm's conditional law for class definitions.  No RNG draw, no write to any
            trajectory or estimator state (tested: tests/test_diag_sel.py).
+Arrival   : ``diag_arr`` = 1 (default 0) turns on a READ-ONLY, bitwise-inert provenance record: per walker the step of
+diagnostic its last visit to the cage region and to the window region (clones inherit the parent's), and the step and
+           side (from the lower / higher neighbour) of its last entry into its current coarse bin.  Every deposit is
+           accumulated per half, provenance (cage / window / none = the more recent of the two regions), band of time
+           since leaving that region, and fine bin; and per half, entry side, residence-time band and fine bin:
+           count, f, eta, u_x^2, bond, u_z^2, cos / sin of 2 pi Y_com / L_y and 2 pi Z_com / L_z (transverse COM), and
+           the sub-bin offset phi - bin centre.  Tested: tests/test_diag_arr.py.
+Transverse: whole-run per-bin deposit sums Scy, Ssy, Scz, Ssz of the transverse COM phases (always on, read-only).
 """
 from __future__ import annotations
 
@@ -79,6 +87,8 @@ DEFAULT_CFG = dict(
     diag_sel=0,                            # diagnostic only (read-only): birth/death record + ancestor-tagged deposits
     diag_sel_band_steps=None,              # time-since-birth band edges (steps); None: 0.1, 0.3, 1, 3, 10 t.u.
     diag_sel_split_step=-1,                # deposits at k > split are "late" (-1: n_steps // 2)
+    diag_arr=0,                            # diagnostic only (read-only): provenance / bin-entry record of every deposit
+    diag_arr_band_steps=None,              # time-since-leaving / residence band edges (steps); None: 0.01, 0.03, 0.1, 0.3, 1 t.u.
     window_phi=0.5, cage_phi=2.0,          # region bookkeeping (rad): |phi| < window_phi window, >= cage_phi cage
     genealogy_window_steps=20_000,
     init="cage",                           # "cage": tagged molecule (and guests) at random ERI-cage centres
@@ -104,6 +114,8 @@ NEVI = 7                                   # event ints: step, parent, killed, p
 NEVF = 8                                   # event floats: parent (eta, ux2, bond, uz2), killed (eta, ux2, bond, uz2)
 NSB = 6                                    # per (half, band, coarse bin): count, f, eta, ux2, bond, uz2
 SEL_BANDS_TU = (0.1, 0.3, 1.0, 3.0, 10.0)  # default band edges in t.u. (6 bands)
+NAQ = 11                                   # arrival record quantities: count, f, eta, ux2, bond, uz2, cy, sy, cz, sz, dphi
+ARR_BANDS_TU = (0.01, 0.03, 0.1, 0.3, 1.0) # default arrival band edges in t.u. (6 bands)
 
 _SRC_DIR = os.path.dirname(os.path.abspath(__file__))
 _PROV_FILES = (os.path.join(_SRC_DIR, "engine.py"), os.path.join(_SRC_DIR, "model.py"),
@@ -205,7 +217,8 @@ def _forces_all(q, F, phi, jb, fl, box, cell, nvox, s0, x0, y0, z0, s1, x1, y1, 
 def _run_chunk(k0, k1, q, F, Cacc, Macc, Seta, Sux2, Sbond, Suz2, BH, DH, anc, ancw, row, lastcage, evwin, ist, fst,
                fp, ip, box, cell, nvox, s0, x0, y0, z0, s1, x1, y1, z1, pp, rc2, kb, r0, Kk,
                rng_noise, rng_fr, save_steps, isave, sv_C, sv_M, sv_h, sv_i, sv_u, sv_cond, born, dg, sv_dg,
-               tag, ev_i, ev_f, evC, evM, evB, fdC, fdM, fdB, fh, dst, bands):
+               tag, ev_i, ev_f, evC, evM, evB, fdC, fdM, fdB, fh, dst, bands,
+               Scy, Ssy, Scz, Ssz, ent_step, ent_side, ent_cb, lcage_k, lwin_k, arrP, arrE, abands):
     """Steps k0 <= k < k1 (k = completed-step count at the START of the step).  Returns the next save index."""
     N = q.shape[0]
     M = q.shape[1]
@@ -236,6 +249,9 @@ def _run_chunk(k0, k1, q, F, Cacc, Macc, Seta, Sux2, Sbond, Suz2, BH, DH, anc, a
     agew = ip[9]
     selon = ip[10] == 1
     khalf = ip[11]
+    arron = ip[12] == 1
+    Ly = cell[1]
+    Lz = cell[2]
     blo = r0 - BOND_HALF
     bhi = r0 + BOND_HALF
     dphi = TWO_PI / ng
@@ -287,6 +303,67 @@ def _run_chunk(k0, k1, q, F, Cacc, Macc, Seta, Sux2, Sbond, Suz2, BH, DH, anc, a
             Seta[j] += eta
             Sbond[j] += rb
             Suz2[j] += uz2
+            ay = TWO_PI * 0.5 * (q[i, 0, 0, 1] + q[i, 0, 1, 1]) / Ly
+            az = TWO_PI * 0.5 * (q[i, 0, 0, 2] + q[i, 0, 1, 2]) / Lz
+            cy = math.cos(ay)
+            sy = math.sin(ay)
+            cz = math.cos(az)
+            sz = math.sin(az)
+            Scy[j] += cy
+            Ssy[j] += sy
+            Scz[j] += cz
+            Ssz[j] += sz
+            if arron:                                    # arrival / provenance record (read-only)
+                h = 1 if k > khalf else 0
+                cb = (j * N_COARSE) // ng
+                if cb != ent_cb[i]:
+                    if ent_cb[i] < 0:
+                        side = 2
+                    else:
+                        dd = (cb - ent_cb[i]) % N_COARSE
+                        side = 0 if dd == 1 else (1 if dd == N_COARSE - 1 else 2)
+                    ent_cb[i] = cb
+                    ent_step[i] = k
+                    ent_side[i] = side
+                if abs(phi[i]) >= cage_phi:
+                    lcage_k[i] = k
+                if abs(phi[i]) < window_phi:
+                    lwin_k[i] = k
+                if lcage_k[i] == SENT and lwin_k[i] == SENT:
+                    prov = 2
+                    tsl = 0
+                elif lcage_k[i] >= lwin_k[i]:
+                    prov = 0
+                    tsl = k - lcage_k[i]
+                else:
+                    prov = 1
+                    tsl = k - lwin_k[i]
+                bp = _band(tsl, abands)
+                be = _band(k - ent_step[i], abands)
+                sd_ = ent_side[i]
+                doff = phi[i] - (grid0 + j * dphi)
+                arrP[h, prov, bp, j, 0] += 1.0
+                arrP[h, prov, bp, j, 1] += fl[i]
+                arrP[h, prov, bp, j, 2] += eta
+                arrP[h, prov, bp, j, 3] += ux2
+                arrP[h, prov, bp, j, 4] += rb
+                arrP[h, prov, bp, j, 5] += uz2
+                arrP[h, prov, bp, j, 6] += cy
+                arrP[h, prov, bp, j, 7] += sy
+                arrP[h, prov, bp, j, 8] += cz
+                arrP[h, prov, bp, j, 9] += sz
+                arrP[h, prov, bp, j, 10] += doff
+                arrE[h, sd_, be, j, 0] += 1.0
+                arrE[h, sd_, be, j, 1] += fl[i]
+                arrE[h, sd_, be, j, 2] += eta
+                arrE[h, sd_, be, j, 3] += ux2
+                arrE[h, sd_, be, j, 4] += rb
+                arrE[h, sd_, be, j, 5] += uz2
+                arrE[h, sd_, be, j, 6] += cy
+                arrE[h, sd_, be, j, 7] += sy
+                arrE[h, sd_, be, j, 8] += cz
+                arrE[h, sd_, be, j, 9] += sz
+                arrE[h, sd_, be, j, 10] += doff
             if agew > 0 and k - born[i] < agew:          # diagnostic split: deposit of a recently cloned walker
                 dg[0, j] += 1.0
                 dg[1, j] += fl[i]
@@ -453,6 +530,12 @@ def _run_chunk(k0, k1, q, F, Cacc, Macc, Seta, Sux2, Sbond, Suz2, BH, DH, anc, a
                 anc[d_] = anc[s_]
                 ancw[d_] = ancw[s_]
                 born[d_] = nxt
+                if arron:
+                    ent_step[d_] = ent_step[s_]
+                    ent_side[d_] = ent_side[s_]
+                    ent_cb[d_] = ent_cb[s_]
+                    lcage_k[d_] = lcage_k[s_]
+                    lwin_k[d_] = lwin_k[s_]
                 row[d_] = row[s_]
                 lastcage[d_] = lastcage[s_]
                 evwin[d_] = evwin[s_]
@@ -556,6 +639,10 @@ class Run:
         self.Sux2 = np.zeros(ng)
         self.Sbond = np.zeros(ng)
         self.Suz2 = np.zeros(ng)
+        self.Scy = np.zeros(ng)
+        self.Ssy = np.zeros(ng)
+        self.Scz = np.zeros(ng)
+        self.Ssz = np.zeros(ng)
         self.BH = np.zeros(ng)
         self.DH = np.zeros(ng)
         self.anc = np.arange(N, dtype=np.int64)
@@ -589,7 +676,8 @@ class Run:
                             int(c["fr_every"]), int(c["cap"]), 1 if method == "fr" else 0,
                             int(c["genealogy_window_steps"]), int(c["fr_stop_steps"]), int(c["diag_age_steps"]),
                             1 if int(c["diag_sel"]) == 1 else 0,
-                            int(c["diag_sel_split_step"]) if int(c["diag_sel_split_step"]) >= 0 else int(c["n_steps"]) // 2],
+                            int(c["diag_sel_split_step"]) if int(c["diag_sel_split_step"]) >= 0 else int(c["n_steps"]) // 2,
+                            1 if int(c["diag_arr"]) == 1 else 0],
                            dtype=np.int64)
         self.born = np.full(N, -(2 ** 40), dtype=np.int64)
         self.dg = np.zeros((4, ng))
@@ -613,6 +701,20 @@ class Run:
         self.fdB = np.zeros((2, N_COARSE, NSB) if on else (2, 1, NSB))
         self.fh = np.zeros((2, 4, ng, NFH) if on else (2, 4, 1, NFH))
         self.dst = np.zeros(4, dtype=np.int64)         # n_events, overflowed events, untracked deposits, spare
+        # arrival / provenance diagnostic (read-only); dummies of the same ndim when off
+        aon = int(c["diag_arr"]) == 1
+        if c["diag_arr_band_steps"] is None:
+            self.abands = np.array([int(round(b / c["dt"])) for b in ARR_BANDS_TU], dtype=np.int64)
+        else:
+            self.abands = np.array(sorted(int(b) for b in c["diag_arr_band_steps"]), dtype=np.int64)
+        nab = len(self.abands) + 1
+        self.ent_step = np.zeros(N if aon else 1, dtype=np.int64)
+        self.ent_side = np.full(N if aon else 1, 2, dtype=np.int64)
+        self.ent_cb = np.full(N if aon else 1, -1, dtype=np.int64)
+        self.lcage_k = np.full(N if aon else 1, SENT, dtype=np.int64)
+        self.lwin_k = np.full(N if aon else 1, SENT, dtype=np.int64)
+        self.arrP = np.zeros((2, 3, nab, ng, NAQ) if aon else (2, 3, 1, 1, NAQ))
+        self.arrE = np.zeros((2, 3, nab, ng, NAQ) if aon else (2, 3, 1, 1, NAQ))
         self.sessions = []
         self.ctl = None
         if c.get("fr_controller") and method == "fr":
@@ -640,7 +742,9 @@ class Run:
                                 m.r0, self.Kk, self.g_noise, self.g_fr, self.save_steps, self.isave, self.sv_C,
                                 self.sv_M, self.sv_h, self.sv_i, self.sv_u, self.sv_cond, self.born, self.dg, self.sv_dg,
                                 self.tag, self.ev_i, self.ev_f, self.evC, self.evM, self.evB, self.fdC, self.fdM,
-                                self.fdB, self.fh, self.dst, self.bands)
+                                self.fdB, self.fh, self.dst, self.bands, self.Scy, self.Ssy, self.Scz, self.Ssz,
+                                self.ent_step, self.ent_side, self.ent_cb, self.lcage_k, self.lwin_k, self.arrP,
+                                self.arrE, self.abands)
         self.k = k_target
 
     def _grow_events(self, need):
@@ -690,6 +794,7 @@ class Run:
     _STATE = ("q", "C", "Msum", "Seta", "Sux2", "Sbond", "Suz2", "BH", "DH", "anc", "ancw", "row", "lastcage", "evwin",
               "ist", "fst", "born", "dg", "sv_dg",
               "tag", "ev_i", "ev_f", "evC", "evM", "evB", "fdC", "fdM", "fdB", "fh", "dst",
+              "Scy", "Ssy", "Scz", "Ssz", "ent_step", "ent_side", "ent_cb", "lcage_k", "lwin_k", "arrP", "arrE",
               "sv_C", "sv_M", "sv_h", "sv_i", "sv_u", "sv_cond")
 
     def checkpoint(self, path):
@@ -727,9 +832,10 @@ class Run:
                     save_steps=self.save_steps,
                     times=self.save_steps * c["dt"], sv_C=self.sv_C, sv_M=self.sv_M, sv_h=self.sv_h, sv_i=self.sv_i,
                     sv_u=self.sv_u, sv_cond=self.sv_cond, Seta=self.Seta, Sux2=self.Sux2, Sbond=self.Sbond,
-                    Suz2=self.Suz2, BH=self.BH, DH=self.DH,
+                    Suz2=self.Suz2, Scy=self.Scy, Ssy=self.Ssy, Scz=self.Scz, Ssz=self.Ssz, BH=self.BH, DH=self.DH,
                     **({} if int(c["diag_age_steps"]) <= 0 else dict(dg_young=self.dg, sv_dg_young=self.sv_dg)),
                     **({} if int(c["diag_sel"]) != 1 else self.selection_result()),
+                    **({} if int(c["diag_arr"]) != 1 else self.arrival_result()),
                     ist=self.ist, fst=self.fst, q_final=self.q, n_force_evals=int(self.ist[S_NFE]),
                     n_equil_force_evals=int(c["N"]) * int(c["equil_steps"]),
                     P=self.model.fw.P, x_window=self.model.fw.x_window, a=self.model.fw.a, c_len=self.model.fw.c,
@@ -752,6 +858,17 @@ class Run:
                     sel_ev_i_cols="step,parent,killed,parent_bin,killed_bin,parent_tag,killed_tag",
                     sel_ev_f_cols="p_eta,p_ux2,p_bond,p_uz2,k_eta,k_ux2,k_bond,k_uz2",
                     sel_B_cols="count,f,eta,ux2,bond,uz2")
+
+
+    def arrival_result(self):
+        """The arrival / provenance diagnostic's arrays (key prefix ``arr_``)."""
+        return dict(arr_P=self.arrP, arr_E=self.arrE, arr_band_steps=self.abands.copy(), arr_split_step=int(self.ip[11]),
+                    arr_ent_step=self.ent_step, arr_ent_side=self.ent_side, arr_ent_cb=self.ent_cb,
+                    arr_last_cage_step=self.lcage_k, arr_last_window_step=self.lwin_k,
+                    arr_P_axes="half(early,late),provenance(cage,window,none),band(time since leaving),bin,quantity",
+                    arr_E_axes="half(early,late),entry side(from lower,from higher,unknown),band(residence),bin,quantity",
+                    arr_quantities="count,f,eta,ux2,bond,uz2,cos(2piY/Ly),sin(2piY/Ly),cos(2piZ/Lz),sin(2piZ/Lz),phi-bincentre",
+                    arr_Ly=float(self.model.fw.cell[1]), arr_Lz=float(self.model.fw.cell[2]))
 
 
 def run(c, method, out_path=None, checkpoint_path=None, checkpoint_every_s=600.0, chunk_steps=2000, model=None,

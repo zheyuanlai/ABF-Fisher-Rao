@@ -71,6 +71,14 @@ def main():
                 c = dict(j["cfg"], diag_sel=1)
                 js.append(dict(cfg=c, method=j["method"], out=f"{OUT}/{sub}/{os.path.basename(j['out'])}", threads=1,
                                historical=j["out"]))
+    elif a.block == "D5":                                  # EXPLORATORY arrival-law test (MECHANISM_ARRIVAL_PREREG.md): BOTH arms
+        js = []                                            # of the D2 blocks re-run bitwise with the read-only provenance record
+        for jf, sub in (("configs/convergence_fr/jobs_ERI_rate2_K256.json", "D5_eri600_K256_arr"),
+                        ("configs/convergence_fr/jobs_M300_256_rate1.json", "D5_ite300_K256_arr")):
+            for j in json.load(open(os.path.join(ROOT, jf)))["jobs"]:
+                c = dict(j["cfg"], diag_arr=1)
+                js.append(dict(cfg=c, method=j["method"], out=f"{OUT}/{sub}/{os.path.basename(j['out'])}", threads=1,
+                               historical=j["out"]))
     elif a.block.startswith("Ecal_K"):                    # blind safety calibration at small K (ITE 300 K, T 50, continuous FR)
         Kc = int(a.block.split("_K")[1].split("_")[0])
         rate = float(a.block.split("rate")[1])
