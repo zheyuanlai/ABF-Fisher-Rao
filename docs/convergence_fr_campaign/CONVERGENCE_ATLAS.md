@@ -172,8 +172,8 @@ Absolute medians (ABF → FR), kJ/mol:
 * **What is observed.** Over a common 50 t.u. window, the 150 K cell shows an integrated FR gain about as large as
   300 K's, despite the smaller K (256 vs 1024) and the 4× lower FR rate. The "−1.1 %" of X2 is FR's early gain
   averaged against its growing late deficit over 150 more t.u.
-* **Bins do not matter.** 360 vs a 180-bin read-out changes nothing (< 0.2 points), so the 360-bin choice is
-  immaterial to these conclusions.
+* **Bins do not matter for this table.** For the quantities here, 360 vs a 180-bin read-out changes less than 0.2
+  points, so the 360-bin choice is immaterial to these conclusions. Δe_F′(T) of the full X2 moves by 2 points.
 * **What is not yet established.** This is exploratory, and K and the rate still differ between the cells. The
   controlled matrix (`ITE_RESULTS.md`) tests it.
 

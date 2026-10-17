@@ -16,7 +16,8 @@ Atlas context: `CONVERGENCE_ATLAS.md` §5.*
 
 * **Horizon (atlas, exact truncation).** X2's first 50 t.u. give ΔĪ_F −12.7 % [−14.3, −8.3] (14/16), close to
   X1's −14.9 %. Most of the original "300 K helps, 150 K does not" contrast is the 4× longer 150 K horizon.
-* **Bins.** A 180-bin read-out of X2 changes no number by more than 0.2 points. Under one common reference, the
+* **Bins.** A 180-bin read-out of X2 changes ΔĪ_F, post-ramp Ī_F and Δe_F(T) by ≤ 0.2 points. Δe_F′(T) moves by
+  2 points (+34.1 → +36.1 %). Under one common reference, the
   frozen Gate-3c rule keeps 180 bins at 150 K (audit F4), so every new cell uses 180 bins.
 * **Rate.** The rate is safety-limited, and the limit depends on K and on the genealogy window (T/20).
   * Blind calibration at T 50: rate 2.0 is **unsafe** at K256 for both temperatures (ESSw/K 0.293 and 0.258; lineage
@@ -106,7 +107,7 @@ Atlas context: `CONVERGENCE_ATLAS.md` §5.*
 * **Verdict (preregistered statistic): a temperature difference is PRESENT, but in the opposite direction to the old
   X1/X2 comparison.**
   * At fixed K, rate, horizon and bins, FR's finite-time benefit is **larger at 150 K**. Post-ramp Ī_F is −22 % vs
-    −8 %, and time to accuracy S_geo is 1.63 (supported) vs 1.04 (unresolved).
+    −8 %, and time to accuracy S_geo is 1.63 (supported) vs 1.03 (unresolved).
   * Both temperatures show a late penalty in e_F(T): +29 % [+7, +51] at 150 K (resolved) and +12 % [−0, +43] at
     300 K (borderline). The difference between them is not resolved.
 * **The colder cell is the more establishment-limited one.**

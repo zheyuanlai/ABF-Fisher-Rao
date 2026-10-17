@@ -182,22 +182,29 @@ Figures: `figures/convergence_fr/block_E1.png` and `early_stopping_vs_continuous
 | continuous (X1) | 1.07, 0.97, 1.07, 1.01 (median 1.04) | -24 %, -15 %, -24 %, -16 % | -0 %, +6 %, +14 %, +15 % |
 | t_stop 10 (E1, 16 other seeds; for orientation only) | median 1.59 | median −38 % | median −32 % |
 
-* **Reading (exploratory).** On every seed, the earlier stops (5 and 10 t.u.) beat the later one (20 t.u.), which in
-  turn beats continuous FR. Stopping at 5 t.u., about 2× FR's own establishment time, is as good as 10.
-* **Interpretation.** FR's useful work is done within the first few t.u., and every additional t.u. of FR costs
+* **Reading (exploratory).** Stop 10 was not run on these seeds.
+  * **Speedup.** S_geo orders stop 5 > stop 20 > continuous on all 4 seeds.
+  * **Final error.** Stop 20 beats continuous on all 4 seeds. Stop 5 beats stop 20 on only 3 of 4: seed 980002 gives
+    −23 % at stop 5 against −27 % at stop 20.
+  * **Stop 5 vs E1's stop 10.** Stop 5 (median S_geo 1.43, e_F(T) about −24 %, 4 seeds) and E1's stop 10 (1.59,
+    −32 %, 16 other seeds) are not a paired comparison, and no ranking between them is claimed.
+* **Interpretation (hypothesis).** FR's useful work is done within the first few t.u.; later FR tended to cost
   accuracy. This is consistent with the mechanism in `MECHANISM.md`.
 * **Status.** It has 4 seeds and is not a confirmatory schedule comparison.
 
 ## Answers
 
 * **Q1 (ITE 300 K).** Yes. Early-stopping FR reaches every rung of the frozen 0.20–0.08 kJ/mol tolerance ladder
-  sooner than ABF, in every seed, by a factor of 1.45–1.73, with a preregistered geometric mean of 1.59
+  sooner than ABF, by a factor of 1.45–1.73 per rung, with a preregistered geometric mean of 1.59
   [1.31, 1.85]. That is at fixed K = 1024 and equal force evaluations (equal wall-clock to 0.2 %).
+* **Q1, per seed.** S_geo > 1 in 16/16 seeds. Per rung, FR is faster in 16/16 seeds at 0.20–0.10 kJ/mol, and in
+  15/16 at 0.08 kJ/mol with one tie in which both arms are censored.
 * **Q2.** Yes. The late penalty of continuous FR (+14 % final error in X1, exploratory) is not present with
-  early-stopping FR. Its final error is 32 % **lower** than ABF's, and no seed's error curve crosses ABF's.
+  early-stopping FR. Its final error is 32 % **lower** than ABF's, and no seed's error curve crosses permanently
+  behind ABF's.
 * **Replication at 150 K (E2).** The result holds in the colder, more establishment-limited cell, with its own
   frozen stop time (15 t.u.) and rate (0.5):
-  * time-to-accuracy speedup 1.25 [1.12, 1.58];
+  * time-to-accuracy speedup 1.25 [1.11, 1.58];
   * final error −19 % [−32, −6] at T 100.
 
   Continuous FR in the same model, K and rate ended **+57 %** at T 200 (X2) and +29 % at T 50 (M150_256, rate 1.0).

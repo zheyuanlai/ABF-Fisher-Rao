@@ -33,8 +33,8 @@ the 16 seeds, which removes most noise and leaves the systematic part of an esti
     non-equilibrium deposits, made while the bias and the population were still far from stationary.
 * **Early-stopping FR keeps ABF's 1/t law (−1.04, −0.81) with a smaller memory prefactor.**
   * Its pooled whole-run estimate is closer to MC: 0.048 vs 0.074 (E1) and 0.058 vs 0.074 (E2).
-  * Its post-stop deposits are as unbiased as ABF's: pooled 0.011 vs 0.010 and 0.018 vs 0.017.
-  * The FR period populated the window and flank sooner (establishment 1.9 / 2.6 t.u. earlier), so fewer of the
+  * Its post-stop deposits are as unbiased as ABF's: pooled 0.011 vs 0.0095 (E1) and 0.018 vs 0.017 (E2).
+  * The FR period populated the window and flank sooner (establishment 1.9 / 2.7 t.u. earlier), so fewer of the
     early deposits were made under a badly wrong bias. That advantage is then diluted like ABF's own error, and its
     ratio persists (−32 %, −19 % at T).
 * **Continuous FR decays only as about t^−½ (−0.45 to −0.69).** It adds a contribution that does not dilute: its
@@ -109,12 +109,20 @@ the 16 seeds, which removes most noise and leaves the systematic part of an esti
   the tilt is up to 0.3 k_BT per period and correlates with error.
 * It is **not supported as the explanation of the late-time FR penalty**:
   1. FR does not reliably increase it;
-  2. stopping FR removes the penalty without changing the circulation;
+  2. stopping FR removes the penalty while the circulation stays about the same. E1 vs X1, 0.025 vs 0.030, is a
+     cross-block comparison on different seeds and was not tested;
   3. the largest FR penalty (ERI) has no circulation difference.
-* **Correction experiment not triggered.** The preregistered trigger for the zero-mean correction experiment
-  (|ρ| ≥ 0.6 in both arms at both temperatures, and a resolved difference) is **not met**: ABF's ρ at 300 K is
-  0.00–0.38, and the difference is resolved only in X2. The correction experiment was therefore not run. It was
-  also outside the remaining budget.
+* **Correction experiment not run.** The frozen trigger (§6) reads: "within-arm |ρ| ≥ 0.6 between circulation and
+  late error in both ITE temperatures, **and** the FR − ABF circulation difference is resolved", and it also requires
+  budget.
+  * **Reading 1: "late error" = the late-window (last 20 %) estimate error,** the §6 diagnostic. Every ITE |ρ| is
+    ≤ 0.47 (ABF −0.40…+0.30, FR 0.07…0.47), so the trigger is **not met**.
+  * **Reading 2: "late error" = e_F(T).** The FR arm reaches ρ ≥ 0.6 at both temperatures (M300 0.64; X2 0.63, E2
+    0.79, M150 0.75) but not in X1 (0.18) or E1 (0.42). ABF reaches it only in X2 (0.81). The difference clause holds
+    only in X2.
+  * Reading 2 therefore meets the trigger only partly, and only through the FR arm.
+  * The budget clause failed in any case: about 1.6 core-h remained, against the ≥ 7 core-h a two-arm corrected
+    block at K ≥ 256 needs.
 
 ## 4. Why the stop works (summary)
 

@@ -103,7 +103,7 @@ Figures: `figures/convergence_fr/block_ERI256.png` and `block_ERI1024.png`.*
 ### Observations
 
 * **FR's estimator converges to the wrong profile.** At both K, the pooled late-half estimate of the FR arm sits
-  about 0.13 kJ/mol from exact MC, against 0.03 for ABF, with noise about 0.01–0.02.
+  about 0.13 kJ/mol from exact MC, against 0.03 for ABF. The FR − ABF noise is 0.036 at K256 and 0.016 at K1024.
   * The FR − ABF difference is about 3× its noise at K256 (0.100 vs 0.036) and 6× at K1024 (0.098 vs 0.016).
   * It is an FR-induced **stationary estimator bias**, not variance.
   * It sits mostly in the flank mean force.
@@ -126,7 +126,8 @@ Figures: `figures/convergence_fr/block_ERI256.png` and `block_ERI1024.png`.*
   * That is a non-equilibrium steady state whose conditional mean force differs from the Gibbs one.
 * **Why the bias can persist.** The resulting estimator bias keeps the applied bias inexact, which keeps the natural
   marginal non-uniform, which keeps FR pumping. A self-consistent biased fixed point is possible.
-* **What has been ruled out.** Circulation does not explain it: the ERI circulation (late half) is negative, −0.02 to −0.05 kJ/mol/rad,
+* **Not supported (but not excluded).** Circulation is not supported as the explanation: the ERI circulation (late
+  half) is negative, −0.02 to −0.05 kJ/mol/rad,
   in both arms. The paired FR − ABF difference is not resolved: K256 +0.002 [−0.047, +0.025]; K1024 +0.007 [−0.001, +0.013].
 
 ## Early stopping (prereg §4)

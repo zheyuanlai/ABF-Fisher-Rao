@@ -99,8 +99,9 @@ Times are UTC and come from `date -u` or git.
   * At K256 the trigger is not met: early Ī_F is −4.3 % [−8.3, +3.1].
   * The t_stop rule gives 5 t.u. (2 × the ABF establishment time of 2.1 t.u., rounded up). That is NOT below the
     crossing's 2.5 % quantile: 4.9 t.u. at K1024, 4.3 at K256.
-  * **No admissible stop time, so no ERI early-stopping block is run.** FR's advantage window, about 1.5–5 t.u.,
-    closes before twice ABF's establishment time.
+  * **No admissible stop time, so no ERI early-stopping block is run.** 2 × 2.1 = 4.2 t.u. is rounded up to 5, and
+    5 is not below the crossing quantile. FR's advantage window (about 1.5–5 t.u.) closes before the stop time that
+    the rule's 5-t.u. grid allows.
 * **03:37 — E2 done** (3.473 core-h). **PRIMARY S_geo 1.250 [1.115, 1.582], 14/16 → SUPPORTED.**
   * e_F(T) −19.0 % [−31.6, −6.3].
   * H4 is CONTRADICTED by the frozen rule: per-seed +14.9 % [+0.4, +58.0], although the pooled post-stop bias is
@@ -113,3 +114,14 @@ Times are UTC and come from `date -u` or git.
 * **03:50:58 — E1x done** (1.763 core-h). The ladder is monotone: stops at 5 and 10 t.u. are best, 20 is worse,
   continuous is worst (exploratory).
 * **03:51–03:55 — docs finalised.** Ledger closing balance ≈ 198.4 / 200 core-h.
+* **04:00 — independent consistency check of the docs against the analysis JSONs** (read-only agent). It found:
+  * 3 errors, now corrected: in FINAL Q4 "ABF faster 0/16" was inverted (it is 16/16); FINAL gave the wrong reason
+    for the ERI stop rule; and FINAL softened the E2 H4 verdict, which is CONTRADICTED;
+  * an E1x "every seed" claim, now corrected: seed 980002 is an exception for e_F(T), and stop 10 was not run on those
+    seeds;
+  * several overstatements, now softened: "every rung in every seed"; "transient" ignored the persistent LTA 150 K
+    gain; mechanism text stated as fact; the circulation-trigger reading;
+  * rounding slips, now fixed: the E2 CI lower bound is 1.11; M300 S_geo is 1.03; E1 pooled ABF is 0.0095; the
+    continuous-FR wall-clock overhead differs by thread count; the EB e_F ratio CI includes 1; the bins claim; the
+    ERI noise.
+  * Every table number, every verdict and the ledger arithmetic were confirmed.
