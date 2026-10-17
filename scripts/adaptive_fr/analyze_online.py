@@ -135,6 +135,9 @@ def main():
     ca, cb = ra[0]["cfg"], rb[0]["cfg"]
     diff = {k for k in set(ca) | set(cb) if ca.get(k) != cb.get(k)}
     allowed = {"fr_stop_steps", "fr_controller"} | set(a.allow_diff)
+    if "diag_age_steps" in diff:         # read-only diagnostic key added after the EB runs: allowed only when OFF
+        assert all(int(r_["cfg"].get("diag_age_steps") or 0) == 0 for r_ in ra + rb), "age diagnostic active"
+        allowed = allowed | {"diag_age_steps"}
     assert diff <= allowed, f"arms differ in {diff}"
     strip = lambda c: {k: v for k, v in c.items() if k != "seed"}
     for rr in (ra, rb):

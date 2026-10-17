@@ -267,3 +267,26 @@
 | EB64 | 32 × 0.21 ≈ 6.8 |
 | wall-clock | about 1–2 |
 | total | about 12 |
+* **E-A1 (07:45 UTC, integrity handling only; no statistic changed).** The engine key `diag_age_steps`
+  (D2's read-only diagnostic, default 0) appears in configs written after it was added, but not in the historical EB
+  files. `analyze_online.py` now allows that key to differ only when it is 0 or absent in every run, i.e. when the
+  diagnostic is off; it asserts this. The bitwise pre-FR pairing assertion is unchanged.
+
+* **E-A2 (07:58 UTC, frozen before any K16 run; adds one cell, changes no earlier statistic).** The brief's allocation
+  ladder runs K ∈ {16, 64, 256, 1024}. E.3 found the best ABF and the best FR allocation both at the smallest K tried
+  (K64), so the frontier is not bracketed from below. Block **EB16** adds K16 × T3200 at the same budget.
+  * **Settings.** ITE 300 K, K16, 32 000 000 steps, saves every 80 000 steps (1.28 × 10⁶ force evaluations per save,
+    as in every frontier cell), genealogy window 2.5 t.u. Seeds 1370000–015; both arms; the FR arm is stopped by R1
+    (frozen spec, unchanged).
+  * **FR rate by the same blind top-down calibration** at K16: T 50 continuous-FR runs, seeds 1380000–2, rungs
+    1.0 → 0.5 → 0.2. Criteria: median windowed ESS/K ≥ 0.30; lineage ≤ max(0.05, 3/K) = 0.1875; ≤ 2K = 32
+    replacements per t.u. The three rungs run concurrently (they are blind and cheap). The selection is the largest
+    safe rung, which is the same as the first safe rung top-down. If no rung is safe, the cell runs at 0.2 and that is
+    reported, because the brief forbids optimising the rate on the outcome and a fourth rung would be new tuning.
+  * **K16 is further below R1's development range** (K256–1024). R1's lineage backstop is max(0.10, 6/K) = 0.375 at
+    K16. The result is reported as R1's behaviour at K16.
+  * **Analysis.** The EB16 two-arm comparison is analysed exactly as EB64 (`analyze_online.py`, kT ladder, primary
+    S_geo, 95 % CI; it is a fourth E cell, so no Bonferroni). E.3 is re-run with the two K16 configurations added
+    (eight in total). The best allocation per algorithm is still chosen by the smaller median.
+  * **Wall-clock.** E.4's benchmark is re-run with K16 added, once no campaign job is running.
+  * **Cost.** About 0.25 core-h per run × 32, plus calibration ≈ 9 core-h. Campaign total before this ≈ 36 of 100.

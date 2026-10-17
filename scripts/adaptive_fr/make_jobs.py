@@ -63,12 +63,14 @@ def main():
                 c = dict(j["cfg"], diag_age_steps=age)
                 js.append(dict(cfg=c, method="fr", out=f"{OUT}/{sub}/{os.path.basename(j['out'])}", threads=1,
                                historical=j["out"]))
-    elif a.block.startswith("Ecal_K64_rate"):             # blind safety calibration at K64 (ITE 300 K, T 50, continuous FR)
+    elif a.block.startswith("Ecal_K"):                    # blind safety calibration at small K (ITE 300 K, T 50, continuous FR)
+        Kc = int(a.block.split("_K")[1].split("_")[0])
         rate = float(a.block.split("rate")[1])
         base = {k: v for k, v in eb_jobs()[0]["cfg"].items() if k != "seed"}
-        base.update(N=64, n_steps=500_000, save_every=1250, fr_rate=rate)
-        js = [dict(cfg=dict(base, seed=s), method="fr", out=f"{OUT}/Ecal_K64/fr_N64_rate{rate:g}_s{s}.npz", threads=1)
-              for s in range(1_360_000, 1_360_003)]
+        base.update(N=Kc, n_steps=500_000, save_every=1250, fr_rate=rate)
+        s0 = 1_360_000 if Kc == 64 else 1_380_000
+        js = [dict(cfg=dict(base, seed=s), method="fr", out=f"{OUT}/Ecal_K{Kc}/fr_N{Kc}_rate{rate:g}_s{s}.npz", threads=1)
+              for s in range(s0, s0 + 3)]
     elif a.block == "EA_R1":                               # R1 at K256 x T200 (FR arm only; ABF arm = EB, reused)
         import sys
         sys.path.insert(0, os.path.join(ROOT, "src"))
@@ -88,6 +90,17 @@ def main():
         for s in range(1_350_000, 1_350_016):
             js.append(dict(cfg=dict(base, seed=s), method="abf", out=f"{OUT}/EB64_ite300_K64_T800_R1/abf_N64_s{s}.npz", threads=1))
             js.append(dict(cfg=dict(base, seed=s, fr_controller=R1), method="fr", out=f"{OUT}/EB64_ite300_K64_T800_R1/fr_N64_s{s}.npz", threads=1))
+    elif a.block.startswith("EB16_rate"):                  # K16 x T3200 frontier cell (amendment E-A2), ABF vs ABF + FR(R1)
+        import sys
+        sys.path.insert(0, os.path.join(ROOT, "src"))
+        from eri.fr_controller import R1
+        rate = float(a.block.split("rate")[1])
+        base = {k: v for k, v in eb_jobs()[0]["cfg"].items() if k != "seed"}
+        base.update(N=16, n_steps=32_000_000, save_every=80_000, fr_rate=rate)
+        js = []
+        for s in range(1_370_000, 1_370_016):
+            js.append(dict(cfg=dict(base, seed=s), method="abf", out=f"{OUT}/EB16_ite300_K16_T3200_R1/abf_N16_s{s}.npz", threads=1))
+            js.append(dict(cfg=dict(base, seed=s, fr_controller=R1), method="fr", out=f"{OUT}/EB16_ite300_K16_T3200_R1/fr_N16_s{s}.npz", threads=1))
     else:
         raise SystemExit(f"unknown block {a.block}")
     os.makedirs(CFG, exist_ok=True)
