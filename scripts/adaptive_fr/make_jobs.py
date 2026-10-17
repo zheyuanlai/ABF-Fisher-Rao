@@ -53,6 +53,16 @@ def main():
             for method, over in (("abf", {}), ("fr", dict(fr_controller=R1))):
                 js.append(dict(T_K=T_K, N=1024, seed=s, cfg=over, method=method, save_every=500,
                                out=f"{OUT}/{sub}/{method}_N1024_s{s}.npz"))
+    elif a.block == "D2":                                  # EXPLORATORY mechanism: re-run continuous-FR arms with the age split
+        js = []
+        for jf, sub, age in (("configs/convergence_fr/jobs_ERI_rate2_K256.json", "D2_eri600_K256_age", 5000),
+                             ("configs/convergence_fr/jobs_M300_256_rate1.json", "D2_ite300_K256_age", 10000)):
+            for j in json.load(open(os.path.join(ROOT, jf)))["jobs"]:
+                if j["method"] != "fr":
+                    continue
+                c = dict(j["cfg"], diag_age_steps=age)
+                js.append(dict(cfg=c, method="fr", out=f"{OUT}/{sub}/{os.path.basename(j['out'])}", threads=1,
+                               historical=j["out"]))
     else:
         raise SystemExit(f"unknown block {a.block}")
     os.makedirs(CFG, exist_ok=True)

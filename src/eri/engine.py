@@ -64,6 +64,7 @@ DEFAULT_CFG = dict(
     max_event_fraction=0.02, cap_min=1,
     fr_stop_steps=-1,                      # early-stopping FR: events only at steps fr_start <= k < fr_stop (-1: never stop)
     fr_controller=None,                    # online stop rule spec (src/eri/fr_controller.py), host-side, reference-free
+    diag_age_steps=0,                      # diagnostic only: split deposits of walkers cloned < this many steps ago
     window_phi=0.5, cage_phi=2.0,          # region bookkeeping (rad): |phi| < window_phi window, >= cage_phi cage
     genealogy_window_steps=20_000,
     init="cage",                           # "cage": tagged molecule (and guests) at random ERI-cage centres
@@ -162,7 +163,7 @@ def _forces_all(q, F, phi, jb, fl, box, cell, nvox, s0, x0, y0, z0, s1, x1, y1, 
 @njit(cache=False, error_model="numpy")
 def _run_chunk(k0, k1, q, F, Cacc, Macc, Seta, Sux2, BH, DH, anc, ancw, row, lastcage, evwin, ist, fst,
                fp, ip, box, cell, nvox, s0, x0, y0, z0, s1, x1, y1, z1, pp, rc2, kb, r0, Kk,
-               rng_noise, rng_fr, save_steps, isave, sv_C, sv_M, sv_h, sv_i, sv_u, sv_cond):
+               rng_noise, rng_fr, save_steps, isave, sv_C, sv_M, sv_h, sv_i, sv_u, sv_cond, born, dg, sv_dg):
     """Steps k0 <= k < k1 (k = completed-step count at the START of the step).  Returns the next save index."""
     N = q.shape[0]
     M = q.shape[1]
@@ -190,6 +191,7 @@ def _run_chunk(k0, k1, q, F, Cacc, Macc, Seta, Sux2, BH, DH, anc, ancw, row, las
     is_fr = ip[6] == 1
     gwin = ip[7]
     frstop = ip[8]
+    agew = ip[9]
     dphi = TWO_PI / ng
     gx = math.pi / P
     cf = -(P / TWO_PI)
@@ -233,6 +235,11 @@ def _run_chunk(k0, k1, q, F, Cacc, Macc, Seta, Sux2, BH, DH, anc, ancw, row, las
             rb2 = dx * dx + dy * dy + dz * dz
             Sux2[j] += dx * dx / rb2
             Seta[j] += math.cos(dzw * 0.5 * (q[i, 0, 0, 2] + q[i, 0, 1, 2]))
+            if agew > 0 and k - born[i] < agew:          # diagnostic split: deposit of a recently cloned walker
+                dg[0, j] += 1.0
+                dg[1, j] += fl[i]
+                dg[2, j] += math.cos(dzw * 0.5 * (q[i, 0, 0, 2] + q[i, 0, 1, 2]))
+                dg[3, j] += dx * dx / rb2
         # (3) save (state at the start of step k, accumulators including its deposit)
         if isave < save_steps.shape[0] and save_steps[isave] == k:
             for j in range(ng):
@@ -276,6 +283,10 @@ def _run_chunk(k0, k1, q, F, Cacc, Macc, Seta, Sux2, BH, DH, anc, ancw, row, las
             sv_u[isave, U_MAXFW] = mxfw
             sv_u[isave, U_SSTD] = fst[0] / max(ist[S_NOPP], 1)
             sv_u[isave, U_GMAX] = fst[1]
+            if agew > 0:
+                for j in range(ng):
+                    sv_dg[isave, 0, j] = dg[0, j]
+                    sv_dg[isave, 1, j] = dg[1, j]
             isave += 1
         if gwin > 0 and k > 0 and k % gwin == 0:
             for i in range(N):
@@ -335,6 +346,7 @@ def _run_chunk(k0, k1, q, F, Cacc, Macc, Seta, Sux2, BH, DH, anc, ancw, row, las
                             q[d_, m, bb, d] = q[s_, m, bb, d]
                 anc[d_] = anc[s_]
                 ancw[d_] = ancw[s_]
+                born[d_] = nxt
                 row[d_] = row[s_]
                 lastcage[d_] = lastcage[s_]
                 evwin[d_] = evwin[s_]
@@ -467,7 +479,11 @@ class Run:
                             -math.pi + 0.5 * dphi, 1.0 / (ng * dphi), math.log(1.0 / (ng * dphi)), m.fw.c])
         self.ip = np.array([ng, int(c["n_steps"]), int(c["warmup_steps"]), int(c["fr_start_steps"]),
                             int(c["fr_every"]), int(c["cap"]), 1 if method == "fr" else 0,
-                            int(c["genealogy_window_steps"]), int(c["fr_stop_steps"])], dtype=np.int64)
+                            int(c["genealogy_window_steps"]), int(c["fr_stop_steps"]), int(c["diag_age_steps"])],
+                           dtype=np.int64)
+        self.born = np.full(N, -(2 ** 40), dtype=np.int64)
+        self.dg = np.zeros((4, ng))
+        self.sv_dg = np.zeros((ns_ if int(c["diag_age_steps"]) > 0 else 1, 2, ng))
         self.sessions = []
         self.ctl = None
         if c.get("fr_controller") and method == "fr":
@@ -490,7 +506,7 @@ class Run:
                                 self.BH, self.DH, self.anc, self.ancw, self.row, self.lastcage, self.evwin,
                                 self.ist, self.fst, self.fp, self.ip, m.fw.box, *m.fw.packed(), m.pp, m.rc2, m.kb,
                                 m.r0, self.Kk, self.g_noise, self.g_fr, self.save_steps, self.isave, self.sv_C,
-                                self.sv_M, self.sv_h, self.sv_i, self.sv_u, self.sv_cond)
+                                self.sv_M, self.sv_h, self.sv_i, self.sv_u, self.sv_cond, self.born, self.dg, self.sv_dg)
         self.k = k_target
 
     def _check(self):
@@ -525,6 +541,7 @@ class Run:
         return self.k > int(self.c["n_steps"])
 
     _STATE = ("q", "C", "Msum", "Seta", "Sux2", "BH", "DH", "anc", "ancw", "row", "lastcage", "evwin", "ist", "fst",
+              "born", "dg", "sv_dg",
               "sv_C", "sv_M", "sv_h", "sv_i", "sv_u", "sv_cond")
 
     def checkpoint(self, path):
@@ -562,6 +579,7 @@ class Run:
                     save_steps=self.save_steps,
                     times=self.save_steps * c["dt"], sv_C=self.sv_C, sv_M=self.sv_M, sv_h=self.sv_h, sv_i=self.sv_i,
                     sv_u=self.sv_u, sv_cond=self.sv_cond, Seta=self.Seta, Sux2=self.Sux2, BH=self.BH, DH=self.DH,
+                    **({} if int(c["diag_age_steps"]) <= 0 else dict(dg_young=self.dg, sv_dg_young=self.sv_dg)),
                     ist=self.ist, fst=self.fst, q_final=self.q, n_force_evals=int(self.ist[S_NFE]),
                     n_equil_force_evals=int(c["N"]) * int(c["equil_steps"]),
                     P=self.model.fw.P, x_window=self.model.fw.x_window, a=self.model.fw.a, c_len=self.model.fw.c,

@@ -7,7 +7,7 @@ import os
 import sys
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-AN = os.path.join(ROOT, "results", "convergence_fr_campaign", "analysis")
+AN = os.environ.get("BLOCK_AN", os.path.join(ROOT, "results", "convergence_fr_campaign", "analysis"))
 
 
 def pc(x):

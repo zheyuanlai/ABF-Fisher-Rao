@@ -199,3 +199,18 @@
   and LTA K1024 × 60 is about 0.08 core-h per run. In total about 7.3 + 3.5 + 2.6 + 2.6 + 4.8 ≈ 21 core-h.
 * **Stop rules.** Seeds are fixed, with no interim look and no extension. A failed run is resumed from its
   checkpoint, never replaced. The rule is never changed between cells.
+
+## D. Experiment D — mechanism (EXPLORATORY; declared 07:22 UTC before the D2 runs)
+
+* **D1, bias–variance decomposition.** Existing data only: `scripts/adaptive_fr/bias_variance.py`.
+* **D2, clone age.** The FR arms of two existing continuous-FR blocks are re-run with the read-only diagnostic
+  `diag_age_steps` = 1 t.u.:
+  * ERI 600 K / K256, rate 2, seeds 1111000–015;
+  * ITE 300 K / K256, rate 1, seeds 1121000–015.
+  * The diagnostic splits each deposit by whether its walker was cloned within the last 1 t.u. Trajectories must be
+    bitwise identical to the historical FR arms; this is checked, and the historical ABF arms stay valid partners.
+* **D2 analysis**, pooled over seeds, with a seed-jackknife s.e., against the exact-MC reference:
+  * the per-bin mean force and free energy from "young" deposits vs from "old" deposits;
+  * the η and u_x² conditionals by age class;
+  * the share of deposits that are young, per region.
+  * Descriptive; no confirmatory claim.
