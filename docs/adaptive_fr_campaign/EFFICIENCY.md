@@ -197,3 +197,38 @@ and best FR / best ABF 1.02–1.07, all UNRESOLVED.
   criterion.
 * **Wall-clock is projected.** It is measured throughput × measured τ, on a shared host, with numba threads within
   one process. Multi-process or multi-node parallelism over walkers, and GPU execution, were not measured.
+
+## 7. Selection-aware (nested) bootstrap of best FR / best ABF (added 2026-10-17; no new runs)
+
+**Why.** A reviewer (2026-10-17) pointed out that the best K of each algorithm in §3 is selected on the same 16 seeds
+that score it, and that the bootstrap behind 1.04 [0.74, 1.33] holds the two chosen configurations fixed
+(`equal_budget_frontier.py`: the best allocation is chosen once, then `ratio_ci` resamples only the two chosen
+per-seed arrays). **The published interval therefore omitted the uncertainty of the selection.**
+
+**What was added.** In each of the 10 000 replicates the seeds are resampled within every configuration
+(independently, as in the fixed-selection bootstrap), the best K of each algorithm is re-selected on the resampled
+medians, and best FR / best ABF is taken. The results sit under new keys only (`nested_bootstrap`,
+`question_B_verdict_nested`, `save_resolution_force_evals`); every pre-existing key of `E_frontier.json` is
+byte-identical (checked), so `reproduce_analyses.sh` still verifies.
+
+| best FR / best ABF | fixed selection (published) | nested: selection re-done in every replicate |
+|---|---|---|
+| geo τ_B, production | **1.041 [0.739, 1.326]** | **1.041; 95 % [0.781, 1.281]**; 99 % [0.686, 1.428] |
+| geo τ_B, all-in (common budget 5.128 × 10⁸) | 1.040 [0.745, 1.309] | 1.040 (bootstrap median 1.039); 95 % [0.773, 1.291]; 99 % [0.687, 1.475] |
+| e_F at B, production | 1.133 [0.795, 1.404] | bootstrap median 1.081; 95 % [0.771, 1.420] |
+
+Selection frequencies (production): ABF K16 90.5 %, K64 9.5 %, K256 and K1024 0 %; FR K16 95.8 %, K64 4.2 %. The
+fixed choice (K16, K16) is re-selected in 86.7 % of replicates (95.6 % all-in). P(ratio < 1) = 0.30.
+
+**Reading.**
+* The published 1.04 [0.74, 1.33] omitted selection uncertainty. Accounting for it does not widen the interval here:
+  the nested 95 % interval is [0.78, 1.28]. The selection is stable (K16 for both algorithms in 87 % of replicates),
+  and when it switches it does so in replicates where the K16 resample is unusually slow, so an extreme ratio is
+  replaced by a K64 one: a minimum over K has a compressed upper tail. The nested statistic also carries the
+  winner's-curse bias of a minimum in both numerator and denominator; it cancels in the ratio here (bootstrap median
+  1.041 = fixed ratio).
+* **Verdict unchanged: UNRESOLVED by both intervals.** The point estimate is still on ABF's side and the 99 %
+  interval still spans 0.69–1.43.
+* The statement to quote is: the best tested FR allocation costs 1.04× the best tested ABF allocation, 95 %
+  [0.78, 1.28] with the selection re-done in every replicate, [0.74, 1.33] with the selection held fixed.
+* Neither interval addresses the second reviewer point, that nothing below K16 was tested; amendment E-A3 does.
