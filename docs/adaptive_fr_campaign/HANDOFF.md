@@ -101,9 +101,24 @@ NUMBA_NUM_THREADS=32 /home/zheyuanlai/miniconda3/envs/abffr/bin/python scripts/a
 Using R1 on a new system: add `fr_controller=R1` (from `eri.fr_controller import R1`) to an FR config whose
 `fr_start_steps` ≥ 1, and call `Run.run()`. `Run.advance()` raises when a controller is set.
 
+## 3b. Follow-up campaign: the occupancy-triggered rule R2 (2026-10-17, branch `claude/ecstatic-bhaskara-b3b3ea`)
+
+* Open item 1 below was addressed by a second frozen rule, **R2** (`src/eri/fr_controller.py`, `R2`): FR stops at
+  2 × the run's own online window-establishment time (trailing-1 t.u. deposit share of the window bins ≥ 0.75 × the
+  flat-bias share, with R1's support and safety guards; the stability statistic is logged, not gating).
+* Documents: `docs/r2_campaign/{DEVELOPMENT, PREREGISTRATION, RESULTS, COMPUTE_LEDGER}.md`. Raw run files:
+  `/home/zheyuanlai/ABF-Fisher-Rao/results/r2_campaign/raw` (git-ignored; symlinked as `results/r2_campaign/raw` in
+  that worktree); analysis JSONs committed under `results/r2_campaign/analysis/`.
+* Outcome (eight cells, 16 fresh paired seeds each): every positive cell SUPPORTED at the Bonferroni-8 level, including
+  the four held-out LTA cells (150 / 300 / 80 / 350 K: S_geo 2.45 / 1.39 / 1.84 / 1.29) and the in-sample ITE cells
+  (1.80, 1.44); ERI stops at 4.0 t.u. in every run and goes from R1's 0.61 to 0.92 [0.86, 1.04] (K1024) and
+  0.87 [0.81, 0.98] (K256): EQUIVALENT by the preregistered TOST margin [0.80, 1.25], but a small residual slowdown,
+  resolved at K256. "R2 generalises by the preregistered definition": yes. See `docs/r2_campaign/RESULTS.md`.
+
 ## 4. Open items and suggested next steps
 
-1. **The ERI failure of R1** (CROSS_SYSTEM_RESULTS.md §5).
+1. **The ERI failure of R1** (CROSS_SYSTEM_RESULTS.md §5). **Addressed by R2 (§3b)**; the residual ERI slowdown
+   (8–13 %) is the FR-period memory of the 1–4 t.u. deposits and is the remaining open item there.
    * After its early peak, the directedness statistic plateaus at 30–60 % of that peak for 5–10 t.u., so R1 stops
      late (median 15.25 t.u.).
    * A rule that would stop early in ERI, or never start FR there, must be designed and frozen on development data.

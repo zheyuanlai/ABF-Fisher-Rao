@@ -42,6 +42,16 @@
    * Continuous FR adds an ongoing bias, which stopping removes.
    * What carries that bias is identified in ERI only.
 
+## Addendum (2026-10-17, later the same day): the occupancy-triggered rule R2
+
+The ERI failure in headline 2 was taken up in a follow-up campaign (`docs/r2_campaign/`). A second frozen online
+rule, R2, stops FR at twice the run's own online window-establishment time instead of at the end of the directed
+birth-death phase. On eight cells with fresh seeds it kept every acceleration (in-sample ITE 300 K K1024 1.80, ITE
+150 K 1.44; held-out LTA 150 K 2.45, 300 K 1.39, and the previously untested 80 K 1.84 and 350 K 1.29, all SUPPORTED
+at the Bonferroni level) and stopped ERI at 4.0 t.u. in every run, turning R1's 0.61 into 0.92 [0.86, 1.04] (K1024)
+and 0.87 [0.81, 0.98] (K256): inside the preregistered no-harm margin, but still a small resolved slowdown at K256.
+Headline 3 (no equal-budget advantage) is untouched by R2. Details: `docs/r2_campaign/RESULTS.md`.
+
 ## The eight questions
 
 ### 1. At ITE 300 K, K256 × T200 (the efficient allocation of the earlier campaign), does early-stopping FR improve ABF?
