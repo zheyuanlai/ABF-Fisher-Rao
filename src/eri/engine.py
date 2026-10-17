@@ -29,6 +29,17 @@ Events   : TRUE events only (computed from a slot's own move; clones inherit lab
 Saves    : at completed-step counts ``save_steps`` (the state at the START of that step, accumulators INCLUDING
            its deposit): raw C, M; instantaneous phi histogram; event counters; genealogy (whole-run and windowed
            ancestor ESS / max family share); per coarse bin instantaneous hidden-variable sums (eta, u_x^2).
+Fibre     : whole-run per-bin deposit sums of four fibre coordinates of the tagged molecule: eta = cos(4 pi Z_com / c)
+           (Seta), u_x^2 and u_z^2 (Sux2, Suz2; u = unit bond vector) and the bond length (Sbond).
+Selection : ``diag_sel`` = 1 (default 0) turns on a READ-ONLY, bitwise-inert record of every FR birth / death (step,
+diagnostic parent and killed slot, their CV bins, their ancestor tags, and the fibre state of both at the event), an
+           ancestor tag per walker (= index of the most recent birth event that created the walker's slot content,
+           -1 for founders), and per-event deposit accumulators: C, M per fine bin split at ``diag_sel_split_step``
+           (default n_steps // 2: "early" k <= split, "late" k > split) and, per coarse bin and time-since-birth band
+           (``diag_sel_band_steps``), the count and the sums of f, eta, u_x^2, bond, u_z^2.  Founders' deposits go to
+           separate arrays.  Both arms also histogram the four fibre coordinates per fine bin and half (``sel_fh``),
+           which gives the ABF arm's conditional law for class definitions.  No RNG draw, no write to any
+           trajectory or estimator state (tested: tests/test_diag_sel.py).
 """
 from __future__ import annotations
 
@@ -65,6 +76,9 @@ DEFAULT_CFG = dict(
     fr_stop_steps=-1,                      # early-stopping FR: events only at steps fr_start <= k < fr_stop (-1: never stop)
     fr_controller=None,                    # online stop rule spec (src/eri/fr_controller.py), host-side, reference-free
     diag_age_steps=0,                      # diagnostic only: split deposits of walkers cloned < this many steps ago
+    diag_sel=0,                            # diagnostic only (read-only): birth/death record + ancestor-tagged deposits
+    diag_sel_band_steps=None,              # time-since-birth band edges (steps); None: 0.1, 0.3, 1, 3, 10 t.u.
+    diag_sel_split_step=-1,                # deposits at k > split are "late" (-1: n_steps // 2)
     window_phi=0.5, cage_phi=2.0,          # region bookkeeping (rad): |phi| < window_phi window, >= cage_phi cage
     genealogy_window_steps=20_000,
     init="cage",                           # "cage": tagged molecule (and guests) at random ERI-cage centres
@@ -82,6 +96,14 @@ NV = 9
 (U_ESS, U_MAXF, U_ESSW, U_MAXFW, U_SSTD, U_GMAX) = range(6)
 NU = 6
 
+
+# selection diagnostic layout
+NFH = 40                                   # histogram bins per fibre coordinate
+BOND_HALF = 0.4                            # bond histogram range r0 +- BOND_HALF (A); eta in [-1, 1], u^2 in [0, 1]
+NEVI = 7                                   # event ints: step, parent, killed, parent bin, killed bin, parent tag, killed tag
+NEVF = 8                                   # event floats: parent (eta, ux2, bond, uz2), killed (eta, ux2, bond, uz2)
+NSB = 6                                    # per (half, band, coarse bin): count, f, eta, ux2, bond, uz2
+SEL_BANDS_TU = (0.1, 0.3, 1.0, 3.0, 10.0)  # default band edges in t.u. (6 bands)
 
 _SRC_DIR = os.path.dirname(os.path.abspath(__file__))
 _PROV_FILES = (os.path.join(_SRC_DIR, "engine.py"), os.path.join(_SRC_DIR, "model.py"),
@@ -148,6 +170,25 @@ def _labels(i, step, xt, P, xw, ph, cage_phi, window_phi, row, lastcage, ist, ev
                 ist[S_FIRSTTRANS] = step
 
 
+@njit(cache=True, error_model="numpy")
+def _hb(x, lo, hi):
+    """Histogram bin of x on [lo, hi) with NFH bins, clipped to the edge bins."""
+    b = np.int64(math.floor((x - lo) / (hi - lo) * NFH))
+    if b < 0:
+        b = 0
+    if b > NFH - 1:
+        b = NFH - 1
+    return b
+
+
+@njit(cache=True, error_model="numpy")
+def _band(age, bands):
+    b = 0
+    while b < bands.shape[0] and age >= bands[b]:
+        b += 1
+    return b
+
+
 @njit(cache=False, parallel=True, error_model="numpy")
 def _forces_all(q, F, phi, jb, fl, box, cell, nvox, s0, x0, y0, z0, s1, x1, y1, z1, pp, rc2, kb, r0, P, xw, dphi, ng,
                 cf):
@@ -161,9 +202,10 @@ def _forces_all(q, F, phi, jb, fl, box, cell, nvox, s0, x0, y0, z0, s1, x1, y1, 
 
 
 @njit(cache=False, error_model="numpy")
-def _run_chunk(k0, k1, q, F, Cacc, Macc, Seta, Sux2, BH, DH, anc, ancw, row, lastcage, evwin, ist, fst,
+def _run_chunk(k0, k1, q, F, Cacc, Macc, Seta, Sux2, Sbond, Suz2, BH, DH, anc, ancw, row, lastcage, evwin, ist, fst,
                fp, ip, box, cell, nvox, s0, x0, y0, z0, s1, x1, y1, z1, pp, rc2, kb, r0, Kk,
-               rng_noise, rng_fr, save_steps, isave, sv_C, sv_M, sv_h, sv_i, sv_u, sv_cond, born, dg, sv_dg):
+               rng_noise, rng_fr, save_steps, isave, sv_C, sv_M, sv_h, sv_i, sv_u, sv_cond, born, dg, sv_dg,
+               tag, ev_i, ev_f, evC, evM, evB, fdC, fdM, fdB, fh, dst, bands):
     """Steps k0 <= k < k1 (k = completed-step count at the START of the step).  Returns the next save index."""
     N = q.shape[0]
     M = q.shape[1]
@@ -192,6 +234,10 @@ def _run_chunk(k0, k1, q, F, Cacc, Macc, Seta, Sux2, BH, DH, anc, ancw, row, las
     gwin = ip[7]
     frstop = ip[8]
     agew = ip[9]
+    selon = ip[10] == 1
+    khalf = ip[11]
+    blo = r0 - BOND_HALF
+    bhi = r0 + BOND_HALF
     dphi = TWO_PI / ng
     gx = math.pi / P
     cf = -(P / TWO_PI)
@@ -233,13 +279,48 @@ def _run_chunk(k0, k1, q, F, Cacc, Macc, Seta, Sux2, BH, DH, anc, ancw, row, las
             dy = q[i, 0, 0, 1] - q[i, 0, 1, 1]
             dz = q[i, 0, 0, 2] - q[i, 0, 1, 2]
             rb2 = dx * dx + dy * dy + dz * dz
-            Sux2[j] += dx * dx / rb2
-            Seta[j] += math.cos(dzw * 0.5 * (q[i, 0, 0, 2] + q[i, 0, 1, 2]))
+            ux2 = dx * dx / rb2
+            eta = math.cos(dzw * 0.5 * (q[i, 0, 0, 2] + q[i, 0, 1, 2]))
+            rb = math.sqrt(rb2)
+            uz2 = dz * dz / rb2
+            Sux2[j] += ux2
+            Seta[j] += eta
+            Sbond[j] += rb
+            Suz2[j] += uz2
             if agew > 0 and k - born[i] < agew:          # diagnostic split: deposit of a recently cloned walker
                 dg[0, j] += 1.0
                 dg[1, j] += fl[i]
-                dg[2, j] += math.cos(dzw * 0.5 * (q[i, 0, 0, 2] + q[i, 0, 1, 2]))
-                dg[3, j] += dx * dx / rb2
+                dg[2, j] += eta
+                dg[3, j] += ux2
+            if selon:                                    # selection diagnostic: ancestor-tagged deposit (read-only)
+                h = 1 if k > khalf else 0
+                cb = (j * N_COARSE) // ng
+                e = tag[i]
+                if e == -1:
+                    fdC[h, j] += 1.0
+                    fdM[h, j] += fl[i]
+                    fdB[h, cb, 0] += 1.0
+                    fdB[h, cb, 1] += fl[i]
+                    fdB[h, cb, 2] += eta
+                    fdB[h, cb, 3] += ux2
+                    fdB[h, cb, 4] += rb
+                    fdB[h, cb, 5] += uz2
+                elif e >= 0:
+                    evC[e, h, j] += 1.0
+                    evM[e, h, j] += fl[i]
+                    bnd = _band(k - born[i], bands)
+                    evB[e, h, bnd, cb, 0] += 1.0
+                    evB[e, h, bnd, cb, 1] += fl[i]
+                    evB[e, h, bnd, cb, 2] += eta
+                    evB[e, h, bnd, cb, 3] += ux2
+                    evB[e, h, bnd, cb, 4] += rb
+                    evB[e, h, bnd, cb, 5] += uz2
+                else:
+                    dst[2] += 1                          # untracked (event table overflowed): counted, not binned
+                fh[h, 0, j, _hb(eta, -1.0, 1.0)] += 1.0
+                fh[h, 1, j, _hb(ux2, 0.0, 1.0)] += 1.0
+                fh[h, 2, j, _hb(rb, blo, bhi)] += 1.0
+                fh[h, 3, j, _hb(uz2, 0.0, 1.0)] += 1.0
         # (3) save (state at the start of step k, accumulators including its deposit)
         if isave < save_steps.shape[0] and save_steps[isave] == k:
             for j in range(ng):
@@ -340,6 +421,31 @@ def _run_chunk(k0, k1, q, F, Cacc, Macc, Seta, Sux2, BH, DH, anc, ancw, row, las
                 s_ = ssel[t]
                 BH[jn[s_]] += 1.0
                 DH[jn[d_]] += 1.0
+                if selon:                                # birth / death record (reads only; before the copy)
+                    e = dst[0]
+                    if e < ev_i.shape[0]:
+                        ev_i[e, 0] = nxt
+                        ev_i[e, 1] = s_
+                        ev_i[e, 2] = d_
+                        ev_i[e, 3] = jn[s_]
+                        ev_i[e, 4] = jn[d_]
+                        ev_i[e, 5] = tag[s_]
+                        ev_i[e, 6] = tag[d_]
+                        for w_ in range(2):
+                            ii = s_ if w_ == 0 else d_
+                            dx = q[ii, 0, 0, 0] - q[ii, 0, 1, 0]
+                            dy = q[ii, 0, 0, 1] - q[ii, 0, 1, 1]
+                            dz = q[ii, 0, 0, 2] - q[ii, 0, 1, 2]
+                            rb2 = dx * dx + dy * dy + dz * dz
+                            ev_f[e, 4 * w_ + 0] = math.cos(dzw * 0.5 * (q[ii, 0, 0, 2] + q[ii, 0, 1, 2]))
+                            ev_f[e, 4 * w_ + 1] = dx * dx / rb2
+                            ev_f[e, 4 * w_ + 2] = math.sqrt(rb2)
+                            ev_f[e, 4 * w_ + 3] = dz * dz / rb2
+                        tag[d_] = e
+                        dst[0] = e + 1
+                    else:
+                        dst[1] += 1
+                        tag[d_] = -2
                 for m in range(M):
                     for bb in range(2):
                         for d in range(3):
@@ -448,6 +554,8 @@ class Run:
         self.Msum = np.zeros(ng)
         self.Seta = np.zeros(ng)
         self.Sux2 = np.zeros(ng)
+        self.Sbond = np.zeros(ng)
+        self.Suz2 = np.zeros(ng)
         self.BH = np.zeros(ng)
         self.DH = np.zeros(ng)
         self.anc = np.arange(N, dtype=np.int64)
@@ -479,11 +587,32 @@ class Run:
                             -math.pi + 0.5 * dphi, 1.0 / (ng * dphi), math.log(1.0 / (ng * dphi)), m.fw.c])
         self.ip = np.array([ng, int(c["n_steps"]), int(c["warmup_steps"]), int(c["fr_start_steps"]),
                             int(c["fr_every"]), int(c["cap"]), 1 if method == "fr" else 0,
-                            int(c["genealogy_window_steps"]), int(c["fr_stop_steps"]), int(c["diag_age_steps"])],
+                            int(c["genealogy_window_steps"]), int(c["fr_stop_steps"]), int(c["diag_age_steps"]),
+                            1 if int(c["diag_sel"]) == 1 else 0,
+                            int(c["diag_sel_split_step"]) if int(c["diag_sel_split_step"]) >= 0 else int(c["n_steps"]) // 2],
                            dtype=np.int64)
         self.born = np.full(N, -(2 ** 40), dtype=np.int64)
         self.dg = np.zeros((4, ng))
         self.sv_dg = np.zeros((ns_ if int(c["diag_age_steps"]) > 0 else 1, 2, ng))
+        # selection diagnostic (read-only); dummies of the same ndim when off
+        on = int(c["diag_sel"]) == 1
+        if c["diag_sel_band_steps"] is None:
+            self.bands = np.array([int(round(b / c["dt"])) for b in SEL_BANDS_TU], dtype=np.int64)
+        else:
+            self.bands = np.array(sorted(int(b) for b in c["diag_sel_band_steps"]), dtype=np.int64)
+        nb = len(self.bands) + 1
+        self.tag = np.full(N if on else 1, -1, dtype=np.int64)
+        e0 = 2048 if on else 1
+        self.ev_i = np.zeros((e0, NEVI), dtype=np.int64)
+        self.ev_f = np.zeros((e0, NEVF))
+        self.evC = np.zeros((e0, 2, ng if on else 1))
+        self.evM = np.zeros((e0, 2, ng if on else 1))
+        self.evB = np.zeros((e0, 2, nb, N_COARSE, NSB) if on else (1, 2, 1, 1, NSB))
+        self.fdC = np.zeros((2, ng if on else 1))
+        self.fdM = np.zeros((2, ng if on else 1))
+        self.fdB = np.zeros((2, N_COARSE, NSB) if on else (2, 1, NSB))
+        self.fh = np.zeros((2, 4, ng, NFH) if on else (2, 4, 1, NFH))
+        self.dst = np.zeros(4, dtype=np.int64)         # n_events, overflowed events, untracked deposits, spare
         self.sessions = []
         self.ctl = None
         if c.get("fr_controller") and method == "fr":
@@ -502,12 +631,30 @@ class Run:
         k_target = min(int(k_target), int(self.c["n_steps"]) + 1)
         if k_target <= self.k:
             return
-        self.isave = _run_chunk(self.k, k_target, self.q, self.F, self.C, self.Msum, self.Seta, self.Sux2,
-                                self.BH, self.DH, self.anc, self.ancw, self.row, self.lastcage, self.evwin,
+        if self.method == "fr" and self.ip[10] == 1:
+            # the event table can never overflow: room for every event the chunk could produce (cap per opportunity)
+            self._grow_events(((k_target - self.k) // max(int(self.c["fr_every"]), 1) + 2) * int(self.c["cap"]))
+        self.isave = _run_chunk(self.k, k_target, self.q, self.F, self.C, self.Msum, self.Seta, self.Sux2, self.Sbond,
+                                self.Suz2, self.BH, self.DH, self.anc, self.ancw, self.row, self.lastcage, self.evwin,
                                 self.ist, self.fst, self.fp, self.ip, m.fw.box, *m.fw.packed(), m.pp, m.rc2, m.kb,
                                 m.r0, self.Kk, self.g_noise, self.g_fr, self.save_steps, self.isave, self.sv_C,
-                                self.sv_M, self.sv_h, self.sv_i, self.sv_u, self.sv_cond, self.born, self.dg, self.sv_dg)
+                                self.sv_M, self.sv_h, self.sv_i, self.sv_u, self.sv_cond, self.born, self.dg, self.sv_dg,
+                                self.tag, self.ev_i, self.ev_f, self.evC, self.evM, self.evB, self.fdC, self.fdM,
+                                self.fdB, self.fh, self.dst, self.bands)
         self.k = k_target
+
+    def _grow_events(self, need):
+        """Ensure at least ``need`` free rows in the per-event diagnostic arrays (host side, between chunks)."""
+        nev = int(self.dst[0])
+        cap = self.ev_i.shape[0]
+        if cap - nev >= need:
+            return
+        new = max(2 * cap, nev + need)
+        for k in ("ev_i", "ev_f", "evC", "evM", "evB"):
+            a = getattr(self, k)
+            b = np.zeros((new,) + a.shape[1:], dtype=a.dtype)
+            b[:cap] = a
+            setattr(self, k, b)
 
     def _check(self):
         """Online controller check at the current step (state at the START of step self.k)."""
@@ -540,8 +687,9 @@ class Run:
     def done(self):
         return self.k > int(self.c["n_steps"])
 
-    _STATE = ("q", "C", "Msum", "Seta", "Sux2", "BH", "DH", "anc", "ancw", "row", "lastcage", "evwin", "ist", "fst",
-              "born", "dg", "sv_dg",
+    _STATE = ("q", "C", "Msum", "Seta", "Sux2", "Sbond", "Suz2", "BH", "DH", "anc", "ancw", "row", "lastcage", "evwin",
+              "ist", "fst", "born", "dg", "sv_dg",
+              "tag", "ev_i", "ev_f", "evC", "evM", "evB", "fdC", "fdM", "fdB", "fh", "dst",
               "sv_C", "sv_M", "sv_h", "sv_i", "sv_u", "sv_cond")
 
     def checkpoint(self, path):
@@ -578,8 +726,10 @@ class Run:
                     engine=ENGINE, engine_sha256=_engine_sha256(), provenance=json.dumps(_PROVENANCE),
                     save_steps=self.save_steps,
                     times=self.save_steps * c["dt"], sv_C=self.sv_C, sv_M=self.sv_M, sv_h=self.sv_h, sv_i=self.sv_i,
-                    sv_u=self.sv_u, sv_cond=self.sv_cond, Seta=self.Seta, Sux2=self.Sux2, BH=self.BH, DH=self.DH,
+                    sv_u=self.sv_u, sv_cond=self.sv_cond, Seta=self.Seta, Sux2=self.Sux2, Sbond=self.Sbond,
+                    Suz2=self.Suz2, BH=self.BH, DH=self.DH,
                     **({} if int(c["diag_age_steps"]) <= 0 else dict(dg_young=self.dg, sv_dg_young=self.sv_dg)),
+                    **({} if int(c["diag_sel"]) != 1 else self.selection_result()),
                     ist=self.ist, fst=self.fst, q_final=self.q, n_force_evals=int(self.ist[S_NFE]),
                     n_equil_force_evals=int(c["N"]) * int(c["equil_steps"]),
                     P=self.model.fw.P, x_window=self.model.fw.x_window, a=self.model.fw.a, c_len=self.model.fw.c,
@@ -587,6 +737,21 @@ class Run:
                         fr_stop_effective_steps=int(self.ip[8]), fr_controller_t1=-1.0 if self.ctl.t1 is None else self.ctl.t1,
                         fr_controller_t_stop=-1.0 if self.ctl.t_stop is None else self.ctl.t_stop,
                         fr_controller_reason=str(self.ctl.reason), fr_controller_log=json.dumps(self.ctl.log))))
+
+
+    def selection_result(self):
+        """The selection diagnostic's arrays, event rows trimmed to the recorded events (key prefix ``sel_``)."""
+        n = int(self.dst[0])
+        r0 = self.model.r0
+        return dict(sel_n_events=n, sel_overflow_events=int(self.dst[1]), sel_untracked_deposits=int(self.dst[2]),
+                    sel_split_step=int(self.ip[11]), sel_band_steps=self.bands.copy(),
+                    sel_ev_i=self.ev_i[:n].copy(), sel_ev_f=self.ev_f[:n].copy(), sel_evC=self.evC[:n].copy(),
+                    sel_evM=self.evM[:n].copy(), sel_evB=self.evB[:n].copy(), sel_fdC=self.fdC, sel_fdM=self.fdM,
+                    sel_fdB=self.fdB, sel_fh=self.fh, sel_tag=self.tag, sel_born=self.born,
+                    sel_fh_ranges=np.array([[-1.0, 1.0], [0.0, 1.0], [r0 - BOND_HALF, r0 + BOND_HALF], [0.0, 1.0]]),
+                    sel_ev_i_cols="step,parent,killed,parent_bin,killed_bin,parent_tag,killed_tag",
+                    sel_ev_f_cols="p_eta,p_ux2,p_bond,p_uz2,k_eta,k_ux2,k_bond,k_uz2",
+                    sel_B_cols="count,f,eta,ux2,bond,uz2")
 
 
 def run(c, method, out_path=None, checkpoint_path=None, checkpoint_every_s=600.0, chunk_steps=2000, model=None,
