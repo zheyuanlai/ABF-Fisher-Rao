@@ -2,6 +2,9 @@
 validated config of an earlier block with only the named fields changed.
 
     python scripts/adaptive_fr/make_jobs.py A        # ITE 300 K, K256, T200: FR arm (rate 1.0, stop 10) on EB seeds
+    python scripts/adaptive_fr/make_jobs.py EB8_rate1   # E-A3: K8 x T6400 both arms, saves every 1 t.u.
+    python scripts/adaptive_fr/make_jobs.py EB4_abf     # E-A3: K4 x T12800 ABF only;  EB1_abf: K1 x T51200 ABF only
+    python scripts/adaptive_fr/make_jobs.py Ecal_K8_rate1   # E-A3 blind calibration rungs (also Ecal_K4_rate*)
 """
 import argparse
 import json
@@ -68,7 +71,7 @@ def main():
         rate = float(a.block.split("rate")[1])
         base = {k: v for k, v in eb_jobs()[0]["cfg"].items() if k != "seed"}
         base.update(N=Kc, n_steps=500_000, save_every=1250, fr_rate=rate)
-        s0 = 1_360_000 if Kc == 64 else 1_380_000
+        s0 = {64: 1_360_000, 16: 1_380_000, 8: 1_430_000, 4: 1_440_000}[Kc]      # K8 / K4: amendment E-A3
         js = [dict(cfg=dict(base, seed=s), method="fr", out=f"{OUT}/Ecal_K{Kc}/fr_N{Kc}_rate{rate:g}_s{s}.npz", threads=1)
               for s in range(s0, s0 + 3)]
     elif a.block == "EA_R1":                               # R1 at K256 x T200 (FR arm only; ABF arm = EB, reused)
@@ -101,6 +104,24 @@ def main():
         for s in range(1_370_000, 1_370_016):
             js.append(dict(cfg=dict(base, seed=s), method="abf", out=f"{OUT}/EB16_ite300_K16_T3200_R1/abf_N16_s{s}.npz", threads=1))
             js.append(dict(cfg=dict(base, seed=s, fr_controller=R1), method="fr", out=f"{OUT}/EB16_ite300_K16_T3200_R1/fr_N16_s{s}.npz", threads=1))
+    elif a.block.startswith("EB8_rate"):                   # K8 x T6400 frontier cell (amendment E-A3), ABF vs ABF + FR(R1)
+        import sys
+        sys.path.insert(0, os.path.join(ROOT, "src"))
+        from eri.fr_controller import R1
+        rate = float(a.block.split("rate")[1])
+        base = {k: v for k, v in eb_jobs()[0]["cfg"].items() if k != "seed"}
+        base.update(N=8, n_steps=64_000_000, save_every=10_000, fr_rate=rate)   # saves every 1 t.u. (E-A3)
+        js = []
+        for s in range(1_400_000, 1_400_016):
+            js.append(dict(cfg=dict(base, seed=s), method="abf", out=f"{OUT}/EB8_ite300_K8_T6400_R1/abf_N8_s{s}.npz", threads=1))
+            js.append(dict(cfg=dict(base, seed=s, fr_controller=R1), method="fr", out=f"{OUT}/EB8_ite300_K8_T6400_R1/fr_N8_s{s}.npz", threads=1))
+    elif a.block in ("EB4_abf", "EB1_abf"):                # K4 x T12800 and K1 x T51200 frontier cells (E-A3), ABF only
+        Kc, ns, s0, sub = (4, 128_000_000, 1_410_000, "EB4_ite300_K4_T12800_abf") if a.block == "EB4_abf" else \
+                          (1, 512_000_000, 1_420_000, "EB1_ite300_K1_T51200_abf")
+        base = {k: v for k, v in eb_jobs()[0]["cfg"].items() if k != "seed"}
+        base.update(N=Kc, n_steps=ns, save_every=10_000)                           # saves every 1 t.u. (E-A3)
+        js = [dict(cfg=dict(base, seed=s), method="abf", out=f"{OUT}/{sub}/abf_N{Kc}_s{s}.npz", threads=1)
+              for s in range(s0, s0 + 16)]
     else:
         raise SystemExit(f"unknown block {a.block}")
     os.makedirs(CFG, exist_ok=True)

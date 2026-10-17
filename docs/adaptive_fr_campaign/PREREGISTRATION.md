@@ -303,3 +303,85 @@
      changes no statistic.
   4. **§D's commit came after the D2 runs.** §D was written at about 07:22, before the D2 runs, but first committed at
      07:30:24 (11477fef), after they had finished at 07:25:35. D is exploratory.
+
+* **E-A3 (2026-10-17, about 11:35 UTC; frozen by the commit that adds it, before any K < 16 run; adds three frontier
+  cells and two blind calibrations, changes no earlier statistic).** Prompted by data and by a reviewer. The
+  eight-configuration frontier (E.3 + E-A2) put the best allocation of both algorithms at K16, the smallest K tried,
+  and K16 vs K64 is itself unresolved (ABF 0.75 [0.44, 1.13]). The reviewer (2026-10-17) made two points: the best K
+  is selected on the same data that scores it while the bootstrap holds the chosen configurations fixed (addressed
+  without new runs by the selection-aware nested bootstrap, EFFICIENCY.md §7, added to `equal_budget_frontier.py` under
+  new keys only), and the frontier is not bracketed below K16. This amendment brackets it.
+  * **Cells.** ITE 300 K, 180 bins, B = 5.12 × 10⁸ production force evaluations per run; the EB config with only `N`,
+    `n_steps`, `save_every` (and `fr_rate` for EB8) changed; genealogy window 2.5 t.u.; 16 seeds per cell from fresh
+    blocks (`make_jobs.py`).
+
+    | block | K × T (t.u.) | arms | seeds | steps per run |
+    |---|---|---|---|---|
+    | EB8 (`EB8_ite300_K8_T6400_R1`) | 8 × 6400 | ABF, ABF + FR stopped by R1 (frozen spec) | 1400000–015 | 64 000 000 |
+    | EB4 (`EB4_ite300_K4_T12800_abf`) | 4 × 12800 | ABF only (see the K4 FR criterion) | 1410000–015 | 128 000 000 |
+    | EB1 (`EB1_ite300_K1_T51200_abf`) | 1 × 51200 | ABF only (one walker cannot be reallocated) | 1420000–015 | 512 000 000 |
+  * **Save grid in physical time.** Every new cell saves every 10 000 steps = 1 t.u. (the existing frontier cells save
+    every 1.28 × 10⁶ force evaluations, which is 8 t.u. at K16). Time to accuracy is read at saves, so its resolution
+    in force evaluations is 8 × 10⁴ at K8, 4 × 10⁴ at K4 and 10⁴ at K1, against 1.28 × 10⁶ in every existing cell;
+    establishment is resolved at 1 t.u. **No existing cell is re-run and none of its statistics changes.** The
+    production budget is 5.12 × 10⁸ at every K (8 × 64 × 10⁶ = 4 × 128 × 10⁶ = 1 × 512 × 10⁶), so the production
+    rows of the existing configurations in the extended table are identical to E.3's. The all-in common budget of the
+    extended set is min over all configurations = 5.125 × 10⁸ (K1: 51 200 000 + 50 000 equilibration steps) instead
+    of 5.128 × 10⁸, so the all-in variant of the extended table truncates 0.06 % earlier and the all-in rows of the
+    existing cells may differ in the last decimal; this is stated with the table. `E_frontier.json`, the
+    eight-configuration analysis, keeps its budget and is not rewritten by this amendment (the extended analysis is
+    `E_frontier_ext.json`).
+  * **FR rate at K8 by the same blind top-down safety calibration** as E.2 / E-A2 (`scripts/overnight/fr_calibrate.py`):
+    T 50 continuous-FR runs, seeds 1430000–2, rungs 1.0 → 0.5 → 0.2 run concurrently. Criteria: median windowed
+    ESS/K ≥ 0.30; windowed max lineage share ≤ max(0.05, 3/K) = **0.375 at K8** (a family of 4 of 8 walkers fails, 3
+    of 8 passes); ≤ 2K = 16 replacements per t.u. The largest safe rung is used; if no rung is safe, the cell runs at
+    0.2 and that is reported (as in E-A2). Whether the lineage criterion constrained anything is reported: which rungs
+    it rejected, and where the median lineage share sat relative to 0.375.
+  * **R1 at K8.** R1's own safety backstops are max(0.10, 6/K) = 0.75 on the windowed lineage share (fires only when
+    one family holds 7 or 8 of 8 walkers) and ESS/K < 0.15 (fires only at complete collapse: 1/8 = 0.125; a 7 + 1
+    split gives 0.16). Both can fire, but only at near-collapse. K8 is far below R1's development range (K256–1024);
+    the result is reported as R1's behaviour at K8, whatever it is. The FR machinery is otherwise unchanged (cap
+    max(1, ⌊0.02 K⌋) = 1 per opportunity, KDE 0.10 rad, score clip 2, `fr_every` 10).
+  * **K4 FR arm: criterion stated in advance.** A K4 FR arm is run only if ALL of the following hold. (i) R1's
+    genealogical backstops can fire at K4: max(0.10, 6/K) < 1 and 1/K < essw_min = 0.15. (ii) The blind calibration
+    at K4 (seeds 1440000–2, rungs 1.0 / 0.5 / 0.2, the standard criteria with 3/K = 0.75, **and additionally** windowed
+    max lineage share ≤ 0.5, i.e. no family ever holds more than half the population) passes at some rung. The safety
+    limits are not weakened for small K. **Condition (i) fails at K4 by arithmetic** (6/4 = 1.5 ≥ 1; 1/4 = 0.25 ≥
+    0.15): R1 could never stop FR for a genealogical reason there, so an R1-stopped K4 FR arm would run without any
+    genealogical protection. **The K4 FR arm is therefore not run**, and this is the reported finding. The K4
+    calibration (9 runs of T 50, ≈ 0.01 core-h) is run anyway as a descriptive diagnostic of how degenerate
+    birth–death is with four walkers (replacements per t.u., lineage, ESS); it has no production consequence.
+  * **Analysis (frozen as before).**
+    1. The EB8 two-arm comparison exactly as EB64 / EB16 (`analyze_online.py`, kT ladder, primary S_geo with 95 % CI,
+       secondaries, integrity checks). It is a fifth E cell, so no Bonferroni.
+    2. E.3 re-run on the extended set of 12 configurations (ABF at K1, 4, 8, 16, 64, 256, 1024; FR-R1 at K8, 16, 64,
+       256, 1024) by the same script → `E_frontier_ext.json`. Per-rung medians, best allocation per algorithm by the
+       smaller median, same-K and adjacent-K ratios of medians with independent bootstrap CIs.
+    3. **Verdicts.**
+       * *Does ABF's best allocation lie below K16?* SUPPORTED if the best ABF allocation (smaller median) is at K < 16
+         and its ratio to ABF K16 has a 95 % CI with upper bound < 1; CONTRADICTED if the best ABF allocation is at K
+         ≥ 16 and ABF K8 / ABF K16 has a CI lower bound > 1; otherwise UNRESOLVED, with the point estimates. The same
+         rule for FR with K8 vs K16.
+       * *Is the frontier bracketed from below?* For an algorithm, yes if some tested K below its best allocation has a
+         cost ratio to the best whose CI lower bound is > 1; otherwise it remains unbracketed and that is said.
+       * *Best FR / best ABF.* The verdict label (BEATS / BEATEN / UNRESOLVED) is taken from the **nested
+         selection-aware CI** (EFFICIENCY.md §7); the fixed-selection CI of E.3 is reported alongside for continuity,
+         and a disagreement between the two, if any, is stated.
+    4. **Establishment on the 1 t.u. grid.** The frozen measure of every cell (`atlas_lib.establishment_time`: first
+       save at which the trailing 1 t.u. mean of the instantaneous window fraction reaches 0.75 of the uniform window
+       share), per seed, median per configuration, with the save resolution stated. Because the instantaneous
+       fraction takes only K + 1 values and is weak at K ≤ 8, a supplementary descriptive measure is added: the same
+       first-passage rule applied to the window share of the deposits collected during the trailing save interval
+       (difference of the cumulative window-bin counts C over the interval divided by the difference of all counts;
+       10⁴ K samples per t.u.). Both are computed for every frontier configuration by
+       `scripts/adaptive_fr/establishment_frontier.py` → `E_establishment.json`. Both are descriptive and feed no
+       verdict.
+  * **Cost.** Measured by a 1-minute timing pilot (11:21:44–11:22:16 UTC; three concurrent scratch ABF runs of
+    2 × 10⁶ steps with 1 t.u. saves, deleted, nothing read from them but the wall time): 12.8 µs per step at K8, 7.4
+    at K4, 2.7 at K1 (single thread, 1-minute load 10 on 256 logical CPUs). Expected: EB8 32 × 64 × 10⁶ × 12.8 µs ≈
+    7.3 core-h; EB4 16 × 128 × 10⁶ × 7.4 µs ≈ 4.2; EB1 16 × 512 × 10⁶ × 2.7 µs ≈ 6.1; calibrations ≈ 0.03; total ≈
+    17.7 core-h (the brief's estimate was about 30). Campaign total before this amendment ≈ 44.1 of 100 authorised;
+    after it ≈ 62. Disk: about 6 GB of run files because of the 1 t.u. saves, in the data root only.
+  * **Order.** Commit this amendment → launch EB4, EB1 and the K8 / K4 calibration ladders concurrently (64 + 18
+    single-threaded processes) → select the K8 rate blind → launch EB8. No production file is read before its block
+    is complete.

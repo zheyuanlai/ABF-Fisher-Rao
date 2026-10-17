@@ -29,3 +29,9 @@
 
 **Campaign total: ≈ 44.1 of 100 authorised CPU core-h; aggregate ≈ 242.5 of ≈ 298.4. No GPU; no external or paid
 resource.**
+
+### Amendment E-A3 (frontier bracket below K16; branch `claude/priceless-rubin-9602df`)
+
+| date (UTC) | item | CPU core-h | campaign total | aggregate |
+|---|---|---|---|---|
+| 10-17 11:21–11:22 | E-A3 timing pilot: 3 concurrent scratch ABF runs of 2 × 10⁶ steps (K8 12.8, K4 7.4, K1 2.7 µs/step; + warm-up) | 0.02 | ≈ 44.1 | ≈ 242.5 |
