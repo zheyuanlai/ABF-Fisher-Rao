@@ -63,6 +63,7 @@ DEFAULT_CFG = dict(
     fr_start_steps=10_000, fr_every=10, fr_rate=0.2, score_clip=2.0, kde_bandwidth=0.10,
     max_event_fraction=0.02, cap_min=1,
     fr_stop_steps=-1,                      # early-stopping FR: events only at steps fr_start <= k < fr_stop (-1: never stop)
+    fr_controller=None,                    # online stop rule spec (src/eri/fr_controller.py), host-side, reference-free
     window_phi=0.5, cage_phi=2.0,          # region bookkeeping (rad): |phi| < window_phi window, >= cage_phi cage
     genealogy_window_steps=20_000,
     init="cage",                           # "cage": tagged molecule (and guests) at random ERI-cage centres
@@ -468,6 +469,13 @@ class Run:
                             int(c["fr_every"]), int(c["cap"]), 1 if method == "fr" else 0,
                             int(c["genealogy_window_steps"]), int(c["fr_stop_steps"])], dtype=np.int64)
         self.sessions = []
+        self.ctl = None
+        if c.get("fr_controller") and method == "fr":
+            from .fr_controller import OnlineStop
+            if int(c["fr_stop_steps"]) >= 0:
+                raise ValueError("fr_controller and a fixed fr_stop_steps are exclusive")
+            self.ctl = OnlineStop(c["fr_controller"], N, c["fr_start_steps"] * c["dt"])
+            self.ctl_every = int(round(c["fr_controller"]["check_every"] / c["dt"]))
 
     def advance(self, k_target):
         m = self.model
@@ -481,6 +489,31 @@ class Run:
                                 self.sv_M, self.sv_h, self.sv_i, self.sv_u, self.sv_cond)
         self.k = k_target
 
+    def _check(self):
+        """Online controller check at the current step (state at the START of step self.k)."""
+        lab = np.bincount(self.ancw, minlength=self.ancw.size).astype(float)
+        essw = float(lab.sum() ** 2 / (lab ** 2).sum() / lab.size)
+        maxlin = float(lab.max() / lab.size)
+        ts = self.ctl.observe(self.k * self.c["dt"], self.BH, self.DH, self.C, self.Msum, essw, maxlin)
+        if ts is not None and self.ip[8] < 0:
+            # no FR opportunity at nxt >= frstop; the decision is never revised
+            self.ip[8] = max(self.k + 1, int(round(ts / self.c["dt"])))
+
+    def advance_controlled(self, k_target):
+        """advance() with the online controller checked at every step k = fr_start + n * ctl_every (n >= 0),
+        independent of how the caller chunks the run."""
+        if self.ctl is None:
+            return self.advance(k_target)
+        k_target = min(int(k_target), int(self.c["n_steps"]) + 1)
+        k0 = int(self.c["fr_start_steps"])
+        while self.k < k_target:
+            n = max(0, -(-(self.k + 1 - k0) // self.ctl_every))
+            kc = k0 + n * self.ctl_every
+            nxt = min(k_target, kc)
+            self.advance(nxt)
+            if self.k == kc and self.k <= int(self.c["n_steps"]) and self.ip[8] < 0:
+                self._check()
+
     @property
     def done(self):
         return self.k > int(self.c["n_steps"])
@@ -490,7 +523,10 @@ class Run:
 
     def checkpoint(self, path):
         tmp = path + ".tmp.npz"
-        np.savez(tmp, **{k: getattr(self, k) for k in self._STATE}, k=self.k, isave=self.isave,
+        extra = {}
+        if self.ctl is not None:
+            extra = dict(ip=self.ip, ctl=json.dumps(self.ctl.state()))
+        np.savez(tmp, **{k: getattr(self, k) for k in self._STATE}, k=self.k, isave=self.isave, **extra,
                  rng=json.dumps([self.g_noise.bit_generator.state, self.g_fr.bit_generator.state], default=int),
                  sig=config_hash(self.c, self.method), engine_sha256=_engine_sha256())
         os.replace(tmp, path)
@@ -508,6 +544,10 @@ class Run:
         st = json.loads(str(z["rng"]))
         self.g_noise.bit_generator.state = st[0]
         self.g_fr.bit_generator.state = st[1]
+        if self.ctl is not None:
+            from .fr_controller import OnlineStop
+            self.ip = np.array(z["ip"])
+            self.ctl = OnlineStop.from_state(json.loads(str(z["ctl"])))
 
     def result(self):
         c = self.c
@@ -518,7 +558,11 @@ class Run:
                     sv_u=self.sv_u, sv_cond=self.sv_cond, Seta=self.Seta, Sux2=self.Sux2, BH=self.BH, DH=self.DH,
                     ist=self.ist, fst=self.fst, q_final=self.q, n_force_evals=int(self.ist[S_NFE]),
                     n_equil_force_evals=int(c["N"]) * int(c["equil_steps"]),
-                    P=self.model.fw.P, x_window=self.model.fw.x_window, a=self.model.fw.a, c_len=self.model.fw.c)
+                    P=self.model.fw.P, x_window=self.model.fw.x_window, a=self.model.fw.a, c_len=self.model.fw.c,
+                    **({} if self.ctl is None else dict(
+                        fr_stop_effective_steps=int(self.ip[8]), fr_controller_t1=-1.0 if self.ctl.t1 is None else self.ctl.t1,
+                        fr_controller_t_stop=-1.0 if self.ctl.t_stop is None else self.ctl.t_stop,
+                        fr_controller_reason=str(self.ctl.reason), fr_controller_log=json.dumps(self.ctl.log))))
 
 
 def run(c, method, out_path=None, checkpoint_path=None, checkpoint_every_s=600.0, chunk_steps=2000, model=None,
@@ -530,7 +574,7 @@ def run(c, method, out_path=None, checkpoint_path=None, checkpoint_every_s=600.0
     t0 = time.time()
     tlast = t0
     while not r.done:
-        r.advance(r.k + chunk_steps)
+        r.advance_controlled(r.k + chunk_steps)
         if checkpoint_path and time.time() - tlast > checkpoint_every_s and not r.done:
             r.checkpoint(checkpoint_path)
             tlast = time.time()
