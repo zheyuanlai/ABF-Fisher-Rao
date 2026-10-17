@@ -28,6 +28,9 @@ BLOCKS = {
     "E1": ("results/convergence_fr_campaign/E1_ite300_stop10", 1024, "results/overnight/ite/reference", "ite_itq3", None),
     "ERI1024": ("results/convergence_fr_campaign/ERI_K1024", 1024, "results/eri_campaign/reference", "gard_tait", None),
     "ERI256": ("results/convergence_fr_campaign/ERI_K256", 256, "results/eri_campaign/reference", "gard_tait", None),
+    "E2": ("results/convergence_fr_campaign/E2_ite150_stop15", 256, "results/overnight/ite150/reference", "ite_itq3", None),
+    "M300_256": ("results/convergence_fr_campaign/M300_256_rate1", 256, "results/overnight/ite/reference", "ite_itq3", None),
+    "M150_256": ("results/convergence_fr_campaign/M150_256_rate1", 256, "results/overnight/ite150/reference", "ite_itq3", None),
 }
 
 

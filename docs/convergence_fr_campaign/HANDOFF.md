@@ -96,6 +96,48 @@ Then the block figure and the circulation diagnostics:
 /home/zheyuanlai/miniconda3/envs/abffr/bin/python scripts/convergence_fr/circulation.py X1 X2 E1
 ```
 
+## Further analyses (all read-only, seconds to a minute each)
+
+Equal-force-evaluation comparison, EB vs E1:
+
+```bash
+/home/zheyuanlai/miniconda3/envs/abffr/bin/python scripts/convergence_fr/equal_budget.py
+```
+
+```bash
+/home/zheyuanlai/miniconda3/envs/abffr/bin/python scripts/convergence_fr/fig_equal_budget.py
+```
+
+E1x t_stop ladder (pairs by cfg seed with the X1 runs; needs `ABFFR_DATA_ROOT`):
+
+```bash
+/home/zheyuanlai/miniconda3/envs/abffr/bin/python scripts/convergence_fr/ladder_e1x.py
+```
+
+Temperature contrast at K256 (the prereg §5 statistic):
+
+```bash
+/home/zheyuanlai/miniconda3/envs/abffr/bin/python scripts/convergence_fr/temperature_contrast.py M300_256 M150_256
+```
+
+Late-time decay exponents:
+
+```bash
+/home/zheyuanlai/miniconda3/envs/abffr/bin/python scripts/convergence_fr/decay_slopes.py E1 E2 X1 X2 M300_256 M150_256 ERI256 ERI1024
+```
+
+Generated markdown tables:
+
+```bash
+/home/zheyuanlai/miniconda3/envs/abffr/bin/python scripts/convergence_fr/block_tables.py E1 E2 ERI256 ERI1024 M300_256 M150_256
+```
+
+* The pooled late-half estimates and hidden-coordinate conditionals come from the overnight
+  `scripts/overnight/fr_mechanism.py <run dir> --K <K> --refbase <ref> --variant <v>`. It writes into the run
+  directory; the copies are in `results/convergence_fr_campaign/mechanism/`.
+* The ERI early-stopping decision has no script. The frozen rule (prereg §4) is evaluated in
+  `EXPERIMENT_LOG.md` from `analysis/ERI*.json` (`establishment.abf_median` and `crossing_eF.boot_quantiles`).
+
 ## Compute accounting
 
 * `run_jobs.py` prints the cumulative core-h (wall × threads) per stage. `COMPUTE_LEDGER.md` adds them up.

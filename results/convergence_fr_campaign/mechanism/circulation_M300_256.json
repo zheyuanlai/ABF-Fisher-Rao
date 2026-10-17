@@ -1,0 +1,85 @@
+{
+ "block": "M300_256",
+ "K": 256,
+ "T": 50.0,
+ "T_K": 300.0,
+ "rate": 1.0,
+ "t_fr": 1.0,
+ "t_stop": null,
+ "n_seeds": 16,
+ "reference_closure_mean_Gamma": 0.00024503969810388705,
+ "abf": {
+  "c_late_half_deposits_median": 0.018112494594738057,
+  "c_late_half_median": 0.03740119540068067,
+  "c_late_half_iqr": [
+   0.00943581281450538,
+   0.04522369380938634
+  ],
+  "capp_late_half_median": 0.03740119540068067,
+  "c_final_median": 0.026760201481281203,
+  "late_window_error_median": 0.0914981025068923,
+  "spearman_c_late_vs_eF_T": 0.37941176470588234,
+  "spearman_c_late_vs_late_window_error": -0.07352941176470588,
+  "spearman_abs_c_late_vs_eF_T": 0.37941176470588234
+ },
+ "fr": {
+  "c_late_half_deposits_median": 0.023034898424250133,
+  "c_late_half_median": 0.02893961307075553,
+  "c_late_half_iqr": [
+   0.002329136275095337,
+   0.05256649237524392
+  ],
+  "capp_late_half_median": 0.02893961307075553,
+  "c_final_median": 0.024416761727726076,
+  "late_window_error_median": 0.08596134376770298,
+  "spearman_c_late_vs_eF_T": 0.6411764705882352,
+  "spearman_c_late_vs_late_window_error": 0.4735294117647058,
+  "spearman_abs_c_late_vs_eF_T": 0.34411764705882353
+ },
+ "paired_c_late_difference_fr_minus_abf": [
+  0.011004377928946863,
+  -0.0283246471582436,
+  0.03495853657333002
+ ],
+ "paired_c_late_deposits_difference_fr_minus_abf": [
+  0.007900731067040725,
+  -0.01797601254530466,
+  0.029339267381705114
+ ],
+ "fr_gt_abf_c_late_deposits": 9,
+ "paired_late_window_error": {
+  "median_rel": -0.013266676633358288,
+  "ci95": [
+   -0.42631018807321563,
+   0.39952541522859875
+  ],
+  "wins_fr": 8,
+  "n": 16,
+  "abf_median": 0.0914981025068923,
+  "fr_median": 0.08596134376770298,
+  "per_seed": [
+   -0.04278507811925769,
+   0.2548651140322029,
+   0.5803249321094492,
+   -0.2384674266158342,
+   1.025163395022819,
+   -0.06794072756709779,
+   0.40177641588657975,
+   0.0447295996749526,
+   -0.4404202988479561,
+   -0.4291749667869371,
+   0.39952541522859875,
+   0.016251724852541116,
+   -0.7700309946164536,
+   -0.42631018807321563,
+   -0.4805299041018274,
+   1.0581253043631693
+  ]
+ },
+ "spearman_paired_dc_vs_paired_deF_T": 0.6676470588235294,
+ "pooled_final_profile_fr_minus_abf_rms": 0.022937252790919755,
+ "fr_replacements_per_tu_median": {
+  "first_5_after_start": 28.15,
+  "late_half": 22.248756218905474
+ }
+}

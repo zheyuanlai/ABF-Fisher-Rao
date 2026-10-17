@@ -98,6 +98,96 @@ Figures: `figures/convergence_fr/block_E1.png` and `early_stopping_vs_continuous
    * FR 0.063 → 0.044.
    * The FR − ABF difference in the 5 t.u. after the stop is -0.021 [-0.026, +0.000]. Circulation is not what separates the arms here.
 
+## E2 — ITE 150 K early-stopping FR (CONFIRMATORY; Amendment A2)
+
+* **Cell.** X2's model, K and rate (K 256, rate 0.5), with the campaign's 180-bin protocol and T 100.
+* **Stop time.** t_stop = **15 t.u.**, by the same frozen rule applied to X2 only: 2 × ABF's establishment time of
+  7.5 t.u., below X2's crossing 2.5 % quantile of 32.5 t.u.
+* **Primary ladder.** ABF-anchored (A2).
+
+#### E2: K 256, T 100 t.u., 150 K, 180 bins, FR rate 0.5 from 1 t.u., stopped at 15 t.u.; 16 paired seeds 1130000–1130015
+
+* integrity: bitwise paired before the first FR opportunity 16/16; force evaluations per run 256,000,256 (equal in both arms); arms differ only in ['fr_stop_steps']; FR opportunities per run 14000, FR events after the stop 0
+* ladder (kJ/mol): 0.241, 0.201, 0.161, 0.129, 0.105 (= [3.0, 2.5, 2.0, 1.6, 1.3] × median ABF e_F(T) 0.0805)
+* **PRIMARY S_geo 1.250 [1.115, 1.582]** (97.5 %: [1.088, 1.669]); FR faster in 14/16 seeds → **SUPPORTED (FR+ reaches the ladder sooner)**
+
+| statistic | median per-seed FR/ABF − 1 [95 % CI] (FR better) | ABF median | FR median |
+|---|---|---|---|
+| post-ramp Ī_F (companion) | -18.1 % [-27.9, -13.1] (15/16) | 0.2371 | 0.2081 |
+| full-horizon Ī_F | -14.4 % [-20.9, -9.7] (15/16) | 0.3104 | 0.2804 |
+| post-ramp Ī_F over [t_FR, 10] | -17.7 % [-22.6, -14.0] (16/16) | 0.8964 | 0.7398 |
+| post-ramp Ī_F over [t_FR, 2 t_stop] (H1) | -18.2 % [-24.4, -16.2] (16/16) | 0.5067 | 0.4222 |
+| e_F(T/4) | -17.0 % [-28.3, -12.2] (15/16) | 0.2654 | 0.2344 |
+| e_F(T/2) | -22.6 % [-34.6, -7.9] (14/16) | 0.1520 | 0.1197 |
+| e_F(3T/4) | -20.9 % [-31.7, -4.5] (12/16) | 0.1079 | 0.0856 |
+| late-window Ī_F [0.8T, T] | -20.0 % [-34.1, -6.3] (12/16) | 0.0881 | 0.0805 |
+| e_F(T) (H2) | -19.0 % [-31.6, -6.3] (13/16) | 0.0805 | 0.0764 |
+| e_F′(T) | -14.0 % [-21.6, -1.5] (13/16) | 0.1438 | 0.1221 |
+| estimate from deposits after t_stop (H4) | +14.9 % [+0.4, +58.0] (4/16) | 0.0361 | 0.0413 |
+
+| ε (kJ/mol) | sustained S [95 % CI] | reached ABF / FR | FR faster / ABF faster | first-hit S |
+|---|---|---|---|---|
+| 0.241 | 1.29 [1.13, 1.76] | 16 / 16 | 13 / 2 | 1.30 |
+| 0.201 | 1.29 [1.07, 1.52] | 16 / 16 | 12 / 3 | 1.39 |
+| 0.161 | 1.24 [1.06, 1.56] | 16 / 16 | 14 / 2 | 1.29 |
+| 0.129 | 1.25 [1.12, 1.48] | 16 / 16 | 14 / 2 | 1.25 |
+| 0.105 | 1.33 [1.02, 1.55] | 14 / 14 | 12 / 3 | 1.22 |
+
+* crossing (FR permanently worse after): 3/16 seeds; median curve none, bootstrap 2.5/50/97.5 % 57.0/80.2/99.0 t.u. (fraction crossing 0.01)
+* window establishment: ABF 6.69, FR 4.12 t.u.; paired -2.69 [-3.00, -1.88]
+* FR genealogy: min windowed ESS/K 0.452, max lineage share 0.035, replacements 194 (median over seeds); true translocations ABF 404 vs FR 404
+* pooled over seeds vs MC: whole run ABF 0.0748 / FR 0.0595; post-window deposits ABF 0.0168 / FR 0.0179; FR vs ABF post-window 0.0047
+* wall-clock per run (single thread, production phase): ABF 372 s, FR 373 s (+0.2 %)
+
+| hypothesis | outcome (frozen rule) |
+|---|---|
+| **H3 (primary)** | **SUPPORTED**: S_geo 1.25 [1.11, 1.58], FR faster in 14/16; every rung > 1 |
+| H1 (post-ramp Ī_F over [1, 30]) | **SUPPORTED**: -18.2 % [-24.4, -16.2] |
+| H2 (e_F(T)) | **REMOVED, and reversed**: -19.0 % [-31.6, -6.3], 13/16 |
+| H4 (post-stop estimate) | **CONTRADICTED by the frozen rule**: per seed +14.9 % [+0.4, +58.0], 4/16 FR better |
+
+**H4 in more detail.**
+* **No pooled bias.** Pooled over the 16 seeds, the post-stop estimates of the two arms are 0.018 vs 0.017 kJ/mol
+  from MC and 0.005 apart. The late-half pooled FR − ABF D is 0.000 (noise 0.016).
+* **The per-seed deficit is therefore scatter, not a bias.** After the stop both arms run identical ABF dynamics, so
+  the larger per-seed scatter must come from the state that FR left behind.
+* **Possible causes (hypotheses, not established).** The applied bias of the FR-stop arm differs. Clones made just
+  before the stop could still share their slow hidden coordinates. At 300 K (E1) the same statistic was
+  −0.0 % [−21, +25].
+
+**Context (cross-block and descriptive, same model at 150 K and K 256):**
+
+| block | FR schedule | rate | horizon | Δe_F(T) | ΔĪ_F post-ramp | S_geo (ABF ladder) |
+|---|---|---|---|---|---|---|
+| X2 (exploratory) | continuous | 0.5 | 200 (360 bins) | +56.8 % | -1.4 % | 0.82 [0.60, 0.95] |
+| X2 truncated at 50 (atlas) | continuous | 0.5 | 50 | +10.5 % | -18.0 % | – |
+| M150_256 (confirmatory) | continuous | 1.0 | 50 | +28.9 % | -22.1 % | 1.63 [1.34, 2.73] |
+| **E2 (confirmatory)** | **stopped at 15** | 0.5 | 100 | **-19.0 %** | **-18.1 %** | **1.25 [1.11, 1.58]** |
+
+* **Late-time decay.** ABF -0.87, FR-stop -0.81. Continuous FR in the
+  150 K cells: -0.52 (X2) and -0.45 (M150_256).
+* **Memory bias.** The pooled whole-run estimate vs MC is ABF 0.074 and FR-stop 0.058.
+  Hidden-coordinate conditionals are clean in both arms.
+
+## E1x — exploratory t_stop ladder (Amendment A3; 4 X1 seeds; descriptive only)
+
+* **Design.** Each schedule is paired with the X1 ABF arm of the same seed. Every stopped arm is bitwise identical to
+  the X1 continuous-FR arm of the same seed at every save before its stop (asserted).
+* **The t_stop = 10 point** comes from E1, on different seeds.
+
+| schedule (same 4 seeds 980000–980003) | S_geo per seed | post-ramp Ī_F per seed | e_F(T) per seed |
+|---|---|---|---|
+| t_stop 5 | 1.39, 1.46, 1.40, 1.48 (median 1.43) | -33 %, -30 %, -33 %, -30 % | -25 %, -31 %, -23 %, -24 % |
+| t_stop 20 | 1.14, 0.99, 1.19, 1.09 (median 1.11) | -27 %, -15 %, -28 %, -19 % | -14 %, -1 %, -27 %, +4 % |
+| continuous (X1) | 1.07, 0.97, 1.07, 1.01 (median 1.04) | -24 %, -15 %, -24 %, -16 % | -0 %, +6 %, +14 %, +15 % |
+| t_stop 10 (E1, 16 other seeds; for orientation only) | median 1.59 | median −38 % | median −32 % |
+
+* **Reading (exploratory).** On every seed, the earlier stops (5 and 10 t.u.) beat the later one (20 t.u.), which in
+  turn beats continuous FR. Stopping at 5 t.u., about 2× FR's own establishment time, is as good as 10.
+* **Interpretation.** FR's useful work is done within the first few t.u., and every additional t.u. of FR costs
+  accuracy. This is consistent with the mechanism in `MECHANISM.md`.
+* **Status.** It has 4 seeds and is not a confirmatory schedule comparison.
+
 ## Answers
 
 * **Q1 (ITE 300 K).** Yes. Early-stopping FR reaches every rung of the frozen 0.20–0.08 kJ/mol tolerance ladder
@@ -105,6 +195,13 @@ Figures: `figures/convergence_fr/block_E1.png` and `early_stopping_vs_continuous
   [1.31, 1.85]. That is at fixed K = 1024 and equal force evaluations (equal wall-clock to 0.2 %).
 * **Q2.** Yes. The late penalty of continuous FR (+14 % final error in X1, exploratory) is not present with
   early-stopping FR. Its final error is 32 % **lower** than ABF's, and no seed's error curve crosses ABF's.
+* **Replication at 150 K (E2).** The result holds in the colder, more establishment-limited cell, with its own
+  frozen stop time (15 t.u.) and rate (0.5):
+  * time-to-accuracy speedup 1.25 [1.12, 1.58];
+  * final error −19 % [−32, −6] at T 100.
+
+  Continuous FR in the same model, K and rate ended **+57 %** at T 200 (X2) and +29 % at T 50 (M150_256, rate 1.0).
 * **Limits.**
-  * One cell, one stop time (chosen by a rule), one rate, fixed K.
+  * Two cells, one stop time each (chosen by a rule), fixed K. ERI could not be tested: the frozen rule gave no
+    admissible stop.
   * The equal-budget comparison with ABF at a different K is in `FINAL_SYNTHESIS.md` (block EB).

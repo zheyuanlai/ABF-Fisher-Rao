@@ -190,3 +190,29 @@ Absolute medians (ABF → FR), kJ/mol:
   * Any equal-cost advantage. Every comparison here is at fixed K and equal force evaluations.
 * **Hypothesis motivating E1, not established here.** Ongoing FR after establishment is what makes the ITE curves
   cross. Stopping FR after establishment should keep the early gain without the late deficit.
+
+## 7. Confirmatory blocks of this campaign, in atlas form
+
+These were run after the atlas above. The definitions are identical, the analysis is the frozen `analyze_block.py`,
+and the seeds are fresh.
+
+| block | sustained S per tolerance (ε in kJ/mol: S) | primary S_geo | window establishment, ABF → FR (t.u.) | figure |
+|---|---|---|---|---|
+| ERI 600 K, K256, continuous FR (rate 2) | 0.40: 0.47 · 0.32: 0.42 · 0.24: 0.53 · 0.20: 0.59 · 0.16: 0.74 | 0.52 [0.46, 0.63] | 2.1 → 1.9 | `block_ERI256.png` |
+| ERI 600 K, K1024, continuous FR (rate 2) | 0.40: 0.56 · 0.32: 0.46 · 0.24: 0.42 · 0.20: 0.54 · 0.16: 0.65 | 0.51 [0.49, 0.58] | 2.1 → 1.9 | `block_ERI1024.png` |
+| ITE 300 K, K1024, FR stopped at 10 (rate 2) | 0.20: 1.73 · 0.16: 1.60 · 0.12: 1.53 · 0.10: 1.51 · 0.08: 1.45 | 1.59 [1.31, 1.85] | 4.4 → 2.4 | `block_E1.png` |
+| ITE 150 K, K256, FR stopped at 15 (rate 0.5), T 100 | 0.24: 1.29 · 0.20: 1.29 · 0.16: 1.24 · 0.13: 1.25 · 0.10: 1.33 | 1.25 [1.11, 1.58] | 6.7 → 4.1 | `block_E2.png` |
+| ITE 300 K, K256, continuous FR (rate 1) | 0.27: 1.23 · 0.23: 1.14 · 0.18: 0.96 · 0.14: 0.94 · 0.12: 0.96 | 1.03 [0.92, 1.21] | 4.1 → 2.8 | `block_M300_256.png` |
+| ITE 150 K, K256, continuous FR (rate 1) | 0.39: 2.40 · 0.33: 2.25 · 0.26: 1.95 · 0.21: 1.16 · 0.17: 0.97 | 1.63 [1.34, 2.73] | 6.9 → 3.6 | `block_M150_256.png` |
+
+* Figures are in `figures/convergence_fr/`. Each has four panels: e_F(t) with IQR and the median's CI, the paired
+  e_F ratio, per-seed sustained τ_ε with censoring, and circulation.
+* Also: `early_stopping_vs_continuous.png` (E1 vs X1) and `equal_budget_ite300.png` (EB vs E1).
+* Results and their reading: `EARLY_STOPPING_RESULTS.md`, `ERI_RESULTS.md`, `ITE_RESULTS.md`, `MECHANISM.md`,
+  `FINAL_SYNTHESIS.md`.
+* **LTA reference sensitivity** (audit item 9). The atlas scores LTA against the MC *density* profile, the validated
+  rescoring's convention.
+  * The integrated MC mean force differs from it by 0.006 / 0.008 kJ/mol RMS at 150 / 300 K.
+  * Median e_F(T) at 300 K moves by about 0.004 under that alternative: ABF 0.094 → 0.090, FR 0.076 → 0.072.
+  * The lowest LTA 300 K rung (0.080 kJ/mol) sits between them, so its censoring counts are reference-sensitive.
+    The rungs at ≥ 0.10 kJ/mol are not.

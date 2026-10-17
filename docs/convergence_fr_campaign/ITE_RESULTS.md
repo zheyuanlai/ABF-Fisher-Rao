@@ -133,7 +133,13 @@ Atlas context: `CONVERGENCE_ATLAS.md` §5.*
 
 ## 5. 150 K early stopping (E2)
 
-(see `EARLY_STOPPING_RESULTS.md`; filled when the block completes)
+* **E2** (confirmatory; K 256, rate 0.5, T 100, 180 bins; FR stopped at 15 t.u.).
+  * Primary S_geo 1.25 [1.11, 1.58], SUPPORTED.
+  * e_F(T) -19.0 % [-31.6, -6.3].
+  * Post-ramp Ī_F -18.1 %.
+* **Reading.** At 150 K, stopping FR removes the late penalty that continuous FR shows in this cell (X2 at T 200:
+  +57 %; M150_256 at T 50: +29 %) and keeps the early gain.
+* **Details.** `EARLY_STOPPING_RESULTS.md`.
 
 ## Answer to Q3
 

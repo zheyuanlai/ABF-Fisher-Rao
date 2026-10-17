@@ -101,3 +101,15 @@ Times are UTC and come from `date -u` or git.
     crossing's 2.5 % quantile: 4.9 t.u. at K1024, 4.3 at K256.
   * **No admissible stop time, so no ERI early-stopping block is run.** FR's advantage window, about 1.5–5 t.u.,
     closes before twice ABF's establishment time.
+* **03:37 — E2 done** (3.473 core-h). **PRIMARY S_geo 1.250 [1.115, 1.582], 14/16 → SUPPORTED.**
+  * e_F(T) −19.0 % [−31.6, −6.3].
+  * H4 is CONTRADICTED by the frozen rule: per-seed +14.9 % [+0.4, +58.0], although the pooled post-stop bias is
+    equal (0.018 vs 0.017).
+* **03:37:42 — Amendment A3** (reduced E1x) committed; E1x launched (8 runs).
+* **03:40 — circulation diagnostics on all 8 blocks.** The correction-experiment trigger (prereg §6) is NOT met, so
+  the correction experiment was not run.
+* **03:42:56 — EB done** (3.379 core-h). At equal force evaluations, ABF at K256 × 200 t.u. needs 0.46–0.54× the
+  force evaluations of FR-stop at K1024 (every CI < 1); e_F at the budget is 0.034 vs 0.052.
+* **03:50:58 — E1x done** (1.763 core-h). The ladder is monotone: stops at 5 and 10 t.u. are best, 20 is worse,
+  continuous is worst (exploratory).
+* **03:51–03:55 — docs finalised.** Ledger closing balance ≈ 198.4 / 200 core-h.
