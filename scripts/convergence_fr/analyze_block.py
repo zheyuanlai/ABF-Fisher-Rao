@@ -56,8 +56,10 @@ def main():
     ap.add_argument("--fr-glob", default=None)
     ap.add_argument("--out", default=None)
     ap.add_argument("--expect-seeds", default=None, help="first:count of the preregistered seed block (asserted)")
+    ap.add_argument("--abf-dir", default=None, help="ABF arm in another directory (paired by cfg seed via file names)")
+    ap.add_argument("--allow-diff", nargs="*", default=[], help="extra config keys allowed to differ (FR knobs only)")
     a = ap.parse_args()
-    d = S.load_eri_cell(a.dir, a.K, a.refbase, a.variant, fr_glob=a.fr_glob, keep_runs=True)
+    d = S.load_eri_cell(a.dir, a.K, a.refbase, a.variant, fr_glob=a.fr_glob, keep_runs=True, abf_dir=a.abf_dir)
     t, T = d["t"], d["T"]
     A, B = d["arms"]["abf"], d["arms"]["fr"]
     ra, rb = A["runs"], B["runs"]
@@ -71,7 +73,11 @@ def main():
     # (Amendment A1: everything below is ASSERTED, not only reported)
     diff = {k for k in set(cfa) | set(cfb) if cfa.get(k) != cfb.get(k)}
     out["config_keys_differing_between_arms"] = sorted(diff)
-    assert diff <= {"fr_stop_steps"}, f"arms differ in {diff}"
+    allowed = {"fr_stop_steps"} | set(a.allow_diff)
+    assert diff <= allowed, f"arms differ in {diff}"
+    if diff & {"fr_rate", "fr_every", "fr_start_steps"}:      # FR knobs may differ only if inert in the ABF arm
+        for x in ra:
+            assert int(x["sv_i"][-1, 7]) == 0 and int(x["sv_i"][-1, 2]) == 0, "ABF arm has FR activity"
     strip = lambda c: {k: v for k, v in c.items() if k != "seed"}
     for arm_runs in (ra, rb):
         assert all(strip(r_["cfg"]) == strip(arm_runs[0]["cfg"]) for r_ in arm_runs), "configs differ within an arm"

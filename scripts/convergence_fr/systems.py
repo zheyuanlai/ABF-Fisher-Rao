@@ -44,7 +44,7 @@ def glob_both(rel_dir, pattern):
 # ERI-engine cells (ITE 300 K / 150 K, ERI 600 K): files <dir>/<abf|fr>_N<K>_s<seed>.npz
 # ---------------------------------------------------------------------------------------------------------------
 def load_eri_cell(run_dir, K, refbase, variant, read_bins=None, arms=("abf", "fr"), fr_glob=None, t_max=None,
-                  keep_runs=False):
+                  keep_runs=False, abf_dir=None):
     """read_bins: None = as run; an integer dividing the run grid = coarsen the cumulative accumulators exactly
     (sum of adjacent bins) before the read-out (a read-out only: the dynamics used the run grid)."""
     mt.set_reference_base(dpath(refbase))
@@ -52,7 +52,7 @@ def load_eri_cell(run_dir, K, refbase, variant, read_bins=None, arms=("abf", "fr
     globs = {"abf": f"abf_N{K}_s*.npz", "fr": fr_glob or f"fr_N{K}_s*.npz"}
     per = {}
     for arm in arms:
-        files = glob_both(run_dir, globs[arm])
+        files = glob_both(abf_dir if (arm == "abf" and abf_dir) else run_dir, globs[arm])
         for f in files:
             s = int(re.search(r"_s(\d+)\.npz$", f).group(1))
             per.setdefault(s, {})[arm] = f
