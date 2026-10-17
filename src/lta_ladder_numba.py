@@ -1303,7 +1303,10 @@ def run_arm(cfg, method, save_steps, *, checkpoint_path=None, checkpoint_every_s
             raise ValueError("fr_controller and a fixed fr_stop_steps are exclusive")
         if fr_start < 1:
             raise ValueError("the online controller needs fr_start_steps >= 1")
-        ctl = OnlineStop(c["fr_controller"], N, fr_start * h)
+        from eri.fr_controller import window_mask
+        # the engine's own window-region convention on the deposit grid (|z| < window_half, z = |phi| a / 2 pi)
+        ctl = OnlineStop(c["fr_controller"], N, fr_start * h,
+                         window_mask=window_mask(int(c["n_grid"]), float(c["window_half"]) * TWO_PI / a))
         ctl_every = check_grid(c["fr_controller"], h)
     if chunk_steps is None:
         chunk_steps = max(1, 1_000_000 // N)

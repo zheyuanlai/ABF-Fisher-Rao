@@ -243,3 +243,175 @@ def test_direct_advance_is_refused_with_a_controller(model):
     r = E.Run(_cfg(fr_controller=FORCE), "fr", model=model)
     with pytest.raises(RuntimeError):
         r.advance(100)
+
+
+# ---------------------------------------------------------------------------------------------- rule R2 (occupancy)
+MASK = FC.window_mask(NG, 0.5)                     # the ITE/ERI engine convention: |phi| < 0.5 rad -> 28 of 180 bins
+
+
+def synthetic_r2(occ_of_t, support=True, G_noise=0.0, essw=1.0, seed=0, T=12.0, spec=FC.R2, t_start=1.0,
+                 mask=MASK):
+    """Deposits accumulate every check with the window share occ_of_t(t) of the population (the rest uniform over
+    the other bins); the controller sees only the cumulative counts, like the engines' C_j."""
+    rng = np.random.default_rng(seed)
+    ctl = FC.OnlineStop(spec, K, t_start, window_mask=mask)
+    C = np.zeros(NG)
+    if not support:
+        bad = np.zeros(NG, bool)
+        bad[: NG // 4] = True
+    base = 5.0 * np.sin(np.linspace(-np.pi, np.pi, NG, endpoint=False))
+    dt = spec["check_every"]
+    steps = 1000                                    # deposits per check = K * steps
+    t = t_start
+    while t <= T + 1e-9:
+        ts = ctl.observe(t, np.zeros(NG), np.zeros(NG), C, (base + G_noise * rng.standard_normal(NG)) * np.maximum(C, 1.0),
+                         essw, 0.01)
+        if ts is not None:
+            break
+        t += dt
+        f = occ_of_t(t)
+        inc = np.where(mask, f * K * steps / mask.sum(), (1 - f) * K * steps / (~mask).sum())
+        if not support:
+            inc = np.where(bad, 0.0, inc)
+        C = C + inc
+    return ctl
+
+
+def test_r2_mask_and_share():
+    assert MASK.sum() == 28 and 0 < MASK.mean() < 1
+    with pytest.raises(ValueError):
+        FC.OnlineStop(FC.R2, K, 1.0)                                  # the occupancy rule needs a mask
+    with pytest.raises(ValueError):
+        FC.OnlineStop(FC.R2, K, 1.0, window_mask=np.ones(NG, bool))  # all bins is not a window
+    c = FC.OnlineStop(FC.R2, K, 1.0, window_mask=MASK)
+    assert c.share == pytest.approx(28 / 180)
+    assert FC.OnlineStop(FC.R1, K, 1.0).occupancy is False and FC.OnlineStop(FC.R1, K, 1.0, window_mask=MASK).occupancy is False
+
+
+def test_r2_stops_at_twice_the_establishment_time():
+    """Window share ramps linearly from 0 at t = 1 to the flat share at t = 5: the trailing 1-t.u. mean reaches
+    0.75 x share at about t = 4.5 -> t_est is the first check with the window mean >= level x share, stop = 2 t_est."""
+    share = MASK.mean()
+    c = synthetic_r2(lambda t: share * min(1.0, max(0.0, (t - 1.0) / 4.0)))
+    assert c.reason == "established"
+    assert 4.25 <= c.t1 <= 4.75
+    assert c.t_decision == c.t1                                    # persist = 1
+    assert c.t_stop == pytest.approx(2.0 * c.t1)
+    row = [x for x in c.log if x["t"] == c.t1][0]
+    assert row["established"] and row["occ"] >= 0.75 * share and row["support"] and row["stability"] <= 0.05
+    prev = [x for x in c.log if x["t"] == c.t1 - 0.25][0]
+    assert not prev["established"]
+
+
+def test_r2_flat_marginal_without_support_never_passes():
+    share = MASK.mean()
+    c = synthetic_r2(lambda t: share, support=False)
+    assert c.t_stop is None and all(not x.get("established", False) for x in c.log)
+
+
+def test_r2_stability_is_logged_but_does_not_gate_unless_asked():
+    """Frozen R2: the stability statistic is recorded at every check (and 'stable' flags it against stability_tol)
+    but the decision does not wait for it; the same spec with stability_gate = True would never stop here."""
+    share = MASK.mean()
+    c = synthetic_r2(lambda t: share, G_noise=50.0)
+    assert c.reason == "established" and c.t1 == pytest.approx(2.0)
+    row = [x for x in c.log if x["t"] == c.t1][0]
+    assert row["stability"] > 0.05 and row["stable"] is False and row["established"]
+    g = synthetic_r2(lambda t: share, G_noise=50.0, spec=dict(FC.R2, stability_gate=True))
+    assert g.t_stop is None
+    assert FC.R2["stability_gate"] is False and "stability_gate" not in FC.R1
+
+
+def test_r2_safety_and_irrevocable_decision():
+    share = MASK.mean()
+    c = synthetic_r2(lambda t: share, essw=0.10, T=3.0)
+    assert c.reason == "safety" and c.t_stop == pytest.approx(1.0)
+    c = synthetic_r2(lambda t: share, T=2.5)                        # established at the first full window
+    assert c.reason == "established" and c.t1 == pytest.approx(2.0) and c.t_stop == pytest.approx(4.0)
+    ts = c.observe(2.25, np.zeros(NG), np.zeros(NG), np.ones(NG), np.zeros(NG), 1.0, 0.01)   # occupancy irrelevant now
+    assert ts == pytest.approx(4.0) and c.reason == "established"
+    ts = c.observe(2.5, np.zeros(NG), np.zeros(NG), np.ones(NG), np.zeros(NG), 0.05, 0.01)   # safety brings it earlier
+    assert ts == pytest.approx(2.5) and c.reason == "established+safety"
+    # a window that is populated but then empties again does not undo the decision (irrevocable, as R1)
+    d = synthetic_r2(lambda t: share if t <= 2.0 else 0.0, T=6.0)
+    assert d.t1 == pytest.approx(2.0) and d.t_stop == pytest.approx(4.0)
+
+
+def test_r2_persist_and_stop_factor_are_honoured():
+    share = MASK.mean()
+    ramp = lambda t: share * min(1.0, max(0.0, (t - 1.0) / 4.0))
+    c1 = synthetic_r2(ramp)
+    c4 = synthetic_r2(ramp, spec=dict(FC.R2, persist=4))
+    assert c4.t1 == pytest.approx(c1.t1) and c4.t_decision == pytest.approx(c1.t1 + 0.75)
+    c3 = synthetic_r2(ramp, spec=dict(FC.R2, stop_factor=3.0))
+    assert c3.t_stop == pytest.approx(3.0 * c1.t1)
+    c15 = synthetic_r2(ramp, spec=dict(FC.R2, persist=4, stop_factor=1.0))
+    assert c15.t_stop == pytest.approx(c15.t_decision)             # never earlier than the decision
+
+
+def test_r2_state_roundtrip_continues_identically():
+    a = FC.OnlineStop(FC.R2, K, 1.0, window_mask=MASK)
+    b = None
+    rng = np.random.default_rng(5)
+    C = np.zeros(NG); M = np.zeros(NG)
+    t = 1.0
+    for i in range(30):
+        t += 0.25
+        inc = rng.poisson(50, NG).astype(float); C += inc; M += inc * rng.standard_normal(NG) * 0.01
+        ra = a.observe(t, np.zeros(NG), np.zeros(NG), C, M, 1.0, 0.01)
+        if i == 6:
+            b = FC.OnlineStop.from_state(json.loads(json.dumps(a.state())))
+            assert np.array_equal(b.mask, a.mask) and b.share == a.share
+        elif b is not None:
+            rb = b.observe(t, np.zeros(NG), np.zeros(NG), C, M, 1.0, 0.01)
+            assert ra == rb and a.log[-1] == b.log[-1]
+
+
+FORCE_R2 = dict(FC.R2, level=0.0, support_count=0.0, stability_tol=1e9, check_every=0.05, W=0.05, essw_min=0.0,
+                maxlin_min=1.0)                       # decides at the first full window -> exercises the stop path
+
+
+@pytest.mark.parametrize("force", [FORCE_R2])
+def test_r2_controlled_stop_equals_the_fixed_stop_and_is_deterministic(model, force):
+    c = _cfg(fr_controller=force)
+    a = _run(c, "fr", model)
+    b = _run(c, "fr", model, chunk=137)
+    assert a.ctl.t_stop is not None and a.ctl.reason == "established" and a.ctl.log == b.ctl.log
+    for k in KEYS:
+        assert np.array_equal(getattr(a, k), getattr(b, k)), k
+    stop = int(a.ip[8])
+    f = _run(_cfg(fr_stop_steps=stop), "fr", model)
+    for k in KEYS:
+        assert np.array_equal(getattr(a, k), getattr(f, k)), k
+    assert a.ist[E.S_REPL] > 0 and a.ist[E.S_NOPP] == (stop - 1 - c["fr_start_steps"]) // c["fr_every"] + 1
+    assert a.ctl.share == pytest.approx(28 / 180) and "occ" in a.ctl.log[-1] and "stable" in a.ctl.log[-1]
+
+
+def test_r2_checkpoint_resume_reproduces_every_decision(model, tmp_path):
+    c = _cfg(fr_controller=FORCE_R2)
+    a = _run(c, "fr", model)
+    for at in (700, 1700):
+        b = _run(c, "fr", model, ckpt_at=at, tmp=tmp_path)
+        assert a.ctl.log == b.ctl.log and a.ctl.t_stop == b.ctl.t_stop
+        for k in KEYS + ("ist",):
+            assert np.array_equal(getattr(a, k), getattr(b, k)), (k, at)
+
+
+def test_r2_engine_mask_and_inert_for_abf(model):
+    r = E.Run(_cfg(fr_controller=FC.R2), "fr", model=model)
+    assert np.array_equal(r.ctl.mask, FC.window_mask(180, 0.5)) and r.ctl.share == pytest.approx(28 / 180)
+    a = _run(_cfg(), "abf", model)
+    b = _run(_cfg(fr_controller=FC.R2), "abf", model)
+    assert b.ctl is None
+    for k in KEYS:
+        assert np.array_equal(getattr(a, k), getattr(b, k)), k
+
+
+def test_r2_real_spec_on_a_short_molecular_run_is_well_formed(model):
+    """The frozen R2 on a tiny run (0.3 t.u., K 64): the 1 t.u. window never closes, so no 'established' decision is
+    possible; only the safety backstop (lineage limit 6/K = 0.094 at K 64) can fire, exactly as under R1."""
+    r = _run(_cfg(fr_controller=FC.R2), "fr", model)
+    assert all("occ" not in x for x in r.ctl.log)
+    assert r.ctl.t_stop is None or r.ctl.reason == "safety"
+    r1 = _run(_cfg(fr_controller=FC.R1), "fr", model)
+    assert r1.ctl.t_stop == r.ctl.t_stop and r1.ctl.reason == r.ctl.reason
