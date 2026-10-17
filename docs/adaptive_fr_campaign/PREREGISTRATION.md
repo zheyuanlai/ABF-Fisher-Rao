@@ -214,3 +214,56 @@
   * the η and u_x² conditionals by age class;
   * the share of deposits that are young, per region.
   * Descriptive; no confirmatory claim.
+
+## E. Experiment E — efficiency (frozen 07:32 UTC, before any E run)
+
+### E.1 Block EA_R1: R1 at the efficient allocation (CONFIRMATORY for R1 at K256 × T200)
+
+* **Cell.** Experiment A's cell exactly: ITE 300 K, K256, T200, rate 1.0, genealogy window 2.5 t.u.
+* **FR arm (new).** The EB config + `fr_rate` 1.0 + `fr_controller` R1, on the EB seeds 1140000–015.
+* **ABF arm.** The 16 historical EB runs, reused. Pairing is asserted; the allowed config differences are
+  `fr_rate` and `fr_controller`.
+* **Primary.** S_geo on the kT ladder (as in A).
+* **Secondary.** As in C, via `analyze_online.py`.
+
+### E.2 Block EB64: frontier cell K64 × T800 (B = 5.12 × 10⁸, CONFIRMATORY for its own two-arm comparison)
+
+* **Settings.** ITE 300 K, K64, 8 000 000 steps, saves every 20 000 steps (the same 1.28 × 10⁶ force evaluations
+  per save as the K256/K1024 blocks), genealogy window 2.5 t.u. Seeds 1350000–015; both arms; the FR arm is stopped
+  by R1.
+* **FR rate by blind, top-down calibration at K64.** Short T 50 continuous-FR runs, 3 seeds (1360000–2), rungs
+  1.0 → 0.5 → 0.2, using the overnight criteria:
+  * median windowed ESS/K ≥ 0.30;
+  * lineage ≤ max(0.05, 3/K) = 0.05;
+  * ≤ 2K replacements per t.u.
+
+  The first safe rung is used.
+* **K64 is below R1's development range** (K256–1024). The result is reported as R1's behaviour at K64, whatever it
+  is.
+
+### E.3 Equal-budget frontier (descriptive, unpaired across K)
+
+* **Configurations.** ABF at K1024 (the C1 ABF arm), K256 (EB) and K64 (EB64), and FR-R1 at K1024 (C1), K256 (EA_R1)
+  and K64 (EB64).
+* **Statistic.** As in §A.5: the median per-seed geometric-mean sustained τ in production force evaluations, on the
+  kT ladder, censored at 5.12 × 10⁸. Plus an all-in variant.
+* **Best allocation per algorithm** by the smaller median. Best FR / best ABF, with an independent bootstrap CI.
+
+### E.4 Parallel wall-clock (measured)
+
+* **Configurations.** ABF and FR(R1) at K1024, K256 and K64.
+* **Measurement.** The wall-clock time of a fixed 2-t.u. production segment (after the 5 t.u. equilibration), at
+  numba thread counts 1, 4, 8, 16 and 32, on this host (2 × AMD EPYC, 256 logical CPUs, shared).
+* **Recorded alongside.** Concurrent load, measured with `uptime`. Run while none of our other jobs runs.
+* **Wall-clock time to accuracy** = measured seconds per step at P threads × the configuration's median sustained τ
+  in steps. This is labelled as combining measured throughput with measured τ. It is not a full re-run at every P.
+
+### E.5 Cost
+
+| item | core-h |
+|---|---|
+| calibration | about 0.04 per rung |
+| EA_R1 | 16 × 0.21 ≈ 3.4 |
+| EB64 | 32 × 0.21 ≈ 6.8 |
+| wall-clock | about 1–2 |
+| total | about 12 |

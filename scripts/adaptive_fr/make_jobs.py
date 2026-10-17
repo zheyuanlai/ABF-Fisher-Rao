@@ -63,6 +63,31 @@ def main():
                 c = dict(j["cfg"], diag_age_steps=age)
                 js.append(dict(cfg=c, method="fr", out=f"{OUT}/{sub}/{os.path.basename(j['out'])}", threads=1,
                                historical=j["out"]))
+    elif a.block.startswith("Ecal_K64_rate"):             # blind safety calibration at K64 (ITE 300 K, T 50, continuous FR)
+        rate = float(a.block.split("rate")[1])
+        base = {k: v for k, v in eb_jobs()[0]["cfg"].items() if k != "seed"}
+        base.update(N=64, n_steps=500_000, save_every=1250, fr_rate=rate)
+        js = [dict(cfg=dict(base, seed=s), method="fr", out=f"{OUT}/Ecal_K64/fr_N64_rate{rate:g}_s{s}.npz", threads=1)
+              for s in range(1_360_000, 1_360_003)]
+    elif a.block == "EA_R1":                               # R1 at K256 x T200 (FR arm only; ABF arm = EB, reused)
+        import sys
+        sys.path.insert(0, os.path.join(ROOT, "src"))
+        from eri.fr_controller import R1
+        js = []
+        for j in eb_jobs():
+            c = dict(j["cfg"], fr_rate=1.0, fr_controller=R1)
+            js.append(dict(cfg=c, method="fr", out=f"{OUT}/EA_ite300_K256_T200_R1/fr_N256_s{c['seed']}.npz", threads=1))
+    elif a.block.startswith("EB64_rate"):                  # K64 x T800 frontier cell, ABF vs ABF + FR(R1)
+        import sys
+        sys.path.insert(0, os.path.join(ROOT, "src"))
+        from eri.fr_controller import R1
+        rate = float(a.block.split("rate")[1])
+        base = {k: v for k, v in eb_jobs()[0]["cfg"].items() if k != "seed"}
+        base.update(N=64, n_steps=8_000_000, save_every=20_000, fr_rate=rate)
+        js = []
+        for s in range(1_350_000, 1_350_016):
+            js.append(dict(cfg=dict(base, seed=s), method="abf", out=f"{OUT}/EB64_ite300_K64_T800_R1/abf_N64_s{s}.npz", threads=1))
+            js.append(dict(cfg=dict(base, seed=s, fr_controller=R1), method="fr", out=f"{OUT}/EB64_ite300_K64_T800_R1/fr_N64_s{s}.npz", threads=1))
     else:
         raise SystemExit(f"unknown block {a.block}")
     os.makedirs(CFG, exist_ok=True)
