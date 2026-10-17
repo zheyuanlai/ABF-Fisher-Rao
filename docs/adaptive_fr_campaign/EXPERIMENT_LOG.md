@@ -144,3 +144,19 @@ Times are UTC (`date -u` or git).
 * **08:25 — figure 7b** (`mechanism_meanforce_genealogy`): per-bin late-half mean-force error by clone age (D2) and
   FR genealogy over time in the C cells.
 
+## D4 — selection-hypothesis test (session of 2026-10-17, from 11:16 UTC; branch `claude/nifty-hellman-99b892`)
+
+* **11:16–11:28 — instrumentation.** `diag_sel` (read-only birth/death record, ancestor-tagged deposits, fibre
+  histograms) and the always-on `Sbond` / `Suz2` accumulators added to `src/eri/engine.py`. A two-arm trajectory was
+  frozen from the pre-change engine (6716aefc) BEFORE editing (`tests/fixtures/eri_pre_selection_fixture.npz` +
+  sha256 json); `tests/test_diag_sel.py` (6 tests) proves the default path reproduces it bitwise and that the
+  diagnostic is inert. A first version segfaulted: the flag was named `dsel`, which shadowed the kernel's dying-slot
+  array; renamed `selon`. 37 engine/controller/stop tests pass. Overhead measured 1.0 % at K256.
+* **11:30:27 — PREREGISTRATION committed (49ae642d)**, then `launch.sh configs/adaptive_fr/jobs_D3.json 64` at
+  11:30:27 (registry line in `logs/launches.tsv`; stage label D3, experiment D4 in the documents).
+* **11:35:19 — ALLDONE** 3.655 core-h, 292 s wall. Identity gate: 64/64 runs bitwise equal to their historical arms
+  (sv_C, sv_M, sv_h, sv_i, sv_u, sv_cond, q_final). Raw files: `results/adaptive_fr_campaign/D3_{eri600,ite300}_K256_sel/`
+  in the session worktree, copied to the same path in `/home/zheyuanlai/ABF-Fisher-Rao-adaptive` (0.9 GB).
+* **11:36–12:10 — analysis** (`scripts/adaptive_fr/selection_split.py`, four passes: a keyword clash `nonlocal`, a
+  degenerate-coordinate guard for ITE's η (≈ constant on the channel axis), per-region selection and net-exchange
+  statistics added). Results in MECHANISM.md §2.4, figure `mechanism_selection`.

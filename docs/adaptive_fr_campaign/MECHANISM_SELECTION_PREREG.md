@@ -159,3 +159,32 @@ P3 (descendants' conditional vs age); P4 and P5 tables; the variance-matched ABF
 sample-size caveats as in §2.1. Script: `scripts/adaptive_fr/selection_split.py` → `results/adaptive_fr_campaign/
 mechanism/selection_split.json`; figure `figures/adaptive_fr/mechanism_selection.png`. COMPUTE_LEDGER.md is updated
 with the measured core-h.
+
+## 9. Post-launch analysis notes (dated; added after the runs, not part of the predictions)
+
+*2026-10-17, 11:36–11:55 UTC.* The analysis script went through five passes after the runs had finished. None of the
+changes touched the predictions in §5 or the rule in §6; they are listed so the final numbers can be traced:
+
+1. a Python keyword clash (`nonlocal` used as a keyword argument) — renamed;
+2. **degenerate coordinate**: in ITE, η = cos(2πZ/a) is ≈ 1 with within-bin sd ≈ 0 over the window-side coarse
+   bins (the molecule sits on the channel axis), so standardising by the within-bin sd diverged. A floor of 1 % of
+   the coordinate's range was put under every standardisation, and a coordinate is flagged *degenerate* (excluded
+   from the P0 carrier rule) when more than half of the ABF deposit weight sits in floored bins. Only ITE's η is
+   flagged;
+3. classes were additionally computed against the **FR population's own** late law (u′), next to the preregistered
+   classes against the ABF law (u); late deposits were also split by whether the lineage was born before or after
+   T/2; the ABF and all-FR coarse-level wRMS were added as reference rows to the band table; the exact null decile
+   histogram of u′ was added for the figure;
+4. per-region birth / death quantile means, the **net exchange** (mean u′ of births − mean v′ of deaths) and the
+   late-half net source (births − deaths) per region per t.u. per walker were added;
+5. the birth-state displacement first used a histogram-midpoint mean of the ABF law, which is biased by up to half a
+   histogram bin for a law piled against η = 1 (it read +0.10 sd); it was replaced by the **exact** deposit-sum means
+   (coarse late-half, and fine whole-run) for both the parents and the killed walkers, with the FR population's own
+   displacement at the birth bins alongside.
+
+Final pass: 19.5 s single process; JSON `results/adaptive_fr_campaign/mechanism/selection_split.json`.
+6. **P6 (post hoc, 11:58 UTC)**: after P4 showed the error following the birth region, the late error was cross-split by
+   birth region × fibre class at birth, to ask whether the fibre state changes the error *within* a birth region
+   (fibre carrier) or not (a carrier outside the four coordinates). Reported as post hoc in MECHANISM.md §2.4.6.
+7. the report printout of P4–P6 reused a loop variable and printed the last coordinate instead of the carrier (JSON
+   unaffected); fixed before the documents were written.

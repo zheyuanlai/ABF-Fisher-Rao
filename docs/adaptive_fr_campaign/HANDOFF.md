@@ -10,6 +10,7 @@
 | what | path |
 |---|---|
 | preregistration (§0 rules, A, B = frozen R1, C, D, E, amendments E-A1, E-A2) | `docs/adaptive_fr_campaign/PREREGISTRATION.md` |
+| preregistration of D4 (selection test) | `docs/adaptive_fr_campaign/MECHANISM_SELECTION_PREREG.md` |
 | results documents | `docs/adaptive_fr_campaign/{EQUAL_BUDGET_RESULTS, ONLINE_STOPPING_RULE, CROSS_SYSTEM_RESULTS, MECHANISM, EFFICIENCY, FINAL_SYNTHESIS}.md` |
 | status, log, compute | `docs/adaptive_fr_campaign/{STATUS, EXPERIMENT_LOG, COMPUTE_LEDGER}.md` |
 | run files (npz, one per arm × seed) | `results/adaptive_fr_campaign/<block>/{abf,fr}_N<K>_s<seed>.npz` |
@@ -26,6 +27,7 @@
 | A | `A_ite300_K256_T200_stop10` (FR arm only; ABF = historical EB) | fixed stop 10, K256 × T200 |
 | C1–C5 | `C{1..5}_*_R1` | frozen online rule R1, five systems |
 | D2 | `D2_{eri600,ite300}_K256_age` (FR arm only) | clone-age diagnostic re-runs, bitwise equal to the historical arms |
+| D4 | `D3_{eri600,ite300}_K256_sel` (BOTH arms) | selection-hypothesis test (MECHANISM_SELECTION_PREREG.md): bitwise re-runs with the read-only selection diagnostic `diag_sel`; 0.9 GB |
 | EA_R1 | `EA_ite300_K256_T200_R1` (FR arm only; ABF = EB) | R1 at K256 × T200 |
 | EB64 / EB16 | `EB64_ite300_K64_T800_R1`, `EB16_ite300_K16_T3200_R1` | frontier cells |
 | Ecal_K64 / Ecal_K16 | `Ecal_K{64,16}` | blind safety calibration (+ `frcal_K*.json`) |
@@ -36,20 +38,25 @@
   construction: it imports only math and numpy, and an AST test enforces that.
 * **`src/eri/engine.py`.**
   * `fr_stop_steps` (fixed stop); `fr_controller` (online stop: host-side checks via `advance_controlled`);
-    `diag_age_steps` (read-only clone-age split).
-  * All three default off; the default paths are bitwise unchanged (tested).
+    `diag_age_steps` (read-only clone-age split); `diag_sel` (+ `diag_sel_band_steps`, `diag_sel_split_step`): read-only
+    birth/death record with the fibre state of parent and killed walker, ancestor tag per slot, per-event deposit
+    accumulators (early/late halves; time-since-birth bands × coarse bins), founders' deposits, per-bin fibre
+    histograms in both arms; result keys `sel_*`.
+  * Always-on whole-run fibre accumulators `Sbond`, `Suz2` (next to `Seta`, `Sux2`).
+  * All diagnostics default off; the default path is bitwise unchanged: `tests/test_diag_sel.py` checks it against a
+    trajectory frozen from engine 6716aefc (`tests/fixtures/eri_pre_selection_fixture.npz`).
 * **`src/lta_ladder_numba.py`.** `fr_stop_steps` and `fr_controller` (same semantics; stop-aware opportunity count;
   resume).
 * **Tests.**
   * `tests/test_fr_stop.py` (7), `tests/test_fr_controller.py` (15), `tests/test_lta_fr_stop.py` (4),
-    `tests/test_diag_age.py` (2).
+    `tests/test_diag_age.py` (2), `tests/test_diag_sel.py` (6).
   * These four files plus `tests/test_eri_engine.py` (7): 35 passed (re-run 08:25 UTC). Full LTA suite: 39 passed,
     1 skipped.
 * **`scripts/adaptive_fr/`.**
   * Job generation and launch: `make_jobs.py`, `launch.sh`, `launch_lta.sh`, `run_lta_jobs.py`.
   * Analyses: `analyze_online.py` (frozen two-arm analysis, both engines), `equal_budget4.py` (A.5),
     `equal_budget_frontier.py` (E.3 + E-A2), `wallclock_bench.py` / `wallclock_tta.py` (E.4), `bias_variance.py`
-    (D1), `clone_age.py` (D2).
+    (D1), `clone_age.py` (D2), `selection_split.py` (D4; identity gate + P0–P5 of the preregistration).
   * Figures: `fig_campaign.py`.
   * R1 development (pre-freeze): `dev_*.py`.
 * **`scripts/convergence_fr/`.** `analyze_block.py` gained `--abf-dir` / `--allow-diff` (FR knobs may differ only when
@@ -108,10 +115,14 @@ Using R1 on a new system: add `fr_controller=R1` (from `eri.fr_controller import
      late (median 15.25 t.u.).
    * A rule that would stop early in ERI, or never start FR there, must be designed and frozen on development data.
    * ERI 600 K is now spent as a held-out test, so it cannot be that development data.
-2. **The late-FR bias mechanism** (MECHANISM.md §2.3). It is identified as population-level, but the carrier in ITE is
-   not measured. A test of the selection hypothesis needs a per-walker fibre-state record at birth and death.
+2. **The late-FR bias mechanism** (MECHANISM.md §2.3–2.4). D4 tested the selection hypothesis directly: births are
+   not fibre-selected within their bin; the late error is carried by lineages according to their BIRTH REGION
+   (cage-born lineages carry the pooled pattern, window-born its mirror image) while the carried fibre state relaxes
+   over 1–3 t.u. (ERI). The supported reading is the arrival-law (net CV flux) mechanism of
+   MECHANISM_SELECTION_PREREG.md §7.2. Its direct test needs a per-walker bin-entry-time record; the ITE fibre
+   carrier is still not among {η, u_x², bond, u_z²} (candidate: the transverse COM position).
 3. **Equal-budget claims.** No configuration of ABF + FR was shown to beat the best tested ABF allocation, in force
    evaluations or in wall-clock (EFFICIENCY.md: CIs wide, point estimates on ABF's side). The frontier is not
    bracketed below K16. Any further "accelerator" claim must be made against the best ABF allocation, not against a
    fixed K.
-4. **Compute.** About 44 of the 100 authorised campaign core-h were used (COMPUTE_LEDGER.md).
+4. **Compute.** About 48 of the 100 authorised campaign core-h were used (COMPUTE_LEDGER.md).

@@ -46,9 +46,10 @@ $PY scripts/adaptive_fr/analyze_online.py --block EB16 --engine eri --dir $D/EB1
 $PY scripts/adaptive_fr/equal_budget_frontier.py
 $PY scripts/adaptive_fr/wallclock_tta.py
 
-# Experiment D (exploratory mechanism)
+# Experiment D (exploratory mechanism); D4 needs the D3_*_sel run files (both arms) and the historical arms
 $PY scripts/adaptive_fr/bias_variance.py
 $PY scripts/adaptive_fr/clone_age.py
+$PY scripts/adaptive_fr/selection_split.py
 
-# Figures 1-8
-$PY scripts/adaptive_fr/fig_campaign.py   # figures 1-8 (+ 3b frontier, 7b mean force and genealogy)
+# Figures 1-9
+$PY scripts/adaptive_fr/fig_campaign.py   # figures 1-9 (+ 3b frontier, 7b mean force and genealogy, 9 selection)

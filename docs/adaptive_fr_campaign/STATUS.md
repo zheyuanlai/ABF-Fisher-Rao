@@ -9,7 +9,8 @@
   * **B**: R1 developed on ITE only and frozen (c3ef3128).
   * **C**: R1 SUPPORTED in ITE 300 K (1.67), ITE 150 K (1.64), LTA 150 K (2.52) and LTA 300 K (1.46); CONTRADICTED in
     ERI 600 K (0.61). R1 does not generalise by the preregistered definition.
-  * **D1, D2, D3**: mechanism, exploratory (MECHANISM.md).
+  * **D1, D2, D3**: mechanism, exploratory (MECHANISM.md). **D4** (2026-10-17 11:16–12:10, branch
+    `claude/nifty-hellman-99b892`): selection hypothesis tested directly, MECHANISM.md §2.4.
   * **E**:
     * EA_R1 SUPPORTED, 1.31 [1.07, 1.47].
     * EB64 UNRESOLVED, 1.11 [0.92, 1.33]; EB16 UNRESOLVED, 0.93 [0.70, 1.29].
@@ -20,4 +21,4 @@
     (35).
 * **Active jobs.** None of ours.
 * **Blockers.** None. Merging into `main` needs explicit permission.
-* **Compute.** ≈ 44.1 / 100 campaign core-h; aggregate ≈ 242.5 / ≈ 298.4. No GPU.
+* **Compute.** ≈ 48.0 / 100 campaign core-h (D4 added 3.9); aggregate ≈ 246.4 / ≈ 298.4. No GPU.

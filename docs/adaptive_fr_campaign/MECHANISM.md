@@ -4,10 +4,11 @@
 before the D2 runs were launched, but was first committed at 07:30:24 (11477fef), after those runs had finished at
 07:25:35. Its timing is therefore not verifiable from git. The D2 runs are bitwise re-runs of historical arms. No
 statistic here is confirmatory, and none was used to choose an FR rate, a stop time or the online rule.
-Scripts: `scripts/adaptive_fr/bias_variance.py` (D1), `scripts/adaptive_fr/clone_age.py` (D2). Outputs:
-`results/adaptive_fr_campaign/mechanism/{bias_variance.json, bias_variance_curves.npz, clone_age.json}`.
-Figures: `figures/adaptive_fr/bias_variance.png` (6), `mechanism_clone_age_bias.png` and
-`mechanism_meanforce_genealogy.png` (7).*
+Scripts: `scripts/adaptive_fr/bias_variance.py` (D1), `scripts/adaptive_fr/clone_age.py` (D2),
+`scripts/adaptive_fr/selection_split.py` (D4, §2.4; preregistered in `MECHANISM_SELECTION_PREREG.md`, committed
+49ae642d before its runs). Outputs: `results/adaptive_fr_campaign/mechanism/{bias_variance.json,
+bias_variance_curves.npz, clone_age.json, selection_split.json}`. Figures: `figures/adaptive_fr/bias_variance.png` (6),
+`mechanism_clone_age_bias.png` and `mechanism_meanforce_genealogy.png` (7), `mechanism_selection.png` (9).*
 
 All comparisons are ABF vs the same ABF + FR (no third arm). Errors are against the exact-MC references used by every
 confirmatory analysis (ITE: `results/overnight/ite{,150}/reference`; ERI: `results/eri_campaign/reference`).
@@ -25,8 +26,12 @@ fibre conditionals of the whole FR population are displaced from equilibrium, fo
 cloned too: η 4.6× and u_x² 2.6× ABF's deviation. The data therefore point to a **population-level distortion of the
 conditional (fibre) distribution, maintained for as long as reallocation continues.** They do not point to a
 per-clone transient, and they do not point to a residue of early deposits. Stopping FR removes the source and keeps
-the early establishment gain. The specific selection mechanism that produces the distortion is **not identified**:
-in ITE the two monitored fibre coordinates are barely displaced, although the late mean-force bias is real (§2.3).
+the early establishment gain. The selection mechanism proposed in §2.3 (reading 4) was tested directly in D4 (§2.4): the
+walkers FR clones are **not** fibre-selected within their bin, and the birth–death exchange is fibre-neutral. The
+late error follows the **birth region** of a lineage: cage-born lineages carry the pooled error pattern, window-born
+lineages its mirror image, and the carried fibre state (η in ERI) relaxes over 1–3 t.u. Late FR makes a net
+window → cage transfer, so arrivals in the flank are unbalanced. That is an arrival-law (net CV-flux) mechanism, not
+selection. In ITE the same birth-region pattern holds, but none of the four measured fibre coordinates carries it.
 
 ## 1. D1 — bias–variance decomposition across seeds (existing data)
 
@@ -161,10 +166,229 @@ still 2.9× (ERI) and 1.8× (ITE) worse than ABF in F.
    +0.015, and late-only F bias of 0.035–0.048 against 0.012–0.017. The engine accumulates only two fibre
    coordinates, so the ITE carrier, for example the molecule's orientation or bond, was not measured. **The selection
    mechanism behind the conditional distortion is a hypothesis, not a result.**
-4. **Possible selection mechanism (not tested here).** Late in the run, a bin falls below the FR target because
-   walkers flowed out of it. The walkers that remain are biased toward fibre states that resist leaving. Cloning
-   them enriches those states at that ξ. A direct test would split deposits by the walker's fibre state at birth, or
-   by birth vs death bins, in a system with a known slow fibre. That was not run; it would need a new prereg.
+4. **Possible selection mechanism (tested in §2.4; not supported).** Late in the run, a bin falls below the FR
+   target because walkers flowed out of it. The walkers that remain are biased toward fibre states that resist
+   leaving. Cloning them enriches those states at that ξ. D4 split the deposits by the walker's fibre state at birth
+   and by birth / death bins (preregistered in `MECHANISM_SELECTION_PREREG.md`); the result is §2.4.
+
+
+## 2.4 D4 — direct test of the selection hypothesis (both arms of the two D2 blocks re-run bitwise)
+
+*Preregistered in `MECHANISM_SELECTION_PREREG.md` (committed 49ae642d at 11:30 UTC, runs launched at 11:30:27,
+finished 11:35:19; 3.66 core-h). Exploratory. Script `scripts/adaptive_fr/selection_split.py`; JSON
+`results/adaptive_fr_campaign/mechanism/selection_split.json`; figure 9 `mechanism_selection`. Post-launch analysis
+changes are listed, dated, in the preregistration's §9; the one post-hoc statistic (P6) is marked below.*
+
+**Instrument.** The engine's read-only `diag_sel` record (default off, bitwise-inert; `tests/test_diag_sel.py`, which
+also checks the default path against a trajectory frozen from the pre-change engine): every FR birth / death with the
+step, parent and killed slot, their fine CV bins, and the fibre state of both — η (ERI: cos(4πZ/c), +1 at window
+heights, −1 at cage middles; ITE: cos(2πZ/a), +1 on the channel axis), u_x², the bond length r and u_z²; an ancestor
+tag per slot (the most recent birth event that wrote into it; founders = never overwritten); per-event deposit
+accumulators (C, M per fine bin, early / late half; count and f, η, u_x², r, u_z² sums per coarse bin and
+time-since-birth band); per-bin fibre histograms in both arms (the ABF arm's late-half histogram defines the classes).
+
+**Runs and gate.** ERI 600 K K256 rate 2 (seeds 1111000–015) and ITE 300 K K256 rate 1 (seeds 1121000–015), both
+arms, `diag_sel = 1`. 64/64 runs reproduced their historical arms bitwise (sv_C, sv_M, sv_h, sv_i, sv_u, sv_cond,
+q_final). Events per run: 1817 (ERI) and 1120 (ITE) medians, = the replacement counts; late-half event rate 46.1
+(ERI) and 22.5 (ITE) per t.u. per run. Late half = t > 20 (ERI), t > 25 (ITE). Pooled over 16 seeds; seed-jackknife
+s.e. throughout (every pooled law and class assignment is recomputed per replicate).
+
+### 2.4.1 P0 — which fibre coordinate is displaced (late-half population conditional, FR − ABF)
+
+Count-weighted RMS over 18 coarse bins of (⟨y | bin⟩_FR − ⟨y | bin⟩_ABF) / sd_ABF(bin), with a floor of 1 % of the
+coordinate's range under the sd; "floor" = the ABF split-half estimate of the same statistic's noise.
+
+| block | η | u_x² | bond r | u_z² |
+|---|---|---|---|---|
+| ERI | **0.0157 ± 0.0064** (floor 0.0052; natural 0.0095) | 0.0049 ± 0.0012 (0.0033) | 0.0007 ± 0.0001 (0.0004) | 0.0027 ± 0.0009 (0.0032) |
+| ITE | degenerate (η ≈ 1 with sd ≈ 0 over the window side; 0.0048 ± 0.0033) | 0.0044 ± 0.0013 (0.0029) | 0.0005 ± 0.0001 (0.0006) | 0.0035 ± 0.0011 (0.0022) |
+
+* **ERI.** η is the carrier, as preregistered (D2). Its per-bin displacement is negative on both flanks (coarse bins
+  3–4: −0.028; 13–14: −0.031 / −0.028 sd): the FR population on the flanks sits at **lower η, i.e. cage-like
+  heights**. It is small in absolute terms (1.6 % of a sd), and the P0 rule's 3 s.e. threshold is not met (2.5 s.e.).
+* **ITE.** u_x² is the largest and formally qualifies (3.4 s.e., above the floor), but at 0.4 % of a sd. The bond
+  length is undisplaced (and relaxes in ≈ 3 steps, so it cannot carry anything). u_z² 0.35 % of a sd. The ITE
+  carrier is therefore **not among the four coordinates** in any useful sense; §2.4.6 confirms this.
+
+### 2.4.2 P1 — are the cloned walkers fibre-selected? (no)
+
+u′ = quantile of the parent's fibre value, at birth, within the FR population's own late-half law at its bin
+(mid-rank; the exact null for a random draw is tabulated from the same histograms); u = the same within the ABF law;
+v′ = the killed walker's quantile. "Tail" = share with u′ < 0.25 or ≥ 0.75.
+
+| block, coordinate | births: mean u′ (null 0.5) | births: tail (null) | births vs ABF law: mean u | deaths: mean v′ | net exchange (births − deaths) |
+|---|---|---|---|---|---|
+| ERI η | 0.4974 ± 0.0017 | 0.4144 ± 0.0033 (0.4091) | 0.4949 ± 0.0021 | 0.4948 ± 0.0015 | **+0.0026 ± 0.0020** |
+| ERI u_x² | 0.5007 ± 0.0017 | 0.5016 ± 0.0031 (0.5033) | 0.4998 ± 0.0017 | 0.4978 ± 0.0015 | +0.0029 ± 0.0022 |
+| ERI r | 0.5011 ± 0.0015 | 0.4846 ± 0.0036 (0.4896) | 0.5011 ± 0.0015 | 0.4995 ± 0.0022 | +0.0016 ± 0.0031 |
+| ERI u_z² | 0.5003 ± 0.0015 | 0.5242 ± 0.0030 (0.5251) | 0.5006 ± 0.0014 | 0.5009 ± 0.0012 | −0.0006 ± 0.0021 |
+| ITE u_x² | 0.4983 ± 0.0023 | 0.4782 ± 0.0043 (0.4803) | 0.4984 ± 0.0024 | 0.5015 ± 0.0022 | −0.0032 ± 0.0038 |
+| ITE r | 0.4988 ± 0.0025 | 0.4865 ± 0.0034 (0.4928) | 0.4988 ± 0.0025 | 0.4964 ± 0.0019 | +0.0024 ± 0.0031 |
+| ITE u_z² | 0.5005 ± 0.0017 | 0.4443 ± 0.0019 (0.4391) | 0.5006 ± 0.0015 | 0.5022 ± 0.0021 | −0.0017 ± 0.0027 |
+
+Moment form (exact deposit-sum means; sd units): ERI η births −0.026 ± 0.010, deaths −0.024 ± 0.007, FR population
+at the birth bins −0.012 ± 0.006; every other coordinate within ±0.012 of zero. By birth region (ERI η, mean u′):
+window 0.5001 ± 0.0017, flank 0.497 ± 0.003, cage 0.497 ± 0.004. Late births alone: tail 0.4079 (null 0.4091).
+
+* The parents FR clones are a **fibre-neutral draw from the population at their bin**: no coordinate deviates from
+  the null by more than 2.4 s.e. in rank, and the walkers FR kills are displaced by the same amount as the ones it
+  clones (η: −0.024 vs −0.026 sd), so the birth–death exchange moves the population's η by **+0.003 ± 0.002**
+  rank units — in the direction *opposite* to the population's displacement.
+* Sustaining the observed −0.012 sd displacement by selection would need a net exchange of about −0.0035 rank units
+  (−0.01 once the 1–3 t.u. relaxation of §2.4.4 and the 46 births per t.u. in 256 walkers are allowed for). The
+  measured net exchange excludes that at 3–6 s.e. **P1 is null.** The small displacement of the births relative to
+  the ABF law (−0.005 rank units, −0.026 sd) is the population's own displacement, which the births inherit.
+
+### 2.4.3 P2 — late-half estimates by the ancestor's fibre class at birth (ERI, η classes vs the ABF law)
+
+| estimate from late FR deposits of … | share of late FR deposits | mean-force wRMS vs ref | F RMS vs ref | Γ − Γ_ref, coarse bin 4 / 13 |
+|---|---|---|---|---|
+| founders (slot never overwritten) | 0.8 % | 0.82 ± 0.18 | 0.59 ± 0.28 | +0.90 / −1.30 |
+| ancestor's η in **Q1** (lowest quarter of the ABF law at the birth bin) | 22.7 % | **0.86 ± 0.06** | 0.64 ± 0.04 | **+1.93 / −2.28** |
+| Q2 | 17.0 % | 0.42 ± 0.03 | 0.34 ± 0.03 | +0.26 / −0.36 |
+| Q3 | 41.1 % | 0.35 ± 0.02 | 0.27 ± 0.02 | **−0.74 / +0.83** |
+| Q4 (highest quarter) | 18.4 % | 0.38 ± 0.04 | 0.25 ± 0.04 | +0.19 / +0.18 |
+| tail Q1 ∪ Q4 | 41.2 % | 0.54 ± 0.04 | 0.45 ± 0.03 | +1.13 / −1.18 |
+| central Q2 ∪ Q3 | 58.1 % | 0.18 ± 0.02 | 0.11 ± 0.02 | −0.43 / +0.46 |
+| all descendants | 99.2 % | 0.148 ± 0.020 | 0.129 ± 0.017 | +0.24 / −0.23 |
+| all FR deposits (= D2) | 100 % | 0.151 ± 0.020 | 0.132 ± 0.017 | +0.25 / −0.24 |
+| ABF arm | 100 % | 0.086 ± 0.017 | 0.038 ± 0.016 | −0.01 / +0.06 |
+| variance-matched ABF: 4-seed pools (≈ ¼ of the deposits) / 8-seed pools | | 0.133 / 0.113 | 0.055 / 0.047 | |
+
+Classes defined against the FR population's own law instead: tail 0.535 ± 0.036, central 0.173 ± 0.022 (same). Lineage
+born before T/2: 26 % of late deposits, wRMS 0.138 ± 0.023; born after: 73 %, 0.166 ± 0.024.
+
+* **Every class is biased far beyond the variance-matched ABF value**, and the biases have **opposite signs**: lineages
+  born with η below the median of their bin's law steepen the mean force on both flanks (Q1: +1.93 / −2.28), lineages
+  born with η above the median flatten it (Q3: −0.74 / +0.83). The pooled FR bias (+0.25 / −0.24) is the incomplete
+  cancellation of class biases ten times larger.
+* The preregistered P2 criterion (tail excess ≥ 2 × central excess) is formally met (0.45 vs 0.09 above ABF), but
+  the reading it was written for — "the tail classes carry the error, the central classes are clean" — is wrong:
+  the central group is itself biased (0.18 against 0.11 variance-matched), in the opposite direction.
+* The quartile labels are blurred by the shape of η's law, which is piled against η = 1 on the window side (Q3 and
+  Q4 share the top histogram bin), so below / above the median is the robust split; §2.4.6 uses it.
+* **ITE** (u_x² classes, the P0 pick): Q1–Q4 0.109 ± 0.018, 0.097 ± 0.029, 0.090 ± 0.019, 0.087 ± 0.020 (shares
+  22–25 %); tail 0.072 ± 0.018 vs central 0.078 ± 0.022; all FR 0.069 ± 0.014; ABF 0.044 ± 0.009; variance-matched
+  ABF 0.075 / 0.055. **No class contrast**: u_x² does not carry ITE's bias. u_z² gives tail 0.120 ± 0.028 vs central
+  0.052 ± 0.008 (F 0.087 ± 0.019 vs 0.019 ± 0.013), a 2–3 s.e. contrast with a null P1 (mean u′ 0.5005 ± 0.0017)
+  among four coordinates and several splits; §2.4.6 shows it is not a carrier either. Lineages born before T/2:
+  36 % of late deposits, wRMS 0.065 ± 0.008 (F 0.027 ± 0.008); born after: 60 %, 0.096 ± 0.019 (F 0.069 ± 0.017).
+
+### 2.4.4 P3 — the carried fibre state relaxes with time since birth
+
+Count-weighted RMS over coarse bins of |⟨η | bin⟩_class,band − ⟨η | bin⟩_ABF| / sd_ABF, late half, ERI:
+
+| time since birth (t.u.) | < 0.1 | 0.1–0.3 | 0.3–1 | 1–3 | 3–10 | ≥ 10 |
+|---|---|---|---|---|---|---|
+| tail classes Q1 ∪ Q4 | 0.368 ± 0.018 | 0.322 ± 0.021 | 0.256 ± 0.022 | 0.129 ± 0.016 | 0.018 ± 0.010 | 0.016 ± 0.012 |
+| central classes Q2 ∪ Q3 | 0.278 ± 0.005 | 0.252 ± 0.007 | 0.184 ± 0.008 | 0.063 ± 0.011 | 0.009 ± 0.006 | 0.011 ± 0.010 |
+| signed mean, tail / central | −0.37 / +0.23 | −0.30 / +0.18 | −0.22 / +0.13 | −0.11 / +0.05 | −0.01 / 0.00 | −0.01 / −0.01 |
+
+* Descendants carry their birth η for a long time: the deviation falls by e over ≈ 2 t.u. and is gone by 3–10 t.u.
+  This is ERI's slow cage-axis relaxation measured directly. It is **present in both class groups**, with opposite
+  sign (the tail group is dominated by Q1, low η; the central group by Q3, high η), so it is not a property of
+  "selected" births but of **every** birth: a clone starts with its parent's fibre state and keeps it for ≈ 2 t.u.
+* ITE (u_x²): 0.099 ± 0.016 → 0.037 → 0.025 → 0.016 → 0.008 (tail) and 0.072 ± 0.009 → 0.034 → 0.018 → 0.010 → 0.011
+  (central): the orientation relaxes within ≈ 0.3 t.u., too fast to carry a late bias.
+
+### 2.4.5 P4 — the late error follows the ancestor's BIRTH REGION (figure 9, left column)
+
+Late-half error from the deposits of lineages born in each region (window |φ| < 0.5, flank, cage |φ| ≥ 2):
+
+| block | born in | share of late FR deposits | wRMS | F RMS | Γ − Γ_ref at coarse bins 4–5 / 12–13 (ERI), 2–3 / 12–14 (ITE) |
+|---|---|---|---|---|---|
+| ERI | window | 13.6 % | 0.65 ± 0.07 | 0.55 ± 0.06 | **−1.17, −1.36 / +0.85, +1.04** |
+| | flank | 46.6 % | 0.156 ± 0.025 | 0.063 ± 0.013 | −0.17, +0.04 / +0.07, +0.28 |
+| | cage | 39.0 % | 0.63 ± 0.05 | 0.57 ± 0.03 | **+1.18, +1.08 / −1.23, −1.25** |
+| | all FR | 100 % | 0.151 | 0.132 | +0.25, +0.22 / −0.27, −0.24 |
+| | ABF | 100 % | 0.086 | 0.038 | −0.01, +0.03 / −0.19, +0.06 |
+| ITE | window | 13.6 % | 0.22 ± 0.04 | 0.17 ± 0.03 | **−0.34, −0.73** / +0.15, +0.16, +0.13 |
+| | flank | 43.5 % | 0.136 ± 0.020 | 0.090 ± 0.011 | −0.22, −0.36 / +0.09, +0.11, +0.20 |
+| | cage | 38.8 % | 0.32 ± 0.03 | 0.25 ± 0.02 | **+0.46, +0.94** / −0.31, −0.31, −0.29 |
+| | all FR | 100 % | 0.069 | 0.050 | +0.11, +0.18 / −0.04, −0.05, −0.03 |
+| | ABF | 100 % | 0.044 | 0.024 | +0.07, +0.03 / −0.05, 0.00, 0.00 |
+
+By the region of the walker that was *killed* at the event: ERI 0.235 / 0.172 / 0.111 (window / flank / cage), ITE
+0.096 / 0.091 / 0.101 — a weak dependence. Deposits inside the ancestor's own birth coarse bin (7.6 % / 8.5 %) have
+wRMS 0.38 ± 0.05 / 0.22 ± 0.03 against 0.150 / 0.064 outside it.
+
+* **Cage-born lineages carry the pooled error pattern, five times amplified; window-born lineages carry its mirror
+  image; flank-born lineages are nearly clean** (ERI F RMS 0.063, close to ABF's variance-matched 0.055). This holds
+  in **both** systems, including ITE where no fibre coordinate is displaced.
+* Where the two arrival directions meet — the flank — a lineage's error depends on where it came from. In
+  equilibrium sampling the two directions balance exactly. The pooled FR error is the imbalance: cage-born deposits
+  outnumber window-born deposits 2.9 : 1 (ERI) and 2.8 : 1 (ITE), against region sizes of 2.25 : 1, so the +1.2 and
+  −1.2 patterns do not cancel (ERI: 0.39 × 1.18 − 0.14 × 1.17 − 0.47 × 0.17 ≈ +0.22, the observed +0.25).
+* **The late birth–death balance makes the transfer explicit.** Births − deaths per t.u. per walker, late half:
+  ERI window **−0.0067 ± 0.0013**, flank −0.0033 ± 0.0019, cage **+0.0100 ± 0.0023**; ITE window −0.0022 ± 0.0007,
+  flank −0.0034 ± 0.0012, cage +0.0055 ± 0.0013. Late in the run FR clones in the cage and kills in the window, and
+  the compensating return flow runs cage → window through the flank.
+
+### 2.4.6 P6 (post hoc, not preregistered) — birth region × fibre class: what carries the error
+
+Late error of lineages born in a region, split by whether the ancestor's η (ERI) or u_x² (ITE) at birth was below or
+above the median of the ABF law at its birth bin (mean Γ − Γ_ref over coarse bins 3–6 / 11–14):
+
+| block | born in | below the median | above the median |
+|---|---|---|---|
+| ERI (η) | window | 1 % of deposits: +… / … (too few) | 12.5 %: wRMS 0.64 ± 0.07, **−0.88 / +0.78** |
+| | flank | 19 %: 0.36 ± 0.04, **+0.45 / −0.45** | 28 %: 0.36 ± 0.03, **−0.28 / +0.48** |
+| | cage | 20 %: **0.97 ± 0.06, +1.17 / −1.40** (Q1 alone: 1.54, +1.72 / −2.05) | 19 %: 0.41 ± 0.04, +0.53 / −0.40 |
+| ITE (u_x²) | window | 11.5 %: 0.24 ± 0.04, −0.29 / +0.13 | 2 %: 0.26 ± 0.07, −0.10 / +0.10 |
+| | flank | 23 %: 0.13 ± 0.02, −0.07 / +0.16 | 20 %: 0.17 ± 0.04, −0.06 / +0.05 |
+| | cage | 19 %: 0.34 ± 0.04, +0.43 / −0.29 | 20 %: 0.30 ± 0.03, +0.38 / −0.22 |
+
+(ITE by quartile, cage-born: Q1–Q4 wRMS 0.36, 0.34, 0.31, 0.32 with the same +0.34…0.43 / −0.18…0.35 pattern; the same
+holds with u_z² classes.)
+
+* **ERI: η is the carrier.** Among flank-born lineages the η class *flips the sign* of the error: a flank birth with
+  cage-like η (below the median) behaves like a cage-born lineage, one with window-like η like a window-born lineage.
+  Among cage-born lineages the lowest-η births carry 3× the error of the rest. The fibre state at birth, not the
+  birth bin itself, predicts the error — and the fibre state at birth records where the walker came from.
+* **ITE: none of the four coordinates is the carrier.** Within every birth region the class leaves the error
+  unchanged (cage-born: 0.34 vs 0.30, same pattern). The birth-region dependence is as sharp as in ERI, so the same
+  mechanism acts through a coordinate that is not measured (candidates: the molecule's transverse COM position in the
+  channel cross-section, or the sub-bin φ position of an arriving walker, which needs no fibre coordinate at all).
+
+### 2.4.7 P5 — by time since birth (coarse-level wRMS, late half)
+
+| block | band (t.u.) | < 0.1 | 0.1–0.3 | 0.3–1 | 1–3 | 3–10 | ≥ 10 | ABF / all FR (coarse) |
+|---|---|---|---|---|---|---|---|---|
+| ERI | all FR (share) | 0.43 ± 0.10 (1.8 %) | 0.37 ± 0.07 (3.5 %) | 0.29 ± 0.07 (11 %) | 0.136 ± 0.029 (26 %) | 0.131 ± 0.028 (42 %) | 0.136 ± 0.037 (15 %) | 0.081 / 0.151 |
+| | tail / central | 2.42 / 1.17 | 1.93 / 0.76 | 1.37 / 0.54 | 0.67 / 0.27 | 0.19 / 0.11 | 0.17 / 0.19 | |
+| ITE | all FR (share) | 0.30 ± 0.08 (0.9 %) | 0.33 ± 0.07 (1.7 %) | 0.18 ± 0.04 (5.8 %) | 0.159 ± 0.030 (15 %) | 0.100 ± 0.017 (36 %) | 0.093 ± 0.009 (37 %) | 0.092 / 0.099 |
+
+Deposits older than 3 t.u. (57 % in ERI) still sit 1.6× above ABF's coarse error, as D2 found; the young bands are
+3–5× worse but hold 17 % of the deposits. Within every band the tail classes are worse than the central ones in ERI,
+consistent with §2.4.4: the carried η decays with age but is never zero while births continue.
+
+### 2.4.8 Verdict
+
+* **By the preregistered rule: UNRESOLVED** (P1 null; P2, P3 and P4 strongly non-null). The rule's "supported"
+  needed fibre selection at birth; its "not supported" needed everything null.
+* **Plain reading.** The selection hypothesis of §2.3 reading 4 — *FR clones walkers whose fibre state resists
+  leaving, and that enriches those states* — is **not supported**: the cloned walkers are a fibre-neutral draw from
+  the population at their bin, and the exchange (births minus deaths) is neutral to 0.003 rank units, in the wrong
+  direction. What *is* supported is the second half of the hypothesis, that an unrelaxed fibre state is carried by
+  descendants and biases their deposits (ERI: η, relaxing over ≈ 2 t.u.). Its source is **where** FR clones and
+  kills, not **which** walkers: late FR performs a net window → cage transfer (births − deaths per t.u. per walker
+  −0.007 in the window, +0.010 in the cage), the return flow runs cage → window through the flank, and arrivals from
+  the cage (cage-like η, mean force too steep) outnumber arrivals from the window (window-like η, too flat) by
+  2.9 : 1. This is the **arrival-law / net CV-flux mechanism** named in advance as alternative 7.2 in the
+  preregistration. It needs only two ingredients that both systems have: births and deaths concentrated in
+  different CV regions, and a conditional that relaxes more slowly than a walker crosses a region.
+* **ITE.** The same birth-region signature (cage-born +0.94 / window-born −0.73 at coarse bin 3, mirror images), but
+  none of η (degenerate on the channel axis), u_x² (0.4 % of a sd, no class contrast), the bond (undisplaced,
+  relaxes in steps) or u_z² carries it. **The ITE carrier remains unmeasured**; the candidates are the transverse COM
+  position and the sub-bin φ position of arriving walkers.
+* **What would test the mechanism directly.** A per-walker record of the bin-entry time and entry side, so that the
+  flank conditional and the flank mean force can be split by arrival direction and residence time in *both* arms
+  (ABF should show the two directions balancing exactly; FR should show the imbalance scaling with the net source).
+  For ITE, add the transverse COM coordinates to the fibre record.
+* **Caveats.** Exploratory, two blocks, continuous FR at K256 only; the class estimates rest on 10–40 % of the
+  deposits each (variance-matched ABF controls given); quartile labels are blurred for a law piled against the edge
+  of its range (below / above median is the robust split); the P6 cross-split was not preregistered; the ITE P0
+  carrier rule picked u_x² formally, at 0.4 % of a sd.
 
 ## 3. D3 — the role of continued resampling (existing confirmatory blocks; descriptive)
 
@@ -258,8 +482,10 @@ establishment; the two were not separated.
 ## 4. What D does not establish
 
 * Every D quantity is exploratory and descriptive, and comes from blocks whose seeds and settings were fixed before D.
-* D2 covers two blocks (ERI and ITE at K256, continuous FR). It was not repeated for LTA, for stopped schedules or for
-  K1024.
-* The mechanism by which reallocation biases the fibre conditional is a hypothesis (§2.3, readings 3–4).
+* D2 and D4 cover two blocks (ERI and ITE at K256, continuous FR). They were not repeated for LTA, for stopped
+  schedules or for K1024.
+* The selection mechanism of §2.3 reading 4 is not supported (§2.4); the arrival-law mechanism that fits the D4 data
+  was named in advance as an alternative but its direct test (bin-entry record) has not been run. The ITE carrier is
+  not identified.
 * No placebo or matched-turnover control was run; the campaign rules forbid them. So "the bias comes from the
   reallocation itself rather than from any population turnover" is not tested.
