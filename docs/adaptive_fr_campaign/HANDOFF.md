@@ -41,9 +41,10 @@
 * **`src/lta_ladder_numba.py`.** `fr_stop_steps` and `fr_controller` (same semantics; stop-aware opportunity count;
   resume).
 * **Tests.**
-  * `tests/test_fr_stop.py` (8), `tests/test_fr_controller.py` (15), `tests/test_lta_fr_stop.py` (4),
+  * `tests/test_fr_stop.py` (7), `tests/test_fr_controller.py` (15), `tests/test_lta_fr_stop.py` (4),
     `tests/test_diag_age.py` (2).
-  * Full LTA suite: 39 passed, 1 skipped. `test_eri_engine.py`: 7 passed.
+  * These four files plus `tests/test_eri_engine.py` (7): 35 passed (re-run 08:25 UTC). Full LTA suite: 39 passed,
+    1 skipped.
 * **`scripts/adaptive_fr/`.**
   * Job generation and launch: `make_jobs.py`, `launch.sh`, `launch_lta.sh`, `run_lta_jobs.py`.
   * Analyses: `analyze_online.py` (frozen two-arm analysis, both engines), `equal_budget4.py` (A.5),
@@ -71,13 +72,14 @@ Tests:
 NUMBA_NUM_THREADS=1 /home/zheyuanlai/miniconda3/envs/abffr/bin/python -m pytest -q tests/test_fr_stop.py tests/test_fr_controller.py tests/test_lta_fr_stop.py tests/test_diag_age.py tests/test_eri_engine.py
 ```
 
-Re-run every analysis and figure from the saved run files (about 10 min):
+Re-run every analysis and figure from the saved run files (under a minute; verified 08:21 UTC to reproduce every
+analysis JSON and PNG byte for byte):
 
 ```bash
 bash scripts/adaptive_fr/reproduce_analyses.sh
 ```
 
-Re-run a block from scratch. Example: EB16, 32 single-threaded runs of about 30 min each. Outputs are skipped when
+Re-run a block from scratch. Example: EB16, 32 single-threaded runs of about 13 min each (770–804 s on this host). Outputs are skipped when
 they already exist, so delete or move the block directory first:
 
 ```bash
@@ -101,12 +103,15 @@ Using R1 on a new system: add `fr_controller=R1` (from `eri.fr_controller import
 
 ## 4. Open items and suggested next steps
 
-1. **The ERI failure of R1** (CROSS_SYSTEM_RESULTS.md §1). The directedness statistic plateaus at 30–60 % of its peak
-   and never signals "established". A rule that would have stopped early in ERI must be designed and frozen on
-   development data. ERI 600 K is now spent as a held-out test, so it cannot be the development data for that rule.
+1. **The ERI failure of R1** (CROSS_SYSTEM_RESULTS.md §5).
+   * After its early peak, the directedness statistic plateaus at 30–60 % of that peak for 5–10 t.u., so R1 stops
+     late (median 15.25 t.u.).
+   * A rule that would stop early in ERI, or never start FR there, must be designed and frozen on development data.
+   * ERI 600 K is now spent as a held-out test, so it cannot be that development data.
 2. **The late-FR bias mechanism** (MECHANISM.md §2.3). It is identified as population-level, but the carrier in ITE is
    not measured. A test of the selection hypothesis needs a per-walker fibre-state record at birth and death.
-3. **Equal-budget claims.** No configuration of ABF + FR has beaten the best ABF allocation, in force evaluations or in
-   wall-clock (EFFICIENCY.md). Any further "accelerator" claim must be made against the best ABF allocation, not
-   against a fixed K.
+3. **Equal-budget claims.** No configuration of ABF + FR was shown to beat the best tested ABF allocation, in force
+   evaluations or in wall-clock (EFFICIENCY.md: CIs wide, point estimates on ABF's side). The frontier is not
+   bracketed below K16. Any further "accelerator" claim must be made against the best ABF allocation, not against a
+   fixed K.
 4. **Compute.** About 44 of the 100 authorised campaign core-h were used (COMPUTE_LEDGER.md).

@@ -134,8 +134,9 @@ duration. A never-stopped run is reported as such.
 
 * **The stop time moves with the system.** It runs from 5.5 t.u. (ITE 300 K) to 21.5 t.u. (LTA 150 K), tracking the
   ABF establishment time it is meant to detect. Every run stopped; none were stopped by the safety backstop.
-* **Below the development range of K, R1 still stops**, but later: 7.5 at K64 and 11 at K16. Those cells show no
-  establishment gain from FR at all (paired difference 0), so the stop time there has nothing to protect.
-* **The failure mode** is ERI (CROSS_SYSTEM_RESULTS.md §5). Its directed flux never decays below 30–60 % of its peak.
-  R1 therefore stops late and spread out (5.5–25.5 t.u.), and FR's ongoing bias (MECHANISM.md §1) accumulates in the
+* **Below the development range of K, R1 still stops**, but later: 7.5 at K64 and 11 at K16. Both comparisons are
+  unresolved. Whether FR shortened establishment there cannot be resolved, because those cells save every 2 and 8 t.u.
+* **The failure mode** is ERI (CROSS_SYSTEM_RESULTS.md §5). After its early peak, ERI's directed flux plateaus at 30–60 %
+  of the peak, above the 25 % threshold, for 5–10 t.u. (t1 at 7–11 t.u.). Every ERI run eventually stopped as
+  "established", but late and spread out (5.5–25.5 t.u.). FR's ongoing bias (MECHANISM.md §1) accumulates in the
   meantime.

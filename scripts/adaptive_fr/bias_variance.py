@@ -9,7 +9,8 @@ with the finite-seed correction V/n (E||xbar - mu||^2 = ||bias||^2 + tr Sigma / 
 s_ref^2 (mean squared standard error of the exact-MC reference) removed; B2 can come out slightly negative from noise
 and is reported as is.  F is centred (additive constant removed) before every norm.  Late-only variant: the same
 for the estimate built only from deposits after a split step (after the FR stop for stopped schedules, after T/2
-otherwise), against the same reference.
+otherwise), against the same reference.  For stopped schedules the ABF arm also gets the matched-window variant
+(ABF deposits after the FR arm's stop step), so the two arms can be compared over the same window.
 
     ABFFR_DATA_ROOT=/home/zheyuanlai/ABF-Fisher-Rao python scripts/adaptive_fr/bias_variance.py
 """
@@ -73,6 +74,10 @@ def block(name):
     mt.set_reference_base(S.dpath(refbase))
     out = dict(block=name, label=label)
     arrays = {}
+    # the FR arm's split (its stop, or T/2); used for the ABF arm's matched-window late-only variant
+    c_fr = mt.load_run(S.glob_both(d, f"fr_N{K}_s*.npz")[0])["cfg"]
+    stop_fr = int(c_fr.get("fr_stop_steps", -1))
+    ks_fr = stop_fr if stop_fr >= 0 else None
     for arm, dd, pat in (("abf", abf_dir or d, f"abf_N{K}_s*.npz"), ("fr", d, f"fr_N{K}_s*.npz")):
         runs = [mt.load_run(f) for f in S.glob_both(dd, pat)]
         ng = runs[0]["sv_C"].shape[1]
@@ -100,6 +105,15 @@ def block(name):
                         late_only_final=dict(rmse=float(np.sqrt(lF[0][-1])), sd=float(np.sqrt(lF[1][-1])),
                                              bias=float(np.sign(lF[2][-1]) * np.sqrt(abs(lF[2][-1]))),
                                              bias_share_of_mse=float(lF[2][-1] / lF[0][-1])))
+        if arm == "abf" and ks_fr is not None:
+            # matched window: ABF deposits after the FR arm's stop step (same window as the FR late-only estimate)
+            j0 = int(np.searchsorted(runs[0]["save_steps"], ks_fr))
+            Gm = np.array([mt.mean_force(r["sv_M"][j0:] - r["sv_M"][j0], r["sv_C"][j0:] - r["sv_C"][j0]) for r in runs])
+            mm = decompose(centre(mt.histogram_pmf(Gm))[:, 1:], centre(Fr), sref2)
+            out[arm]["late_only_matched_to_fr_stop"] = dict(split_t=float(ks_fr * c["dt"]), rmse=float(np.sqrt(mm[0][-1])),
+                                                            sd=float(np.sqrt(mm[1][-1])),
+                                                            bias=float(np.sign(mm[2][-1]) * np.sqrt(abs(mm[2][-1]))),
+                                                            bias_share_of_mse=float(mm[2][-1] / mm[0][-1]))
         for frac in (0.1, 0.25, 0.5):
             i = int(np.searchsorted(t, frac * t[-1] - 1e-9))
             out[arm][f"at_{frac:g}T"] = dict(rmse=float(np.sqrt(mF[i])), sd=float(np.sqrt(VF[i])),

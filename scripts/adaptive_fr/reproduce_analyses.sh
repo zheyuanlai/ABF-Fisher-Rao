@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Re-run every analysis of the adaptive-FR campaign from the saved run files (no simulation; ~10 min, single CPU).
+# Re-run every analysis of the adaptive-FR campaign from the saved run files (no simulation; under a minute, one CPU).
 # Overwrites results/adaptive_fr_campaign/{analysis,mechanism}/*.json and figures/adaptive_fr/*; run from any checkout
 # of research/adaptive-fr-equal-budget after `bash scripts/convergence_fr/link_data.sh` (worktrees only).
 #   bash scripts/adaptive_fr/reproduce_analyses.sh
@@ -51,4 +51,4 @@ $PY scripts/adaptive_fr/bias_variance.py
 $PY scripts/adaptive_fr/clone_age.py
 
 # Figures 1-8
-$PY scripts/adaptive_fr/fig_campaign.py
+$PY scripts/adaptive_fr/fig_campaign.py   # figures 1-8 (+ 3b frontier, 7b mean force and genealogy)

@@ -272,7 +272,7 @@
   files. `analyze_online.py` now allows that key to differ only when it is 0 or absent in every run, i.e. when the
   diagnostic is off; it asserts this. The bitwise pre-FR pairing assertion is unchanged.
 
-* **E-A2 (07:56 UTC, committed as d0929f7a before any K16 run; adds one cell, changes no earlier statistic).** The brief's allocation
+* **E-A2 (07:58 UTC, frozen before any K16 run; adds one cell, changes no earlier statistic).** The brief's allocation
   ladder runs K ∈ {16, 64, 256, 1024}. E.3 found the best ABF and the best FR allocation both at the smallest K tried
   (K64), so the frontier is not bracketed from below. Block **EB16** adds K16 × T3200 at the same budget.
   * **Settings.** ITE 300 K, K16, 32 000 000 steps, saves every 80 000 steps (1.28 × 10⁶ force evaluations per save,
@@ -290,3 +290,16 @@
     (eight in total). The best allocation per algorithm is still chosen by the smaller median.
   * **Wall-clock.** E.4's benchmark is re-run with K16 added, once no campaign job is running.
   * **Cost.** About 0.25 core-h per run × 32, plus calibration ≈ 9 core-h. Campaign total before this ≈ 36 of 100.
+* **Errata (08:34 UTC, timing records only; nothing in any rule or statistic changes).**
+  1. **E-A2's header time is wrong.** "07:58 UTC" was an estimate written into the text. The amendment was committed
+     at **07:56:23** (d0929f7a), before the K16 calibration launch at 07:56:29 and the EB16 launch at 07:57:02 (both
+     in `logs/launches.tsv`). The header was briefly edited in place in f98d3ba8; that edit is reverted here, and the
+     record is this erratum.
+  2. **E-A2 was prompted by data.** It was triggered by E.3's result, which put both algorithms' best allocation at
+     K64, the smallest K tried. The amendment text says so.
+  3. **E-A1 came after the EA_R1 data.** It was written at about 07:45, after EA_R1 finished (07:44:45). The frozen
+     analysis refused the EA_R1 files, which was the trigger. It was first committed at 07:56:23 with E-A2, after EB64
+     (07:47:47) and the six-configuration frontier (07:48) had been computed. It is integrity handling only and
+     changes no statistic.
+  4. **§D's commit came after the D2 runs.** §D was written at about 07:22, before the D2 runs, but first committed at
+     07:30:24 (11477fef), after they had finished at 07:25:35. D is exploratory.

@@ -288,6 +288,67 @@ def fig_clone_age():
     save(fig, "mechanism_clone_age_bias")
 
 
+def fig_meanforce_genealogy():
+    """7b. Conditional mean-force errors by clone age (D2) and FR genealogy over time in the C cells."""
+    import glob
+    sys.path.insert(0, os.path.join(ROOT, "src"))
+    import lta_ladder_numba as LE
+    D = json.load(open(os.path.join(ME, "clone_age.json")))
+    fig, axs = plt.subplots(1, 4, figsize=(19, 4.2))
+    cols = {"young": SERIES[3], "old": SERIES[2], "all": FR, "abf": ABF}
+    labs = {"young": "FR, walkers cloned < 1 t.u. ago (few deposits)", "old": "FR, all other walkers", "all": "FR, all deposits",
+            "abf": "ABF"}
+    for ax, (blk, ttl) in zip(axs[:2], (("ERI256", "ERI 600 K, K256, continuous FR"), ("ITE300_K256", "ITE 300 K, K256, continuous FR"))):
+        x = np.arange(18)
+        for k in ("young", "old", "all", "abf"):
+            y = D[blk]["late_half"][k]["signed_mean_force_error_by_coarse_bin"]
+            ax.plot(x, y, color=cols[k], lw=1.0 if k == "young" else 1.6, alpha=0.6 if k == "young" else 1.0,
+                    marker="o", ms=3, label=labs[k])
+        ax.axhline(0, color=INK2, lw=0.8)
+        ax.set_xlabel("coarse CV bin (cage at the ends, window in the middle)")
+        ax.set_title(f"{ttl}:\nlate-half (t > T/2) mean force − exact MC, pooled over 16 seeds", fontsize=8.5, loc="left")
+        if blk == "ERI256":
+            ax.set_ylabel("count-weighted Γ − Γ_ref per coarse bin")
+            ax.legend(fontsize=6.8, loc="lower left")
+    dirs = {"C1": "C1_ite300_K1024_R1", "C2": "C2_ite150_K256_R1", "C3": "C3_lta150_K1024_R1", "C4": "C4_lta300_K1024_R1",
+            "C5": "C5_eri600_K1024_R1"}
+    for j, (b, lab) in enumerate(CELLS):
+        fs = sorted(glob.glob(os.path.join(ROOT, "results", "adaptive_fr_campaign", dirs[b], "fr_N*_s*.npz")))
+        E_, W_ = [], []
+        for f in fs:
+            if "lta" in dirs[b]:
+                z = LE.load_result(f)
+                t, e, w = np.asarray(z["save_t"], float), np.asarray(z["gen_ess_win"], float), np.asarray(z["gen_max_frac_win"], float)
+            else:
+                z = np.load(f, allow_pickle=False)
+                t, e, w = z["times"], z["sv_u"][:, 2], z["sv_u"][:, 3]
+            E_.append(e), W_.append(w)
+        n = min(len(e) for e in E_)
+        R = json.load(open(os.path.join(AN, f"{b}.json")))
+        st = np.median([s_ for s_ in R["fr_schedule"]["stop_t"] if s_ is not None])
+        for ax, X in ((axs[2], E_), (axs[3], W_)):
+            X = np.array([x[:n] for x in X])
+            ax.plot(t[:n], np.median(X, 0), color=SERIES[j], lw=1.4, label=f"{b}: {lab}")
+            ax.axvline(st, color=SERIES[j], lw=0.8, ls=":")
+    axs[2].axhline(0.15, color=INK2, lw=0.8, ls="--")
+    axs[2].text(29.5, 0.16, "R1 safety backstop 0.15", fontsize=7, color=INK2, ha="right")
+    axs[2].set_ylabel("windowed ancestor ESS / K (median over seeds)")
+    axs[2].set_ylim(0, 1.02)
+    axs[3].axhline(0.10, color=INK2, lw=0.8, ls="--")
+    axs[3].text(0.5, 0.102, "R1 lineage backstop 0.10", fontsize=7, color=INK2, ha="left", va="bottom")
+    axs[3].set_ylabel("windowed max lineage share (median over seeds)")
+    axs[3].legend(fontsize=6.8, loc="center right")
+    for ax in axs[2:]:
+        ax.set_xlim(0, 30)
+        ax.set_xlabel("t (t.u.); dotted: median R1 stop")
+    axs[2].set_title("FR genealogy in the Experiment C cells (R1 runs):\ndiversity of ancestors", fontsize=8.5, loc="left")
+    axs[3].set_title("concentration on one lineage", fontsize=8.5, loc="left")
+    fig.suptitle("Experiment D (exploratory): conditional mean-force error by clone age, and FR genealogy over time",
+                 x=0.01, ha="left", fontsize=9.5, y=1.04)
+    fig.tight_layout()
+    save(fig, "mechanism_meanforce_genealogy")
+
+
 FRONTIER_K = [1024, 256, 64, 16]
 FRONTIER_BLOCK = {1024: "C1", 256: "EA_R1", 64: "EB64", 16: "EB16"}
 
@@ -446,9 +507,9 @@ def fig_wallclock():
 
 
 def main():
-    which = sys.argv[1:] or ["A", "equal", "frontier", "cross", "stops", "bv", "clone", "wallclock"]
+    which = sys.argv[1:] or ["A", "equal", "frontier", "cross", "stops", "bv", "clone", "mfgen", "wallclock"]
     f = {"A": fig_A, "equal": fig_equal_budget, "frontier": fig_frontier, "cross": fig_cross_system, "stops": fig_stop_times,
-         "bv": fig_bias_variance, "clone": fig_clone_age, "wallclock": fig_wallclock}
+         "bv": fig_bias_variance, "clone": fig_clone_age, "mfgen": fig_meanforce_genealogy, "wallclock": fig_wallclock}
     for w in which:
         f[w]()
 

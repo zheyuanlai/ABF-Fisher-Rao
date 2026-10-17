@@ -3,7 +3,8 @@
 Per block (continuous FR, re-run bitwise with the read-only age split):
 * young share of deposits per region (window |phi| < 0.5, flank, cage |phi| >= 2), whole run and late half;
 * pooled-over-seeds late-half (t > T/2) mean force from young deposits, old deposits, all deposits, and the ABF arm,
-  each vs the exact-MC reference: count-weighted RMS over bins of (Gamma - Gamma_ref), seed-jackknife s.e.;
+  each vs the exact-MC reference: count-weighted RMS over bins of (Gamma - Gamma_ref), seed-jackknife s.e.; the
+  count-weighted signed error per region and per coarse bin (18 bins of 10);
 * pooled late-half free-energy error (centred RMS) of the estimate from ALL FR deposits vs from OLD deposits only
   vs ABF -- does dropping the young deposits remove FR's late bias?
 * eta conditional (ERI: the cage-axis coordinate) and u_x^2 conditional (relative) by age class vs the reference,
@@ -88,8 +89,11 @@ def block(name):
             jk.append(wrms(mt.mean_force(Mj, Cj) - Gr, Cj))
         se = float(np.sqrt(15 / 16 * ((np.array(jk) - np.mean(jk)) ** 2).sum()))
         reg_err = {k: float(np.average((G - Gr)[m], weights=np.maximum(C[m], 1e-12))) for k, m in reg.items()}
+        Cc = C.reshape(18, -1)
+        coarse = ((G - Gr).reshape(18, -1) * Cc).sum(1) / np.maximum(Cc.sum(1), 1e-12)
         return dict(meanforce_wrms_vs_ref=e_g, jackknife_se=se, free_energy_rms_vs_ref=e_f,
-                    signed_mean_force_error_by_region=reg_err, deposits=float(C.sum()))
+                    signed_mean_force_error_by_region=reg_err, deposits=float(C.sum()),
+                    signed_mean_force_error_by_coarse_bin=coarse.tolist())
     out["late_half"] = {k: stats(k) for k in per}
     # eta conditional by age class (whole run, coarse 18 bins) vs reference
     cc = ref["counts"].reshape(18, -1)

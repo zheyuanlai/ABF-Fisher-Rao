@@ -25,6 +25,7 @@
 | 07:57–08:10 | **EB16** (32 runs, K16 × T3200, R1, rate 1.0) | 6.825 | 43.37 | 241.8 |
 | 08:10–08:15 | E.4 wall-clock benchmark run 2 (with K16; measured 0.31 + warm-up) | ~0.5 | 43.87 | 242.3 |
 | 08:15–08:20 | analyses, figures, documents (single process, minutes each) | ~0.1 | ≈ 44.0 | ≈ 242.4 |
+| 08:21–08:35 | reproduction run, tests, D1 matched-window and D2 per-bin additions, figure 7b, doc audit fixes | ~0.1 | ≈ 44.1 | ≈ 242.5 |
 
-**Campaign total: ≈ 44.0 of 100 authorised CPU core-h; aggregate ≈ 242.4 of ≈ 298.4. No GPU; no external or paid
+**Campaign total: ≈ 44.1 of 100 authorised CPU core-h; aggregate ≈ 242.5 of ≈ 298.4. No GPU; no external or paid
 resource.**

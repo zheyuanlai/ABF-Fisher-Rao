@@ -1,10 +1,13 @@
 # Experiment D — mechanism: why continuous FR biases late estimates, and what stopping changes
 
-*Status: EXPLORATORY throughout (PREREGISTRATION §D, declared 07:22 UTC before the D2 runs). No statistic here is
-confirmatory, and none was used to choose an FR rate, a stop time or the online rule.
+*Status: EXPLORATORY throughout (PREREGISTRATION §D). §D was written into the working file at about 07:22 UTC,
+before the D2 runs were launched, but was first committed at 07:30:24 (11477fef), after those runs had finished at
+07:25:35. Its timing is therefore not verifiable from git. The D2 runs are bitwise re-runs of historical arms. No
+statistic here is confirmatory, and none was used to choose an FR rate, a stop time or the online rule.
 Scripts: `scripts/adaptive_fr/bias_variance.py` (D1), `scripts/adaptive_fr/clone_age.py` (D2). Outputs:
 `results/adaptive_fr_campaign/mechanism/{bias_variance.json, bias_variance_curves.npz, clone_age.json}`.
-Figures: `figures/adaptive_fr/bias_variance.png` (6) and `mechanism_clone_age_bias.png` (7).*
+Figures: `figures/adaptive_fr/bias_variance.png` (6), `mechanism_clone_age_bias.png` and
+`mechanism_meanforce_genealogy.png` (7).*
 
 All comparisons are ABF vs the same ABF + FR (no third arm). Errors are against the exact-MC references used by every
 confirmatory analysis (ITE: `results/overnight/ite{,150}/reference`; ERI: `results/eri_campaign/reference`).
@@ -13,8 +16,9 @@ confirmatory analysis (ITE: `results/overnight/ite{,150}/reference`; ERI: `resul
 
 Continuous FR makes the **deposits it collects while it is active** biased. The late-only decomposition (D1) puts the
 squared bias of FR's late-window estimate at 0.41–0.89 of its MSE. ABF's late window is variance-dominated (bias share
-0.05–0.26). The absolute late-window bias is about 3–6× ABF's in every block. Once FR is stopped, the deposits made after the
-stop are close to unbiased: bias 0.009–0.015 kJ/mol, against 0.035–0.13 under continuous FR. The bias is **not
+0.05–0.26). The absolute late-window bias is 2.7–6.4× ABF's in every continuous-FR block. Once FR is stopped, the
+deposits made after the stop are close to unbiased: bias 0.009–0.014 kJ/mol, against 0.035–0.13 under continuous FR.
+Over the same post-stop window, ABF's bias is 0.006–0.014, within 0.003 kJ/mol of the stopped FR arm's. The bias is **not
 confined to recently cloned walkers** (D2). Dropping every deposit made within 1 t.u. of a cloning removes only part
 of FR's excess late error: ERI 0.132 → 0.110 kJ/mol against ABF 0.038; ITE 0.050 → 0.043 against 0.024. In ERI the
 fibre conditionals of the whole FR population are displaced from equilibrium, for walkers that were not recently
@@ -32,8 +36,13 @@ For each arm, at each save, over the 16 independent seeds:
 * B² = ‖mean F − F_ref‖²/n_bins − V/n − s_ref².
 
 The last term, s_ref², is the reference's own squared standard error. "Bias" below is √B², with the sign of B²; a
-small negative value means noise. *Late-only* is the estimate built only from deposits after the split: after the FR
-stop for stopped schedules, after T/2 otherwise. It is computed for both arms of a block over the same window.
+small negative value means noise. *Late-only* is the estimate built only from deposits after each arm's own split:
+* the FR arm splits at its stop (stopped schedules) or at T/2;
+* the ABF arm splits at T/2.
+
+The windows therefore differ in the stopped blocks E1, A and E2, as the table's window column shows. For those blocks
+the ABF arm also has a **matched-window** variant over the FR arm's post-stop window (`late_only_matched_to_fr_stop`
+in the JSON; reading 4).
 
 ### 1.1 Table (final time T; kJ/mol)
 
@@ -52,14 +61,19 @@ stop for stopped schedules, after T/2 otherwise. It is computed for both arms of
 | X2 ITE 150 K K256 T200, continuous FR (360 bins) | ABF | 0.049 | 0.040 | 0.028 | 0.67 | t > 100 | 0.010 | 0.033 | 0.09 |
 | | FR | 0.079 | 0.070 | 0.036 | 0.79 | t > 100 | **0.039** | 0.036 | **0.54** |
 | E2 ITE 150 K K256 T100, FR stopped at 15 | ABF | 0.084 | 0.075 | 0.039 | 0.79 | t > 50 | 0.004 | 0.046 | 0.01 |
-| | FR | 0.075 | 0.059 | 0.047 | 0.61 | t > 15 | 0.015 | 0.043 | 0.10 |
+| | FR | 0.075 | 0.059 | 0.047 | 0.61 | t > 15 | 0.014 | 0.043 | 0.10 |
 | ERI 600 K K256 T40, continuous FR | ABF | 0.141 | 0.116 | 0.079 | 0.68 | t > 20 | 0.026 | 0.107 | 0.06 |
 | | FR | 0.278 | 0.260 | 0.099 | 0.87 | t > 20 | **0.130** | 0.099 | **0.63** |
 | ERI 600 K K1024 T40, continuous FR | ABF | 0.122 | 0.115 | 0.038 | 0.90 | t > 20 | 0.028 | 0.046 | 0.26 |
 | | FR | 0.256 | 0.252 | 0.043 | 0.97 | t > 20 | **0.127** | 0.044 | **0.89** |
 
-**Early-time bias.** At 0.1 T, from the same JSON: FR has the smaller bias in every block. ITE 300 K K1024: 0.33 vs
-0.58 (X1) and 0.32 vs 0.57 (E1). ITE 150 K K256: 0.43 vs 0.68. ERI K1024: 1.00 vs 1.10, the smallest relative gain.
+**Early-time bias.** At 0.1 T, from the same JSON, FR has the smaller bias in every block. FR / ABF:
+
+| block | FR / ABF at 0.1 T |
+|---|---|
+| ITE 300 K K1024 | 0.56–0.58 (X1 0.33 vs 0.58; E1 0.32 vs 0.57) |
+| ITE K256 blocks (M300, M150, X2, E2, A) | 0.63–0.81 |
+| ERI | 0.89–0.91, the smallest relative gain |
 
 ### 1.2 Readings
 
@@ -67,14 +81,18 @@ stop for stopped schedules, after T/2 otherwise. It is computed for both arms of
    88–91 % squared bias. It is not ongoing bias: ABF's late-only estimate is nearly unbiased (|bias| ≤ 0.03 kJ/mol,
    share ≤ 0.26). The final bias is therefore the **memory of the early, unestablished deposits**. Those deposits
    still sit in the cumulative accumulators M_j, C_j.
-2. **FR's early gain is a reduction of that memory.** By 0.1 T, FR has about half the bias in ITE. It establishes
-   the marginal sooner (§3.1), so fewer badly placed early deposits enter the accumulators.
-3. **Continuous FR adds a new, ongoing bias.** Its late-only deposits are biased in every block: 2.9× (X1) to 6.3× (M150) ABF's late-only
-   bias, and bias share 0.41–0.89 against 0.05–0.26. Over a long run this ongoing bias overtakes the memory reduction.
+2. **FR's early gain is a reduction of that memory.** By 0.1 T, FR has about half the bias in ITE at K1024, and
+   0.63–0.81 of it at K256. It establishes the marginal sooner (§3.1), so fewer badly placed early deposits enter the
+   accumulators.
+3. **Continuous FR adds a new, ongoing bias.** Its late-only deposits are biased in every continuous-FR block: from
+   2.7× (M300) to 6.4× (M150) ABF's late-only bias over the same window (both arms split at T/2 in these blocks), and
+   bias share 0.41–0.89 against 0.05–0.26. Over a long run this ongoing bias overtakes the memory reduction.
    That is why continuous FR loses at the endpoint in X1, M300, M150, X2 and both ERI blocks, even where it won early.
-4. **Stopping removes the ongoing bias.** After the stop the deposits are nearly unbiased: E1 0.009, A 0.013,
-   E2 0.015. These are within about 0.01 kJ/mol of ABF's late-only values, and 3–6× below the matching continuous-FR
-   blocks (X1 0.035, M300 0.048, M150 0.095).
+4. **Stopping removes the ongoing bias.** After the stop, the deposits are nearly unbiased: E1 0.009, A 0.013,
+   E2 0.014. Over the **same** post-stop window (matched-window variant), ABF's bias is 0.006, 0.010 and 0.014.
+   Stopped FR is within 0.003 kJ/mol of ABF there, and its post-stop seed sd is similar (FR vs ABF: 0.024 vs 0.025,
+   0.024 vs 0.025, 0.043 vs 0.040). The continuous-FR blocks at the same temperature and allocation sit 3–7× higher
+   (X1 0.035, M300 0.048, M150 0.095).
    The stopped arm keeps the memory reduction. In E1 this turns X1's endpoint loss (0.088 vs 0.078) into an endpoint
    gain (0.054 vs 0.077).
 5. **Why the gain is smaller at the efficient allocation.** At K256 × T200 (block A) the ABF endpoint is only 51 %
@@ -118,16 +136,26 @@ still 2.9× (ERI) and 1.8× (ITE) worse than ABF in F.
 | ITE 300 K K256 | η, absolute | 0.0009 | 0.0008 | 0.0007 |
 | | u_x², relative | 0.0071 | 0.0045 | 0.0038 |
 
+### 2.2b Where in CV space the late mean-force error sits (late half, pooled, count-weighted per coarse bin)
+
+`clone_age.json` → `signed_mean_force_error_by_coarse_bin`; figure 7b, left panels.
+* **ERI.** The FR error is antisymmetric across the window. All FR deposits run from +0.12 to +0.27 on the bins
+  before the window (coarse bins 3–6) and from −0.16 to −0.27 on the bins after it (11–13). The old walkers alone
+  show the same pattern (+0.13 to +0.24 and −0.13 to −0.22). ABF over the same bins runs from −0.03 to +0.16 and from
+  −0.19 to +0.06. FR thus systematically steepens the mean force on both flanks of the window, which is consistent
+  with the displaced η conditional.
+* **ITE.** The excess is on one flank only: FR old +0.10 to +0.14 in coarse bins 2–3, against ABF +0.03 to +0.07.
+
 ### 2.3 Readings
 
 1. **The FR bias is a property of the population, not of the newborn.** Only about 16 % (ERI) or 8 % (ITE) of
-   deposits are young. Removing them closes 23 % (ERI) or 27 % (ITE) of FR's excess F error over ABF.
+   deposits are young. Removing them closes 24 % (ERI) or 27 % (ITE) of FR's excess F error over ABF.
 2. **In ERI the carrier is visible.** The walkers that were not recently cloned have a displaced η and u_x²
    conditional: 4.6× and 2.6× ABF's deviation from the exact-MC conditional. This fits ERI's mean-force error being
    limited by slow conditional (cage-axis) relaxation. Marginal reallocation acts on ξ only; by the project's theorem,
    d/dt p(y|ξ)|_FR = 0, it cannot relax p(y|ξ). Any correlation between the walkers FR selects and their fibre state
-   therefore persists. Because births and deaths continue for the whole run (1562 replacements per C5 run, the most
-   of any cell), the displacement is continually refreshed.
+   therefore persists. In these continuous-FR blocks births and deaths continue for the whole run (median 1817
+   replacements per ERI run and 1120 per ITE run in the D2 re-runs), so the displacement is continually refreshed.
 3. **In ITE the carrier is not identified.** η and u_x² are nearly undisplaced (old 0.0008 / 0.0045 vs ABF 0.0007 /
    0.0038). Yet the late mean-force bias is real: old-only FR has a flank mean-force error of +0.030 against ABF's
    +0.015, and late-only F bias of 0.035–0.048 against 0.012–0.017. The engine accumulates only two fibre
@@ -142,25 +170,31 @@ still 2.9× (ERI) and 1.8× (ITE) worse than ABF in F.
 
 ### 3.1 Early establishment (FR's source of benefit)
 
-Median window-establishment time, ABF → FR (t.u.), with the paired median difference FR − ABF [95 % CI]:
+Median window-establishment time, ABF → FR (t.u.), with the paired median difference FR − ABF [95 % CI]. The
+establishment time is the first **save** at which the criterion holds, so its resolution is the save interval.
 
-| cell | ABF → FR | paired median difference [95 % CI] |
-|---|---|---|
-| C1 ITE 300 K K1024 | 4.25 → 2.50 | −1.75 [−1.88, −1.63] |
-| EA_R1 ITE 300 K K256 | 4.5 → 3.0 | −1.5 [−1.5, −1.0] |
-| EB64 ITE 300 K K64 (rate 0.2) | 4.0 → 4.0 | **0 [0, 0]** |
-| C2 ITE 150 K K256 | 7.06 → 4.19 | −3.0 [−3.6, −2.5] |
-| C3 LTA 150 K | 16.8 → 9.3 | −7.4 [−7.9, −7.0] |
-| C4 LTA 300 K | 9.0 → 7.3 | −1.4 [−2.0, −1.3] |
-| C5 ERI 600 K | 2.1 → 1.9 | −0.2 [−0.2, −0.2] |
+| cell | save interval (t.u.) | ABF → FR | paired median difference [95 % CI] |
+|---|---|---|---|
+| C1 ITE 300 K K1024 | 0.125 | 4.25 → 2.50 | −1.75 [−1.88, −1.63] |
+| EA_R1 ITE 300 K K256 | 0.5 | 4.5 → 3.0 | −1.5 [−1.5, −1.0] |
+| EB64 ITE 300 K K64 (rate 0.2) | **2** | 4.0 → 4.0 | 0 [0, 0]: a gain < 2 t.u. is not resolvable |
+| EB16 ITE 300 K K16 (rate 1.0) | **8** | 8.0 → 8.0 | 0 [0, 0]: both arms established by the first save; uninformative |
+| C2 ITE 150 K K256 | 0.125 | 7.06 → 4.19 | −3.0 [−3.6, −2.5] |
+| C3 LTA 150 K | 0.1 | 16.8 → 9.3 | −7.4 [−7.9, −7.0] |
+| C4 LTA 300 K | 0.1 | 9.0 → 7.3 | −1.4 [−2.0, −1.3] |
+| C5 ERI 600 K | 0.1 | 2.1 → 1.9 | −0.2 [−0.2, −0.2] |
 
-* **The benefit scales with the establishment delay FR removes.** Where ABF establishes slowly (LTA 150 K) the gain
-  is largest (S_geo 2.52). Where ABF establishes almost at once (ERI, 2.1 t.u.) there is nothing to remove, and FR
-  shows only its cost (S_geo 0.61).
-* **At K64 the calibrated FR rate (0.2) establishes no faster than ABF**, and EB64 is neutral (S_geo 1.11
-  [0.92, 1.33], 9/16).
-* **ABF's establishment time in t.u. hardly depends on K** (4.0–4.5 t.u. at K64–K1024). This is why small K is
-  cheaper in force evaluations (EFFICIENCY.md).
+* **S_geo roughly follows the establishment delay that FR removes** (rows where it is resolved): LTA 150 K, −7.4 t.u.
+  → 2.52; ITE 150 K, −3.0 → 1.64; ITE 300 K K1024, −1.75 → 1.67; K256, −1.5 → 1.31; LTA 300 K, −1.4 → 1.46; ERI,
+  −0.2 → 0.61.
+  * This is a cross-cell correlation, not a controlled test.
+  * It does **not** hold for ABF's establishment time itself: LTA 300 K establishes at 9.0 t.u. but gains less than
+    ITE K1024 at 4.25.
+  * In ERI there is almost nothing to remove, and FR shows its cost.
+* **K64 and K16 cannot be read this way.** Their save grids (2 and 8 t.u.) are too coarse to measure an establishment
+  gain of the size seen at K256 (1.5 t.u.). Their S_geo are unresolved: 1.11 [0.92, 1.33] and 0.93 [0.70, 1.29].
+* **ABF's establishment time in t.u. hardly depends on K where it is resolved** (4.25–4.5 t.u. at K256–K1024). This is
+  consistent with ABF's time to accuracy in t.u. being nearly K-independent for K ≥ 64 (EFFICIENCY.md §3).
 
 ### 3.2 Late bias (FR's source of cost)
 
@@ -169,31 +203,45 @@ continuous FR's endpoint error can exceed ABF's even where FR wins early.
 
 ### 3.3 The stop
 
-* **Post-stop deposits are ABF-like.** The post-stop-only estimate, built only from deposits after the stop, is
-  equivalent to ABF's over the same window in ITE:
+* **Post-stop deposits show no resolved difference from ABF in ITE 300 K.** The post-stop-only estimate is built
+  only from deposits after the stop and compared with ABF's over the same window:
   * C1 −1 % [−17, +20];
   * EA_R1 +1 % [−6, +19];
-  * A +8 % [−9, +21].
-  So **the stopped arm's advantage is carried by the accumulators filled before the stop**, not by better sampling
-  afterwards.
+  * A +8 % [−9, +21];
+  * ITE 150 K (C2): −16 % [−29, +1], favouring FR, borderline.
+
+  These CIs are about ±20 % and no equivalence margin was set, so "no resolved difference" is all they license. Most
+  of the stopped arm's advantage is therefore carried by the accumulators filled before the stop. Better sampling
+  afterwards, if any, is not resolved, except in LTA 150 K below.
 * **Exception: LTA 150 K.** Its post-stop-only estimate is −49 % [−60, −33]. At its stop (21.5 t.u.) the ABF arm
   is still poorly spread (ABF establishment 16.8 t.u.; its bias force is not yet converged). The FR arm's population
   and bias force are better at the stop, and that advantage carries into the post-stop sampling.
 * **Harm under R1 comes from late stops.** In ERI, R1 stops late (median 15.25 t.u., range 5.5–25.5) because the
-  directedness never decays below 30–60 % of its peak. FR therefore accumulates biased deposits for 15 of 40 t.u.
-  ERI's post-stop-only estimate is +11 % [−17, +23], neutral. The **damage sits in the pre-stop accumulators, and
-  there was no establishment deficit to offset it.**
+  directedness plateaus at 30–60 % of its peak, above the 25 % threshold, for 5–10 t.u. after the early peak; t1 is
+  7–11 t.u. (CROSS_SYSTEM_RESULTS.md §5). Every ERI run did eventually stop as "established". FR therefore runs for a
+  median 15 of 40 t.u. ERI's post-stop-only estimate is +11 % [−17, +23], unresolved. The **damage sits in the
+  pre-stop accumulators, and there was almost no establishment deficit to offset it** (−0.2 t.u.).
 
 ### 3.4 Relaxation and turnover
 
 * **Turnover does not track benefit.** FR replacements per run: ERI 1562 (harmful); C1 611, C3 400, C4 210, C2 114
   (beneficial).
-* **Genealogy stayed healthy** in all C cells: minimum windowed ESS/K ≥ 0.32, maximum lineage ≤ 0.037. The ERI harm
-  is therefore not a genealogy collapse.
+* **Genealogy stayed healthy** in all C cells. Across cells, the median over runs of the per-run minimum windowed
+  ESS/K is ≥ 0.32, and of the per-run maximum lineage ≤ 0.037. The ERI harm is therefore not a genealogy collapse.
+
+### 3.4b Genealogy over time in the C cells (figure 7b, right panels)
+
+* **Ancestor diversity dips only while FR is active.** The windowed ancestor ESS/K (median over seeds) dips to
+  0.32–0.45 in ITE (C1, C2) during the first 2–5 t.u., and stays ≥ 0.6 in LTA and ERI.
+* **Lineage concentration is negligible:** maximum windowed lineage share ≤ 0.04 everywhere, against R1's backstop of
+  0.10.
+* **Both recover once R1 stops**, with ESS/K returning to 1 within one genealogy window.
+* So the stopped schedules never approached genealogy collapse. ERI's harm happens with a healthy genealogy, which
+  agrees with §3.4.
 
 ### 3.5 Circulation (secondary)
 
-FR does not increase barrier crossings: true translocations, ABF / FR medians:
+In the ITE and ERI cells FR does not change barrier crossings: true translocations, ABF / FR medians:
 
 | cell | ABF / FR |
 |---|---|
@@ -203,8 +251,9 @@ FR does not increase barrier crossings: true translocations, ABF / FR medians:
 | C5 | 3617 / 3484 |
 | A | 1712 / 1698 (paired −0.3 % [−1.6, +0.3]) |
 
-Only LTA 150 K shows more crossings (328 / 386, +18 %). The acceleration therefore does not come from enhanced
-circulation; it comes from faster marginal establishment.
+LTA 150 K, the cell with the largest gain, shows 18 % more crossings (328 / 386). In ITE and ERI the acceleration
+(or harm) therefore does not come from changed circulation. In LTA 150 K, circulation may contribute alongside faster
+establishment; the two were not separated.
 
 ## 4. What D does not establish
 

@@ -77,14 +77,19 @@ Times are UTC (`date -u` or git).
 
   Selected rate 0.2.
 * **07:35 — EB64 launched** (32 runs, K64 × T800, rate 0.2, R1).
-* **07:45 — amendment E-A1** (integrity handling only): `analyze_online.py` allows `diag_age_steps` to differ only
+* **07:44:45 — EA_R1 done** (3.321 core-h).
+* **≈ 07:45 — amendment E-A1** (integrity handling only). The frozen `analyze_online.py` refused EA_R1 because the new
+  configs carry `diag_age_steps` = 0 while the historical EB files lack the key. E-A1 allows that key to differ only
   when it is 0 or absent in every run, and asserts this.
-* **07:44:45 — EA_R1 done** (3.321 core-h). **SUPPORTED**: S_geo 1.31 [1.07, 1.47], 99 % [1.02, 1.69]; 13/16.
+  * It was written after EA_R1 had finished and first committed at 07:56:23 (d0929f7a).
+  * It changes no statistic.
+* **07:45 — EA_R1 analysed. SUPPORTED**: S_geo 1.31 [1.07, 1.47], 99 % [1.02, 1.69]; 13/16.
   * R1 stops at a median 6.5 t.u. (5.5–9).
   * Post-ramp Ī_F −17.4 %; e_F(T) −8.8 % [−21.1, +5.5].
 * **07:47:47 — EB64 done** (6.566 core-h). **UNRESOLVED**: S_geo 1.11 [0.92, 1.33]; 9/16.
   * R1 stops at a median 7.5 t.u.
-  * Window establishment 4.0 → 4.0 t.u. (no gain at rate 0.2); neutral throughout.
+  * Window establishment 4.0 → 4.0 t.u. This is not resolvable: the save grid is 2 t.u.
+  * Every secondary outcome unresolved.
 * **07:48 — E.3 frontier** (`equal_budget_frontier.py`, six configurations).
   * Best ABF = K64 and best FR = K64. Best FR / best ABF = 1.02 [0.55, 1.46] → **UNRESOLVED** (production);
     all-in is similar.
@@ -92,7 +97,7 @@ Times are UTC (`date -u` or git).
   * K64 is the fastest wall-clock configuration for both algorithms at every thread count.
 * **07:56 — amendment E-A2** (K16 frontier cell EB16) committed as d0929f7a, before any K16 run.
 * **07:56 — K16 blind calibration** (3 rungs × 3 seeds, run concurrently; 0.042 core-h).
-  * Every rung was SAFE; at rate 1.0, lineage sits exactly at the 3/K = 0.1875 limit.
+  * Every rung was SAFE; at rates 1.0 and 0.5, lineage sits exactly at the 3/K = 0.1875 limit.
   * Largest safe rung selected: **rate 1.0**.
 * **07:57 — EB16 launched** (32 runs, K16 × T3200, rate 1.0, R1).
 * **08:00 — D2 addition.** The u_x² conditional by age class was in the D prereg but missing from `clone_age.py`; it
@@ -101,11 +106,14 @@ Times are UTC (`date -u` or git).
   * ITE: 0.0045 vs 0.0038.
 * **08:10:32 — EB16 done** (6.825 core-h). **UNRESOLVED**: S_geo 0.93 [0.70, 1.29] (99 % [0.56, 1.51]); 7/16.
   * R1 stops at a median 11.0 t.u. (9–14).
-  * Window establishment 8.0 → 8.0 t.u.; every secondary outcome n.s.
+  * Window establishment 8.0 → 8.0 t.u. This is uninformative: the save grid is 8 t.u.
+  * Every secondary outcome unresolved.
 * **08:10 — E.3 frontier re-run with eight configurations.**
   * Best ABF = K16 and best FR = K16. Best FR / best ABF = 1.04 [0.74, 1.33] → **UNRESOLVED** (all-in 1.04
     [0.75, 1.31]).
-  * ABF K16 / ABF K64 = 0.75 [0.44, 1.13]. At the tightest rung K64 is faster than K16.
+  * ABF K16 / ABF K64 = 0.75 [0.44, 1.13]. At the tightest rung ABF K64 is faster than ABF K16 (for FR, K16 is
+    the fastest).
+  * The frontier is not bracketed below K16.
 * **08:10–08:15 — E.4 wall-clock benchmark, run 2** (all four K; load 28 → 19).
   * Replicates run 1: run2/run1 median 0.998, range 0.91–1.06.
   * Wall-clock time to accuracy: best ABF = K16 at P = 1, K64 at P ≥ 4. Best FR / best ABF 1.03–1.07, all
@@ -115,3 +123,24 @@ Times are UTC (`date -u` or git).
   * Updated: ONLINE_STOPPING_RULE §6, EQUAL_BUDGET_RESULTS A.6.
   * Figures: `equal_budget_frontier`, `wallclock_ite300`.
   * Analysis reproduction script: `scripts/adaptive_fr/reproduce_analyses.sh`.
+* **08:21 — reproduction check.** `reproduce_analyses.sh` re-ran every analysis and figure. Every analysis JSON and
+  PNG is byte-identical to f98d3ba8; only the PDF timestamps differ. Engine and controller tests: 35 passed.
+* **08:22–08:31 — independent doc-vs-JSON audit** (a read-only review agent working from the commit). The headline
+  numbers were confirmed. Corrections applied 08:31–08:35:
+  1. **Save-grid artefacts.** The K64/K16 establishment values are artefacts of the 2 and 8 t.u. save grids, and are
+     no longer used as evidence.
+  2. **ERI flux.** "ERI flux never decays" is replaced by the logged plateau (30–60 % of peak for 5–10 t.u.; all runs
+     stopped).
+  3. **Late-only windows.** The windows differ between arms in the stopped blocks. A matched-window ABF variant was
+     added to D1: ABF bias 0.006 / 0.010 / 0.014 against stopped FR 0.009 / 0.013 / 0.014 over the same post-stop
+     window.
+  4. **Replacement counts.** The wrong cell was cited; the D2 counts now are 1817 per ERI run and 1120 per ITE run.
+  5. **Preregistration timing.** Records corrected by a dated erratum in PREREGISTRATION.md; E-A2's header edit is
+     reverted.
+  6. **Overstatements.** "Neutral / parity / equivalent / not an efficiency gain" is replaced by "unresolved" or
+     "not shown". The unbracketed frontier is stated as such. Circulation is caveated in LTA 150 K.
+  7. **Smaller fixes.** Multiplier ranges (2.7–6.4×), 0.1 T ratios by K, overhead ranges, the 127 s entry, the HANDOFF
+     test count and run time, and the aggregate core-h.
+* **08:25 — figure 7b** (`mechanism_meanforce_genealogy`): per-bin late-half mean-force error by clone age (D2) and
+  FR genealogy over time in the C cells.
+
