@@ -17,3 +17,5 @@
 **Campaign total ≈ 36.7 CPU core-h (estimate was 26.5: the measured per-run wall was 1.1–1.8× the adaptive-FR
 campaign's because of host contention, and the account is wall-based); adaptive-FR authorisation ≈ 80.8 of 100 used;
 aggregate ≈ 279.2 of ≈ 298.4. No GPU; no external or paid resource.**
+
+**Combined total with the concurrent E-A3 and D4/D5 sessions: ≈ 109.7 of 100 authorised core-h; see `docs/adaptive_fr_campaign/COMPUTE_LEDGER.md`, final section.**

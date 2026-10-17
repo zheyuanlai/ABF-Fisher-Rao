@@ -51,3 +51,24 @@ resource.**
 per-step cost 16.4 / 9.0 / 3.2 µs at K8 / K4 / K1 against 12.8 / 7.4 / 2.7 in the pilot at load 10). Campaign total
 ≈ 65.9 of 100 authorised CPU core-h; aggregate ≈ 264.3 of ≈ 298.4. No GPU; no external or paid resource. Disk: 5.7 GB
 of run files in the data root.**
+
+## Combined total across the three follow-up sessions of 2026-10-17 (recorded at the merge into `main`)
+
+The three follow-ups (frontier bracket E-A3, the R2 campaign and the D4/D5 mechanism tests) ran concurrently in
+separate worktrees, and each ledger counted only its own usage against the same 44.1 core-h baseline and the same
+100 core-h authorisation. Their per-session totals (65.9, 80.8 and 51.2) therefore each stayed under 100 while the
+sum did not.
+
+| item | CPU core-h | ledger |
+|---|---|---|
+| adaptive-FR campaign before the follow-ups | 44.1 | this file, table above |
+| amendment E-A3 (frontier bracket K8 / K4 / K1, nested bootstrap) | 21.8 | this file, E-A3 section |
+| R2 campaign (eight cells) | 36.7 | `docs/r2_campaign/COMPUTE_LEDGER.md` |
+| D4 selection test + D5 arrival-law test | 7.1 | this file, D4 / D5 rows |
+| **combined campaign total** | **≈ 109.7 of 100 authorised** | |
+| **project aggregate** | **≈ 308 of the ≈ 298.4 ceiling** | |
+
+The authorisation was exceeded by about 9.7 core-h. No GPU and no external or paid resource were used.
+Provenance note: seed blocks 1 400 000, 1 410 000 and 1 420 000 were used both by E-A3 cells (EB8, EB4, EB1 at
+K8 / K4 / K1) and by R2 cells (R2C1, R2C2, R2C3 at K1024); the configurations differ, so no comparison pairs them,
+but neither block is "fresh" with respect to the other.
