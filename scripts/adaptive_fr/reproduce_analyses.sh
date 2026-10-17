@@ -52,9 +52,11 @@ $PY scripts/adaptive_fr/equal_budget_frontier.py
 $PY scripts/adaptive_fr/establishment_frontier.py
 $PY scripts/adaptive_fr/wallclock_tta.py
 
-# Experiment D (exploratory mechanism)
+# Experiment D (exploratory mechanism); D4 needs the D3_*_sel run files (both arms) and the historical arms
 $PY scripts/adaptive_fr/bias_variance.py
 $PY scripts/adaptive_fr/clone_age.py
+$PY scripts/adaptive_fr/selection_split.py
+$PY scripts/adaptive_fr/arrival_split.py    # D5 needs the D5_*_arr run files (both arms) and the D3_*_sel ABF files
 
-# Figures 1-9
-$PY scripts/adaptive_fr/fig_campaign.py   # figures 1-9 (+ 3b frontier, 3c extended frontier, 7b mean force and genealogy, 9 establishment)
+# Figures 1-10
+$PY scripts/adaptive_fr/fig_campaign.py   # figures 1-10 (+ 3b frontier, 3c extended frontier, 7b mean force and genealogy, 9 establishment [E-A3] and 9 selection [D4] (both labelled 9), 10 arrival)

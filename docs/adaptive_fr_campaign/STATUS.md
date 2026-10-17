@@ -9,7 +9,9 @@
   * **B**: R1 developed on ITE only and frozen (c3ef3128).
   * **C**: R1 SUPPORTED in ITE 300 K (1.67), ITE 150 K (1.64), LTA 150 K (2.52) and LTA 300 K (1.46); CONTRADICTED in
     ERI 600 K (0.61). R1 does not generalise by the preregistered definition.
-  * **D1, D2, D3**: mechanism, exploratory (MECHANISM.md).
+  * **D1, D2, D3**: mechanism, exploratory (MECHANISM.md). **D4** (2026-10-17 11:16–12:10, branch
+    `claude/nifty-hellman-99b892`): selection hypothesis tested directly, MECHANISM.md §2.4. **D5** (12:00–12:40):
+    arrival-law mechanism measured directly, MECHANISM.md §2.5.
   * **E**:
     * EA_R1 SUPPORTED, 1.31 [1.07, 1.47].
     * EB64 UNRESOLVED, 1.11 [0.92, 1.33]; EB16 UNRESOLVED, 0.93 [0.70, 1.29]; **EB8 (E-A3) UNRESOLVED, 1.03
@@ -26,4 +28,4 @@
     `E_frontier.json` keeps every published key byte-identical to 6716aefc.
 * **Active jobs.** None of ours.
 * **Blockers.** None.
-* **Compute.** ≈ 65.9 / 100 campaign core-h (E-A3: 21.8); aggregate ≈ 264.3 / ≈ 298.4. No GPU.
+* **Compute.** ≈ 109.7 / 100 campaign core-h COMBINED across the 2026-10-17 follow-ups on the 44.1 baseline (E-A3 21.8, R2 36.7, D4 + D5 7.1; each session's own ledger shows only its own total); aggregate ≈ 308 / ≈ 298.4. No GPU.
