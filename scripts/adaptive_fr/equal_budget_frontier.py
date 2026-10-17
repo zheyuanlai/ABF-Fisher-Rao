@@ -22,7 +22,10 @@ that re-select the fixed choice) and `question_B_verdict_nested`.  Every pre-exi
 
 Amendment E-A3 (frontier bracket below K16): when the blocks EB8 (K8 x T6400, both arms), EB4 (K4 x T12800, ABF) and
 EB1 (K1 x T51200, ABF) are present, the same analysis is ALSO run on the extended configuration set (K1..K1024) and
-written to E_frontier_ext.json; E_frontier.json keeps the eight-configuration set of E.3 + E-A2.
+written to E_frontier_ext.json; E_frontier.json keeps the eight-configuration set of E.3 + E-A2.  A post-hoc
+sensitivity variant, E_frontier_ext_matched.json, reads every configuration on the 1.28 x 10^6-force-evaluation
+save grid of the earlier cells (the E-A3 cells, saved every 1 t.u., are subsampled), because the sustained criterion
+is stricter on a finer grid while tau is rounded up to the next save on a coarser one.
 
     ABFFR_DATA_ROOT=/home/zheyuanlai/ABF-Fisher-Rao python scripts/adaptive_fr/equal_budget_frontier.py
 """
@@ -57,6 +60,9 @@ CONF_EXT = CONF + [
     dict(key="ABF_K1", alg="ABF", K=1, dir="results/adaptive_fr_campaign/EB1_ite300_K1_T51200_abf", pat="abf_N1_s*.npz"),
 ]
 N_BOOT, BOOT_SEED = 10000, 2026
+# the E.3 + E-A2 definition text exactly as published (6716aefc): E_frontier.json keeps it under `definition`; the
+# amendment paragraphs of this docstring go under `definition_amendments` (E_frontier_ext*.json carry the full docstring)
+DEFINITION_E3 = 'PREREGISTRATION sections E.3 + E-A2 (frontier, online rule R1): two algorithms x four allocations at an equal\nforce-evaluation budget B = 5.12 x 10^8, ITE 300 K (same arithmetic as section A.5, equal_budget4.py).\n\n    ABF / FR-R1  K1024 x 50 t.u.    block C1    (results/adaptive_fr_campaign/C1_ite300_K1024_R1, rate 2.0)\n    ABF          K256  x 200 t.u.   EB          (results/convergence_fr_campaign/EB_ite300_abf_K256_T200)\n    FR-R1        K256  x 200 t.u.   EA_R1       (results/adaptive_fr_campaign/EA_ite300_K256_T200_R1, rate 1.0)\n    ABF / FR-R1  K64   x 800 t.u.   EB64        (results/adaptive_fr_campaign/EB64_ite300_K64_T800_R1, rate 0.2)\n    ABF / FR-R1  K16   x 3200 t.u.  EB16        (results/adaptive_fr_campaign/EB16_ite300_K16_T3200_R1, amendment E-A2)\n\nTime to accuracy in molecular force evaluations, B = K x steps (production) or K x (equil + steps) (all-in);\nsustained criterion evaluated up to the COMMON budget (curves truncated there); restricted at that budget.\nPer-seed summary = geometric mean over the five kT rungs of the restricted tau_B.  Cross-allocation statistics are\nUNPAIRED: ratio of medians, 95 % CI from independent bootstrap of seeds within each configuration (10 000).\n"Best tested allocation" of an algorithm = its allocation with the smaller median per-seed geometric-mean tau_B.\n\n    ABFFR_DATA_ROOT=/home/zheyuanlai/ABF-Fisher-Rao python scripts/adaptive_fr/equal_budget_frontier.py\n'
 
 
 def load(cf, Fr, Gr):
@@ -139,15 +145,33 @@ def pair_list(conf, best):
     for alg in ("ABF", "FR"):
         ks = [K for K in Ks if f"{alg}_K{K}" in have]
         pairs += [(f"{alg}_K{a}", f"{alg}_K{b}") for a, b in zip(ks[:-1], ks[1:])]
+    for alg in ("ABF", "FR"):                                   # E-A3 verdict rule: every K < 16 against K16
+        if f"{alg}_K16" in have:
+            pairs += [(f"{alg}_K{K}", f"{alg}_K16") for K in Ks if K < 16 and f"{alg}_K{K}" in have]
     pairs.append((best["FR-stop"], best["ABF"]))
     return list(dict.fromkeys(pairs))
 
 
-def analyse(conf, name, Fr, Gr, kT):
+def coarsen(d, fe_per_save):
+    """Keep only the saves that fall on a grid of `fe_per_save` production force evaluations (plus step 0), so a cell
+    saved more often is READ at the resolution of the cells saved every 1.28 x 10^6 (E-A3 sensitivity check:
+    the sustained criterion is stricter on a finer grid, and tau is rounded up to the next save on a coarser one)."""
+    B = d["K"] * d["steps"]
+    keep = np.isclose(np.mod(B, fe_per_save), 0) | np.isclose(np.mod(B, fe_per_save), fe_per_save)
+    return dict(d, eF=d["eF"][keep], steps=d["steps"][keep])
+
+
+def analyse(conf, name, Fr, Gr, kT, coarsen_to=None):
     data = {cf["key"]: load(cf, Fr, Gr) for cf in conf}
+    if coarsen_to:
+        data = {k: coarsen(d, coarsen_to) for k, d in data.items()}
     for k, d in data.items():
         assert len(d["seeds"]) == 16, (k, len(d["seeds"]))
-    out = dict(definition=__doc__, configs={cf["key"]: dict(alg=cf["alg"], K=cf["K"], seeds=data[cf["key"]]["seeds"]) for cf in conf})
+    full = name != "E_frontier"
+    out = dict(definition=__doc__ if full else DEFINITION_E3,
+               configs={cf["key"]: dict(alg=cf["alg"], K=cf["K"], seeds=data[cf["key"]]["seeds"]) for cf in conf})
+    if coarsen_to:
+        out["matched_save_grid_force_evals"] = float(coarsen_to)
     for mode, allin in (("production", False), ("all_in_common", True)):
         budget = min((d["K"] * (d["steps"][-1] + (d["eq"] if allin else 0))) for d in data.values())
         res = dict(budget=budget, rungs=[], geo={})
@@ -195,6 +219,8 @@ def analyse(conf, name, Fr, Gr, kT):
                                             "best ABF allocation BEATS best FR allocation" if qn["ci95"][0] > 1 else "UNRESOLVED")
         res["save_resolution_force_evals"] = {k: float(d["K"] * np.median(np.diff(d["steps"]))) for k, d in data.items()}
         out[mode] = res
+        if not full:
+            out["definition_amendments"] = __doc__[len(DEFINITION_E3.rstrip()):].strip()
         print(f"[{name} {mode}] budget {budget:.4g}; best ABF {best['ABF']}, best FR {best['FR-stop']}")
         for k in data:
             print(f"   {k:10s} median geo tau_B {res['geo'][k]['median_1e8']:.3f} e8 | " +
@@ -229,6 +255,9 @@ def main():
     analyse(CONF, "E_frontier", Fr, Gr, kT)
     if ext_available():
         analyse(CONF_EXT, "E_frontier_ext", Fr, Gr, kT)
+        # sensitivity (post hoc, descriptive): every configuration read on the 1.28 x 10^6-force-evaluation save grid
+        # of the E.3 / E-A2 cells (the E-A3 cells are subsampled: every 16th save at K8, 32nd at K4, 128th at K1)
+        analyse(CONF_EXT, "E_frontier_ext_matched", Fr, Gr, kT, coarsen_to=1.28e6)
     else:
         print("E-A3 blocks (EB8 / EB4 / EB1) not complete: E_frontier_ext.json not written")
 

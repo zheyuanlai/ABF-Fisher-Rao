@@ -350,7 +350,8 @@ def fig_meanforce_genealogy():
 
 
 FRONTIER_K = [1024, 256, 64, 16]
-FRONTIER_BLOCK = {1024: "C1", 256: "EA_R1", 64: "EB64", 16: "EB16"}
+FRONTIER_BLOCK = {1024: "C1", 256: "EA_R1", 64: "EB64", 16: "EB16", 8: "EB8"}
+FRONTIER_K_EXT = [1024, 256, 64, 16, 8, 4, 1]          # amendment E-A3
 
 
 def boot_med_ci(ps, n=4000, seed=2026):
@@ -430,6 +431,153 @@ def fig_frontier():
     save(fig, "equal_budget_frontier")
 
 
+def fig_frontier_ext():
+    """3c. Extended equal-budget frontier K1..K1024 (amendment E-A3): ABF at seven allocations, ABF + FR(R1) at five;
+    fixed-selection and nested (selection-aware) best FR / best ABF; adjacent-K ABF cost ratios (the bracket)."""
+    pth = os.path.join(AN, "E_frontier_ext.json")
+    if not os.path.exists(pth):
+        print("skip equal_budget_frontier_ext (E_frontier_ext.json missing)")
+        return
+    E = json.load(open(pth))
+    z = np.load(os.path.join(AN, "E_frontier_ext_curves.npz"))
+    Ks = [K for K in FRONTIER_K_EXT if f"ABF_K{K}" in E["configs"]]
+    fig = plt.figure(figsize=(20, 8.2))
+    gs = fig.add_gridspec(2, len(Ks) * 2, height_ratios=[1, 1.25])
+    for j, K in enumerate(Ks):
+        ax = fig.add_subplot(gs[0, 2 * j:2 * j + 2])
+        for alg, col, lab in (("ABF", ABF, "ABF"), ("FR", FR, "ABF + FR (R1)")):
+            k = f"{alg}_K{K}"
+            if k not in E["configs"]:
+                continue
+            B = K * z[f"steps_{k}"] / 1e8
+            X = z[f"eF_{k}"]
+            ax.plot(B, np.median(X, 1), color=col, lw=1.3, label=lab)
+            ax.fill_between(B, np.quantile(X, 0.25, 1), np.quantile(X, 0.75, 1), color=col, alpha=0.12, lw=0)
+        ax.set_yscale("log")
+        ax.set_ylim(0.015, 3)
+        ax.set_xlim(0, 5.12)
+        T = E["production"]["budget"] / K / 1e4
+        res = E["production"]["save_resolution_force_evals"][f"ABF_K{K}"]
+        ax.set_title(f"K{K} × T{T:g} t.u.; saves every {res / 1e6:g}·10⁶ FE" if res >= 1e6 else
+                     f"K{K} × T{T:g} t.u.; saves every {res / 1e4:g}·10⁴ FE (1 t.u.)", fontsize=8, loc="left")
+        ax.set_xlabel("production force evaluations (10⁸)", fontsize=8)
+        if j == 0:
+            ax.set_ylabel("e_F (kJ/mol): median, 25–75 %")
+            ax.legend(fontsize=7.5)
+    r = E["production"]
+    n = len(Ks)
+    ax = fig.add_subplot(gs[1, 0:n - 1])
+    for alg, col, lab, mk in (("ABF", ABF, "ABF", "o"), ("FR", FR, "ABF + FR (R1)", "s")):
+        Kv, v, lo, hi = [], [], [], []
+        for K in Ks:
+            k = f"{alg}_K{K}"
+            if k not in r["geo"]:
+                continue
+            ps = r["geo"][k]["per_seed"]
+            a, b = boot_med_ci(ps)
+            Kv.append(K), v.append(r["geo"][k]["median_1e8"]), lo.append(a), hi.append(b)
+        x = np.array(Kv, float) * (0.93 if alg == "ABF" else 1.07)
+        v, lo, hi = map(np.array, (v, lo, hi))
+        ax.errorbar(x, v, yerr=[v - lo, hi - v], fmt=mk + "-", color=col, ms=6, capsize=3, lw=1.4, label=lab)
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xticks(Ks)
+    ax.set_xticklabels([f"K{K}" for K in Ks])
+    ax.minorticks_off()
+    ax.set_xlabel("replica allocation K (T = B / K)")
+    ax.set_ylabel("median per-seed geometric-mean\nsustained τ (10⁸ force evals), 95 % CI")
+    ax.legend(fontsize=7.5, loc="upper left")
+    best = r["best_allocation"]
+    q = r["ratios_geo_tauB"][f"{best['FR-stop']} / {best['ABF']}"]
+    qn = r["nested_bootstrap"]["geo_tauB_best_FR_over_best_ABF"]
+    ax.set_yticks([0.1, 0.2, 0.5, 1, 2, 5])
+    ax.set_yticklabels(["0.1", "0.2", "0.5", "1", "2", "5"])
+    ax.set_title(f"frontier K1–K1024 (unpaired across K): best ABF {best['ABF']}, best FR {best['FR-stop']}\nbest FR / best ABF "
+                 f"{q['ratio']:.2f}: fixed selection [{q['ci95'][0]:.2f}, {q['ci95'][1]:.2f}], nested [{qn['ci95'][0]:.2f}, {qn['ci95'][1]:.2f}]"
+                 f" → {r['question_B_verdict_nested']}", fontsize=8.5, loc="left")
+    ax = fig.add_subplot(gs[1, n - 1:n + 2])
+    Kp = [K for K in Ks if K in FRONTIER_BLOCK and os.path.exists(os.path.join(AN, f"{FRONTIER_BLOCK[K]}.json"))]
+    for i, K in enumerate(Kp):
+        p = json.load(open(os.path.join(AN, f"{FRONTIER_BLOCK[K]}.json")))["primary"]
+        ax.errorbar([i], [p["median"]], yerr=[[p["median"] - p["ci95"][0]], [p["ci95"][1] - p["median"]]], fmt="o", color=FR, capsize=3, ms=6)
+        ax.text(i + 0.12, p["median"], f"{p['median']:.2f}  ({p['fr_faster_seeds']}/16)", fontsize=7.5, color=INK2, va="center")
+    ax.axhline(1, color=INK2, lw=0.8)
+    ax.set_xticks(range(len(Kp)))
+    ax.set_xticklabels([f"K{K}\n({FRONTIER_BLOCK[K]})" for K in Kp], fontsize=8)
+    ax.set_xlim(-0.4, len(Kp) - 0.2)
+    ax.set_ylabel("paired S_geo = τ_ABF / τ_FR (95 % CI)")
+    ax.set_title("same-K paired speedup (fixed K; 16 paired seeds each;\nFR-faster seed count in brackets)", fontsize=8.5, loc="left")
+    ax = fig.add_subplot(gs[1, n + 2:])
+    labs, vals, los, his = [], [], [], []
+    for a_, b_ in zip(Ks[::-1][:-1], Ks[::-1][1:]):            # ascending K: (K1, K4), (K4, K8), ...
+        key = f"ABF_K{a_} / ABF_K{b_}"
+        if key in r["ratios_geo_tauB"]:
+            v = r["ratios_geo_tauB"][key]
+            labs.append(f"K{a_}/K{b_}"), vals.append(v["ratio"]), los.append(v["ci95"][0]), his.append(v["ci95"][1])
+    vals, los, his = map(np.array, (vals, los, his))
+    xi = np.arange(len(labs))
+    ax.errorbar(xi, vals, yerr=[vals - los, his - vals], fmt="o", color=ABF, capsize=3, ms=6)
+    for a_, b_ in zip(Ks[::-1][:-1], Ks[::-1][1:]):
+        key = f"FR_K{a_} / FR_K{b_}"
+        if key in r["ratios_geo_tauB"]:
+            v = r["ratios_geo_tauB"][key]
+            i = labs.index(f"K{a_}/K{b_}")
+            ax.errorbar([i + 0.18], [v["ratio"]], yerr=[[v["ratio"] - v["ci95"][0]], [v["ci95"][1] - v["ratio"]]], fmt="s", color=FR, capsize=3, ms=5)
+    ax.axhline(1, color=INK2, lw=0.8)
+    ax.set_yscale("log")
+    ax.set_xticks(xi)
+    ax.set_xticklabels(labs, fontsize=8)
+    ax.set_ylabel("cost ratio of adjacent allocations (95 % CI)\nABF circles, FR squares")
+    ax.set_title("the bracket: ratio of medians, smaller K / larger K\n(> 1 resolved = smaller K dearer)", fontsize=8.5, loc="left")
+    fig.suptitle("Amendment E-A3 (ITE 300 K): equal budget B = 5.12×10⁸ production force evaluations, ABF at K1–K1024 and ABF + FR stopped "
+                 "online by R1 at K8–K1024", x=0.01, ha="left", fontsize=9.5, y=1.0)
+    fig.tight_layout()
+    save(fig, "equal_budget_frontier_ext")
+
+
+def fig_establishment():
+    """9. Window establishment at every frontier allocation (E-A3 item 4; descriptive): frozen instantaneous measure
+    and the deposit-share measure, on each cell's own save grid."""
+    pth = os.path.join(AN, "E_establishment.json")
+    if not os.path.exists(pth):
+        print("skip establishment_frontier (E_establishment.json missing)")
+        return
+    E = json.load(open(pth))["configs"]
+    fig, axs = plt.subplots(1, 2, figsize=(12, 4.4))
+    for ax, m, ttl in ((axs[0], "inst", "frozen measure: trailing 1-t.u. mean of the instantaneous window fraction ≥ 0.75 × uniform share"),
+                       (axs[1], "cum", "deposit share over the trailing max(1 t.u., save interval) ≥ 0.75 × uniform share")):
+        for alg, col, mk, lab in (("ABF", ABF, "o", "ABF"), ("FR-stop", FR, "s", "ABF + FR (R1)")):
+            Kv, med, lo, hi, res = [], [], [], [], []
+            for k, c in E.items():
+                if c["alg"] != alg:
+                    continue
+                ps = [v for v in c[m]["per_seed"] if v is not None]
+                if len(ps) < 16:
+                    continue
+                a, b = boot_med_ci(ps)
+                Kv.append(c["K"]), med.append(float(np.median(ps))), lo.append(a), hi.append(b), res.append(c["save_interval_tu"])
+            o = np.argsort(Kv)
+            Kv, med, lo, hi, res = (np.array(x)[o] for x in (Kv, med, lo, hi, res))
+            x = Kv * (0.93 if alg == "ABF" else 1.07)
+            ax.errorbar(x, med, yerr=[med - lo, hi - med], fmt=mk + "-", color=col, ms=6, capsize=3, lw=1.3, label=lab)
+            if alg == "ABF":
+                ax.bar(Kv, res, width=Kv * 0.35, bottom=0, color=MUTED, alpha=0.25, lw=0, label="save interval (resolution)")
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        Ks = sorted({c["K"] for c in E.values()})
+        ax.set_xticks(Ks)
+        ax.set_xticklabels([f"K{K}" for K in Ks])
+        ax.minorticks_off()
+        ax.set_xlabel("replica allocation K")
+        ax.set_ylabel("window establishment (t.u.): median, 95 % CI")
+        ax.set_title(ttl, fontsize=8, loc="left")
+        ax.legend(fontsize=7.5)
+    fig.suptitle("Establishment at every allocation (ITE 300 K, descriptive); the E-A3 cells K8 / K4 / K1 save every 1 t.u., "
+                 "the earlier cells every 1.28×10⁶ force evaluations", x=0.01, ha="left", fontsize=9.5, y=1.02)
+    fig.tight_layout()
+    save(fig, "establishment_frontier")
+
+
 def end_labels(ax, items, x, min_ratio=1.18):
     """Direct labels at the right end of log-y lines, nudged apart so none overlap (items: (y, text))."""
     items = sorted(items)
@@ -507,9 +655,10 @@ def fig_wallclock():
 
 
 def main():
-    which = sys.argv[1:] or ["A", "equal", "frontier", "cross", "stops", "bv", "clone", "mfgen", "wallclock"]
-    f = {"A": fig_A, "equal": fig_equal_budget, "frontier": fig_frontier, "cross": fig_cross_system, "stops": fig_stop_times,
-         "bv": fig_bias_variance, "clone": fig_clone_age, "mfgen": fig_meanforce_genealogy, "wallclock": fig_wallclock}
+    which = sys.argv[1:] or ["A", "equal", "frontier", "frontier_ext", "cross", "stops", "bv", "clone", "mfgen", "wallclock", "establishment"]
+    f = {"A": fig_A, "equal": fig_equal_budget, "frontier": fig_frontier, "frontier_ext": fig_frontier_ext, "cross": fig_cross_system,
+         "stops": fig_stop_times, "bv": fig_bias_variance, "clone": fig_clone_age, "mfgen": fig_meanforce_genealogy,
+         "wallclock": fig_wallclock, "establishment": fig_establishment}
     for w in which:
         f[w]()
 

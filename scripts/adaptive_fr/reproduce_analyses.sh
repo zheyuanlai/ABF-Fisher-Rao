@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Re-run every analysis of the adaptive-FR campaign from the saved run files (no simulation; under a minute, one CPU).
 # Overwrites results/adaptive_fr_campaign/{analysis,mechanism}/*.json and figures/adaptive_fr/*; run from any checkout
-# of research/adaptive-fr-equal-budget after `bash scripts/convergence_fr/link_data.sh` (worktrees only).
+# of research/adaptive-fr-equal-budget after `bash scripts/convergence_fr/link_data.sh <main checkout> [<adaptive data root>]`
+# (worktrees only; the second argument links the campaign's run directories, see HANDOFF.md).
 #   bash scripts/adaptive_fr/reproduce_analyses.sh
 # Not re-run here: the wall-clock benchmark (a measurement; scripts/adaptive_fr/wallclock_bench.py) and the blind
-# calibrations (scripts/overnight/fr_calibrate.py results/adaptive_fr_campaign/Ecal_K{64,16} --K {64,16}).
+# calibrations (scripts/overnight/fr_calibrate.py results/adaptive_fr_campaign/Ecal_K{64,16,8,4} --K {64,16,8,4}).
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 cd "$ROOT"
@@ -43,12 +44,17 @@ $PY scripts/adaptive_fr/analyze_online.py --block EB64 --engine eri --dir $D/EB6
     --variant ite_itq3 --ladder kT --expect-seeds 1350000:16
 $PY scripts/adaptive_fr/analyze_online.py --block EB16 --engine eri --dir $D/EB16_ite300_K16_T3200_R1 --K 16 --refbase $ITE \
     --variant ite_itq3 --ladder kT --expect-seeds 1370000:16
+# Amendment E-A3: K8 two-arm cell, then the frontier (E_frontier.json, eight configurations, nested bootstrap added;
+# E_frontier_ext.json, K1..K1024, written when EB8 / EB4 / EB1 are complete) and establishment at every K
+$PY scripts/adaptive_fr/analyze_online.py --block EB8 --engine eri --dir $D/EB8_ite300_K8_T6400_R1 --K 8 --refbase $ITE \
+    --variant ite_itq3 --ladder kT --expect-seeds 1400000:16
 $PY scripts/adaptive_fr/equal_budget_frontier.py
+$PY scripts/adaptive_fr/establishment_frontier.py
 $PY scripts/adaptive_fr/wallclock_tta.py
 
 # Experiment D (exploratory mechanism)
 $PY scripts/adaptive_fr/bias_variance.py
 $PY scripts/adaptive_fr/clone_age.py
 
-# Figures 1-8
-$PY scripts/adaptive_fr/fig_campaign.py   # figures 1-8 (+ 3b frontier, 7b mean force and genealogy)
+# Figures 1-9
+$PY scripts/adaptive_fr/fig_campaign.py   # figures 1-9 (+ 3b frontier, 3c extended frontier, 7b mean force and genealogy, 9 establishment)

@@ -115,3 +115,50 @@ Using R1 on a new system: add `fr_controller=R1` (from `eri.fr_controller import
    bracketed below K16. Any further "accelerator" claim must be made against the best ABF allocation, not against a
    fixed K.
 4. **Compute.** About 44 of the 100 authorised campaign core-h were used (COMPUTE_LEDGER.md).
+
+## 5. Amendment E-A3 (2026-10-17, branch `claude/priceless-rubin-9602df`, worktree `.claude/worktrees/priceless-rubin-9602df`)
+
+* **What it adds.** (1) A selection-aware nested bootstrap of best FR / best ABF in `equal_budget_frontier.py`
+  (new keys only; EFFICIENCY.md §7). (2) The frontier bracket below K16: blocks EB8 (K8 × T6400, both arms, rate 1.0
+  from the blind K8 calibration), EB4 (K4 × T12800, ABF only) and EB1 (K1 × T51200, ABF only), all saving every
+  1 t.u.; PREREGISTRATION.md E-A3 has the cells, the K4 FR criterion (not met: R1's backstops cannot fire at K4),
+  the verdict rules and the pilot-measured cost.
+* **Data layout from a worktree.** The run files live only in the adaptive worktree's
+  `results/adaptive_fr_campaign/<block>/`. Link everything with
+
+  ```bash
+  bash scripts/convergence_fr/link_data.sh /home/zheyuanlai/ABF-Fisher-Rao /home/zheyuanlai/ABF-Fisher-Rao-adaptive
+  ```
+
+  which symlinks each block directory (and the npz files of `Ecal_K*`, whose calibration JSONs are tracked) and adds
+  the symlinks to the worktree's `.git/info/exclude`. The historical EB and reference files are still read through
+  `ABFFR_DATA_ROOT=/home/zheyuanlai/ABF-Fisher-Rao`. New blocks are created as real directories in the adaptive
+  worktree and symlinked here before launching, so `run_jobs.py` writes through the link.
+
+| block | dir | role |
+|---|---|---|
+| EB8 | `EB8_ite300_K8_T6400_R1` | K8 × T6400 frontier cell, both arms, R1, rate 1.0, saves every 1 t.u. |
+| EB4 | `EB4_ite300_K4_T12800_abf` | K4 × T12800, ABF only, saves every 1 t.u. |
+| EB1 | `EB1_ite300_K1_T51200_abf` | K1 × T51200, ABF only, saves every 1 t.u. |
+| Ecal_K8 / Ecal_K4 | `Ecal_K{8,4}` | blind safety calibration rungs 1.0 / 0.5 / 0.2 (JSONs copied to `analysis/frcal_K{8,4}.json`) |
+
+* **New analysis outputs.** `analysis/E_frontier.json` (eight configurations; new keys `nested_bootstrap`,
+  `question_B_verdict_nested`, `save_resolution_force_evals`), `analysis/E_frontier_ext.json` (+ `_curves.npz`; the 12
+  configurations K1..K1024), `analysis/EB8.json`, `analysis/E_establishment.json`
+  (`scripts/adaptive_fr/establishment_frontier.py`), figures `equal_budget_frontier_ext` (3c) and
+  `establishment_frontier` (9). `reproduce_analyses.sh` runs all of them.
+* **Job files.** `configs/adaptive_fr/jobs_{EB8_rate1, EB4_abf, EB1_abf, Ecal_K8_ladder, Ecal_K4_ladder}.json` from
+  `make_jobs.py {EB8_rate1, EB4_abf, EB1_abf, Ecal_K8_rate*, Ecal_K4_rate*}`.
+* **Results (EFFICIENCY.md §7–8; FINAL_SYNTHESIS.md).** Nested best-vs-best CI on the eight configurations 1.04
+  [0.78, 1.28] (fixed [0.74, 1.33]). EB8: S_geo 1.03 [0.72, 1.42], UNRESOLVED; establishment 4.5 → 4.5 t.u. at 1 t.u.
+  resolution; R1 stopped at a median 16.5 t.u. Extended frontier: best ABF = K1 (0.170 × 10⁸), best FR = K16 (0.188);
+  best FR / best ABF 1.10, fixed [0.75, 1.51], nested [0.87, 1.43], UNRESOLVED; ABF flat from K1 to K64; no K4 FR arm
+  (R1's backstops cannot fire at K4). Cost 21.8 core-h; campaign ≈ 65.9 / 100.
+* **Open items added by E-A3.**
+  1. The kT ladder is reached in the first 3–5 % of the budget for K ≤ 16, so the small-K frontier compares early
+     transients, and the end-of-budget error orders the allocations differently (ABF K1 worst of K ≤ 64). A tighter
+     ladder for small K would need a fresh preregistration.
+  2. Below K64 the allocations differ by ≤ 1.4× while 16 unpaired seeds resolve ≈ ±35 %; resolving the flat minimum
+     would need paired-across-K designs or several times the seeds.
+  3. R1 stops 3–4× past establishment at K8 because its directedness statistic sees ≈ 12 events per run; R1 is not
+     validated below K256 and should not be used there without a small-K variant.

@@ -385,3 +385,14 @@
   * **Order.** Commit this amendment → launch EB4, EB1 and the K8 / K4 calibration ladders concurrently (64 + 18
     single-threaded processes) → select the K8 rate blind → launch EB8. No production file is read before its block
     is complete.
+* **Erratum to E-A3 (11:33 UTC, timing record only; no rule or statistic changes).** E-A3's header time "about 11:35
+  UTC" was an estimate written into the text. The amendment was committed at **11:28:15** (4e848bb5), before the
+  launches of the K8 / K4 calibration ladders, EB4 and EB1 (11:28:15) and of EB8 (11:29:40), all in
+  `logs/launches.tsv`. The header is left as written; this erratum is the record.
+* **Erratum 2 to E-A3 (12:05 UTC, arithmetic in the text only; the rule is unchanged and was applied as written).**
+  E-A3 states the all-in common budget of the extended set as "5.125 × 10⁸ (K1: 51 200 000 + 50 000 equilibration
+  steps)". K1's run is 512 000 000 steps, so the figure is 512 050 000 = **5.1205 × 10⁸**, 0.01 % above the production
+  budget and 0.15 % below the eight-configuration all-in budget 5.128 × 10⁸. The rule, "min over all configurations",
+  is what the script computes; the all-in medians of the eight earlier configurations are unchanged to four decimals.
+  The matched-save-grid re-read of the E-A3 cells (EFFICIENCY.md §8.4, item 5) is a post-hoc sensitivity analysis that
+  was not preregistered; it is labelled as such and changes no verdict.

@@ -35,3 +35,13 @@ resource.**
 | date (UTC) | item | CPU core-h | campaign total | aggregate |
 |---|---|---|---|---|
 | 10-17 11:21–11:22 | E-A3 timing pilot: 3 concurrent scratch ABF runs of 2 × 10⁶ steps (K8 12.8, K4 7.4, K1 2.7 µs/step; + warm-up) | 0.02 | ≈ 44.1 | ≈ 242.5 |
+| 11:28–11:29 | K8 and K4 blind calibration ladders (2 × 9 runs, T 50) | 0.045 | ≈ 44.2 | ≈ 242.6 |
+| 11:28–11:49 | **EB4** (16 ABF runs, K4 × T12800, 1 t.u. saves; 1147 s median wall) | 5.110 | ≈ 49.3 | ≈ 247.7 |
+| 11:28–11:57 | **EB1** (16 ABF runs, K1 × T51200, 1 t.u. saves; 1617 s median wall) | 7.265 | ≈ 56.5 | ≈ 254.9 |
+| 11:30–11:49 | **EB8** (32 runs, K8 × T6400, R1, rate 1.0, 1 t.u. saves; 1048 / 1040 s median wall ABF / FR) | 9.298 | ≈ 65.8 | ≈ 264.2 |
+| 11:57–12:10 | analyses (EB8, extended frontier, matched grid, establishment), figures, reproduction run, documents | ~0.1 | ≈ 65.9 | ≈ 264.3 |
+
+**E-A3 total ≈ 21.8 core-h against the pilot-based estimate of 17.7 (host load ≈ 130 during the runs, 80 of ours;
+per-step cost 16.4 / 9.0 / 3.2 µs at K8 / K4 / K1 against 12.8 / 7.4 / 2.7 in the pilot at load 10). Campaign total
+≈ 65.9 of 100 authorised CPU core-h; aggregate ≈ 264.3 of ≈ 298.4. No GPU; no external or paid resource. Disk: 5.7 GB
+of run files in the data root.**

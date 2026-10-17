@@ -34,8 +34,15 @@
    FR was slower in all 16 seeds. In the small-K ITE cells (K64, K16) it was unresolved, not harmful.
 3. **No allocation of ABF + FR was shown to beat the best tested allocation of plain ABF**, at equal force evaluations
    or in parallel wall-clock.
-   * Best FR / best ABF is 1.04 [0.74, 1.33] in force evaluations and 1.03–1.07 in wall-clock, all unresolved.
-   * The point estimates are on ABF's side, but the CIs allow FR to be up to about 26 % cheaper.
+   * On the eight configurations K16–K1024, best FR / best ABF is 1.04 [0.74, 1.33] in force evaluations (1.04
+     [0.78, 1.28] with the selection of the best K re-done in every bootstrap replicate, EFFICIENCY.md §7) and
+     1.03–1.07 in wall-clock, all unresolved.
+   * With the frontier extended to K8, K4 and K1 (amendment E-A3, 2026-10-17; EFFICIENCY.md §8) the best ABF allocation
+     moves to K1 and the best FR allocation stays at K16: **1.10, fixed selection [0.75, 1.51], nested [0.87, 1.43],
+     UNRESOLVED.** The point estimates are on ABF's side; the CIs allow FR to be from 13 % cheaper to 43 % dearer.
+   * ABF's cost is flat from K1 to K64 within the resolution of 16 unpaired seeds; the frontier has no resolved minimum
+     to bracket. FR cannot run below K8 under the genealogical safety rules, and at K8 it neither shortens establishment
+     (4.5 → 4.5 t.u., resolved at 1 t.u.) nor changes the error (S_geo 1.03 [0.72, 1.42]).
 4. **What limits FR is largely characterised (exploratory).**
    * FR shortens the early establishment transient; a longer run with fewer replicas also dilutes that transient, at
      lower cost.
@@ -69,9 +76,31 @@ The improvement is modest and concentrated early.
 * **K256 is far from optimal for ABF.** ABF K64 costs 0.26× ABF K256.
 * **FR's paired fixed-K advantage becomes unresolved as K approaches ABF's best tested allocation.** S_geo is 1.67
   at K1024, 1.31 at K256, 1.11 [0.92, 1.33] at K64 and 0.93 [0.70, 1.29] at K16.
-* **The frontier is not bracketed.** K16 vs K64 is unresolved for both algorithms, and nothing below K16 was tested.
+* **The frontier is not bracketed (as of E-A2).** K16 vs K64 is unresolved for both algorithms, and nothing below K16
+  was tested. Superseded by E-A3, below.
 * **The K16 cell was prompted by the data.** It was added by amendment E-A2 because the six-configuration frontier
   put both optima at K64, then the smallest K tried. It was committed before any K16 run.
+
+**Update, 2026-10-17 (nested bootstrap and amendment E-A3; EFFICIENCY.md §7–8).**
+* **The published best-vs-best CI omitted selection uncertainty** (the best K was chosen on the scoring data and held
+  fixed in the bootstrap). Re-selecting the best K in every replicate gives 1.04 [0.78, 1.28] on the eight
+  configurations: not wider, because K16 is re-selected for both algorithms in 87 % of replicates and the minimum over K
+  compresses the upper tail. Verdict unchanged.
+* **The frontier was extended to K8 (both arms, rate 1.0 from the blind calibration), K4 and K1 (ABF only), all saving
+  every 1 t.u.** Best ABF = K1 (0.170 × 10⁸), best FR = K16 (0.188): best FR / best ABF = 1.10, fixed [0.75, 1.51],
+  nested [0.87, 1.43], UNRESOLVED; P(ratio < 1) = 0.19. ABF K1 / ABF K16 = 0.94 [0.62, 1.38]; FR K8 / FR K16 = 1.06
+  [0.75, 1.37]; ABF K4 / K16 = 1.32 [0.83, 1.66]. Nothing in K ≤ 64 is resolvably different from anything else in
+  K ≤ 64: ABF's cost is 0.17–0.24 × 10⁸ at every K from 1 to 64. The frontier is explored to its floor for ABF (K1) and
+  to its safety floor for FR (K8); it has a flat minimum, not a bracketed optimum.
+* **Why no K4 FR arm.** R1's genealogical backstops (lineage > max(0.10, 6/K), ESS/K < 0.15) cannot fire at K4 (1.5 and
+  0.25), so the preregistered criterion for a K4 FR arm failed by arithmetic. The diagnostic K4 calibration showed
+  0–10 replacements in 50 t.u. and one family holding half the population for 13–25 % of saves. The safety limits were
+  not relaxed.
+* **Caveat on the statistic at small K.** The ladder's tightest rung (0.080 kJ/mol) is reached in the first 3–5 % of
+  the budget for K ≤ 16, so the small-K frontier is a frontier of the early transient; by the end-of-budget error ABF
+  K1 is the worst of K ≤ 64 (0.027 kJ/mol) and FR K16's error is lower than ABF K1's (0.84 [0.59, 1.13]). A
+  matched-save-grid re-read (the new cells subsampled to the earlier cells' 1.28 × 10⁶-force-evaluation grid) moves
+  every point estimate further to ABF's side (best FR / best ABF 1.27, nested [0.89, 1.56]) and resolves nothing.
 
 ### 3. Can an online, reference-free rule decide when to stop FR?
 
@@ -108,6 +137,10 @@ The improvement is modest and concentrated early.
 * **Where establishment is already fast, there is almost nothing to remove:** ERI 2.1 → 1.9.
 * **K64 and K16 are uninformative here.** Their save grids are 2 and 8 t.u., too coarse to see a gain of about 1.5
   t.u.; their 4.0 → 4.0 and 8.0 → 8.0 are resolution artefacts.
+* **K8, saved every 1 t.u. (E-A3), is informative and shows no gain:** 4.5 → 4.5 t.u. (paired difference 0.0
+  [−0.5, 0.0]; FR shorter in 4/16 seeds). ABF's own establishment is 4.25–4.5 t.u. at every K from 1024 down to 8 where
+  it is resolved, 6 t.u. at K4 and 27 t.u. at K1. R1 stopped later as K fell (5.5 → 16.5 t.u.) although establishment
+  did not move, because its directedness statistic is built from fewer events (12 per K8 run).
 * **S_geo roughly follows the size of the delay removed** (paired median reduction → S_geo; resolved cells only):
 
   | cell | delay removed (t.u.) | S_geo |
@@ -147,9 +180,9 @@ not confined to newly cloned walkers. All of the following is exploratory.
 | question | answer |
 |---|---|
 | fixed K (paired) | FR helps at K1024 (1.67) and K256 (1.31); unresolved at K64 (1.11 [0.92, 1.33]) and K16 (0.93 [0.70, 1.29]) |
-| equal force evaluations, same K | FR/ABF cost 0.58 at K1024, 0.83 at K256, 1.02 at K64, 1.04 at K16 |
-| equal force evaluations, best vs best | 1.04 [0.74, 1.33], UNRESOLVED (best = K16 for both) |
-| all-in | same (1.04 [0.75, 1.31]) |
+| equal force evaluations, same K | FR/ABF cost 0.58 at K1024, 0.83 at K256, 1.02 at K64, 1.04 at K16, 1.03 at K8 (E-A3) |
+| equal force evaluations, best vs best | eight configurations: 1.04 [0.74, 1.33] fixed selection, [0.78, 1.28] nested, UNRESOLVED (best = K16 for both); K1–K1024 (E-A3): 1.10 [0.75, 1.51] fixed, [0.87, 1.43] nested, UNRESOLVED (best ABF K1, best FR K16) |
+| all-in | same: 1.04 [0.75, 1.31]; K1–K1024 1.16 [0.79, 1.58], nested [0.88, 1.48] |
 | FR overhead per step | −2 to +1 % in single-thread production runs; −5 to +6 % in benchmarks for K ≤ 256 or one thread; +5 to +15 % at K1024 with 4–32 threads |
 | parallel wall-clock, best vs best | 1.03–1.07 at 1–32 threads, all UNRESOLVED |
 | best wall-clock configuration | ABF K16 at 1 thread; ABF K64 at 4–32 threads (10.8 s at 16 threads vs 76.6 s for ABF K1024 at 32) |
@@ -175,12 +208,15 @@ Therefore:
   1. **Applicability test.** There is no online test of whether ABF is establishment-limited before committing to FR.
      ERI shows the cost of running FR where ABF is not establishment-limited: about 1.6× ABF's time to accuracy
      (S_geo 0.61) and +55 % final error. R1 cannot detect that.
-  2. **Equal-cost advantage.** None was shown on the one system where the frontier was measured (CIs wide, point
-     estimates on ABF's side). ABF's own allocation is the larger lever there.
+  2. **Equal-cost advantage.** None was shown on the one system where the frontier was measured, now from K1 to K1024
+     (CIs wide, point estimates on ABF's side, 1.10 best vs best with the selection-aware CI [0.87, 1.43]). ABF's own
+     allocation is the larger lever there, and below K64 its cost is flat within what 16 seeds resolve.
   3. **Late-bias mechanism.** It is identified only as population-level; there is no design that would let FR run
      longer safely.
-  4. **Small K.** R1 has not been validated below K256. At K64 and K16 it ran and stopped, and the comparison was
-     unresolved.
+  4. **Small K.** R1 has not been validated below K256. At K64, K16 and K8 it ran and stopped every run, and the
+     comparison was unresolved each time; at K8 it stopped 3–4× later than establishment because its statistic sees
+     only 12 events per run. Below K8 FR cannot run under the genealogical safety rules (R1's backstops cannot fire at
+     K4), which was reported rather than relaxed.
 * **Novelty.** The closest prior art is selection/resampling in adaptive biasing (Lelièvre–Rousset–Stoltz 2007 and
   descendants). An "accelerator" framing is not supported by the equal-budget evidence. What is supported is "a
   reference-free schedule that makes marginal FR useful at fixed K in the establishment-limited systems tested". It is
@@ -188,7 +224,7 @@ Therefore:
 
 ## Compute
 
-* **Campaign total.** About 44.1 of the 100 authorised CPU core-h (COMPUTE_LEDGER.md); aggregate about 242.5 of about
-  298.4.
+* **Campaign total.** About 65.9 of the 100 authorised CPU core-h (COMPUTE_LEDGER.md; 44.1 before amendment E-A3,
+  21.8 for it); aggregate about 264.3 of about 298.4.
 * **Hardware.** No GPU and no external or paid resource were used.
 * **Seeds.** No seed was dropped. Every confirmatory cell has 16/16 paired seeds.

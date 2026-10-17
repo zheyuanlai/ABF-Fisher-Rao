@@ -144,3 +144,54 @@ Times are UTC (`date -u` or git).
 * **08:25 — figure 7b** (`mechanism_meanforce_genealogy`): per-bin late-half mean-force error by clone age (D2) and
   FR genealogy over time in the C cells.
 
+
+## Amendment E-A3 — frontier bracket below K16 (2026-10-17, branch `claude/priceless-rubin-9602df`)
+
+* **11:15–11:21 — set-up.** Worktree of `main` 6716aefc. Data root linked (`link_data.sh` with the adaptive worktree
+  as second argument; the run files stay in `/home/zheyuanlai/ABF-Fisher-Rao-adaptive/results/adaptive_fr_campaign`).
+  `equal_budget_frontier.py` re-run unchanged: `E_frontier.json` byte-identical to 6716aefc.
+* **11:21:44–11:22:16 — timing pilot** (three concurrent scratch ABF runs of 2 × 10⁶ steps, 1 t.u. saves, deleted):
+  12.8 µs per step at K8, 7.4 at K4, 2.7 at K1 (load 10). Cost of E-A3 ≈ 17.7 core-h, not the ≈ 30 of the brief.
+* **11:25 — nested bootstrap added** to `equal_budget_frontier.py` (new keys only; every old key byte-identical,
+  checked key by key; `wallclock_tta.py` output and the frontier PNG unchanged). Production: fixed selection
+  1.041 [0.739, 1.326]; nested 1.041 [0.781, 1.281] (99 % [0.686, 1.428]); K16 re-selected for both algorithms in
+  86.7 % of replicates; P(ratio < 1) 0.30. UNRESOLVED either way. EFFICIENCY.md §7. Committed c0ed6a59.
+* **11:28:15 — amendment E-A3 committed** (4e848bb5): cells EB8 (K8 × T6400, both arms), EB4 (K4 × T12800, ABF),
+  EB1 (K1 × T51200, ABF); 1 t.u. save grid; blind K8 / K4 calibration; the K4 FR criterion; verdict rules; cost.
+* **11:28:15 — launched** the K8 and K4 calibration ladders (9 + 9 runs, done in 12 s and 8 s) and EB4 (16) and EB1
+  (16).
+* **11:29 — K8 blind calibration.** Every rung SAFE: min median ESS/K 0.57 / 0.57 / 0.50 (rates 0.2 / 0.5 / 1.0),
+  max median lineage 0.375 / 0.250 / 0.375 against the limit 3/K = 0.375, replacements 0.2 / 0.4 / 0.8 per t.u.
+  against 16. **Largest safe rung selected: rate 1.0.** The lineage criterion rejected nothing; the medians touched
+  the limit (3 of 8 walkers in one family) at rates 1.0 and 0.2. Individual seeds at rate 1.0 held 4 of 8 in one
+  family at 0.3–3.8 % of saves. Events are rare: 35–41 replacements in 50 t.u. at rate 1.0 (one event per ≈ 1300
+  opportunities).
+* **11:29 — K4 calibration (diagnostic only).** 0–10 replacements in 50 t.u. (0–0.2 per t.u.); at rates 0.5–1.0 one
+  family held half the population for 13–25 % of saves, and one seed reached 3 of 4 (0.75). Under the standard
+  criteria every rung is "safe" (limit 3/K = 0.75), which is why E-A3 required more. **Condition (i) of E-A3 fails
+  by arithmetic** (R1's backstops 1.5 and 0.25 can never fire at K4), so **no K4 FR arm is run.**
+* **11:29:40 — EB8 launched** (32 runs, K8 × T6400, rate 1.0, R1).
+* **11:48:36 — EB4 done** (5.110 core-h; 1147 s median per run). **11:49:00 — EB8 done** (9.298 core-h; 1048 / 1040 s
+  ABF / FR). **11:56:47 — EB1 done** (7.265 core-h; 1617 s). All 80 runs completed; no checkpoint was needed.
+* **11:57 — EB8 analysed** (`analyze_online.py`, frozen). **UNRESOLVED**: S_geo 1.029 [0.722, 1.419] (99 % [0.704,
+  1.433]); 8/16. R1 stopped every run as "established", median 16.5 t.u. (11.5–24.5); 12 replacements per run (8–24);
+  genealogy during FR: min ESS/K 0.571, max lineage 0.375. Establishment 4.5 → 4.5 t.u. on the 1 t.u. grid (paired
+  0.0 [−0.5, 0.0]). Every secondary unresolved.
+* **11:58 — extended frontier** (`equal_budget_frontier.py` → `E_frontier_ext.json`; `E_frontier.json` unchanged in
+  every published key). Best ABF = **K1** (0.170 × 10⁸), best FR = K16 (0.188). Best FR / best ABF **1.105 [0.752,
+  1.514]** fixed, **nested [0.866, 1.430]** (99 % [0.816, 1.551]; P(< 1) 0.19; ABF K1 selected in 70 % of replicates,
+  FR K16 in 60 %, FR K8 in 39 %) → UNRESOLVED. ABF K1 / K16 0.942 [0.620, 1.379]; ABF K8 / K16 1.075 [0.714, 1.493];
+  ABF K4 / K16 1.317 [0.830, 1.661]; FR K8 / K16 1.063 [0.750, 1.367]. By the E-A3 rules: ABF-below-K16 UNRESOLVED,
+  FR-below-K16 UNRESOLVED, no resolved minimum to bracket (flat K1–K64).
+* **12:00 — post-hoc sensitivity**: the E-A3 cells re-read on the earlier cells' 1.28 × 10⁶-FE save grid
+  (`E_frontier_ext_matched.json`): ABF K1 0.147, K8 0.184, K4 0.227; best FR / best ABF 1.271 [0.812, 1.719], nested
+  [0.888, 1.556]; still UNRESOLVED; the finer grid had biased the primary comparison against the new cells.
+* **12:01 — establishment at every K** (`establishment_frontier.py` → `E_establishment.json`; figure 9). Frozen
+  measure, ABF: 4.25 (K1024), 4.5 (K256), 4.5 (K8), 6.0 (K4), 27.0 (K1) t.u.; K64 / K16 unresolved on their grids.
+  Deposit-share measure: 4.4 / 4.5 / 7.0 / 7.0 / 22.0. FR: −1.75 (K1024), −1.5 (K256), 0.0 (K8).
+* **12:03 — reproduction run** (`reproduce_analyses.sh`, 58 s): every analysis JSON and PNG byte-identical to the
+  committed versions; only PDF timestamps differ. Production rows of the eight earlier configurations identical between
+  `E_frontier.json` and `E_frontier_ext.json`; all-in medians unchanged to four decimals at the new common budget
+  5.1205 × 10⁸.
+* **12:05–12:12 — documents**: EFFICIENCY.md §8 (and §1 pointer, §2 K8 row), FINAL_SYNTHESIS.md (headline 3, Q2
+  update, Q5, Q7 table, §8, compute), STATUS.md, HANDOFF.md §5, COMPUTE_LEDGER.md, PREREGISTRATION.md errata.

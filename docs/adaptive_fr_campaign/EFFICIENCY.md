@@ -41,6 +41,13 @@ FR's per-step overhead is small:
 Overhead is therefore not the main reason FR does not win. The likely reason is that its acceleration acts on a
 transient the efficient allocation has already diluted (MECHANISM.md §1.2, reading 5).
 
+**Added 2026-10-17 (§7, §8).** The best-vs-best interval above held the selected configurations fixed; with the
+selection re-done in every bootstrap replicate it is 1.04 [0.78, 1.28] on the eight configurations (§7). With the
+frontier extended to K8, K4 and K1 (amendment E-A3, §8) the best ABF allocation moves to K1 and the best FR allocation
+stays at K16: best FR / best ABF = **1.10, fixed selection [0.75, 1.51], nested [0.87, 1.43], UNRESOLVED**. ABF's cost
+is flat from K1 to K64 within the resolution of 16 unpaired seeds, so the frontier has no resolved minimum to bracket;
+it is now explored to its floor (K1) for ABF and to its safety floor (K8) for FR.
+
 ## 2. Fixed K: the paired two-arm cells (each confirmatory for its own comparison)
 
 | K × T (t.u.) | block | FR rate | R1 stop, t.u.: median (range) | **S_geo [95 % CI]** | FR faster | post-ramp Ī_F | e_F(T) | window establishment ABF → FR |
@@ -50,9 +57,11 @@ transient the efficient allocation has already diluted (MECHANISM.md §1.2, read
 | 256 × 200 | A (fixed stop 10) | 1.0 | 10 (fixed) | 1.28 [0.90, 1.43] UNRESOLVED | 11/16 | −15 % | −1 % [−14, +14] | 4.5 → 3.0 |
 | 64 × 800 | EB64 | 0.2 | 7.5 (6.5–9.0) | 1.11 [0.92, 1.33] UNRESOLVED | 9/16 | +1 % [−11, +15] | −1 % [−15, +19] | 4.0 → 4.0 (save grid 2 t.u.) |
 | 16 × 3200 | EB16 | 1.0 | 11.0 (9.0–14.0) | 0.93 [0.70, 1.29] UNRESOLVED | 7/16 | +10 % [−14, +21] | +3 % [−10, +19] | 8.0 → 8.0 (save grid 8 t.u.) |
+| 8 × 6400 | EB8 (E-A3) | 1.0 | 16.5 (11.5–24.5) | 1.03 [0.72, 1.42] UNRESOLVED | 8/16 | +2 % [−12, +11] | +3 % [−10, +21] | 4.5 → 4.5 (save grid 1 t.u.; resolved) |
 
-**Establishment resolution.** Establishment is read at saves. Every frontier cell saves every 1.28 × 10⁶ force
-evaluations, which is 0.125 t.u. at K1024, 0.5 at K256, 2 at K64 and 8 at K16. So the K64 and K16 establishment
+**Establishment resolution.** Establishment is read at saves. Every frontier cell of E.3 / E-A2 saves every 1.28 × 10⁶
+force evaluations, which is 0.125 t.u. at K1024, 0.5 at K256, 2 at K64 and 8 at K16; the E-A3 cells (K8, K4, K1) save
+every 1 t.u. (§8). So the K64 and K16 establishment
 values cannot show a gain of the size seen at K256 (1.5 t.u.), and the K16 value only says both arms were
 established by the first save. Time to accuracy in force evaluations has the same resolution at every K.
 
@@ -232,3 +241,194 @@ fixed choice (K16, K16) is re-selected in 86.7 % of replicates (95.6 % all-in). 
 * The statement to quote is: the best tested FR allocation costs 1.04× the best tested ABF allocation, 95 %
   [0.78, 1.28] with the selection re-done in every replicate, [0.74, 1.33] with the selection held fixed.
 * Neither interval addresses the second reviewer point, that nothing below K16 was tested; amendment E-A3 does.
+
+## 8. Amendment E-A3: the frontier below K16 (K8 both arms; K4 and K1 ABF; 1 t.u. save grid)
+
+*Preregistered: `PREREGISTRATION.md` E-A3, committed 4e848bb5 at 11:28:15 UTC on 2026-10-17, before any K < 16 run
+(the header's "about 11:35" is an estimate; see the erratum). Prompted by data (E.3 + E-A2 put both optima at K16, the
+smallest K tried) and by a reviewer (selection on the scoring data, §7; frontier not bracketed). Scripts:
+`analyze_online.py` (EB8), `equal_budget_frontier.py` (E_frontier_ext), `establishment_frontier.py`. Outputs:
+`analysis/{EB8, E_frontier_ext, E_frontier_ext_matched, E_establishment, frcal_K8, frcal_K4}.json`. Figures 3c
+(`equal_budget_frontier_ext.png`) and 9 (`establishment_frontier.png`).*
+
+### 8.1 Cells, cost, save grid
+
+| block | K × T (t.u.) | arms | seeds | FR rate | saves | runs | core-h | wall per run (s), median (range) |
+|---|---|---|---|---|---|---|---|---|
+| EB8 | 8 × 6400 | ABF, ABF + FR(R1) | 1400000–015 | 1.0 (blind, §8.2) | every 1 t.u. = 8 × 10⁴ FE | 32 | 9.30 | ABF 1048 (983–1158); FR 1040 (991–1089) |
+| EB4 | 4 × 12800 | ABF only | 1410000–015 | – | every 1 t.u. = 4 × 10⁴ FE | 16 | 5.11 | 1147 (1079–1219) |
+| EB1 | 1 × 51200 | ABF only | 1420000–015 | – | every 1 t.u. = 10⁴ FE | 16 | 7.27 | 1617 (1575–1710) |
+| Ecal_K8, Ecal_K4 | T 50, rates 1.0 / 0.5 / 0.2 × 3 seeds | FR only | 1430000–2, 1440000–2 | – | every 0.125 t.u. | 18 | 0.045 | 6–12 |
+
+* **Cost.** 21.8 core-h including the pilot (0.02) and analyses (≈ 0.1), against the pilot-based estimate of 17.7:
+  the host's 1-minute load was ≈ 130 during the runs (80 of ours), and the per-step cost rose to 16.4 µs at K8, 9.0 at
+  K4 and 3.2 at K1 (pilot at load 10: 12.8, 7.4, 2.7). Campaign total ≈ 65.9 of 100 core-h.
+* **FR overhead.** −1 % per run at K8 (FR active for 11.5–24.5 of 6400 t.u.).
+* **Save grid.** The E-A3 cells save every 1 t.u.; time to accuracy is therefore read at 8 × 10⁴, 4 × 10⁴ and 10⁴
+  force evaluations against 1.28 × 10⁶ in every earlier cell. No earlier cell was re-run: the production rows of the
+  eight earlier configurations in the extended table are identical to §3 (checked key by key), and `E_frontier.json`
+  keeps every published key byte for byte. The all-in common budget of the extended set is 5.1205 × 10⁸ (K1's run
+  plus its 50 000 equilibration steps; E-A3's text said 5.125 × 10⁸ by an arithmetic slip, see the erratum); the
+  all-in medians of the eight earlier configurations are unchanged to four decimals.
+* **Disk.** 5.7 GB of run files (1 t.u. saves), in the data root only.
+
+### 8.2 Blind calibration at K8; why there is no K4 FR arm
+
+K8, T 50 continuous FR, 3 seeds, median over seeds (`frcal_K8.json`; criteria ESS/K ≥ 0.30, lineage ≤ 3/K = 0.375,
+≤ 2K = 16 replacements per t.u.):
+
+| rate | min median ESS/K | max median lineage share (limit 0.375) | replacements per t.u. (limit 16) | safe |
+|---|---|---|---|---|
+| 0.2 | 0.571 | 0.375 | 0.2 | yes |
+| 0.5 | 0.571 | 0.250 | 0.4 | yes |
+| 1.0 | 0.500 | 0.375 | 0.8 | yes |
+
+* **Rate 1.0 selected** (largest safe rung), the same as at K16.
+* **Did the lineage criterion constrain anything?** No rung was rejected. The medians sat exactly on the limit (3 of 8
+  walkers in one family) at rates 1.0 and 0.2; individual seeds at rate 1.0 held 4 of 8 in one family at 0.3–3.8 % of
+  saves. So the criterion was touched but not binding, and a 4-of-8 family in the median would have failed it.
+* **FR at K8 is a rare pairwise event, not a marginal reallocation.** 35–41 replacements in 50 t.u. at rate 1.0, one
+  event per ≈ 1300 opportunities. The score is the recentred log-ratio of an 8-point KDE (bandwidth 0.10 rad on 180
+  bins) to the uniform target; it is non-zero only when two walkers sit within about two bandwidths, so the operator
+  acts as an occasional repulsion between walker pairs. In production, 12 replacements per run (range 8–24) before R1
+  stopped; 22 at K16, 13 at K64 (weaker rate), 163 at K256, 611 at K1024.
+* **K4: no FR arm, by the criterion stated in E-A3.** Condition (i), that R1's genealogical backstops can fire, fails by
+  arithmetic at K4 (lineage limit max(0.10, 6/K) = 1.5 ≥ 1; ESS floor 1/K = 0.25 ≥ 0.15): an R1-stopped K4 FR arm would
+  run with no genealogical protection at all. The diagnostic K4 calibration (`frcal_K4.json`) shows what that would
+  mean: 0–10 replacements in 50 t.u.; at rates 0.5–1.0 one family held half the population for 13–25 % of saves and one
+  seed reached 3 of 4 (0.75). Under the standard criteria every K4 rung is "safe" (limit 3/K = 0.75), i.e. the
+  criterion is vacuous there. **This is the genealogy requirement small-K FR fails; it was reported, not relaxed.** K1
+  has nothing to reallocate.
+
+### 8.3 EB8: the paired K8 cell (confirmatory for its own comparison)
+
+* **PRIMARY S_geo 1.029 [0.722, 1.419]** (99 % [0.704, 1.433]); FR faster in 8/16 seeds → **UNRESOLVED.** Per rung
+  (0.200 → 0.080 kJ/mol): 1.02 [0.83, 1.29], 1.00 [0.78, 1.43], 1.10 [0.75, 2.22], 0.94 [0.54, 1.52], 1.02
+  [0.89, 1.75]; every rung reached by every seed in both arms.
+* **Integrity.** Bitwise paired before FR start 16/16; equal force evaluations; zero events after any stop; no run
+  never stopped.
+* **R1 at K8.** Stopped every run as "established" (none by the safety backstop): median 16.5 t.u., IQR 13.9–18.5,
+  range 11.5–24.5. That is later than at K16 (11.0), K64 (7.5), K256 (6.5) and K1024 (5.5), while the establishment
+  it tracks stays at 4.5 t.u. (§8.5): with 12 events per run the directedness statistic is too sparse for its "low"
+  test to persist, so FR stays on 3–4× past establishment with no measurable effect.
+* **Genealogy during FR** (medians over seeds): min windowed ESS/K 0.571, max lineage share 0.375 (= the calibration
+  limit; 3 of 8 walkers), 12 replacements.
+* **Secondaries (FR − ABF, paired, median [95 % CI], FR better in n/16).** Post-ramp Ī_F +1.9 % [−12.2, +10.6], 7;
+  early-window Ī_F −2.7 % [−11.7, +5.8], 11; late-window Ī_F +8.0 % [−20.4, +19.5], 7; e_F(T) +3.0 % [−10.2, +20.6],
+  8; e_F′(T) +3.4 % [−5.2, +9.9], 5; post-stop-deposit estimate +4.3 % [−9.1, +20.3], 7. Translocations 1704 vs 1719.
+  All unresolved; the only sign of FR's early effect is the 11/16 early-window count.
+* **Establishment, resolved at 1 t.u. for the first time below K256.** Frozen measure 4.5 → 4.5 t.u. (paired
+  difference 0.0 [−0.5, 0.0]; FR shorter in 4/16, equal in 9); deposit-share measure 7.0 → 6.5 (0.0 [−1.0, 0.0]; FR
+  shorter in 6/16, equal in 7). **At K8 FR does not shorten establishment.** The resolved gains were −1.75 t.u. at
+  K1024 and −1.5 at K256 (16/16 each).
+
+### 8.4 The extended frontier K1–K1024 (descriptive, unpaired across K)
+
+Same statistic as §3; B = 5.12 × 10⁸ at every K. Median over 16 seeds [bootstrap 95 % CI of the median]; per-rung
+median restricted τ (seeds that reached the rung); e_F at B; τ in t.u.; the save resolution at which τ is read.
+
+| configuration | median geo τ_B (10⁸) [95 % CI] | 0.200 | 0.160 | 0.120 | 0.100 | 0.080 | e_F at B (kJ/mol) | τ in t.u. | τ resolution (FE) |
+|---|---|---|---|---|---|---|---|---|---|
+| ABF K1024 | 3.299 [2.702, 3.465] | 1.97 (16) | 2.50 (16) | 3.48 (16) | 4.20 (15) | 5.12 (7) | 0.0831 | 32.2 | 1.28 × 10⁶ |
+| FR K1024 | 1.907 [1.685, 2.095] | 1.07 (16) | 1.32 (16) | 1.92 (16) | 2.53 (16) | 3.44 (16) | 0.0503 | 18.6 | 1.28 × 10⁶ |
+| ABF K256 | 0.931 [0.853, 1.071] | 0.57 (16) | 0.68 (16) | 0.95 (16) | 1.29 (16) | 1.66 (16) | 0.0344 | 36.4 | 1.28 × 10⁶ |
+| FR K256 | 0.770 [0.518, 0.893] | 0.41 (16) | 0.53 (16) | 0.76 (16) | 1.06 (16) | 1.40 (16) | 0.0314 | 30.1 | 1.28 × 10⁶ |
+| ABF K64 | 0.241 [0.176, 0.397] | 0.13 (16) | 0.19 (16) | 0.29 (16) | 0.35 (16) | 0.47 (16) | 0.0243 | 37.7 | 1.28 × 10⁶ |
+| FR K64 | 0.246 [0.191, 0.292] | 0.12 (16) | 0.13 (16) | 0.26 (16) | 0.32 (16) | 0.48 (16) | 0.0242 | 38.5 | 1.28 × 10⁶ |
+| ABF K16 | 0.180 [0.158, 0.243] | 0.09 (16) | 0.12 (16) | 0.17 (16) | 0.22 (16) | 0.56 (16) | 0.0201 | 112.7 | 1.28 × 10⁶ |
+| **FR K16** | **0.188 [0.168, 0.237]** | 0.08 (16) | 0.13 (16) | 0.20 (16) | 0.26 (16) | 0.39 (16) | 0.0228 | 117.3 | 1.28 × 10⁶ |
+| ABF K8 | 0.194 [0.157, 0.271] | 0.07 (16) | 0.10 (16) | 0.22 (16) | 0.28 (16) | 0.61 (16) | 0.0206 | 242.2 | 8 × 10⁴ |
+| FR K8 | 0.199 [0.147, 0.249] | 0.07 (16) | 0.10 (16) | 0.14 (16) | 0.35 (16) | 0.54 (16) | 0.0228 | 249.2 | 8 × 10⁴ |
+| ABF K4 | 0.237 [0.173, 0.288] | 0.09 (16) | 0.15 (16) | 0.27 (16) | 0.44 (16) | 0.54 (16) | 0.0237 | 593.0 | 4 × 10⁴ |
+| **ABF K1** | **0.170 [0.132, 0.252]** | 0.06 (16) | 0.09 (16) | 0.18 (16) | 0.29 (16) | 0.39 (16) | 0.0270 | 1697.5 | 10⁴ |
+
+| ratio of medians (independent bootstrap) | production | all-in (common budget 5.1205 × 10⁸) | matched save grid (§8.4, item 5) |
+|---|---|---|---|
+| **best FR (K16) / best ABF (K1), fixed selection** | **1.105 [0.752, 1.514]** | 1.155 [0.786, 1.578] | 1.271 [0.812, 1.719] |
+| **best FR / best ABF, nested (selection re-done per replicate)** | **1.105; 95 % [0.866, 1.430]; 99 % [0.816, 1.551]** | 1.141 (boot. median); [0.884, 1.480] | 1.221 (boot. median); [0.888, 1.556] |
+| P(best FR / best ABF < 1), nested | 0.19 | 0.15 | 0.10 |
+| verdict (nested; fixed agrees) | UNRESOLVED | UNRESOLVED | UNRESOLVED |
+| e_F at B, best FR / best ABF (fixed; nested) | 0.842 [0.588, 1.129]; 0.898 [0.608, 1.335] | 0.832 [0.585, 1.124] | – |
+| ABF K1 / ABF K16 | 0.942 [0.620, 1.379] | 0.901 [0.596, 1.316] | 0.818 [0.558, 1.278] |
+| ABF K8 / ABF K16 | 1.075 [0.714, 1.493] | 1.062 [0.709, 1.454] | 1.023 [0.661, 1.511] |
+| ABF K4 / ABF K16 | 1.317 [0.830, 1.661] | 1.269 [0.804, 1.594] | 1.261 [0.822, 1.577] |
+| ABF K1 / ABF K4 | 0.715 [0.511, 1.130] | 0.709 [0.509, 1.120] | 0.649 [0.500, 1.082] |
+| ABF K4 / ABF K8 | 1.225 [0.797, 1.629] | 1.195 [0.789, 1.592] | 1.233 [0.793, 1.748] |
+| ABF K16 / ABF K64 | 0.748 [0.439, 1.133] | 0.682 [0.425, 1.006] | 0.748 [0.439, 1.133] |
+| FR K8 / FR K16 | 1.063 [0.750, 1.367] | 1.047 [0.744, 1.333] | 1.066 [0.724, 1.321] |
+| FR K8 / ABF K8 | 1.029 [0.682, 1.414] | 1.026 [0.690, 1.404] | 1.084 [0.664, 1.546] |
+
+Nested-bootstrap selection frequencies (production): ABF K1 69.8 %, K16 17.0 %, K8 10.8 %, K4 1.4 %, K64 1.1 %;
+FR K16 59.9 %, K8 38.6 %, K64 1.6 %. The fixed pair (FR K16, ABF K1) is re-selected in 41.5 % of replicates.
+
+**Verdicts by the E-A3 rules.**
+1. **Does ABF's best allocation lie below K16? UNRESOLVED.** The best tested ABF allocation is K1 (0.170 vs 0.180 at
+   K16), but ABF K1 / ABF K16 = 0.94 [0.62, 1.38]. ABF's cost is 0.17–0.24 × 10⁸ at every K from 1 to 64 (a factor 1.4
+   between the extremes) while the unpaired CIs have half-widths of ±35–40 %. Nothing in K ≤ 64 is resolvably
+   different from anything else in K ≤ 64.
+2. **Does FR's best allocation lie below K16? UNRESOLVED.** Best FR stays at K16; FR K8 / FR K16 = 1.06 [0.75, 1.37].
+   K8 is the smallest K at which FR may run under the safety rules (§8.2).
+3. **Is the frontier bracketed from below?** For ABF there is nothing below K1 to test: the frontier is explored to its
+   floor, and no neighbour of the point-estimate minimum is resolvably worse. The honest description is **a flat
+   minimum from K1 to K64, not a bracketed optimum**. For FR, K8 is not resolvably worse than K16, so its frontier is
+   still unbracketed and cannot be extended under the safety rules.
+4. **Best FR / best ABF: UNRESOLVED by both intervals**, 1.10 with fixed selection [0.75, 1.51] and nested
+   [0.87, 1.43]. The point estimate moved from 1.04 (eight configurations) to 1.10 because ABF gained an allocation
+   (K1) that FR cannot use. The CIs allow FR to be from 13 % cheaper to 43 % dearer.
+5. **Sensitivity to the save grid (post hoc).** The sustained criterion is stricter on the 1 t.u. grid of the new cells
+   (16–128× more saves at which an excursion above ε can be caught), while τ is rounded up to the next save on the
+   coarse grid. Re-reading the E-A3 cells on the 1.28 × 10⁶-force-evaluation grid of the earlier cells
+   (`E_frontier_ext_matched.json`) gives ABF K1 0.147, K8 0.184, K4 0.237 → 0.227 and FR K8 0.200: every point estimate
+   moves further to ABF's side (best FR / best ABF 1.27 [0.81, 1.72], nested [0.89, 1.56], P(< 1) 0.10; ABF K1 / K16
+   0.82 [0.56, 1.28]) and every verdict stays UNRESOLVED. The finer grid of the new cells therefore biased the primary
+   comparison against them, i.e. conservatively for the question asked.
+6. **What the statistic measures at small K.** For K ≤ 16 the ladder's tightest rung (0.080 kJ/mol) is reached within
+   the first 3–5 % of the budget (τ ≤ 0.24 × 10⁸ of 5.12 × 10⁸), and e_F at B is 0.020–0.027 kJ/mol, three to four
+   times below that rung. The frontier at small K is therefore a frontier of the early transient, decided in 110 t.u.
+   at K16, 240 at K8, 590 at K4 and 1700 at K1. By the end-of-budget error the ordering differs: ABF K1 has the
+   largest e_F at B of all K ≤ 64 (0.027) and FR K16's is lower than ABF K1's (0.84 [0.59, 1.13], unresolved). A ladder
+   with tighter rungs would be needed to compare the small-K allocations over the whole budget; none was
+   preregistered, so none is reported.
+
+### 8.5 Establishment at every K on each cell's own grid (descriptive; `E_establishment.json`, figure 9)
+
+Frozen measure: the first save at which the trailing 1-t.u. mean of the instantaneous window fraction reaches 0.75 of
+the uniform window share. Deposit-share measure (E-A3): the same first-passage rule on the window share of the
+deposits collected during the trailing max(1 t.u., save interval). Medians over 16 seeds [95 % CI]; no seed failed to
+establish.
+
+| configuration | save interval (t.u.) | frozen measure (t.u.) | deposit-share measure (t.u.) | R1 stop, median (t.u.) |
+|---|---|---|---|---|
+| ABF K1024 | 0.125 | 4.25 [4.12, 4.31] | 4.38 [4.12, 4.50] | – |
+| FR K1024 | 0.125 | 2.50 [2.38, 2.50] | 2.50 [2.50, 2.50] | 5.5 |
+| ABF K256 | 0.5 | 4.50 [3.50, 4.50] | 4.50 [4.00, 5.00] | – |
+| FR K256 | 0.5 | 3.00 [2.50, 3.00] | 3.00 [3.00, 3.50] | 6.5 |
+| ABF K64 | 2 | 4.00 [4.00, 6.00] | 6.00 [6.00, 6.00] | – |
+| FR K64 | 2 | 4.00 [4.00, 5.00] | 6.00 [6.00, 6.00] | 7.5 |
+| ABF K16 | 8 | 8.00 [8.00, 16.00] | 16.00 [16.00, 16.00] | – |
+| FR K16 | 8 | 8.00 [8.00, 16.00] | 16.00 [16.00, 16.00] | 11.0 |
+| ABF K8 | 1 | 4.50 [4.00, 6.00] | 7.00 [6.00, 8.00] | – |
+| FR K8 | 1 | 4.50 [3.50, 6.00] | 6.50 [5.00, 7.00] | 16.5 |
+| ABF K4 | 1 | 6.00 [5.00, 8.00] | 7.00 [6.00, 9.00] | – |
+| ABF K1 | 1 | 27.0 [15.0, 43.0] | 22.0 [15.0, 30.0] | – |
+
+Readings.
+* **ABF's establishment is 4.25–4.5 t.u. at every K where it is resolved from K1024 down to K8**; the K64 and K16
+  values are save-grid artefacts (as stated in §2). At K4 it is 6 t.u.; at K1 it is 27 t.u. (per-seed 6–80): a single
+  walker needs many window passages before the bias flattens the marginal.
+* **The deposit-share measure agrees with the frozen one at K ≥ 256 (4.4–4.5) but reads 7 t.u. at K8 and K4 and 22 at
+  K1:** with few walkers, the deposits of the first few t.u. are concentrated in the cage region until the walkers
+  themselves cross, so the time-averaged window share lags the instantaneous one.
+* **FR shortens establishment where it helps and not at K8**: −1.75 t.u. (K1024), −1.5 (K256), 0.0 [−0.5, 0.0] (K8,
+  resolved at 1 t.u.). The K16 / K64 values remain unresolvable on their grids.
+* **R1 stops later as K falls (5.5 → 16.5 t.u.) while establishment does not move**, because its directedness
+  statistic is built from fewer and fewer events.
+
+### 8.6 What E-A3 changes in the answer to Q5
+
+Nothing in direction, and it closes the open end. No allocation of ABF + FR was shown to beat the best tested ABF
+allocation; the best-vs-best point estimate is now 1.10 (nested 95 % [0.87, 1.43]); ABF's cost is flat from K1 to
+K64 within what 16 unpaired seeds resolve, so there is no sharp optimum left to bracket; FR cannot run below K8 under
+the genealogical safety rules, and at K8 it neither shortens establishment nor changes the error. The remaining
+limitation is the statistic itself (§8.4, item 6): at small K the ladder is reached in the first few per cent of the
+budget.
