@@ -2,18 +2,18 @@
 
 ## Where things are
 
-* **Branch.** `research/convergence-fr-stopping`, pushed to origin and not merged into main.
-* **Worktree.** `/home/zheyuanlai/ABF-Fisher-Rao-convergence`.
+* **Branch.** `main`. The campaign ran on `research/convergence-fr-stopping`, was fast-forwarded into main as
+  a96b8532 on 2026-10-17, and that branch and its worktree were then deleted.
 * **Conda env.** `/home/zheyuanlai/miniconda3/envs/abffr` (python 3.14, numba).
-* **Raw run files** (`*.npz`) are git-ignored.
-  * New runs live under the worktree: `results/convergence_fr_campaign/<block>/`.
-  * Historical runs (LTA, X1, X2, ERI screen) live in the main checkout `/home/zheyuanlai/ABF-Fisher-Rao` and are
-    read through `ABFFR_DATA_ROOT`.
+* **Raw run files** (`*.npz`) are git-ignored and live in the main checkout `/home/zheyuanlai/ABF-Fisher-Rao`.
+  * New runs: `results/convergence_fr_campaign/<block>/`. They were copied from the worktree before its removal and
+    verified by checksum: 295 files, 517 MB.
+  * Historical runs (LTA, X1, X2, ERI screen): their original locations under `results/`.
 * **Committed outputs.** Every summary (`results/convergence_fr_campaign/{atlas,analysis,mechanism}/*.json`), every
   figure (`figures/convergence_fr/`), every job file (`configs/convergence_fr/`) and every log line used in a claim
   (`EXPERIMENT_LOG.md`).
 
-## One-time setup in a fresh worktree
+## One-time setup (only in a separate worktree; the main checkout needs none)
 
 ```bash
 bash scripts/convergence_fr/link_data.sh /home/zheyuanlai/ABF-Fisher-Rao

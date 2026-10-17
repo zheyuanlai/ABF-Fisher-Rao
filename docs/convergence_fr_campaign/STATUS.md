@@ -1,4 +1,4 @@
-# STATUS — convergence-FR campaign (branch research/convergence-fr-stopping)
+# STATUS — convergence-FR campaign (on main as a96b8532; the research branch is merged and deleted)
 
 *Updated 2026-10-17 04:02 UTC (after the doc consistency check). Two algorithms only: histogram ABF vs the same ABF + marginal FR. The FR schedules
 are continuous or early-stopping.*

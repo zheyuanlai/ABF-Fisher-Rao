@@ -125,3 +125,11 @@ Times are UTC and come from `date -u` or git.
     continuous-FR wall-clock overhead differs by thread count; the EB e_F ratio CI includes 1; the bins claim; the
     ERI noise.
   * Every table number, every verdict and the ledger arithmetic were confirmed.
+* **Merge and clean-up (UTC).**
+  * main was fast-forwarded to a96b8532 on origin and locally, at the user's request, with no force-push.
+  * At 04:44, also at the user's request, the branch `research/convergence-fr-stopping` was deleted on origin and
+    locally, and its worktree was removed.
+  * Before the removal, the git-ignored raw data (`results/convergence_fr_campaign/`, 295 files, 517 MB) was copied
+    into the main checkout and verified by checksum (`rsync -c`, zero differences).
+  * The 4 blind-calibration outputs (`ERIcal/frcal_K{256,1024}.json`, `ITEcal_T{150,300}/frcal_K256.json`) had
+    never been committed and are now added.

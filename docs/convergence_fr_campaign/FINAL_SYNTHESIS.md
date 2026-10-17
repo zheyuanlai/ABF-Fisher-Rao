@@ -1,6 +1,6 @@
 # FINAL SYNTHESIS — convergence acceleration of histogram ABF by Fisher–Rao
 
-*Campaign of 2026-10-17, branch `research/convergence-fr-stopping`. Exactly two algorithms throughout: histogram (P0)
+*Campaign of 2026-10-17, run on branch `research/convergence-fr-stopping`, now on `main` (a96b8532). Exactly two algorithms throughout: histogram (P0)
 ABF, and the same ABF + marginal Fisher–Rao birth–death, run continuously or stopped early. No sham, oracle or other
 control arm was run or presented. MC umbrella/WHAM appears only as the reference. Every confirmatory block was
 preregistered and committed before it ran (`PREREGISTRATION.md`, A0–A3).*
