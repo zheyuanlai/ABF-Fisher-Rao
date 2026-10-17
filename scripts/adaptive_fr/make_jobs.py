@@ -25,6 +25,34 @@ def main():
         for j in eb_jobs():
             c = dict(j["cfg"], fr_rate=1.0, fr_stop_steps=100_000)
             js.append(dict(cfg=c, method="fr", out=f"{OUT}/A_ite300_K256_T200_stop10/fr_N256_s{c['seed']}.npz", threads=1))
+    elif a.block in ("C1", "C2", "C5"):                   # ITE / ERI engine cells with the frozen online rule R1
+        import sys
+        sys.path.insert(0, os.path.join(ROOT, "src"))
+        from eri.fr_controller import R1
+        if a.block == "C1":        # E1 configuration: ITE 300 K, K1024, T50, rate 2.0
+            src = json.load(open(os.path.join(ROOT, "configs/convergence_fr/jobs_E1.json")))["jobs"][0]["cfg"]
+            seeds, sub = range(1_300_000, 1_300_016), "C1_ite300_K1024_R1"
+        elif a.block == "C2":      # E2 configuration: ITE 150 K, K256, T100, rate 0.5
+            src = json.load(open(os.path.join(ROOT, "configs/convergence_fr/jobs_E2.json")))["jobs"][0]["cfg"]
+            seeds, sub = range(1_310_000, 1_310_016), "C2_ite150_K256_R1"
+        else:                      # ERI K1024 configuration: 600 K, T40, rate 2.0
+            src = json.load(open(os.path.join(ROOT, "configs/convergence_fr/jobs_ERI_rate2_K1024.json")))["jobs"][0]["cfg"]
+            seeds, sub = range(1_340_000, 1_340_016), "C5_eri600_K1024_R1"
+        base = {k: v for k, v in src.items() if k not in ("seed", "fr_stop_steps")}
+        js = []
+        for s in seeds:
+            js.append(dict(cfg=dict(base, seed=s), method="abf", out=f"{OUT}/{sub}/abf_N{base['N']}_s{s}.npz", threads=1))
+            js.append(dict(cfg=dict(base, seed=s, fr_controller=R1), method="fr", out=f"{OUT}/{sub}/fr_N{base['N']}_s{s}.npz", threads=1))
+    elif a.block in ("C3", "C4"):                         # LTA numba engine, historical histogram production config
+        import sys
+        sys.path.insert(0, os.path.join(ROOT, "src"))
+        from eri.fr_controller import R1
+        T_K, s0, sub = (150.0, 1_320_000, "C3_lta150_K1024_R1") if a.block == "C3" else (300.0, 1_330_000, "C4_lta300_K1024_R1")
+        js = []
+        for s in range(s0, s0 + 16):
+            for method, over in (("abf", {}), ("fr", dict(fr_controller=R1))):
+                js.append(dict(T_K=T_K, N=1024, seed=s, cfg=over, method=method, save_every=500,
+                               out=f"{OUT}/{sub}/{method}_N1024_s{s}.npz"))
     else:
         raise SystemExit(f"unknown block {a.block}")
     os.makedirs(CFG, exist_ok=True)

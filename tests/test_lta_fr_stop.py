@@ -19,7 +19,7 @@ DYN = ("M_all", "C_all", "M_prod", "C_prod", "q_final", "M_all_final", "C_all_fi
        "cum_deaths", "cum_opps", "birth_hist", "death_hist", "gen_ess_win", "gen_max_frac_win")
 SS = np.arange(0, 1501, 100)
 FORCE = dict(FC.R1, theta=1.0, persist=1, support_count=0.0, stability_tol=1e9, check_every=0.02, W=0.02,
-             essw_min=0.0, maxlin_max=1.0)          # decides at the first full window
+             essw_min=0.0, maxlin_min=1.0)          # decides at the first full window
 
 
 def cfg(**kw):

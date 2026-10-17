@@ -84,7 +84,7 @@ NU = 6
 
 _SRC_DIR = os.path.dirname(os.path.abspath(__file__))
 _PROV_FILES = (os.path.join(_SRC_DIR, "engine.py"), os.path.join(_SRC_DIR, "model.py"),
-               os.path.join(_SRC_DIR, "framework.py"),
+               os.path.join(_SRC_DIR, "framework.py"), os.path.join(_SRC_DIR, "fr_controller.py"),
                os.path.normpath(os.path.join(_SRC_DIR, "..", "lta_ladder_numba.py")))
 
 
@@ -471,13 +471,17 @@ class Run:
         self.sessions = []
         self.ctl = None
         if c.get("fr_controller") and method == "fr":
-            from .fr_controller import OnlineStop
+            from .fr_controller import OnlineStop, check_grid
             if int(c["fr_stop_steps"]) >= 0:
                 raise ValueError("fr_controller and a fixed fr_stop_steps are exclusive")
+            if int(c["fr_start_steps"]) < 1:
+                raise ValueError("the online controller needs fr_start_steps >= 1")
             self.ctl = OnlineStop(c["fr_controller"], N, c["fr_start_steps"] * c["dt"])
-            self.ctl_every = int(round(c["fr_controller"]["check_every"] / c["dt"]))
+            self.ctl_every = check_grid(c["fr_controller"], c["dt"])
 
-    def advance(self, k_target):
+    def advance(self, k_target, _internal=False):
+        if self.ctl is not None and not _internal:
+            raise RuntimeError("a run with an online FR controller must be advanced with advance_controlled()")
         m = self.model
         k_target = min(int(k_target), int(self.c["n_steps"]) + 1)
         if k_target <= self.k:
@@ -495,23 +499,25 @@ class Run:
         essw = float(lab.sum() ** 2 / (lab ** 2).sum() / lab.size)
         maxlin = float(lab.max() / lab.size)
         ts = self.ctl.observe(self.k * self.c["dt"], self.BH, self.DH, self.C, self.Msum, essw, maxlin)
-        if ts is not None and self.ip[8] < 0:
-            # no FR opportunity at nxt >= frstop; the decision is never revised
-            self.ip[8] = max(self.k + 1, int(round(ts / self.c["dt"])))
+        if ts is not None:
+            # no FR opportunity at nxt >= frstop; a stop is only ever brought earlier (safety), never postponed
+            new = max(self.k + 1, int(round(ts / self.c["dt"])))
+            if self.ip[8] < 0 or new < self.ip[8]:
+                self.ip[8] = new
 
     def advance_controlled(self, k_target):
         """advance() with the online controller checked at every step k = fr_start + n * ctl_every (n >= 0),
         independent of how the caller chunks the run."""
         if self.ctl is None:
-            return self.advance(k_target)
+            return self.advance(k_target, _internal=True)
         k_target = min(int(k_target), int(self.c["n_steps"]) + 1)
         k0 = int(self.c["fr_start_steps"])
         while self.k < k_target:
             n = max(0, -(-(self.k + 1 - k0) // self.ctl_every))
             kc = k0 + n * self.ctl_every
             nxt = min(k_target, kc)
-            self.advance(nxt)
-            if self.k == kc and self.k <= int(self.c["n_steps"]) and self.ip[8] < 0:
+            self.advance(nxt, _internal=True)
+            if self.k == kc and self.k <= int(self.c["n_steps"]) and (self.ip[8] < 0 or self.k < self.ip[8]):
                 self._check()
 
     @property

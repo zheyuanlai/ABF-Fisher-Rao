@@ -139,7 +139,7 @@ def model():
 
 
 FORCE = dict(FC.R1, theta=1.0, persist=1, support_count=0.0, stability_tol=1e9, check_every=0.05, W=0.05,
-             essw_min=0.0, maxlin_max=1.0)          # decides at the first full window -> exercises the stop path
+             essw_min=0.0, maxlin_min=1.0)          # decides at the first full window -> exercises the stop path
 
 
 def _cfg(**k):
@@ -221,3 +221,25 @@ def test_controller_is_inert_for_abf_and_absent_by_default(model):
         assert np.array_equal(getattr(a, k), getattr(b, k)), k
     with pytest.raises(ValueError):
         E.Run(_cfg(fr_controller=FC.R1, fr_stop_steps=900), "fr", model=model)
+
+
+def test_safety_after_the_decision_can_only_bring_the_stop_earlier():
+    c = synthetic(early_then_noise, T=4.5)            # decided (t_stop = 2 t1 > decision) but not yet stopped
+    assert c.reason == "established" and c.t_stop > c.t_decision
+    ts = c.observe(c.t_decision + 0.25, np.zeros(NG), np.zeros(NG), np.ones(NG), np.zeros(NG), 0.05, 0.0)
+    assert ts == pytest.approx(c.t_decision + 0.25) and c.reason == "established+safety"
+    assert c.observe(c.t_decision + 0.5, np.zeros(NG), np.zeros(NG), np.ones(NG), np.zeros(NG), 1.0, 0.0) == ts
+
+
+def test_lineage_limit_scales_with_K_and_grid_is_checked():
+    assert FC.OnlineStop(FC.R1, 16, 1.0).safety_limit() == pytest.approx(6.0 / 16)
+    assert FC.OnlineStop(FC.R1, 1024, 1.0).safety_limit() == pytest.approx(0.10)
+    with pytest.raises(ValueError):
+        FC.check_grid(FC.R1, 3e-4)                    # 0.25 is not a multiple of 3e-4
+    assert FC.check_grid(FC.R1, 1e-4) == 2500
+
+
+def test_direct_advance_is_refused_with_a_controller(model):
+    r = E.Run(_cfg(fr_controller=FORCE), "fr", model=model)
+    with pytest.raises(RuntimeError):
+        r.advance(100)

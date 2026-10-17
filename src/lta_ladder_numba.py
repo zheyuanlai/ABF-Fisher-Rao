@@ -1166,8 +1166,12 @@ def run_signature(c, method, save_steps, trace_steps, mode=0):
     numba versions (numpy does not promise Generator.standard_normal streams across versions) and the numba
     compile target (the 'reassoc' LJ sum)."""
     tgt = compile_target()
+    eng = _PROVENANCE["engine_sha256"]
+    if c.get("fr_controller"):          # the online controller is part of the code that runs
+        cp = os.path.join(os.path.dirname(os.path.abspath(__file__)), "eri", "fr_controller.py")
+        eng = hashlib.sha256((eng + hashlib.sha256(open(cp, "rb").read()).hexdigest()).encode()).hexdigest()
     return dict(job=_fingerprint(resolve_cfg(c), method, save_steps, trace_steps, mode), engine=ENGINE,
-                engine_sha256=_PROVENANCE["engine_sha256"], numpy=np.__version__, numba=numba.__version__,
+                engine_sha256=eng, numpy=np.__version__, numba=numba.__version__,
                 compile_target=dict(triple=tgt["triple"], cpu_name=tgt["cpu_name"],
                                     cpu_features_sha256=tgt["cpu_features_sha256"]))
 
@@ -1294,11 +1298,13 @@ def run_arm(cfg, method, save_steps, *, checkpoint_path=None, checkpoint_every_s
     n_opps_total = _n_opps_in(1, n_steps, fr_start, fr_every) if method == "fr" else 0
     ctl = None
     if method == "fr" and c.get("fr_controller"):
-        from eri.fr_controller import OnlineStop
+        from eri.fr_controller import OnlineStop, check_grid
         if int(c.get("fr_stop_steps", -1)) >= 0:
             raise ValueError("fr_controller and a fixed fr_stop_steps are exclusive")
+        if fr_start < 1:
+            raise ValueError("the online controller needs fr_start_steps >= 1")
         ctl = OnlineStop(c["fr_controller"], N, fr_start * h)
-        ctl_every = int(round(float(c["fr_controller"]["check_every"]) / h))
+        ctl_every = check_grid(c["fr_controller"], h)
     if chunk_steps is None:
         chunk_steps = max(1, 1_000_000 // N)
     chunk_steps = int(chunk_steps)
@@ -1389,8 +1395,13 @@ def run_arm(cfg, method, save_steps, *, checkpoint_path=None, checkpoint_every_s
         essw = float(lab.sum() ** 2 / (lab ** 2).sum() / N)
         ts = ctl.observe(int(ist[S_STEP]) * h, st["acc"][A_BH], st["acc"][A_DH], st["acc"][A_CS], st["acc"][A_FS],
                          essw, float(lab.max() / N))
-        if ts is not None and ip[I_FRSTOP] < 0:
-            ip[I_FRSTOP] = max(int(ist[S_STEP]) + 1, int(round(ts / h)))
+        if ts is not None:          # a stop is only ever brought earlier (safety), never postponed
+            new = max(int(ist[S_STEP]) + 1, int(round(ts / h)))
+            if ip[I_FRSTOP] < 0 or new < ip[I_FRSTOP]:
+                ip[I_FRSTOP] = new
+
+    def checking():
+        return ctl is not None and (ip[I_FRSTOP] < 0 or int(ist[S_STEP]) < ip[I_FRSTOP])
 
     t0 = time.perf_counter()
     t_last_ckpt = time.perf_counter()
@@ -1399,7 +1410,7 @@ def run_arm(cfg, method, save_steps, *, checkpoint_path=None, checkpoint_every_s
     while ist[S_STEP] <= n_steps:
         step0 = int(ist[S_STEP])
         n_eval = min(chunk_steps, n_steps + 1 - step0)
-        if ctl is not None and ip[I_FRSTOP] < 0:
+        if checking():
             n_eval = min(n_eval, next_check(step0) - step0)
         last = step0 + n_eval - 1
         n_moves = n_eval if last < n_steps else n_eval - 1
@@ -1423,7 +1434,7 @@ def run_arm(cfg, method, save_steps, *, checkpoint_path=None, checkpoint_every_s
             raise RuntimeError(f"chunk accounting error: step {ist[S_STEP]} vs {step0 + n_eval}, "
                                f"moves {imove}/{n_moves}, opps {iopp}/{n_opp}")
         chunks += 1
-        if ctl is not None and ip[I_FRSTOP] < 0 and int(ist[S_STEP]) <= n_steps and \
+        if checking() and int(ist[S_STEP]) <= n_steps and \
                 int(ist[S_STEP]) >= fr_start and (int(ist[S_STEP]) - fr_start) % ctl_every == 0:
             do_check()
         done = ist[S_STEP] > n_steps

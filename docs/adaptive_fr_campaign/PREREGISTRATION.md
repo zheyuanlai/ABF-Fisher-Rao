@@ -125,3 +125,77 @@
 
 * 16 FR runs × about 0.21 core-h. The historical EB runs took 742 s each at 1 thread, giving ≈ 3.4 core-h.
 * Seeds are fixed (1140000–1140015). There is no interim look and no extension.
+
+## B. Experiment B — the online stopping rule R1 (FROZEN 2026-10-17 07:10 UTC, by the commit that adds this section)
+
+* **The rule.** The single primary online rule is R1. Its frozen spec is
+  {"name": "R1", "check_every": 0.25, "W": 1.0, "R": 18, "theta": 0.25, "z_floor": 2.0, "persist": 4, "stop_factor": 2.0,
+  "support_count": 200.0, "stability_tol": 0.05, "essw_min": 0.15, "maxlin_min": 0.1, "maxlin_k": 6.0}.
+* **Implementation.** The code of `src/eri/fr_controller.py` at this commit. The mathematical definition and rationale
+  are in `ONLINE_STOPPING_RULE.md`.
+* **What R1 controls.** FR starts at each cell's validated fixed start; only the stop is online.
+* **Development.** ITE only: the historical exploratory data plus nine monitor runs on seeds 1200000–1200500.
+* **Not used for any choice:** LTA, ERI, Experiment A outcomes, or any confirmatory outcome.
+* **No candidate comparison.** No alternative rule is evaluated against R1 in Experiment C.
+
+## C. Experiment C — cross-system validation of the frozen R1 (CONFIRMATORY; frozen with section B)
+
+### C.1 Arms and cells
+
+* **Arms.** In every cell: ABF vs ABF + FR stopped online by R1. The arms are identical except for `fr_controller`
+  (asserted). They share seeds and streams, so they are bitwise equal before FR start (asserted). 16 fresh pairs per
+  cell.
+
+| cell | system (validated config reused unchanged) | K | T (t.u.) | dt | FR rate / start | genealogy window | seeds | ladder | status |
+|---|---|---|---|---|---|---|---|---|---|
+| C1 | ITE 300 K (the E1 config, `jobs_E1.json`) | 1024 | 50 | 1e-4 | 2.0 / 1 t.u. | 2.5 t.u. | 1300000–015 | kT | in-sample cell (ITE) |
+| C2 | ITE 150 K (the E2 config) | 256 | 100 | 1e-4 | 0.5 / 1 t.u. | 5 t.u. | 1310000–015 | ABF-anchored | in-sample cell (ITE) |
+| C3 | LTA 150 K (LTA numba engine; historical histogram production config) | 1024 | 60 | 2e-4 | 0.2 / 4 t.u. | 4 t.u. | 1320000–015 | ABF-anchored | **held out** (positive control) |
+| C4 | LTA 300 K (same) | 1024 | 60 | 2e-4 | 0.2 / 4 t.u. | 4 t.u. | 1330000–015 | ABF-anchored | **held out** |
+| C5 | ERI 600 K (the ERI K1024 config) | 1024 | 40 | 2e-4 | 2.0 / 1 t.u. | 2 t.u. | 1340000–015 | kT | **held out** (negative control) |
+
+* **LTA config.** fr_every 5, cap 20, KDE 0.10, score clip 2, bias ramp and production burn-in 4 t.u., bias read
+  clip 60 and deposit clip 480. These are the engine defaults, identical to the validated 2026-10-03 histogram
+  production. Saves are every 500 steps.
+* **LTA reference.** The frozen exact-MC references `results/equal_budget_v2/references/lta_T{150,300}_reference.npz`,
+  identical to the atlas's MC density profiles (checked). Γ uses the production accumulators once they hold counts,
+  as in the equal-budget campaign.
+
+### C.2 Analysis
+
+* **Script.** `scripts/adaptive_fr/analyze_online.py`, frozen with this commit. On the E1 data it reproduces
+  `analyze_block.py` exactly.
+* **PRIMARY per cell.** S_geo, the per-seed geometric mean of the restricted sustained speedup over the cell's ladder.
+  * SUPPORTED / CONTRADICTED / UNRESOLVED by the 95 % CI.
+  * **Cross-system claims use the Bonferroni 99 % CI** (5 cells).
+* **Secondary, per cell:**
+  * post-ramp, full, early ([t_FR, 0.4 T]) and late-window Ī_F;
+  * e_F(T), e_F′(T), e_F at T/4, T/2 and 3T/4;
+  * the post-stop-only estimate (deposits after each FR run's own stop, both arms);
+  * every rung as sustained, first-hit and windowed τ, with censoring and restricted means;
+  * crossing, establishment, time-averaged marginal TV, genealogy, true translocations and wall-clock.
+* **Online-rule outcomes, per cell:**
+  * the distribution of stop times (median, IQR, range);
+  * the reason (established / safety);
+  * the number of never-stopped runs;
+  * FR replacements per run;
+  * FR events after the stop, which must be 0 (asserted).
+* **Prespecified rule-level questions:**
+  * **Q-ITE (in-sample).** Does R1 reproduce the fixed-schedule acceleration? C1 and C2 are SUPPORTED.
+  * **Q-LTA150 (positive control).** Does R1 preserve the benefit? C3 is SUPPORTED. The descriptive context is the
+    continuous-FR LTA 150 K effect: S_geo 2.42 in the equal-budget numba runs, cross-block and unpaired.
+  * **Q-ERI (negative control).** Does R1 avoid the harm of continuous FR? C5 is NOT CONTRADICTED. The descriptive
+    context is continuous FR at ERI K1024: S_geo 0.51.
+  * **"R1 generalises across the tested systems"** iff, at the Bonferroni 99 % level:
+    * C3 is SUPPORTED;
+    * C4 and C5 are not CONTRADICTED;
+    * C1 and C2 are not CONTRADICTED.
+    Otherwise the failing cells are reported with their observables.
+
+### C.3 Order, cost and stop rules
+
+* **Order.** Wave 1 is C3, C4 and C5 (held out); wave 2 is C1 and C2.
+* **Cost.** Measured single-thread costs: ITE K1024 × 50 is 0.227, ITE K256 × 100 is 0.108, ERI K1024 × 40 is 0.15
+  and LTA K1024 × 60 is about 0.08 core-h per run. In total about 7.3 + 3.5 + 2.6 + 2.6 + 4.8 ≈ 21 core-h.
+* **Stop rules.** Seeds are fixed, with no interim look and no extension. A failed run is resumed from its
+  checkpoint, never replaced. The rule is never changed between cells.
