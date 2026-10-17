@@ -14,3 +14,17 @@
 | 07:10–07:15 | **C3** LTA 150 K (32 runs) | 2.391 | 6.54 | 205.0 |
 | 07:10–07:15 | **C4** LTA 300 K (32 runs) | 2.383 | 8.92 | 207.4 |
 | 07:10–07:20 | **C5** ERI 600 K K1024 (32 runs) | 4.801 | 13.72 | 212.2 |
+| 07:15–07:29 | **C1** ITE 300 K K1024 (32 runs) | 7.242 | 20.96 | 219.4 |
+| 07:15–07:22 | **C2** ITE 150 K K256 (32 runs) | 3.516 | 24.48 | 222.9 |
+| 07:22–07:26 | **D2** clone-age re-runs (32 FR runs, ERI + ITE K256) | 1.501 | 25.98 | 224.4 |
+| 07:32–07:35 | K64 blind calibration (3 rungs × 3 seeds, T 50) | 0.137 | 26.12 | 224.5 |
+| 07:32–07:45 | **EA_R1** (16 FR runs, K256 × T200, R1) | 3.321 | 29.44 | 227.8 |
+| 07:35–07:48 | **EB64** (32 runs, K64 × T800, R1, rate 0.2) | 6.566 | 36.00 | 234.4 |
+| 07:49–07:53 | E.4 wall-clock benchmark run 1 (threads 1–32; measured 0.31 + warm-up) | ~0.5 | 36.50 | 234.9 |
+| 07:56 | K16 blind calibration (3 rungs × 3 seeds, T 50) | 0.042 | 36.54 | 234.9 |
+| 07:57–08:10 | **EB16** (32 runs, K16 × T3200, R1, rate 1.0) | 6.825 | 43.37 | 241.8 |
+| 08:10–08:15 | E.4 wall-clock benchmark run 2 (with K16; measured 0.31 + warm-up) | ~0.5 | 43.87 | 242.3 |
+| 08:15–08:20 | analyses, figures, documents (single process, minutes each) | ~0.1 | ≈ 44.0 | ≈ 242.4 |
+
+**Campaign total: ≈ 44.0 of 100 authorised CPU core-h; aggregate ≈ 242.4 of ≈ 298.4. No GPU; no external or paid
+resource.**

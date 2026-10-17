@@ -272,7 +272,7 @@
   files. `analyze_online.py` now allows that key to differ only when it is 0 or absent in every run, i.e. when the
   diagnostic is off; it asserts this. The bitwise pre-FR pairing assertion is unchanged.
 
-* **E-A2 (07:58 UTC, frozen before any K16 run; adds one cell, changes no earlier statistic).** The brief's allocation
+* **E-A2 (07:56 UTC, committed as d0929f7a before any K16 run; adds one cell, changes no earlier statistic).** The brief's allocation
   ladder runs K ∈ {16, 64, 256, 1024}. E.3 found the best ABF and the best FR allocation both at the smallest K tried
   (K64), so the frontier is not bracketed from below. Block **EB16** adds K16 × T3200 at the same budget.
   * **Settings.** ITE 300 K, K16, 32 000 000 steps, saves every 80 000 steps (1.28 × 10⁶ force evaluations per save,

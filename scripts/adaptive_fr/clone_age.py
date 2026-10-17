@@ -6,7 +6,8 @@ Per block (continuous FR, re-run bitwise with the read-only age split):
   each vs the exact-MC reference: count-weighted RMS over bins of (Gamma - Gamma_ref), seed-jackknife s.e.;
 * pooled late-half free-energy error (centred RMS) of the estimate from ALL FR deposits vs from OLD deposits only
   vs ABF -- does dropping the young deposits remove FR's late bias?
-* eta conditional (ERI: the cage-axis coordinate) by age class vs the reference, per coarse bin.
+* eta conditional (ERI: the cage-axis coordinate) and u_x^2 conditional (relative) by age class vs the reference,
+  per coarse bin.
 
     ABFFR_DATA_ROOT=/home/zheyuanlai/ABF-Fisher-Rao python scripts/adaptive_fr/clone_age.py
 """
@@ -106,6 +107,20 @@ def block(name):
                                             rms_young=float(np.sqrt(np.nanmean((eta_y - re_eta) ** 2))),
                                             rms_old=float(np.sqrt(np.mean((eta_o - re_eta) ** 2))),
                                             rms_abf=float(np.sqrt(np.mean((eta_a - re_eta) ** 2))))
+    # u_x^2 conditional (transverse displacement, the other fibre coordinate the engine accumulates), same construction;
+    # reported relative to the reference value per coarse bin
+    re_u = (ref["ux2"].reshape(18, -1) * cc).sum(1) / cc.sum(1)
+    Uy = sum(r["dg_young"][3] for r in fr).reshape(18, -1).sum(1)
+    Ut = sum(r["Sux2"] for r in fr).reshape(18, -1).sum(1)
+    Ua_ = sum(r["Sux2"] for r in ab).reshape(18, -1).sum(1)
+    u_y = np.where(Cy > 0, Uy / np.maximum(Cy, 1), np.nan)
+    u_o = (Ut - Uy) / np.maximum(Ct - Cy, 1)
+    u_a = Ua_ / np.maximum(Ca_, 1)
+    rel = lambda u: (u - re_u) / re_u
+    out["ux2_conditional_relative_to_ref"] = dict(young=rel(u_y).tolist(), old=rel(u_o).tolist(), abf=rel(u_a).tolist(),
+                                                  rms_young=float(np.sqrt(np.nanmean(rel(u_y) ** 2))),
+                                                  rms_old=float(np.sqrt(np.mean(rel(u_o) ** 2))),
+                                                  rms_abf=float(np.sqrt(np.mean(rel(u_a) ** 2))))
     return out
 
 
@@ -123,6 +138,8 @@ def main():
                   " ".join(f"{x:+.3f}" for x in v["signed_mean_force_error_by_region"].values()))
         e = o["eta_conditional_minus_ref"]
         print(f"   eta conditional RMS vs ref: young {e['rms_young']:.4f}  old {e['rms_old']:.4f}  ABF {e['rms_abf']:.4f}")
+        u = o["ux2_conditional_relative_to_ref"]
+        print(f"   u_x^2 conditional relative RMS vs ref: young {u['rms_young']:.4f}  old {u['rms_old']:.4f}  ABF {u['rms_abf']:.4f}")
     p = os.path.join(S.ROOT, "results", "adaptive_fr_campaign", "mechanism", "clone_age.json")
     json.dump(res, open(p, "w"), indent=1)
     print("wrote", p)

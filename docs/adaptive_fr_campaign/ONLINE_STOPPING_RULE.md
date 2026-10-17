@@ -118,3 +118,24 @@ duration. A never-stopped run is reported as such.
 * **Very small K (< 64).** Not covered by development.
 * **In-sample cells.** C1 (ITE 300 K) and C2 (ITE 150 K) are in-sample at the cell level: the rule was developed on
   ITE, although with other seeds. LTA 150/300 K and ERI 600 K are **held out**.
+
+## 6. How R1 behaved after the freeze (evaluation, not development; nothing retuned)
+
+| cell | system / K | R1 stop, t.u.: median (range) | never stopped | S_geo [95 % CI] | verdict |
+|---|---|---|---|---|---|
+| C1 | ITE 300 K / K1024 | 5.5 (5.5–6.0) | 0 | 1.67 [1.45, 1.98] | SUPPORTED |
+| EA_R1 | ITE 300 K / K256 | 6.5 (5.5–9.0) | 0 | 1.31 [1.07, 1.47] | SUPPORTED |
+| EB64 | ITE 300 K / K64 (rate 0.2) | 7.5 (6.5–9.0) | 0 | 1.11 [0.92, 1.33] | UNRESOLVED |
+| EB16 | ITE 300 K / K16 (rate 1.0) | 11.0 (9.0–14.0) | 0 | 0.93 [0.70, 1.29] | UNRESOLVED |
+| C2 | ITE 150 K / K256 | 8.25 (7.0–11.5) | 0 | 1.64 [1.29, 1.90] | SUPPORTED |
+| C3 | LTA 150 K / K1024 (held out) | 21.5 (20.0–24.5) | 0 | 2.52 [2.33, 2.60] | SUPPORTED |
+| C4 | LTA 300 K / K1024 (held out) | 16.0 (14.0–18.5) | 0 | 1.46 [1.37, 1.60] | SUPPORTED |
+| C5 | ERI 600 K / K1024 (held out) | 15.25 (5.5–25.5) | 0 | 0.61 [0.53, 0.71] | CONTRADICTED |
+
+* **The stop time moves with the system.** It runs from 5.5 t.u. (ITE 300 K) to 21.5 t.u. (LTA 150 K), tracking the
+  ABF establishment time it is meant to detect. Every run stopped; none were stopped by the safety backstop.
+* **Below the development range of K, R1 still stops**, but later: 7.5 at K64 and 11 at K16. Those cells show no
+  establishment gain from FR at all (paired difference 0), so the stop time there has nothing to protect.
+* **The failure mode** is ERI (CROSS_SYSTEM_RESULTS.md §5). Its directed flux never decays below 30–60 % of its peak.
+  R1 therefore stops late and spread out (5.5–25.5 t.u.), and FR's ongoing bias (MECHANISM.md §1) accumulates in the
+  meantime.

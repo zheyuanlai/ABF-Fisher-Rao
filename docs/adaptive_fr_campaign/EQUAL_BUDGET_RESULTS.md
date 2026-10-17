@@ -2,7 +2,7 @@
 
 *Preregistered: `PREREGISTRATION.md` §A (frozen bc78e255, 2026-10-17 06:22 UTC). Run 06:22–06:35 UTC. Analysed with the
 frozen `scripts/convergence_fr/analyze_block.py` (the ABF arm read from the historical EB directory) and
-`scripts/adaptive_fr/equal_budget4.py`. Figures: `figures/adaptive_fr/equal_budget_ite300.png` and `block_A.png`.*
+`scripts/adaptive_fr/equal_budget4.py`. Figures: `figures/adaptive_fr/equal_budget_ite300.png` and `A_ite300_K256_T200_stop10.png`.*
 
 ## A.1 Pairing and validity (Gate F, Gate E, safety)
 
@@ -135,3 +135,16 @@ reference noise):
      (all-in).
    * FR at K1024 remains about 2× worse than either K256 configuration.
    * B does not follow from A, and neither is established.
+
+## A.6 Update from Experiment E (later, separately preregistered; see EFFICIENCY.md)
+
+* **R1 at the efficient K256 allocation.** Block EA_R1 used the same 16 EB ABF runs and replaced the fixed stop at 10
+  by the frozen online rule. Primary S_geo 1.31 [1.07, 1.47] (99 % [1.02, 1.69]), 13/16 → **SUPPORTED** at fixed K256.
+  R1 stopped earlier (median 6.5 t.u.) than the fixed schedule (10).
+* **K256 is not the best ABF allocation once smaller K is tried.** In the eight-configuration frontier
+  (K ∈ {1024, 256, 64, 16}, ABF and FR-R1), the best allocation for both algorithms is K16.
+  * Best FR / best ABF = 1.04 [0.74, 1.33] → **UNRESOLVED**, point estimate on ABF's side.
+  * ABF K64 / ABF K256 = 0.26 [0.18, 0.43].
+  * The A.3 statement that "for both algorithms, the best tested allocation is K256" holds only within the four
+    configurations of §A.5.
+
