@@ -330,3 +330,35 @@ analysis-script smoke test on X1, before this freeze.
      * The E1x ladder needs a by-cfg-seed loader, which will be written only if E1x runs.
 
   No hypothesis, metric, threshold, seed or run setting changed.
+* **A2 (2026-10-17 03:30 UTC).** Two new blocks, licensed by §3 ("ITE 150 K extension") and §7.4 ("equal budget
+  only after a robust fixed-K gain").
+  * **Data seen at the time of writing:** the E1 result (PRIMARY SUPPORTED, S_geo 1.59 [1.31, 1.85]) and ERI K256.
+    No matrix-cell or ERI K1024 data had been read.
+  * **E2 — ITE 150 K early-stopping FR (confirmatory).**
+    * Cell: the X2 model at 150 K, matching X2's K 256 and FR rate 0.5.
+      * Rate 0.5 is the largest rung safe under X2's 10 t.u. genealogy window. It is therefore safe under this
+        block's shorter T/20 = 5 t.u. window as well, so no new calibration is needed.
+    * Settings: T **100** t.u., dt 1e-4, **180 bins** (§5 bin protocol), trust 200, 1 t.u. ramp, 5 t.u.
+      pre-equilibration, saves every 1250 steps, exact MC 180-bin reference.
+    * **t_stop = 15 t.u.**, by the §3 rule applied to the exploratory X2 data only: 2 × X2's median ABF
+      establishment time (7.5 t.u.) = 15. This is below X2's 2.5 % e_F crossing quantile of 32.5 t.u.
+    * **Primary:** the §2 statistic on the **ABF-anchored** ladder. At 150 K the kT ladder is mostly censored at
+      T 100: X2 ABF sustains 0.06 kJ/mol only at a median of 146 t.u.
+    * H1 window [1, 30] (= [t_FR, 2 t_stop]). H2: e_F(T), with the +10 % margin. H4: the post-stop estimate, with
+      the same rules.
+    * Seeds 1130000–1130015; both arms; 32 runs, about 0.11 core-h each ≈ 3.5 core-h.
+  * **EB — equal-force-evaluation ABF allocation for E1 (descriptive, ABF only).**
+    * ABF at **K 256 for T 200 t.u.**: 2 000 000 steps, the same total molecular force evaluations as one E1 run,
+      K 1024 × 500 000 steps. Otherwise E1's settings: 300 K, dt 1e-4, 180 bins, trust 200, 1 t.u. ramp, 5 t.u.
+      pre-equilibration, genealogy window irrelevant.
+    * 16 fresh seeds, 1140000–1140015, ≈ 3.4 core-h.
+    * **Comparison.** Time to accuracy is measured in force evaluations, B = K × steps:
+      * EB-ABF at K 256 against E1's ABF and FR-stop arms at K 1024;
+      * at the frozen kT ladder;
+      * medians and censoring per allocation;
+      * a ratio of medians with an unpaired bootstrap CI (resampling seeds within each block independently).
+    * This is **not** paired, and EB is not an FR arm. It is ABF at another allocation, which answers §7.4. It is
+      descriptive.
+  * **Not run, for budget:** the matrix K1024 row (300 K and 150 K at the common rate 1.0, about 7.3 core-h even
+    at 8 pairs). E1x is also not run. The 300 K vs 150 K contrast is answered at K256 only, plus E1 vs E2 at their
+    own (K, rate). The latter is a cross-block comparison confounded by K and rate, and is reported as such.

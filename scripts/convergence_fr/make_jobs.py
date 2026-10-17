@@ -91,6 +91,13 @@ def main():
         c = dict(ite(temp), N=K, fr_rate=a.rate)
         s0 = {"M300_256": 1_121_000, "M150_256": 1_122_000, "M150_1024": 1_123_000, "M300_1024": 1_124_000}[b]
         js = jobs_for(c, range(s0, s0 + 16), [("abf", {}), ("fr", {})], f"{b}_rate{a.rate:g}")
+    elif b == "E2":                                                  # Amendment A2: ITE 150 K early stopping
+        c = dict(ite(150), N=256, fr_rate=0.5, n_steps=1_000_000, genealogy_window_steps=50_000)
+        js = jobs_for(c, range(1_130_000, 1_130_016), [("abf", {}), ("fr", dict(fr_stop_steps=150_000))], "E2_ite150_stop15")
+    elif b == "EB":                                                  # Amendment A2: equal-force-evaluation ABF, K256 x T200
+        c = dict(ite(300), N=256, n_steps=2_000_000, save_every=5000)
+        js = [dict(cfg=dict(c, seed=s), method="abf", out=f"{OUT}/EB_ite300_abf_K256_T200/abf_N256_s{s}.npz", threads=1)
+              for s in range(1_140_000, 1_140_016)]
     else:
         raise SystemExit(f"unknown block {b}")
     os.makedirs(CFG, exist_ok=True)
