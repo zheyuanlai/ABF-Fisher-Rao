@@ -124,3 +124,14 @@ both arms, flank; b_pred vs b_obs per coarse bin), P3 relaxation curves, the P4 
 P6, and the verdict by §6. Script `scripts/adaptive_fr/arrival_split.py` → `results/adaptive_fr_campaign/mechanism/
 arrival_split.json`; figure `figures/adaptive_fr/mechanism_arrival.png`. COMPUTE_LEDGER.md updated with the measured
 core-h.
+
+## 8. Post-launch analysis notes (dated; added after the runs, not part of the predictions)
+
+*2026-10-17, 12:17–12:40 UTC.* Two passes of `arrival_split.py`. Changes after the launch, none touching §5–§6:
+1. the **exact decomposition** of FR's flank excess over ABF into a weight term Σ_p (w_p^FR − w_p^ABF) d_p^ABF and a
+   state term Σ_p w_p^FR (d_p^FR − d_p^ABF) (an identity; reported as post hoc in MECHANISM.md §2.5.2);
+2. the **fixed-bin** version of P3 (cage-provenance deviation by time band at coarse bins 4–6 and 11–13), because the
+   preregistered flank-pooled P3 statistic mixes the band's bin composition with the relaxation (§2.5.3);
+3. the transverse COM phases are compared in natural units (no within-bin sd is recorded for them), a departure from
+   the §5 P4 wording "standardised".
+Final pass: ≈ 20 s single process; JSON `results/adaptive_fr_campaign/mechanism/arrival_split.json`.

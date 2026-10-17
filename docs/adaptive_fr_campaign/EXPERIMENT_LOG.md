@@ -160,3 +160,16 @@ Times are UTC (`date -u` or git).
 * **11:36–12:10 — analysis** (`scripts/adaptive_fr/selection_split.py`, four passes: a keyword clash `nonlocal`, a
   degenerate-coordinate guard for ITE's η (≈ constant on the channel axis), per-region selection and net-exchange
   statistics added). Results in MECHANISM.md §2.4, figure `mechanism_selection`.
+
+## D5 — arrival-law mechanism test (same session, from 12:00 UTC)
+
+* **12:00–12:11 — instrumentation.** `diag_arr` (read-only provenance / bin-entry record: per deposit the last visited
+  region and time since leaving it, the coarse-bin entry side and residence time; 11 quantities incl. the transverse
+  COM phases and the sub-bin offset) and always-on `Scy/Ssy/Scz/Ssz`. `tests/test_diag_arr.py` (4 tests); 41 tests
+  pass across the ERI suites; the frozen-fixture test still passes.
+* **12:12:22 — PREREGISTRATION committed (8564ce92)**, then `launch.sh configs/adaptive_fr/jobs_D5.json 64`.
+* **12:16:05 — ALLDONE** 3.109 core-h, 223 s wall. Identity gate: 64/64 bitwise equal to the historical arms. Raw files
+  `results/adaptive_fr_campaign/D5_{eri600,ite300}_K256_arr/` (97 MB each), copied to `/home/zheyuanlai/ABF-Fisher-Rao-adaptive`.
+* **12:17–12:40 — analysis** (`scripts/adaptive_fr/arrival_split.py`; a second pass added the exact weight/state
+  decomposition of FR's excess and the fixed-bin relaxation table, both post hoc). Results in MECHANISM.md §2.5,
+  figure `mechanism_arrival`.

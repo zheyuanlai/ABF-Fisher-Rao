@@ -6,9 +6,11 @@ before the D2 runs were launched, but was first committed at 07:30:24 (11477fef)
 statistic here is confirmatory, and none was used to choose an FR rate, a stop time or the online rule.
 Scripts: `scripts/adaptive_fr/bias_variance.py` (D1), `scripts/adaptive_fr/clone_age.py` (D2),
 `scripts/adaptive_fr/selection_split.py` (D4, §2.4; preregistered in `MECHANISM_SELECTION_PREREG.md`, committed
-49ae642d before its runs). Outputs: `results/adaptive_fr_campaign/mechanism/{bias_variance.json,
-bias_variance_curves.npz, clone_age.json, selection_split.json}`. Figures: `figures/adaptive_fr/bias_variance.png` (6),
-`mechanism_clone_age_bias.png` and `mechanism_meanforce_genealogy.png` (7), `mechanism_selection.png` (9).*
+49ae642d before its runs), `scripts/adaptive_fr/arrival_split.py` (D5, §2.5; `MECHANISM_ARRIVAL_PREREG.md`, 8564ce92).
+Outputs: `results/adaptive_fr_campaign/mechanism/{bias_variance.json, bias_variance_curves.npz, clone_age.json,
+selection_split.json, arrival_split.json}`. Figures: `figures/adaptive_fr/bias_variance.png` (6),
+`mechanism_clone_age_bias.png` and `mechanism_meanforce_genealogy.png` (7), `mechanism_selection.png` (9),
+`mechanism_arrival.png` (10).*
 
 All comparisons are ABF vs the same ABF + FR (no third arm). Errors are against the exact-MC references used by every
 confirmatory analysis (ITE: `results/overnight/ite{,150}/reference`; ERI: `results/eri_campaign/reference`).
@@ -31,7 +33,11 @@ walkers FR clones are **not** fibre-selected within their bin, and the birth–d
 late error follows the **birth region** of a lineage: cage-born lineages carry the pooled error pattern, window-born
 lineages its mirror image, and the carried fibre state (η in ERI) relaxes over 1–3 t.u. Late FR makes a net
 window → cage transfer, so arrivals in the flank are unbalanced. That is an arrival-law (net CV-flux) mechanism, not
-selection. In ITE the same birth-region pattern holds, but none of the four measured fibre coordinates carries it.
+selection. D5 (§2.5) measured it with a per-deposit provenance record: a flank walker's deposit depends on the region
+it last visited by ±1–16 kJ/mol/rad (through its fibre state), the two directions balance exactly in ABF, and FR's
+excess splits exactly into a provenance-weight shift (ERI ¼, ITE ½ of the excess) and a shift of the cage arrivals'
+own state (the rest). The sub-bin alternative is excluded. In ITE the carrier is the joint fibre state (η, u_x², u_z²
+all differ by provenance), not one coordinate.
 
 ## 1. D1 — bias–variance decomposition across seeds (existing data)
 
@@ -390,6 +396,156 @@ consistent with §2.4.4: the carried η decays with age but is never zero while 
   of its range (below / above median is the robust split); the P6 cross-split was not preregistered; the ITE P0
   carrier rule picked u_x² formally, at 0.4 % of a sd.
 
+
+## 2.5 D5 — direct test of the arrival-law mechanism (both arms of the two D2 blocks re-run bitwise)
+
+*Preregistered in `MECHANISM_ARRIVAL_PREREG.md` (committed 8564ce92 at 12:12 UTC, runs launched 12:12:22, finished
+12:16:05; 3.11 core-h). Exploratory. Script `scripts/adaptive_fr/arrival_split.py`; JSON
+`results/adaptive_fr_campaign/mechanism/arrival_split.json`; figure 10 `mechanism_arrival`. Two statistics were
+added after the runs and are marked post hoc below (the exact decomposition and the fixed-bin relaxation table;
+preregistration §8).*
+
+**Instrument.** The engine's read-only `diag_arr` record (default off, bitwise-inert; `tests/test_diag_arr.py`): per
+walker, the step of its last visit to the cage region (|φ| ≥ 2) and to the window region (|φ| < 0.5), inherited by
+clones; every deposit is accumulated per half, **provenance** (the more recent of the two regions) and band of time
+since leaving it, and per fine bin, with the count and the sums of f, η, u_x², r, u_z², the transverse COM phases and
+the sub-bin offset φ − bin centre; a second array does the same by coarse-bin entry side and residence time.
+
+**Runs and gate.** The same 64 runs as D4 with `diag_arr = 1`; 64/64 bitwise equal to the historical arms. Late half
+as before. The flank is coarse bins 3–7 (φ < 0) and 10–14 (φ > 0); the cage is at the ends, the window at bins 8–9.
+"Cage provenance" in a flank bin means the walker has not been in the window since it last left the cage (it is on its
+way in, or has turned back); "window provenance" means it has come out of the window.
+
+### 2.5.1 P1 — where a walker came from determines its deposit (ABF arm; the premise)
+
+Late-half ⟨f⟩_p − Γ_ref per coarse bin by provenance p (kJ/mol/rad; coarse averages use each class's own fine-bin
+counts for both terms, so they are exact), with the share of the bin's deposits that have cage provenance:
+
+| ERI, coarse bin | 3 | 4 | 5 | 6 | 7 | 10 | 11 | 12 | 13 | 14 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| cage provenance, ABF | +0.22 | +2.02 | +5.43 | +9.75 | +15.73 | −15.67 | −9.71 | −5.56 | −1.95 | −0.18 |
+| window provenance, ABF | −6.11 | −7.50 | −5.56 | −2.54 | −0.30 | +0.42 | +2.65 | +5.47 | +7.58 | +6.08 |
+| all deposits, ABF | −0.03 | −0.01 | +0.03 | +0.15 | +0.15 | −0.02 | −0.08 | −0.19 | +0.06 | +0.06 |
+| cage share w_cage, ABF | 0.960 | 0.787 | 0.508 | 0.219 | 0.028 | 0.028 | 0.221 | 0.513 | 0.789 | 0.960 |
+| cage provenance, FR | +0.37 | +2.28 | +5.59 | +9.99 | +16.02 | −15.87 | −9.92 | −5.71 | −2.24 | −0.31 |
+| window provenance, FR | −6.03 | −7.44 | −5.52 | −2.55 | −0.34 | +0.38 | +2.60 | +5.50 | +7.44 | +6.04 |
+| all deposits, FR | +0.12 | +0.25 | +0.22 | +0.27 | +0.11 | −0.07 | −0.16 | −0.27 | −0.24 | −0.07 |
+| cage share w_cage, FR | 0.961 | 0.791 | 0.516 | 0.225 | 0.028 | 0.028 | 0.221 | 0.515 | 0.793 | 0.962 |
+
+(jackknife s.e. of the provenance rows ≈ 0.07–0.12, of the "all" rows ≈ 0.06.)
+
+| ITE, coarse bin | 3 | 4 | 5 | 6 | 7 | 10 | 11 | 12 | 13 | 14 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| cage provenance, ABF | +0.43 | +0.81 | +1.21 | +1.38 | +1.61 | −1.49 | −1.44 | −1.26 | −0.70 | −0.22 |
+| window provenance, ABF | −5.45 | −1.60 | −0.85 | −0.26 | −0.01 | +0.02 | +0.38 | +0.95 | +1.69 | +3.42 |
+| all deposits, ABF | +0.03 | +0.03 | +0.05 | +0.08 | +0.04 | −0.03 | −0.00 | −0.05 | +0.00 | −0.00 |
+| cage share w_cage, ABF | 0.933 | 0.677 | 0.435 | 0.209 | 0.031 | 0.031 | 0.211 | 0.452 | 0.706 | 0.941 |
+| cage provenance, FR | +0.57 | +0.84 | +1.27 | +1.46 | +1.53 | −1.43 | −1.41 | −1.20 | −0.72 | −0.23 |
+| window provenance, FR | −5.55 | −1.66 | −0.88 | −0.30 | −0.02 | +0.03 | +0.39 | +0.95 | +1.66 | +3.43 |
+| all deposits, FR | +0.18 | +0.08 | +0.09 | +0.08 | +0.03 | −0.01 | −0.01 | −0.04 | −0.05 | −0.03 |
+| cage share w_cage, FR | 0.936 | 0.694 | 0.454 | 0.214 | 0.031 | 0.033 | 0.219 | 0.461 | 0.718 | 0.944 |
+
+(s.e. ≈ 0.04–0.06 and 0.03.)
+
+* **The premise holds with a very large effect.** A flank walker that last visited the cage deposits a mean force
+  far **above** the reference on the φ < 0 flank and far below it on the φ > 0 flank (ERI: up to +15.7 / −15.7 in
+  the bins next to the window, where only 3 % of the deposits have cage provenance); a walker that has come out of
+  the window deposits the opposite deviation (−7.5 / +7.6 at the outer flank). In ERI the flank-RMS deviations are
+  4.34 ± 0.03 (cage) and 3.66 ± 0.02 (window) kJ/mol/rad; in ITE 0.86 ± 0.02 and 0.99 ± 0.01. The pooled ABF error
+  is their count-weighted sum: **+0.013 ± 0.026** (ERI) and **+0.015 ± 0.009** (ITE) over the flank — the two
+  arrival directions balance, as equilibrium sampling requires.
+* **The carrier is the fibre state.** In ABF the flank conditional differs by provenance (cage − window,
+  count-weighted flank RMS in units of the ABF within-bin sd): ERI η 0.42 ± 0.004, u_x² 0.45, u_z² 0.22, bond 0.013;
+  ITE η 0.22, u_x² 0.30, u_z² 0.20, bond 0.034 (per bin, ERI: η −0.59 to −0.23, u_x² −0.16 to −0.61: cage-provenance
+  walkers sit lower in the cage (η) and less aligned with the axis (u_x²)). The transverse COM phases differ by
+  ≤ 0.015 (natural units). So in **both** systems the walkers approaching the window from the cage are the
+  misaligned ones that have not (yet) passed, and their deposits record the force of the rim pushing back; the
+  provenance-conditional fibre law is displaced by ≈ 0.2–0.6 sd. ITE's "missing carrier" of §2.4 is therefore not
+  missing: it is the joint fibre state (η, u_x², u_z² each by 0.2–0.3 sd), which the pooled FR − ABF displacement
+  (≤ 0.006 sd) hides because the weight shift is small (below).
+* **The sub-bin alternative (H_sub) is excluded** (P5): the deposit-weighted sub-bin offset is < 10⁻⁵ rad in every
+  class and arm, and Γ′_ref × offset gives 0.005–0.011 kJ/mol/rad against provenance deviations of 1–5: three orders
+  of magnitude short.
+* **The coarse-bin entry-side record (P6) says the same** at bin level: ERI cage-side entries +4.54 ± 0.05 / −4.49,
+  window-side entries −4.42 / +4.42 (left / right flank), weights 0.500 / 0.500 in ABF and 0.501 / 0.499 in FR; ITE
+  +1.82 / −1.44 and −1.70 / +1.40, weights 0.497 / 0.503.
+
+### 2.5.2 P2 — the same deviations with shifted weights? (the mechanism)
+
+* **(b) Weights.** The cage-provenance share of the flank deposits rises under FR: ERI 0.4957 ± 0.0019 →
+  0.4988 ± 0.0015 (per bin +0.004 to +0.008 at bins 4–6; a 1.3 s.e. shift of the flank mean); ITE 0.4563 ± 0.0026 →
+  0.4682 ± 0.0013 (**4 s.e.**; +0.017 to +0.019 at bins 4–5). The direction is the measured one (§2.4.5).
+* **(c) Prediction from ABF's deviations and FR's weights**, pred_c = Σ_p w_p^FR d_p^ABF (flank bins):
+  ERI −0.03, +0.03, +0.11, +0.22, +0.15 | −0.02, −0.08, −0.21, +0.02, +0.05 against observed FR +0.12, +0.25, +0.22,
+  +0.27, +0.11 | −0.07, −0.16, −0.27, −0.24, −0.07; RMS observed 0.194 ± 0.027 (ABF 0.100), predicted 0.119 ± 0.031,
+  residual 0.134 ± 0.036, sign agreement 7 of 10 bins. ITE: predicted +0.05, +0.07, +0.09, +0.09, +0.04 | −0.03,
+  −0.02, −0.07, −0.03, −0.02 against +0.18, +0.08, +0.09, +0.08, +0.03 | −0.01, −0.01, −0.04, −0.05, −0.03; RMS
+  observed 0.076 ± 0.020 (ABF 0.040), predicted 0.057 ± 0.013, residual 0.043 ± 0.027, sign agreement 10 of 10. The
+  prediction reproduces the sign pattern and 60 % (ERI) / 75 % (ITE) of the amplitude; the preregistered amplitude
+  criterion (residual below half the observed RMS) is missed in ERI and narrowly in ITE.
+* **(a) Same deviations?** No: FR's cage-provenance deviations are systematically larger than ABF's (ERI flank RMS
+  difference 0.216 ± 0.082, every flank bin by +0.15 to +0.30 on the left and −0.15 to −0.30 on the right; ITE
+  0.070 ± 0.025), the window-provenance ones barely differ (0.063 ± 0.030; 0.042 ± 0.029).
+* **Exact decomposition (post hoc).** Because e^arm = Σ_p w_p d_p holds exactly in each arm, FR's excess over ABF
+  splits exactly into a **weight term** Σ_p (w_p^FR − w_p^ABF) d_p^ABF and a **state term** Σ_p w_p^FR (d_p^FR −
+  d_p^ABF) (identity residual < 10⁻¹⁴):
+
+| block | flank excess e^FR − e^ABF (RMS; signed left / right) | weight term | state term |
+|---|---|---|---|
+| ERI | 0.162 (+0.136 / −0.129) | **0.040 ± 0.019** (+0.040 / −0.014) | **0.134 ± 0.036** (+0.096 / −0.114) |
+| ITE | 0.054 (+0.043 / −0.011) | **0.023 ± 0.004** (+0.021 / −0.016) | **0.043 ± 0.027** (+0.022 / +0.005) |
+
+  The shift of arrivals toward the cage side carries about a quarter of ERI's flank excess and about half of ITE's
+  (all of it on ITE's right flank); the rest is that FR's cage arrivals are themselves in a more cage-like state than
+  ABF's cage arrivals. Their time since leaving the cage is distributed identically in the two arms (band shares
+  0.273 / 0.132 / 0.233 / 0.254 / 0.107 / 0.002 vs 0.272 / 0.131 / 0.233 / 0.254 / 0.108 / 0.002 in ERI), so the
+  arrivals are not fresher; the cage population they come from must differ. The FR cage conditional is indeed
+  displaced (η lower by 0.007–0.018 sd in the cage bins, §2.4.1), and the historical FR arms' birth − death balance
+  (whole run, 16 runs, per coarse bin) is positive from the cage interior (+160, +145 | +247, +285) through the cage
+  edge (+237 | +400) and the outer flank (+372, +338 | +317, +480), negative on the inner flank (−320, −537 | −591,
+  −325) and in the window (−558, −597): FR adds copies in the outer region and removes walkers in the inner one.
+  How that displaces the cage conditional is not measured here.
+
+### 2.5.3 P3 — the provenance memory decays with time since leaving the cage (post hoc at fixed bins)
+
+Cage-provenance deviation at a fixed coarse bin as a function of time since the walker left the cage (bands < 0.01,
+0.01–0.03, 0.03–0.1, 0.1–0.3, 0.3–1, ≥ 1 t.u.; ABF; kJ/mol/rad):
+
+| | bin 4 | bin 5 | bin 6 | bin 11 | bin 12 | bin 13 |
+|---|---|---|---|---|---|---|
+| ERI | +6.9, +6.3, +3.3, −2.0, −5.1, −5.4 | +16.8, +15.6, +10.2, +3.5, +0.5, +1.2 | ·, +20.9, +14.0, +9.6, +7.6, +9.5 | ·, −23.2, −14.2, −9.5, −7.7, −7.7 | −19.8, −16.2, −10.6, −3.5, −0.6, −0.7 | −6.9, −6.2, −3.3, +2.0, +5.4, +5.5 |
+| ITE | +8.8, +7.2, +4.3, +0.9, −1.0, −1.3 | ·, +7.3, +5.5, +2.8, +0.8, +0.2 | ·, ·, +7.9, +2.6, +1.3, +1.1 | ·, ·, −5.0, −3.2, −1.3, −1.1 | ·, −11.9, −5.5, −2.7, −0.7, −0.4 | −6.0, −5.4, −3.3, −0.6, +0.9, +1.1 |
+
+The deviation of a cage arrival decays over 0.1–1 t.u. and, at the outer flank, crosses to the window-provenance
+value (bin 4: +6.9 → −5.4): a walker that has been out of the cage for a t.u. without reaching the window is no
+longer distinguishable from one that came from the window. FR's table is the same within noise (bin 5: +20.9, +16.5,
++10.9, +3.4, +0.5, −1.1). The flank-pooled version of this statistic (preregistered P3) is confounded by the band's
+bin composition and is not interpretable; the JSON keeps it.
+
+### 2.5.4 Verdict
+
+* **By the letter of the preregistered rule: UNRESOLVED** — P1 holds, P2 (b) holds (ITE clearly, ERI marginally),
+  P2 (c) reproduces the sign pattern but misses the amplitude criterion, P2 (a) fails. None of the four labels fits
+  exactly; the closest is PARTLY SUPPORTED.
+* **Plain reading.** The arrival-law mechanism is real and is the right description of how marginal reallocation
+  biases a histogram-ABF estimate: the deposit a walker makes at a CV bin depends strongly on where it came from,
+  because its fibre state does; equilibrium sampling balances the arrival directions exactly (ABF: +0.01 ± 0.03 over
+  the flank against ±4 per direction in ERI); FR's net transfer unbalances them. Its *frozen-state* version — the
+  arrivals' deviations unchanged, only their weights shifted — accounts for a quarter (ERI) to a half (ITE) of FR's
+  flank excess and for its sign pattern. The remainder is that FR's cage arrivals carry a more cage-like state than
+  ABF's: the reallocation also alters the source population, consistently with the displaced FR cage conditional and
+  with births concentrated in the cage interior and outer flank. The sub-bin position is not involved.
+* **ITE.** The carrier is the joint fibre state (η, u_x², u_z² each 0.2–0.3 sd apart by provenance); no single
+  coordinate stands out, and the pooled displacement is tiny because the weight shift is (+0.012). The transverse COM
+  phases are not involved (provenance difference ≤ 0.011 natural units).
+* **What would close it.** The state term needs the cage population's conditional and its birth-position
+  distribution within the cage (per fine bin BH − DH over time, and the cage conditional by sub-region) in both arms;
+  the record exists for the conditional (arr_P at the cage bins) and D4's event table gives the birth positions, so
+  this is an analysis, not a new run.
+* **Caveats.** Exploratory; two blocks, continuous FR at K256; the decomposition and the fixed-bin table are post hoc;
+  the transverse phases have no within-bin sd available and are compared in natural units; the (c) amplitude criterion
+  was set before the size of the state term was known.
+
 ## 3. D3 — the role of continued resampling (existing confirmatory blocks; descriptive)
 
 ### 3.1 Early establishment (FR's source of benefit)
@@ -484,8 +640,8 @@ establishment; the two were not separated.
 * Every D quantity is exploratory and descriptive, and comes from blocks whose seeds and settings were fixed before D.
 * D2 and D4 cover two blocks (ERI and ITE at K256, continuous FR). They were not repeated for LTA, for stopped
   schedules or for K1024.
-* The selection mechanism of §2.3 reading 4 is not supported (§2.4); the arrival-law mechanism that fits the D4 data
-  was named in advance as an alternative but its direct test (bin-entry record) has not been run. The ITE carrier is
-  not identified.
+* The selection mechanism of §2.3 reading 4 is not supported (§2.4). The arrival-law mechanism is measured in §2.5:
+  its premise and direction hold, its frozen-state version carries ¼–½ of FR's late excess; the rest is a shift of
+  the cage arrivals' own state whose origin in the cage population is not measured.
 * No placebo or matched-turnover control was run; the campaign rules forbid them. So "the bias comes from the
   reallocation itself rather than from any population turnover" is not tested.

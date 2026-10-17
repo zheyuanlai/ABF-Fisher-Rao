@@ -217,6 +217,8 @@
 
 * **D4, selection test (2026-10-17, 11:30 UTC).** Preregistered separately in `MECHANISM_SELECTION_PREREG.md`
   (committed as 49ae642d before its runs were launched).
+* **D5, arrival-law test (2026-10-17, 12:12 UTC).** Preregistered separately in `MECHANISM_ARRIVAL_PREREG.md`
+  (committed as 8564ce92 before its runs were launched).
 
 ## E. Experiment E — efficiency (frozen 07:32 UTC, before any E run)
 

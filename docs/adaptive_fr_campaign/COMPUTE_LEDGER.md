@@ -29,6 +29,9 @@
 | 11:16–11:30 | **D4** instrumentation: engine tests (×3 suites), frozen fixture, overhead benchmark (4 × 4000 steps at K256) | ~0.05 | ≈ 44.15 | ≈ 242.55 |
 | 11:30–11:35 | **D4** selection re-runs (64 runs: both arms of ERI K256 and ITE K256, `diag_sel` on; 292 s wall on 64 processes; mean 167 s ERI / 244 s ITE per run, slower than the historical 118 / 190 s because 64 ran at once on a loaded host, not because of the diagnostic, whose overhead measured 1.0 %) | 3.655 | ≈ 47.8 | ≈ 246.2 |
 | 11:36–12:10 | D4 analysis passes (`selection_split.py`, 4 runs of ≈ 3 min each, single process), figure, documents | ~0.2 | ≈ 48.0 | ≈ 246.4 |
+| 12:00–12:12 | **D5** instrumentation: engine tests (41 across the ERI suites), bounds-checked smoke runs | ~0.05 | ≈ 48.05 | ≈ 246.45 |
+| 12:12–12:16 | **D5** arrival-law re-runs (64 runs: both arms of ERI K256 and ITE K256, `diag_arr` on; 223 s wall on 64 processes; mean 136 s ERI / 214 s ITE per run) | 3.109 | ≈ 51.2 | ≈ 249.6 |
+| 12:16–12:40 | D5 analysis (`arrival_split.py`, ≈ 20 s per pass), figure, documents | ~0.05 | ≈ 51.2 | ≈ 249.6 |
 
-**Campaign total: ≈ 48.0 of 100 authorised CPU core-h; aggregate ≈ 246.4 of ≈ 298.4. No GPU; no external or paid
+**Campaign total: ≈ 51.2 of 100 authorised CPU core-h; aggregate ≈ 249.6 of ≈ 298.4. No GPU; no external or paid
 resource.**

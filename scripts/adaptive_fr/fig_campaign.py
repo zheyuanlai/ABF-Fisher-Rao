@@ -422,6 +422,75 @@ def fig_selection():
     fig.tight_layout()
     save(fig, "mechanism_selection")
 
+def fig_arrival():
+    """10. Experiment D5 (exploratory): the arrival-law test. Per-provenance late deviations and weights in both arms, the
+    arrival-law prediction of FR's late error from ABF's deviations and FR's weights, and the decay with time since leaving
+    the cage."""
+    D = json.load(open(os.path.join(ME, "arrival_split.json")))
+    fig, axs = plt.subplots(2, 4, figsize=(20, 9.0))
+    for row, blk in enumerate(("ERI256", "ITE300_K256")):
+        o = D[blk]
+        F, E_ = o["full"], o["jackknife_se"]
+        fl = np.array(o["flank_coarse_bins"])
+        P, S_ = F["P12"], E_["P12"]
+        x = np.arange(18)
+        arr = lambda d: np.array([np.nan if v is None else v for v in d], float)
+        # (a) per-provenance deviations, ABF vs FR
+        ax = axs[row, 0]
+        for k, col, ls, lab in (("abf_cage", SERIES[7], "-", "ABF, cage provenance"), ("abf_window", SERIES[6], "-", "ABF, window provenance"),
+                                ("fr_cage", SERIES[7], "--", "FR, cage provenance"), ("fr_window", SERIES[6], "--", "FR, window provenance")):
+            ax.errorbar(x[fl], arr(P["dev"][k])[fl], yerr=arr(S_["dev"][k])[fl], color=col, ls=ls, lw=1.3, marker="o", ms=3, capsize=0, label=lab)
+        ax.plot(x, arr(P["dev"]["abf_all"]), color=ABF, lw=2.0, label="ABF, all deposits")
+        ax.plot(x, arr(P["dev"]["fr_all"]), color=FR, lw=2.0, label="FR, all deposits")
+        ax.axhline(0, color=INK2, lw=0.8)
+        ax.set_ylabel("late-half ⟨f⟩_p − Γ_ref per coarse bin (kJ/mol/rad)")
+        ax.set_xlabel("coarse CV bin (flank bins only for the provenance classes)")
+        ax.set_title(f"{o['label']}:\nP1/P2(a): deviation by where the walker came from", fontsize=8.5, loc="left")
+        ax.legend(fontsize=6.3, loc="upper left", bbox_to_anchor=(0.0, -0.13), ncol=2)
+        # (b) weights
+        ax = axs[row, 1]
+        for k, col, ls, lab in (("abf_cage", SERIES[7], "-", "ABF: cage provenance"), ("fr_cage", SERIES[7], "--", "FR: cage provenance"),
+                                ("abf_window", SERIES[6], "-", "ABF: window provenance"), ("fr_window", SERIES[6], "--", "FR: window provenance")):
+            ax.errorbar(x[fl], arr(P["weight"][k])[fl], yerr=arr(S_["weight"][k])[fl], color=col, ls=ls, lw=1.3, marker="o", ms=3, capsize=0, label=lab)
+        ax.set_ylabel("share of the bin's late deposits")
+        ax.set_xlabel("coarse CV bin")
+        ax.set_title("P2(b): provenance weights, ABF vs FR", fontsize=8.5, loc="left")
+        ax.legend(fontsize=6.3, loc="upper left", bbox_to_anchor=(0.0, -0.13), ncol=2)
+        # (c) prediction vs observation
+        ax = axs[row, 2]
+        ax.errorbar(x[fl], arr(P["dev"]["fr_all"])[fl], yerr=arr(S_["dev"]["fr_all"])[fl], color=FR, lw=2.0, marker="o", ms=3, capsize=0, label="FR, observed late error")
+        ax.errorbar(x[fl], arr(P["pred_fr_error"])[fl], yerr=arr(S_["pred_fr_error"])[fl], color=INK2, lw=1.4, ls="--", marker="s", ms=3, capsize=0,
+                    label="arrival-law prediction Σ_p w_p^FR d_p^ABF")
+        ax.plot(x[fl], arr(P["dev"]["abf_all"])[fl], color=ABF, lw=2.0, label="ABF, observed")
+        ax.bar(x[fl] - 0.2, arr(P["weight_term"])[fl], width=0.4, color=SERIES[3], alpha=0.8, label="weight term Σ_p Δw_p d_p^ABF (post hoc)")
+        ax.bar(x[fl] + 0.2, arr(P["state_term"])[fl], width=0.4, color=SERIES[2], alpha=0.8, label="state term Σ_p w_p^FR Δd_p (post hoc)")
+        ax.axhline(0, color=INK2, lw=0.8)
+        f_ = P["flank"]
+        ax.set_title(f"P2(c): FR's late flank error from ABF's deviations and FR's weights; exact split of the excess\n"
+                     f"RMS obs {f_['obs_fr_rms']:.3f}, pred {f_['pred_rms']:.3f}; excess {f_['obs_excess_rms']:.3f} = weight {f_['weight_term_rms']:.3f} + state {f_['state_term_rms']:.3f}", fontsize=8.5, loc="left")
+        ax.set_xlabel("coarse CV bin (flank)")
+        ax.set_ylabel("late-half Γ − Γ_ref (kJ/mol/rad)")
+        ax.legend(fontsize=6.6, loc="lower left" if row == 0 else "upper right")
+        # (d) decay with time since leaving the cage
+        ax = axs[row, 3]
+        b = o["band_edges_tu"]
+        mids = [b[0] / 2] + [np.sqrt(b[i] * b[i + 1]) for i in range(len(b) - 1)] + [b[-1] * 1.8]
+        for arm, col in (("abf", ABF), ("fr", FR)):
+            r, s = F["P3"][arm], E_["P3"][arm]
+            ax.errorbar(mids, arr(r["dev_left"]), yerr=arr(s["dev_left"]), color=col, lw=1.3, marker="o", ms=3.5, capsize=0, label=f"{arm.upper()}: left flank (φ < 0)")
+            ax.errorbar(mids, arr(r["dev_right"]), yerr=arr(s["dev_right"]), color=col, lw=1.3, ls="--", marker="s", ms=3.5, capsize=0, label=f"{arm.upper()}: right flank (φ > 0)")
+        ax.axhline(0, color=INK2, lw=0.8)
+        ax.set_xscale("log")
+        ax.set_xlabel("time since leaving the cage (t.u.), band geometric midpoints")
+        ax.set_ylabel("cage-provenance flank deviation (kJ/mol/rad)")
+        ax.set_title("P3: the cage-provenance deviation decays with time since leaving", fontsize=8.5, loc="left")
+        ax.legend(fontsize=6.6, loc="best")
+    fig.suptitle("Experiment D5 (exploratory): the arrival-law mechanism — deposits labelled by the region the walker last visited; both arms re-run "
+                 "bitwise; late half = t > T/2; pooled over 16 seeds; seed-jackknife s.e.", x=0.01, ha="left", fontsize=9.5, y=1.0)
+    fig.tight_layout()
+    save(fig, "mechanism_arrival")
+
+
 FRONTIER_K = [1024, 256, 64, 16]
 FRONTIER_BLOCK = {1024: "C1", 256: "EA_R1", 64: "EB64", 16: "EB16"}
 
@@ -580,10 +649,10 @@ def fig_wallclock():
 
 
 def main():
-    which = sys.argv[1:] or ["A", "equal", "frontier", "cross", "stops", "bv", "clone", "mfgen", "wallclock", "selection"]
+    which = sys.argv[1:] or ["A", "equal", "frontier", "cross", "stops", "bv", "clone", "mfgen", "wallclock", "selection", "arrival"]
     f = {"A": fig_A, "equal": fig_equal_budget, "frontier": fig_frontier, "cross": fig_cross_system, "stops": fig_stop_times,
          "bv": fig_bias_variance, "clone": fig_clone_age, "mfgen": fig_meanforce_genealogy, "wallclock": fig_wallclock,
-         "selection": fig_selection}
+         "selection": fig_selection, "arrival": fig_arrival}
     for w in which:
         f[w]()
 

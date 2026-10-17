@@ -50,6 +50,7 @@ $PY scripts/adaptive_fr/wallclock_tta.py
 $PY scripts/adaptive_fr/bias_variance.py
 $PY scripts/adaptive_fr/clone_age.py
 $PY scripts/adaptive_fr/selection_split.py
+$PY scripts/adaptive_fr/arrival_split.py    # D5 needs the D5_*_arr run files (both arms) and the D3_*_sel ABF files
 
-# Figures 1-9
-$PY scripts/adaptive_fr/fig_campaign.py   # figures 1-9 (+ 3b frontier, 7b mean force and genealogy, 9 selection)
+# Figures 1-10
+$PY scripts/adaptive_fr/fig_campaign.py   # figures 1-10 (+ 3b frontier, 7b mean force and genealogy, 9 selection, 10 arrival)
