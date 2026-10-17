@@ -299,4 +299,6 @@ analysis-script smoke test on X1, before this freeze.
 
 ## Amendments
 
-(none yet)
+* **A0 (2026-10-17 03:15 UTC, clerical).** The header's "written 03:11–03:25" was an estimate. The freeze is commit
+  4431ce30 at 03:13:20 UTC (git). E1, the ERI rate-2.0 rung and the ITE rate-2.0 rung were launched at 03:13:31,
+  after it. Nothing in the design changed.
