@@ -201,16 +201,32 @@ def fig_BC(system, summ, routing, checks, xkind="wall"):
                     ax.axvline(float(W), color=col, lw=0.8, ls=(0, (1, 1.5)), zorder=1)
         ax.axhline(eps, color=MUTED, lw=0.9, ls=(0, (3, 2)), zorder=1)
         ax.set_yscale("log")
-        ax.set_xlim(0, xmax * 1.02 if xmax > 0 else 1)
+        if xkind == "wall":                      # log wall axis: crossings at ~1-10 s, runs up to ~250 s
+            ax.set_xscale("log")
+            ax.set_xlim(0.03, xmax * 1.3 if xmax > 0 else 1)
+        else:
+            ax.set_xlim(0, xmax * 1.02 if xmax > 0 else 1)
         be = row.get("backend", "?")
         ax.set_title(f"N = {N},  T_N = {row.get('T_N', H.T_N(spec, N)):.4g},  {be}", loc="left", fontsize=9.6)
         wa, wf = row.get("W_mid_abf", {}), row.get("W_mid_fr", {})
-        txt = f"W_mid ABF {fnum(wa.get('median', math.nan))} s [{wa.get('n_censored', 0)}/{wa.get('n', 0)} cens.]"
+
+        def wtxt(w):
+            v = w.get("median", math.nan)
+            v = math.inf if v in ("inf", None) and w.get("n_censored", 0) * 2 > w.get("n", 0) else v
+            return ("median censored" if (isinstance(v, (int, float)) and math.isinf(v)) or v == "inf"
+                    else f"{fnum(v)} s")
+        txt = f"W_mid ABF {wtxt(wa)} [{wa.get('n_censored', 0)}/{wa.get('n', 0)} cens.]"
         if N > 1 and wf:
             pw = row.get("pair_W_mid", {})
-            txt += (f"\nW_mid FR {fnum(wf.get('median', math.nan))} s [{wf.get('n_censored', 0)}/{wf.get('n', 0)}]"
-                    f"\nFR/ABF {fnum(pw.get('ratio', math.nan), 2)} [{fnum(pw.get('lo', math.nan), 2)}, "
-                    f"{fnum(pw.get('hi', math.nan), 2)}]")
+            r = pw.get("ratio")
+            txt += f"\nW_mid FR {wtxt(wf)} [{wf.get('n_censored', 0)}/{wf.get('n', 0)} cens.]"
+            if r is None or (isinstance(r, float) and math.isnan(r)):
+                txt += "\nFR/ABF undefined (both medians censored)"
+            elif float(r) == 0.0:
+                txt += "\nFR/ABF 0 (ABF median censored)"
+            else:
+                txt += (f"\nFR/ABF {fnum(r, 2)} [{fnum(pw.get('lo', math.nan), 2)}, "
+                        f"{fnum(pw.get('hi', math.nan), 2)}]")
         else:
             txt += "\nABF only (no FR at N = 1)"
         if xkind == "wall":
@@ -238,12 +254,14 @@ def fig_BC(system, summ, routing, checks, xkind="wall"):
 
 # ================================================================================================ D
 def fig_D(summ, checks):
-    fig, axs = plt.subplots(1, 3, figsize=(15.5, 4.6), layout="constrained")
-    for ax, s in zip(axs, H.SYSTEMS):
+    fig = plt.figure(figsize=(15.5, 5.6), layout="constrained")
+    gs = fig.add_gridspec(2, 3, height_ratios=[3.2, 1.0])
+    for c, s in enumerate(H.SYSTEMS):
         res = summ["results"].get(s)
         if not res:
-            ax.set_visible(False)
             continue
+        ax = fig.add_subplot(gs[0, c])
+        axn = fig.add_subplot(gs[1, c], sharex=ax)
         fr = res["frontier"]
         w = np.array(fr["w"])
         for m, col, lab in (("abf", C_ABF, "ABF"), ("fr", C_FR, "ABF + FR")):
@@ -253,20 +271,18 @@ def fig_D(summ, checks):
             done = np.array(fr[m]["completed_frac"]) >= 0.5
             ax.plot(np.where(~done, w, np.nan), np.where(~done, b, np.nan), color=col, lw=1.8, label=lab)
             ax.plot(np.where(done, w, np.nan), np.where(done, b, np.nan), color=col, lw=1.3, ls=(0, (4, 2)))
-            Nb = np.array(fr[m]["best_N"])
-            ch = np.flatnonzero(np.diff(Nb) != 0) + 1
-            last = -np.inf
-            for k in [0] + ch.tolist():          # label the best N where it changes, >= 0.4 decades apart
-                if np.isfinite(b[k]) and math.log10(w[k]) - last >= 0.4:
-                    ax.annotate(f"N{Nb[k]}", (w[k], b[k]), textcoords="offset points",
-                                xytext=(2, 5 if m == "abf" else -11), fontsize=6.6, color=col)
-                    last = math.log10(w[k])
+            Nb = np.array(fr[m]["best_N"], float)
+            axn.step(w, np.log2(Nb) + (0.12 if m == "fr" else -0.12), where="post", color=col, lw=1.4)
         ax.axhline(res["thresholds"]["mid"], color=MUTED, lw=0.9, ls=(0, (3, 2)))
         ax.set_xscale("log")
         ax.set_yscale("log")
-        ax.set_xlabel("wall-clock budget w (s)")
-        ax.set_ylabel(f"best median e_F over N ({E_UNIT[s]})")
+        ax.set_ylabel(f"best median e_F ({E_UNIT[s]})")
         ax.set_title(res["label"], loc="left")
+        ax.tick_params(labelbottom=False)
+        axn.set_yticks(range(0, 12, 2))
+        axn.set_yticklabels([str(2 ** k) for k in range(0, 12, 2)], fontsize=7.5)
+        axn.set_ylabel("best N")
+        axn.set_xlabel("wall-clock budget w (s)")
     handles = [Line2D([], [], color=C_ABF, lw=1.8, label="ABF: best N at each w (still sampling)"),
                Line2D([], [], color=C_FR, lw=1.8, label="ABF + FR: best N at each w"),
                Line2D([], [], color=INK2, lw=1.3, ls=(0, (4, 2)),
@@ -274,7 +290,7 @@ def fig_D(summ, checks):
                Line2D([], [], color=MUTED, lw=0.9, ls=(0, (3, 2)), label="mid threshold")]
     fig.legend(handles=handles, loc="outside lower center", ncol=2, frameon=False)
     fig.suptitle("Figure D. Descriptive best-of-N wall-clock frontier (measured runs; selection over N on the same "
-                 "seeds: not a confirmatory claim)", fontsize=10.5, x=0.01, ha="left")
+                 "seeds: not a confirmatory claim). Lower strips: the minimising N", fontsize=10.5, x=0.01, ha="left")
     return save(fig, "D_wallclock_frontier", checks)
 
 
@@ -311,10 +327,12 @@ def fig_E(summ, checks, kind="prod"):
                 if k not in cv:
                     continue
                 W = cv[k]
-                fin = W[np.isfinite(W)]
-                top = max(top, float(fin.max()) if fin.size else 0.0, float(np.max(cv[f"{m}{N}_completion"])))
+                med = _inf_median(W)
+                if math.isfinite(med):
+                    (lo_, hi_), _ = _boot_med(W, rng)
+                    top = max(top, med, float(hi_) if np.isfinite(hi_) else med)
                 pts[(m, N)] = (W, col, dx)
-        top *= 1.6
+        top *= 2.0
         for (m, N), (W, col, dx) in pts.items():
             med = _inf_median(W)
             (lo, hi), fcens = _boot_med(W, rng)
@@ -338,7 +356,10 @@ def fig_E(summ, checks, kind="prod"):
                         mfc="none", mec=col, mew=1.5, ls="none", zorder=5)
         ax.set_xscale("log", base=2)
         ax.set_yscale("log")
-        ax.set_ylim(top=top * 1.25)
+        ax.set_ylim(top=top * 1.35)
+        ax.set_xticks(sorted(spec["N_ladder"]))
+        ax.set_xticklabels([str(n) for n in sorted(spec["N_ladder"])], fontsize=7.5)
+        ax.minorticks_off()
         ax.set_xlabel("replicas N (route per N in Figure A)")
         ax.set_ylabel("W_mid (measured s)")
         R = res["best"]["mid"].get("R_wall", {})
