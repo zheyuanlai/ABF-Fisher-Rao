@@ -85,6 +85,8 @@ def curves(kind, system):
 
 
 def fnum(x, p=3):
+    if x is None:
+        return "n/a"
     x = float(x)
     if math.isinf(x):
         return "cens."
@@ -253,11 +255,12 @@ def fig_D(summ, checks):
             ax.plot(np.where(done, w, np.nan), np.where(done, b, np.nan), color=col, lw=1.3, ls=(0, (4, 2)))
             Nb = np.array(fr[m]["best_N"])
             ch = np.flatnonzero(np.diff(Nb) != 0) + 1
-            for k in [0] + ch.tolist():
-                if np.isfinite(b[k]):
-                    ax.annotate(f"N{Nb[k]}", (w[k], b[k]), textcoords="offset points", xytext=(2, 4 if m == "abf"
-                                                                                               else -10),
-                                fontsize=6.6, color=col)
+            last = -np.inf
+            for k in [0] + ch.tolist():          # label the best N where it changes, >= 0.4 decades apart
+                if np.isfinite(b[k]) and math.log10(w[k]) - last >= 0.4:
+                    ax.annotate(f"N{Nb[k]}", (w[k], b[k]), textcoords="offset points",
+                                xytext=(2, 5 if m == "abf" else -11), fontsize=6.6, color=col)
+                    last = math.log10(w[k])
         ax.axhline(res["thresholds"]["mid"], color=MUTED, lw=0.9, ls=(0, (3, 2)))
         ax.set_xscale("log")
         ax.set_yscale("log")
@@ -326,7 +329,8 @@ def fig_E(summ, checks, kind="prod"):
             nc = int(np.sum(np.isinf(W)))
             if nc:
                 ax.annotate(f"{nc}", (x, top if not math.isfinite(med) else med), textcoords="offset points",
-                            xytext=(0, -11 if not math.isfinite(med) else 5), ha="center", fontsize=6.3, color=col)
+                            xytext=(-7 if m == "abf" else 7, -11 if not math.isfinite(med) else 5),
+                            ha="right" if m == "abf" else "left", fontsize=6.3, color=col)
         for m, col, mk in (("abf", C_ABF, "*"), ("fr", C_FR, "*")):
             b = res["best"]["mid"].get(m)
             if b and b.get("best_N") is not None and math.isfinite(b["best_value"]):
@@ -336,7 +340,7 @@ def fig_E(summ, checks, kind="prod"):
         ax.set_yscale("log")
         ax.set_ylim(top=top * 1.25)
         ax.set_xlabel("replicas N (route per N in Figure A)")
-        ax.set_ylabel("W_mid: measured wall seconds to persistent mid accuracy")
+        ax.set_ylabel("W_mid (measured s)")
         R = res["best"]["mid"].get("R_wall", {})
         ax.set_title(f"{res['label']}\nexploratory best FR / best ABF = {fnum(R.get('point', math.nan))} "
                      f"[{fnum((R.get('ci95') or [math.nan])[0])}, {fnum((R.get('ci95') or [0, math.nan])[1])}]",
@@ -408,6 +412,7 @@ def fig_F(summ, checks):
                 ax.plot([i], [max(fin) * 2 if fin else 1], marker="^", ms=9, color=items[i][2], mfc="white")
         ax.set_xticks(range(len(items)))
         ax.set_xticklabels([it[0] for it in items], fontsize=7.4)
+        ax.set_xlabel("configuration (method, N, backend, seed block)")
         ax.set_yscale("log")
         ax.set_ylabel("W_mid (s), median and 95 % CI")
         R = b.get("R_wall", {})
