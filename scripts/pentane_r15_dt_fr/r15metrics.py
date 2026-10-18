@@ -79,7 +79,7 @@ def low_support_fraction(eff, win):
 def load_runs(stage, pattern="*.npz"):
     out = []
     for f in sorted(glob.glob(os.path.join(RES, stage, "raw", pattern))):
-        if f.endswith(".tmp.npz"):
+        if not f.endswith(".npz") or f.endswith(".tmp.npz"):
             continue
         d = np.load(f, allow_pickle=True)
         m = json.loads(str(d["meta_json"]))
