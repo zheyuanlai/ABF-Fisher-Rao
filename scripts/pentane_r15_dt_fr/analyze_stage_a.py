@@ -166,6 +166,8 @@ def main():
     summary["selection_rule"] = PREREG["gate"]["selection_rule"]
     os.makedirs(STAGE, exist_ok=True)
     json.dump(summary, open(os.path.join(STAGE, "summary.json"), "w"), indent=1, default=float)
+    # group-mean deviation profiles (for the ABF deposit-bias decomposition in analyze_runs.py)
+    np.savez(os.path.join(STAGE, "profiles.npz"), **{f"{k}|{q}": v[q] for k, v in profiles.items() for q in ("R", "F_mf", "F_dn", "Fp")})
     write_md(summary, dts)
     plot(summary, profiles, dts, ref, exact)
     print(json.dumps(summary["gate"], indent=1, default=float)); print("selected dt:", summary["selected_dt"])
