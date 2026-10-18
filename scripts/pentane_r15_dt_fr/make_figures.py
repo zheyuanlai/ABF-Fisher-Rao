@@ -59,7 +59,7 @@ def fig2(ref, pilot, confirm):
             pass
         band(ax[0], t[sel], [r["eF"][sel] for r in rows40], COL.get(dt, "k"), f"dt {dt:g} (T {T:g})")
         band(ax[1], t[sel], [r["eFp"][sel] for r in rows40], COL.get(dt, "k"), f"dt {dt:g}")
-        fe = (np.round(t / dt) + 1) * 1024
+        fe = (np.round(t / dt) + 1) * 1024 / 1e8
         band(ax[2], fe, [r["eF"] for r in rows40], COL.get(dt, "k"), f"dt {dt:g}, to T {T:g}")
     for (arm, rate, dt, T, dep), rows in pilot.items():
         if arm == "abf" and dep is not None:
@@ -75,7 +75,7 @@ def fig2(ref, pilot, confirm):
                 band(ax[0], rows[0]["t"], [r["eF"] for r in rows], COL.get(dt, "k"), f"dt {dt:g} confirmatory (16)", ls=":")
     ax[0].set_title(f"(a) ABF e_F(t), equal physical time ({src})", fontsize=10); ax[0].set_xlabel("physical time t")
     ax[1].set_title("(b) ABF e_F'(t), equal physical time", fontsize=10); ax[1].set_xlabel("physical time t")
-    ax[2].set_title("(c) ABF e_F vs force evaluations (per seed)", fontsize=10); ax[2].set_xlabel("force evaluations (1024 walkers x steps)"); ax[2].set_xscale("log")
+    ax[2].set_title("(c) ABF e_F vs force evaluations (per seed)", fontsize=10); ax[2].set_xlabel("force evaluations / 1e8 (1024 walkers x steps)")
     ax[3].set_title("(d) deposition frequency at fixed dt", fontsize=10); ax[3].set_xlabel("physical time t")
     ax[0].set_ylabel("windowed RMS error of F (v2 reference)"); ax[1].set_ylabel("windowed RMS error of F'")
     for a in ax:
@@ -115,6 +115,15 @@ def fig3(ref, data, src, dts, sec):
                 ax[-1].errorbar(x + 0.1, 100 * c["median"], yerr=[[100 * (c["median"] - c["ci95"][0])], [100 * (c["ci95"][1] - c["median"])]], fmt="ks", capsize=3)
                 ax[-1].text(x, ax[-1].get_ylim()[1] if False else 100 * c["ci95"][1] + 0.5, f"dt {dt:g}\nrate {lab}", fontsize=7, ha="center")
         pos += 1
+    for j, ((arm, rate, dt, T, dep), X) in enumerate(sorted(getattr(fig3, "_explore", {}).items())):
+        A = next((v for k, v in data.items() if k[0] == "abf" and k[2] == dt and k[4] is None), None)
+        if not A:
+            continue
+        c = M.paired(X, A, "I_F"); x = pos + 0.35 * j
+        ax[-1].scatter(np.full(len(c["values"]), x) + np.linspace(-0.05, 0.05, len(c["values"])), 100 * np.array(c["values"]), s=12, marker="^",
+                       color={0.05: "#16a085", 0.1: "#8e44ad"}.get(rate, "k"))
+        ax[-1].errorbar(x + 0.1, 100 * c["median"], yerr=[[100 * (c["median"] - c["ci95"][0])], [100 * (c["ci95"][1] - c["median"])]], fmt="ks", capsize=3)
+        ax[-1].text(x, 100 * c["ci95"][1] + 0.5, f"dt {dt:g}\nrate {rate:g}\n(exploratory,\nunsafe)", fontsize=7, ha="center")
     ax[0].set_ylabel("windowed RMS error of F")
     ax[-1].axhline(0, color="k", lw=0.8); ax[-1].axhspan(-10, 10, color="0.9", zorder=0)
     ax[-1].set_ylabel("Delta I_F = I_F(mFR)/I_F(ABF) - 1  (%)"); ax[-1].set_xticks([]); ax[-1].set_title("(d) paired effect per seed, median [95% CI]; grey = +-10%", fontsize=10)
@@ -127,7 +136,7 @@ def fig4(ref, data, src, dt, sec):
     if not A:
         return
     win = ref["win"]; g = ref["grid"]
-    fig, ax = plt.subplots(1, 5, figsize=(25, 4.8))
+    fig, axs = plt.subplots(2, 3, figsize=(19, 9.6)); ax = axs.ravel()
     U = 1.0 / (win.sum() * ref["dz"])
     # (e) deposit-weighted torsional-family composition per conditional R bin vs the exact conditional
     edges = ref["cond_edges"]; kb = [k for k in range(len(edges) - 1) if edges[k + 1] > 2.0 and edges[k] < 3.55]
@@ -170,11 +179,21 @@ def fig4(ref, data, src, dt, sec):
     if hasattr(fig4, "_tw"):
         del fig4._tw
     ax[0].axhline(U, color="k", ls="--", lw=1, label="uniform target on window")
-    ax[0].set_title(f"(a) final walker R marginal (window), dt {dt:g} ({src})", fontsize=10); ax[0].set_xlabel("R15"); ax[0].legend(fontsize=7, loc="upper left")
+    ax[0].set_title(f"(a) walker R marginal at t = 40 (window), dt {dt:g}\n({src}); births/deaths on the right axis", fontsize=10); ax[0].set_xlabel("R15"); ax[0].legend(fontsize=7, loc="upper left")
     ax[1].set_title("(b) walker share per torsional family", fontsize=10); ax[1].set_xlabel("t"); ax[1].legend(fontsize=6, ncol=2); ax[1].set_yscale("log")
     ax[2].set_title("(c) distinct lineages / walkers per family\n(1 = all independent; clones lower it)", fontsize=10); ax[2].set_xlabel("t")
     ax[3].set_title("(d) under-supported fraction of the window", fontsize=10); ax[3].set_xlabel("t"); ax[3].legend(fontsize=8)
-    fig.suptitle("Figure 4. Regional exploration: genuine discovery vs descendants (medians over seeds)", fontsize=12)
+    # (f) raw deposit mean-force bias vs R for ABF at every confirmatory dt (pooled over seeds)
+    for dd in sorted({k[2] for k in fig4._all if k[0] == "abf"}, reverse=True):
+        X = next(v for k, v in fig4._all.items() if k[0] == "abf" and k[2] == dd and k[4] is None)
+        C = np.sum([r["csum_prod"] for r in X], 0); Sf = np.sum([r["fsum_prod"] for r in X], 0)
+        b = np.where(C >= 200, Sf / np.clip(C, 1, None) - ref["Fp"], np.nan)
+        ax[5].plot(g[win], b[win], color=COL.get(dd, "k"), lw=1.4, label=f"ABF dt {dd:g}")
+    ax5b = ax[5].twinx(); ax5b.plot(g[win], ref["F"][win] - ref["F"][win].min(), "k:", lw=1.2, label="F_ref (right axis)")
+    ax5b.set_ylabel("F_ref - min"); ax5b.legend(fontsize=7, loc="lower right")
+    ax[5].axhline(0, color="k", lw=0.6); ax[5].set_xlabel("R15"); ax[5].set_ylabel("deposit mean f_R - F'_ref")
+    ax[5].set_title("(f) bias of the ABF deposits per bin (all production deposits)", fontsize=10); ax[5].legend(fontsize=8, loc="upper right")
+    fig.suptitle("Figure 4. Regional exploration: genuine discovery vs descendants, and where the deposits are wrong (medians over seeds)", fontsize=12)
     fig.tight_layout(); save(fig, "fig4_regional_exploration")
 
 
@@ -188,7 +207,9 @@ def fig5(ref, data, src, calib, dts, sec):
         if S:
             sets.append((S, f"{sec:g}, dt {dt:g} ({src})", COL.get(dt, "k"), "--"))
     for (arm, rate, dt, T, dep), rows in sorted(calib.items()):
-        sets.append((rows, f"{rate:g}, dt {dt:g} (calibration)", {0.02: "#7f8c8d", 0.05: "#16a085", 0.1: "#8e44ad"}.get(rate, "k"), ":"))
+        sets.append((rows, f"{rate:g}, dt {dt:g} (calibration, 4 seeds)", {0.02: "#7f8c8d", 0.05: "#16a085", 0.1: "#8e44ad"}.get(rate, "k"), ":"))
+    for (arm, rate, dt, T, dep), rows in sorted(fig5._explore.items()):
+        sets.append((rows, f"{rate:g}, dt {dt:g} (exploratory, 16 seeds)", {0.05: "#16a085", 0.1: "#8e44ad"}.get(rate, "k"), "-."))
     for rows, lab, c, ls in sets:
         t = rows[0]["t"]
         ax[0].plot(t, np.median([r["repl"] for r in rows], 0), color=c, ls=ls, lw=1.6, label=lab)
@@ -235,6 +256,8 @@ def main():
     pilot = collect("pilot", ref)
     confirm = collect("confirm", ref) if os.path.isdir(os.path.join(M.RES, "confirm", "raw")) else {}
     calib = collect("calib", ref) if os.path.isdir(os.path.join(M.RES, "calib", "raw")) else {}
+    explore = collect("explore", ref) if os.path.isdir(os.path.join(M.RES, "explore", "raw")) else {}
+    fig3._explore = explore
     sa = os.path.join(M.RES, "stage_a", "summary.json"); sel = json.load(open(sa))["selected_dt"] if os.path.exists(sa) else None
     cs = os.path.join(M.RES, "calib", "selection.json"); sec = json.load(open(cs))["secondary_rate"] if os.path.exists(cs) else None
     data, src = (confirm, "confirmatory, 16 seeds") if confirm else (pilot, "pilot, 4 seeds")
@@ -242,7 +265,9 @@ def main():
     dts = list(dict.fromkeys(dts))
     fig2(ref, pilot, confirm)
     fig3(ref, data, src, dts, sec)
+    fig4._all = data
     fig4(ref, data, src, dts[0], sec)
+    fig5._explore = explore
     fig5(ref, data, src, calib, dts, sec)
     fig6(ref, data, src, dts, sec)
     print("figures ->", FIG)

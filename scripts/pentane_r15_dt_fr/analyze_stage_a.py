@@ -226,10 +226,11 @@ def plot(s, profiles, dts, ref, exact):
         ax[0, 2].errorbar(x * (1.03 if route == "dens" else 1.0), y, yerr=[np.zeros(len(y)), np.array(u) - np.array(y)], marker=mk, capsize=3,
                           label={"mf": "mean-force route", "dens": "density route"}[route])
     ax[0, 2].axhline(TAU, color="k", ls="--", lw=1, label=f"tolerance {TAU}")
-    ax[0, 2].set_xscale("log"); ax[0, 2].set_yscale("symlog", linthresh=0.01); ax[0, 2].set_xlabel("dt"); ax[0, 2].set_ylabel("debiased windowed RMS D (bar: U95)")
+    ax[0, 2].set_xscale("log"); ax[0, 2].set_ylim(0, 0.12); ax[0, 2].set_xlabel("dt"); ax[0, 2].set_ylabel("debiased windowed RMS D (bar: U95)")
     ax[0, 2].set_title("(c) gate statistic vs dt", fontsize=10); ax[0, 2].legend(fontsize=8)
     cf = [max(s["cells"][f"{e}|{d:g}|200"]["clip_frac"] for e in ("flat", "gibbs")) for d in dts]
-    ax[1, 0].plot(x, np.maximum(cf, 1e-9), "o-", color="#7d3c98", label="clipped per-atom force evaluations")
+    cfp = np.where(np.array(cf) > 0, cf, 1e-10)
+    ax[1, 0].plot(x, cfp, "o-", color="#7d3c98", label="clipped per-atom force evaluations (0 drawn at 1e-10)")
     ax[1, 0].axhline(1e-5, color="k", ls="--", lw=1, label="materiality threshold 1e-5")
     ax[1, 0].set_xscale("log"); ax[1, 0].set_yscale("log"); ax[1, 0].set_xlabel("dt"); ax[1, 0].set_title("(d) physical force-clip activity (clip 200)", fontsize=10)
     ax[1, 0].legend(fontsize=8)
@@ -241,10 +242,12 @@ def plot(s, profiles, dts, ref, exact):
         for dt in dts:
             c = s["cells"][f"gibbs|{dt:g}|200"]
             t = np.array(c["fam_t"]); m = np.array(c["fam_mean"])[:, fi]
-            ax[1, 2].plot(t, m - c["fam_exact"][fi], color=cols.get(dt, "k"), lw=1.0, ls=["-", "--", ":", "-."][fi],
+            ax[1, 2].plot(t, m - m[0], color=cols.get(dt, "k"), lw=1.0, ls=["-", "--", ":", "-."][fi],
                           label=(f"dt {dt:g}" if fi == 0 else None))
-    ax[1, 2].axhline(0, color="k", lw=0.6); ax[1, 2].set_xlabel("time"); ax[1, 2].set_ylabel("population - exact Gibbs")
-    ax[1, 2].set_title("(f) torsional families (TT -, TG --, GG same :, GG opp -.)", fontsize=10); ax[1, 2].legend(fontsize=8)
+    se = max(max(s["cells"][f"gibbs|{d:g}|200"]["fam_drift_end_se"]) for d in dts)
+    ax[1, 2].axhspan(-2 * se, 2 * se, color="0.9", zorder=0)
+    ax[1, 2].axhline(0, color="k", lw=0.6); ax[1, 2].set_xlabel("time"); ax[1, 2].set_ylabel("population(t) - population(0)  (grey: +-2 SE)")
+    ax[1, 2].set_title("(f) torsional-family drift from the exact start\n(TT -, TG --, GG same :, GG opp -.; unbiased)", fontsize=10); ax[1, 2].legend(fontsize=8)
     fig.suptitle("Figure 1. Pentane R15 timestep validity: production EM vs exact Gibbs (beta 2)", fontsize=12)
     fig.tight_layout()
     for ext in ("png", "pdf"):

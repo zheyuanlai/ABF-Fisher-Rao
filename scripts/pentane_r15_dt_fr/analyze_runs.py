@@ -91,13 +91,14 @@ def stage_pilot():
     for dt, Tl in ((2.5e-4, 80), (1.25e-4, 40)):
         X = rows.get(f"abf__dt{dt:g}__T{Tl:g}__ns4__rng20261101|T40")
         if A5 and X:
-            out["contrasts"][f"A dt {dt:g} vs A dt 5e-4 (T 40, unpaired)"] = {k: M.unpaired_ratio(X, A5, k) for k in ("eF_end", "I_F", "eFp_end", "lowsup_end", "Dcond_end")}
+            out["contrasts"][f"A dt {dt:g} vs A dt 5e-4 (T 40, unpaired)"] = {k: M.unpaired_ratio(X, A5, k) for k in ("eF_end", "I_F", "eFp_end", "lowsup_end", "Dcond_end", "Dc9_end", "dep_bias_rms")
+                                                                          if all(k in r for r in X + A5)}
     eq = {}
     for nm, lab in (("abf__dt0.0005__T160__ns4__rng20261101|T160", "dt 5e-4, T 160"), ("abf__dt0.00025__T80__ns4__rng20261101|T80", "dt 2.5e-4, T 80"),
                     ("abf__dt0.000125__T40__ns4__rng20261101|T40", "dt 1.25e-4, T 40")):
         if nm in rows:
             eq[lab] = dict(eF_end=M.med(rows[nm], "eF_end"), eFp_end=M.med(rows[nm], "eFp_end"), force_evals=M.med(rows[nm], "force_evals"),
-                           lowsup_end=M.med(rows[nm], "lowsup_end"), Dcond_end=M.med(rows[nm], "Dcond_end"))
+                           lowsup_end=M.med(rows[nm], "lowsup_end"), Dcond_end=M.med(rows[nm], "Dcond_end"), I_F_per_t=M.med(rows[nm], "I_F") / rows[nm][0]["T"])
     out["equal_force_evals_320k_steps"] = eq
     out["rows"] = {k: strip(v) for k, v in rows.items()}
     d = os.path.join(M.RES, "pilot"); json.dump(out, open(os.path.join(d, "summary.json"), "w"), indent=1, default=float)
@@ -198,6 +199,39 @@ def stage_confirm():
     return out
 
 
+def stage_explore():
+    """Exploratory active-FR arms (addendum_exploratory_active_fr.json), paired with the confirmatory ABF at dt 2.5e-4."""
+    ref = M.load_ref()
+    A = [row for r in M.load_runs("confirm") if r["meta"]["arm"] == "abf" and float(r["meta"]["dt"]) == 2.5e-4 for row in M.per_seed(r, ref)]
+    F02 = [row for r in M.load_runs("confirm") if r["meta"]["arm"] == "fr" and float(r["meta"]["dt"]) == 2.5e-4 for row in M.per_seed(r, ref)]
+    pooled = {0.02: F02}
+    for r in M.load_runs("explore"):
+        pooled.setdefault(float(r["meta"]["fr_rate"]), []).extend(M.per_seed(r, ref))
+    out = dict(stage="explore (non-confirmatory; rates 0.05/0.10 fail the frozen genealogy-safety rule)", groups={"abf r0 dt0.00025": group_summary(A)},
+               contrasts={})
+    for x, F in sorted(pooled.items()):
+        out["groups"][f"fr r{x:g} dt0.00025"] = group_summary(F)
+        out["contrasts"][f"F{x:g} vs A, dt 0.00025"] = fr_vs_abf(F, A)
+    d = os.path.join(M.RES, "explore"); os.makedirs(d, exist_ok=True)
+    out["rows"] = {f"fr r{x:g} dt0.00025": strip(v) for x, v in pooled.items()}
+    json.dump(out, open(os.path.join(d, "summary.json"), "w"), indent=1, default=float)
+    L = ["# Exploratory: more active uniform mFR (rates 0.05, 0.10) at dt 2.5e-4 on the 16 confirmatory seeds", "",
+         "NOT confirmatory: both rates fail the frozen genealogy-safety rule (calib/selection.json); reported to avoid judging FR from an inert rate only.", "",
+         "| arm | e_F(40) | I_F | e_F'(40) | D_cond(40) | int KL(p||U) | low-support | replacements/N | ESS/N | max anc frac | e_F compact (R<2.4) | e_F rest |",
+         "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    for k, g in out["groups"].items():
+        def v(key, f="{:.3f}"):
+            x = g.get(key); return f.format(x["median"]) if x else "-"
+        L.append(f"| {k} | {v('eF_end')} | {v('I_F', '{:.2f}')} | {v('eFp_end', '{:.2f}')} | {v('Dcond_end')} | {v('I_KL', '{:.2f}')} | {v('lowsup_end')} | {v('repl_end')} | "
+                 f"{v('ess_end')} | {v('maxf_end')} | {v('eF_compact')} | {v('eF_rest')} |")
+    L += ["", "Paired contrasts vs the confirmatory ABF arm (median [95 % CI] wins/n):", ""]
+    for k, c in out["contrasts"].items():
+        L.append(f"* **{k}**: " + "; ".join(f"Δ{kk} {fmt_ci(vv)}" for kk, vv in c.items()))
+    open(os.path.join(d, "REPORT.md"), "w").write("\n".join(L) + "\n")
+    print("\n".join(L))
+    return out
+
+
 def classify(out, pooled, sel_a, cal, dt_sel, rates):
     cl = {}
     g5 = sel_a["gate"].get("0.0005", {})
@@ -261,4 +295,4 @@ def write_confirm_md(o, d):
 
 if __name__ == "__main__":
     st = sys.argv[1]
-    {"pilot": stage_pilot, "calib": stage_calib, "confirm": stage_confirm}[st]()
+    {"pilot": stage_pilot, "calib": stage_calib, "confirm": stage_confirm, "explore": stage_explore}[st]()
