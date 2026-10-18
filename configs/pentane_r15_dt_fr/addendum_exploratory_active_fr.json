@@ -1,0 +1,8 @@
+{
+  "addendum_to": "configs/pentane_r15_dt_fr/prereg_stages_bcd.json",
+  "written_utc": "2026-10-18 ~18:40, after the frozen FR-rate selection returned 'no secondary rate' (calib/selection.json) and BEFORE any free-energy error of the calibration runs or of any dt 2.5e-4 confirmatory run was computed",
+  "reason": "The frozen rule found rate 0.02 safe but inactive (0.11 N replacements) and rates 0.05 / 0.10 unsafe (final ancestor ESS/N 0.37 / 0.07; max ancestor fraction 0.024 / 0.052) while still below the 'active' threshold (0.28 / 0.63 N). So no confirmatory secondary arm exists, and the confirmatory comparison can only test an inert FR. To avoid reading an inactive FR as evidence that the mechanism is ineffective, the free-energy effect of the more active rates is measured as an EXPLORATORY, non-confirmatory experiment.",
+  "runs": "ABF + uniform mFR at rates 0.05 and 0.10, dt 2.5e-4, T 40, on the 16 confirmatory seeds (rng 20261201-04), paired with the confirmatory ABF arm; output results/pentane_r15_dt_fr/explore/",
+  "reported": "the same paired contrasts as the confirmatory analysis (Delta I_F, Delta e_F(40), Delta D_cond, Delta int KL, deposit-bias RMS, compact/rest error split) plus genealogy",
+  "status": "exploratory: these rates FAIL the frozen genealogy-safety rule, so they cannot support outcome B under any result; a harmful result supports D; any benefit is reported as exploratory and safety-failing"
+}

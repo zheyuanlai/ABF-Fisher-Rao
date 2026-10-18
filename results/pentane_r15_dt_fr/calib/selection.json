@@ -1,0 +1,105 @@
+{
+ "rule": {
+  "when": "always (the 2026-09-06 campaign measured uniform FR at 0.02 as inert: 100 replacements over 13 600 opportunities)",
+  "runs": "F only, rates 0.02, 0.05, 0.10, rng 20261102, 4 seeds, at the Stage-A-selected dt (at 5e-4 if none is validated)",
+  "statistics": "per rate: median over seeds of total replacements / N, final ancestor ESS / N, final max ancestor fraction",
+  "safe": "median final ancestor ESS/N >= 0.5 AND median final max ancestor fraction <= 0.05",
+  "active": "median total replacements >= 1.0 N over the run",
+  "selection_rule": "secondary rate = the SMALLEST rate in {0.05, 0.10} that is safe and active; if none is active, the LARGEST safe rate in {0.05, 0.10}; if none is safe, no secondary rate. Free-energy errors of the calibration runs are NOT computed before the rate is fixed."
+ },
+ "stats": {
+  "0.02": {
+   "rate": 0.02,
+   "dt": 0.00025,
+   "repl_over_N": [
+    0.1064453125,
+    0.10546875,
+    0.1083984375,
+    0.099609375
+   ],
+   "ess_over_N": [
+    0.8231511254019293,
+    0.7314285714285714,
+    0.7816793893129771,
+    0.7699248120300752
+   ],
+   "max_anc_frac": [
+    0.00390625,
+    0.013671875,
+    0.0068359375,
+    0.0107421875
+   ],
+   "median_repl_over_N": 0.10595703125,
+   "median_ess_over_N": 0.7758021006715261,
+   "median_max_anc_frac": 0.0087890625,
+   "min_ess_over_N_any_time": 0.7314285714285714,
+   "score_std": 0.4180360124218075,
+   "wall_min": 32.69554611444473,
+   "safe": true,
+   "active": false
+  },
+  "0.05": {
+   "rate": 0.05,
+   "dt": 0.00025,
+   "repl_over_N": [
+    0.263671875,
+    0.29296875,
+    0.2783203125,
+    0.2890625
+   ],
+   "ess_over_N": [
+    0.46503178928247046,
+    0.3626062322946176,
+    0.37813884785819796,
+    0.2720510095642933
+   ],
+   "max_anc_frac": [
+    0.015625,
+    0.0244140625,
+    0.0244140625,
+    0.0283203125
+   ],
+   "median_repl_over_N": 0.28369140625,
+   "median_ess_over_N": 0.37037254007640774,
+   "median_max_anc_frac": 0.0244140625,
+   "min_ess_over_N_any_time": 0.2720510095642933,
+   "score_std": 0.49806108432075546,
+   "wall_min": 32.679321972529095,
+   "safe": false,
+   "active": false
+  },
+  "0.1": {
+   "rate": 0.1,
+   "dt": 0.00025,
+   "repl_over_N": [
+    0.609375,
+    0.6298828125,
+    0.6533203125,
+    0.6357421875
+   ],
+   "ess_over_N": [
+    0.07655502392344497,
+    0.06987853145898731,
+    0.05734767025089606,
+    0.08342838520449732
+   ],
+   "max_anc_frac": [
+    0.0556640625,
+    0.0478515625,
+    0.0927734375,
+    0.0478515625
+   ],
+   "median_repl_over_N": 0.6328125,
+   "median_ess_over_N": 0.07321677769121615,
+   "median_max_anc_frac": 0.0517578125,
+   "min_ess_over_N_any_time": 0.05734767025089606,
+   "score_std": 0.547911198370968,
+   "wall_min": 32.26450275977452,
+   "safe": false,
+   "active": false
+  }
+ },
+ "secondary_rate": null,
+ "reason": "no safe rate: no secondary rate",
+ "primary_rate_0_02_active": false
+}

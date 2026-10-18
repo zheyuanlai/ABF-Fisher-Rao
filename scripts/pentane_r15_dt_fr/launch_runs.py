@@ -45,6 +45,10 @@ def plan(a):
             for rng in (20261201, 20261202, 20261203, 20261204):
                 js.append(job("abf", dt, 40.0, rng=rng))
                 js += [job("fr", dt, 40.0, rate=x, rng=rng) for x in rates]
+    elif a.plan == "explore":
+        # exploratory active-FR arms (configs/pentane_r15_dt_fr/addendum_exploratory_active_fr.json)
+        out = os.path.join(RES, "explore", "raw")
+        js = [job("fr", 2.5e-4, 40.0, rate=x, rng=rng) for rng in (20261201, 20261202, 20261203, 20261204) for x in (0.05, 0.10)]
     else:
         raise SystemExit(a.plan)
     return out, js
@@ -58,7 +62,7 @@ def name_of(j):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("plan", choices=["pilot", "calib", "confirm"])
+    ap.add_argument("plan", choices=["pilot", "calib", "confirm", "explore"])
     ap.add_argument("--dt", type=float, default=None)
     ap.add_argument("--secondary-rate", type=float, default=None)
     ap.add_argument("--max-procs", type=int, default=12)

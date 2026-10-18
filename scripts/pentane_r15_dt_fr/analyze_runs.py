@@ -208,7 +208,7 @@ def classify(out, pooled, sel_a, cal, dt_sel, rates):
         abf_improves = (c["ratio_minus_1"] <= -0.10) and (c["ci95"][1] < 0)
     else:
         abf_improves = False
-    cl["A_numerical_rescue"] = dict(holds=bool(stageA_fail_5e4 and abf_improves), stageA_fail_at_5e-4=stageA_fail_5e4, abf_final_error_improves=abf_improves)
+    cl["A_numerical_rescue"] = dict(holds=bool(stageA_fail_5e4 and abf_improves), stageA_fail_at_dt5e4=stageA_fail_5e4, abf_final_error_improves=abf_improves)
     for x in rates:
         for dt in sorted({kk[2] for kk in pooled}, reverse=True):
             c = out["contrasts"].get(f"F{x:g} vs A, dt {dt:g}")

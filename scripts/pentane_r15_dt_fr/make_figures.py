@@ -127,8 +127,28 @@ def fig4(ref, data, src, dt, sec):
     if not A:
         return
     win = ref["win"]; g = ref["grid"]
-    fig, ax = plt.subplots(1, 4, figsize=(20, 4.6))
+    fig, ax = plt.subplots(1, 5, figsize=(25, 4.8))
     U = 1.0 / (win.sum() * ref["dz"])
+    # (e) deposit-weighted torsional-family composition per conditional R bin vs the exact conditional
+    edges = ref["cond_edges"]; kb = [k for k in range(len(edges) - 1) if edges[k + 1] > 2.0 and edges[k] < 3.55]
+    famcol = ["#2e86c1", "#28b463", "#f1c40f", "#cb4335"]
+    sets = [("ref", M.fam4_from9(ref["cond_basin"] / np.clip(ref["cond_basin"].sum(-1, keepdims=True), 1e-300, None)))]
+    for X, lab in ((A, "ABF"), (F, "mFR 0.02"), (S, f"mFR {sec}")):
+        if X:
+            cbs = np.sum([r["cond_basin_end"] for r in X], 0)
+            sets.append((lab, M.fam4_from9(cbs / np.clip(cbs.sum(-1, keepdims=True), 1, None))))
+    w = 0.8 / len(sets)
+    for j, (lab, comp) in enumerate(sets):
+        x = np.arange(len(kb)) + (j - (len(sets) - 1) / 2) * w
+        bottom = np.zeros(len(kb))
+        for f in range(4):
+            ax[4].bar(x, comp[kb, f], w * 0.95, bottom=bottom, color=famcol[f], edgecolor="k" if lab == "ref" else "none", lw=0.6,
+                      label=(M.FAM[f] if j == 0 else None), hatch=(None if lab == "ref" else ["", "//", "xx"][min(j - 1, 2)]))
+            bottom += comp[kb, f]
+    ax[4].set_xticks(np.arange(len(kb))); ax[4].set_xticklabels([f"{0.5 * (edges[k] + edges[k + 1]):.2f}" for k in kb], fontsize=7, rotation=45)
+    ax[4].set_xlabel("R15 bin centre"); ax[4].set_ylabel("family share of deposits")
+    ax[4].set_title("(e) torsional family per R bin: exact (outlined) | " + " | ".join(l for l, _ in sets[1:]) + " (hatched)", fontsize=9)
+    ax[4].legend(fontsize=7, loc="lower right")
     for X, lab, c in ((A, "ABF", ARMC["A"]), (F, "mFR 0.02", ARMC["F0.02"]), (S, f"mFR {sec}", ARMC["Fsec"])):
         if not X:
             continue

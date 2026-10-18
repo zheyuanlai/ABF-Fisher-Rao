@@ -29,7 +29,7 @@ def load_ref():
     wbins = [k for k in range(len(centres)) if float(r["window_lo"]) <= centres[k] <= float(r["window_hi"])]
     return dict(grid=r["grid"], dz=float(r["dz"]), win=r["window_mask"].astype(bool), F=r["F"], Fp=r["Fprime"], Fp_se=r["Fprime_se"],
                 cond_dens=r["cond_dens"], cond_basin=r["cond_basin_probs"], cond_weight=r["cond_weight"], wbins=wbins, dphi=float(r["cond_dphi"]),
-                window=(float(r["window_lo"]), float(r["window_hi"])))
+                window=(float(r["window_lo"]), float(r["window_hi"])), cond_edges=edges)
 
 
 def l2_aligned(P, Fref, mask):
@@ -125,7 +125,7 @@ def per_seed(run, ref, T_eval=None):
                  score_std=float(np.asarray(d["fr_score_std"])[s]), score_absmax=float(np.asarray(d["fr_score_absmax"])[s]))
         if cb is not None:
             r["Dc9"] = np.array([cond_tv9(cb[k, s], ref["cond_basin"], ref["wbins"]) for k in range(len(t))])
-            r["Dc9_end"] = float(r["Dc9"][-1])
+            r["Dc9_end"] = float(r["Dc9"][-1]); r["cond_basin_end"] = cb[-1, s]
         if full:
             r["Dcond_end"] = cond_tv(np.asarray(d["cond_hist"])[s], ref["cond_dens"], ref["wbins"], ref["dphi"])
             r["birth_hist"] = np.asarray(d["birth_hist"])[s]; r["death_hist"] = np.asarray(d["death_hist"])[s]
@@ -145,6 +145,23 @@ def per_seed(run, ref, T_eval=None):
             r["eF_compact"] = float(np.sqrt(np.mean(dev[cmp_] ** 2))); r["eF_rest"] = float(np.sqrt(np.mean(dev[rest] ** 2)))
         rows.append(r)
     return rows
+
+
+FAM_OF9 = [0, 1, 1, 1, 2, 3, 1, 3, 2]      # basin9 = 3*b(phi1) + b(phi2), b: 0 T, 1 G+, 2 G- -> TT / TG / GG same / GG opp
+
+
+def fam4_from9(p9):
+    p9 = np.asarray(p9, float); out = np.zeros(p9.shape[:-1] + (4,))
+    for i, f in enumerate(FAM_OF9):
+        out[..., f] += p9[..., i]
+    return out
+
+
+def deposit_family_composition(run):
+    """Final deposit-weighted torsional-family composition per conditional R bin (summed over seeds) and deposit share."""
+    cb = np.asarray(run["d"]["cond_basin"])[-1].sum(0)                       # (12, 9)
+    tot = cb.sum(-1, keepdims=True)
+    return fam4_from9(cb / np.clip(tot, 1, None)), tot[:, 0] / max(cb.sum(), 1)
 
 
 def boot_median_ci(x, level=0.95, seed=0):
