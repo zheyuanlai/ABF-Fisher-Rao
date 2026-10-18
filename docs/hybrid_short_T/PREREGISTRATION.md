@@ -326,3 +326,29 @@ A poor FR result is not a stopping reason.
 * **Claim types kept apart.** Verified numerical identities (Stage I); measured timings (Stage II and the per-save
   stamps); timing-model projections (sensitivity only, labelled); hypotheses; statistically supported conclusions
   (confirmatory decision only); unresolved or incomplete comparisons.
+
+## Amendment A1 (2026-10-18, after Stage I and a 24-job scheduler smoke test in a scratch directory; before any benchmark or production record of this study)
+
+1. **Allocation wait: 60 s → 10 s** (`hst_sched.ALLOC_MAX_WAIT_S`). The campaign.json text above is kept as frozen;
+   this amendment overrides it.
+   * Every CCD of this host carries 1–2 of other users' unpinned processes. During validation no 16-core set ever
+     qualified (max busy of the used cpus 0.28–1.0).
+   * A 60 s head-of-line wait per launch would add hours and does not improve timing hygiene: the scheduler moves
+     roaming tasks within milliseconds.
+   * Contention is judged, as frozen, by the run's own 1 Hz telemetry over its timed window (repeat if contended).
+   * The busy fraction of the used cpus at launch is recorded in every record (`max_busy_used_at_launch`).
+2. **V9 wording.** An external perf_counter span of an engine call necessarily contains untimed set-up: framework
+   load, LTA self-check, result assembly. "Agree within 1 % + 0.05 s" therefore does not test the clock. V9 is
+   implemented as follows:
+   * stamps finite and non-decreasing;
+   * the engine's warm-up + timed loop ≤ the caller's span;
+   * the untimed remainder is reported (measured 0.001–0.21 s);
+   * `time.perf_counter` is `clock_gettime(CLOCK_MONOTONIC)`, the clock of the parallel kernel's in-kernel stamps.
+3. **Validation harness fix (no effect on any timed run).**
+   * `scripts/mechanism/parallel_benchmark.py` sets `NUMBA_NUM_THREADS=1` in `os.environ` at import, and numba
+     re-reads its config at the next compilation.
+   * A validation check that ran S1 before P_t in one process therefore got a one-thread pool, and 8 V3 LTA checks
+     raised (ERROR, not FAIL).
+   * `validate.py one` now imports it first and restores the launch environment; the 8 checks were re-run and pass.
+   * Production children never mix the two (serial children use one thread; parallel children do not import
+     parallel_benchmark).

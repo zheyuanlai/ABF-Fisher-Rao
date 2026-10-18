@@ -1,0 +1,70 @@
+{
+ "N": 64,
+ "check": "V3",
+ "cpus": [
+  0
+ ],
+ "fr_deaths_end": 0,
+ "method": "abf",
+ "n_steps": 200000,
+ "name": "V3_gateway_N64_abf",
+ "rows": [
+  {
+   "differing": [],
+   "equal": true,
+   "threads": 1,
+   "timing": {
+    "caller_span_s": 2.22298988327384,
+    "stamps_finite": true,
+    "stamps_monotone": true,
+    "wall_total_le_span": true,
+    "wall_total_s": 0.906081423163414,
+    "warmup_s": 1.3163541313260794
+   }
+  },
+  {
+   "differing": [],
+   "equal": true,
+   "threads": 4,
+   "timing": {
+    "caller_span_s": 0.8964853528887033,
+    "stamps_finite": true,
+    "stamps_monotone": true,
+    "wall_total_le_span": true,
+    "wall_total_s": 0.8921889932826161,
+    "warmup_s": 0.0037703700363636017
+   }
+  },
+  {
+   "differing": [],
+   "equal": true,
+   "threads": 16,
+   "timing": {
+    "caller_span_s": 1.2976672323420644,
+    "stamps_finite": true,
+    "stamps_monotone": true,
+    "wall_total_le_span": true,
+    "wall_total_s": 1.2914265217259526,
+    "warmup_s": 0.0057206302881240845
+   }
+  }
+ ],
+ "seed": 9695,
+ "serial_timing": {
+  "caller_span_s": 1.2976867211982608,
+  "stamps_finite": true,
+  "stamps_monotone": true,
+  "wall_total_le_span": true,
+  "wall_total_s": 0.963462901301682,
+  "warmup_s": 0.17568090464919806
+ },
+ "system": "gateway",
+ "threads": [
+  1,
+  4,
+  16
+ ],
+ "utc": "2026-10-18T07:37:31Z",
+ "verdict": "PASS",
+ "wall_s": 5.744028091430664
+}

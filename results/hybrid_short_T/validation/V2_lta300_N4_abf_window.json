@@ -1,0 +1,88 @@
+{
+ "N": 4,
+ "check": "V2",
+ "cpus": [
+  32
+ ],
+ "fr_deaths_end": 0,
+ "full_short_budget": false,
+ "keys": [
+  {
+   "equal": true,
+   "key": "M_all",
+   "shape_a": [
+    26,
+    180
+   ],
+   "shape_b": [
+    26,
+    180
+   ]
+  },
+  {
+   "equal": true,
+   "key": "C_all",
+   "shape_a": [
+    26,
+    180
+   ],
+   "shape_b": [
+    26,
+    180
+   ]
+  },
+  {
+   "equal": true,
+   "key": "M_prod",
+   "shape_a": [
+    26,
+    180
+   ],
+   "shape_b": [
+    26,
+    180
+   ]
+  },
+  {
+   "equal": true,
+   "key": "C_prod",
+   "shape_a": [
+    26,
+    180
+   ],
+   "shape_b": [
+    26,
+    180
+   ]
+  },
+  {
+   "equal": true,
+   "key": "cum_deaths",
+   "shape_a": [
+    26
+   ],
+   "shape_b": [
+    26
+   ]
+  }
+ ],
+ "method": "abf",
+ "n_common_saves": 26,
+ "n_steps": 200000,
+ "name": "V2_lta300_N4_abf_window",
+ "production_diagnostics": true,
+ "production_file": "results/equal_budget_v2/lta_T300/N4/s30000_abf.npz",
+ "seed": 30000,
+ "system": "lta300",
+ "timing": {
+  "caller_span_s": 0.8788086045533419,
+  "stamps_finite": true,
+  "stamps_monotone": true,
+  "wall_total_le_span": true,
+  "wall_total_s": 0.6892622290179133,
+  "warmup_s": 0.16606265492737293
+ },
+ "utc": "2026-10-18T07:36:33Z",
+ "verdict": "PASS",
+ "wall_s": 1.0239026546478271
+}

@@ -1,0 +1,64 @@
+{
+ "N": 2048,
+ "check": "V2",
+ "cpus": [
+  82
+ ],
+ "fr_deaths_end": 0,
+ "full_short_budget": true,
+ "keys": [
+  {
+   "equal": true,
+   "key": "M_all",
+   "shape_a": [
+    88,
+    180
+   ],
+   "shape_b": [
+    88,
+    180
+   ]
+  },
+  {
+   "equal": true,
+   "key": "C_all",
+   "shape_a": [
+    88,
+    180
+   ],
+   "shape_b": [
+    88,
+    180
+   ]
+  },
+  {
+   "equal": true,
+   "key": "fr_deaths_cum",
+   "shape_a": [
+    88
+   ],
+   "shape_b": [
+    88
+   ]
+  }
+ ],
+ "method": "abf",
+ "n_common_saves": 88,
+ "n_steps": 504000,
+ "name": "V2_gateway_N2048_abf_full",
+ "production_diagnostics": true,
+ "production_file": "results/equal_budget_v2/gateway/N2048/s8100_abf.npz",
+ "seed": 8100,
+ "system": "gateway",
+ "timing": {
+  "caller_span_s": 87.44890499301255,
+  "stamps_finite": true,
+  "stamps_monotone": true,
+  "wall_total_le_span": true,
+  "wall_total_s": 87.20786916092038,
+  "warmup_s": 0.21694776322692633
+ },
+ "utc": "2026-10-18T07:37:55Z",
+ "verdict": "PASS",
+ "wall_s": 87.58864617347717
+}

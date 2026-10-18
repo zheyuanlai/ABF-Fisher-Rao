@@ -1,0 +1,88 @@
+{
+ "N": 4,
+ "check": "V2",
+ "cpus": [
+  72
+ ],
+ "fr_deaths_end": 1,
+ "full_short_budget": false,
+ "keys": [
+  {
+   "equal": true,
+   "key": "M_all",
+   "shape_a": [
+    26,
+    180
+   ],
+   "shape_b": [
+    26,
+    180
+   ]
+  },
+  {
+   "equal": true,
+   "key": "C_all",
+   "shape_a": [
+    26,
+    180
+   ],
+   "shape_b": [
+    26,
+    180
+   ]
+  },
+  {
+   "equal": true,
+   "key": "M_prod",
+   "shape_a": [
+    26,
+    180
+   ],
+   "shape_b": [
+    26,
+    180
+   ]
+  },
+  {
+   "equal": true,
+   "key": "C_prod",
+   "shape_a": [
+    26,
+    180
+   ],
+   "shape_b": [
+    26,
+    180
+   ]
+  },
+  {
+   "equal": true,
+   "key": "cum_deaths",
+   "shape_a": [
+    26
+   ],
+   "shape_b": [
+    26
+   ]
+  }
+ ],
+ "method": "fr",
+ "n_common_saves": 26,
+ "n_steps": 200000,
+ "name": "V2_lta150_N4_fr_window",
+ "production_diagnostics": true,
+ "production_file": "results/equal_budget_v2/lta_T150/N4/s15000_fr.npz",
+ "seed": 15000,
+ "system": "lta150",
+ "timing": {
+  "caller_span_s": 0.9174012020230293,
+  "stamps_finite": true,
+  "stamps_monotone": true,
+  "wall_total_le_span": true,
+  "wall_total_s": 0.7307588383555412,
+  "warmup_s": 0.1627829046919942
+ },
+ "utc": "2026-10-18T07:36:39Z",
+ "verdict": "PASS",
+ "wall_s": 1.0619430541992188
+}

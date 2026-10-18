@@ -1,0 +1,70 @@
+{
+ "N": 1024,
+ "check": "V3",
+ "cpus": [
+  104
+ ],
+ "fr_deaths_end": 0,
+ "method": "abf",
+ "n_steps": 25000,
+ "name": "V3_lta150_N1024_abf",
+ "rows": [
+  {
+   "differing": [],
+   "equal": true,
+   "threads": 1,
+   "timing": {
+    "caller_span_s": 21.476597719825804,
+    "stamps_finite": true,
+    "stamps_monotone": true,
+    "wall_total_le_span": true,
+    "wall_total_s": 21.430686441250145,
+    "warmup_s": 9.748991578817368e-05
+   }
+  },
+  {
+   "differing": [],
+   "equal": true,
+   "threads": 4,
+   "timing": {
+    "caller_span_s": 6.842467135749757,
+    "stamps_finite": true,
+    "stamps_monotone": true,
+    "wall_total_le_span": true,
+    "wall_total_s": 6.839370775967836,
+    "warmup_s": 0.0005959104746580124
+   }
+  },
+  {
+   "differing": [],
+   "equal": true,
+   "threads": 16,
+   "timing": {
+    "caller_span_s": 3.503661976195872,
+    "stamps_finite": true,
+    "stamps_monotone": true,
+    "wall_total_le_span": true,
+    "wall_total_s": 3.4995820354670286,
+    "warmup_s": 0.0017002196982502937
+   }
+  }
+ ],
+ "seed": 15795,
+ "serial_timing": {
+  "caller_span_s": 22.170629180036485,
+  "stamps_finite": true,
+  "stamps_monotone": true,
+  "wall_total_le_span": true,
+  "wall_total_s": 21.802922180853784,
+  "warmup_s": 0.22007298283278942
+ },
+ "system": "lta150",
+ "threads": [
+  1,
+  4,
+  16
+ ],
+ "utc": "2026-10-18T07:43:18Z",
+ "verdict": "PASS",
+ "wall_s": 54.027947664260864
+}

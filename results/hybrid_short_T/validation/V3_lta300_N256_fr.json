@@ -1,0 +1,70 @@
+{
+ "N": 256,
+ "check": "V3",
+ "cpus": [
+  8
+ ],
+ "fr_deaths_end": 38,
+ "method": "fr",
+ "n_steps": 40000,
+ "name": "V3_lta300_N256_fr",
+ "rows": [
+  {
+   "differing": [],
+   "equal": true,
+   "threads": 1,
+   "timing": {
+    "caller_span_s": 8.7237429600209,
+    "stamps_finite": true,
+    "stamps_monotone": true,
+    "wall_total_le_span": true,
+    "wall_total_s": 8.676631931215525,
+    "warmup_s": 8.657947182655334e-05
+   }
+  },
+  {
+   "differing": [],
+   "equal": true,
+   "threads": 4,
+   "timing": {
+    "caller_span_s": 2.865228535607457,
+    "stamps_finite": true,
+    "stamps_monotone": true,
+    "wall_total_le_span": true,
+    "wall_total_s": 2.8622769648209214,
+    "warmup_s": 0.0006893202662467957
+   }
+  },
+  {
+   "differing": [],
+   "equal": true,
+   "threads": 16,
+   "timing": {
+    "caller_span_s": 1.745462628081441,
+    "stamps_finite": true,
+    "stamps_monotone": true,
+    "wall_total_le_span": true,
+    "wall_total_s": 1.7377486284822226,
+    "warmup_s": 0.004863790236413479
+   }
+  }
+ ],
+ "seed": 30595,
+ "serial_timing": {
+  "caller_span_s": 9.168990296311677,
+  "stamps_finite": true,
+  "stamps_monotone": true,
+  "wall_total_le_span": true,
+  "wall_total_s": 8.837121876887977,
+  "warmup_s": 0.1816600849851966
+ },
+ "system": "lta300",
+ "threads": [
+  1,
+  4,
+  16
+ ],
+ "utc": "2026-10-18T07:42:15Z",
+ "verdict": "PASS",
+ "wall_s": 22.5346736907959
+}
