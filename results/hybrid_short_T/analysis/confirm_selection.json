@@ -1,0 +1,184 @@
+{
+ "k": 3,
+ "rule": "A2.7: top-k per method by exploration median W_mid (finite); ties -> fewer threads, smaller N",
+ "systems": {
+  "gateway": {
+   "arms": [
+    {
+     "N": 32,
+     "backend": "P4",
+     "exploration_median_W_mid": 1.4161484623327851,
+     "impl": "parallel",
+     "method": "abf",
+     "rank": 1,
+     "threads": 4
+    },
+    {
+     "N": 64,
+     "backend": "P8",
+     "exploration_median_W_mid": 2.0879285275004804,
+     "impl": "parallel",
+     "method": "abf",
+     "rank": 2,
+     "threads": 8
+    },
+    {
+     "N": 16,
+     "backend": "P2",
+     "exploration_median_W_mid": 2.2145280139520764,
+     "impl": "parallel",
+     "method": "abf",
+     "rank": 3,
+     "threads": 2
+    },
+    {
+     "N": 128,
+     "backend": "P8",
+     "exploration_median_W_mid": 1.0253770193085074,
+     "impl": "parallel",
+     "method": "fr",
+     "rank": 1,
+     "threads": 8
+    },
+    {
+     "N": 64,
+     "backend": "P8",
+     "exploration_median_W_mid": 1.2759774173609912,
+     "impl": "parallel",
+     "method": "fr",
+     "rank": 2,
+     "threads": 8
+    },
+    {
+     "N": 256,
+     "backend": "P8",
+     "exploration_median_W_mid": 1.7481534671969712,
+     "impl": "parallel",
+     "method": "fr",
+     "rank": 3,
+     "threads": 8
+    }
+   ],
+   "notes": []
+  },
+  "lta150": {
+   "arms": [
+    {
+     "N": 32,
+     "backend": "P8",
+     "exploration_median_W_mid": 3.6360478908754885,
+     "impl": "parallel",
+     "method": "abf",
+     "rank": 1,
+     "threads": 8
+    },
+    {
+     "N": 16,
+     "backend": "P8",
+     "exploration_median_W_mid": 4.706601649988443,
+     "impl": "parallel",
+     "method": "abf",
+     "rank": 2,
+     "threads": 8
+    },
+    {
+     "N": 64,
+     "backend": "P8",
+     "exploration_median_W_mid": 4.768073777202517,
+     "impl": "parallel",
+     "method": "abf",
+     "rank": 3,
+     "threads": 8
+    },
+    {
+     "N": 32,
+     "backend": "P8",
+     "exploration_median_W_mid": 2.6893896996043622,
+     "impl": "parallel",
+     "method": "fr",
+     "rank": 1,
+     "threads": 8
+    },
+    {
+     "N": 64,
+     "backend": "P8",
+     "exploration_median_W_mid": 3.0338497795164585,
+     "impl": "parallel",
+     "method": "fr",
+     "rank": 2,
+     "threads": 8
+    },
+    {
+     "N": 128,
+     "backend": "P16",
+     "exploration_median_W_mid": 3.0782186686992645,
+     "impl": "parallel",
+     "method": "fr",
+     "rank": 3,
+     "threads": 16
+    }
+   ],
+   "notes": []
+  },
+  "lta300": {
+   "arms": [
+    {
+     "N": 32,
+     "backend": "P8",
+     "exploration_median_W_mid": 5.746737863868475,
+     "impl": "parallel",
+     "method": "abf",
+     "rank": 1,
+     "threads": 8
+    },
+    {
+     "N": 64,
+     "backend": "P8",
+     "exploration_median_W_mid": 6.404237728565931,
+     "impl": "parallel",
+     "method": "abf",
+     "rank": 2,
+     "threads": 8
+    },
+    {
+     "N": 16,
+     "backend": "P8",
+     "exploration_median_W_mid": 8.438821342773736,
+     "impl": "parallel",
+     "method": "abf",
+     "rank": 3,
+     "threads": 8
+    },
+    {
+     "N": 128,
+     "backend": "P16",
+     "exploration_median_W_mid": 7.145658672321588,
+     "impl": "parallel",
+     "method": "fr",
+     "rank": 1,
+     "threads": 16
+    },
+    {
+     "N": 32,
+     "backend": "P8",
+     "exploration_median_W_mid": 8.289824632462114,
+     "impl": "parallel",
+     "method": "fr",
+     "rank": 2,
+     "threads": 8
+    },
+    {
+     "N": 64,
+     "backend": "P8",
+     "exploration_median_W_mid": 9.117122482974082,
+     "impl": "parallel",
+     "method": "fr",
+     "rank": 3,
+     "threads": 8
+    }
+   ],
+   "notes": []
+  }
+ },
+ "utc": "2026-10-18T14:16:46Z"
+}
