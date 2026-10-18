@@ -1,0 +1,286 @@
+{
+ "B": 118272000,
+ "N": 4,
+ "T_K": 150.0,
+ "T_N": 5913.6,
+ "alloc_core_h_run": 0.2379426426357693,
+ "allocation": {
+  "busy_at_launch": {
+   "104": 0.0,
+   "105": 0.0,
+   "106": 0.0,
+   "107": 0.0,
+   "108": 0.0,
+   "109": 0.0,
+   "110": 0.0,
+   "111": 0.0,
+   "232": 0.010101010101010102,
+   "233": 0.0,
+   "234": 0.0,
+   "235": 0.0,
+   "236": 0.009900990099009901,
+   "237": 0.009900990099009901,
+   "238": 0.0,
+   "239": 0.0
+  },
+  "ccds": [
+   13
+  ],
+  "cores": [
+   105
+  ],
+  "cpus": [
+   104,
+   105,
+   106,
+   107,
+   108,
+   109,
+   110,
+   111,
+   232,
+   233,
+   234,
+   235,
+   236,
+   237,
+   238,
+   239
+  ],
+  "flagged": false,
+  "max_busy_at_launch": 0.010101010101010102,
+  "max_busy_used_at_launch": 0.0,
+  "run_id": "hst-prod-lta150-abf4_S1-s15709-rep0-1418086",
+  "threads": 1,
+  "wait_s": 0.0
+ },
+ "backend": "S1",
+ "call_epoch": 1792325539.1210344,
+ "contended": false,
+ "contention_endpoints": {
+  "loose": {
+   "W": 1.1383781963959336,
+   "contended": false,
+   "max_foreign_busy": 0.005,
+   "status": "uncontended"
+  },
+  "mid": {
+   "W": 7.473770228214562,
+   "contended": false,
+   "max_foreign_busy": 0.005,
+   "status": "uncontended"
+  },
+  "strict": {
+   "W": "inf",
+   "contended": false,
+   "max_foreign_busy": 0.004433962264150944,
+   "status": "uncontended"
+  }
+ },
+ "contention_whole": {
+  "busy_threshold": 0.1,
+  "ccd_max_foreign_busy": 0.010942363927931327,
+  "ccd_max_foreign_busy_lower": 0.010942363927931327,
+  "contended": false,
+  "covered": true,
+  "ctx_per_thread_s": 2.4995755408076072,
+  "ctx_threshold": 5.0,
+  "foreign_busy": {
+   "104": 0.0007547881875648646,
+   "105": 0.0036788982171493253,
+   "106": 9.442870632672332e-05,
+   "107": 0.0005660911406736484,
+   "108": 0.0028312570781426952,
+   "109": 0.0006606266515666289,
+   "110": 0.0016995562269851762,
+   "111": 0.0023613866062151697,
+   "232": 0.005471181963965664,
+   "233": 0.004433962264150944,
+   "234": 0.006605643106539587,
+   "235": 0.010942363927931327,
+   "236": 0.0007549306407473814,
+   "237": 0.006228177786165896,
+   "238": 0.005472730703906397,
+   "239": 0.0033987915407854984
+  },
+  "gap": false,
+  "max_foreign_busy": 0.004433962264150944,
+  "max_foreign_busy_lower": 0.004433962264150944,
+  "mean_freq_mhz": 3749.9622641509436,
+  "mixed_pid": false,
+  "n_incomplete": 0,
+  "n_intervals": 106,
+  "n_rows_own_moved": 0,
+  "overlap": false,
+  "reasons": [],
+  "scope": "own",
+  "status": "uncontended",
+  "threads": 1,
+  "window": [
+   1792325539.2953331,
+   1792325644.9460542
+  ],
+  "worst_cpu": 233
+ },
+ "contention_whole_ccd_scope": {
+  "contended": false,
+  "max_foreign_busy": 0.010942363927931327,
+  "max_foreign_busy_lower": 0.010942363927931327,
+  "status": "uncontended",
+  "worst_cpu": 235
+ },
+ "cpus_after_run": [
+  105
+ ],
+ "disk_pause_s": 0.0,
+ "engine": "lta_ladder_numba/2 (validated serial)",
+ "engine_cfg": {
+  "abf_force_clip": 60.0,
+  "burn_in_steps": 20000,
+  "cap_min": 1,
+  "deposit_clip": 480.0,
+  "fr_every": 5,
+  "fr_rate": 0.2,
+  "fr_start_steps": 20000,
+  "genealogy_window_tu": 4.0,
+  "h": 0.0002,
+  "kde_bandwidth": 0.1,
+  "max_event_fraction": 0.02,
+  "n_grid": 180,
+  "score_clip": 2.0,
+  "warmup_steps": 20000
+ },
+ "finalized_utc": "2026-10-18T12:14:05Z",
+ "finished_utc": "2026-10-18T12:14:04Z",
+ "fr_deaths_total": 0,
+ "git_commit": "7afced81317ff12c3d8fc4fdf46b7c089095e750",
+ "h": 0.0002,
+ "hold_start_s": 0.20065518375486135,
+ "holds": {
+  "end": {
+   "boundary": "end",
+   "row_t": 1792325645.088,
+   "seen": true,
+   "waited_s": 0.05114660784602165
+  },
+  "start": {
+   "boundary": "start",
+   "row_t": 1792325539.07,
+   "seen": true,
+   "waited_s": 0.20065518375486135
+  }
+ },
+ "host": {
+  "cpus": [
+   105
+  ],
+  "host": "atlas",
+  "numpy": "2.4.6",
+  "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.39",
+  "python": "3.14.4"
+ },
+ "impl": "serial",
+ "import_s": 0.14536190032958984,
+ "job": {
+  "N": 4,
+  "arm": "abf4",
+  "config": "abf4_S1",
+  "impl": "serial",
+  "kind": "prod",
+  "method": "abf",
+  "n_steps": 29568000,
+  "noise": "replay",
+  "replicate": 0,
+  "seed": 15709,
+  "system": "lta150",
+  "threads": 1
+ },
+ "label": "Ethane / LTA, 150 K",
+ "meta": {
+  "compiler": "numba (validated engine)",
+  "cpus": [
+   105
+  ],
+  "diagnostics": false,
+  "engine": "lta_ladder_numba/2",
+  "engine_meta_digest": "535f4301d61464dcd9b1339a497816ba806b1715d536517460889588698dfd73",
+  "engine_sha256": "15fb414ed9b9055bff58dbeee3e070bcca2066020fb5315f77615a1cce158a7b",
+  "git_commit": "7afced81317ff12c3d8fc4fdf46b7c089095e750",
+  "git_dirty": true,
+  "host": "atlas",
+  "implementation": "serial",
+  "noise": "replay (the validated engine's own stream)",
+  "numba": "0.68.0",
+  "numpy": "2.4.6",
+  "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.39",
+  "python": "3.14.4",
+  "sources": {
+   "scripts/final_campaign/expB_common.py": "2dcd3e78652e6cd869549fd992d228cc6b127a65a6cc4b6dc004c49b1f8bb439",
+   "scripts/mechanism/parallel_benchmark.py": "ff98903e21791309f9bd0ffd0e7242f93f5532d00f000a7c7704086591e51a99",
+   "src/lta_ladder_numba.py": "15fb414ed9b9055bff58dbeee3e070bcca2066020fb5315f77615a1cce158a7b"
+  },
+  "t0_epoch": 1792325539.2953331,
+  "timing": "parallel_benchmark SaveClock hooks"
+ },
+ "method": "abf",
+ "n_force_evals": 118272004,
+ "n_saves": 576,
+ "n_steps": 29568000,
+ "noise_mode": "replay",
+ "npz": "s15709.npz",
+ "npz_sha256": "a12781304d6105f3e0ff161e51aafadf1302c272f74652f7e6b2f1997fe19e23",
+ "peak_rss_mb": 259.734375,
+ "pid": 1911946,
+ "precision": "float64",
+ "proc_start_epoch": 1792325538.665004,
+ "proc_wall_s": 107.07418918609619,
+ "process_age_s": 106.27999999932945,
+ "return_epoch": 1792325644.9467,
+ "science_sha256": {
+  "C_all": "500ccd3b182752216db288968cbf276e43e9d37981fbe7ffacc9cfeb70347556",
+  "C_prod": "329456d7962c14413f6eeed78e636e4dd44aac1a5b3d08c3a4726a628679b786",
+  "M_all": "e96acd181a71a6de2e7297444264a64249e7cd5f7ea6b36d878d487caca75c0d",
+  "M_prod": "e5bf69532c55b2dd9ff8b9c8315117dd11a33ad0b3522b8f4605627a66a22aec",
+  "save_step": "5aab7070b7ddce83ab5f40a764f36da8046311879f8082d1397302a08bef6033"
+ },
+ "seed": 15709,
+ "signature": {
+  "B": 118272000,
+  "N": 4,
+  "T_K": 150.0,
+  "engine_cfg": "d7bcd89e8c2adccd",
+  "engine_sources": {
+   "scripts/mechanism/parallel_benchmark.py": "ff98903e21791309f9bd0ffd0e7242f93f5532d00f000a7c7704086591e51a99",
+   "src/lta_ladder_numba.py": "15fb414ed9b9055bff58dbeee3e070bcca2066020fb5315f77615a1cce158a7b"
+  },
+  "grid_sha": "5aab7070b7ddce83ab5f40a764f36da8046311879f8082d1397302a08bef6033",
+  "impl": "serial",
+  "kind": "prod",
+  "method": "abf",
+  "n_steps": 29568000,
+  "noise": "replay",
+  "seed": 15709,
+  "system": "lta150",
+  "threads": 1,
+  "version": "hybrid_short_T/1"
+ },
+ "start_overhead_s": 0.42967394832521677,
+ "status": "complete",
+ "system": "lta150",
+ "t0_epoch": 1792325539.2953331,
+ "t0_epoch_source": "serial wrapper clock start",
+ "telemetry": "s15709.telemetry.npz",
+ "threads": 1,
+ "timers": {
+  "t_abf_s": null,
+  "t_force_move_s": null,
+  "t_fr_s": null,
+  "t_save_s": null,
+  "t_sync_s": null
+ },
+ "used_core_h_run": 0.029742830329471164,
+ "used_wall_s": 107.07418918609619,
+ "version": "hybrid_short_T/1",
+ "wall_total_s": 105.65072107221931,
+ "warmup_s": 0.1607348145917058
+}

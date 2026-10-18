@@ -35,6 +35,7 @@ import matplotlib  # noqa: E402
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
+import matplotlib.ticker  # noqa: E402,F401
 from matplotlib.lines import Line2D  # noqa: E402
 
 import hst_common as H  # noqa: E402
@@ -387,7 +388,7 @@ def _inf_median(W):
 # ================================================================================================ F
 def fig_F(summ, checks):
     rng = np.random.default_rng(7)
-    fig, axs = plt.subplots(1, 3, figsize=(15.5, 4.8), layout="constrained")
+    fig, axs = plt.subplots(1, 3, figsize=(18.5, 5.8), layout="constrained")
     for ax, s in zip(axs, H.SYSTEMS):
         res = summ["results"].get(s)
         cv = curves("prod", s)
@@ -395,59 +396,69 @@ def fig_F(summ, checks):
             ax.set_visible(False)
             continue
         spec = H.system_spec(s)
-        items = []
-        b = res["best"]["mid"]
         rows = {r["N"]: r for r in res["per_N"]}
+        b = res["best"]["mid"]
+        items = []                                   # (label, W array, colour, marker, group)
         for m in ("abf", "fr"):
             if b.get(m) and b[m].get("best_N") is not None:
                 N = int(b[m]["best_N"])
-                items.append((f"best {m.upper() if m == 'abf' else 'FR'}\nN {N} {rows[N]['backend']}\nexploration",
-                              cv[f"{m}{N}_W_mid"], C_ABF if m == "abf" else C_FR))
+                items.append((f"{'ABF' if m == 'abf' else 'FR'} {N}\n{rows[N]['backend']}\nexplor.",
+                              cv[f"{m}{N}_W_mid"], C_ABF if m == "abf" else C_FR, "o", "exploration"))
         cf = curves("confirm", s)
         conf = (summ.get("confirm") or {}).get(s)
         if cf is not None and conf:
             for m in ("abf", "fr"):
-                key = conf.get(f"best_{m}")
-                if key and f"{key}_W_mid" in cf:
-                    N = int(key[len(m):])
-                    items.append((f"best {m.upper() if m == 'abf' else 'FR'}\nN {N}\nconfirmation", cf[f"{key}_W_mid"],
-                                  C_ABF if m == "abf" else C_FR))
-        N0 = spec["N0"]
-        for m in ("abf", "fr"):
-            items.append((f"{'ABF' if m == 'abf' else 'FR'} N {N0}\n(fixed largest N)\n{rows[N0]['backend']}",
-                          cv[f"{m}{N0}_W_mid"], C_ABF if m == "abf" else C_FR))
+                arms = sorted((k for k in conf["arms"] if k.startswith(m) and k[len(m):].isdigit()),
+                              key=lambda k: int(k[len(m):]))
+                for k in arms:
+                    if f"{k}_W_mid" in cf:
+                        N = int(k[len(m):])
+                        items.append((f"{'ABF' if m == 'abf' else 'FR'} {N}\n{conf['arms'][k]['backend']}\nconfirm",
+                                      cf[f"{k}_W_mid"], C_ABF if m == "abf" else C_FR, "s", "confirmation"))
         ys = []
-        for i, (lab, W, col) in enumerate(items):
+        for i, (lab, W, col, mk, grp) in enumerate(items):
             med = _inf_median(W)
             (lo, hi), fc = _boot_med(W, rng)
             ys.append(med)
             if math.isfinite(med):
                 ax.errorbar([i], [med], yerr=[[med - lo], [max(hi - med, 0)]] if np.isfinite(hi) else None,
-                            color=col, marker="o", ms=7, capsize=3, elinewidth=1.2)
+                            color=col, marker=mk, ms=7, capsize=3, elinewidth=1.2, mfc=col if grp == "confirmation"
+                            else "white", mew=1.4)
             ncen = int(np.sum(np.isinf(W)))
             ax.annotate(f"{ncen}/{W.size} cens." if ncen else f"n={W.size}", (i, med if math.isfinite(med) else 1),
-                        textcoords="offset points", xytext=(0, 9), ha="center", fontsize=7, color=INK2)
-        fin = [y for y in ys if math.isfinite(y)]
-        for i, y in enumerate(ys):
-            if not math.isfinite(y):
-                ax.plot([i], [max(fin) * 2 if fin else 1], marker="^", ms=9, color=items[i][2], mfc="white")
+                        textcoords="offset points", xytext=(0, 10), ha="center", fontsize=6.8, color=INK2)
+        n_ex = sum(1 for it in items if it[4] == "exploration")
+        if n_ex and n_ex < len(items):
+            ax.axvline(n_ex - 0.5, color=MUTED, lw=0.9, ls=(0, (3, 2)))
         ax.set_xticks(range(len(items)))
-        ax.set_xticklabels([it[0] for it in items], fontsize=7.4)
-        ax.set_xlabel("configuration (method, N, backend, seed block)")
+        ax.set_xticklabels([it[0] for it in items], fontsize=7.2)
+        ax.set_xlabel("exploration best | confirmation arms")
         ax.set_yscale("log")
-        ax.set_ylabel("W_mid (s), median and 95 % CI")
+        ax.yaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter("%g"))
+        ax.yaxis.set_minor_formatter(matplotlib.ticker.FormatStrFormatter("%g"))
+        ax.tick_params(axis="y", which="minor", labelsize=7)
+        ax.set_ylabel("W_mid (s): median, 95 % CI")
         R = b.get("R_wall", {})
         t = (f"{res['label']}\nexploratory R_wall = {fnum(R.get('point', math.nan))} "
              f"[{fnum((R.get('ci95') or [math.nan])[0])}, {fnum((R.get('ci95') or [0, math.nan])[1])}]")
-        if conf and conf.get("R_wall_conf"):
-            u = conf["R_wall_conf"]
-            t += f"\nconfirmatory R_wall = {fnum(u['ratio'])} [{fnum(u['lo'])}, {fnum(u['hi'])}]: {u['decision']}"
-        fx = rows[N0].get("pair_W_mid", {})
-        t += f"\nfixed N {N0}: FR/ABF {fnum(fx.get('ratio', math.nan), 2)} [{fnum(fx.get('lo', math.nan), 2)}, " \
-             f"{fnum(fx.get('hi', math.nan), 2)}]"
-        ax.set_title(t, loc="left", fontsize=8.8)
-    fig.suptitle("Figure F. Synthesis: best hybrid ABF + FR vs best hybrid ABF (measured wall-clock to the mid "
-                 "threshold), and the fixed largest N", fontsize=10.5, x=0.01, ha="left")
+        if conf and conf.get("R_conf"):
+            u, e = conf["R_conf"], conf["R_conf_e2e"]
+            t += (f"\nconfirm. R: W {fnum(u['ratio'])} [{fnum(u['lo'])}, {fnum(u['hi'])}], "
+                  f"W_e2e {fnum(e['ratio'])} [{fnum(e['lo'])}, {fnum(e['hi'])}]: {conf['decision']}")
+        N0 = spec["N0"]
+        r0 = rows[N0]
+        pe = r0.get("pair_final_e_F", {})
+        t += (f"\nN {N0}: censored ABF {r0['W_mid_abf']['n_censored']}/{r0['W_mid_abf']['n']}, "
+              f"FR {r0['W_mid_fr']['n_censored']}/{r0['W_mid_fr']['n']}; e_F(T_N) FR/ABF {fnum(pe.get('ratio'), 2)} "
+              f"[{fnum(pe.get('lo'), 2)}, {fnum(pe.get('hi'), 2)}]")
+        ax.set_title(t, loc="left", fontsize=8.6)
+    handles = [Line2D([], [], color=INK2, marker="o", mfc="white", ls="none", label="exploration seeds (selected best)"),
+               Line2D([], [], color=INK2, marker="s", ls="none", label="confirmation: 32 fresh seeds per arm"),
+               Line2D([], [], color=C_ABF, lw=1.5, label="ABF"), Line2D([], [], color=C_FR, lw=1.5, label="ABF + FR")]
+    fig.legend(handles=handles, loc="outside lower center", ncol=4, frameon=False)
+    fig.suptitle("Figure F. Synthesis: best hybrid ABF + FR vs best hybrid ABF, measured wall-clock to the mid "
+                 "threshold (R < 1 favours FR; 'unresolved' = CI includes 1, never 'equivalent')", fontsize=10.5,
+                 x=0.01, ha="left")
     return save(fig, "F_synthesis", checks)
 
 

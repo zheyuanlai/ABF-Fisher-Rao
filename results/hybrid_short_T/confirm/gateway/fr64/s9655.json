@@ -1,0 +1,547 @@
+{
+ "B": 1032192000,
+ "N": 64,
+ "T_K": null,
+ "T_N": 403.20000000000005,
+ "alloc_core_h_run": 0.04097768412695991,
+ "allocation": {
+  "busy_at_launch": {
+   "152": 0.020202020202020204,
+   "153": 0.0297029702970297,
+   "154": 0.0,
+   "155": 0.0,
+   "156": 0.0,
+   "157": 0.0,
+   "158": 0.0,
+   "159": 0.03,
+   "24": 0.01,
+   "25": 0.0,
+   "26": 0.009900990099009901,
+   "27": 0.009900990099009901,
+   "28": 0.0,
+   "29": 0.0,
+   "30": 0.0,
+   "31": 0.0
+  },
+  "ccds": [
+   3
+  ],
+  "cores": [
+   24,
+   25,
+   26,
+   27,
+   28,
+   29,
+   30,
+   31
+  ],
+  "cpus": [
+   24,
+   25,
+   26,
+   27,
+   28,
+   29,
+   30,
+   31,
+   152,
+   153,
+   154,
+   155,
+   156,
+   157,
+   158,
+   159
+  ],
+  "flagged": false,
+  "max_busy_at_launch": 0.03,
+  "max_busy_used_at_launch": 0.03,
+  "run_id": "hst-confirm-gateway-fr64_P8-s9655-rep0-2035231",
+  "threads": 8,
+  "wait_s": 1.0140564506873488
+ },
+ "backend": "P8",
+ "call_epoch": 1792333462.8828454,
+ "contended": false,
+ "contention_endpoints": {
+  "loose": {
+   "W": 0.2117254538461566,
+   "contended": false,
+   "max_foreign_busy": 0.01,
+   "status": "uncontended"
+  },
+  "mid": {
+   "W": 0.37913354858756065,
+   "contended": false,
+   "max_foreign_busy": 0.01,
+   "status": "uncontended"
+  },
+  "strict": {
+   "W": 5.645607462152839,
+   "contended": false,
+   "max_foreign_busy": 0.004329004329004329,
+   "status": "uncontended"
+  }
+ },
+ "contention_whole": {
+  "busy_threshold": 0.1,
+  "ccd_max_foreign_busy": 0.0050031269543464665,
+  "ccd_max_foreign_busy_lower": 0.0050031269543464665,
+  "contended": false,
+  "covered": true,
+  "ctx_per_thread_s": 1.0701787373535496,
+  "ctx_threshold": 5.0,
+  "foreign_busy": {
+   "152": 0.005,
+   "153": 0.0050031269543464665,
+   "154": 0.0025078369905956114,
+   "155": 0.0037546933667083854,
+   "156": 0.0037854889589905363,
+   "157": 0.0018796992481203006,
+   "158": 0.0025031289111389237,
+   "159": 0.004377736085053158,
+   "24": 0.0025015634771732333,
+   "25": 0.0,
+   "26": 0.000625,
+   "27": 0.0,
+   "28": 0.0,
+   "29": 0.0,
+   "30": 0.0,
+   "31": 0.0
+  },
+  "gap": false,
+  "max_foreign_busy": 0.0050031269543464665,
+  "max_foreign_busy_lower": 0.0050031269543464665,
+  "mean_freq_mhz": 3703.125,
+  "mixed_pid": false,
+  "n_incomplete": 0,
+  "n_intervals": 16,
+  "n_rows_own_moved": 1,
+  "overlap": false,
+  "reasons": [],
+  "scope": "own",
+  "status": "uncontended",
+  "threads": 8,
+  "window": [
+   1792333464.3215606,
+   1792333479.5530567
+  ],
+  "worst_cpu": 153
+ },
+ "contention_whole_ccd_scope": {
+  "contended": false,
+  "max_foreign_busy": 0.0050031269543464665,
+  "max_foreign_busy_lower": 0.0050031269543464665,
+  "status": "uncontended",
+  "worst_cpu": 153
+ },
+ "cpus_after_run": [
+  24
+ ],
+ "disk_pause_s": 0.0,
+ "engine": "gateway_parallel/1",
+ "engine_cfg": {
+  "H": 0.5,
+  "beta": 16.0,
+  "cap_min": 1,
+  "eta": 0.1,
+  "fr_interval_t": 0.004,
+  "gamma": 1.5,
+  "genealogy_window_t": 1.6,
+  "h": 2.5e-05,
+  "max_event_fraction": 0.08,
+  "min_count": 1.0,
+  "nb": 180,
+  "omega_in": 32.0,
+  "omega_out": 1.0,
+  "ramp_t": 4.0,
+  "s": 0.1,
+  "score_clip": 3.0,
+  "system": "gateway",
+  "trace_early_dt_t": 0.1,
+  "trace_early_until_t": 40.0,
+  "trace_late_dt_t": 10.0,
+  "trace_max": 5000
+ },
+ "finalized_utc": "2026-10-18T14:24:40Z",
+ "finished_utc": "2026-10-18T14:24:39Z",
+ "fr_deaths_total": 8519,
+ "git_commit": "41838f6fc8ef7e6c02f2ff881ecf5e949724580b",
+ "h": 2.5e-05,
+ "hold_start_s": 0.8041898654773831,
+ "holds": {
+  "end": {
+   "boundary": "end",
+   "row_t": 1792333479.859,
+   "seen": true,
+   "waited_s": 0.2522714016959071
+  },
+  "start": {
+   "boundary": "start",
+   "row_t": 1792333462.857,
+   "seen": true,
+   "waited_s": 0.8041898654773831
+  }
+ },
+ "host": {
+  "cpus": [
+   24,
+   25,
+   26,
+   27,
+   28,
+   29,
+   30,
+   31
+  ],
+  "host": "atlas",
+  "numpy": "2.4.6",
+  "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.39",
+  "python": "3.14.4"
+ },
+ "impl": "parallel",
+ "import_s": 0.16170644760131836,
+ "job": {
+  "N": 64,
+  "arm": "fr64",
+  "config": "fr64_P8",
+  "impl": "parallel",
+  "kind": "confirm",
+  "method": "fr",
+  "n_steps": 16128000,
+  "noise": "counter",
+  "replicate": 0,
+  "seed": 9655,
+  "system": "gateway",
+  "threads": 8
+ },
+ "label": "Entropic gateway",
+ "meta": {
+  "B": 1032192000,
+  "N": 64,
+  "accumulator_convention": "pre-deposit (gateway_ladder_numba): the save at completed-step count k holds the deposits of the states 0..k-1 (C_all[k].sum() = N k)",
+  "build": {
+   "built_in_this_process": false,
+   "cflags": [
+    "-O3",
+    "-march=native",
+    "-fopenmp",
+    "-fno-fast-math",
+    "-ffp-contract=off",
+    "-fPIC",
+    "-shared"
+   ],
+   "command": "/usr/bin/gcc -O3 -march=native -fopenmp -fno-fast-math -ffp-contract=off -fPIC -shared -o /home/zheyuanlai/.cache/final_campaign_build/gw_kernel_b11d8c60d6ad4817.so /home/zheyuanlai/ABF-Fisher-Rao/src/parallel/gw_kernel.c -lm",
+   "compiler": "/usr/bin/gcc",
+   "compiler_version": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+   "so_path": "/home/zheyuanlai/.cache/final_campaign_build/gw_kernel_b11d8c60d6ad4817.so",
+   "so_sha256": "79acd361bd39963448024ae228f8c1f2866445292406ab1f6b485a1274effaf6",
+   "source_sha256": "e6199ce5687fac59b1d6b03aa1511e64a002af18e54d79e2249215871e879931",
+   "tag": "b11d8c60d6ad4817"
+  },
+  "cap": 5,
+  "cpus": [
+   24,
+   25,
+   26,
+   27,
+   28,
+   29,
+   30,
+   31
+  ],
+  "cpus_master_bound": [
+   24
+  ],
+  "cpus_omp_places_union": [
+   24,
+   25,
+   26,
+   27,
+   28,
+   29,
+   30,
+   31
+  ],
+  "cpus_source": "os.sched_getaffinity(0) at import, before libgomp load (the process allocation)",
+  "dt_fr": 0.004,
+  "engine": "gateway_parallel/1",
+  "finished_utc": "2026-10-18T14:24:39Z",
+  "force_eval_convention": "N per completed step: n_force_evals_at_save = N k, n_force_evals = N n_steps",
+  "fr_block_L": 133,
+  "fr_every": 160,
+  "fr_stream": "numpy Generator(PCG64(SeedSequence([seed, N, 1]))); opportunity k owns doubles [kL, (k+1)L)",
+  "git_commit": "41838f6fc8ef7e6c02f2ff881ecf5e949724580b",
+  "git_dirty": false,
+  "git_status": "",
+  "h": 2.5e-05,
+  "host": "atlas",
+  "kernel_variant": "replicated_dissem",
+  "kernel_variant_code": 3,
+  "method": "fr",
+  "model": "MODEL_ORIG (alpha = 1, lam = 1)",
+  "n_steps": 16128000,
+  "noise_counter": "Philox4x64-10 (Random123), key SeedSequence([seed, N, 2]).generate_state(2, uint64) = [529696947263725962, 8497063289986066720]; counter (loop step, slot, 0, 0); u = (o >> 11) 2^-53; (zx, zy) = sqrt(-2 log(1 - u0)) (cos, sin)(2 pi u1); loop step = completed steps before the move",
+  "noise_mode": "counter",
+  "noise_replay": "numba MT19937 seeded with default_noise_seed(seed, N) = 1065601193 via gateway_ladder_numba._mt_seed; 2N standard normals per step, zx[0..N-1] then zy[0..N-1], drawn serially by the driver",
+  "numba": "0.68.0",
+  "numpy": "2.4.6",
+  "omp": {
+   "binding": {
+    "num_places": 8,
+    "places": [
+     [
+      24
+     ],
+     [
+      25
+     ],
+     [
+      26
+     ],
+     [
+      27
+     ],
+     [
+      28
+     ],
+     [
+      29
+     ],
+     [
+      30
+     ],
+     [
+      31
+     ]
+    ],
+    "proc_bind": 3,
+    "proc_bind_close": true,
+    "team_cpus": [
+     [
+      24
+     ],
+     [
+      25
+     ],
+     [
+      26
+     ],
+     [
+      27
+     ],
+     [
+      28
+     ],
+     [
+      29
+     ],
+     [
+      30
+     ],
+     [
+      31
+     ]
+    ],
+    "team_place": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7
+    ],
+    "team_size": 8
+   },
+   "env": {
+    "GOMP_SPINCOUNT": "10000000",
+    "OMP_DYNAMIC": "false",
+    "OMP_PLACES": "{24},{25},{26},{27},{28},{29},{30},{31}",
+    "OMP_PROC_BIND": "close",
+    "OMP_WAIT_POLICY": "active"
+   },
+   "env_before_import": {
+    "GOMP_SPINCOUNT": null,
+    "OMP_DYNAMIC": "false",
+    "OMP_NUM_THREADS": "8",
+    "OMP_PLACES": "{24},{25},{26},{27},{28},{29},{30},{31}",
+    "OMP_PROC_BIND": "close",
+    "OMP_WAIT_POLICY": "active"
+   },
+   "env_set_by_module": true,
+   "libgomp_loaded_before_import": false
+  },
+  "peak_rss_mb": 194.0,
+  "python": "3.14.4",
+  "ramp_steps": 160000.0,
+  "reduction_order": "per bin, walkers added in slot order (bin-owner scan, or every thread into its private copy for the replicated variant): thread-count invariant",
+  "run_signature": {
+   "N": 64,
+   "cfg": {
+    "H": 0.5,
+    "beta": 16.0,
+    "cap_min": 1,
+    "eta": 0.1,
+    "fr_interval_t": 0.004,
+    "gamma": 1.5,
+    "genealogy_window_t": 1.6,
+    "h": 2.5e-05,
+    "max_event_fraction": 0.08,
+    "min_count": 1.0,
+    "nb": 180,
+    "omega_in": 32.0,
+    "omega_out": 1.0,
+    "ramp_t": 4.0,
+    "s": 0.1,
+    "score_clip": 3.0,
+    "system": "gateway",
+    "trace_early_dt_t": 0.1,
+    "trace_early_until_t": 40.0,
+    "trace_late_dt_t": 10.0,
+    "trace_max": 5000
+   },
+   "counter_key": [
+    529696947263725962,
+    8497063289986066720
+   ],
+   "engine": "gateway_parallel/1",
+   "fr_entropy": [
+    9655,
+    64,
+    1
+   ],
+   "kernel_variant": "replicated_dissem",
+   "method": "fr",
+   "n_steps": 16128000,
+   "noise": "counter",
+   "noise_seed": 1065601193,
+   "save_sha": "c71d93ef4f4e6883bc38a69cc6e60f2c3af5d352340888963b382a396579ea09",
+   "seed": 9655,
+   "sources_sha256": {
+    "src/parallel/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/parallel/gateway_parallel.py": "615fde5748c9fc5624b4051e27f11b4468393b625ed560a85583750a5306e66c",
+    "src/parallel/gw_kernel.c": "e6199ce5687fac59b1d6b03aa1511e64a002af18e54d79e2249215871e879931"
+   },
+   "threads": 8,
+   "timer_sample_log2": 8,
+   "timers": true,
+   "validated_sha256": {
+    "src/gateway_ladder_numba.py": "bdeaa40a42f82d509fcdbe1c209559a93c0d0fae9391633c8858488bc25074ce"
+   },
+   "x0_sha": "a572e98b628a949dec85cdf2d731a64a8068a01ce098797d0617f76e9556702d",
+   "y0_sha": "622d53003acdda9512f1cfcd79fb4e99d618d673f266b14da9da45fd55f08f10"
+  },
+  "run_signature_sha256": "8cc34e90784427a328a3b89187a61a157547abfd703c8651ba916731c34a7522",
+  "seed": 9655,
+  "sources_sha256": {
+   "src/parallel/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "src/parallel/gateway_parallel.py": "615fde5748c9fc5624b4051e27f11b4468393b625ed560a85583750a5306e66c",
+   "src/parallel/gw_kernel.c": "e6199ce5687fac59b1d6b03aa1511e64a002af18e54d79e2249215871e879931"
+  },
+  "status": "complete",
+  "system": "gateway",
+  "test_noise_ext": false,
+  "threads": 8,
+  "timer_definitions": {
+   "sampling": "phase reads inside the step loop only on the sampled steps s_0 = 0, s_(i+1) = s_i + 1 + (mix64(s_i) >> (63 - k)), mix64 = splitmix64 finaliser of (s + 1) * 0x9E3779B97F4A7C15, k = timer_sample_log2 (gaps ~uniform on [1, 2^(k+1)], mean ~2^k; every step if k = 0); untimed code between them; the exact step-loop ticks are split in proportion to the sampled phase ticks (ratio estimator); t_force_move + t_abf + t_sync = the exact region wall (team mean)",
+   "t_abf_s": "in-kernel deposit + bias read (incl. running max |bias|) + replicated-table copies, team mean: exact copies + the step loop's sampled share",
+   "t_force_move_s": "in-kernel force/bin + move (+ counter-mode noise), team mean of per-thread rdtsc ticks: exact entry force/bin + the step loop's sampled share",
+   "t_fr_s": "driver FR (KDE, scores, resampling, gather, counters) + Python PCG64 block draws",
+   "t_save_s": "driver saves (copy of M, C, counters)",
+   "t_sync_s": "exact region launch wait + join wait + the step loop's sampled share of barrier waits (2 per step owner, 1 per step replicated), team mean"
+  },
+  "timer_sample_log2": 8,
+  "timer_sample_mean_gap_steps": 256.5,
+  "timers": true,
+  "timers_extra": {
+   "driver_overhead_per_segment_s": 1.8672654202197707e-07,
+   "n_chunks": 394,
+   "n_fr_calls": 100800,
+   "n_kernel_calls": 101738,
+   "n_loop_steps": 16128000,
+   "n_sampled_steps": 62810,
+   "n_segments": 101738,
+   "replay_max_segment_steps": 16128000,
+   "t_bias_read_s": 0.2382523399440635,
+   "t_deposit_s": 3.6400189423073246,
+   "t_driver_residual_s": 0.018997184932231903,
+   "t_exact_parts_sum_s": 14.59255581977342,
+   "t_kernel_calls_wall_s": 14.618814332410693,
+   "t_region_wall_s": 14.59255581977342,
+   "t_replay_fill_s": 0.0,
+   "t_step_loop_s": 14.411093374821613,
+   "tsc_hz": 3100002736.23777
+  },
+  "validated_engine": "gateway_ladder_numba/2",
+  "validated_engine_sha256": {
+   "src/gateway_ladder_numba.py": "bdeaa40a42f82d509fcdbe1c209559a93c0d0fae9391633c8858488bc25074ce"
+  },
+  "wall_definition": "CLOCK_MONOTONIC seconds from the timed start t0 (after build, JIT, warm-up run of the same code path incl. thread-pool start, and state set-up)",
+  "warmup": true
+ },
+ "method": "fr",
+ "n_force_evals": 1032192000,
+ "n_saves": 562,
+ "n_steps": 16128000,
+ "noise_mode": "counter",
+ "npz": "s9655.npz",
+ "npz_sha256": "f24a9c250bfdb8ee0fb69eb82f6e0407c43aa2492da302540ca07bce158c9226",
+ "peak_rss_mb": 194.0,
+ "pid": 2052216,
+ "precision": "float64",
+ "proc_start_epoch": 1792333461.8069324,
+ "proc_wall_s": 18.439957857131958,
+ "process_age_s": 17.75,
+ "return_epoch": 1792333479.5535524,
+ "science_sha256": {
+  "C_all": "76b95fb122210774b6e4c41a3693c0d25aac1adab582d58ac373b0e451973935",
+  "M_all": "9721c309dd53b8ff60714e0cc1b1fe23ddf241b675c1e25c43abaded9df00f25",
+  "save_step": "d126ab30e7da5c0c76f104a08da60dc9fb05aa8f4bdda83198fa4f6140ae3f3a"
+ },
+ "seed": 9655,
+ "signature": {
+  "B": 1032192000,
+  "N": 64,
+  "T_K": null,
+  "engine_cfg": "87cc5012df2bbf53",
+  "engine_sources": {
+   "src/gateway_ladder_numba.py": "bdeaa40a42f82d509fcdbe1c209559a93c0d0fae9391633c8858488bc25074ce",
+   "src/parallel/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "src/parallel/gateway_parallel.py": "615fde5748c9fc5624b4051e27f11b4468393b625ed560a85583750a5306e66c",
+   "src/parallel/gw_kernel.c": "e6199ce5687fac59b1d6b03aa1511e64a002af18e54d79e2249215871e879931",
+   "src/parallel/philox.py": "db996b3819dc06541a96d3b614abf14cd34fc21de320dc5c5e403bb12dcf7f59"
+  },
+  "grid_sha": "d126ab30e7da5c0c76f104a08da60dc9fb05aa8f4bdda83198fa4f6140ae3f3a",
+  "impl": "parallel",
+  "kind": "confirm",
+  "method": "fr",
+  "n_steps": 16128000,
+  "noise": "counter",
+  "seed": 9655,
+  "system": "gateway",
+  "threads": 8,
+  "version": "hybrid_short_T/1"
+ },
+ "start_overhead_s": 1.7104383064433932,
+ "status": "complete",
+ "system": "gateway",
+ "t0_epoch": 1792333464.3215606,
+ "t0_epoch_source": "return epoch - wall_total_s",
+ "telemetry": "s9655.telemetry.npz",
+ "threads": 8,
+ "timers": {
+  "t_abf_s": 3.8782712822513883,
+  "t_force_move_s": 6.909517957231983,
+  "t_fr_s": 0.5908708367496729,
+  "t_save_s": 0.0028136717155575752,
+  "t_sync_s": 3.8047665802900497
+ },
+ "used_core_h_run": 0.04097768412695991,
+ "used_wall_s": 18.439957857131958,
+ "version": "hybrid_short_T/1",
+ "wall_total_s": 15.231496025808156,
+ "warmup_s": 1.4372512567788363
+}

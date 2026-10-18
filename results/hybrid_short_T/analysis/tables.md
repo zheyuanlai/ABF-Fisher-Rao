@@ -211,3 +211,10 @@ Null control (two validated-engine blocks, truncated at u*):
 * N 2 abf (production vs confirm_best_lta_T150, 16 vs 32): e_F(T_N) 1.02 [0.818, 1.27], Ibar_F 1.08 [0.823, 1.21], tau_mid u 0.824 [0.417, 1.45]
 * N 2 fr (production vs confirm_best_lta_T150, 16 vs 32): e_F(T_N) 0.936 [0.679, 1.17], Ibar_F 1.02 [0.848, 1.15], tau_mid u 1.36 [0.643, 2.29]
 
+## Confirmation (fresh seeds, selection fixed in confirm_selection.json)
+
+* gateway: R_conf (W) = 0.778 [0.494, 1.2] [fr256 vs abf32], R_conf (W_e2e) = 0.895 [0.739, 1.1]; **unresolved**; one-sided p (FR faster) W 0.146, W_e2e 0.161
+* lta300: R_conf (W) = 1.11 [0.845, 1.59] [fr64 vs abf32], R_conf (W_e2e) = 1.1 [0.851, 1.52]; **unresolved**; one-sided p (FR faster) W 0.726, W_e2e 0.732
+* lta150: R_conf (W) = 0.95 [0.764, 1.33] [fr64 vs abf16], R_conf (W_e2e) = 0.954 [0.794, 1.29]; **unresolved**; one-sided p (FR faster) W 0.471, W_e2e 0.487
+
+Holm across systems (A2.7): {"fr_faster": {"gateway": {"p": 0.1614, "p_holm": 0.48419999999999996, "reject": false}, "lta150": {"p": 0.4868, "p_holm": 0.9736, "reject": false}, "lta300": {"p": 0.732, "p_holm": 0.9736, "reject": false}}, "abf_faster": {"lta300": {"p": 0.2737, "p_holm": 0.8210999999999999, "reject": false}, "lta150": {"p": 0.529, "p_holm": 1.0, "reject": false}, "gateway": {"p": 0.8541, "p_holm": 1.0, "reject": false}}, "note": "one-sided bootstrap p = fraction of resamples on the wrong side of 1, the larger of W and W_e2e (both must hold)"}
