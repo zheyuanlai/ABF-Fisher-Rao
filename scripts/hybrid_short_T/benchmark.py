@@ -298,11 +298,14 @@ def expected_attempts(summary, threads, max_repeats=3):
     return sum(p ** k for k in range(max_repeats + 1))
 
 
-def run_cost_core_s(summary, route_entry, system, method, N, B):
+PROD_MAX_REPEATS = 1                       # Amendment A2.4b: production / confirmation repeat at most once
+
+
+def run_cost_core_s(summary, route_entry, system, method, N, B, max_repeats=PROD_MAX_REPEATS):
     """Projected used core-seconds of one production run on its route, incl. expected repeats."""
     e = entry(summary["configs"], system, method, N, route_entry["impl"], route_entry["threads"])
     w = B * e["c_ss_median"] + RUN_OVERHEAD_S
-    return route_entry["threads"] * w * expected_attempts(summary, route_entry["threads"])
+    return route_entry["threads"] * w * expected_attempts(summary, route_entry["threads"], max_repeats)
 
 
 def projection(route, summary, cfg=None):

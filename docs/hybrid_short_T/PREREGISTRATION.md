@@ -466,3 +466,45 @@ UTC: 256 attempts done, two in-flight runs terminated and logged. It was restart
 are skipped by their unchanged signatures, verified identical for all 1026 benchmark jobs. The benchmark's own repeat
 rule (whole-window contention) is unchanged. Contended fractions of the attempts before the restart, by thread count:
 t1 4/71, t2 2/33, t4 6/41, t8 17/48, t16 49/63.
+
+## Amendment A3 (2026-10-18 ≈ 08:50 UTC: user instruction; during the benchmark; before the routing freeze and before any production run)
+
+**The CPU guard is raised from 100 to 300 used core-hours. The GPU guard stays 0.**
+
+The user was asked with the projected numbers:
+* about 7.5 core-h already used;
+* about 12 for the rest of the benchmark plus the A2.5 supplement;
+* full production of every N at 32 / 16 seeds: 130 core-h without repeats, about 170 with the current contention;
+* top-3 × 32-seed confirmation: about 50–80.
+
+The user answered "Raise to 300 core-h". The 100 core-h guard had been sized for a plan in which large N ran on an
+H200. Here large N runs on up to 16 CPU cores per run, so the 12 unused H200-hours' worth of work lands on the CPU
+ledger.
+
+The projection gate (A2.6) and the confirmation sizing (A2.7) use 300. Runs pass `--cap 300`; campaign.json keeps
+its frozen 100 for the record.
+
+*A2.4 revised (08:58 UTC): the allocation wait is 30 s, not 120 s.*
+* Measured at 08:57 UTC: every one of the 16 CCDs carried at least one busy core of other users' processes. The
+  kernel spreads roaming tasks one per L3 domain, so an 8- or 16-core set essentially never qualifies.
+* A 120 s head-of-line wait then admitted about one launch per 2 minutes, with no gain in qualification.
+* Look-ahead and the starvation guard are unchanged. Contention is judged, as frozen, by each run's own telemetry.
+
+## Amendment A2.4b (2026-10-18 ≈ 09:45 UTC, after the main benchmark; before the routing freeze and any production run)
+
+**Production and confirmation runs are repeated at most ONCE** (two attempts), not three times. The benchmark keeps
+3 repeats.
+
+Rationale, from the benchmark itself (configurations with both contended and uncontended replicates of the same
+repeat):
+* A contended replicate's c_ss is a median 0.3 %, 1.2 %, 2.4 %, 3.5 % and 0.7 % slower at t = 1 / 2 / 4 / 8 / 16;
+  upper quartiles reach 0.7–14.6 %, worst case 34 %.
+* The contended fraction of the attempts was 8 % / 7 % / 10 % / 20 % / 50 % at t = 1 / 2 / 4 / 8 / 16.
+* Every CCD carries at least one foreign process, so 16-thread production runs (6–40 s) would mostly use all 4
+  attempts. That roughly doubles their cost for a correction of a few percent.
+
+Rules:
+* When no replicate is uncontended over an endpoint's window, the analysis uses the **least-contended** replicate
+  (smallest max foreign busy over that window), FLAGGED. This replaces "replicate 0".
+* Flag rates and the exclude-flagged sensitivity analysis are reported per backend.
+* The A2.6 / A2.7 projections use E = 1 + p (p from the benchmark by thread count).

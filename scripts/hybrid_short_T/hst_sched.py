@@ -52,7 +52,7 @@ SCHED_VERSION = "hst_sched/1"
 MAX_REPEATS = 3
 QUALIFY_BUSY = 0.10
 ALLOC_POLL_S = 2.0
-ALLOC_MAX_WAIT_S = 120.0                  # Amendment A2.4 (A1 had 10 s, the frozen config 60 s)
+ALLOC_MAX_WAIT_S = 30.0                   # Amendment A2.4 as revised 08:58 UTC (120 s; A1 10 s; frozen config 60 s)
 LOOKAHEAD = 24
 RESERVED_CCDS = (15,)                    # driver, monitor and operator commands live on CCD 15 (cores 120-127)
 
@@ -211,9 +211,9 @@ def finalize_job(job, paths, alloc, rc, proc_wall, ledger, stage, log=print, not
     return rec
 
 
-def replicate_records(job0, out_root):
+def replicate_records(job0, out_root, max_repeats=MAX_REPEATS):
     recs = []
-    for k in range(0, 1 + MAX_REPEATS):
+    for k in range(0, 1 + max(MAX_REPEATS, max_repeats)):
         p = H.job_paths(dict(job0, replicate=k), out_root)
         if not os.path.exists(p["json"]):
             continue
@@ -226,12 +226,13 @@ def replicate_records(job0, out_root):
     return recs
 
 
-def needs_repeat(recs):
+def needs_repeat(recs, max_repeats=MAX_REPEATS):
+    """A2.4b: production / confirmation pass max_repeats = 1 (benchmark 3)."""
     if not recs:
         return False
     if any(not r.get("contended", True) for r in recs):
         return False
-    return len(recs) < 1 + MAX_REPEATS
+    return len(recs) < 1 + max_repeats
 
 
 def next_replicate(job0, out_root):
@@ -249,7 +250,7 @@ class Scheduler:
     def __init__(self, jobs, stage, cost_s, out_root=H.OUT_ROOT, cfg=None, cap_core_h=math.inf, max_ccds=12,
                  max_cores=96, registry_root=H.REGISTRY_DIR, ledger=H.LEDGER, log=print, monitor=True,
                  monitor_allowed=None, run_timeout_s=7200.0, poll_s=ALLOC_POLL_S, max_wait_s=ALLOC_MAX_WAIT_S,
-                 repeats=True, launcher=None, events=None):
+                 repeats=True, launcher=None, events=None, max_repeats=MAX_REPEATS):
         self.jobs = list(jobs)
         self.stage = stage
         self.cost_s = cost_s
@@ -271,6 +272,7 @@ class Scheduler:
         self.run_timeout_s = float(run_timeout_s)
         self.poll_s, self.max_wait_s = float(poll_s), float(max_wait_s)
         self.repeats = bool(repeats)
+        self.max_repeats = int(max_repeats)
         self.events = events or os.path.join(out_root, "logs", f"{stage}_events.jsonl")
         self.guard = C.DiskGuard(log=log)
         self.stop = False
@@ -320,7 +322,7 @@ class Scheduler:
             else:
                 n_complete += 1
             rr = []
-            for k in range(1, 1 + MAX_REPEATS):
+            for k in range(1, 1 + max(MAX_REPEATS, self.max_repeats)):
                 jk = dict(j0, replicate=k)
                 stk = H.record_status(H.job_paths(jk, self.out_root), sig)
                 if stk == "ran":
@@ -328,7 +330,8 @@ class Scheduler:
                 elif stk in ("mismatch", "signature_mismatch"):
                     mismatch.append(H.job_paths(jk, self.out_root)["json"])
             ran.extend(rr)
-            if st == "complete" and not rr and self.repeats and needs_repeat(replicate_records(j0, self.out_root)):
+            if st == "complete" and not rr and self.repeats and needs_repeat(replicate_records(j0, self.out_root),
+                                                                             self.max_repeats):
                 queue.append(dict(j0, replicate=next_replicate(j0, self.out_root)))
         ran = [j for j in ran if H.job_key(j) not in live]
         return queue, ran, mismatch, n_complete
@@ -493,12 +496,12 @@ class Scheduler:
             return
         j0 = dict(job, replicate=0)
         recs = replicate_records(j0, self.out_root)
-        if needs_repeat(recs):
+        if needs_repeat(recs, self.max_repeats):
             queue.appendleft(dict(job, replicate=next_replicate(j0, self.out_root)))
             self.log(f"  repeat queued: {H.job_key(j0)} (contended: {rec['contention_whole'].get('status')}, "
                      f"max foreign busy {rec['contention_whole'].get('max_foreign_busy')})")
         elif not any(not r.get("contended", True) for r in recs):
-            self.log(f"  FLAG: {H.job_key(j0)} has no uncontended replicate after {MAX_REPEATS} repeats")
+            self.log(f"  FLAG: {H.job_key(j0)} has no uncontended replicate after {self.max_repeats} repeats")
 
     def _reap(self, active, queue):
         for rid in list(active):

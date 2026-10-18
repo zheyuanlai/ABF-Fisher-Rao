@@ -175,7 +175,7 @@ def status(routing, cfg=None):
             n["complete" if st == "complete" else "ran" if st == "ran" else "mismatch" if st == "mismatch"
               else "missing"] += 1
             if st == "complete":
-                recs = S.replicate_records(j, H.OUT_ROOT)
+                recs = S.replicate_records(j, H.OUT_ROOT, BM.PROD_MAX_REPEATS)
                 if recs and not any(not r.get("contended", True) for r in recs):
                     n["no_uncontended_replicate"] += 1
         out[kind] = dict(n_jobs=len(jobs), **n)
@@ -239,7 +239,8 @@ def main(argv=None):
         print(json.dumps(C.json_safe(design), indent=1))
     import hst_sched as S
     sch = S.Scheduler(jobs, a.cmd, cost_fn(summary), cap_core_h=cap, max_ccds=a.max_ccds,
-                      max_cores=a.max_cores, run_timeout_s=float(X["guards"]["run_timeout_s"]))
+                      max_cores=a.max_cores, run_timeout_s=float(X["guards"]["run_timeout_s"]),
+                      max_repeats=BM.PROD_MAX_REPEATS)
     print(json.dumps(C.json_safe(sch.run(dry_run=a.dry_run))))
     return 0
 

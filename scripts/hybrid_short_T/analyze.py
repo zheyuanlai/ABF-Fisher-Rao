@@ -133,8 +133,17 @@ def run_summary(recs, spec, scorer):
                 pick = (r, ep)
                 break
         flags[name] = pick is None
-        if pick is None:
-            pick = (reps[0][0], reps[0][2])
+        if pick is None:                         # A2.4b: the least-contended replicate over this window, flagged
+            best = None
+            for (r, res, ep, tel) in reps:
+                W = ep[f"W_{name}"]
+                win = W if math.isfinite(W) else float(r["wall_total_s"])
+                fb = A.contention(tel, float(r["t0_epoch"]), win, int(r["threads"]), pid=r.get("pid")).get(
+                    "max_foreign_busy")
+                fb = math.inf if fb is None else float(fb)
+                if best is None or fb < best[0]:
+                    best = (fb, r, ep)
+            pick = (best[1], best[2])
         r, ep = pick
         for k in ("W_{}", "W_{}_e2e", "W_{}_interp", "idx_{}", "censored_{}", "step_{}", "t_{}", "u_{}",
                   "force_evals_{}", "walker_steps_{}", "used_core_h_{}", "alloc_core_h_{}", "gap_ratio_{}"):
@@ -143,7 +152,10 @@ def run_summary(recs, spec, scorer):
         out[f"replicate_{name}"] = int(r["job"]["replicate"])
     whole = next(((r, res, ep) for (r, res, ep, tel) in reps if not r.get("contended", True)), None)
     flags["whole"] = whole is None
-    r, res, ep = whole if whole is not None else (reps[0][0], reps[0][1], reps[0][2])
+    if whole is None:                            # A2.4b: least whole-run foreign busy
+        whole = min(((r, res, ep) for (r, res, ep, tel) in reps),
+                    key=lambda x: float((x[0].get("contention_whole") or {}).get("max_foreign_busy") or math.inf))
+    r, res, ep = whole
     out.update(final_e_F=ep["final_e_F"], Ibar_F=ep["Ibar_F"], completion_wall_s=ep["completion_wall_s"],
                start_overhead_s=ep["start_overhead_s"], replicate_whole=int(r["job"]["replicate"]),
                e_flat=ep["e_flat"], flags=flags, wall=np.asarray(res["wall_s_at_save"], float),
