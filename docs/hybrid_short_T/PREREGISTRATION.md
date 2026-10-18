@@ -352,3 +352,117 @@ A poor FR result is not a stopping reason.
    * `validate.py one` now imports it first and restores the launch environment; the 8 checks were re-run and pass.
    * Production children never mix the two (serial children use one thread; parallel children do not import
      parallel_benchmark).
+
+## Amendment A2 (2026-10-18 ≈ 08:15 UTC: after an independent adversarial review of this preregistration and the harness; during the Stage II benchmark; BEFORE the routing freeze and before any production run of this study)
+
+The review read the code and the stored equal-budget runs. Its projections of W used the stored runs × benchmark
+repeat 0, which the task allows ("existing shortened-budget curves may be reused ... for exploratory
+projections"). No outcome of this study's seeds exists. Every change below is methodological; none touches the
+algorithm, the budgets, the thresholds or the seeds.
+
+**A2.1 W resolution (the review's C1, part 2).**
+* *Problem.* W was the wall stamp of the first persistent budget-grid save. That grid is coarse just after the log
+  points end (u_orig 0.005 → 0.010 is a factor 2) and fine late in the run (k/k*). The rounding-up of W therefore
+  depended on where in the run the threshold is crossed: about +10–15 % for crossings early in the run (typically
+  small N), +2–9 % late (typically large N). That is an N-dependent, and hence method-dependent, bias.
+* *Change.*
+  * Production and confirmation runs also save on a dense grid u'_j = 10⁻⁴ × 1.02^j (j = 0 … 465) of the SHORT
+    budget: the Experiment B grid, the same fractions at every N.
+  * Persistence and W are judged on the union "budget grid ∪ dense grid", which is identical in u/u* at every N,
+    with relative spacing ≤ 2 % everywhere.
+  * The k* original uniform saves still define Ibar_F, and e_F(T_N) is still at the last save. Physical-time
+    checkpoints remain extra, figure-only saves.
+  * Saves are bit-inert (chunk splitting does not change a bit; re-checked by V2d below).
+  * The log-linear interpolated crossing W_interp (`expB_common.w_interp`) is reported as a sensitivity.
+
+**A2.2 Start-up cost (C1, part 1).**
+* *Problem.* The steady-state W excludes process start, imports, JIT / cache load and the engine warm-up. At W of a
+  few seconds these differ between backends (benchmark: S1 ≈ 0.4 s, gateway parallel ≈ 1.7 s).
+* *Change.* **W and W_e2e are co-primary.** A confirmatory "FR faster" (or "ABF faster") needs both 95 % CIs on the
+  same side of 1. Otherwise the result is "unresolved", and a disagreement between the two is reported as such.
+
+**A2.3 R_wall CI (M1).**
+* *Problem.* `eqb_metrics.best_allocation`'s relative difference is NaN whenever ABF's resampled best is censored,
+  so those resamples were dropped while FR-censored ones were kept. The resulting CI was asymmetric (demonstrated).
+* *Change.* The R_wall CI is computed from the resampled best values themselves, with the same draws (one index draw
+  per N shared by both methods, the minimising N re-selected per method in every resample):
+  * x / ∞ = 0 and ∞ / x = ∞;
+  * ∞ / ∞ is undefined and its frequency is reported;
+  * the point estimate is (best FR median) / (best ABF median).
+
+**A2.4 Contention, concurrency, repeats (M3, minor 3).**
+* Production and confirmation run at the benchmark's concurrency: at most 6 CCD sets of this campaign at a time.
+* Allocation waits up to 120 s for a qualifying set: every used core and SMT sibling ≤ 10 % busy over a 1 s sample.
+  The sample is 1 s, not campaign.json's 2 s (minor 8). While the head job waits, any of the next 24 queued jobs
+  that can get a qualifying set now is launched out of order. After 120 s the head job takes the least-loaded set,
+  which is FLAGGED.
+* Benchmark rationale: by thread count, the contended fractions were 7 % (t = 1), 8 % (2), 12 % (4), 24 % (8) and
+  60 % (16). The mechanism: other users' processes that wake on a fully occupied CCD find no idle core there and
+  land on our SMT siblings.
+* For production / confirmation, a run is repeated when it is contended over the window [0, W_ε] of ANY threshold ε
+  or over the whole run, judged by the driver after scoring, as in Experiment B. At most 3 repeats.
+* Repeats must reproduce the science bitwise. A replicate whose science differs is never used for timing; the run is
+  then flagged as non-deterministic.
+* The completion wall of a replicate is its own (minor 1).
+* Flag rates are reported by backend. The exclude-flagged sensitivity is reported per backend, not only pooled.
+
+**A2.5 Long-window benchmark supplement (M6).**
+* *Problem.* Gateway P16 windows were 0.4–0.6 s, so c_ss came from about 0.2 s.
+* *Change.* For ABF at N ≥ 16 and t ∈ {4, 8, 16}, a supplement runs with W_b = 5 × 10⁸ walker-steps (gateway) and
+  6 × 10⁷ (LTA, n ≥ 25 000 steps), 3 repeats, same protocol.
+* The routing rule (unchanged) uses the supplement's c_ss for those configurations; S1 and t ≤ 2 keep the original
+  windows, which are ≥ 4 s for S1.
+* Mean CPU frequency (telemetry) is recorded per benchmark run and reported. It is not a covariate in the rule.
+* A configuration with no uncontended repeat falls back to all its repeats, flagged (minor 10).
+
+**A2.6 Cap (M4).** If the projected used core-hours of production (including expected repeats at the benchmark's
+contended fractions by thread count) exceed the remaining cap, production is trimmed to the largest number of WHOLE
+seed blocks that fit. Every configuration gets the same seeds, and the rest are reported as NOT RUN. The hard cap
+still stops new launches if it is reached mid-run; a partial block is then reported as such.
+
+**A2.7 Confirmation (M5).** Replaces the two-configuration confirmation of §5 / §6.
+* **Arms.** The top 3 configurations per method by exploration median W_mid (finite only; ties go to fewer threads,
+  then smaller N; minor 9).
+* **Seeds.** 32 fresh confirm seeds per arm. If the remaining cap does not allow it, the design shrinks in this
+  order: 2 arms per method, then 16 seeds per arm. If even 1 arm per method with 16 seeds does not fit, the
+  confirmation is NOT RUN, which is a resource outcome.
+* **Statistic.** R_conf = (min over the confirmed FR arms of the median W) / (min over the confirmed ABF arms of the
+  median W). Confirmation seeds are independent across arms. The bootstrap resamples each arm's seeds and re-selects
+  the minimum within each method's arm set in every resample, the same conservative treatment for both methods.
+* **Decision.** Per system, with W and W_e2e co-primary (A2.2). The study-level statement "FR faster on system X"
+  additionally needs a Holm-adjusted one-sided bootstrap p < 0.05 across the three systems; the p-value is the
+  fraction of resamples with R_conf ≥ 1.
+* The confirm arms are read from `confirm_selection.json`, and the analysis asserts the match.
+
+**A2.8 Law check and null control (M7, minor 6).**
+* The law check compares e_F(T_N), Ibar_F and τ_mid (u) against the stored production runs, restricted to
+  `production_reference_seeds`.
+* An explicit validated-vs-validated null control: the original production block vs the equal-budget
+  best-allocation confirmation block (gateway N 16: seeds 8200–8263; LTA 300 K N 16: 30100–30131; LTA 150 K N 2:
+  15100–15131), truncated at u*, on the same statistics.
+* The hybrid projection reuses the seeds on which T* was chosen; this is stated.
+* An "implementation effect" outcome is added to §9: a small-N route to P1 / P2 means a faster single-core
+  implementation (C kernel + Philox noise), not parallelism. Thread counts are reported with every result.
+
+**A2.9 Validation additions.**
+* **V2d:** truncation identity with the A2.1 dense grid, gateway N 2048 FR (full short budget) and LTA 300 K N 1024
+  FR.
+* **V4b:** counter-mode thread invariance at t ∈ {1, 2, 4}, LTA 300 K N 16 and N 64, gateway N 16 (minor 7).
+
+**A2.10 Reporting (M2, overclaims).**
+* B was anchored to FR at N₀ (T*), so ABF at the largest N is censored by construction. The fixed-N₀ W comparison
+  is reported as degenerate where it is. For censored configurations, the median completion wall is reported beside
+  the best competitor's W.
+* The study's claims are conditional on the frozen budgets. They exclude other deployments, e.g. independent-run
+  ABF averaging on the same cores.
+* Every wall-clock claim carries its resource cost: used and allocated core-hours and threads.
+* "FR active over the whole window" holds at a ramping rate for gateway N ≥ 512 (ramp 4 t.u.).
+* The §6E "same backend" control holds at fixed N only; R_wall compares across backends by design.
+* Figure A drops the gateway FR "historical" H200 point: Experiment III's gateway number is a step-cost projection
+  copied for both arms, not a measurement.
+
+*A2.4 also applies to the rest of the Stage II benchmark.* The benchmark driver was stopped cleanly at about 08:17
+UTC: 256 attempts done, two in-flight runs terminated and logged. It was restarted with the A2.4 allocator. Records
+are skipped by their unchanged signatures, verified identical for all 1026 benchmark jobs. The benchmark's own repeat
+rule (whole-window contention) is unchanged. Contended fractions of the attempts before the restart, by thread count:
+t1 4/71, t2 2/33, t4 6/41, t8 17/48, t16 49/63.

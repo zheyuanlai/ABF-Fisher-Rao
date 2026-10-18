@@ -1,0 +1,89 @@
+{
+ "N": 16,
+ "V9_clock_ok": true,
+ "check": "V4",
+ "clock": [
+  {
+   "inner_s": 2.0657151779159904,
+   "span_s": 2.2726759715005755,
+   "stamps_ok": true,
+   "threads": 1,
+   "untimed_remainder_s": 0.2069607935845852,
+   "within_span": true
+  },
+  {
+   "inner_s": 1.2641778625547886,
+   "span_s": 1.265675162896514,
+   "stamps_ok": true,
+   "threads": 2,
+   "untimed_remainder_s": 0.0014973003417253494,
+   "within_span": true
+  },
+  {
+   "inner_s": 0.817980625666678,
+   "span_s": 0.8194880047813058,
+   "stamps_ok": true,
+   "threads": 4,
+   "untimed_remainder_s": 0.0015073791146278381,
+   "within_span": true
+  }
+ ],
+ "cpus": [
+  0
+ ],
+ "fr_deaths_end": 0,
+ "method": "abf",
+ "n_steps": 120000,
+ "name": "V4b_lta300_N16_abf",
+ "perf_counter_clock": "namespace(implementation='clock_gettime(CLOCK_MONOTONIC)', monotonic=True, adjustable=False, resolution=1e-09)",
+ "rows": [
+  {
+   "equal": true,
+   "threads": 1,
+   "timing": {
+    "caller_span_s": 2.2726759715005755,
+    "stamps_finite": true,
+    "stamps_monotone": true,
+    "wall_total_le_span": true,
+    "wall_total_s": 2.065624438226223,
+    "warmup_s": 9.073968976736069e-05
+   }
+  },
+  {
+   "differing": [],
+   "equal": true,
+   "threads": 2,
+   "timing": {
+    "caller_span_s": 1.265675162896514,
+    "stamps_finite": true,
+    "stamps_monotone": true,
+    "wall_total_le_span": true,
+    "wall_total_s": 1.263792092911899,
+    "warmup_s": 0.00038576964288949966
+   }
+  },
+  {
+   "differing": [],
+   "equal": true,
+   "threads": 4,
+   "timing": {
+    "caller_span_s": 0.8194880047813058,
+    "stamps_finite": true,
+    "stamps_monotone": true,
+    "wall_total_le_span": true,
+    "wall_total_s": 0.817464935593307,
+    "warmup_s": 0.0005156900733709335
+   }
+  }
+ ],
+ "seed": 30596,
+ "system": "lta300",
+ "threads": [
+  1,
+  2,
+  4
+ ],
+ "utc": "2026-10-18T08:18:35Z",
+ "verdict": "PASS",
+ "wall_s": 4.517720699310303
+}

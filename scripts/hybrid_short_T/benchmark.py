@@ -23,6 +23,12 @@ thread count by median c_ss (within 3 % = tied -> fewer threads); route to P* if
 the same rule on each method's own configurations.  ``freeze`` writes routing.json once (refuses to overwrite), with
 the engine source hashes, the production cost projection and the validation verdicts; run_campaign.py refuses to
 start without it or if an engine source changed.
+
+Amendment A2.5 (``bench --long``): ABF at N >= 16 on P_t, t in {4, 8, 16}, with the long windows
+hst_common.BENCH_LONG_WS (gateway 5e8, LTA 6e7 walker-steps), 3 repeats (configs '<config>_L').  The routing uses the
+long-window c_ss for those configurations; a configuration with no uncontended repeat falls back to the first
+replicate of every repeat (all_contended = True).  Projections include the expected number of attempts per run
+(contended fraction p_t of the benchmark attempts with t threads: E = 1 + p + p^2 + p^3).
 """
 from __future__ import annotations
 
@@ -76,9 +82,40 @@ def bench_jobs(systems, cfg=None, repeats=3):
     return jobs
 
 
+def bench_jobs_long(systems, cfg=None, repeats=3):
+    """A2.5 supplement: ABF, N >= 16, P_t for t in {4, 8, 16} (t <= N), long windows."""
+    specs = {s: H.system_spec(s, cfg) for s in systems}
+    base = [(s, N, t) for s in systems for N in specs[s]["N_ladder"] if N >= 16 for t in (4, 8, 16) if t <= N]
+    perm = np.random.default_rng(ORDER_SEED + 1).permutation(len(base))
+    base = [base[i] for i in perm]
+    L = len(base)
+    jobs = []
+    for r in range(repeats):
+        k = (r * L) // repeats
+        for (s, N, t) in base[k:] + base[:k]:
+            jobs.append(H.make_job("bench", specs[s], "abf", N, specs[s]["bench_seeds"][r], "parallel", t, r=r,
+                                   long=True))
+    return jobs
+
+
+LONG_MIN_N, LONG_THREADS = 16, (4, 8, 16)
+
+
+def entry(summ, system, method, N, impl, t):
+    """The benchmark summary entry the routing uses for a configuration (A2.5: the long-window one when it exists)."""
+    k = f"{system}|{H.config_name(method, N, impl, t)}"
+    if impl == "parallel" and t in LONG_THREADS and N >= LONG_MIN_N:
+        kl = k + "_L"
+        if summ.get(kl, {}).get("n"):
+            return summ[kl]
+    return summ.get(k)
+
+
 def bench_cost_s(job):
     ws = job["N"] * job["n_steps"]
     c = GUESS_NS[job["system"]] * 1e-9
+    if job.get("long"):
+        c *= 0.6
     if job["impl"] == "parallel":
         c = c / max(1.0, 0.6 * job["threads"])
     return ws * c + RUN_OVERHEAD_S
@@ -129,13 +166,16 @@ def summarize(out_root=H.OUT_ROOT, cfg=None, write=True):
     for (sysn, cfgn), byr in sorted(rows.items()):
         j0 = next(iter(byr.values()))[0]["job"]
         vals, tot, e2e, warm, rss, flagged, n_contended_reps = [], [], [], [], [], 0, 0
-        timers = []
+        timers, freq = [], []
         per_r = {}
+        all_contended = not any(pick(recs) is not None for recs in byr.values())
         for r, recs in sorted(byr.items()):
             p = pick(recs)
             if p is None:
                 n_contended_reps += 1
-                continue
+                if not all_contended:
+                    continue
+                p = recs[0]                       # A2.5: every repeat contended -> first replicates, flagged
             b = p["bench"]
             vals.append(b["c_ss"])
             per_r[int(r)] = b["c_ss"]
@@ -145,7 +185,8 @@ def summarize(out_root=H.OUT_ROOT, cfg=None, write=True):
             warm.append(p.get("warmup_s", math.nan))
             rss.append(p.get("peak_rss_mb", math.nan))
             flagged += int(bool((p.get("allocation") or {}).get("flagged")))
-            if p.get("timers") and all(math.isfinite(v) for v in p["timers"].values()):
+            freq.append(float((p.get("contention_whole") or {}).get("mean_freq_mhz") or math.nan))
+            if p.get("timers") and all(v is not None and math.isfinite(v) for v in p["timers"].values()):
                 timers.append({k: v / p["wall_total_s"] for k, v in p["timers"].items()})
         key = f"{sysn}|{cfgn}"
         if not vals:
@@ -162,7 +203,8 @@ def summarize(out_root=H.OUT_ROOT, cfg=None, write=True):
             c_e2e_median=float(np.nanmedian(e2e)) if np.any(np.isfinite(e2e)) else math.nan,
             warmup_s_median=float(np.nanmedian(warm)), peak_rss_mb_max=float(np.nanmax(rss)),
             timer_fractions=({k: float(np.median([t[k] for t in timers])) for k in timers[0]} if timers else None),
-            n_b=int(j0["n_steps"]))
+            n_b=int(j0["n_steps"]), long=bool(j0.get("long", False)), all_contended=bool(all_contended),
+            mean_freq_mhz=float(np.nanmedian(freq)) if np.any(np.isfinite(freq)) else math.nan)
     # FR overhead per (system, N, backend) and repeat
     fro = {}
     for key, s in summ.items():
@@ -178,8 +220,16 @@ def summarize(out_root=H.OUT_ROOT, cfg=None, write=True):
             fro[key] = dict(system=s["system"], N=s["N"], backend=s["backend"], overhead=ov,
                             overhead_median=float(np.median(ov)), overhead_min=float(min(ov)),
                             overhead_max=float(max(ov)))
+    # contended fraction of the attempts by thread count (expected repeats in projections, A2.6)
+    att = {}
+    for recs in B.values():
+        for r in recs:
+            a = att.setdefault(int(r["threads"]), [0, 0])
+            a[0] += int(bool(r.get("contended")))
+            a[1] += 1
+    cfrac = {str(t): dict(contended=v[0], attempts=v[1], frac=v[0] / v[1]) for t, v in sorted(att.items())}
     out = dict(version=H.VERSION, configs=summ, fr_overhead=fro, n_records=sum(len(v) for v in B.values()),
-               utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
+               contended_fraction_by_threads=cfrac, utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
     if write:
         C.write_json(os.path.join(BENCH_DIR, "summary.json"), out)
     return out
@@ -188,8 +238,8 @@ def summarize(out_root=H.OUT_ROOT, cfg=None, write=True):
 # ================================================================================================ routing
 def route_one(summ, system, method, N, min_gain=1.05, tie_frac=0.03):
     """The frozen rule for one (system, method, N) from the benchmark summary."""
-    s1 = summ.get(f"{system}|{H.config_name(method, N, 'serial', 1)}")
-    par = [summ.get(f"{system}|{H.config_name(method, N, 'parallel', t)}") for t in THREADS if t <= N]
+    s1 = entry(summ, system, method, N, "serial", 1)
+    par = [entry(summ, system, method, N, "parallel", t) for t in THREADS if t <= N]
     par = [p for p in par if p and p["n"]]
     if not s1 or not s1["n"]:
         raise H.HSTError(f"{system} {method} N {N}: no uncontended S1 benchmark")
@@ -204,7 +254,8 @@ def route_one(summ, system, method, N, min_gain=1.05, tie_frac=0.03):
     pstar = min(tied, key=lambda p: p["threads"])
     out["P_star"] = dict(threads=pstar["threads"], c_ss_median=pstar["c_ss_median"], c_ss_min=pstar["c_ss_min"],
                          c_ss_max=pstar["c_ss_max"], n=pstar["n"], fastest_threads=best["threads"],
-                         tied_threads=sorted(p["threads"] for p in tied))
+                         tied_threads=sorted(p["threads"] for p in tied), long_window=bool(pstar.get("long")),
+                         all_contended=bool(pstar.get("all_contended")))
     gain = s1["c_ss_median"] / pstar["c_ss_median"]
     reliable = pstar["c_ss_max"] < s1["c_ss_min"]
     out["gain_vs_S1"] = gain
@@ -234,33 +285,41 @@ def routing(summary, cfg=None):
             for m in H.methods_for(N):
                 for impl, t in (("common", None), ("own", None)):
                     rr = common if impl == "common" else own[m]
-                    key = f"{s}|{H.config_name(m, N, rr['impl'], rr['threads'])}"
-                    costs[f"{m}_{impl}"] = summ[key]["c_ss_median"] if key in summ and summ[key]["n"] else math.nan
+                    e = entry(summ, s, m, N, rr["impl"], rr["threads"])
+                    costs[f"{m}_{impl}"] = e["c_ss_median"] if e and e["n"] else math.nan
             rows[str(N)] = dict(common=common, own=own, c_ss_on_route=costs)
         out[s] = rows
     return out
 
 
+def expected_attempts(summary, threads, max_repeats=3):
+    """E = 1 + p + ... + p^max_repeats with p the benchmark's contended fraction at this thread count."""
+    p = (summary.get("contended_fraction_by_threads") or {}).get(str(int(threads)), {}).get("frac", 0.0)
+    return sum(p ** k for k in range(max_repeats + 1))
+
+
+def run_cost_core_s(summary, route_entry, system, method, N, B):
+    """Projected used core-seconds of one production run on its route, incl. expected repeats."""
+    e = entry(summary["configs"], system, method, N, route_entry["impl"], route_entry["threads"])
+    w = B * e["c_ss_median"] + RUN_OVERHEAD_S
+    return route_entry["threads"] * w * expected_attempts(summary, route_entry["threads"])
+
+
 def projection(route, summary, cfg=None):
-    """Projected used core-hours and wall of production + confirmation on the frozen routes."""
-    summ = summary["configs"]
-    tot = dict(prod_core_h=0.0, prod_wall_core_s=0.0, confirm_core_h_upper=0.0)
+    """Projected used core-hours of production on the frozen routes (incl. expected repeats), per system and per
+    seed block."""
+    tot = dict(prod_core_h=0.0)
     per = {}
     for s in H.SYSTEMS:
         spec = H.system_spec(s, cfg)
-        ch, mx = 0.0, 0.0
+        blk = 0.0
         for N in spec["N_ladder"]:
             rr = route[s][str(N)]["common"]
             for m in H.methods_for(N):
-                key = f"{s}|{H.config_name(m, N, rr['impl'], rr['threads'])}"
-                c = summ[key]["c_ss_median"]
-                w = spec["B"] * c + RUN_OVERHEAD_S
-                ch += len(spec["prod_seeds"]) * rr["threads"] * w / 3600.0
-                mx = max(mx, rr["threads"] * w)
-        conf = 2 * len(spec["confirm_seeds"]) * mx / 3600.0
-        per[s] = dict(prod_core_h=ch, confirm_core_h_upper=conf)
+                blk += run_cost_core_s(summary, rr, s, m, N, spec["B"]) / 3600.0
+        ch = blk * len(spec["prod_seeds"])
+        per[s] = dict(prod_core_h=ch, per_seed_block_core_h=blk, n_seeds=len(spec["prod_seeds"]))
         tot["prod_core_h"] += ch
-        tot["confirm_core_h_upper"] += conf
     return dict(per_system=per, **tot)
 
 
@@ -281,13 +340,69 @@ def freeze(out_root=H.OUT_ROOT, cfg=None, force=False):
     for s in H.SYSTEMS:
         spec = H.system_spec(s, cfg)
         srcs[s] = {impl: C.engine_sources_sha(spec, impl, spec["engine_module"]) for impl in ("serial", "parallel")}
+    harness = C.files_sha([os.path.join(HERE, f) for f in ("hst_common.py", "hst_sched.py")] +
+                          [C.__file__, os.path.join(H.ROOT, "scripts", "final_campaign", "expB_alloc.py"),
+                           os.path.join(H.ROOT, "scripts", "mechanism", "parallel_benchmark.py")])
     used = H.ledger_used_core_h()
     rec = dict(version=H.VERSION, frozen_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                git_commit=C.git_commit()[0], rule=(cfg or H.load_config())["routing"], routes=route,
-               engine_sources=srcs, projection=projection(route, summary, cfg), used_core_h_at_freeze=used,
+               engine_sources=srcs, harness_sources=harness, projection=projection(route, summary, cfg),
+               used_core_h_at_freeze=used, contended_fraction_by_threads=summary.get("contended_fraction_by_threads"),
                validation=vrec, bench_records=summary["n_records"])
     C.write_json(ROUTING, rec)
     return rec
+
+
+def tables_md(summary, routing_rec=None):
+    """Markdown tables of the benchmark: per system and N the ABF / FR c_ss of S1 and every P_t (ns per walker-step,
+    median [min, max]), the FR overhead, and the frozen route (if routing_rec)."""
+    summ = summary["configs"]
+    L = ["# CPU throughput benchmark tables", "",
+         "Generated by `scripts/hybrid_short_T/benchmark.py tables`. c_ss = steady-state wall per walker-step (ns), "
+         "median [min, max] over the uncontended repeats; 'L' = the Amendment A2.5 long-window supplement (used by "
+         "the routing); '!' = every repeat contended (first replicates used, flagged); FR overhead = c_ss(FR)/c_ss(ABF) "
+         "- 1 per repeat, median, short windows.", "",
+         "Contended fraction of the attempts by thread count: " + ", ".join(
+             f"t{t}: {v['contended']}/{v['attempts']}" for t, v in (summary.get("contended_fraction_by_threads") or
+                                                                    {}).items()), ""]
+    for s in H.SYSTEMS:
+        spec = H.system_spec(s)
+        L += [f"## {spec['label']}", "", "| N | method | S1 | P1 | P2 | P4 | P8 | P16 | route | speed-up of route vs S1 |",
+              "|---|---|---|---|---|---|---|---|---|---|"]
+        for N in spec["N_ladder"]:
+            for m in H.methods_for(N):
+                cells = []
+                for impl, t in [("serial", 1)] + [("parallel", t) for t in THREADS]:
+                    v = entry(summ, s, m, N, impl, t)
+                    if impl == "parallel" and t > N:
+                        cells.append("")
+                    elif not v or not v["n"]:
+                        cells.append("n/a")
+                    else:
+                        cells.append(f"{v['c_ss_median'] * 1e9:.3g} [{v['c_ss_min'] * 1e9:.3g}, "
+                                     f"{v['c_ss_max'] * 1e9:.3g}]" + ("L" if v.get("long") else "")
+                                     + ("!" if v.get("all_contended") else ""))
+                rt, sp = "", ""
+                if routing_rec:
+                    r = routing_rec["routes"][s][str(N)]["common"]
+                    rt = r["backend"]
+                    e1 = entry(summ, s, m, N, "serial", 1)
+                    er = entry(summ, s, m, N, r["impl"], r["threads"])
+                    if e1 and e1.get("n") and er and er.get("n"):
+                        sp = f"{e1['c_ss_median'] / er['c_ss_median']:.2f}x"
+                L.append(f"| {N} | {m} | " + " | ".join(cells) + f" | {rt} | {sp} |")
+        L += ["", "FR overhead (median [min, max] over repeats) on the routed backend:", ""]
+        for N in spec["N_ladder"]:
+            if N == 1:
+                continue
+            r = routing_rec["routes"][s][str(N)]["common"] if routing_rec else dict(impl="serial", threads=1)
+            k = f"{s}|{H.config_name('fr', N, r['impl'], r['threads'])}"
+            o = summary["fr_overhead"].get(k)
+            if o:
+                L.append(f"* N {N} ({o['backend']}): {100 * o['overhead_median']:+.1f} % "
+                         f"[{100 * o['overhead_min']:+.1f}, {100 * o['overhead_max']:+.1f}]")
+        L.append("")
+    return "\n".join(L) + "\n"
 
 
 def load_routing(path=ROUTING):
@@ -308,20 +423,22 @@ def main(argv=None):
     b.add_argument("--out-root", default=H.OUT_ROOT, help="tests / smoke only")
     b.add_argument("--max-jobs", type=int, default=None, help="tests / smoke only: the first k jobs")
     b.add_argument("--only", nargs="*", default=None, help="tests / smoke only: config names")
+    b.add_argument("--long", action="store_true", help="the A2.5 long-window supplement")
     sub.add_parser("summary")
     sub.add_parser("freeze")
+    sub.add_parser("tables")
     a = ap.parse_args(argv)
     if a.cmd == "bench":
         import hst_sched as S
         X = H.load_config()
         cap = a.cap if a.cap is not None else float(X["guards"]["cpu_core_hours_cap"])
-        jobs = bench_jobs(a.systems)
+        jobs = bench_jobs_long(a.systems) if a.long else bench_jobs(a.systems)
         if a.only:
             jobs = [j for j in jobs if j["config"] in a.only]
         if a.max_jobs is not None:
             jobs = jobs[:a.max_jobs]
-        sch = S.Scheduler(jobs, "bench", bench_cost_s, out_root=a.out_root, cap_core_h=cap, max_ccds=a.max_ccds,
-                          max_cores=a.max_ccds * 8, run_timeout_s=1800.0)
+        sch = S.Scheduler(jobs, "bench_long" if a.long else "bench", bench_cost_s, out_root=a.out_root, cap_core_h=cap,
+                          max_ccds=a.max_ccds, max_cores=a.max_ccds * 8, run_timeout_s=1800.0)
         print(json.dumps(C.json_safe(sch.run(dry_run=a.dry_run))))
         if not a.dry_run and a.out_root == H.OUT_ROOT:
             summarize()
@@ -334,6 +451,14 @@ def main(argv=None):
                       f"[{v['c_ss_min'] * 1e9:.2f}, {v['c_ss_max'] * 1e9:.2f}]  thr {v['throughput_median']:.3g}/s")
             else:
                 print(f"{k:32s} NO UNCONTENDED REPEAT")
+        return 0
+    if a.cmd == "tables":
+        s = C.read_json(os.path.join(BENCH_DIR, "summary.json"))
+        rr = load_routing() if os.path.exists(ROUTING) else None
+        md = tables_md(s, rr)
+        with open(os.path.join(BENCH_DIR, "tables.md"), "w") as fh:
+            fh.write(md)
+        print(md)
         return 0
     if a.cmd == "freeze":
         rec = freeze()

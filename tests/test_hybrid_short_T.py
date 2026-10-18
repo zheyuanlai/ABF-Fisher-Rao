@@ -48,18 +48,22 @@ def test_budget_matches_task_and_short_T(specs, system):
 @pytest.mark.parametrize("system", H.SYSTEMS)
 def test_save_grid(specs, system):
     s = specs[system]
-    nb = None
+    counts = []
     for N in s["N_ladder"]:
-        st, bm, um = H.save_grid(s, N)
+        st, pm, um = H.save_grid(s, N)
         n = H.n_steps_for(s, N)
         assert st[-1] == n and np.all(np.diff(st) > 0) and st[0] >= 1
         assert int(um.sum()) == s["k_star"]
-        assert np.all(bm[um])                               # uniform points are budget-grid points
-        if nb is None:
-            nb = int(bm.sum())
-        assert int(bm.sum()) == nb                          # the same budget grid size at every N
-        u = st[um] / n
-        assert np.allclose(u, np.arange(1, s["k_star"] + 1) / s["k_star"], rtol=0, atol=1e-12)
+        assert np.all(pm[um])                               # uniform points are persistence-grid points
+        assert np.all(np.isin(H.orig_budget_steps(s, N), st[pm]))   # the original budget grid is in it (A2.1)
+        assert np.all(np.isin(H.dense_steps(n), st[pm]))             # so is the dense grid
+        u = st[pm] / n
+        big = u[:-1] >= 1e-3
+        assert np.max(u[1:][big] / u[:-1][big]) <= 1.03     # relative spacing <= ~2 % (rounding at small n_steps)
+        counts.append(int(pm.sum()))
+        uu = st[um] / n
+        assert np.allclose(uu, np.arange(1, s["k_star"] + 1) / s["k_star"], rtol=0, atol=1e-12)
+    assert max(counts) / min(counts) < 1.10                 # the same fractions up to integer-step collisions at u < 1e-3
 
 
 @pytest.mark.parametrize("system", H.SYSTEMS)
@@ -150,6 +154,10 @@ def test_persistence_on_the_budget_grid_and_censoring(specs):
     ep, _ = H.run_endpoints(_fake_res(s, N, e, wall), s, _FakeScorer(e), job)
     assert ep["idx_mid"] == k and ep["W_mid"] == pytest.approx(wall[k]) and not ep["censored_mid"]
     assert ep["force_evals_mid"] == N * st[k]
+    pidx = np.flatnonzero(bm)
+    kprev = pidx[np.searchsorted(pidx, k) - 1]
+    assert ep["gap_ratio_mid"] == pytest.approx(st[k] / st[kprev])
+    assert wall[kprev] <= ep["W_mid_interp"] <= ep["W_mid"]          # log-linear crossing inside the last gap
     e2 = e.copy()
     e2[-1] = 1.0                                             # fails at the last save -> censored, never imputed
     ep2, _ = H.run_endpoints(_fake_res(s, N, e2, wall), s, _FakeScorer(e2), job)
@@ -224,9 +232,28 @@ def test_censoring_aware_statistics():
     assert math.isinf(AN.med_inf(np.array([1.0, np.inf, np.inf])))
     p = AN.paired_W(np.array([2.0, 2.0, 2.0, np.inf]), np.array([1.0, 1.0, np.inf, np.inf]), rng)
     assert p["wins"] == 2 and p["losses"] == 1 and p["ties"] == 1
-    u = AN.unpaired_ratio(np.full(20, 2.0), np.full(20, 1.0), rng)
+    u = AN._ratio_of_medians_boot(np.full(20, 2.0), np.full(20, 1.0), rng)
     assert u["ratio"] == 0.5 and u["hi"] < 1 and AN.decision(u["lo"], u["hi"]) == "FR faster"
     assert AN.decision(0.8, 1.2) == "unresolved" and AN.decision(1.1, 1.5) == "ABF faster"
+    assert AN.joint_decision("FR faster", "FR faster") == "FR faster"
+    assert AN.joint_decision("FR faster", "unresolved").startswith("unresolved")
+    r = AN.ratio_arr([1.0, np.inf, np.inf, 2.0], [np.inf, 1.0, np.inf, 4.0])
+    assert r[0] == 0.0 and np.isinf(r[1]) and np.isnan(r[2]) and r[3] == 0.5
+    h = AN.holm({"a": 0.01, "b": 0.04, "c": 0.03})
+    assert h["a"]["reject"] and not h["b"]["reject"] and h["c"]["p_holm"] == pytest.approx(0.06)
+
+
+def test_R_wall_ci_with_censored_abf():
+    """A2.3: the review's demonstration -- ABF 17/32 censored, FR finite: R = 0 and the CI must be near 0 (it read
+    [1.88, 1.92] with eqb_metrics' relative difference, which drops resamples where ABF's best is censored)."""
+    import analyze as AN
+    rng = np.random.default_rng(3)
+    runs = {("abf", 8): {s: dict(W_mid=(np.inf if s < 17 else float(1.0 + rng.random())), flags={"mid": False})
+                         for s in range(32)},
+            ("fr", 8): {s: dict(W_mid=float(2.0 + rng.random()), flags={"mid": False}) for s in range(32)}}
+    b = AN.best_alloc(runs, "W_mid", [8])
+    assert b["R_wall"]["point"] == 0.0
+    assert b["R_wall"]["ci95"][0] == 0.0 and b["R_wall"]["frac_resamples_fr_better"] > 0.5
 
 
 def test_best_alloc_reselects_and_reports_R():
@@ -263,3 +290,21 @@ def test_serial_hooks_inert_tiny(system, N, n):
         assert np.asarray(plain[k]).tobytes() == np.asarray(hooked[k]).tobytes()
     w = np.asarray(hooked["wall_s_at_save"])
     assert np.all(np.isfinite(w)) and np.all(np.diff(w) >= 0)
+
+
+# ------------------------------------------------------------------------------------------------ campaign (A2.6)
+def test_trim_to_whole_seed_blocks(monkeypatch):
+    import run_campaign as RC
+    jobs = [(b, dict(id=(b, k))) for b in range(4) for k in range(3)]
+    monkeypatch.setattr(RC, "projected_core_h", lambda j, summary: 1.0)
+    keep, need, cost = RC.trim_blocks(jobs, None, remaining=7.5, done_fn=lambda j: False)
+    assert keep == [0, 1] and need == 6.0                    # 3 core-h per block: 2 whole blocks fit 7.5
+    keep, need, _ = RC.trim_blocks(jobs, None, remaining=7.5, done_fn=lambda j: j["id"][0] == 0)
+    assert keep == [0, 1, 2] and need == 6.0                 # block 0 already done costs nothing
+
+
+def test_expected_attempts():
+    import benchmark as BM
+    s = {"contended_fraction_by_threads": {"16": {"frac": 0.5}, "1": {"frac": 0.0}}}
+    assert BM.expected_attempts(s, 1) == 1.0
+    assert BM.expected_attempts(s, 16) == pytest.approx(1 + 0.5 + 0.25 + 0.125)

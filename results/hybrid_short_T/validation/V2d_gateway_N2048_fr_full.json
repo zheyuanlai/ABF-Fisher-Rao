@@ -1,0 +1,65 @@
+{
+ "N": 2048,
+ "check": "V2d",
+ "cpus": [
+  40
+ ],
+ "fr_deaths_end": 2366,
+ "full_short_budget": true,
+ "keys": [
+  {
+   "equal": true,
+   "key": "M_all",
+   "shape_a": [
+    88,
+    180
+   ],
+   "shape_b": [
+    88,
+    180
+   ]
+  },
+  {
+   "equal": true,
+   "key": "C_all",
+   "shape_a": [
+    88,
+    180
+   ],
+   "shape_b": [
+    88,
+    180
+   ]
+  },
+  {
+   "equal": true,
+   "key": "fr_deaths_cum",
+   "shape_a": [
+    88
+   ],
+   "shape_b": [
+    88
+   ]
+  }
+ ],
+ "method": "fr",
+ "n_common_saves": 88,
+ "n_run_saves": 552,
+ "n_steps": 504000,
+ "name": "V2d_gateway_N2048_fr_full",
+ "production_diagnostics": true,
+ "production_file": "results/equal_budget_v2/gateway/N2048/s8100_fr.npz",
+ "seed": 8100,
+ "system": "gateway",
+ "timing": {
+  "caller_span_s": 79.51935124024749,
+  "stamps_finite": true,
+  "stamps_monotone": true,
+  "wall_total_le_span": true,
+  "wall_total_s": 79.28624298796058,
+  "warmup_s": 0.22055372316390276
+ },
+ "utc": "2026-10-18T08:19:48Z",
+ "verdict": "PASS",
+ "wall_s": 79.67684507369995
+}

@@ -17,10 +17,13 @@ Definitions (prereg sections 2, 4, 6)
   save grid       engine.budget_save_grid(B_orig / N) (200 uniform + 24 log-spaced fractions of the ORIGINAL run)
                   restricted to steps <= n_steps(N), union the frozen physical checkpoints t <= T_N; the last save is
                   n_steps(N) = the k*-th original uniform point (checked)
-  budget grid     the 24 log points + the k* uniform points: the same fractions u / u* at every N; persistence (tau)
-                  is judged on these saves only (the repository's cross-N tau_bgrid convention)
+  budget grid     the 24 log points + the k* uniform points: the same fractions u / u* at every N
+  dense grid      (Amendment A2.1) u'_j = 1e-4 x 1.02^j (j = 0..465) of the SHORT budget, the Experiment B log grid
+  persistence grid  budget grid U dense grid (identical in u / u* at every N, relative spacing <= 2 %): tau / W are
+                  judged on these saves (the physical-time checkpoints are figure-only saves)
   uniform saves   the k* original uniform points (Ibar_F = mean of e_F over them, as results/equal_budget_v2/short_T)
-  tau_eps         first budget-grid save after which e_F <= eps at EVERY later budget-grid save; censored -> -1
+  tau_eps         first persistence-grid save after which e_F <= eps at EVERY later persistence-grid save; censored
+                  -> -1; W_eps_interp = log-linear crossing between the previous persistence-grid save and tau
   W_eps           wall_s_at_save[tau] (s since the engine's timed start; excludes process start, imports, JIT /
                   cache load and the engine warm-up); censored = inf (never imputed)
   W_eps_e2e       W_eps + the run's start overhead (process start .. timed start, minus the monitor hold)
@@ -66,6 +69,8 @@ THR_NAMES = ("strict", "mid", "loose")
 N_UNIFORM = 200
 BENCH_N_SAVES = 20
 CCD_CORES = 8
+DENSE_U_MIN, DENSE_RATIO, DENSE_J = 1e-4, 1.02, 465        # Amendment A2.1 (= expB_common.expb_u_grid's log part)
+BENCH_LONG_WS = {"gateway": 500_000_000, "lta300": 60_000_000, "lta150": 60_000_000}   # Amendment A2.5
 
 
 class HSTError(RuntimeError):
@@ -175,9 +180,24 @@ def _engine(kind):
     return E
 
 
+def dense_steps(n_steps):
+    """Steps of the A2.1 dense grid u'_j = 1e-4 x 1.02^j (u' <= 1) of a run of n_steps."""
+    u = DENSE_U_MIN * DENSE_RATIO ** np.arange(DENSE_J + 1, dtype=np.float64)
+    u = u[u <= 1.0]
+    return np.unique(np.clip(np.round(u * int(n_steps)).astype(np.int64), 1, int(n_steps)))
+
+
+def orig_budget_steps(spec, N):
+    """Steps of the ORIGINAL budget grid (200 uniform + 24 log fractions of B_orig / N) that are <= n_steps(N)."""
+    E = _engine(spec["kind"])
+    steps, _ = E.budget_save_grid(int(spec["B_orig"]) // int(N))
+    steps = np.asarray(steps, dtype=np.int64)
+    return steps[steps <= n_steps_for(spec, N)]
+
+
 def save_grid(spec, N):
-    """(steps int64, budget_mask bool, uniform_mask bool) of the rung's save grid (module docstring).  The
-    uniform saves are exactly the k* original uniform points k (B_orig / N) / 200, k = 1..k*."""
+    """(steps int64, persistence_mask bool, uniform_mask bool) of the rung's save grid (module docstring; A2.1).
+    The uniform saves are exactly the k* original uniform points k (B_orig / N) / 200, k = 1..k*."""
     N = int(N)
     n_steps = n_steps_for(spec, N)
     n_orig = int(spec["B_orig"]) // N
@@ -189,7 +209,8 @@ def save_grid(spec, N):
     bud = steps[steps <= n_steps]
     h = float(spec["h"])
     phys = [int(round(t / h)) for t in spec["P"]["physical_checkpoints_t"] if 0 < round(t / h) <= n_steps]
-    allst = np.unique(np.concatenate([bud, np.asarray(phys, dtype=np.int64)]))
+    dense = dense_steps(n_steps)
+    allst = np.unique(np.concatenate([bud, np.asarray(phys, dtype=np.int64), dense]))
     if allst[-1] != n_steps:
         raise HSTError(f"{spec['system']} N {N}: last save {allst[-1]} != n_steps {n_steps}")
     k = np.arange(1, spec["k_star"] + 1, dtype=np.int64)
@@ -198,17 +219,18 @@ def save_grid(spec, N):
     uni = k * (n_orig // N_UNIFORM)
     if uni[-1] != n_steps or not np.all(np.isin(uni, bud)):
         raise HSTError(f"{spec['system']} N {N}: the k* uniform points are not on the grid / do not end at n_steps")
-    budget_mask = np.isin(allst, bud)
+    budget_mask = np.isin(allst, np.union1d(bud, dense))
     uniform_mask = np.isin(allst, uni)
     if int(uniform_mask.sum()) != spec["k_star"]:
         raise HSTError("uniform save count != k*")
     return allst, budget_mask, uniform_mask
 
 
-def bench_window(spec, N):
-    """(n_b, save steps, s0): the benchmark window of a rung (prereg section 4)."""
+def bench_window(spec, N, long=False):
+    """(n_b, save steps, s0): the benchmark window of a rung (prereg section 4; long = the A2.5 supplement)."""
     N = int(N)
-    n_b = max(int(spec["bench_min_steps"]), int(math.ceil(spec["bench_walker_steps"] / N)))
+    wb = BENCH_LONG_WS[spec["system"]] if long else spec["bench_walker_steps"]
+    n_b = max(int(spec["bench_min_steps"]), int(math.ceil(wb / N)))
     n_b = min(n_b, n_steps_for(spec, N))
     st = np.unique(np.clip(np.round(np.arange(1, BENCH_N_SAVES + 1) / BENCH_N_SAVES * n_b).astype(np.int64), 1,
                            n_b))
@@ -223,7 +245,7 @@ def bench_window(spec, N):
 
 
 # ================================================================================================ jobs and paths
-def make_job(kind, spec, method, N, seed, impl, threads, replicate=0, r=None, n_steps=None):
+def make_job(kind, spec, method, N, seed, impl, threads, replicate=0, r=None, n_steps=None, long=False):
     if impl not in ("serial", "parallel"):
         raise HSTError(f"impl {impl!r}")
     threads = 1 if impl == "serial" else int(threads)
@@ -232,7 +254,7 @@ def make_job(kind, spec, method, N, seed, impl, threads, replicate=0, r=None, n_
     if impl == "parallel" and threads > int(N):
         raise HSTError(f"t {threads} > N {N}")
     if kind == "bench":
-        n_steps = bench_window(spec, N)[0]
+        n_steps = bench_window(spec, N, long)[0]
     elif n_steps is None:
         n_steps = n_steps_for(spec, N)
     j = dict(kind=kind, system=spec["system"], method=method, N=int(N), seed=int(seed), impl=impl,
@@ -240,6 +262,11 @@ def make_job(kind, spec, method, N, seed, impl, threads, replicate=0, r=None, n_
              replicate=int(replicate), arm=arm_name(method, N), config=config_name(method, N, impl, threads))
     if r is not None:
         j["r"] = int(r)
+    if long:
+        if kind != "bench":
+            raise HSTError("long windows are a benchmark supplement only")
+        j["long"] = True
+        j["config"] += "_L"
     return j
 
 
@@ -264,7 +291,7 @@ def job_paths(job, out_root=OUT_ROOT):
 
 def job_grid(job, spec):
     if job["kind"] == "bench":
-        return bench_window(spec, job["N"])[1]
+        return bench_window(spec, job["N"], bool(job.get("long", False)))[1]
     return save_grid(spec, job["N"])[0]
 
 
@@ -281,6 +308,8 @@ def job_signature(job, spec):
                B=int(spec["B"]), T_K=spec["T_K"], engine_sources=C.files_sha(src))
     if job["kind"] == "bench":
         sig["r"] = int(job["r"])
+        if job.get("long"):
+            sig["long"] = True
     return json.loads(json.dumps(sig))
 
 
@@ -314,7 +343,7 @@ def _proc_start_epoch():
 
 def bench_metrics(res, spec, job):
     """Throughput numbers of one benchmark run (prereg section 4)."""
-    n_b, st, s0 = bench_window(spec, job["N"])
+    n_b, st, s0 = bench_window(spec, job["N"], bool(job.get("long", False)))
     k = np.asarray(res["save_step"], dtype=np.int64)
     w = np.asarray(res["wall_s_at_save"], dtype=float)
     if not np.array_equal(k, st):
@@ -453,10 +482,27 @@ def run_endpoints(res, spec, scorer, job, rec=None, err=None):
                backend=backend_label(job["impl"], job["threads"]), e_flat=scorer.e_flat,
                completion_wall_s=float(res["wall_total_s"]), final_e_F=float(e[-1]),
                Ibar_F=float(np.mean(e[umask])), start_overhead_s=so, n_saves=int(step.size))
+    pidx = np.flatnonzero(bmask)
     for name in THR_NAMES:
         thr = float(spec["thresholds"][name])
         i = persistent_index(e, bmask, thr)
         W = math.inf if i < 0 else float(wall[i])
+        # A2.1: log-linear crossing between the previous persistence-grid save (or the timed start, e_flat) and tau
+        if i < 0:
+            out[f"W_{name}_interp"], out[f"gap_ratio_{name}"] = math.inf, math.nan
+        else:
+            k = int(np.searchsorted(pidx, i))
+            if k == 0:
+                w0, e0 = 0.0, float(scorer.e_flat)
+            else:
+                w0, e0 = float(wall[pidx[k - 1]]), float(e[pidx[k - 1]])
+            out[f"gap_ratio_{name}"] = (float(step[i]) / float(step[pidx[k - 1]])) if k > 0 else math.nan
+            e1 = float(e[i])
+            if math.isfinite(e0) and e0 > thr and e1 > 0 and math.log(e0) != math.log(e1):
+                frac = min(1.0, max(0.0, (math.log(e0) - math.log(thr)) / (math.log(e0) - math.log(e1))))
+                out[f"W_{name}_interp"] = w0 + (W - w0) * frac
+            else:
+                out[f"W_{name}_interp"] = W
         out[f"W_{name}"] = W
         out[f"W_{name}_e2e"] = W + so if (math.isfinite(W) and math.isfinite(so)) else (
             math.inf if not math.isfinite(W) else math.nan)

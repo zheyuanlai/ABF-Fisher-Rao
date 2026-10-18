@@ -1,0 +1,89 @@
+{
+ "N": 16,
+ "V9_clock_ok": true,
+ "check": "V4",
+ "clock": [
+  {
+   "inner_s": 1.75587600748986,
+   "span_s": 1.7564313877373934,
+   "stamps_ok": true,
+   "threads": 1,
+   "untimed_remainder_s": 0.0005553802475333214,
+   "within_span": true
+  },
+  {
+   "inner_s": 0.26615274231880903,
+   "span_s": 0.2666724817827344,
+   "stamps_ok": true,
+   "threads": 2,
+   "untimed_remainder_s": 0.0005197394639253616,
+   "within_span": true
+  },
+  {
+   "inner_s": 0.31360647082328796,
+   "span_s": 0.31409079022705555,
+   "stamps_ok": true,
+   "threads": 4,
+   "untimed_remainder_s": 0.00048431940376758575,
+   "within_span": true
+  }
+ ],
+ "cpus": [
+  3
+ ],
+ "fr_deaths_end": 58,
+ "method": "fr",
+ "n_steps": 400000,
+ "name": "V4b_gateway_N16_fr",
+ "perf_counter_clock": "namespace(implementation='clock_gettime(CLOCK_MONOTONIC)', monotonic=True, adjustable=False, resolution=1e-09)",
+ "rows": [
+  {
+   "equal": true,
+   "threads": 1,
+   "timing": {
+    "caller_span_s": 1.7564313877373934,
+    "stamps_finite": true,
+    "stamps_monotone": true,
+    "wall_total_le_span": true,
+    "wall_total_s": 0.33662286028265953,
+    "warmup_s": 1.4192531472072005
+   }
+  },
+  {
+   "differing": [],
+   "equal": true,
+   "threads": 2,
+   "timing": {
+    "caller_span_s": 0.2666724817827344,
+    "stamps_finite": true,
+    "stamps_monotone": true,
+    "wall_total_le_span": true,
+    "wall_total_s": 0.2648842819035053,
+    "warmup_s": 0.0012684604153037071
+   }
+  },
+  {
+   "differing": [],
+   "equal": true,
+   "threads": 4,
+   "timing": {
+    "caller_span_s": 0.31409079022705555,
+    "stamps_finite": true,
+    "stamps_monotone": true,
+    "wall_total_le_span": true,
+    "wall_total_s": 0.31226592138409615,
+    "warmup_s": 0.0013405494391918182
+   }
+  }
+ ],
+ "seed": 9696,
+ "system": "gateway",
+ "threads": [
+  1,
+  2,
+  4
+ ],
+ "utc": "2026-10-18T08:18:39Z",
+ "verdict": "PASS",
+ "wall_s": 2.5032262802124023
+}

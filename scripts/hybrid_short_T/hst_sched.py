@@ -7,16 +7,20 @@ The scheduler is used by benchmark.py and run_campaign.py.  It reuses the Experi
 (scripts/final_campaign/expB_alloc.py: CCD lock registry, 1 Hz telemetry monitor, contention rule, pinned launcher)
 and differs from expB_run.Scheduler only where configs/hybrid_short_T/campaign.json says so:
 
-* allocation choice: least-loaded CCD set judged on the cores the run will USE and their SMT siblings (not every cpu
-  of the CCD: other users' unpinned processes roam over every CCD of this host); within a single CCD the t least
-  busy cores are used; qualifying = all of them <= 10 % busy over a 2 s sample; otherwise re-sample every 5 s up to
-  60 s, then the least-loaded set (FLAGGED);
-* repeats: a run contended over its WHOLE timed window (expB_alloc.contention, scope 'own') is repeated, at most 3
+* allocation choice: CCD set judged on the cores the run will USE and their SMT siblings (not every cpu of the CCD:
+  other users' unpinned processes roam over every CCD of this host); within a single CCD the t least busy cores are
+  used; qualifying = all of them <= 10 % busy over a 1 s /proc/stat sample.  Amendment A2.4: the head job waits up to
+  ALLOC_MAX_WAIT_S = 120 s for a qualifying set; meanwhile, from the same sample, any of the next LOOKAHEAD = 24
+  queued jobs that can get a qualifying set now is launched out of order; after 120 s the head job takes the
+  least-loaded set (FLAGGED);
+* repeats: bench runs: contended over the WHOLE timed window; prod / confirm runs (A2.4): contended over the window
+  [0, W_eps] of any threshold eps or over the whole run (the driver scores the run first) -> repeated, at most 3
   times (fresh process, new allocation); the child of a repeat checks that its science arrays are bitwise the first
   replicate's (sha256) and stores only its timing then;
-* projection / cap: used core-hours of this study (ledger results/hybrid_short_T/compute_ledger.csv, stage prefix
-  'hst-') + the projected cost of the queued and active jobs must stay <= the cap, else no new launch;
-* dispatch: strict head-of-line order of the job list given (the caller orders it).
+* cap: used core-hours of this study (ledger results/hybrid_short_T/compute_ledger.csv, stage prefix 'hst-') + the
+  projected cost of the ACTIVE jobs + the candidate must stay <= the cap, else no new launch (the caller trims the
+  job list to whole seed blocks that fit beforehand, A2.6);
+* dispatch: head-of-line order of the job list given, with the A2.4 look-ahead.
 
 Record life cycle (as Experiment B): the child writes its record with status 'ran'; only the driver's finalisation
 (telemetry sidecar, whole-run contention, ledger row) sets 'complete'.  A driver exiting by an exception or by
@@ -47,8 +51,9 @@ import expB_alloc as A  # noqa: E402
 SCHED_VERSION = "hst_sched/1"
 MAX_REPEATS = 3
 QUALIFY_BUSY = 0.10
-ALLOC_POLL_S = 5.0
-ALLOC_MAX_WAIT_S = 10.0                   # Amendment A1 (2026-10-18): was 60 s
+ALLOC_POLL_S = 2.0
+ALLOC_MAX_WAIT_S = 120.0                  # Amendment A2.4 (A1 had 10 s, the frozen config 60 s)
+LOOKAHEAD = 24
 RESERVED_CCDS = (15,)                    # driver, monitor and operator commands live on CCD 15 (cores 120-127)
 
 
@@ -141,9 +146,11 @@ def _log_ledger_once(paths, stage, item, threads, wall_s, note, ledger):
     return True
 
 
-def finalize_job(job, paths, alloc, rc, proc_wall, ledger, stage, log=print, note_extra="", expected_sig=None):
-    """Telemetry sidecar, ledger row (once per attempt), whole-run contention, status 'complete'.  Returns the record
-    (dict(status='failed', ...) if the child left none)."""
+def finalize_job(job, paths, alloc, rc, proc_wall, ledger, stage, log=print, note_extra="", expected_sig=None,
+                 endpoint_fn=None):
+    """Telemetry sidecar, ledger row (once per attempt), contention (whole run; with ``endpoint_fn`` also every
+    endpoint window [0, W_eps], A2.4), status 'complete'.  Returns the record (dict(status='failed', ...) if the
+    child left none)."""
     tel = A.finalize_telemetry(paths["tel_jsonl"], paths["tel_npz"])
     rec = None
     if os.path.exists(paths["json"]):
@@ -181,6 +188,16 @@ def finalize_job(job, paths, alloc, rc, proc_wall, ledger, stage, log=print, not
                contention_whole_ccd_scope={k: v for k, v in ct_ccd.items()
                                            if k in ("status", "max_foreign_busy", "max_foreign_busy_lower",
                                                     "worst_cpu", "contended")})
+    if endpoint_fn is not None:
+        Ws = endpoint_fn(job, rec)
+        ce = {}
+        for name, W in Ws.items():
+            win = W if math.isfinite(W) else float(rec["wall_total_s"])
+            c = A.contention(tel, float(rec["t0_epoch"]), win, job["threads"], pid=rec.get("pid"))
+            ce[name] = dict(W=W, status=c["status"], contended=bool(c["contended"]),
+                            max_foreign_busy=c.get("max_foreign_busy"))
+        rec["contention_endpoints"] = ce
+        rec["contended"] = bool(ct["contended"] or any(v["contended"] for v in ce.values()))
     if job["replicate"] > 0 and rec.get("science_identical_to_first") is False:
         rec["nondeterministic_repeat"] = True
         log(f"  WARNING {item}: a repeat's science arrays differ from replicate 0 (engine nondeterminism)")
@@ -247,6 +264,7 @@ class Scheduler:
             c for i in RESERVED_CCDS for c in A.ccd_cores(i)]
         self.allocator = HSTAllocator(self.registry, log=log, reserved=RESERVED_CCDS, threshold=QUALIFY_BUSY,
                                       sample_s=1.0)
+        self._scorers = {}
         self.launcher = launcher or ProcessLauncher(out_root, hold=monitor)
         self.ledger = ledger
         self.log = log
@@ -273,6 +291,16 @@ class Scheduler:
     def sig(self, job):
         return H.job_signature(job, self.spec(job["system"]))
 
+    def endpoint_windows(self, job, rec):
+        """W_eps of a finished prod / confirm run (the driver scores it; A2.4)."""
+        s = job["system"]
+        if s not in self._scorers:
+            self._scorers[s] = H.Scorer(self.spec(s))
+        res = dict(H.load_science(job, self.out_root))
+        res["wall_total_s"] = float(rec["wall_total_s"])
+        ep, _ = H.run_endpoints(res, self.spec(s), self._scorers[s], job, rec=rec)
+        return {name: float(ep[f"W_{name}"]) for name in H.THR_NAMES}
+
     # ---- planning
     def plan(self):
         """(queue of jobs to launch, records to recover, mismatches, n complete)."""
@@ -281,10 +309,10 @@ class Scheduler:
         for j0 in self.jobs:
             sig = self.sig(j0)
             st = H.record_status(H.job_paths(j0, self.out_root), sig)
-            if st == "mismatch":
+            if st in ("mismatch", "signature_mismatch"):
                 mismatch.append(H.job_paths(j0, self.out_root)["json"])
                 continue
-            if st in (None, "failed"):
+            if st not in ("complete", "ran"):                  # None, failed, finalize_error, ...: (re)run
                 queue.append(j0)
                 continue
             if st == "ran":
@@ -297,7 +325,7 @@ class Scheduler:
                 stk = H.record_status(H.job_paths(jk, self.out_root), sig)
                 if stk == "ran":
                     rr.append(jk)
-                elif stk == "mismatch":
+                elif stk in ("mismatch", "signature_mismatch"):
                     mismatch.append(H.job_paths(jk, self.out_root)["json"])
             ran.extend(rr)
             if st == "complete" and not rr and self.repeats and needs_repeat(replicate_records(j0, self.out_root)):
@@ -353,65 +381,86 @@ class Scheduler:
                 job = queue[0]
                 key = H.job_key(job)
                 if key != head_key:
-                    head_key, head_wait = key, None
-                if key in self.registry.live_job_keys():          # an orphan of an earlier driver still runs
-                    queue.rotate(-1)
-                    self._wait(active, queue, 2.0)
-                    continue
-                n_ccd = A.n_ccds_for(job["threads"])
-                held = self.registry.held()
-                used_cores = sum(v[0]["threads"] for v in active.values())
-                if used_cores + job["threads"] > self.max_cores or (
-                        len([i for i in held if i not in RESERVED_CCDS]) + n_ccd > self.max_ccds):
-                    self._wait(active, queue, 0.5)
-                    continue
+                    head_key, head_wait = key, time.monotonic()
                 used = H.ledger_used_core_h(self.ledger)
-                remaining = self.projected_core_h(list(queue) + [v[0] for v in active.values()])
-                if used + remaining > self.cap:
-                    self.log(f"  CAP: used {used:.2f} + projected {remaining:.2f} > cap {self.cap}; no new launches")
-                    self.event(event="cap_stop", used=used, remaining=remaining, cap=self.cap)
-                    self.stop = True
-                    continue
-                now = time.monotonic()
-                waited = 0.0 if head_wait is None else now - head_wait
-                paths = H.job_paths(job, self.out_root)
-                run_id = f"hst-{job['kind']}-{job['system']}-{job['config']}-s{job['seed']}-rep{job['replicate']}-" \
-                         f"{os.getpid()}"
-                info = dict(kind=job["kind"], telemetry=paths["tel_jsonl"], job_key=key,
-                            driver=dict(pid=os.getpid(), start=A.proc_start_time(os.getpid())))
-                alloc = self.allocator.try_allocate(job["threads"], run_id, info, waited)
-                if alloc is None and head_wait is not None and waited >= self.max_wait_s:
-                    alloc = self.allocator.fallback(job["threads"], run_id, info, waited)
-                if alloc is None:
-                    if head_wait is None:
-                        head_wait = now
+                active_proj = self.projected_core_h([v[0] for v in active.values()])
+                live = self.registry.live_job_keys()
+                busy = self.allocator._sample()
+                waited = time.monotonic() - head_wait
+                pick = None
+                # once the head has waited max_wait_s, no look-ahead: its slots are reserved (no starvation)
+                for cand in (list(queue)[:LOOKAHEAD] if waited < self.max_wait_s else [job]):
+                    ck = H.job_key(cand)
+                    if ck in live:                                 # an orphan of an earlier driver still runs it
+                        continue
+                    if not self._fits(cand, active):
+                        continue
+                    if used + active_proj + self.projected_core_h([cand]) > self.cap:
+                        continue
+                    best, _, _ = self.allocator.choose(cand["threads"], busy)
+                    if best is not None:
+                        pick = (cand, best, False)
+                        break
+                if pick is None and waited >= self.max_wait_s and key not in live and self._fits(job, active):
+                    if used + active_proj + self.projected_core_h([job]) > self.cap:
+                        self.log(f"  CAP: used {used:.2f} + active {active_proj:.2f} + next > cap {self.cap}; "
+                                 f"no new launches")
+                        self.event(event="cap_stop", used=used, active=active_proj, cap=self.cap)
+                        self.stop = True
+                        continue
+                    _, least, _ = self.allocator.choose(job["threads"], busy)
+                    if least is not None:
+                        pick = (job, least, True)
+                if pick is None:
                     self._wait(active, queue, self.poll_s)
                     continue
-                head_key, head_wait = None, None
+                cand, (sset, cores), flagged = pick
+                paths = H.job_paths(cand, self.out_root)
+                ck = H.job_key(cand)
+                run_id = f"hst-{cand['kind']}-{cand['system']}-{cand['config']}-s{cand['seed']}-rep{cand['replicate']}-" \
+                         f"{os.getpid()}"
+                info = dict(kind=cand["kind"], telemetry=paths["tel_jsonl"], job_key=ck,
+                            driver=dict(pid=os.getpid(), start=A.proc_start_time(os.getpid())))
+                alloc = self.allocator._lock_cores(sset, cores, cand["threads"], run_id, info, busy, flagged,
+                                                   waited if cand is job else 0.0)
+                if alloc is None:                                  # lost a race for the lock: re-sample
+                    continue
+                if flagged:
+                    self.log(f"  FLAG: no qualifying CCD set for t = {cand['threads']} after {waited:.0f} s; "
+                             f"least loaded {list(sset)}")
+                queue.remove(cand)
+                if cand is job:
+                    head_key, head_wait = None, None
                 self._core = A.pin_outside(self.registry, self.monitor_allowed, current=self._core, log=self.log)
-                queue.popleft()
                 os.makedirs(os.path.dirname(paths["json"]), exist_ok=True)
                 if os.path.exists(paths["json"]):                 # a failed earlier attempt: kept for the record
                     os.replace(paths["json"], paths["base"] + f".failed{int(time.time())}.json")
                 for k in ("ledger_mark", "pause", "tel_jsonl"):
                     if os.path.exists(paths[k]):
                         os.remove(paths[k])
-                sig = self.sig(job)
+                sig = self.sig(cand)
                 t_launch = time.time()
-                h = self.launcher.launch(job, paths, alloc["cores"])
+                h = self.launcher.launch(cand, paths, alloc["cores"])
                 try:
                     self.registry.add_pid(alloc["ccds"], alloc["token"], h.pid)
                 except RuntimeError as e:
                     self.log(f"  could not register the run pid of {run_id}: {e}")
                     self.event(event="add_pid_failed", run_id=run_id, error=str(e))
-                active[run_id] = (job, paths, alloc, h, t_launch, sig)
-                self.event(event="launch", run_id=run_id, job_key=key, ccds=alloc["ccds"], cores=alloc["cores"],
-                           flagged=alloc["flagged"], wait_s=alloc["wait_s"])
+                active[run_id] = (cand, paths, alloc, h, t_launch, sig)
+                self.event(event="launch", run_id=run_id, job_key=ck, ccds=alloc["ccds"], cores=alloc["cores"],
+                           flagged=alloc["flagged"], wait_s=alloc["wait_s"], out_of_order=cand is not job,
+                           max_busy_used=alloc.get("max_busy_used_at_launch"))
         finally:
             self._shutdown_active(active)
             A.stop_monitor(mon)
         self.event(event="end", used_core_h=self.used_core_h, stopped=self.stop)
         return dict(used_core_h=self.used_core_h, stopped=self.stop)
+
+    def _fits(self, job, active):
+        n_ccd = A.n_ccds_for(job["threads"])
+        held = [i for i in self.registry.held() if i not in RESERVED_CCDS]
+        used_cores = sum(v[0]["threads"] for v in active.values())
+        return used_cores + job["threads"] <= self.max_cores and len(held) + n_ccd <= self.max_ccds
 
     def _wait(self, active, queue, seconds):
         t_end = time.monotonic() + float(seconds)
@@ -424,7 +473,8 @@ class Scheduler:
     def _finalize(self, job, paths, alloc, rc, proc_wall, sig, note=""):
         try:
             rec = finalize_job(job, paths, alloc, rc, proc_wall, self.ledger, self.stage, self.log, note_extra=note,
-                               expected_sig=sig)
+                               expected_sig=sig,
+                               endpoint_fn=self.endpoint_windows if job["kind"] in ("prod", "confirm") else None)
         except Exception as e:  # noqa: BLE001
             self.log(f"  FINALIZE ERROR {H.job_key(job)}: {type(e).__name__}: {e} (record kept for recovery)")
             self.event(event="finalize_error", job_key=H.job_key(job), error=f"{type(e).__name__}: {e}")

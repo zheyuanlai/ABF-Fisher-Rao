@@ -142,8 +142,8 @@ def window_saves(spec, N, n_w, n=20):
 
 
 # ================================================================================================ checks (engine)
-def check_truncation(system, N, method, window=None):
-    """V2."""
+def check_truncation(system, N, method, window=None, dense=False):
+    """V2 (dense = V2d: the run saves on the full A2.1 grid; compared at the production saves it contains)."""
     import eqb_metrics as M
     spec = H.system_spec(system)
     seed = spec["production_reference_seeds"][0]
@@ -155,7 +155,15 @@ def check_truncation(system, N, method, window=None):
     saves = pst[(pst >= 1) & (pst <= n)]
     if window is None and saves[-1] != n_short:
         raise H.HSTError("n_short is not a production save")
-    res, span = run_serial_timed(spec, method, N, seed, n, saves)
+    run_saves = H.save_grid(spec, N)[0] if dense else saves
+    res, span = run_serial_timed(spec, method, N, seed, n, run_saves)
+    if dense:
+        rs = np.asarray(res["save_step"], np.int64)
+        common = np.intersect1d(rs, saves)
+        sel = np.searchsorted(rs, common)
+        res = {k: (np.asarray(v)[sel] if isinstance(v, np.ndarray) and v.ndim >= 1 and v.shape[0] == rs.size else v)
+               for k, v in res.items()}
+        saves = common
     idx = np.searchsorted(pst, saves)
     keys = list(score_keys(spec["kind"])) + [deaths_key(spec["kind"])]
     recs = []
@@ -165,8 +173,9 @@ def check_truncation(system, N, method, window=None):
             continue
         recs.append(_diff(k, np.asarray(prod[k])[idx], np.asarray(res[k])))
     ok = all(r["equal"] for r in recs if r["equal"] is not None)
-    return dict(check="V2", system=system, N=N, method=method, seed=seed, n_steps=int(n), full_short_budget=window
-                is None, n_common_saves=int(saves.size), production_file=os.path.relpath(path, H.ROOT),
+    return dict(check="V2d" if dense else "V2", system=system, N=N, method=method, seed=seed, n_steps=int(n),
+                full_short_budget=window is None, n_run_saves=int(len(run_saves)),
+                n_common_saves=int(saves.size), production_file=os.path.relpath(path, H.ROOT),
                 production_diagnostics=_meta_of(prod).get("diagnostics"),
                 fr_deaths_end=int(np.asarray(res[deaths_key(spec["kind"])])[-1]), keys=recs,
                 verdict="PASS" if ok else "FAIL", timing=_timing(res, span))
@@ -398,6 +407,15 @@ def plan():
         P.append((f"V6_{s}_N{N}_fr", 4, "check_hooks", dict(system=s, N=N, method="fr", n_w=nw)))
     for s in ("lta300", "lta150"):
         P.append((f"V8_{s}_frstart", 4, "check_lta_fr_start", dict(system=s)))
+    # Amendment A2.9
+    P.append(("V2d_gateway_N2048_fr_full", 1, "check_truncation", dict(system="gateway", N=2048, method="fr",
+                                                                       dense=True)))
+    P.append(("V2d_lta300_N1024_fr_full", 1, "check_truncation", dict(system="lta300", N=1024, method="fr",
+                                                                      dense=True)))
+    for s, N, nw in (("lta300", 16, 120000), ("lta300", 64, 60000), ("gateway", 16, 400000)):
+        for m in ("abf", "fr"):
+            P.append((f"V4b_{s}_N{N}_{m}", 4, "check_counter_invariance",
+                      dict(system=s, N=N, method=m, threads=[1, 2, 4], n_w=nw)))
     return P
 
 
