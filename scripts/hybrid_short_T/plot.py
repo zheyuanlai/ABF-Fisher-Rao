@@ -39,6 +39,7 @@ from matplotlib.lines import Line2D  # noqa: E402
 
 import hst_common as H  # noqa: E402
 import expB_common as C  # noqa: E402
+import benchmark as BM  # noqa: E402
 
 sys.path.insert(0, os.path.join(H.ROOT, "scripts", "equal_budget"))
 import fig_legibility as LG  # noqa: E402
@@ -112,7 +113,7 @@ def fig_A(bench, routing, checks):
                 s1.append(1 / a["c_ss_median"])
                 s1lo.append(1 / a["c_ss_max"])
                 s1hi.append(1 / a["c_ss_min"])
-                par = [summ.get(f"{s}|{H.config_name(m, N, 'parallel', t)}") for t in (1, 2, 4, 8, 16) if t <= N]
+                par = [BM.entry(summ, s, m, N, "parallel", t) for t in (1, 2, 4, 8, 16) if t <= N]   # A2.5 windows
                 par = [p for p in par if p and p["n"]]
                 b = min(par, key=lambda p: p["c_ss_median"])
                 bp.append(1 / b["c_ss_median"])
