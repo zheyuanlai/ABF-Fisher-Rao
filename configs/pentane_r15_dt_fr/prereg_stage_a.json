@@ -1,0 +1,37 @@
+{
+  "study": "pentane R15 timestep / FR campaign (docs/PENTANE_R15_DT_FR.md), Stage A: integrator validation",
+  "frozen_utc": "2026-10-18, before any Stage A dynamics was run",
+  "model": {"molecule": "pentane, 5 united-atom sites", "cv": "R15 = |q5 - q1|", "beta": 2.0, "sigma": 2.3, "epsilon": 1.0,
+             "k0": 1000.0, "d0": 1.0, "k_theta": 208.0, "theta0_bend": 1.187, "rb": [1.18, -0.23, 2.64],
+             "physical_force_clip_per_atom": 200.0, "local_mean_force_sample_clip": 480.0},
+  "integrator": "production overdamped Euler-Maruyama, q <- remove_com(q + dt (F_clip + b) + sqrt(2 dt / beta) xi) (core_dist.run_sampler_dist, verbatim)",
+  "reference": {"file": "cache/alkanes_cv/ref_pentane_b2_R15_v2_meanforce.npz",
+                 "sha256": "7363c374500f6a2bc7602a64c9a71020b36a8dd52e0e0f23dd6b334eab00d9d9",
+                 "window": [2.0828125, 3.53828125], "n_window_bins": 162,
+                 "reference_route_disagreement_L2": 0.042, "median_se_Fprime": 0.041},
+  "dt_ladder": [5.0e-4, 2.5e-4, 1.25e-4],
+  "dt_extension": "6.25e-5 only if none of the three is ADMISSIBLE",
+  "ensembles": {
+    "A1_gibbs": "8 groups x 1024 walkers drawn exactly from the pentane Gibbs law (internal-coordinate proposal, weight exp(-beta V_nb), weighted reservoir from a 20M pool); unbiased production EM; no walls",
+    "A2_flat": "8 groups x 1024 walkers drawn exactly from the window-restricted Gibbs law with a flat R marginal over the 162 window bins (per-bin weighted reservoir from a 200M pool); production EM under the FIXED bias force +F'_ref(R) grad R on the window (edge value held constant outside it) plus the production soft walls (1.45, 3.65, k 200). VALIDATION ONLY: the reference enters this integrator test as a fixed flattening bias; it never enters ABF or FR."
+  },
+  "run_length": "T_A = 10 time units per group; deposits from t = 0.25 (fast bond/bend relaxation to the integrator's own law) to t = 10, every step",
+  "clip_control": "each (ensemble, dt) is run twice on identical initial states and noise: production clip 200 and unclipped (clip 0)",
+  "statistics": {
+    "F_mean_force_route": "per group: binned conditional mean of the production local mean force (window bins), trapezoid-integrated, centred on the window",
+    "F_density_route_A2": "per group: F = -beta^-1 log p(R) + F_ref(R) (bias potential = -F_ref) on the window, centred",
+    "F_density_route_A1": "per group: F = -beta^-1 log p(R) on the window bins with F_ref - min(F_ref) <= 2.5 (5 kT), centred on that sub-window",
+    "D": "debiased windowed RMS of (group-mean profile - F_ref): D^2 = mean_bins(dbar^2) - mean_bins(s_b^2 / G) - mean_bins(var_ref_b); D = sqrt(max(D^2, 0)); upper bound U95 = 95th percentile of D over 2000 bootstrap resamples of the 8 groups"
+  },
+  "gate": {
+    "tolerance_tau_F": 0.10,
+    "tau_justification": "0.10 energy units = 0.2 kT. (i) above the reference's own route disagreement (0.042) and its F' SE (0.04), so it is resolvable; (ii) ABF's windowed L2 error at T = 40 on this cell is 1.0-1.4 (v2), so a residual shared discretisation bias of 0.10 is <= 10 % of the quantity whose 10 % change the ABF-FR comparison seeks to resolve, and it enters both arms identically",
+    "ADMISSIBLE": "A2 flat ensemble, production clip: U95(D_MF) <= 0.10 AND U95(D_density) <= 0.10; AND clip immaterial; AND zero non-finite walkers",
+    "MARGINAL": "point estimates <= 0.10 but an upper bound > 0.10 (precision-limited: extend groups before deciding)",
+    "FAIL": "either point estimate > 0.10, or any non-finite walker",
+    "clip_immaterial": "fraction of clipped per-atom force evaluations <= 1e-5 AND debiased RMS between the clipped and unclipped mean-force-route profiles (paired runs) <= 0.05",
+    "selection_rule": "the LARGEST ADMISSIBLE dt of the ladder (cheapest valid). Chosen from Stage A numerics only, never from any ABF or FR outcome. If none is ADMISSIBLE after the 6.25e-5 extension, no timestep is validated and all later comparisons are labelled exploratory."
+  },
+  "reported_not_gated": ["F' bias RMS per dt (mean-force route)", "D(F_MF - F_density) per dt", "bond-length mean / variance and bend TV vs exact Gibbs",
+                          "torsional-family populations through time vs exact (A1)", "max per-step displacement", "clip excess", "A1 density-route D on the low-F sub-window"]
+}
