@@ -83,6 +83,16 @@ class DistSimConfig:
     n_grid2: int = 48
     n_rbins: int = 12
     basin_barrier: float = math.radians(61.6)
+    # --- additive, 2026-10-18 (docs/PENTANE_R15_DT_FR.md); every default reproduces the frozen sampler byte for byte ---
+    #: Deposit into the ABF accumulators (adaptive and production) and the conditional histogram only every
+    #: ``deposit_stride`` integrator steps.  1 = every step (frozen behaviour).  Used to hold the PHYSICAL deposit
+    #: interval fixed while the timestep changes (deposition-frequency control).
+    deposit_stride: int = 1
+    #: Record the maximum per-atom displacement of every step and the number of non-finite walkers.
+    numerics_diag: bool = False
+    #: Track torsional families (TT, TG, same-sign GG, opposite-sign GG) and 9 basins every step: first
+    #: discovery, family transitions (clone-corrected), and per-save occupancy / distinct-ancestor counts.
+    track_families: bool = False
 
     def config_hash(self):
         import hashlib, json
@@ -200,11 +210,32 @@ def run_sampler_dist(method, params: pot.AlkaneParams, sim: DistSimConfig, seeds
     birth_hist = torch.zeros(R, sim.n_grid, device=device, dtype=dtype)
     death_hist = torch.zeros(R, sim.n_grid, device=device, dtype=dtype)
     score_std_sum = np.zeros(R); score_absmax = np.zeros(R); n_score = 0
+    dep_stride = max(int(sim.deposit_stride), 1)
+    # ---- additive numerics / family diagnostics (off by default) ----
+    if sim.numerics_diag:
+        max_disp = torch.zeros(R, device=device, dtype=dtype)
+        n_nonfinite = torch.zeros(R, dtype=torch.long, device=device)
+    if sim.track_families:
+        bar = sim.basin_barrier
+        fam_first = torch.full((R, 4), -1, dtype=torch.long, device=device)
+        b9_first = torch.full((R, 9), -1, dtype=torch.long, device=device)
+        fam_trans = torch.zeros(R, dtype=torch.long, device=device)
+        prev_fam = None
+        fam_birth = torch.zeros(R, 4, dtype=torch.long, device=device)   # clones landing in each family (source family)
+        fam_death = torch.zeros(R, 4, dtype=torch.long, device=device)   # walkers removed from each family
+
+        def _basin(phi):
+            b = torch.zeros_like(phi, dtype=torch.long)
+            b = torch.where(phi >= bar, torch.ones_like(b), b)
+            return torch.where(phi <= -bar, 2 * torch.ones_like(b), b)
 
     diag = {k: [] for k in ["steps", "times", "mean_force", "pmf", "p_hat", "q_target",
                             "eff_counts", "ancestor_ess", "n_unique_ancestor",
                             "max_ancestor_frac", "repl_cumulative", "pq_l2", "kl_pq",
                             "frac_compact", "frac_inter", "frac_extended"]}
+    if sim.track_families:
+        for k in ("fam_count", "fam_distinct_anc", "ext_distinct_anc", "cond_basin"):
+            diag[k] = []
     # ---- OT + repair state (only when ``ot`` is given) ----
     ot_on = ot is not None
     if ot_on:
@@ -230,9 +261,11 @@ def run_sampler_dist(method, params: pot.AlkaneParams, sim: DistSimConfig, seeds
         f_loc = torch.clamp(f_loc, -sim.abf_force_clip * 8, sim.abf_force_clip * 8).reshape(R, N)
         grad_full = grad_f.reshape(R, N, A, 3)
 
-        fsum += iv.bin_sum(Rv, f_loc, sim.n_grid, sim.R_lo, sim.R_hi)
-        csum += iv.bin_counts(Rv, sim.n_grid, sim.R_lo, sim.R_hi)
-        if step >= sim.estimator_burn_in_steps:
+        deposit = (dep_stride == 1) or (step % dep_stride == 0)
+        if deposit:
+            fsum += iv.bin_sum(Rv, f_loc, sim.n_grid, sim.R_lo, sim.R_hi)
+            csum += iv.bin_counts(Rv, sim.n_grid, sim.R_lo, sim.R_hi)
+        if deposit and step >= sim.estimator_burn_in_steps:
             fsum_prod += iv.bin_sum(Rv, f_loc, sim.n_grid, sim.R_lo, sim.R_hi)
             csum_prod += iv.bin_counts(Rv, sim.n_grid, sim.R_lo, sim.R_hi)
             if do_cond:
@@ -297,6 +330,21 @@ def run_sampler_dist(method, params: pot.AlkaneParams, sim: DistSimConfig, seeds
             seen = msk.any(-1)
             fd = first_discovery[nm]
             first_discovery[nm] = torch.where((fd < 0) & seen, torch.full_like(fd, step), fd)
+        if sim.track_families:
+            fb1 = _basin(geom.signed_dihedral(qf, 0, 1, 2, 3).reshape(R, N))
+            fb2 = _basin(geom.signed_dihedral(qf, 1, 2, 3, 4).reshape(R, N))
+            ng = (fb1 > 0).long() + (fb2 > 0).long()
+            cur_fam = torch.where(ng == 0, torch.zeros_like(fb1), torch.ones_like(fb1))
+            cur_fam = torch.where((ng == 2) & (fb1 == fb2), 2 * torch.ones_like(fb1), cur_fam)
+            cur_fam = torch.where((ng == 2) & (fb1 != fb2), 3 * torch.ones_like(fb1), cur_fam)
+            cur_b9 = 3 * fb1 + fb2
+            for k in range(4):
+                fam_first[:, k] = torch.where((fam_first[:, k] < 0) & (cur_fam == k).any(-1), torch.full_like(fam_first[:, k], step), fam_first[:, k])
+            for k in range(9):
+                b9_first[:, k] = torch.where((b9_first[:, k] < 0) & (cur_b9 == k).any(-1), torch.full_like(b9_first[:, k], step), b9_first[:, k])
+            if prev_fam is not None:
+                fam_trans += (cur_fam != prev_fam).sum(-1)
+            prev_fam = cur_fam
 
         if step % sim.save_every == 0 or step == sim.n_steps:
             rep_est_f = fsum_prod if csum_prod.sum() > 0 else fsum
@@ -333,13 +381,37 @@ def run_sampler_dist(method, params: pot.AlkaneParams, sim: DistSimConfig, seeds
                 diag["series_inner_steps"].append(int(inner_steps_total))
                 if do_cond and ot.cond_snapshot:
                     diag["series_cond_hist"].append(cond_hist.to(torch.float32).cpu().numpy())
+            if sim.track_families:
+                anc = ancestors if is_fr else torch.arange(N, device=device).expand(R, N)
+                fc = np.zeros((R, 4), dtype=np.int64); fd_ = np.zeros((R, 4), dtype=np.int64); ed = np.zeros((R, 3), dtype=np.int64)
+                for r in range(R):
+                    for k in range(4):
+                        m = cur_fam[r] == k
+                        fc[r, k] = int(m.sum()); fd_[r, k] = int(torch.unique(anc[r][m]).numel())
+                    for j, code in enumerate((2, 0, 1)):                      # compact, intermediate, extended
+                        ed[r, j] = int(torch.unique(anc[r][cur_ext[r] == code]).numel())
+                diag["fam_count"].append(fc); diag["fam_distinct_anc"].append(fd_); diag["ext_distinct_anc"].append(ed)
+                if do_cond:
+                    gnp = g1c
+                    bm = [gnp.abs() < bar, gnp >= bar, gnp <= -bar]
+                    cb = torch.zeros(R, sim.n_rbins, 9, device=device, dtype=dtype)
+                    for i1_, m1 in enumerate(bm):
+                        for i2_, m2 in enumerate(bm):
+                            cb[:, :, 3 * i1_ + i2_] = cond_hist[:, :, m1][:, :, :, m2].sum(dim=(-2, -1))
+                    diag["cond_basin"].append(cb.cpu().numpy())
 
         if step == sim.n_steps:
             break
 
         noise = torch.randn(q.shape, generator=gen_dyn, device=device, dtype=dtype)
+        if sim.numerics_diag:
+            q_prev = q
         q = q + sim.dt * (F.reshape(R, N, A, 3) + bias_force) + noise_scale * noise
         q = geom.remove_com(q)
+        if sim.numerics_diag:
+            dstep = torch.linalg.norm(q - q_prev, dim=-1).reshape(R, -1)
+            max_disp = torch.maximum(max_disp, torch.nan_to_num(dstep, nan=float("inf")).amax(-1))
+            n_nonfinite += (~torch.isfinite(q).reshape(R, N, -1).all(-1)).sum(-1)
 
         if is_fr:
             nxt = step + 1
@@ -365,6 +437,10 @@ def run_sampler_dist(method, params: pot.AlkaneParams, sim: DistSimConfig, seeds
                                 arr[r, deaths[r]] = arr[r].index_select(0, births[r])
                             if prev_ext is not None:
                                 prev_ext[r, deaths[r]] = prev_ext[r].index_select(0, births[r])
+                            if sim.track_families and prev_fam is not None:
+                                fam_death[r] += torch.bincount(prev_fam[r].index_select(0, deaths[r]), minlength=4)
+                                fam_birth[r] += torch.bincount(prev_fam[r].index_select(0, births[r]), minlength=4)
+                                prev_fam[r, deaths[r]] = prev_fam[r].index_select(0, births[r])
 
         if ot_on:
             nxt = step + 1
@@ -432,6 +508,12 @@ def run_sampler_dist(method, params: pot.AlkaneParams, sim: DistSimConfig, seeds
         out["cond_grid1"] = g1c.cpu().numpy(); out["cond_grid2"] = g2c.cpu().numpy()
         out["cond_dphi"] = float(dphi1c)
         out["cond_edges"] = cond_edges.cpu().numpy()
+    if sim.numerics_diag:
+        out["max_step_displacement"] = max_disp.cpu().numpy(); out["n_nonfinite_walker_steps"] = n_nonfinite.cpu().numpy()
+    if sim.track_families:
+        out["fam_first_discovery"] = fam_first.cpu().numpy(); out["b9_first_discovery"] = b9_first.cpu().numpy()
+        out["fam_transitions"] = fam_trans.cpu().numpy()
+        out["fam_birth"] = fam_birth.cpu().numpy(); out["fam_death"] = fam_death.cpu().numpy()
     if verbose:
         print(f"  {method:12s} R={R} N={N}: {out['runtime_seconds']:.1f}s "
               f"repl={out['total_replacement_events'].sum()} trans={out['n_transitions'].sum()}")
