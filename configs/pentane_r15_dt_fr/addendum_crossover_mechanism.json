@@ -49,5 +49,11 @@
       "E2_adaptive_noclip": "Adaptive ABF at dt 5e-4 without the physical clip, T 40, rng 20261201 (paired with the tracked dt 5e-4 run). Comparator for E1."
     },
     "readouts": "phi_adaptive = (X_1.25 - X_shadow) / (X_1.25 - X_5e-4noclip) for X in {e_F(40), bin-8 production deposit mean, bin-8 TT share, applied mean force at R 3.0 at t = 2}; 'static (invariant-measure)' if phi >= 0.7, 'kinetic' if phi <= 0.3, 'partial' otherwise (4 seeds; exploratory). Decomposition of the bin-8 / crossover deposit-mean difference between dt 5e-4 and 2.5e-4 into a family-share part and a per-family-mean-force part, from the tracked adaptive runs."
+  },
+  "amendment_shadow_cap": {
+    "written_utc": "2026-10-19 ~03:50",
+    "defect": "The uncapped first-order shadow drift b + (dt0/2) J_b b integrates V - (dt0/4)|grad V|^2, which is unbounded below wherever the local curvature along the drift exceeds 2/dt0 = 4000 (bend-angle near-collinearity, LJ wall). The frozen early shadow arms recorded 2143 / 1892 walker-steps with |correction| > |drift| (max 4e6) and a committed-TT bond-length variance of 9.1e-2 (target ~1.6e-3): numerically invalid. Moved to results/pentane_r15_dt_fr/crossover/invalid_uncapped_shadow/ and not used for any decision.",
+    "seen_before_fix": "From the invalid frozen arm: tau_TT 1.82 and per-family f_R at R 2.94-3.04 close to the dt 5e-4 arm (TT -38.5 vs -37.3 at 2.94; TG +6 to +13 vs +5 to +11). From the logs of the (killed, never analysed) uncapped adaptive shadow runs: committed-TT walker fraction 0.11-0.12 at t = 10. No other output of the adaptive shadow runs was read.",
+    "fix": "|correction| capped at 0.9 |drift| per walker-step (smooth rescaling). For every configuration with all drift-direction curvatures below 3600 the cap is inactive (Gibbs-sample lambda_max <= 2970, i.e. lambda dt0 / 2 <= 0.74). The number of capped walker-steps is recorded. Both shadow arms (frozen early, T 12, 8 seeds; adaptive, T 40, rng 20261211-14) are re-run with the cap; the decision rules are unchanged."
   }
 }

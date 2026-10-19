@@ -20,6 +20,7 @@ sys.path.insert(0, HERE)
 import r15metrics as rm                                     # noqa: E402
 
 OUT = os.path.join(rm.RES, "crossover")
+REF = rm.load_ref()
 FIG = os.path.join(rm.RES, "figures")
 N = 1024
 FAM = rm.FAM
@@ -36,8 +37,10 @@ def load():
             if abs(m["T"] - 40.0) > 1e-9:
                 continue                                    # the T = 4 run is only the source of the drain-phase bias
             key = ("adaptive", f"{m['dt']:g}")
+        elif m["mode"] == "adaptive2":
+            key = ("adaptive2", f"{m['dt']:g}" + ("+noclip" if m["no_clip"] else "") + (f"+shadow{m['shadow_dt0']:g}c{m['shadow_cap']:g}" if m["shadow_dt0"] else ""))
         else:
-            key = ("frozen", m["bias"], f"{m['dt']:g}" + ("+noclip" if m["no_clip"] else "") + (f"+shadow{m['shadow_dt0']:g}" if m["shadow_dt0"] else ""))
+            key = ("frozen", m["bias"], f"{m['dt']:g}" + ("+noclip" if m["no_clip"] else "") + (f"+shadow{m['shadow_dt0']:g}c{m['shadow_cap']:g}" if m["shadow_dt0"] else ""))
         runs.setdefault(key, []).append(dict(d={k: d[k] for k in d.files if k != "meta_json"}, meta=m, path=f))
     return runs
 
@@ -71,6 +74,20 @@ def per_seed(files):
             for nm, a in (("bond", d["bond"][s]), ("bend", d["bend"][s])):
                 mu = a[1] / a[0]; r[f"{nm}_mean"] = float(mu); r[f"{nm}_var"] = float(a[2] / a[0] - mu * mu)
             r["cond_n"] = d["cond_n"][s]; r["cond_f"] = d["cond_f"][s]
+            if "pmf" in d:                                                    # adaptive arms: free-energy error and applied warm-up bias
+                tt_ = d["times"]; P = d["pmf"][:, s]
+                r["eF"] = rm.l2_aligned(P, REF["F"], REF["win"]); r["eF_t"] = tt_
+                r["eF_end"] = float(r["eF"][-1]); r["I_F"] = float(np.trapezoid(r["eF"], tt_))
+                g = d["grid"]
+                for tb in (1.0, 2.0, 3.0):
+                    k = int(np.argmin(np.abs(d["bias_t"] - tb)))
+                    for R0 in (2.95, 3.0, 3.05):
+                        r[f"bias_t{tb:g}_R{R0:g}"] = float(np.interp(R0, g, d["bias"][k][s]))
+                r["bin8_dep_mean"] = float(d["cond_f"][s, 8].sum() / d["cond_n"][s, 8].sum())
+                r["bin8_TTshare"] = float(d["cond_n"][s, 8, 0] / d["cond_n"][s, 8].sum())
+                sel = (fc > 2.95) & (fc < 3.125)
+                dm = d["dep_f"][s, sel].sum(-1) / np.clip(d["dep_n"][s, sel].sum(-1), 1, None)
+                r["x_dep_bias"] = float(np.mean(dm - np.interp(fc[sel], REF["grid"], REF["Fp"])))
             rows.append(r)
     return rows
 
@@ -106,11 +123,12 @@ def fam_mean_force(rows, lo, hi):
 def main():
     runs = load()
     rows = {k: per_seed(v) for k, v in runs.items()}
-    S = {"arms": {" | ".join(k): dict(n_seeds=len(v), files=[os.path.relpath(f["path"], rm.ROOT) for f in runs[k]]) for k, v in rows.items()}}
+    S = {"arms": {" / ".join(k): dict(n_seeds=len(v), files=[os.path.relpath(f["path"], rm.ROOT) for f in runs[k]]) for k, v in rows.items()}}
     keys = ["tau_TT", "W8_TT", "W8_TG", "W8_TTshare", "k_x", "k_tt", "time_TT_x", "time_TT_tt", "exc_n", "exc_conv_frac", "exc_mean_res",
             "exc_mean_res_conv", "exc_mean_res_exit", "clip_frac", "wall_frac", "bond_var", "bend_var", "bond_mean", "bend_mean"]
-    S["medians"] = {" | ".join(k): {kk: med_ci(v, kk) for kk in keys} for k, v in rows.items()}
-    ref = rm.load_ref()
+    akeys = ["eF_end", "I_F", "bin8_dep_mean", "bin8_TTshare", "x_dep_bias"] + [f"bias_t{tb:g}_R{R0:g}" for tb in (1, 2, 3) for R0 in (2.95, 3, 3.05)]
+    S["medians"] = {" / ".join(k): {kk: med_ci(v, kk) for kk in keys + (akeys if k[0] != "frozen" else [])} for k, v in rows.items()}
+    ref = REF
 
     # ---- adaptive: verification against the confirmatory files + family decomposition of bin 8
     ver = {}
@@ -125,14 +143,14 @@ def main():
     S["verification"] = ver
     ad = {}
     for k, v in rows.items():
-        if k[0] != "adaptive":
+        if k[0] == "frozen":
             continue
         cn = sum(r["cond_n"] for r in v); cf = sum(r["cond_f"] for r in v)
         share = cn[8] / cn[8].sum(); fm = cf[8] / np.clip(cn[8], 1, None)
-        dt = float(k[1])
+        dt = float(k[1].split("+")[0])
         exact_fp = float(np.mean(ref["Fp"][(ref["grid"] >= BIN8[0]) & (ref["grid"] < BIN8[1])]))
         fx, nx = fam_mean_force(v, 2.95, 3.125)
-        ad[k[1]] = dict(bin8_share=dict(zip(FAM, share.tolist())), bin8_fam_mean_f=dict(zip(FAM, fm.tolist())), bin8_mean_f=float(cf[8].sum() / cn[8].sum()),
+        ad[" / ".join(k)] = dict(bin8_share=dict(zip(FAM, share.tolist())), bin8_fam_mean_f=dict(zip(FAM, fm.tolist())), bin8_mean_f=float(cf[8].sum() / cn[8].sum()),
                         bin8_exact_Fp_mean=exact_fp, bin8_walker_time_per_walker=dict(zip(FAM, (cn[8] * dt / N / len(v)).tolist())),
                         crossover_fam_mean_f=fx)
     S["adaptive_bin8"] = ad
@@ -142,7 +160,7 @@ def main():
         return rows.get(("frozen", b, a))
     dec = {}
     e5, e25, e125 = arm("early5", "0.0005"), arm("early5", "0.00025"), arm("early5", "0.000125")
-    e5nc, esh = arm("early5", "0.0005+noclip"), arm("early5", "0.000125+noclip+shadow0.0005")
+    e5nc, esh = arm("early5", "0.0005+noclip"), arm("early5", "0.000125+noclip+shadow0.0005c0.9")
     if e5 and e25 and e125:
         for key in ("tau_TT", "W8_TT", "k_x", "k_tt", "exc_conv_frac", "exc_mean_res"):
             dec[f"{key}: 2.5e-4 vs 5e-4"] = ratio(e25, e5, key); dec[f"{key}: 1.25e-4 vs 5e-4"] = ratio(e125, e5, key)
@@ -170,14 +188,59 @@ def main():
         if x5 and x25:
             for key in ("W8_TT", "W8_TG", "W8_TTshare"):
                 dec[f"dt {a} {key}: bias final25 vs final5"] = ratio(x25, x5, key)
+    # ---- exploratory follow-up
+    m5, m25, m125 = arm("mid5", "0.0005"), arm("mid5", "0.00025"), arm("mid5", "0.000125")
+    if m5 and m25 and m125:
+        for key in ("tau_TT", "W8_TT", "k_x"):
+            dec[f"mid5 {key}: 2.5e-4 vs 5e-4"] = ratio(m25, m5, key); dec[f"mid5 {key}: 1.25e-4 vs 5e-4"] = ratio(m125, m5, key)
+    A5, A25, A125 = rows.get(("adaptive", "0.0005")), rows.get(("adaptive", "0.00025")), rows.get(("adaptive", "0.000125"))
+    A5nc, Ash = rows.get(("adaptive2", "0.0005+noclip")), rows.get(("adaptive2", "0.000125+noclip+shadow0.0005c0.9"))
+    ak = ["eF_end", "I_F", "bin8_dep_mean", "bin8_TTshare", "x_dep_bias", "bias_t2_R3", "bias_t2_R2.95", "W8_TT", "W8_TG"]
+    if A5 and A25:
+        for key in ak:
+            dec[f"adaptive {key}: 2.5e-4 vs 5e-4"] = ratio(A25, A5, key)
+    if A5 and A125:
+        for key in ak:
+            dec[f"adaptive {key}: 1.25e-4 vs 5e-4"] = ratio(A125, A5, key)
+    if A5 and A5nc:
+        for key in ("eF_end", "I_F", "bin8_dep_mean", "bin8_TTshare"):
+            p = rm.paired(A5nc, A5, key); dec[f"adaptive noclip/clip - 1 {key}"] = {kk: p[kk] for kk in ("median", "ci95", "n")}
+    if A125 and Ash and A5nc:
+        for key in ("eF_end", "I_F", "bin8_dep_mean", "bin8_TTshare", "x_dep_bias", "bias_t2_R3", "W8_TT", "W8_TG"):
+            dec[f"phi_adaptive {key}"] = phi_closed(A125, Ash, A5nc, key)
+            dec[f"adaptive {key}: shadow vs 5e-4 noclip"] = ratio(Ash, A5nc, key); dec[f"adaptive {key}: shadow vs 1.25e-4"] = ratio(Ash, A125, key)
+        ph = dec["phi_adaptive eF_end"]["phi"]
+        dec["adaptive shadow reading (eF_end)"] = "static (invariant-measure)" if ph >= 0.7 else ("kinetic" if ph <= 0.3 else "partial")
+    # share vs per-family-mean decomposition of the crossover deposit mean (fine bins 2.95-3.125, pooled seeds), arm X vs arm Y
+    def decomp(X, Y):
+        fc = X[0]["fine_c"]; sel = np.where((fc > 2.95) & (fc < 3.125))[0]
+        out = []
+        for i in sel:
+            nX = sum(r["dep_n"][i] for r in X); fX = sum(r["dep_f"][i] for r in X)
+            nY = sum(r["dep_n"][i] for r in Y); fY = sum(r["dep_f"][i] for r in Y)
+            sX, sY = nX / nX.sum(), nY / nY.sum()
+            mX = np.where(nX > 0, fX / np.clip(nX, 1, None), 0.0); mY = np.where(nY > 0, fY / np.clip(nY, 1, None), 0.0)
+            both = (nX > 0) & (nY > 0)
+            mXb = np.where(both, mX, np.where(nX > 0, mX, mY)); mYb = np.where(both, mY, np.where(nY > 0, mY, mX))
+            tot = float((sX * mX).sum() - (sY * mY).sum())
+            share = float(((sX - sY) * 0.5 * (mXb + mYb)).sum()); fam = float((0.5 * (sX + sY) * (mXb - mYb)).sum())
+            out.append(dict(R=float(fc[i]), mean_X=float((sX * mX).sum()), mean_Y=float((sY * mY).sum()), diff=tot, share_part=share, family_mean_part=fam,
+                            TTshare_X=float(sX[0]), TTshare_Y=float(sY[0]), fTT_X=float(mX[0]), fTT_Y=float(mY[0]), fTG_X=float(mX[1]), fTG_Y=float(mY[1])))
+        avg = {k: float(np.mean([o[k] for o in out])) for k in ("diff", "share_part", "family_mean_part")}
+        return dict(bins=out, average=avg)
+    S["decomposition"] = {}
+    for nm, X, Y in (("adaptive 2.5e-4 minus 5e-4", A25, A5), ("adaptive 1.25e-4 minus 5e-4", A125, A5), ("adaptive shadow minus 5e-4 noclip", Ash, A5nc),
+                     ("adaptive 1.25e-4 minus shadow", A125, Ash), ("frozen early 2.5e-4 minus 5e-4", e25, e5)):
+        if X and Y:
+            S["decomposition"][nm] = decomp(X, Y)
     S["decisions"] = dec
     # per-family mean force at the crossover for every arm (is the per-family conditional mean force itself dt-dependent?)
-    S["crossover_fam_mean_f"] = {" | ".join(k): fam_mean_force(v, 2.95, 3.125)[0] for k, v in rows.items()}
+    S["crossover_fam_mean_f"] = {" / ".join(k): fam_mean_force(v, 2.95, 3.125)[0] for k, v in rows.items()}
     S["crossover_clip"] = {}
     for k, v in rows.items():
         fc = v[0]["fine_c"]; sel = (fc > 2.95) & (fc < 3.35)
         n = sum(r["dep_n"][sel] for r in v); cl = sum(r["clip_n"][sel] for r in v)
-        S["crossover_clip"][" | ".join(k)] = {FAM[j]: (float(cl[:, j].sum() / n[:, j].sum()) if n[:, j].sum() > 0 else None) for j in range(4)}
+        S["crossover_clip"][" / ".join(k)] = {FAM[j]: (float(cl[:, j].sum() / n[:, j].sum()) if n[:, j].sum() > 0 else None) for j in range(4)}
     os.makedirs(OUT, exist_ok=True)
     json.dump(S, open(os.path.join(OUT, "summary.json"), "w"), indent=1, default=float)
     write_report(S, rows)
@@ -200,6 +263,8 @@ def write_report(S, rows):
         L.append(f"| {k} | {n} | {c('tau_TT')} | {c('W8_TT')} | {c('W8_TG')} | {c('k_x')} | {c('k_tt')} | {c('time_TT_x')} | {fmt(m['exc_n'][0])} | "
                  f"{c('exc_conv_frac')} | {c('exc_mean_res')} | {fmt(m['clip_frac'][0])} | {fmt(m['bond_var'][0], 4)} | {fmt(m['bend_var'][0], 4)} |")
     L += ["", "## Decisions and contrasts", "", "```", json.dumps(S["decisions"], indent=1, default=float), "```", "",
+          "## Crossover deposit mean: family-share vs per-family-mean-force decomposition (fine bins 2.95-3.125, averaged)", "", "```",
+          json.dumps({k: v["average"] for k, v in S.get("decomposition", {}).items()}, indent=1), "```", "",
           "## Adaptive runs: conditional bin 8 (R 2.933-3.125), production deposits", "", "```", json.dumps(S["adaptive_bin8"], indent=1), "```", "",
           "## Per-family mean f_R sample at R 2.95-3.125", "", "```", json.dumps(S["crossover_fam_mean_f"], indent=1), "```", "",
           "## Clip fraction by family at R 2.95-3.35", "", "```", json.dumps(S["crossover_clip"], indent=1), "```", ""]
@@ -211,9 +276,9 @@ def make_figure(rows, ref):
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(2, 3, figsize=(15, 8.5))
-    col = {"0.0005": "C3", "0.00025": "C0", "0.000125": "C2", "0.0005+noclip": "C1", "0.000125+noclip+shadow0.0005": "C4"}
+    col = {"0.0005": "C3", "0.00025": "C0", "0.000125": "C2", "0.0005+noclip": "C1", "0.000125+noclip+shadow0.0005c0.9": "C4"}
     lab = {"0.0005": "dt 5e-4", "0.00025": "dt 2.5e-4", "0.000125": "dt 1.25e-4", "0.0005+noclip": "dt 5e-4, no clip",
-           "0.000125+noclip+shadow0.0005": "dt 1.25e-4, EM shadow of 5e-4"}
+           "0.000125+noclip+shadow0.0005c0.9": "dt 1.25e-4, EM shadow of 5e-4"}
     # (a) adaptive: committed-TT fraction vs time
     a = ax[0, 0]
     for k, v in rows.items():

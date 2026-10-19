@@ -269,7 +269,7 @@ def load_bias(name):
 
 def cmd_frozen(args):
     torch.set_num_threads(1)
-    tag = f"frozen__{args.bias}__dt{args.dt:g}" + ("__noclip" if args.no_clip else "") + (f"__shadow{args.shadow_dt0:g}" if args.shadow_dt0 else "")
+    tag = f"frozen__{args.bias}__dt{args.dt:g}" + ("__noclip" if args.no_clip else "") + (f"__shadow{args.shadow_dt0:g}c{args.shadow_cap:g}" if args.shadow_dt0 else "")
     path = os.path.join(OUT, "raw", f"{tag}__T{args.T:g}__ns{args.n_seeds}__rng{args.rng_seed}.npz")
     if os.path.exists(path):
         print("exists", path); return
@@ -310,7 +310,8 @@ def cmd_frozen(args):
             Jb = (drift_plain(qf + eps * b) - drift_plain(qf - eps * b)) / (2.0 * eps)
             corr = 0.5 * args.shadow_dt0 * Jb
             cn = torch.linalg.norm(corr.reshape(R * N, -1), dim=-1)
-            corr_max = max(corr_max, float(cn.max())); corr_rel_big += int((cn > bn).sum())
+            corr_max = max(corr_max, float(cn.max())); corr_rel_big += int((cn > args.shadow_cap * bn).sum())
+            corr = corr * torch.clamp(args.shadow_cap * bn / cn.clamp_min(1e-300), max=1.0)[:, None, None]
             b = b + corr
         if step == n_steps:
             break
@@ -321,7 +322,7 @@ def cmd_frozen(args):
     wall = time.time() - t0
     nonfinite = int((~torch.isfinite(q).reshape(R * N, -1).all(-1)).sum())
     _save(path, tr.arrays(), _meta(args, dict(mode="frozen", bias_source=src, bias_t=tb, bias_scale=scale, bias_profile=list(map(float, prof)), wall_seconds=wall,
-                                               n_steps=n_steps, shadow_corr_max=corr_max, shadow_corr_gt_drift=corr_rel_big, nonfinite_walkers=nonfinite)))
+                                               n_steps=n_steps, shadow_corr_max=corr_max, shadow_corr_capped=corr_rel_big, nonfinite_walkers=nonfinite)))
     print(f"wrote {path} wall {wall / 60:.1f} min nonfinite {nonfinite} corr_max {corr_max:.3g} corr>drift {corr_rel_big}", flush=True)
 
 
@@ -332,7 +333,7 @@ def cmd_adaptive2(args):
     torch.set_num_threads(1)
     a = SimpleNamespace(arm="abf", fr_rate=0.0, dt=args.dt, T=args.T, deposit_interval=None, rng_seed=args.rng_seed, n_seeds=args.n_seeds)
     p0, sim, _, sch = build_arm(a)
-    tag = f"adaptive2__dt{args.dt:g}" + ("__noclip" if args.no_clip else "") + (f"__shadow{args.shadow_dt0:g}" if args.shadow_dt0 else "")
+    tag = f"adaptive2__dt{args.dt:g}" + ("__noclip" if args.no_clip else "") + (f"__shadow{args.shadow_dt0:g}c{args.shadow_cap:g}" if args.shadow_dt0 else "")
     path = os.path.join(OUT, "raw", f"{tag}__T{args.T:g}__ns{args.n_seeds}__rng{args.rng_seed}.npz")
     if os.path.exists(path):
         print("exists", path); return
@@ -381,7 +382,8 @@ def cmd_adaptive2(args):
             Jb = (drift(qp, pot.forces(qp, p), mf_profile, abf_scale) - drift(qm, pot.forces(qm, p), mf_profile, abf_scale)).reshape(R * N, A, 3) / (2.0 * eps)
             corr = 0.5 * args.shadow_dt0 * Jb
             cn = torch.linalg.norm(corr.reshape(R * N, -1), dim=-1)
-            corr_max = max(corr_max, float(cn.max())); corr_rel_big += int((cn > bn).sum())
+            corr_max = max(corr_max, float(cn.max())); corr_rel_big += int((cn > args.shadow_cap * bn).sum())
+            corr = corr * torch.clamp(args.shadow_cap * bn / cn.clamp_min(1e-300), max=1.0)[:, None, None]
             b = b + corr.reshape(R, N, A, 3)
         if step % sim.save_every == 0 or step == sim.n_steps:
             rf, rc = (fsum_prod, csum_prod) if csum_prod.sum() > 0 else (fsum, csum)
@@ -413,9 +415,11 @@ def main():
     f = sp.add_parser("frozen"); f.add_argument("--dt", type=float, required=True); f.add_argument("--bias", required=True, choices=sorted(BIASES))
     f.add_argument("--T", type=float, required=True); f.add_argument("--rng-seed", type=int, required=True); f.add_argument("--n-seeds", type=int, default=4)
     f.add_argument("--no-clip", action="store_true"); f.add_argument("--shadow-dt0", type=float, default=0.0); f.add_argument("--fd-h", type=float, default=1e-5)
+    f.add_argument("--shadow-cap", type=float, default=0.9, help="cap |shadow correction| <= cap * |drift| (the uncapped first-order shadow potential is unbounded below where the local curvature exceeds 2/dt0)")
     b = sp.add_parser("adaptive2"); b.add_argument("--dt", type=float, required=True); b.add_argument("--T", type=float, default=40.0)
     b.add_argument("--rng-seed", type=int, default=20261201); b.add_argument("--n-seeds", type=int, default=4)
     b.add_argument("--no-clip", action="store_true"); b.add_argument("--shadow-dt0", type=float, default=0.0); b.add_argument("--fd-h", type=float, default=1e-5)
+    b.add_argument("--shadow-cap", type=float, default=0.9)
     args = ap.parse_args()
     torch.set_num_threads(1)
     {"adaptive": cmd_adaptive, "frozen": cmd_frozen, "adaptive2": cmd_adaptive2}[args.cmd](args)
