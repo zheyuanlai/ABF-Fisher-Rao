@@ -55,5 +55,16 @@
     "defect": "The uncapped first-order shadow drift b + (dt0/2) J_b b integrates V - (dt0/4)|grad V|^2, which is unbounded below wherever the local curvature along the drift exceeds 2/dt0 = 4000 (bend-angle near-collinearity, LJ wall). The frozen early shadow arms recorded 2143 / 1892 walker-steps with |correction| > |drift| (max 4e6) and a committed-TT bond-length variance of 9.1e-2 (target ~1.6e-3): numerically invalid. Moved to results/pentane_r15_dt_fr/crossover/invalid_uncapped_shadow/ and not used for any decision.",
     "seen_before_fix": "From the invalid frozen arm: tau_TT 1.82 and per-family f_R at R 2.94-3.04 close to the dt 5e-4 arm (TT -38.5 vs -37.3 at 2.94; TG +6 to +13 vs +5 to +11). From the logs of the (killed, never analysed) uncapped adaptive shadow runs: committed-TT walker fraction 0.11-0.12 at t = 10. No other output of the adaptive shadow runs was read.",
     "fix": "|correction| capped at 0.9 |drift| per walker-step (smooth rescaling). For every configuration with all drift-direction curvatures below 3600 the cap is inactive (Gibbs-sample lambda_max <= 2970, i.e. lambda dt0 / 2 <= 0.74). The number of capped walker-steps is recorded. Both shadow arms (frozen early, T 12, 8 seeds; adaptive, T 40, rng 20261211-14) are re-run with the cap; the decision rules are unchanged."
+  },
+  "exploratory_followup_2_dt_switch": {
+    "written_utc": "2026-10-19 ~04:05, before any dt-switch run",
+    "seen_before": [
+      "All frozen arms except the (re-running, capped) shadow arm and final-bias arms: drain dt-independent under both the t = 4 bias (tau_TT +0.1 % [-3.1, +6.3] at 2.5e-4, -0.5 % [-3.6, +3.8] at 1.25e-4 vs 5e-4) and the ramped t = 2 bias (+0.8 % / +1.4 %); clip inert (paired 0.0 %).",
+      "Tracked adaptive dt 5e-4 vs 2.5e-4 (rng 20261201, 4 seeds, bitwise the confirmatory files): e_F(40) +34 %; crossover deposit-mean difference -7.2 = -6.1 family share + -1.1 per-family mean; applied bias at t = 1 already 2-3 units more compressive at R 3.05-3.2 at dt 5e-4 (all-TT region); TT walkers below R 3.125 at t = 1 / 2 / 2.5: 0.0081 / 0.038 / 0.125 vs 0.0034 / 0.028 / 0.094.",
+      "Stage A unbiased (A1) mean force at R 3.15-3.2 (TT-dominated): -23.4 / -20.5 / -19.8 at dt 5e-4 / 2.5e-4 / 1.25e-4 (ref -19.5)."
+    ],
+    "hypothesis": "H_warmup: the integrator matters for the crossover only through the estimate ABF builds while the all-trans population is still near equilibrium under the weak, ramping bias (t < 3); after that the dynamics are dt-insensitive.",
+    "runs": "adaptive2 with a timestep switch at t = 3 (end of the burn-in), T 40, rng 20261201 (4 seeds, phase 1 bitwise the corresponding plain run): S_a = dt 5e-4 for t < 3 then 2.5e-4; S_b = dt 2.5e-4 for t < 3 then 5e-4. Deposits weighted by dt / dt_phase1 so every unit of physical time weighs the same in the estimator (deposit frequency was shown irrelevant, Section 5 (3)).",
+    "readout": "psi = (X_S - X_2.5e-4) / (X_5e-4 - X_2.5e-4) for X in {e_F(40), crossover deposit bias, bin-8 TT share}: psi(S_a) near 1 and psi(S_b) near 0 => outcome set by the warm-up integrator (H_warmup); psi(S_a) near 0 and psi(S_b) near 1 => set after t = 3. 4 seeds, exploratory, unpaired-by-dt bootstrap."
   }
 }

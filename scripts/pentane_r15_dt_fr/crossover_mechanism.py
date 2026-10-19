@@ -87,6 +87,7 @@ class Tracker:
         self.fe = torch.as_tensor(FINE_EDGES); self.ce = torch.as_tensor(COND_EDGES); self.nb = len(FINE_EDGES) - 1
         self.seed_of = torch.arange(R).repeat_interleave(N)
         self.step = 0
+        self.t_origin, self.step_origin = 0.0, 0                        # physical time = t_origin + (step - step_origin) * dt
         self.cstate = torch.zeros(R * N, 2, dtype=torch.long)          # all-trans start
         self.cfam_prev = torch.zeros(R * N, dtype=torch.long)
         z = lambda *s: torch.zeros(*s)                                  # noqa: E731
@@ -96,7 +97,7 @@ class Tracker:
         self.clip_n = z(R, nb, 4); self.clip_x = z(R, nb, 4)
         self.cond_n = z(R, 12, 4); self.cond_f = z(R, 12, 4)
         self.clip_walker_steps = z(R); self.clip_atom_evals = z(R); self.walker_steps = z(R); self.wall_steps = z(R)
-        self.exc_in = torch.zeros(R * N, dtype=torch.bool); self.exc_start = torch.zeros(R * N, dtype=torch.long)
+        self.exc_in = torch.zeros(R * N, dtype=torch.bool); self.exc_start = torch.zeros(R * N)          # physical start time
         self.exc_n = z(R, 2); self.exc_t = z(R, 2); self.exc_hist = z(R, 2, len(DUR_EDGES) - 1)   # [conversion, exit]
         self.bond = z(R, 3); self.bend = z(R, 3)                        # committed-TT walkers: n, sum, sum sq
         self.w8_cum = z(R, 4)
@@ -107,6 +108,14 @@ class Tracker:
             self.K = iv.gaussian_kernel_matrix(self.grid, 0.04)
             self.fsum = z(R, 256); self.csum = z(R, 256); self.fsum_prod = z(R, 256); self.csum_prod = z(R, 256)
             self.bias_t = []; self.bias = []
+
+    def now(self):
+        return self.t_origin + (self.step - self.step_origin) * self.dt
+
+    def set_dt(self, dt):
+        """Timestep switch (exploratory dt-switch runs): later walker-times, durations and checkpoints use the new dt."""
+        self.t_origin, self.step_origin = self.now(), self.step
+        self.dt = float(dt); self.ck_every = round(0.25 / self.dt)
 
     def _acc(self, target, seed, idx, valid, w, shape):
         lin = (seed * int(np.prod(shape[1:])) + idx)[valid]
@@ -150,16 +159,17 @@ class Tracker:
         tt = cfam == 0
         end_conv = self.exc_in & ~tt
         end_exit = self.exc_in & tt & (Rv > EXC_OUT)
+        tnow = self.now()
         for j, m in enumerate((end_conv, end_exit)):
             if m.any():
-                dur = (self.step - self.exc_start[m]).to(Rv.dtype) * dt
+                dur = tnow - self.exc_start[m]
                 sj = s[m]
                 self.exc_n[:, j] += torch.bincount(sj, minlength=R).to(Rv.dtype); self.exc_t[:, j] += torch.bincount(sj, weights=dur, minlength=R)
                 hb = (torch.bucketize(dur, torch.as_tensor(DUR_EDGES)) - 1).clamp(0, len(DUR_EDGES) - 2)
                 self.exc_hist[:, j] += torch.bincount(sj * (len(DUR_EDGES) - 1) + hb, minlength=R * (len(DUR_EDGES) - 1)).reshape(R, -1).to(Rv.dtype)
         self.exc_in = self.exc_in & ~(end_conv | end_exit)
         start = ~self.exc_in & tt & (Rv < EXC_IN)
-        self.exc_start = torch.where(start, torch.full_like(self.exc_start, self.step), self.exc_start)
+        self.exc_start = torch.where(start, torch.full_like(self.exc_start, tnow), self.exc_start)
         self.exc_in = self.exc_in | start
         # stiff-mode statistics of committed-TT walkers
         if tt.any():
@@ -175,9 +185,9 @@ class Tracker:
         # basin-family walker-time in conditional bin 8 (2.933-3.125), cumulative over all steps
         in8 = ((Rv >= COND_EDGES[8]) & (Rv < COND_EDGES[9])).to(Rv.dtype)
         self.w8_cum += torch.bincount(s * 4 + bfam, weights=in8 * dt, minlength=R * 4).reshape(R, 4)
-        if self.step % self.ck_every == 0:
+        if (self.step - self.step_origin) % self.ck_every == 0:
             oh = lambda fm: torch.nn.functional.one_hot(fm, 4).to(Rv.dtype)                 # noqa: E731
-            self.ts["t"].append(self.step * dt)
+            self.ts["t"].append(tnow)
             self.ts["cfam"].append(torch.zeros(R, 4).index_add_(0, s, oh(cfam)).numpy())
             self.ts["bfam"].append(torch.zeros(R, 4).index_add_(0, s, oh(bfam)).numpy())
             self.ts["n_exc"].append(torch.bincount(s, weights=self.exc_in.to(Rv.dtype), minlength=R).numpy())
@@ -333,7 +343,8 @@ def cmd_adaptive2(args):
     torch.set_num_threads(1)
     a = SimpleNamespace(arm="abf", fr_rate=0.0, dt=args.dt, T=args.T, deposit_interval=None, rng_seed=args.rng_seed, n_seeds=args.n_seeds)
     p0, sim, _, sch = build_arm(a)
-    tag = f"adaptive2__dt{args.dt:g}" + ("__noclip" if args.no_clip else "") + (f"__shadow{args.shadow_dt0:g}c{args.shadow_cap:g}" if args.shadow_dt0 else "")
+    sw = args.dt2 > 0
+    tag = f"adaptive2__dt{args.dt:g}" + (f"__to{args.dt2:g}at{args.t_switch:g}" if sw else "") + ("__noclip" if args.no_clip else "") + (f"__shadow{args.shadow_dt0:g}c{args.shadow_cap:g}" if args.shadow_dt0 else "")
     path = os.path.join(OUT, "raw", f"{tag}__T{args.T:g}__ns{args.n_seeds}__rng{args.rng_seed}.npz")
     if os.path.exists(path):
         print("exists", path); return
@@ -361,16 +372,26 @@ def cmd_adaptive2(args):
         applied = abf_scale * mf_at + cd._wall_gforce(Rr, sim)
         return F.reshape(R, N, A, 3) + dist_bias_force(grad_full, applied.reshape(R * N)).reshape(R, N, A, 3)
 
+    n_eval, dt_cur, w, n1 = sim.n_steps, sim.dt, 1.0, None
+    if sw:   # exploratory dt switch at t_switch (>= the burn-in, integer): deposits weighted dt / dt1 so each unit of time weighs the same
+        assert args.t_switch >= sim.estimator_burn_in_steps * sim.dt - 1e-12 and abs(args.t_switch - round(args.t_switch)) < 1e-12
+        n1 = int(round(args.t_switch / sim.dt)); n_eval = n1 + int(round((args.T - args.t_switch) / args.dt2)); save2 = int(round(1.0 / args.dt2))
     corr_max = 0.0; corr_rel_big = 0; t0 = time.time()
-    for step in range(sim.n_steps + 1):
+    for step in range(n_eval + 1):
+        if sw and step == n1:
+            dt_cur = args.dt2; noise_scale = math.sqrt(2.0 * dt_cur / beta); tr.set_dt(dt_cur); w = dt_cur / sim.dt
         qf = q.reshape(R * N, A, 3)
         F = hook(qf, p)
         f_loc, R_f, _ = cv.local_mean_force(qf, F, beta)
         Rv = R_f.reshape(R, N)
         f_loc = torch.clamp(f_loc, -sim.abf_force_clip * 8, sim.abf_force_clip * 8).reshape(R, N)
-        fsum += iv.bin_sum(Rv, f_loc, sim.n_grid, sim.R_lo, sim.R_hi); csum += iv.bin_counts(Rv, sim.n_grid, sim.R_lo, sim.R_hi)
+        if w == 1.0:
+            df, dc = iv.bin_sum(Rv, f_loc, sim.n_grid, sim.R_lo, sim.R_hi), iv.bin_counts(Rv, sim.n_grid, sim.R_lo, sim.R_hi)
+        else:
+            df, dc = iv.bin_sum(Rv, w * f_loc, sim.n_grid, sim.R_lo, sim.R_hi), iv.bin_sum(Rv, torch.full_like(Rv, w), sim.n_grid, sim.R_lo, sim.R_hi)
+        fsum += df; csum += dc
         if step >= sim.estimator_burn_in_steps:
-            fsum_prod += iv.bin_sum(Rv, f_loc, sim.n_grid, sim.R_lo, sim.R_hi); csum_prod += iv.bin_counts(Rv, sim.n_grid, sim.R_lo, sim.R_hi)
+            fsum_prod += df; csum_prod += dc
         mf_profile = iv.mean_force_profile(fsum, csum, K)
         abf_scale = sim.abf_bias_scale * min(1.0, step / max(sim.abf_warmup_steps, 1))
         b = drift(qf, F, mf_profile, abf_scale)
@@ -385,18 +406,20 @@ def cmd_adaptive2(args):
             corr_max = max(corr_max, float(cn.max())); corr_rel_big += int((cn > args.shadow_cap * bn).sum())
             corr = corr * torch.clamp(args.shadow_cap * bn / cn.clamp_min(1e-300), max=1.0)[:, None, None]
             b = b + corr.reshape(R, N, A, 3)
-        if step % sim.save_every == 0 or step == sim.n_steps:
+        phase2 = sw and step >= n1
+        if (((step - n1) % save2 == 0) if phase2 else (step % sim.save_every == 0)) or step == n_eval:
+            tnow = (args.t_switch + (step - n1) * args.dt2) if phase2 else step * sim.dt
             rf, rc = (fsum_prod, csum_prod) if csum_prod.sum() > 0 else (fsum, csum)
             mf_rep = iv.mean_force_profile(rf, rc, K)
-            diag["times"].append(step * sim.dt); diag["mean_force"].append(mf_rep.numpy().copy())
+            diag["times"].append(tnow); diag["mean_force"].append(mf_rep.numpy().copy())
             diag["pmf"].append(iv.free_energy_from_mean_force(mf_rep, grid, dz).numpy().copy())
-            diag["bias_t"].append(step * sim.dt); diag["bias"].append(mf_profile.numpy().copy())
-        if step == sim.n_steps:
+            diag["bias_t"].append(tnow); diag["bias"].append(mf_profile.numpy().copy())
+        if step == n_eval:
             break
         noise = torch.randn(q.shape, generator=gen)
-        q = geom.remove_com(q + sim.dt * b + noise_scale * noise)
+        q = geom.remove_com(q + dt_cur * b + noise_scale * noise)
         if step % 40000 == 0:
-            print(f"  step {step}/{sim.n_steps} {time.time() - t0:.0f}s TT {float((tr.cfam_prev == 0).double().mean()):.3f}", flush=True)
+            print(f"  step {step}/{n_eval} {time.time() - t0:.0f}s TT {float((tr.cfam_prev == 0).double().mean()):.3f}", flush=True)
     wall = time.time() - t0
     arr = tr.arrays()
     arr.update({k: np.asarray(v) for k, v in diag.items()})
@@ -420,6 +443,7 @@ def main():
     b.add_argument("--rng-seed", type=int, default=20261201); b.add_argument("--n-seeds", type=int, default=4)
     b.add_argument("--no-clip", action="store_true"); b.add_argument("--shadow-dt0", type=float, default=0.0); b.add_argument("--fd-h", type=float, default=1e-5)
     b.add_argument("--shadow-cap", type=float, default=0.9)
+    b.add_argument("--dt2", type=float, default=0.0, help="exploratory: switch to this timestep at --t-switch"); b.add_argument("--t-switch", type=float, default=0.0)
     args = ap.parse_args()
     torch.set_num_threads(1)
     {"adaptive": cmd_adaptive, "frozen": cmd_frozen, "adaptive2": cmd_adaptive2}[args.cmd](args)
