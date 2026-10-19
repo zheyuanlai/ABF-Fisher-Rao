@@ -38,7 +38,7 @@ def load():
                 continue                                    # the T = 4 run is only the source of the drain-phase bias
             key = ("adaptive", f"{m['dt']:g}")
         elif m["mode"] == "adaptive2":
-            key = ("adaptive2", f"{m['dt']:g}" + ("+noclip" if m["no_clip"] else "") + (f"+shadow{m['shadow_dt0']:g}c{m['shadow_cap']:g}" if m["shadow_dt0"] else ""))
+            key = ("adaptive2", f"{m['dt']:g}" + (f"+to{m['dt2']:g}at{m['t_switch']:g}" if m.get("dt2") else "") + ("+noclip" if m["no_clip"] else "") + (f"+shadow{m['shadow_dt0']:g}c{m['shadow_cap']:g}" if m["shadow_dt0"] else ""))
         else:
             key = ("frozen", m["bias"], f"{m['dt']:g}" + ("+noclip" if m["no_clip"] else "") + (f"+shadow{m['shadow_dt0']:g}c{m['shadow_cap']:g}" if m["shadow_dt0"] else ""))
         runs.setdefault(key, []).append(dict(d={k: d[k] for k in d.files if k != "meta_json"}, meta=m, path=f))
@@ -78,7 +78,12 @@ def per_seed(files):
                 tt_ = d["times"]; P = d["pmf"][:, s]
                 r["eF"] = rm.l2_aligned(P, REF["F"], REF["win"]); r["eF_t"] = tt_
                 r["eF_end"] = float(r["eF"][-1]); r["I_F"] = float(np.trapezoid(r["eF"], tt_))
-                g = d["grid"]
+                k12 = int(np.argmin(np.abs(tt_ - 12.0))); r["eF12"] = float(r["eF"][k12]); r["I_F12"] = float(np.trapezoid(r["eF"][:k12 + 1], tt_[:k12 + 1]))
+                ts = r["t"]; i12 = int(np.argmin(np.abs(ts - 12.0))); i4 = int(np.argmin(np.abs(ts - 4.0)))
+                r["fTT4"] = float(r["f_TT"][i4]); r["W8_TT12"] = float(r["w8_t"][i12, 0]); r["W8_TG12"] = float(r["w8_t"][i12, 1])
+                r["TTsh8_12"] = r["W8_TT12"] / max(r["W8_TT12"] + r["W8_TG12"], 1e-300)
+                g = d["grid"]; r["grid"] = g
+                r["bias_prof"] = {tb: d["bias"][int(np.argmin(np.abs(d["bias_t"] - tb)))][s] for tb in (1.0, 2.0)}
                 for tb in (1.0, 2.0, 3.0):
                     k = int(np.argmin(np.abs(d["bias_t"] - tb)))
                     for R0 in (2.95, 3.0, 3.05):
@@ -126,7 +131,7 @@ def main():
     S = {"arms": {" / ".join(k): dict(n_seeds=len(v), files=[os.path.relpath(f["path"], rm.ROOT) for f in runs[k]]) for k, v in rows.items()}}
     keys = ["tau_TT", "W8_TT", "W8_TG", "W8_TTshare", "k_x", "k_tt", "time_TT_x", "time_TT_tt", "exc_n", "exc_conv_frac", "exc_mean_res",
             "exc_mean_res_conv", "exc_mean_res_exit", "clip_frac", "wall_frac", "bond_var", "bend_var", "bond_mean", "bend_mean"]
-    akeys = ["eF_end", "I_F", "bin8_dep_mean", "bin8_TTshare", "x_dep_bias"] + [f"bias_t{tb:g}_R{R0:g}" for tb in (1, 2, 3) for R0 in (2.95, 3, 3.05)]
+    akeys = ["eF_end", "I_F", "bin8_dep_mean", "bin8_TTshare", "x_dep_bias", "eF12", "I_F12", "fTT4", "W8_TT12", "W8_TG12", "TTsh8_12"] + [f"bias_t{tb:g}_R{R0:g}" for tb in (1, 2, 3) for R0 in (2.95, 3, 3.05)]
     S["medians"] = {" / ".join(k): {kk: med_ci(v, kk) for kk in keys + (akeys if k[0] != "frozen" else [])} for k, v in rows.items()}
     ref = REF
 
@@ -195,7 +200,7 @@ def main():
             dec[f"mid5 {key}: 2.5e-4 vs 5e-4"] = ratio(m25, m5, key); dec[f"mid5 {key}: 1.25e-4 vs 5e-4"] = ratio(m125, m5, key)
     A5, A25, A125 = rows.get(("adaptive", "0.0005")), rows.get(("adaptive", "0.00025")), rows.get(("adaptive", "0.000125"))
     A5nc, Ash = rows.get(("adaptive2", "0.0005+noclip")), rows.get(("adaptive2", "0.000125+noclip+shadow0.0005c0.9"))
-    ak = ["eF_end", "I_F", "bin8_dep_mean", "bin8_TTshare", "x_dep_bias", "bias_t2_R3", "bias_t2_R2.95", "W8_TT", "W8_TG"]
+    ak = ["eF_end", "I_F", "bin8_dep_mean", "bin8_TTshare", "x_dep_bias", "bias_t1_R3.05", "bias_t2_R3", "bias_t2_R2.95", "W8_TT", "W8_TG", "eF12", "fTT4", "W8_TT12", "W8_TG12", "TTsh8_12"]
     if A5 and A25:
         for key in ak:
             dec[f"adaptive {key}: 2.5e-4 vs 5e-4"] = ratio(A25, A5, key)
@@ -206,11 +211,19 @@ def main():
         for key in ("eF_end", "I_F", "bin8_dep_mean", "bin8_TTshare"):
             p = rm.paired(A5nc, A5, key); dec[f"adaptive noclip/clip - 1 {key}"] = {kk: p[kk] for kk in ("median", "ci95", "n")}
     if A125 and Ash and A5nc:
-        for key in ("eF_end", "I_F", "bin8_dep_mean", "bin8_TTshare", "x_dep_bias", "bias_t2_R3", "W8_TT", "W8_TG"):
+        # the shadow arm runs to T = 12 only (budget amendment): every readout at t <= 12
+        for key in ("eF12", "I_F12", "fTT4", "W8_TT12", "W8_TG12", "TTsh8_12", "bias_t1_R3.05", "bias_t2_R3", "bias_t2_R2.95"):
             dec[f"phi_adaptive {key}"] = phi_closed(A125, Ash, A5nc, key)
             dec[f"adaptive {key}: shadow vs 5e-4 noclip"] = ratio(Ash, A5nc, key); dec[f"adaptive {key}: shadow vs 1.25e-4"] = ratio(Ash, A125, key)
-        ph = dec["phi_adaptive eF_end"]["phi"]
-        dec["adaptive shadow reading (eF_end)"] = "static (invariant-measure)" if ph >= 0.7 else ("kinetic" if ph <= 0.3 else "partial")
+        ph = dec["phi_adaptive eF12"]["phi"]
+        dec["adaptive shadow reading (eF12)"] = "static (invariant-measure)" if ph >= 0.7 else ("kinetic" if ph <= 0.3 else "partial")
+    # dt switch at t = 3: psi = (X_S - X_2.5e-4) / (X_5e-4 - X_2.5e-4); 1 = follows the warm-up timestep, 0 = follows the later one
+    for nm, key2 in (("S_a 5e-4->2.5e-4", "0.0005+to0.00025at3"), ("S_b 2.5e-4->5e-4", "0.00025+to0.0005at3")):
+        X = rows.get(("adaptive2", key2))
+        if X and A5 and A25:
+            for key in ("eF_end", "I_F", "x_dep_bias", "bin8_TTshare", "bin8_dep_mean", "W8_TT", "W8_TG", "eF12", "fTT4", "TTsh8_12"):
+                dec[f"psi {nm} {key}"] = phi_closed(A25, X, A5, key)
+                dec[f"switch {nm} {key}"] = dict(median=med_ci(X, key))
     # share vs per-family-mean decomposition of the crossover deposit mean (fine bins 2.95-3.125, pooled seeds), arm X vs arm Y
     def decomp(X, Y):
         fc = X[0]["fine_c"]; sel = np.where((fc > 2.95) & (fc < 3.125))[0]
@@ -229,8 +242,9 @@ def main():
         avg = {k: float(np.mean([o[k] for o in out])) for k in ("diff", "share_part", "family_mean_part")}
         return dict(bins=out, average=avg)
     S["decomposition"] = {}
-    for nm, X, Y in (("adaptive 2.5e-4 minus 5e-4", A25, A5), ("adaptive 1.25e-4 minus 5e-4", A125, A5), ("adaptive shadow minus 5e-4 noclip", Ash, A5nc),
-                     ("adaptive 1.25e-4 minus shadow", A125, Ash), ("frozen early 2.5e-4 minus 5e-4", e25, e5)):
+    for nm, X, Y in (("adaptive 2.5e-4 minus 5e-4", A25, A5), ("adaptive 1.25e-4 minus 5e-4", A125, A5), ("frozen early 2.5e-4 minus 5e-4", e25, e5), ("frozen early 1.25e-4 minus 5e-4", e125, e5),
+                     ("adaptive S_a(5e-4->2.5e-4) minus 5e-4", rows.get(("adaptive2", "0.0005+to0.00025at3")), A5),
+                     ("adaptive S_b(2.5e-4->5e-4) minus 2.5e-4", rows.get(("adaptive2", "0.00025+to0.0005at3")), A25)):
         if X and Y:
             S["decomposition"][nm] = decomp(X, Y)
     S["decisions"] = dec
@@ -275,64 +289,83 @@ def make_figure(rows, ref):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    fig, ax = plt.subplots(2, 3, figsize=(15, 8.5))
-    col = {"0.0005": "C3", "0.00025": "C0", "0.000125": "C2", "0.0005+noclip": "C1", "0.000125+noclip+shadow0.0005c0.9": "C4"}
-    lab = {"0.0005": "dt 5e-4", "0.00025": "dt 2.5e-4", "0.000125": "dt 1.25e-4", "0.0005+noclip": "dt 5e-4, no clip",
-           "0.000125+noclip+shadow0.0005c0.9": "dt 1.25e-4, EM shadow of 5e-4"}
-    # (a) adaptive: committed-TT fraction vs time
+    fig, ax = plt.subplots(2, 4, figsize=(21, 9))
+    sty = {"0.0005": ("C3", "-", "dt 5e-4"), "0.00025": ("C0", "-", "dt 2.5e-4"), "0.000125": ("C2", "-", "dt 1.25e-4"),
+           "0.0005+noclip": ("C1", "--", "dt 5e-4, no clip"), "0.000125+noclip+shadow0.0005c0.9": ("C4", "-", "dt 1.25e-4 on EM shadow of 5e-4"),
+           "0.0005+to0.00025at3": ("C3", ":", "5e-4 until t 3, then 2.5e-4"), "0.00025+to0.0005at3": ("C0", ":", "2.5e-4 until t 3, then 5e-4")}
+    def st(k):
+        return sty.get(k, ("k", "-", k))
+    adaptive = {k[1]: v for k, v in rows.items() if k[0] in ("adaptive", "adaptive2")}
+    # (a) adaptive: committed-TT fraction
     a = ax[0, 0]
-    for k, v in rows.items():
-        if k[0] == "adaptive":
-            t = v[0]["t"]; f = np.median([r["f_TT"] for r in v], 0)
-            a.plot(t, f, color=col[k[1] if k[1] in col else "0.0005"], label=lab.get(k[1], k[1]))
-    a.set_yscale("log"); a.set_xlim(0, 20); a.set_xlabel("t"); a.set_ylabel("committed-TT walker fraction"); a.set_title("(a) adaptive ABF: drain of all-trans start"); a.legend(fontsize=8)
-    # (b) frozen early: TT fraction vs time
+    for k, v in adaptive.items():
+        c, ls, lb = st(k); a.plot(v[0]["t"], np.median([r["f_TT"] for r in v], 0), color=c, ls=ls, label=lb)
+    a.set_yscale("log"); a.set_xlim(0, 16); a.set_ylim(3e-3, 1.2); a.set_xlabel("t"); a.set_ylabel("committed-TT walker fraction")
+    a.set_title("(a) adaptive ABF: drain of the all-trans start"); a.legend(fontsize=7)
+    # (b) applied bias during the warm-up vs R, with the Stage A unbiased-ensemble mean force
     a = ax[0, 1]
-    for k, v in rows.items():
-        if k[0] == "frozen" and k[1] == "early5":
-            t = v[0]["t"]; f = np.median([r["f_TT"] for r in v], 0)
-            a.plot(t, f, color=col.get(k[2], "k"), label=lab.get(k[2], k[2]), ls="--" if "noclip" in k[2] and "shadow" not in k[2] else "-")
-    a.set_yscale("log"); a.set_xlabel("t"); a.set_ylabel("committed-TT walker fraction"); a.set_title("(b) frozen drain-phase bias (t = 4, dt 5e-4)"); a.legend(fontsize=8)
-    # (c) hazard k(R)
+    for k in ("0.0005", "0.00025", "0.000125"):
+        if k in adaptive:
+            d = [r for r in adaptive[k]]
+            c, _, lb = st(k)
+            for tb, ls in ((1.0, ":"), (2.0, "-")):
+                prof = np.median([r["bias_prof"][tb] for r in d], 0)
+                g = d[0]["grid"]; s_ = (g > 2.9) & (g < 3.4)
+                a.plot(g[s_], prof[s_], ls, color=c, label=f"{lb}, applied at t {tb:g}")
+    g = ref["grid"]; s_ = (g > 2.9) & (g < 3.4)
+    a.plot(g[s_], ref["Fp"][s_], "k", lw=1.5, label="F' exact")
+    a.set_xlabel("R"); a.set_ylabel("mean force"); a.set_title("(b) applied bias during the warm-up"); a.legend(fontsize=6)
+    # (c) frozen: TT fraction (t = 4 bias solid, ramped t = 2 bias dashed)
     a = ax[0, 2]
     for k, v in rows.items():
+        if k[0] == "frozen" and k[1] in ("early5", "mid5"):
+            c, _, lb = st(k[2]); a.plot(v[0]["t"], np.median([r["f_TT"] for r in v], 0), color=c, ls="-" if k[1] == "early5" else "--",
+                                         label=f"{lb} ({'t 4 bias' if k[1] == 'early5' else 't 2 bias x0.8'})")
+    a.set_yscale("log"); a.set_xlabel("t"); a.set_ylabel("committed-TT walker fraction"); a.set_title("(c) frozen bias: drain is dt-independent"); a.legend(fontsize=6)
+    # (d) hazard
+    a = ax[0, 3]
+    for k, v in rows.items():
         if k[0] == "frozen" and k[1] == "early5":
-            fc = v[0]["fine_c"]; ev = sum(r["ev_TT_TG"] for r in v); tt = sum(r["t_TT"] for r in v)
-            ok = tt > 0.5
-            a.plot(fc[ok], ev[ok] / tt[ok], "o-", ms=3, color=col.get(k[2], "k"), label=lab.get(k[2], k[2]))
-    a.axvline(3.125, color="0.6", lw=0.8); a.set_yscale("log"); a.set_xlabel("R at the event"); a.set_ylabel("TT->TG hazard per unit TT time")
-    a.set_title("(c) conversion hazard of committed-TT walkers (frozen)"); a.legend(fontsize=8)
-    # (d) TT walker-time profile (frozen early)
+            fc = v[0]["fine_c"]; ev = sum(r["ev_TT_TG"] for r in v); tt = sum(r["t_TT"] for r in v); ok = tt > 0.5
+            c, ls, lb = st(k[2]); a.plot(fc[ok], ev[ok] / tt[ok], "o" + ls, ms=3, color=c, label=lb)
+    a.set_yscale("log"); a.set_xlim(2.7, 3.15); a.set_xlabel("R at the event"); a.set_ylabel("TT->TG transitions per unit TT time")
+    a.set_title("(d) conversion hazard, frozen t 4 bias"); a.legend(fontsize=7)
+    # (e) per-family f_R at fixed R under the identical frozen bias
     a = ax[1, 0]
     for k, v in rows.items():
-        if k[0] == "frozen" and k[1] == "early5":
-            fc = v[0]["fine_c"]; a.plot(fc, np.median([r["t_TT_prof"] for r in v], 0) / 0.025, color=col.get(k[2], "k"), label=lab.get(k[2], k[2]))
-    a.axvspan(*BIN8, color="0.9"); a.set_xlabel("R"); a.set_ylabel("TT walker-time density per walker"); a.set_title("(d) where TT walkers spend time (frozen)"); a.legend(fontsize=8)
-    # (e) per-family mean f_R in fine bins, adaptive runs, vs reference F'
-    a = ax[1, 1]
-    for k, v in rows.items():
-        if k[0] == "adaptive":
-            fc = v[0]["fine_c"]; n = sum(r["dep_n"] for r in v); f = sum(r["dep_f"] for r in v)
+        if k[0] == "frozen" and k[1] == "early5" and "noclip" not in k[2] or k == ("frozen", "early5", "0.000125+noclip+shadow0.0005c0.9"):
+            fc = v[0]["fine_c"]; n = sum(r["dep_n"] for r in v); f = sum(r["dep_f"] for r in v); c, _, lb = st(k[2])
             for j, ls in ((0, "--"), (1, "-")):
-                ok = n[:, j] > 200
-                a.plot(fc[ok], f[ok, j] / n[ok, j], ls, color=col.get(k[1], "k"), label=f"{lab.get(k[1], k[1])} {FAM[j]}")
-            tot = n.sum(1); ok = tot > 200
-            a.plot(fc[ok], f.sum(1)[ok] / tot[ok], ":", color=col.get(k[1], "k"), lw=2)
-    g = ref["grid"]; s = (g > 2.5) & (g < 3.6)
-    a.plot(g[s], ref["Fp"][s], "k", lw=1.5, label="F' exact"); a.set_ylim(-150, 80); a.set_xlim(2.7, 3.5); a.axvspan(*BIN8, color="0.9")
-    a.set_xlabel("R"); a.set_ylabel("mean f_R sample"); a.set_title("(e) adaptive: per-family deposits (TT --, TG -, all :)"); a.legend(fontsize=6, ncol=2)
-    # (f) bin-8 TT walker-time vs time, adaptive
+                ok = n[:, j] > 2000; a.plot(fc[ok], f[ok, j] / n[ok, j], ls, color=c, label=f"{lb} {FAM[j]}")
+    a.set_xlim(2.85, 3.25); a.set_ylim(-45, 20); a.set_xlabel("R"); a.set_ylabel("mean f_R sample"); a.set_title("(e) per-family f_R, identical frozen bias (TT --, TG -)")
+    a.legend(fontsize=6, ncol=2)
+    # (f) adaptive per-family deposits at the crossover
+    a = ax[1, 1]
+    for k in ("0.0005", "0.00025"):
+        if k in adaptive:
+            v = adaptive[k]; fc = v[0]["fine_c"]; n = sum(r["dep_n"] for r in v); f = sum(r["dep_f"] for r in v); c, _, lb = st(k)
+            for j, ls in ((0, "--"), (1, "-")):
+                ok = n[:, j] > 200; a.plot(fc[ok], f[ok, j] / n[ok, j], ls, color=c, lw=1, label=f"{lb} {FAM[j]}")
+            tot = n.sum(1); ok = tot > 200; a.plot(fc[ok], f.sum(1)[ok] / tot[ok], ":", color=c, lw=2.5, label=f"{lb} all deposits")
+    g = ref["grid"]; s_ = (g > 2.85) & (g < 3.3); a.plot(g[s_], ref["Fp"][s_], "k", lw=1.5, label="F' exact"); a.axvspan(*BIN8, color="0.92")
+    a.set_ylim(-45, 40); a.set_xlabel("R"); a.set_ylabel("mean f_R sample (production)"); a.set_title("(f) adaptive: crossover deposits by family"); a.legend(fontsize=6, ncol=2)
+    # (g) e_F(t)
     a = ax[1, 2]
-    for k, v in rows.items():
-        if k[0] == "adaptive":
-            t = v[0]["t"]
-            a.plot(t, np.median([r["w8_t"][:, 0] for r in v], 0), "--", color=col.get(k[1], "k"), label=f"{lab.get(k[1], k[1])} TT")
-            a.plot(t, np.median([r["w8_t"][:, 1] for r in v], 0) / 10, "-", color=col.get(k[1], "k"), label=f"{lab.get(k[1], k[1])} TG / 10")
-    a.set_xlabel("t"); a.set_ylabel("cumulative walker-time per walker in bin 8"); a.set_title("(f) adaptive: bin-8 occupancy by family"); a.legend(fontsize=7)
+    for k, v in adaptive.items():
+        if "eF" in v[0]:
+            c, ls, lb = st(k); a.plot(v[0]["eF_t"], np.median([r["eF"] for r in v], 0), color=c, ls=ls, label=lb)
+    a.set_yscale("log"); a.set_xlabel("t"); a.set_ylabel("e_F(t) (median)"); a.set_title("(g) adaptive: free-energy error"); a.legend(fontsize=7)
+    # (h) bin-8 walker-time by family
+    a = ax[1, 3]
+    for k, v in adaptive.items():
+        c, ls, lb = st(k); t = v[0]["t"]
+        a.plot(t, np.median([r["w8_t"][:, 0] for r in v], 0), color=c, ls=ls, label=f"{lb} TT")
+        a.plot(t, np.median([r["w8_t"][:, 1] for r in v], 0) / 10, color=c, ls=ls, lw=0.8, alpha=0.6)
+    a.set_xlabel("t"); a.set_ylabel("cumulative walker-time / walker in R 2.93-3.125"); a.set_title("(h) bin-8 occupancy: TT (thick), TG/10 (thin)"); a.legend(fontsize=6)
     fig.tight_layout()
     os.makedirs(FIG, exist_ok=True)
     for ext in ("png", "pdf"):
-        fig.savefig(os.path.join(FIG, f"fig7_crossover_mechanism.{ext}"), dpi=130)
+        fig.savefig(os.path.join(FIG, f"fig7_crossover_mechanism.{ext}"), dpi=120)
 
 
 if __name__ == "__main__":

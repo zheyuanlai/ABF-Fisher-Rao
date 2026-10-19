@@ -20,7 +20,7 @@ as a **negative control** and as a **numerical-methodology cautionary case**, no
 |---|---|
 | Is dt 5e-4 Gibbs-faithful? | Not in the stiff modes: four bond modes have λ·dt 0.95–1.44, bond-length variances are 2.1–2.3× too large, bend TV 0.10. But the R15 free energy is off by only 0.059 (U95 0.067) in the flattened ensemble ABF converges to, under the 0.10 tolerance. The frozen gate still FAILS dt 5e-4, on its clip-activity clause alone (1.7e-5 > 1e-5 clipped force evaluations); the paired no-clip control is identical to 2e-5 |
 | Selected timestep (frozen rule: largest ADMISSIBLE) | **dt\* = 2.5e-4** (D_MF 0.041 [0.047], D_density 0.034 [0.039]); 1.25e-4 also ADMISSIBLE |
-| ABF at dt\* vs dt 5e-4, T = 40 | **worse**: e_F(40) 1.820 vs 1.379 (+32 % [+26, +37]), I_F 113.3 vs 101.4 (+11.7 % [+9.8, +13.8]), e_F′(40) 8.61 vs 7.38. Pilot: e_F(40) 1.38 / 1.77 / 1.89 at dt 5e-4 / 2.5e-4 / 1.25e-4. Deposition frequency is not the cause (stride controls ≤ 0.4 %) |
+| ABF at dt\* vs dt 5e-4, T = 40 | **worse**: e_F(40) 1.820 vs 1.379 (+32 % [+26, +37]), I_F 113.3 vs 101.4 (+11.7 % [+9.8, +13.8]), e_F′(40) 8.61 vs 7.38. Pilot: e_F(40) 1.38 / 1.77 / 1.89 at dt 5e-4 / 2.5e-4 / 1.25e-4. Deposition frequency is not the cause (stride controls ≤ 0.4 %). Mechanism (Section 14): compensating invariant-measure error of dt 5e-4 in the deposited f_R samples, not kinetics |
 | ABF at equal force evaluations (3.3e8, pilot) | dt 5e-4 for T = 160: e_F 0.99; dt 2.5e-4 for T = 80: 1.11; dt 1.25e-4 for T = 40: 1.89. More physical time is the lever, not a smaller dt |
 | mFR (rate 0.02) vs ABF at dt\* | ΔI_F **+0.6 % [+0.5, +0.7]**, 0/16 wins; Δe_F(40) +2.0 % [+1.4, +2.4]; TOST-equivalent within ±10 %; ∫KL(p̂‖U) −3.8 % (16/16) |
 | mFR (rate 0.02) vs ABF at dt 5e-4 | ΔI_F +0.7 % [+0.5, +0.8], 0/16; Δe_F(40) +2.7 % [+1.9, +3.0] (reproduces the 2026-09-06 result, +0.5 %) |
@@ -234,7 +234,8 @@ R, so ABF *raises* the TG→TT barrier it should flatten. At t = 40 the walker m
 empty (Figure 4a; TT holds 0.3 % of walkers) and ABF underestimates the barrier, leaving F̂ at the TT
 minimum 1.4 (dt 5e-4) to 2.2 (dt\*) units too low (Figure 6). The coarse integrator damps this feedback; the accurate one does not.
 Unbiased torsional rates do not explain it (Section 4, no resolvable dt dependence), so the effect arises
-under the ABF bias. Its full dynamical origin is left open (Section 12).
+under the ABF bias. Section 14 (addendum) identifies the mechanism. It is not kinetic: dt 5e-4's invariant-measure
+error shifts the f_R samples at the crossover against the feedback.
 
 ## 6. Stage C/D — ABF vs ABF + uniform mFR
 
@@ -388,6 +389,10 @@ no hand-edited values.
 * **Figure 6** `fig6_profiles`: final F(R15) and F′(R15) of ABF and mFR vs the v2 reference at dt\* and dt 5e-4.
   The compact region is shaded; the TG/TT barrier at R ≈ 3.12 is the visible miss.
 * Scripts for Figures 2–6: `make_figures.py`.
+* **Figure 7** `fig7_crossover_mechanism` (addendum, Section 14): (a) adaptive drain of the all-trans start, every adaptive
+  arm; (b) applied bias during the warm-up; (c) frozen-bias drains; (d) TT→TG hazard vs R; (e) per-family f_R under
+  an identical frozen bias, with the EM-shadow arm; (f) adaptive crossover deposits by family; (g) e_F(t) including the
+  dt-switch runs; (h) bin-8 occupancy by family. Script: `analyze_crossover.py`.
 
 ## 11. Reproducibility
 
@@ -427,6 +432,24 @@ for dt in 5e-4 2.5e-4 1.25e-4; do for g in 0 1 2 3; do python scripts/pentane_r1
 python scripts/pentane_r15_dt_fr/make_figures.py
 ```
 
+Addendum (Section 14; ≈ 12.4 core-hours including the invalid uncapped and the stopped T 40 shadow runs):
+
+```bash
+python scripts/pentane_r15_dt_fr/crossover_mechanism.py adaptive --dt 5e-4 --T 4 && for dt in 5e-4 2.5e-4 1.25e-4; do python scripts/pentane_r15_dt_fr/crossover_mechanism.py adaptive --dt $dt; done
+```
+```bash
+for rng in 20261301 20261302; do for dt in 5e-4 2.5e-4 1.25e-4; do python scripts/pentane_r15_dt_fr/crossover_mechanism.py frozen --bias early5 --dt $dt --T 12 --rng-seed $rng; done; python scripts/pentane_r15_dt_fr/crossover_mechanism.py frozen --bias early5 --dt 5e-4 --no-clip --T 12 --rng-seed $rng; python scripts/pentane_r15_dt_fr/crossover_mechanism.py frozen --bias early5 --dt 1.25e-4 --no-clip --shadow-dt0 5e-4 --T 12 --rng-seed $rng; done
+```
+```bash
+for dt in 5e-4 2.5e-4 1.25e-4; do python scripts/pentane_r15_dt_fr/crossover_mechanism.py frozen --bias mid5 --dt $dt --T 12 --rng-seed 20261301; done; for b in final5 final25; do for dt in 5e-4 2.5e-4; do python scripts/pentane_r15_dt_fr/crossover_mechanism.py frozen --bias $b --dt $dt --T 20 --rng-seed 20261401; done; done
+```
+```bash
+python scripts/pentane_r15_dt_fr/crossover_mechanism.py adaptive2 --dt 5e-4 --no-clip && python scripts/pentane_r15_dt_fr/crossover_mechanism.py adaptive2 --dt 5e-4 --dt2 2.5e-4 --t-switch 3 && python scripts/pentane_r15_dt_fr/crossover_mechanism.py adaptive2 --dt 2.5e-4 --dt2 5e-4 --t-switch 3
+```
+```bash
+for rng in 20261211 20261212 20261213 20261214; do python scripts/pentane_r15_dt_fr/crossover_mechanism.py adaptive2 --dt 1.25e-4 --T 12 --no-clip --shadow-dt0 5e-4 --n-seeds 1 --rng-seed $rng; done; python scripts/pentane_r15_dt_fr/analyze_crossover.py
+```
+
 Compute used: Stage A 5.7, pilot 6.9, calibration 1.6, confirmatory 6.5, exploratory 4.3 core-hours
 (≈ 25 core-hours plus < 1 for the audit and the rate check). Peak concurrency was ≈ 33 single-thread
 processes on a 256-core host; no GPU was used.
@@ -446,10 +469,11 @@ processes on a 256-core host; no GPU was used.
 * **Reference floor.** The A2 profiles share a dt-independent deviation of ≈ 0.035 RMS (edge-shaped, with
   a step at the TG/TT crossover), from the reference's binned-F′ integration or the flat-ensemble
   construction. It is not discretisation, but it bounds how small a timestep error Stage A can resolve.
-* **The "smaller dt → worse ABF" mechanism is localised but not fully explained.** It sits at the TG/TT
-  crossover and shows as more compressed-TT contamination at small dt. Unbiased torsional rates show no dt
-  dependence, so the effect arises under the strong ABF bias. Which integrator property damps the feedback
-  at dt 5e-4 is unresolved.
+* **The "smaller dt → worse ABF" mechanism** sits at the TG/TT crossover and shows as more compressed-TT
+  contamination at small dt. *Resolved by the 2026-10-19 addendum (Section 14):* no kinetic property damps the
+  feedback. EM's invariant-measure error at dt 5e-4 shifts the deposited f_R samples. During the warm-up the
+  more negative compressed-TT samples finish the TT transient earlier, mostly inside the burn-in (≈ 40 % of the
+  gap). Afterwards the more positive stretched-TG samples hold the crossover estimate up (≈ 60 %).
 * **Exploratory arms.** The active-rate (0.05 / 0.10) results were added by an addendum written after the
   rate rule returned "none" and before any dt\* free-energy error was computed. They are not confirmatory and
   fail the safety rule.
@@ -484,3 +508,154 @@ Keep pentane R15 in the paper, in two roles:
 Do **not** present pentane R15 as a positive mFR benchmark. The historical R15 conclusions (ABF starved,
 mFR inert/harmful) survive the timestep refinement. Re-scoring every R15 number on the v2 reference, as the
 2026-09-06 report recommended, remains advisable.
+
+## 14. Addendum (2026-10-19): what damps the crossover feedback at dt 5e-4
+
+*ABF only, CPU only, ≈ 12.4 core-hours. Frozen design `configs/pentane_r15_dt_fr/addendum_crossover_mechanism.json`
+(commit 561e316d, before any new dynamics), with four amendments committed before the runs they govern: an
+exploratory follow-up (29d5d3c1), a cap on the shadow drift after the uncapped version blew up (0f186998), a dt-switch
+experiment (9412cb55), and a T 12 limit for the adaptive shadow arm to stay inside the 20 core-hour cap (8e35cbbf). Runner `scripts/pentane_r15_dt_fr/crossover_mechanism.py`, analysis
+`scripts/pentane_r15_dt_fr/analyze_crossover.py`, outputs `results/pentane_r15_dt_fr/crossover/` (REPORT.md, summary.json),
+Figure 7.*
+
+**Answer.** No property of the integrator's *kinetics* damps the feedback. Under any fixed bias, the dt 5e-4 drain of
+compressed TT walkers is the same as at 2.5e-4 and 1.25e-4 (±1.5 %), and the clip and the walls play no part. What
+differs is what dt 5e-4 *deposits*. Its invariant measure is distorted in the stiff bond and bend modes (Section 4), and
+this shifts the f_R samples at the TG/TT crossover by a few units in the two directions that work against the
+compressed-TT contamination:
+
+* **(A) Warm-up (t < 3, weak ramping bias, all-trans walkers near equilibrium).** Compressed-TT samples are more
+  negative. The estimate turns compressive earlier and the all-trans population drains earlier. More of the TT
+  transient then falls inside the estimator burn-in, and fewer compressed-TT samples reach the production estimate.
+* **(B) After the warm-up.** Stretched-TG samples at R 2.94–3.06 are more positive. This lifts the crossover estimate,
+  so the bias pushes fewer TG walkers out of the crossover. More TG then dilutes the TT contamination that remains.
+
+The dt-switch experiment attributes about 40 % of the e_F(40) gap to (A) and 60 % to (B). dt 5e-4 is not a more
+faithful integrator here: its own mean-force error is three times larger (Section 4, A1). It wins at T = 40 because
+that error partly cancels the sampling error, not because it samples the crossover better.
+
+**Instrument.** *Tracked adaptive ABF* is the production sampler (`run_sampler_dist`, unchanged) with a force-function
+hook whose arithmetic is bitwise the production force. Every step it records per-walker torsional state, R, the f_R
+sample and clip activity. It also re-accumulates the ABF sums exactly as the engine does, which gives the bias actually
+applied. The tracked dt 5e-4 and 2.5e-4 runs (rng 20261201, 4 seeds) reproduce the confirmatory files bitwise (PMF,
+mean force, family counts, production accumulators). *Frozen bias* is the production update (EM, clip 200, bias
+clipped ±60, walls, COM removal) under a FIXED applied-bias profile, from the all-trans start, with no estimator.
+"Committed" family means the last ±30° core visited by each dihedral. τ_TT = ∫₀ᵀ (committed-TT fraction) dt. W8 is the
+walker-time per walker in conditional bin 8 (R 2.933–3.125, the engine's 61.6° basin families).
+
+### 14.1 The contamination is laid down during the drain of the all-trans start
+
+(Confirmatory and pilot files, read before the design.) Almost all TT walker-time in bin 8 accrues during t ≈ 2–12,
+while the all-trans population is driven into compression and converts to TG. That drain is faster at dt 5e-4: the TT
+walker fraction at t = 4 is 0.36 / 0.49 / 0.54 at dt 5e-4 / 2.5e-4 / 1.25e-4 (16 / 16 / 4 seeds). Production bin-8
+walker-time at t = 40 at dt 2.5e-4 vs 5e-4 is TT 0.224 vs 0.175 (+28 %) and TG 1.79 vs 2.15 (−17 %). The TT share
+0.112 vs 0.075 thus has two parts, more TT and less TG dilution.
+
+### 14.2 Under an identical frozen bias the integrator does not matter (preregistered H_int: not supported)
+
+| frozen bias (all-trans start) | dt | τ_TT | W8_TT | W8_TG | TT→TG hazard, R 2.95–3.125 |
+|---|---|---|---|---|---|
+| t = 4 applied bias (drain phase), T 12, 8 seeds | 5e-4 | 1.735 | 0.246 | 0.045 | 0.69 |
+| | 2.5e-4 | 1.736 (+0.1 % [−3.1, +6.3]) | 0.242 | 0.043 | 0.70 |
+| | 1.25e-4 | 1.727 (−0.5 % [−3.6, +3.8]) | 0.239 | 0.042 | 0.75 |
+| | 5e-4, no clip (paired) | 1.735 (0.0 % [−0.01, +0.04]) | 0.246 | 0.045 | 0.69 |
+| t = 2 applied bias × 0.8 (inside the ramp), T 12, 4 seeds | 5e-4 / 2.5e-4 / 1.25e-4 | 7.86 / 7.93 / 7.98 | 0.361 / 0.347 / 0.349 | 0.31 / 0.32 / 0.32 | 0.89 / 0.96 / 1.01 |
+| t = 40 applied bias of dt 5e-4, T 20, 4 seeds | 5e-4 / 2.5e-4 | 16.97 / 16.86 | 0.505 / 0.489 | 0.327 / 0.349 | 0.51 / 0.56 |
+| t = 40 applied bias of dt 2.5e-4, T 20, 4 seeds | 5e-4 / 2.5e-4 | 14.80 / 14.89 | 0.692 / 0.696 | 0.446 / 0.465 | 0.60 / 0.62 |
+
+The TT→TG hazard is steep in R: about 0 above R 3.06, 2 at 2.99, 20 at 2.94, 100–200 below 2.86 per unit TT time.
+It is the same at every dt (Figure 7d). A compressed TT walker converts only once the bias has pushed it below
+R ≈ 2.95. Under every fixed bias, dt changes τ_TT by ≤ 1.4 %, W8_TT by ≤ 4 % and W8_TG by ≤ 7 %. Where the difference
+is resolved it goes *against* the adaptive pattern: dt 5e-4 has slightly *more* TT and *less* TG in bin 8. By the
+frozen rule H_int is not supported, so the dt effect is a bias-history effect. H_static and H_clip as frozen were
+therefore not interpreted; both are reported descriptively below. Changing the bias origin at fixed dt (t = 40 bias of
+dt 2.5e-4 vs 5e-4) changes W8_TT and W8_TG by +37 % and +36 %, five to ten times the effect of the integrator under one bias.
+
+**Clip and walls.** In tracked adaptive ABF at dt 5e-4 the clip fires on 5.5e-4 of the walker-steps of TT walkers
+at R 2.95–3.35, ten times its global rate (≤ 5e-8 at the finer timesteps). Removing it (paired noise) changes
+e_F(40) by −0.08 % [−0.53, +0.04] and the frozen drain by 0.0 %. The soft walls (R 1.45 / 3.65) never act at the
+crossover; the global wall-step fraction is 0.07–0.10 % in every plain, no-clip and dt-switch adaptive arm.
+
+### 14.3 What differs is the f_R sample, at fixed R and family
+
+Per-family mean f_R sample under the identical frozen t = 4 bias (8 seeds per arm; Figure 7e):
+
+| R | TT: dt 5e-4 / 2.5e-4 / 1.25e-4 / shadow | TG: dt 5e-4 / 2.5e-4 / 1.25e-4 / shadow |
+|---|---|---|
+| 2.94 | −37.3 / −33.6 / −32.4 / −38.5 | +5.4 / +2.7 / +2.0 / +6.4 |
+| 2.96 | −39.2 / −36.5 / −35.8 / −39.7 | +8.3 / +4.2 / +3.0 / +10.0 |
+| 2.99 | −39.8 / −38.4 / −38.0 / −39.9 | +10.3 / +4.6 / +2.7 / +12.8 |
+| 3.01 | −39.4 / −38.6 / −38.4 / −39.2 | +10.6 / +2.7 / +0.3 / +13.3 |
+| 3.04 | −37.9 / −37.5 / −37.5 / −37.8 | +7.7 / −0.7 / −3.2 / +10.4 |
+| ≥ 3.06 | equal within 0.3 | (too few TG) |
+
+Without a bias, the same sign appears in Stage A's unbiased ensemble (A1, exact start; Section 4): the conditional mean
+force at R 3.15–3.2 (TT share 0.94) is −23.4 / −20.5 / −19.8 at dt 5e-4 / 2.5e-4 / 1.25e-4 (reference −19.5). At
+R 3.0–3.1 (TG-dominated) it is +2.0 to +2.7 above the reference at dt 5e-4 and +0.4 to +0.8 at 2.5e-4. The shadow
+column is dt 1.25e-4 dynamics on dt 5e-4's EM invariant measure: the first-order EM shadow drift b + (dt0/2) J_b b,
+with dt0 = 5e-4 and J_b b by central differences of the full drift. It reproduces dt 5e-4's stiff-mode distortion
+(committed-TT bond-length variance 1.75e-3 vs 1.64e-3 at dt 5e-4 and 1.09e-3 at 1.25e-4; bend variance 7.5e-3 vs
+7.2e-3 vs 5.9e-3) and its per-family f_R, overshooting slightly, while its drain stays at τ_TT 1.737. The f_R shift is
+therefore a property of EM's invariant measure, not of its kinetics.
+
+### 14.4 How the shifted samples change ABF (tracked adaptive runs, rng 20261201, 4 seeds)
+
+| | dt 5e-4 | dt 2.5e-4 | dt 1.25e-4 |
+|---|---|---|---|
+| e_F(40) | 1.374 | 1.841 (+34 % [+24, +45]) | 1.920 (+40 % [+37, +52]) |
+| applied bias at R 3.05, t = 1 (all walkers TT) | −29.0 | −27.7 | −26.3 (−9 % [−18, −3]) |
+| applied bias at R 3.0, t = 2 (16 / 16 / 4 confirmatory and pilot seeds) | −23.5 | −18.5 | −17.3 |
+| committed-TT fraction at t = 4 | 0.37 | 0.51 | 0.55 |
+| bin-8 TT walker-time, all steps / share before t = 3 | 0.290 / 39 % | 0.317 / 28 % | 0.325 / 24 % |
+| bin-8 TT walker-time, production (t ≥ 3) | 0.176 | 0.229 | 0.248 |
+| bin-8 TG walker-time, production | 2.19 | 1.78 | 1.71 |
+| crossover deposit bias (mean over R 2.95–3.125 of deposit mean − F′_ref) | −7.8 | −15.0 | −16.3 |
+
+Splitting the crossover deposit-mean difference (fine bins R 2.95–3.125) into a family-share part and a per-family-mean
+part gives −7.2 = −6.1 (share) − 1.1 (per-family f_R) for 2.5e-4 vs 5e-4, and −8.9 = −7.5 − 1.4 for 1.25e-4. The direct
+f_R shift is small; it acts mostly through the share it induces. A subtlety for (A): the total TT walker-time in bin 8
+is only 9–12 % lower at dt 5e-4. dt 5e-4 starts compressing earlier, so 39 % of its TT time falls inside the
+estimator burn-in (t < 3), against 28 % and 24 %. Its production TT deposits are therefore 23–29 % lower.
+
+**Timestep switch at t = 3 (end of the burn-in; phase 1 bitwise the plain run; deposits weighted by dt / dt1).**
+ψ = (X − X_2.5e-4) / (X_5e-4 − X_2.5e-4):
+
+| run | e_F(40) | ψ(e_F(40)) | production TT, bin 8 | production TG, bin 8 | ψ(TT fraction at t = 4) | ψ(TG, bin 8) |
+|---|---|---|---|---|---|---|
+| dt 5e-4 until t 3, then 2.5e-4 | 1.673 | 0.36 [0.07, 0.55] | 0.176 | 1.83 | 0.95 | 0.07 |
+| dt 2.5e-4 until t 3, then 5e-4 | 1.564 | 0.59 [0.39, 0.98] | 0.229 | 2.11 | 0.04 | 0.81 |
+
+The two ψ add to ≈ 1. The amount of TT contamination is fixed entirely by the warm-up timestep (0.176 vs 0.229 in
+either order); the TG dilution follows the later timestep. Under a fixed bias the later timestep does not change TG
+occupancy (Section 14.2), so channel (B) runs through the estimate: the more positive TG samples (Section 14.3) lift
+the crossover estimate, which feeds back on where TG walkers go.
+
+**Adaptive shadow (exploratory, dt 1.25e-4 on the EM shadow of dt0 5e-4, T 12, 4 single-seed runs).** At t = 12,
+compared with dt 5e-4 (no clip) and plain dt 1.25e-4: e_F(12) is 2.55 vs 3.01 vs 3.30; bin-8 TG walker-time 0.32 vs
+0.17 vs 0.14; TT fraction at t = 4 0.47 vs 0.37 vs 0.55; applied bias at R 3.05, t = 1 −31.7 vs −29.0 vs −26.3. The
+amendment's rule reads this as "static (invariant-measure)" (φ(e_F(12)) = 2.6 ≥ 0.7). But it is an overshoot, not a
+quantitative match: the shadow's estimator effects are stronger than dt 5e-4's. Its population dynamics also differ,
+with more TT walkers left after t ≈ 6 (0.08 vs 0.013 at t = 12) and ten times the wall activity (1.2 %). The
+conclusion drawn from it is qualitative: EM's invariant-measure distortion with *accurate* kinetics is enough to
+produce every estimator effect of dt 5e-4, in the same direction.
+
+### 14.5 Reading and limits
+
+* **Mechanism.** ABF at the crossover is self-reinforcing (Section 5): compressed-TT samples make F̂′ too negative,
+  which pushes TG walkers away and preserves the contamination. The EM invariant measure at dt 5e-4 shifts the f_R
+  samples against this loop, in the two ways above: (A) a stronger early compressive estimate, which finishes the TT
+  transient earlier and largely inside the burn-in, and (B) more positive stretched-TG samples, which hold the
+  crossover estimate up. Refining dt removes both compensating shifts, so the bare sampling error shows: e_F(40)
+  1.37 → 1.84 → 1.92, saturating as the integrator error vanishes.
+* **What it is not.** Not the torsional or crossover kinetics (frozen-bias drain, hazard and excursions are
+  dt-independent within a few %). Not the clip, the walls or the deposition frequency (Section 5 (3)).
+* **Consequences.** The +32 % ABF penalty at dt\* measures how much of dt 5e-4's apparent accuracy at T = 40 came
+  from a lucky sign of its discretisation error. It is not a defect of the validated timestep. The conclusions of
+  Sections 1–13 are unchanged: the mFR comparison is the same at both dts (Section 6), and the dominant ABF error is
+  conditional (Section 7). The case strengthens the cautionary point of Section 13: an integrator error can lower a
+  free-energy error by partly cancelling a sampling error.
+* **Limits.** Four seeds per adaptive arm; the 16-seed confirmatory contrast is the established effect, and the tracked
+  seeds reproduce it (+34 %). The 40/60 split rests on one switch time (t = 3) and four seeds. The shadow drift is
+  first order, and its correction is capped at 0.9 |drift| on 1e-5 of the walker-steps, so it is a qualitative probe.
+  The uncapped version was numerically invalid and is not used (`crossover/invalid_uncapped_shadow/`). Which stiff mode
+  (bonds or bends) carries the f_R shift was not separated.
