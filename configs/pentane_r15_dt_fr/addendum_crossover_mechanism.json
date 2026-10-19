@@ -1,0 +1,37 @@
+{
+  "addendum_to": "docs/PENTANE_R15_DT_FR.md, Section 5 ('Where the dt effect sits') and Section 12 (the unresolved 'smaller dt -> worse ABF' mechanism)",
+  "written_utc": "2026-10-19, BEFORE any new dynamics of this addendum were run",
+  "scope": "ABF only (no FR, no other enhanced-sampling method). Mechanism question only: which property of the production Euler-Maruyama integrator damps the TG/TT-crossover feedback at dt 5e-4. CPU only, budget cap 20 core-h.",
+  "already_read_before_this_design": [
+    "Existing confirmatory/pilot ABF raw files only (no new dynamics): committed walker family fractions and cumulative per-family deposits of conditional bin 8 (R 2.933-3.125) vs time.",
+    "TT walker fraction at t = 4: 0.36 / 0.49 / 0.54 at dt 5e-4 / 2.5e-4 / 1.25e-4 (16 / 16 / 4 seeds); roughly exponential drain between t 4 and 8 at 0.53 / 0.44 / 0.41 per unit time.",
+    "Bin-8 production walker-time per walker at t = 40, dt 2.5e-4 vs 5e-4: TT 0.224 vs 0.175 (+28 %, >95 % of it accrued by t = 12), TG 1.79 vs 2.15 (-17 %). The TT share 0.112 vs 0.075 is therefore about half 'more TT deposits during the early drain' and half 'less TG dilution later'."
+  ],
+  "hypotheses": {
+    "H_int": "Under an IDENTICAL frozen ABF bias, compressed all-trans (TT) walkers convert to TG faster at dt 5e-4 than at 2.5e-4 / 1.25e-4, i.e. the dt effect is an integrator property and not a difference in bias history.",
+    "H_static": "The integrator property is carried by EM's modified invariant measure: integrating the first-order EM shadow drift of dt0 = 5e-4, b + (dt0/2) J_b b (exact Hessian-vector product by central differences of the full production drift, Laplacian term omitted), at dt 1.25e-4 reproduces the dt 5e-4 behaviour.",
+    "H_clip": "The per-atom physical force clip (200) contributes."
+  },
+  "runs": {
+    "A_tracked_adaptive": "Production ABF (run_sampler_dist unchanged; a force_fn hook whose arithmetic is bitwise the production force records per-walker state every step), rng 20261201, 4 seeds, T 40, dt 5e-4 / 2.5e-4 / 1.25e-4. Verification: final pmf and mean_force bitwise equal to the confirmatory files for dt 5e-4 and 2.5e-4. The hook also reconstructs the APPLIED bias (all deposits, as the engine) at every unit of time.",
+    "B_frozen_early": "Fixed bias = seed-mean applied ABF mean force at t = 4 of run A at dt 5e-4 (the drain-phase bias). All-trans start (production initial condition), full bias strength from t = 0, walls as production, no deposits into any estimator. T 12, rng 20261301-20261302 (8 seeds). Arms: dt 5e-4; dt 2.5e-4; dt 1.25e-4; dt 5e-4 without the physical clip (paired noise with the clipped dt 5e-4 arm); shadow(dt0 5e-4) at dt 1.25e-4, run WITHOUT the physical clip (a central difference across the clip's kink is ill-defined), so its comparator is the no-clip dt 5e-4 arm (H_clip decides whether that matters).",
+    "B_frozen_final": "Fixed bias = seed-mean applied bias at t = 40 of run A at dt 5e-4 (as the task requested), and, for the bias-origin contrast, the same from run A at dt 2.5e-4. All-trans start, T 20, rng 20261401 (4 seeds). Arms: {bias from 5e-4, bias from 2.5e-4} x {dt 5e-4, dt 2.5e-4}."
+  },
+  "observables": {
+    "primary": "tau_TT = integral over [0, T] of the committed-TT walker fraction (committed = last +-30 deg core visited by each dihedral), per seed.",
+    "co_primary": "W8_TT = walker-time per walker spent as basin-TT (61.6 deg basins, the engine's family definition) in conditional bin 8, R 2.933-3.125.",
+    "secondary": [
+      "TT->TG hazard k(R) = committed TT->TG transitions / committed-TT walker-time, R bins of 0.025 on [2.5, 3.6]",
+      "excursions of committed-TT walkers below R 3.10 (end when R > 3.15 or the walker leaves TT): count, mean residence, fraction ending by conversion",
+      "per-family conditional mean of the f_R sample in R bins (does the per-family mean force itself depend on dt?)",
+      "clip activity (walker-steps with any atom force norm > 200, and the excess) by R bin and family; wall activity",
+      "bond-length and bend-angle variances of committed-TT walkers (checks how well the shadow arm reproduces dt 5e-4's stiff-mode distortion)"
+    ]
+  },
+  "decision_rules": {
+    "H_int": "supported if the unpaired ratio median(tau_TT, dt 2.5e-4) / median(tau_TT, dt 5e-4) - 1 has a 95 % bootstrap CI excluding 0 AND |ratio - 1| >= 0.10 in B_frozen_early; same reported for 1.25e-4. If not supported, the dt effect is attributed to the bias history (feedback amplification of an initial difference) and H_static / H_clip are not interpreted.",
+    "H_static": "fraction of the gap closed phi = (tau_1.25 - tau_shadow) / (tau_1.25 - tau_5e-4 no clip), bootstrap CI: 'static (invariant-measure) mechanism' if phi >= 0.7, 'kinetic EM property' if phi <= 0.3, 'partial' otherwise.",
+    "H_clip": "contributes if the paired change tau_TT(no clip) / tau_TT(clip) - 1 has a 95 % CI excluding 0 and magnitude >= 5 %."
+  },
+  "not_done": "No change to the production engine, the estimator, the frozen campaign conclusions, or the reference; no FR arm; no hidden-coordinate method."
+}
