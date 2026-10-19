@@ -51,8 +51,10 @@ COND_EDGES = np.linspace(1.4, 3.7, 13)                                # engine's
 EXC_IN, EXC_OUT = 3.10, 3.15        # TT excursion below the crossover: enter R < 3.10, leave R > 3.15 (hysteresis)
 DUR_EDGES = np.logspace(-3, 2, 51)
 FAM = ["TT", "TG", "GG same", "GG opp"]
-# name -> (source adaptive run dt, its T, bias time).  early5 comes from a T = 4 run, bitwise identical to the T = 40 run up to t = 4
-BIASES = {"early5": ("5e-4", 4.0, 4.0), "final5": ("5e-4", 40.0, 40.0), "final25": ("2.5e-4", 40.0, 40.0)}
+# name -> (source adaptive run dt, its T, bias time, ramp factor the engine applied at that time).  early5 / mid5 come from a
+# T = 4 run, bitwise identical to the T = 40 run up to t = 4.  mid5 (exploratory follow-up): t = 2, inside the 2.5 warm-up ramp
+BIASES = {"early5": ("5e-4", 4.0, 4.0, 1.0), "mid5": ("5e-4", 4.0, 2.0, 0.8), "final5": ("5e-4", 40.0, 40.0, 1.0),
+          "final25": ("2.5e-4", 40.0, 40.0, 1.0)}
 
 
 def _fam(b1, b2):
@@ -257,7 +259,7 @@ def cmd_adaptive(args):
 
 
 def load_bias(name):
-    dts, Ts, tb = BIASES[name]
+    dts, Ts, tb, _ = BIASES[name]
     fs = sorted(glob.glob(os.path.join(OUT, "raw", f"adaptive__dt{float(dts):g}__T{Ts:g}__ns4__rng20261201.npz")))
     assert len(fs) == 1, fs
     d = np.load(fs[0])
@@ -272,6 +274,7 @@ def cmd_frozen(args):
     if os.path.exists(path):
         print("exists", path); return
     prof, src, tb = load_bias(args.bias)
+    scale = BIASES[args.bias][3]
     R, N, A = args.n_seeds, CELL["n_replicas"], 5
     p = pot.AlkaneParams(n_atoms=5, beta=CELL["beta"], sigma=CELL["sigma"], epsilon=CELL["epsilon"], decouple=False,
                          force_clip=0.0 if args.no_clip else CELL["force_clip"])
@@ -291,7 +294,7 @@ def cmd_frozen(args):
     def bias_wall(qf, F):
         Rv, grad_full, _ = cv.geometry(qf)
         Rr = Rv.reshape(R, N)
-        bias_at = iv.interval_interp(mf, grid, Rr).clamp(-CELL["abf_force_clip"], CELL["abf_force_clip"])
+        bias_at = scale * iv.interval_interp(mf, grid, Rr).clamp(-CELL["abf_force_clip"], CELL["abf_force_clip"])
         return F + dist_bias_force(grad_full, (bias_at + cd._wall_gforce(Rr, sim)).reshape(R * N))
 
     def drift_plain(qf):
@@ -317,8 +320,88 @@ def cmd_frozen(args):
             print(f"  step {step}/{n_steps} {time.time() - t0:.0f}s TT {float((tr.cfam_prev == 0).double().mean()):.3f}", flush=True)
     wall = time.time() - t0
     nonfinite = int((~torch.isfinite(q).reshape(R * N, -1).all(-1)).sum())
-    _save(path, tr.arrays(), _meta(args, dict(mode="frozen", bias_source=src, bias_t=tb, bias_profile=list(map(float, prof)), wall_seconds=wall,
+    _save(path, tr.arrays(), _meta(args, dict(mode="frozen", bias_source=src, bias_t=tb, bias_scale=scale, bias_profile=list(map(float, prof)), wall_seconds=wall,
                                                n_steps=n_steps, shadow_corr_max=corr_max, shadow_corr_gt_drift=corr_rel_big, nonfinite_walkers=nonfinite)))
+    print(f"wrote {path} wall {wall / 60:.1f} min nonfinite {nonfinite} corr_max {corr_max:.3g} corr>drift {corr_rel_big}", flush=True)
+
+
+def cmd_adaptive2(args):
+    """Exploratory follow-up: the production ABF update written out (bitwise run_sampler_dist with --shadow-dt0 0 and the
+    clip on; checked on t <= 4 against the confirmatory file), so that the DYNAMICS can integrate the EM shadow drift of
+    dt0 while the estimator keeps depositing the physical f_R sample."""
+    torch.set_num_threads(1)
+    a = SimpleNamespace(arm="abf", fr_rate=0.0, dt=args.dt, T=args.T, deposit_interval=None, rng_seed=args.rng_seed, n_seeds=args.n_seeds)
+    p0, sim, _, sch = build_arm(a)
+    tag = f"adaptive2__dt{args.dt:g}" + ("__noclip" if args.no_clip else "") + (f"__shadow{args.shadow_dt0:g}" if args.shadow_dt0 else "")
+    path = os.path.join(OUT, "raw", f"{tag}__T{args.T:g}__ns{args.n_seeds}__rng{args.rng_seed}.npz")
+    if os.path.exists(path):
+        print("exists", path); return
+    p = pot.AlkaneParams(n_atoms=5, beta=CELL["beta"], sigma=CELL["sigma"], epsilon=CELL["epsilon"], decouple=False,
+                         force_clip=0.0 if args.no_clip else CELL["force_clip"])
+    R, N, A, beta = args.n_seeds, sim.n_replicas, 5, p.beta
+    cv = DistanceCV(0, 4)
+    grid, dz = iv.interval_grid(sim.n_grid, sim.R_lo, sim.R_hi)
+    K = iv.gaussian_kernel_matrix(grid, sim.abf_bandwidth)
+    gen = torch.Generator().manual_seed(int(sim.rng_seed))
+    init = torch.zeros(R, N, 2)
+    q = geom.place_chain(init.reshape(R * N, 2), A, d0=p.d0, theta0=p.theta0).reshape(R, N, A, 3)
+    q = geom.remove_com(q + 1e-3 * torch.randn(q.shape, generator=gen))
+    noise_scale = math.sqrt(2.0 * sim.dt / beta)
+    z = lambda: torch.zeros(R, sim.n_grid)                                           # noqa: E731
+    fsum, csum, fsum_prod, csum_prod = z(), z(), z(), z()
+    tr = Tracker(R, N, args.dt, beta, prod_step=sim.estimator_burn_in_steps, ck_every=round(0.25 / args.dt))
+    hook = HookForces(tr)
+    diag = {k: [] for k in ("times", "mean_force", "pmf", "bias_t", "bias")}
+
+    def drift(qf, F, mf_profile, abf_scale):
+        Rv, grad_full, _ = cv.geometry(qf)
+        Rr = Rv.reshape(R, N)
+        mf_at = iv.interval_interp(mf_profile, grid, Rr).clamp(-sim.abf_force_clip, sim.abf_force_clip)
+        applied = abf_scale * mf_at + cd._wall_gforce(Rr, sim)
+        return F.reshape(R, N, A, 3) + dist_bias_force(grad_full, applied.reshape(R * N)).reshape(R, N, A, 3)
+
+    corr_max = 0.0; corr_rel_big = 0; t0 = time.time()
+    for step in range(sim.n_steps + 1):
+        qf = q.reshape(R * N, A, 3)
+        F = hook(qf, p)
+        f_loc, R_f, _ = cv.local_mean_force(qf, F, beta)
+        Rv = R_f.reshape(R, N)
+        f_loc = torch.clamp(f_loc, -sim.abf_force_clip * 8, sim.abf_force_clip * 8).reshape(R, N)
+        fsum += iv.bin_sum(Rv, f_loc, sim.n_grid, sim.R_lo, sim.R_hi); csum += iv.bin_counts(Rv, sim.n_grid, sim.R_lo, sim.R_hi)
+        if step >= sim.estimator_burn_in_steps:
+            fsum_prod += iv.bin_sum(Rv, f_loc, sim.n_grid, sim.R_lo, sim.R_hi); csum_prod += iv.bin_counts(Rv, sim.n_grid, sim.R_lo, sim.R_hi)
+        mf_profile = iv.mean_force_profile(fsum, csum, K)
+        abf_scale = sim.abf_bias_scale * min(1.0, step / max(sim.abf_warmup_steps, 1))
+        b = drift(qf, F, mf_profile, abf_scale)
+        if args.shadow_dt0:
+            bf = b.reshape(R * N, A, 3)
+            bn = torch.linalg.norm(bf.reshape(R * N, -1), dim=-1).clamp_min(1.0)
+            eps = (args.fd_h / bn)[:, None, None]
+            qp, qm = qf + eps * bf, qf - eps * bf
+            Jb = (drift(qp, pot.forces(qp, p), mf_profile, abf_scale) - drift(qm, pot.forces(qm, p), mf_profile, abf_scale)).reshape(R * N, A, 3) / (2.0 * eps)
+            corr = 0.5 * args.shadow_dt0 * Jb
+            cn = torch.linalg.norm(corr.reshape(R * N, -1), dim=-1)
+            corr_max = max(corr_max, float(cn.max())); corr_rel_big += int((cn > bn).sum())
+            b = b + corr.reshape(R, N, A, 3)
+        if step % sim.save_every == 0 or step == sim.n_steps:
+            rf, rc = (fsum_prod, csum_prod) if csum_prod.sum() > 0 else (fsum, csum)
+            mf_rep = iv.mean_force_profile(rf, rc, K)
+            diag["times"].append(step * sim.dt); diag["mean_force"].append(mf_rep.numpy().copy())
+            diag["pmf"].append(iv.free_energy_from_mean_force(mf_rep, grid, dz).numpy().copy())
+            diag["bias_t"].append(step * sim.dt); diag["bias"].append(mf_profile.numpy().copy())
+        if step == sim.n_steps:
+            break
+        noise = torch.randn(q.shape, generator=gen)
+        q = geom.remove_com(q + sim.dt * b + noise_scale * noise)
+        if step % 40000 == 0:
+            print(f"  step {step}/{sim.n_steps} {time.time() - t0:.0f}s TT {float((tr.cfam_prev == 0).double().mean()):.3f}", flush=True)
+    wall = time.time() - t0
+    arr = tr.arrays()
+    arr.update({k: np.asarray(v) for k, v in diag.items()})
+    arr.update(fsum_prod=fsum_prod.numpy(), csum_prod=csum_prod.numpy(), fsum=fsum.numpy(), csum=csum.numpy(), grid=grid.numpy())
+    nonfinite = int((~torch.isfinite(q).reshape(R * N, -1).all(-1)).sum())
+    _save(path, arr, _meta(args, dict(mode="adaptive2", schedule=sch, wall_seconds=wall, n_steps=sch["n_steps"], shadow_corr_max=corr_max,
+                                       shadow_corr_gt_drift=corr_rel_big, nonfinite_walkers=nonfinite)))
     print(f"wrote {path} wall {wall / 60:.1f} min nonfinite {nonfinite} corr_max {corr_max:.3g} corr>drift {corr_rel_big}", flush=True)
 
 
@@ -330,9 +413,12 @@ def main():
     f = sp.add_parser("frozen"); f.add_argument("--dt", type=float, required=True); f.add_argument("--bias", required=True, choices=sorted(BIASES))
     f.add_argument("--T", type=float, required=True); f.add_argument("--rng-seed", type=int, required=True); f.add_argument("--n-seeds", type=int, default=4)
     f.add_argument("--no-clip", action="store_true"); f.add_argument("--shadow-dt0", type=float, default=0.0); f.add_argument("--fd-h", type=float, default=1e-5)
+    b = sp.add_parser("adaptive2"); b.add_argument("--dt", type=float, required=True); b.add_argument("--T", type=float, default=40.0)
+    b.add_argument("--rng-seed", type=int, default=20261201); b.add_argument("--n-seeds", type=int, default=4)
+    b.add_argument("--no-clip", action="store_true"); b.add_argument("--shadow-dt0", type=float, default=0.0); b.add_argument("--fd-h", type=float, default=1e-5)
     args = ap.parse_args()
     torch.set_num_threads(1)
-    {"adaptive": cmd_adaptive, "frozen": cmd_frozen}[args.cmd](args)
+    {"adaptive": cmd_adaptive, "frozen": cmd_frozen, "adaptive2": cmd_adaptive2}[args.cmd](args)
 
 
 if __name__ == "__main__":

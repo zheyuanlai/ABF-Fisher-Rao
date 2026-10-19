@@ -33,5 +33,21 @@
     "H_static": "fraction of the gap closed phi = (tau_1.25 - tau_shadow) / (tau_1.25 - tau_5e-4 no clip), bootstrap CI: 'static (invariant-measure) mechanism' if phi >= 0.7, 'kinetic EM property' if phi <= 0.3, 'partial' otherwise.",
     "H_clip": "contributes if the paired change tau_TT(no clip) / tau_TT(clip) - 1 has a 95 % CI excluding 0 and magnitude >= 5 %."
   },
-  "not_done": "No change to the production engine, the estimator, the frozen campaign conclusions, or the reference; no FR arm; no hidden-coordinate method."
+  "not_done": "No change to the production engine, the estimator, the frozen campaign conclusions, or the reference; no FR arm; no hidden-coordinate method.",
+  "exploratory_followup": {
+    "written_utc": "2026-10-19 ~03:35, after reading ONLY the frozen early-bias arms at dt 5e-4 (clip and no clip) and dt 2.5e-4, and after re-reading the existing confirmatory/pilot/Stage A files; before any of the runs below and before the dt 1.25e-4, shadow, adaptive-tracked or final-bias results existed",
+    "what_was_seen": [
+      "Under the frozen t = 4 bias the drain is dt-independent: tau_TT 1.735 (dt 5e-4) vs 1.736 (2.5e-4), W8_TT 0.2452 vs 0.2453, identical TT->TG hazard profile k(R) (~0 above R 3.06, 20-200 per unit time below 2.95). The no-clip dt 5e-4 arm is identical to the clipped one to the 4th digit.",
+      "In the existing adaptive runs the applied estimate during the warm-up differs: mean force at R 3.0 is -12.5 / -13.2 / -15.4 at t = 1 and -23.5 / -18.5 / -17.3 at t = 2 (dt 5e-4 / 2.5e-4 / 1.25e-4); it converges by t = 4.",
+      "Under the identical frozen bias the per-family f_R sample means differ by dt: TT at R 2.94-3.0 is 1.5-4 units more negative at dt 5e-4; TG at R 2.94-3.06 is 3-8 units more positive. Stage A: unbiased-ensemble (A1) conditional mean force at R 3.0-3.1 is +2.0 / +2.7 above the reference at dt 5e-4 (+0.4 / +0.8 at 2.5e-4).",
+      "Stage A stationary bin-8 TT share: Gibbs 0.0067 / 0.0049 / 0.0044, flat 0.036 / 0.031 / 0.028 at dt 5e-4 / 2.5e-4 / 1.25e-4 (static distortion puts MORE compressed TT in the crossover at dt 5e-4)."
+    ],
+    "status": "H_int as frozen (on tau_TT under the t = 4 bias) is decided by the full 8-seed analysis; the follow-up below is EXPLORATORY and is reported as such.",
+    "runs": {
+      "F1_frozen_mid": "Frozen bias = seed-mean applied bias at t = 2 of the dt 5e-4 run (ramp factor 0.8 applied, as the engine: 0.8 * clip(mf)), all-trans start, T 12, rng 20261301 (4 seeds), dt 5e-4 / 2.5e-4 / 1.25e-4. Question: is the drain dt-dependent under the partially built, weaker warm-up bias?",
+      "E1_adaptive_shadow": "Adaptive ABF (own loop, verified bitwise against run_sampler_dist with the shadow off) at dt 1.25e-4 integrating the EM shadow drift of dt0 5e-4 (no physical clip), T 40, rng 20261201, 4 seeds. Question: does dt 5e-4's invariant-measure distortion alone, with accurate kinetics, reproduce dt 5e-4's ABF (e_F(40), crossover deposit bias, bin-8 TT share, warm-up estimate)?",
+      "E2_adaptive_noclip": "Adaptive ABF at dt 5e-4 without the physical clip, T 40, rng 20261201 (paired with the tracked dt 5e-4 run). Comparator for E1."
+    },
+    "readouts": "phi_adaptive = (X_1.25 - X_shadow) / (X_1.25 - X_5e-4noclip) for X in {e_F(40), bin-8 production deposit mean, bin-8 TT share, applied mean force at R 3.0 at t = 2}; 'static (invariant-measure)' if phi >= 0.7, 'kinetic' if phi <= 0.3, 'partial' otherwise (4 seeds; exploratory). Decomposition of the bin-8 / crossover deposit-mean difference between dt 5e-4 and 2.5e-4 into a family-share part and a per-family-mean-force part, from the tracked adaptive runs."
+  }
 }
