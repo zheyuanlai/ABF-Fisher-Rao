@@ -136,6 +136,8 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--procs", type=int, default=64)
     a = ap.parse_args()
+    if os.path.exists(FROZEN) and "timestep" in json.load(open(FROZEN)):
+        raise SystemExit(f"{FROZEN} already holds a frozen timestep; delete it to repeat Stage 1")
     os.makedirs(a.out, exist_ok=True)
     jobs = [("em", h, g) for h in CANDIDATES for g in range(G)] + [("mala", MALA_H, g) for g in range(G)]
     t0 = datetime.datetime.now(datetime.timezone.utc)
