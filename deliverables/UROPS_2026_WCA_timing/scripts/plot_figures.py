@@ -46,10 +46,9 @@ def band(ax, arm, key, lw=1.4, iqr=True):
     ax.plot(t, med, color=c, ls=ls, lw=lw, label=lab)
 
 
-def marks(ax, stop=(20.0,), start0=True):
+def marks(ax, stop=(20.0,), start0=True, note="t = 20: ABF warm-up end +\nestimator reset"):
     ax.axvline(20.0, color="0.45", lw=0.8, ls=":", zorder=0)
-    ax.text(20.3, 0.97, "t = 20: ABF warm-up end +\nestimator reset", transform=ax.get_xaxis_transform(), fontsize=6.5,
-            va="top", color="0.35")
+    ax.text(20.3, 0.97, note, transform=ax.get_xaxis_transform(), fontsize=6.5, va="top", color="0.35")
     for s in stop:
         if s != 20.0:
             ax.axvline(s, color="#17becf", lw=0.8, ls="-.", zorder=0)
@@ -62,7 +61,7 @@ def fig_main(png):
             band(ax, arm, key)
         ax.set_yscale("log")
         ax.set_xlim(0, 240)
-        marks(ax)
+        marks(ax, note="t = 20: ABF warm-up end + estimator\nreset; FR stop of the green arm")
         ax.axvline(20.0, color="#2ca02c", lw=0.9, ls="-.", alpha=0.7)
         ax.set_xlabel("t [reduced time units]")
         ax.set_ylabel(YL[key])
@@ -70,7 +69,7 @@ def fig_main(png):
     axes[0].set_title("(a) free energy", fontsize=10)
     axes[1].set_title("(b) mean force", fontsize=10)
     axes[2].set_title("(c) RC marginal (full domain)", fontsize=10)
-    axes[0].legend(fontsize=7.5, loc="upper right")
+    axes[0].legend(fontsize=7.5, loc="upper right", bbox_to_anchor=(1.0, 0.86))
     fig.suptitle("WCA dimer, validated dt = 1.25e-4, K = 256, 16 paired seeds (5600-5615): median and IQR; FR from t = 0 "
                  "(green stops at t = 20, dash-dot line)", fontsize=9.5)
     fig.tight_layout()
@@ -134,7 +133,7 @@ def fig_supp(png):
             band(ax, arm, key, lw=1.1, iqr=False)
         ax.set_yscale("log")
         ax.set_xlim(0, 240)
-        marks(ax, stop=(20.0, 40.0))
+        marks(ax, stop=(20.0, 40.0), note="t = 20: warm-up end + reset = stop of the\nstop-20 arm; cyan t = 40: stop of the stop-40 arm")
         ax.set_xlabel("t [reduced time units]")
         ax.set_ylabel(YL[key])
         ax.grid(alpha=0.25, which="both", lw=0.4)
