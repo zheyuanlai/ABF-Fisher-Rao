@@ -1,0 +1,396 @@
+{
+ "title": "WCA dimer in WCA solvent at the validated timestep (histogram ABF vs ABF + uniform FR)",
+ "source": {
+  "run_dir": "results/numerical_validation/wca_confirmatory/dt0.000125_N256_T240",
+  "prereg": "configs/numerical_validation/wca_confirmatory_prereg.json",
+  "engine": "src/wca_numba.py",
+  "run_commit": "92b33d7f1df5e52c0476d6df50e4bfa8de46496b",
+  "analysis": "scripts/numerical_validation/analyze_wca_confirmatory.py",
+  "summary": "results/numerical_validation/wca_confirmatory/dt0.000125_N256_T240/summary.json",
+  "docs": [
+   "docs/numerical_validation/WCA_CONFIRMATORY.md",
+   "docs/numerical_validation/WCA_REFERENCE_AUDIT.md",
+   "docs/numerical_validation/WCA_LANGEVIN_VALIDATION.md"
+  ],
+  "not_exported": "hist_fr_sham (matched-turnover sham, historical); the invalid dt = 0.002 positive runs",
+  "raw_sha256": {
+   "s5100_abf.npz": "68abdee386c6e35b8fb6b80014ff214e5ba9e906153074907b112324a4fa63f1",
+   "s5100_frsham.npz": "90c26276eb8b050578b48f6d8fc50f15e1f280f095efaedd21cc97de80555f5f",
+   "s5101_abf.npz": "7cc99a7344050ed465c332f4f936d42f27c01313a1486fe16807871df152ba12",
+   "s5101_frsham.npz": "551ce14e7beef0df57faf4d3002a829a23d37fcb81b13170d4991475d4598250",
+   "s5102_abf.npz": "6a7ef532d1a468c6ed3b3a735fc01b8b6b0e5c35358d7b77d464a18b5ae933d8",
+   "s5102_frsham.npz": "b1b3db8d0496ede038c1754e4d702e916f1dfee933f775e814d458aa0b7acef3",
+   "s5103_abf.npz": "0d5a4d37d3912ea65338b2d95824f1890c4ff1e6f89f4512a6e877be9ce4e2ab",
+   "s5103_frsham.npz": "9a6307665840ce43954d7f2720d6f86dce1700e395c14c63fedd608224ee32e4",
+   "s5104_abf.npz": "4f7974bdb7357209970108e955f6016ef7b1cdfbef9fa7d2e66b14ca5db60085",
+   "s5104_frsham.npz": "3203a006e45a77e67c1b7cdd76e248fb99f8cb7ac6edaaf166e1348cc2b2541e",
+   "s5105_abf.npz": "72faecd61d5816bc4c49f4b4ec9d723d1021010757983b6a7aa400d126a9094d",
+   "s5105_frsham.npz": "a62900aceed57eeb8f4e94be3e7b7429f42588de5f5fbb95f543de7c20da4c53",
+   "s5106_abf.npz": "3344e17fac45cf4d153b8dcc28b5a4d0865fc719a6edace2d37953c2fd1d9fa9",
+   "s5106_frsham.npz": "2a494485c82bad701c80f6204a15b303ec4c3a1fbc949e37ac202f5c119076fe",
+   "s5107_abf.npz": "71a9116ccec0ce996cc9eea400e0fdf4212a21bb4698c524c12aa28ef6bbb313",
+   "s5107_frsham.npz": "c2b0136af8c0f36da69b65c511484b591158d12c0957dceec2157182cda8f13b",
+   "s5108_abf.npz": "3310032bd6dd2aa58eacb93c4ed679d7e8e6428c4b37a4c8fe6446e0a9f1c661",
+   "s5108_frsham.npz": "23951580665ec7dc9e8d13117405710775f3024d64c2128abc7dea62888411fc",
+   "s5109_abf.npz": "220e8ad922816bc802951df56d81dd58a1c3fae0c4d14ca66ec926ff64ded06d",
+   "s5109_frsham.npz": "515b9d67bdbfc0b0fb2be661201eb77d06bb74e0241e2bfdea7ea4207924bd03",
+   "s5110_abf.npz": "66563ee72a3dc5ebbccc158e1136de27e682a0071bd8f360b9ecd1adcc3fd139",
+   "s5110_frsham.npz": "31f50d78c579afe61f4c7a55cf7b1263ccc9ad3c877b4446434177631631ac4e",
+   "s5111_abf.npz": "dadd6d08468d1c1846e90ca8229930888b04d5d7f84181ef66e0e89cf55a6dc6",
+   "s5111_frsham.npz": "132fe88ba7febcef0cfdbb4facb8c1db03138e93c7771df24476c6050b6aa3a8",
+   "s5112_abf.npz": "06755078a4640b494c93fdd4b590f6ce0eb5858c9f3e39d2ce2eaf05536f36df",
+   "s5112_frsham.npz": "e1a28b4c5556a5098b9418e7840e7b1bec7fba8fe6c8a275eeef9814fee62a29",
+   "s5113_abf.npz": "88abdff52559e2608cb2dd86afd19510e361632f8824449e80afab6c7b80ec7c",
+   "s5113_frsham.npz": "17994cab9ccbcf0b06c6d047018641ad42933bd03ed19416de2a7efa376e382d",
+   "s5114_abf.npz": "cc5a8c583deb944a79022ec8c0be765535db546aa0df3093ee5195e82fc163b4",
+   "s5114_frsham.npz": "b0b5839768c9b49500deff6a605f104f027781e0a9b32750c4751cf40a9b19d0",
+   "s5115_abf.npz": "8b6da87565269b493c6d2645c5871460839d04c94d860713772de25c1512a881",
+   "s5115_frsham.npz": "599054f0afcbc94cd9d0c35fa32e41d783d242f190a10113bf33dee6eff6a1e3"
+  }
+ },
+ "status": "original data, post-processing only (no new simulation)",
+ "model": "2-D periodic box, a solvated dimer with a double-well bond (h = 2, w = 2) in a WCA solvent (n_dim 10, a 1.5, sigma 1.0, epsilon 1.0, beta 1.0); overdamped Euler-Maruyama with the accepted force clips and soft RC wall; xi = z the normalised dimer bond coordinate (compact well near 0, stretched well near 1)",
+ "config": {
+  "N": 256,
+  "T": 240.0,
+  "dt": 0.000125,
+  "n_steps": 1920000,
+  "nb": 160,
+  "estimator": "P0 histogram on 160 bins of [-0.2, 1.2] (own-bin bias M_j / C_j, edge-extrapolated); linear ABF ramp over 0 <= t <= 20; reported estimator = all-steps accumulators until the estimator burn-in at t = 20, production accumulators (deposits from t = 20) afterwards",
+  "fr": "uniform target on [-0.2, 1.2]; reflected Gaussian KDE bandwidth 0.07; score clip 2.0; rate 0.1 (no ramp); every 80 steps (0.01 t.u.) from t = 40; never stopped; cap floor(0.02 N) = 5 per opportunity",
+  "fr_start_t": 40.0,
+  "fr_stop_t": null,
+  "abf_ramp_end_t": 20.0,
+  "estimator_burn_in_t": 20.0,
+  "pairing": "ABF and FR arms on the same Langevin noise (separate processes); identical accumulators before t = 40 (asserted)"
+ },
+ "reference": "exact Gibbs by Metropolis MC (64 chains): F = density route, F' = MC bin conditional means, interpolated to the 160-node scorer grid (rescore_wca_history.mc_reference)",
+ "definitions": {
+  "eF": "RMS on the eval window [-0.1, 1.1] of the reported pmf minus F_ref after removing the mean difference (core.timeseries_l2; additive-constant alignment, uniform weight)",
+  "eFp": "histogram_fp_error_np: L2 over [-0.1, 1.1] of the bin mean force Gamma_j vs the MC mean force (the histogram arms' own e_F', the confirmatory's primary F' metric)",
+  "exi": "||p_t - u||_L2 on [-0.2, 1.2], p_t = z_hist / (N * 0.00875), u = 1/1.4"
+ },
+ "units": {
+  "t": "reduced time units (dt* = 1.25e-4 per step)",
+  "eF": "kT (beta = 1)",
+  "eFp": "kT per unit z",
+  "exi": "density per unit z (L2 norm, z^-1/2)"
+ },
+ "domain": {
+  "eF": "[-0.1, 1.1]",
+  "eFp": "[-0.1, 1.1]",
+  "exi": "[-0.2, 1.2] (FR target domain)"
+ },
+ "weighting": "uniform in z",
+ "marginal_type": "instantaneous replica histogram (raw, unsmoothed), 160 bins",
+ "floors": {
+  "exi_multinomial_uniform_N256": 0.6660618536270809,
+  "exi_interior_multinomial_uniform_N256": 0.6660353400091086
+ },
+ "transitions": "estimator burn-in reset of the REPORTED accumulators at t = 20 (deposits before 20 discarded): a genuine jump of e_F / e_F' at t = 20 in both arms; FR from t = 40",
+ "time_grid": "all 49 saved checkpoints (every 5 t.u., t = 0 .. 240); the run saved no denser grid, so the figure has fewer than 100 points by construction (no interpolation)",
+ "integrated_definition": "I_F = trapezoid of e_F over all saves on [0, 240] (wca_numba integrated_l2_f); paired per-seed % change, median with a 10000-resample bootstrap CI (analyze_wca_confirmatory.contrast)",
+ "stats": {
+  "I_F": {
+   "reproduced": {
+    "median": 9.937601136945219,
+    "ci95": [
+     2.330235863090535,
+     13.23730462196444
+    ],
+    "wins": 4,
+    "n": 16,
+    "per_seed": [
+     15.774379011799367,
+     -3.9632333736595027,
+     16.496894846439236,
+     10.958280308285119,
+     2.330235863090535,
+     -1.8675765200716454,
+     10.44693791044784,
+     11.94800113547716,
+     10.700230232129515,
+     36.78417759494816,
+     -0.9599787183699915,
+     8.493141346394161,
+     -7.703001442830127,
+     3.6475500424673957,
+     21.62762570584722,
+     9.428264363442596
+    ]
+   },
+   "recorded": {
+    "median": 9.937601136945219,
+    "ci95": [
+     2.330235863090535,
+     13.23730462196444
+    ],
+    "wins": 4,
+    "n": 16,
+    "per_seed": [
+     15.774379011799367,
+     -3.9632333736595027,
+     16.496894846439236,
+     10.958280308285119,
+     2.330235863090535,
+     -1.8675765200716454,
+     10.44693791044784,
+     11.94800113547716,
+     10.700230232129515,
+     36.78417759494816,
+     -0.9599787183699915,
+     8.493141346394161,
+     -7.703001442830127,
+     3.6475500424673957,
+     21.62762570584722,
+     9.428264363442596
+    ]
+   }
+  },
+  "final_e_F": {
+   "reproduced": {
+    "median": 131.01854952255496,
+    "ci95": [
+     93.27287562436553,
+     193.99285366628197
+    ],
+    "wins": 1,
+    "n": 16,
+    "per_seed": [
+     289.82146800496525,
+     9.948141918008368,
+     159.46923867033064,
+     124.44736341612406,
+     11.582489682747443,
+     34.42621641288939,
+     159.90987942126273,
+     193.99285366628197,
+     213.27927082380066,
+     217.0705623601748,
+     125.70610861638501,
+     93.27287562436553,
+     -23.59318169864083,
+     114.44832890061538,
+     267.72464188723507,
+     136.33099042872493
+    ]
+   },
+   "recorded": {
+    "median": 131.01854952255496,
+    "ci95": [
+     93.27287562436553,
+     193.99285366628197
+    ],
+    "wins": 1,
+    "n": 16,
+    "per_seed": [
+     289.82146800496525,
+     9.948141918008368,
+     159.46923867033064,
+     124.44736341612406,
+     11.582489682747443,
+     34.42621641288939,
+     159.90987942126273,
+     193.99285366628197,
+     213.27927082380066,
+     217.0705623601748,
+     125.70610861638501,
+     93.27287562436553,
+     -23.59318169864083,
+     114.44832890061538,
+     267.72464188723507,
+     136.33099042872493
+    ]
+   }
+  },
+  "final_e_Fp": {
+   "reproduced": {
+    "median": 10.486111235098262,
+    "ci95": [
+     7.031120072350406,
+     16.470056876649686
+    ],
+    "wins": 2,
+    "n": 16,
+    "per_seed": [
+     16.470056876649686,
+     3.6935938749712127,
+     2.6734502957634465,
+     12.332749642783082,
+     10.603576200466925,
+     -4.4561766414459525,
+     10.275102949841642,
+     23.751869376532508,
+     10.088484282322918,
+     37.55043641025393,
+     18.09630218051337,
+     10.368646269729599,
+     -3.741924478489689,
+     8.33273919188937,
+     19.579595725294308,
+     11.399659656952332
+    ]
+   },
+   "recorded": {
+    "median": 10.486111235098262,
+    "ci95": [
+     7.031120072350406,
+     16.470056876649686
+    ],
+    "wins": 2,
+    "n": 16,
+    "per_seed": [
+     16.470056876649686,
+     3.6935938749712127,
+     2.6734502957634465,
+     12.332749642783082,
+     10.603576200466925,
+     -4.4561766414459525,
+     10.275102949841642,
+     23.751869376532508,
+     10.088484282322918,
+     37.55043641025393,
+     18.09630218051337,
+     10.368646269729599,
+     -3.741924478489689,
+     8.33273919188937,
+     19.579595725294308,
+     11.399659656952332
+    ]
+   }
+  },
+  "I_F_is_trapezoid_over_saves": true,
+  "median_curve_max_abs_deviation": {
+   "abf": 0.0,
+   "fr": 0.0
+  },
+  "verdict_recorded": "FR_HARMFUL",
+  "pooled_limits_recorded": {
+   "hist_abf": {
+    "D_vs_MC": 0.00384787461914403,
+    "up": 0.006509490750501914,
+    "noise": 0.002435820948426137
+   },
+   "hist_fr_uniform": {
+    "D_vs_MC": 0.01977894486531246,
+    "up": 0.02323784319728996,
+    "noise": 0.0026453531294014635
+   },
+   "hist_fr_sham": {
+    "D_vs_MC": 0.0,
+    "up": 0.004749230046056676,
+    "noise": 0.0028011405661015894
+   },
+   "FR_tilt_vs_ABF": {
+    "D": 0.016852362907100182,
+    "up": 0.021237396336024564,
+    "noise": 0.003467218288322788
+   },
+   "sham_vs_ABF": {
+    "D": 0.004700769790626522,
+    "up": 0.009429990374298704,
+    "noise": 0.0035874918746536303
+   }
+  },
+  "paired_identical_before_fr_start": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "fr_replacements_median": 677.0,
+  "edge_bin_share": {
+   "definition": "fraction of the 256 replicas in the two edge bins of z_hist (bins 0 and 159, which also collect the soft-wall tails z < -0.2 and z > 1.2)",
+   "median_last_quarter": {
+    "abf": 0.16796875,
+    "fr": 0.158203125
+   },
+   "median_final": {
+    "abf": 0.154296875,
+    "fr": 0.1484375
+   }
+  },
+  "sham_note": "the historical file also holds a matched-turnover sham arm (recorded sham vs ABF I_F -0.8 %); it is not part of this two-arm export"
+ },
+ "supplementary": {
+  "exi_interior": {
+   "csv": "figs/data_supplementary/wca_exi_interior.csv",
+   "definition": "||p - u|| over the 158 interior bins only (renormalised on [-0.19125, 1.19125], u = 1/1.3825): removes the edge-bin spikes from the replicas held in the soft-wall tails; diagnostic, not the primary panel"
+  }
+ },
+ "caveat_panel_c": "panel (c) is dominated after t ~ 10 by the replicas held in the soft-wall tails beyond the grid, which the engine's hist_bin clamps into the two 0.00875-wide edge bins (about 17 % of the replicas in the last quarter of the run); the interior-only error sits at the finite-N floor in both arms",
+ "experiment": "wca",
+ "seeds": [
+  5100,
+  5101,
+  5102,
+  5103,
+  5104,
+  5105,
+  5106,
+  5107,
+  5108,
+  5109,
+  5110,
+  5111,
+  5112,
+  5113,
+  5114,
+  5115
+ ],
+ "n_seeds": 16,
+ "n_times": 49,
+ "t_first": 0.0,
+ "t_last": 240.0,
+ "files": {
+  "eF": {
+   "csv": "figs/data/wca_eF.csv",
+   "n_rows": 49,
+   "n_nonfinite_abf": 0,
+   "n_nonfinite_fr": 0,
+   "n_nonpositive_abf": 0,
+   "n_nonpositive_fr": 0
+  },
+  "eFp": {
+   "csv": "figs/data/wca_eFp.csv",
+   "n_rows": 49,
+   "n_nonfinite_abf": 0,
+   "n_nonfinite_fr": 0,
+   "n_nonpositive_abf": 0,
+   "n_nonpositive_fr": 0
+  },
+  "exi": {
+   "csv": "figs/data/wca_exi.csv",
+   "n_rows": 49,
+   "n_nonfinite_abf": 0,
+   "n_nonfinite_fr": 0,
+   "n_nonpositive_abf": 0,
+   "n_nonpositive_fr": 0
+  }
+ },
+ "provenance": {
+  "data_root": "/home/zheyuanlai/ABF-Fisher-Rao",
+  "scoring_code_commit": "13e77275c80f034287f1503237d203a430e60317",
+  "scoring_code_tracked_files_modified": false,
+  "checked_paths": [
+   "src",
+   "scripts",
+   "configs"
+  ],
+  "exporter_commit": "13d9ed1a4a164981e10ebc6aaedde86463d977b3",
+  "python": "3.14.4",
+  "numpy": "2.4.6"
+ }
+}
