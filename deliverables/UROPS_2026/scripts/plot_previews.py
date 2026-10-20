@@ -72,7 +72,7 @@ def plot(exp, png_dir=None):
     fig.suptitle(f"{NAMES[exp]}: {meta['n_seeds']} paired seeds; panel (c): {short}", fontsize=10)
     fig.tight_layout()
     os.makedirs(C.PREVIEW_DIR, exist_ok=True)
-    fig.savefig(os.path.join(C.PREVIEW_DIR, f"{exp}.pdf"))
+    fig.savefig(os.path.join(C.PREVIEW_DIR, f"{exp}.pdf"), metadata={"CreationDate": None})  # byte-reproducible
     if png_dir:
         os.makedirs(png_dir, exist_ok=True)
         fig.savefig(os.path.join(png_dir, f"{exp}.png"), dpi=110)

@@ -1,0 +1,1414 @@
+{
+ "package": "UROPS 2026 convergence-figure data (ABF vs ABF + marginal Fisher-Rao birth-death)",
+ "generated_utc": "2026-10-20T12:20:15.622586+00:00",
+ "repository": "https://github.com/zheyuanlai/ABF-Fisher-Rao",
+ "branch": "urop-report-figures",
+ "csv_columns": [
+  "t",
+  "abf_median",
+  "abf_q25",
+  "abf_q75",
+  "fr_median",
+  "fr_q25",
+  "fr_q75"
+ ],
+ "statistic": "median and 25th / 75th percentiles across seeds at every saved checkpoint",
+ "figures": {
+  "gateway": {
+   "title": "Entropic gateway (histogram ABF vs ABF + uniform FR), validated timestep",
+   "status": "original data, post-processing only (no new simulation)",
+   "seeds": [
+    8100,
+    8101,
+    8102,
+    8103,
+    8104,
+    8105,
+    8106,
+    8107,
+    8108,
+    8109,
+    8110,
+    8111,
+    8112,
+    8113,
+    8114,
+    8115,
+    8116,
+    8117,
+    8118,
+    8119,
+    8120,
+    8121,
+    8122,
+    8123,
+    8124,
+    8125,
+    8126,
+    8127,
+    8128,
+    8129,
+    8130,
+    8131
+   ],
+   "n_seeds": 32,
+   "n_times": 225,
+   "t_range": [
+    0.004,
+    40.0
+   ],
+   "source": {
+    "run_dir": "results/equal_budget_v2/gateway/N2048",
+    "config": "configs/equal_budget_v2/gateway_production.json",
+    "engine": "src/gateway_ladder_numba.py (gateway_ladder_numba/2)",
+    "validation_doc": "docs/equal_budget/GATEWAY_TIMESTEP_VALIDATION.md",
+    "frozen_analysis": "results/equal_budget_v2/gateway/analysis/summary.json",
+    "run_commit": "55a4e78d580e6d4b19a66040e629e7d10a23cf5e",
+    "engine_sha256": "bdeaa40a42f82d509fcdbe1c209559a93c0d0fae9391633c8858488bc25074ce",
+    "raw_sha256": {
+     "s8100_abf": "65d8880d6b048c5d12f04db876a50c4127aeaa44c040d3dae91acd4fe7efb465",
+     "s8100_fr": "d663b52aef41a0514deeb3cece28e5d19f067b5fbf179930c43d5d1a22a77f83",
+     "s8101_abf": "229d21bc7c4934cd99a7f7f144a3ae6949e60180d676aecd42624733b7f8a643",
+     "s8101_fr": "8a9f01f97bddef89c5acfbfc0d1f985b3fef180db4c4f1fb30fa33ecf1eaf2a9",
+     "s8102_abf": "605422a4c5e1891ce6db3b0dfeab74def7ab88cb3f3a6dd6b1d9ab0e1c7a3ae3",
+     "s8102_fr": "be1832c99efc848fcae38ab69d65a4b423fdd078c8d82c8d7eb875ac541c8dbf",
+     "s8103_abf": "a1d449700758c84e1a4bd9048d2f24e72d6b292df8bf27404de19666431bee95",
+     "s8103_fr": "95f1d4f54d4ae38ab6802580daefd611d837eecf445fe2004abbda9e89820eb3",
+     "s8104_abf": "a34372650b144ff408a1e0671a102d35115ec53edd53d9c517659302bd3bc6cc",
+     "s8104_fr": "6a42ac0022dee298a6a4294cbc0da75a39e5b341228ab8041079f71d5dd80925",
+     "s8105_abf": "39dbe459189d1d9e4ea0e54a9140fe06979cb08b5d4d1b0e5b8dfcc9606d6123",
+     "s8105_fr": "6236836a0b6ef9d26f3023efa7c1a6d56e7406fb20ba1c4f7ad24679b4218cdb",
+     "s8106_abf": "f42dd23d0c5907c35391f0bbddb20cc9945bfa4552d7f10272e45674a497f48b",
+     "s8106_fr": "f3e87d888ce5b1327b3dc475660adf9248ff4ed1b12e59a4af41eba92f8f9d19",
+     "s8107_abf": "d4a1863c8a5d626ee68d21db8d8c38e1bc781a0d15b9b7e6953c9c9325238778",
+     "s8107_fr": "5a4512eed2b58fa10a5716d4ff2f21d5a859c68fcda1372165a0492a34744808",
+     "s8108_abf": "d77e22b1e594eb2c0981ae1d5bf7d1ba84e96c2962019aa7dc159753b544cc91",
+     "s8108_fr": "6970dc7c61e33ec03237aacb6a6de9c45f9b85ea4de16546dc1b9b05b0bdd48b",
+     "s8109_abf": "2678c39cfd017ccb37a9253f751e864ad11311737ae155974927fa9138b43db8",
+     "s8109_fr": "24d5a31d6d337eac74b17fffc4a6f89d3e318a01c861ec34656d60ee9c4828c6",
+     "s8110_abf": "5feac94656a74def2dba1c15a4a5237476e492c6d8255d84aef2b33510083b26",
+     "s8110_fr": "22cbc70dc2ec5b7238256022346339f20ec899c90ad64e0553527e5091851f29",
+     "s8111_abf": "5c6ffa7df4195c911d7141b50b13a20625e6a03cfbc9a229aa0630d671c2d938",
+     "s8111_fr": "b649d06e6c11546204ec602f9ce0223aa4f4b634ad7d9e0284ced128765ac107",
+     "s8112_abf": "df2134311e827796593510f5f387d7410ad5ecc83a984a735e80e9ddbe66136f",
+     "s8112_fr": "3de82f1404055220449e9be7d3246b2f76d2187bde46d5e84a2de625d643e855",
+     "s8113_abf": "5cc586b4d994754fcd6642c07116d01bf105f2e2c894452ab3823aab83f82e08",
+     "s8113_fr": "7b0691a0cd21fc8cee6175cceef91a2217546a48529a68d8d009a79250fb65c2",
+     "s8114_abf": "5d48f8e2ba16dc3aa03c690594c82a85a0faa727d0218a878a6b6b0bda613add",
+     "s8114_fr": "045f4b2e49807860866068b58ca531ebcbee56090b8d49563302ba7f15ada014",
+     "s8115_abf": "1febfd6e38339eb78d87eb915db635d743847f8fcc67c30e1ab4a07d846c0fd0",
+     "s8115_fr": "7df40477c4660189a4460da3756593ef13e631b431f007f1258453009a9f507d",
+     "s8116_abf": "fee142781733d73144ca92f9bbc92d534b8ab0b96567092f90ad844c0f414711",
+     "s8116_fr": "91675f3a043fc456a7dfb15f49b3a3489f3f15a4dc92b838337779f36871a228",
+     "s8117_abf": "15763e92534b967b0f994f9116ef27c01111e7164f05df762dcfe6d8661c481c",
+     "s8117_fr": "c4546cbd6459bfe97373ebe12666f7f5172ba54b7660f548d3876ba836fb66c7",
+     "s8118_abf": "46addce73e150b4c2bd36a3e3c19437b46ea034238f4d529824023f399ef2a98",
+     "s8118_fr": "a2c2fcf6c1636defc7468005f107702b3acb62bdeab5fe699824688e3cd4b5c3",
+     "s8119_abf": "45074b723a819acf400f21435d3a314403fdc9b2d7be7f79775f7fca38ff9da9",
+     "s8119_fr": "0a96090db41084c92fc8a19e40e50364533df47d3ad498f69084a8ae544372a0",
+     "s8120_abf": "28862f3c9cc429cbea155142d38b7c97c05419eaf5a4dac54cbb645930b35a0d",
+     "s8120_fr": "9f24fd6aead5526f2fa1be352b6c1c410a7b5a775605ffee886219b77cfa3a48",
+     "s8121_abf": "d99580b285201ed8c5c32618d1cc36981f8c029b0822c8bb0f400b80f25801e9",
+     "s8121_fr": "635edf88120f7352fbfbda5cfef058deb3f12c645066ccab15b30e9662efe0d2",
+     "s8122_abf": "c8ec5cd3a0039250872617656ec65733b4d02662934e7ef752e67ad9588d6f76",
+     "s8122_fr": "a2892672d3ffef4ad066e0958a39346930f7529f19537f39ff11b628bee80fd1",
+     "s8123_abf": "026e5d4fb40a8e77c20b68c3eec2cf5580f88c344428041762b9ba2aee1179e6",
+     "s8123_fr": "7250cf73ee9cd08ff85ede4a6536ab1c03d45031f42f85be0a2ac270d0c44c2b",
+     "s8124_abf": "77280e7674563075191f2b2c07ffdbef15e6356a83f8af9d61bef8c543e337ff",
+     "s8124_fr": "67dc2856de998ddb510a2a785030ce5493bc428724d6f29d237a63c6b5bdff21",
+     "s8125_abf": "1a8c88c8da178730d568f946c88f2487ecda79a5b180e4312f664e0ff7a33f2e",
+     "s8125_fr": "4e47e4a3f2657eefb7fd930eff4ba2273335193c6b880fcfdb177b9aa448411f",
+     "s8126_abf": "cf9894d10f12fa673051a220296c9c20bf0f85485ef596d2525e5cca61154b91",
+     "s8126_fr": "3113e5b681dda83c6f833dec1b1f616104d061d9e6bfd8611fea9cc69239d1f5",
+     "s8127_abf": "a9ed1c86c334745707aed4d8b71267054653b5f6354433dc6bd0047231f2ae82",
+     "s8127_fr": "2ab87b8b1d8ba7719e072b041e4ec3f33c7a756b04c7091b2a83797f6bb188f3",
+     "s8128_abf": "e73c5381ab23616659d5f02991a8c6da681d91c65f6bba0a62b1695842a9a125",
+     "s8128_fr": "78badf7349c2871f3643cd3b3f08945a12eba21ea8a9088f60dbeebc8f43228f",
+     "s8129_abf": "8d6624665d4871b5d5f1db75e91f003b63032f7129f65adbbbd28b2dbe1ac68e",
+     "s8129_fr": "3ecdef71d08de2d3371456e22f5ff84c25f225995ec715f04af811380a0d73b8",
+     "s8130_abf": "2cd80f3fb6b5a5b207f3a0a155dc63b3f2004afe5c6edfc07cb4460bb545fa72",
+     "s8130_fr": "0b67096150e99fa6d3fbaace166ae2c68d92b197b73653d9d97595c7a958c247",
+     "s8131_abf": "f1454810044ee88b09c9f5fd748438f873d4db46d0a5bde3339fe52d1094b783",
+     "s8131_fr": "be27a97e6f4f72418fe1667063c280a431f8dae5a2d518a1112c274e35d0cfb0"
+    }
+   },
+   "config": {
+    "N": 2048,
+    "T": 40.0,
+    "h": 2.5e-05,
+    "n_steps": 1600000,
+    "nb": 180,
+    "estimator": "P0 histogram, own-bin bias Gamma_j = M_j / (C_j + 1), no ABF ramp",
+    "fr": "uniform target on [-1.8, 1.8]; binned reflect-padded Gaussian KDE eta = 0.1; score clip 3; rate g(t) = 1.5 (1 - exp(-t / 4)); FR every 0.004 t.u. (160 steps) from t = 0, never stopped; cap max(1, floor(0.08 N)) = 163 events per opportunity",
+    "fr_start_t": 0.0,
+    "fr_stop_t": null,
+    "fr_rate_ramp_t": 4.0,
+    "init": "x ~ N(-1, 0.05) in the left well, y from the exact conditional; identical for both arms",
+    "pairing": "identical Langevin noise slot by slot (separate FR stream); both arms bitwise identical only for ABF; FR acts from the first opportunity"
+   },
+   "reference": "exact analytic F(x) = H (x^2-1)^2 + log(omega(x))/beta + C and F'(x) (frozen results/equal_budget_v2/references/gateway_reference.npz, sha256 recorded by the scorer)",
+   "definitions": {
+    "eF": "RMS over the 151 eval-window nodes x in [-1.5, 1.5] of F_hat - F_ref after removing the mean difference (additive-constant alignment, uniform weight); F_hat = exact integral of the piecewise-constant bin force",
+    "eFp": "L2 over [-1.5, 1.5] (Gauss-Legendre sub-grid per bin) of Gamma_j - F'_ref(x); includes the hard piecewise-constant floor 0.0323 (within-bin variation of F'_ref at the gate): e_F'^2 = stat^2 + floor^2",
+    "exi": "||p_t - u||_L2 on [-1.8, 1.8], p_t = instantaneous replica histogram / (N * 0.02), u = 1/3.6"
+   },
+   "units": {
+    "t": "reduced time units (h = 2.5e-5 per step)",
+    "eF": "reduced energy (beta = 16, kT = 0.0625)",
+    "eFp": "reduced energy per unit x",
+    "exi": "density per unit x (L2 norm, units x^-1/2)"
+   },
+   "domain": {
+    "eF": "[-1.5, 1.5]",
+    "eFp": "[-1.5, 1.5]",
+    "exi": "[-1.8, 1.8] (full reflecting domain)"
+   },
+   "weighting": "uniform in x",
+   "marginal_type": "instantaneous replica histogram (raw, unsmoothed), 180 bins",
+   "integrated_definition": "Ibar_F = mean of e_F over the 200 uniform budget fractions u = k/200 (frozen eqb_metrics)",
+   "csv": {
+    "eF": "figs/data/gateway_eF.csv",
+    "eFp": "figs/data/gateway_eFp.csv",
+    "exi": "figs/data/gateway_exi.csv"
+   },
+   "preview": "figs/previews/gateway.pdf",
+   "supplementary": null,
+   "floors": {
+    "eFp_piecewise_constant": 0.0323,
+    "exi_multinomial_uniform_N2048": 0.15581536772553742,
+    "exi_floor_definition": "RMS of ||p_hat - u|| for N independent exactly-uniform walkers"
+   },
+   "provenance": {
+    "data_root": "/home/zheyuanlai/ABF-Fisher-Rao",
+    "scoring_code_commit": "13e77275c80f034287f1503237d203a430e60317",
+    "scoring_code_tracked_files_modified": false,
+    "checked_paths": [
+     "src",
+     "scripts",
+     "configs"
+    ],
+    "exporter_commit": "13d9ed1a4a164981e10ebc6aaedde86463d977b3",
+    "python": "3.14.4",
+    "numpy": "2.4.6"
+   }
+  },
+  "lta150": {
+   "title": "Ethane in rigid all-silica LTA, 150 K (histogram ABF vs ABF + uniform FR)",
+   "status": "original data, post-processing only (no new simulation)",
+   "seeds": [
+    1020,
+    1021,
+    1022,
+    1023,
+    1024,
+    1025,
+    1026,
+    1027,
+    1028,
+    1029,
+    1030,
+    1031,
+    1032,
+    1033,
+    1034,
+    1035
+   ],
+   "n_seeds": 16,
+   "n_times": 101,
+   "t_range": [
+    0.0,
+    60.0
+   ],
+   "source": {
+    "run_dir": "results/lta_histogram/production_T150",
+    "files": [
+     "abf.npz",
+     "fr_uniform.npz"
+    ],
+    "not_read": "fr_sham.npz (historical matched-sham arm; not part of this two-arm comparison)",
+    "config": "configs/lta_histogram/campaign.json",
+    "engine": "src/lta/core_lta.py",
+    "run_commit": "56ab774d727cccb1fc4fb85fde014514fbd1f631",
+    "config_hash": "8fae317868d3",
+    "docs": [
+     "docs/LTA_HISTOGRAM_REPLICATION.md",
+     "docs/numerical_validation/LTA_VALIDATION.md"
+    ],
+    "loader": "scripts/convergence_fr/systems.py::load_lta",
+    "raw_sha256": {
+     "abf": "971f037db03bf558e2de0f70363dcb21b2b3ee3a24d1cc38d53f033d901d323b",
+     "fr_uniform": "29f86bae2fc77c301319a1a33c7a0ba76e8c5f11be8dcd88b7492a2f58eb91fb"
+    }
+   },
+   "config": {
+    "N": 1024,
+    "T": 60.0,
+    "dt": 0.0002,
+    "n_steps": 300000,
+    "save_every_steps": 3000,
+    "nb": 180,
+    "temperature_K": 150,
+    "estimator": "P0 histogram on 180 circular bins (own-bin bias M_j / C_j, 0 on empty bins); ABF bias ramp over 0 <= t <= 4; reported estimator from production accumulators after the estimator burn-in at t = 4 (all-steps accumulators before)",
+    "fr": "uniform target 1/(2 pi); wrapped-Gaussian KDE bandwidth 0.1 rad; score clip 2.0; rate 0.2; every 5 steps from t = 4; never stopped; cap floor(0.02 N) = 20 events per opportunity",
+    "fr_start_t": 4.0,
+    "fr_stop_t": null,
+    "abf_ramp_end_t": 4.0,
+    "estimator_burn_in_t": 4.0,
+    "pairing": "all arms of one temperature in ONE process on common seeds (rng_seed 20260902)"
+   },
+   "reference": "independent exact Metropolis MC umbrella reference (results/numerical_validation/lta/T150/MC, 640 chain files): F = MC density route (summary.json profiles['MC density']), F' = pooled MC bin conditional mean force",
+   "definitions": {
+    "eF": "sqrt(mean_j (F_hat_j - F_ref_j - c)^2) over the 180 bins, c = mean difference (full circle, uniform)",
+    "eFp": "sqrt(mean_j (Gamma_j - F'_ref_j)^2) over the 180 bins (full circle, uniform); per-bin reference, no deterministic within-bin floor",
+    "exi": "||p_hat_t - u||_L2 over the circle, p_hat_t = saved KDE (bandwidth 0.1 rad) of the current replica phi values, normalised to integrate to 1 over [-pi, pi), u = 1/(2 pi)"
+   },
+   "units": {
+    "t": "engine time units (overdamped EM, dt = 2e-4 per step; not physical ps)",
+    "eF": "kJ/mol",
+    "eFp": "kJ/mol/rad",
+    "exi": "density per rad (L2 norm, rad^-1/2)"
+   },
+   "domain": {
+    "eF": "full circle [-pi, pi)",
+    "eFp": "full circle",
+    "exi": "full circle"
+   },
+   "weighting": "uniform in phi",
+   "marginal_type": "instantaneous replica marginal, KDE-smoothed (bandwidth 0.1 rad) as saved by the engine; not a raw histogram",
+   "integrated_definition": "I_F = trapezoid of e_F over all saves on [0, 60] (LTA_VALIDATION / analyze_lta_histogram); atlas Ibar = I / T and post-ramp Ibar over [t_FR, T] also reproduced",
+   "csv": {
+    "eF": "figs/data/lta150_eF.csv",
+    "eFp": "figs/data/lta150_eFp.csv",
+    "exi": "figs/data/lta150_exi.csv"
+   },
+   "preview": "figs/previews/lta150.pdf",
+   "supplementary": null,
+   "floors": null,
+   "provenance": {
+    "data_root": "/home/zheyuanlai/ABF-Fisher-Rao",
+    "scoring_code_commit": "13e77275c80f034287f1503237d203a430e60317",
+    "scoring_code_tracked_files_modified": false,
+    "checked_paths": [
+     "src",
+     "scripts",
+     "configs"
+    ],
+    "exporter_commit": "13d9ed1a4a164981e10ebc6aaedde86463d977b3",
+    "python": "3.14.4",
+    "numpy": "2.4.6"
+   }
+  },
+  "lta300": {
+   "title": "Ethane in rigid all-silica LTA, 300 K (histogram ABF vs ABF + uniform FR)",
+   "status": "original data, post-processing only (no new simulation)",
+   "seeds": [
+    1060,
+    1061,
+    1062,
+    1063,
+    1064,
+    1065,
+    1066,
+    1067,
+    1068,
+    1069,
+    1070,
+    1071,
+    1072,
+    1073,
+    1074,
+    1075
+   ],
+   "n_seeds": 16,
+   "n_times": 101,
+   "t_range": [
+    0.0,
+    60.0
+   ],
+   "source": {
+    "run_dir": "results/lta_histogram/production_T300",
+    "files": [
+     "abf.npz",
+     "fr_uniform.npz"
+    ],
+    "not_read": "fr_sham.npz (historical matched-sham arm; not part of this two-arm comparison)",
+    "config": "configs/lta_histogram/campaign.json",
+    "engine": "src/lta/core_lta.py",
+    "run_commit": "56ab774d727cccb1fc4fb85fde014514fbd1f631",
+    "config_hash": "b9978052868b",
+    "docs": [
+     "docs/LTA_HISTOGRAM_REPLICATION.md",
+     "docs/numerical_validation/LTA_VALIDATION.md"
+    ],
+    "loader": "scripts/convergence_fr/systems.py::load_lta",
+    "raw_sha256": {
+     "abf": "7ba5583c14822e6776fa56fc98569c6157d7c1aa5823949f30b0ddd598e81579",
+     "fr_uniform": "9db7a70aa167d269f7cbab81b40a225e7ab5b71b72f30211da2f576a91109e4b"
+    }
+   },
+   "config": {
+    "N": 1024,
+    "T": 60.0,
+    "dt": 0.0002,
+    "n_steps": 300000,
+    "save_every_steps": 3000,
+    "nb": 180,
+    "temperature_K": 300,
+    "estimator": "P0 histogram on 180 circular bins (own-bin bias M_j / C_j, 0 on empty bins); ABF bias ramp over 0 <= t <= 4; reported estimator from production accumulators after the estimator burn-in at t = 4 (all-steps accumulators before)",
+    "fr": "uniform target 1/(2 pi); wrapped-Gaussian KDE bandwidth 0.1 rad; score clip 2.0; rate 0.2; every 5 steps from t = 4; never stopped; cap floor(0.02 N) = 20 events per opportunity",
+    "fr_start_t": 4.0,
+    "fr_stop_t": null,
+    "abf_ramp_end_t": 4.0,
+    "estimator_burn_in_t": 4.0,
+    "pairing": "all arms of one temperature in ONE process on common seeds (rng_seed 20260904)"
+   },
+   "reference": "independent exact Metropolis MC umbrella reference (results/numerical_validation/lta/T300/MC, 640 chain files): F = MC density route (summary.json profiles['MC density']), F' = pooled MC bin conditional mean force",
+   "definitions": {
+    "eF": "sqrt(mean_j (F_hat_j - F_ref_j - c)^2) over the 180 bins, c = mean difference (full circle, uniform)",
+    "eFp": "sqrt(mean_j (Gamma_j - F'_ref_j)^2) over the 180 bins (full circle, uniform); per-bin reference, no deterministic within-bin floor",
+    "exi": "||p_hat_t - u||_L2 over the circle, p_hat_t = saved KDE (bandwidth 0.1 rad) of the current replica phi values, normalised to integrate to 1 over [-pi, pi), u = 1/(2 pi)"
+   },
+   "units": {
+    "t": "engine time units (overdamped EM, dt = 2e-4 per step; not physical ps)",
+    "eF": "kJ/mol",
+    "eFp": "kJ/mol/rad",
+    "exi": "density per rad (L2 norm, rad^-1/2)"
+   },
+   "domain": {
+    "eF": "full circle [-pi, pi)",
+    "eFp": "full circle",
+    "exi": "full circle"
+   },
+   "weighting": "uniform in phi",
+   "marginal_type": "instantaneous replica marginal, KDE-smoothed (bandwidth 0.1 rad) as saved by the engine; not a raw histogram",
+   "integrated_definition": "I_F = trapezoid of e_F over all saves on [0, 60] (LTA_VALIDATION / analyze_lta_histogram); atlas Ibar = I / T and post-ramp Ibar over [t_FR, T] also reproduced",
+   "csv": {
+    "eF": "figs/data/lta300_eF.csv",
+    "eFp": "figs/data/lta300_eFp.csv",
+    "exi": "figs/data/lta300_exi.csv"
+   },
+   "preview": "figs/previews/lta300.pdf",
+   "supplementary": null,
+   "floors": null,
+   "provenance": {
+    "data_root": "/home/zheyuanlai/ABF-Fisher-Rao",
+    "scoring_code_commit": "13e77275c80f034287f1503237d203a430e60317",
+    "scoring_code_tracked_files_modified": false,
+    "checked_paths": [
+     "src",
+     "scripts",
+     "configs"
+    ],
+    "exporter_commit": "13d9ed1a4a164981e10ebc6aaedde86463d977b3",
+    "python": "3.14.4",
+    "numpy": "2.4.6"
+   }
+  },
+  "ite300": {
+   "title": "Ethane in rigid Si-ITE (ITQ-3), 300 K: early-stopping FR (confirmatory block E1)",
+   "status": "original data, post-processing only (no new simulation)",
+   "seeds": [
+    1100000,
+    1100001,
+    1100002,
+    1100003,
+    1100004,
+    1100005,
+    1100006,
+    1100007,
+    1100008,
+    1100009,
+    1100010,
+    1100011,
+    1100012,
+    1100013,
+    1100014,
+    1100015
+   ],
+   "n_seeds": 16,
+   "n_times": 401,
+   "t_range": [
+    0.0,
+    50.0
+   ],
+   "source": {
+    "run_dir": "results/convergence_fr_campaign/E1_ite300_stop10",
+    "engine": "src/eri/engine.py (eri_engine/1)",
+    "prereg": "docs/convergence_fr_campaign/PREREGISTRATION.md",
+    "synthesis": "docs/convergence_fr_campaign/FINAL_SYNTHESIS.md",
+    "jobs": "scripts/convergence_fr/make_jobs.py (block E1)",
+    "analysis": "results/convergence_fr_campaign/analysis/E1.json",
+    "loader": "scripts/convergence_fr/systems.py::load_eri_cell",
+    "reference_dir": "results/overnight/ite/reference",
+    "engine_sha256": "a165f0a97daee7710c104e4cf45dae2a62bdd6fda09b42d4b2a121d610553b8d"
+   },
+   "config": {
+    "N": 1024,
+    "T": 50.0,
+    "dt": 0.0001,
+    "n_steps": 500000,
+    "save_every_steps": 1250,
+    "nb": 180,
+    "temperature_K": 300.0,
+    "estimator": "P0 histogram on 180 circular bins from step 0, deposit before read, bias = ramp(t) * min(1, C_j / 200.0) * M_j / C_j; ramp over 0 <= t <= 1",
+    "fr": "uniform target; unnormalised wrapped-Gaussian KDE bandwidth 0.1 rad; score clip 2.0 (recentred score, lta_ladder_numba._fr_score); rate 2.0; every 10 steps from t = 1 to t = 10 (fr_stop_steps 100000), plain ABF afterwards; cap max(1, floor(0.02 N)) = 20 per opportunity",
+    "fr_start_t": 1.0,
+    "fr_stop_t": 10.0,
+    "abf_ramp_end_t": 1.0,
+    "init": "cage (50000 equilibration steps, excluded from the budget)",
+    "pairing": "shared PCG64 streams for initial conditions and Langevin noise; arms bitwise identical before the first FR opportunity (asserted)"
+   },
+   "reference": "exact Metropolis MC reference results/overnight/ite/reference (variant ite_itq3), mapped to the 180-bin grid by src/eri/metrics.reference_for_grid (F and per-bin mean force)",
+   "definitions": {
+    "eF": "aligned full-circle RMS over the 180 bins of F_hat - F_ref (mean difference removed), uniform weight",
+    "eFp": "RMS over the 180 bins of Gamma_j - F'_ref_j (uniform weight)",
+    "exi": "||p_t - u||_L2 over the circle, p_t = sv_h / (N * 2 pi / 180) the instantaneous histogram of the current replicas, u = 1/(2 pi)"
+   },
+   "units": {
+    "t": "engine time units (overdamped EM, dt = 1e-4 per step)",
+    "eF": "kJ/mol",
+    "eFp": "kJ/mol/rad",
+    "exi": "density per rad (L2 norm, rad^-1/2)"
+   },
+   "domain": {
+    "eF": "full circle",
+    "eFp": "full circle",
+    "exi": "full circle"
+   },
+   "weighting": "uniform in phi",
+   "marginal_type": "instantaneous replica histogram (raw, unsmoothed), 180 bins",
+   "integrated_definition": "post-ramp Ibar_F = (1/(T - t_FR)) * trapezoid of e_F over [t_FR, T] = [1, 50] (prereg companion); S_geo = per-seed geometric mean over the kT ladder {0.080, 0.064, 0.048, 0.040, 0.032} kT of min(tau_ABF, T) / min(tau_FR, T) (sustained), median over seeds on the log scale with a 10000-resample bootstrap CI",
+   "csv": {
+    "eF": "figs/data/ite300_eF.csv",
+    "eFp": "figs/data/ite300_eFp.csv",
+    "exi": "figs/data/ite300_exi.csv"
+   },
+   "preview": "figs/previews/ite300.pdf",
+   "supplementary": null,
+   "floors": {
+    "exi_multinomial_uniform_N1024": 0.16679637313580606
+   },
+   "provenance": {
+    "data_root": "/home/zheyuanlai/ABF-Fisher-Rao",
+    "scoring_code_commit": "13e77275c80f034287f1503237d203a430e60317",
+    "scoring_code_tracked_files_modified": false,
+    "checked_paths": [
+     "src",
+     "scripts",
+     "configs"
+    ],
+    "exporter_commit": "13d9ed1a4a164981e10ebc6aaedde86463d977b3",
+    "python": "3.14.4",
+    "numpy": "2.4.6"
+   }
+  },
+  "meta": {
+   "title": "Energetic metastability toy (2-D Gaussian-quartic multiwell, xi = x, beta = 4): histogram ABF vs ABF + uniform FR",
+   "status": "NEW simulation (the only rerun of this package): timestep gate, ABF-only resolution pilot, safety-only FR-rate pilot, then 32 fresh paired confirmation seeds",
+   "seeds": [
+    910000,
+    910001,
+    910002,
+    910003,
+    910004,
+    910005,
+    910006,
+    910007,
+    910008,
+    910009,
+    910010,
+    910011,
+    910012,
+    910013,
+    910014,
+    910015,
+    910016,
+    910017,
+    910018,
+    910019,
+    910020,
+    910021,
+    910022,
+    910023,
+    910024,
+    910025,
+    910026,
+    910027,
+    910028,
+    910029,
+    910030,
+    910031
+   ],
+   "n_seeds": 32,
+   "n_times": 401,
+   "t_range": [
+    0.0,
+    200.0
+   ],
+   "source": {
+    "run_dir": "results/urops_2026/metastability/confirm",
+    "engine": "deliverables/UROPS_2026/scripts/meta_engine.py (meta_engine/1)",
+    "prereg": "deliverables/UROPS_2026/metastability/PREREGISTRATION.md",
+    "frozen": "deliverables/UROPS_2026/metastability/FROZEN.json",
+    "runner": "deliverables/UROPS_2026/scripts/meta_confirm.py",
+    "potential": "src/abffr/potentials.py (copied term for term; tested)",
+    "archived_study": "results/two_dim_xi_x/, report/sections/04_case_metastability.tex (kernel-type ABF, 5 exploratory seeds; NOT used)",
+    "raw_sha256": {
+     "s910000_abf.npz": "218f3e460151ba74b9f31cb7de1cae03c90bf840f38c5ad12f6c8c294ce737f5",
+     "s910000_fr.npz": "a6e187ddd052df7f1248dda4a9247ee94fce588856db3fbbd0f1901cfb9659d2",
+     "s910001_abf.npz": "32146f65889af82fed2e3c4d65b6fb9735f14b30816a2b1ee4bc2cdc59f4f9e3",
+     "s910001_fr.npz": "9c27ef5c5d4fb6991f36ce1d108a4db15973ff3941837bbac2039ab17dfa5436",
+     "s910002_abf.npz": "8df8259c202f77946db223d5a4dabda86f609682720cf2d2b23293346d4adb95",
+     "s910002_fr.npz": "b19d632e181ecfd05f2f07dddce059408fb3cc9eb306c634ccec264848955abd",
+     "s910003_abf.npz": "88dc22fd4e3cc3d0181543dd532fb60d86f84208cec32dba1d839c2b7f290865",
+     "s910003_fr.npz": "dd507be6d60d2b7cac610867c865560c6641eaf1096d0ca6a494193d5bc630a6",
+     "s910004_abf.npz": "a9bd0b9f0d3a806ea6dda6517cd5c58e61d8728f931474a55814115afe2d4397",
+     "s910004_fr.npz": "6ce4515e3bf072ba37e38dad2e268b56f3f01bac4c1ee27e8250261bdef97fcd",
+     "s910005_abf.npz": "e79f7927c26e3670dd67030d016e4490d4a84dcf3f22b61d45123912dfec3521",
+     "s910005_fr.npz": "29bd4cd400b448990b638846e8e18f6aa8d2ac15840d19c934fa7eb16aaa211e",
+     "s910006_abf.npz": "e8e227e3fe1e76755ce69c9e33f25a456a5f89602324decc9317eb0b0c01a889",
+     "s910006_fr.npz": "86474390c32645582c875190a8ecfa0d8d999a5e84d9e02dda7cdbf8f3ecd0a2",
+     "s910007_abf.npz": "6f4fe7f38c5d4df9f24cbc3dd491177ce9b5540481244d1c49d6e1250ee3cea2",
+     "s910007_fr.npz": "09c3da5d33e1c1d27df60173ec0cfa941d07ee32c201e7df8f2c7dd91414544a",
+     "s910008_abf.npz": "099e6d7b0b22e2bd58d8d9aa84003f2849403cd65175baa76cb3104b8a49b811",
+     "s910008_fr.npz": "4bb0717f81f5d3e90e312a0955d13b8ff9953fafbe6d2a8c3d00448ca8164391",
+     "s910009_abf.npz": "f75f832e1408ba5c869233a785c32d01245b0770e6e709d3fe9936ced9a8769b",
+     "s910009_fr.npz": "4358b6e268b005e517b775d20ff153a48925a585946c640e3ab689e12a8a9ebf",
+     "s910010_abf.npz": "299700b22db3d846419fac69b2eec5eefb3d1de4e6c8e00d12835b66c8205cd5",
+     "s910010_fr.npz": "21a0bb6f6506a50729a02fec75f8d2655652af139dd2007f4cde63ab56bcd47b",
+     "s910011_abf.npz": "43ff9039cc86cefd5e6880f7be1bc69b589024c64ba8568e66fd9f05d56da939",
+     "s910011_fr.npz": "a509f7df4aaab757410a5ae0c8acfaa76b3cc6ec537782b4a66eda7dd265b23e",
+     "s910012_abf.npz": "12a22fa0f5a8b1a7840c2978cc193904594dd80868a00e539bd72df860fbe02b",
+     "s910012_fr.npz": "7c57605405200959696372ea7a4b0d0f7d80d34c4e1957b04fb9b1f0e1117e4c",
+     "s910013_abf.npz": "45d12c0981fd172545a3b08f17a9518490cd69c458e3257452628f655c024e11",
+     "s910013_fr.npz": "463a2a431fd3f37068c7fe4e42ec94d0689deb1da1ff134e0386b9c91939ccf2",
+     "s910014_abf.npz": "77adb7dbeb672b3e4c61166ba57eb5e4f09f19da01b283e52cc3a009697d7363",
+     "s910014_fr.npz": "cea291e3b02960f6c293ea2829160197c19e201970a0ab8b600514308e442ed6",
+     "s910015_abf.npz": "b066408478f8751fb7dbc83d686921088dd03d06853c380dac52bcb639097e40",
+     "s910015_fr.npz": "5e8a16355dac05cc7162f1968e9998f8e0a9384933a7c7a40cc87997a5685b74",
+     "s910016_abf.npz": "cd96051ad97240bdfebdc192e2096225b02358a0d0adde8612889959c9545276",
+     "s910016_fr.npz": "4c0328e65d80ca7cdfaadf610ba3a73240b6e30a4ac386141ed90e068d794738",
+     "s910017_abf.npz": "af4d283aaf83f6533ce3ff374c7321cb56068e9e28436c7e9e1e49f97b8bcb81",
+     "s910017_fr.npz": "0443b4e84fadd38fbe46c1c066c483dcc08ac63f440167fce99f051c1e3f3b17",
+     "s910018_abf.npz": "934be618883c96579acb41aa7472208d988e560174ec469dda63afef047cfc6c",
+     "s910018_fr.npz": "de74f6760dc8a6c5ca2c83182bcd6cebe6d91c3765cc7ef8668310684ac2ba68",
+     "s910019_abf.npz": "56e6c11cc1e9af9f5ceab38c2305c8f2bbc67b84f4255533bc43e0d1735968c7",
+     "s910019_fr.npz": "8c8de78ab42286146cdeaa9f35533a95be942c21dcdbb8d3553968fa72459ecf",
+     "s910020_abf.npz": "fa363672f83049180c8ad24c6e42c95daac87753983a8d6a038dea33b81da577",
+     "s910020_fr.npz": "6b207797c76fc18774de448d6dbfe1d015b8d81329295a11d2102fc8f7bc4843",
+     "s910021_abf.npz": "220a78f0b6fe88b89495c339a4a5cdd501c68bbedbb3f8a38bdec8dc4c318280",
+     "s910021_fr.npz": "b01735ebcfc969e8975b8eeecbc45c8077b5c984bc863b9a1dc8a8ff9e660ca5",
+     "s910022_abf.npz": "92a3f15a86995a7bc6543ea46bc8c68b1880b9a99c3cdc0b63099b0c61753300",
+     "s910022_fr.npz": "9fa993c26ea0b389c7daad54a19b6708f3436ee9964b738423c463402b5b72e9",
+     "s910023_abf.npz": "8db8935840e59ef3650adf96c573aff706b14e19e89124a4654f8f58c9582cc8",
+     "s910023_fr.npz": "5c92b317851ca058706b6dba533e34fd26c30bafdee525f5bdee37b819948ad8",
+     "s910024_abf.npz": "8439dfb9c9160c89000085597afffcdb95ef5f311d208a865ef67dd7e32d8423",
+     "s910024_fr.npz": "f887826620b1d5fca165ef291f92b789f815113c7317f5bfe429ecc4e832091f",
+     "s910025_abf.npz": "1c3e3052c22b3a0d8b5bc414b9afda89641363521c9cc220fcc54dc3565ee1c9",
+     "s910025_fr.npz": "fce2ad9ea18d0a1fdf54d7fc8b1e825de6813b1eb06a714da433e5c6c07edaf5",
+     "s910026_abf.npz": "95076356398eb18a02167220c791c07414e4bf033fbb3395f9d1c8552cb55f6a",
+     "s910026_fr.npz": "8e4ae526fbc9fee5e9d8f11d82b980e5d8641b271e0a5efcbc334033c5b20226",
+     "s910027_abf.npz": "1e84820bb2a9a1ad25b03dc95fe2b034893470fde3fef15173a6ac508588bcd1",
+     "s910027_fr.npz": "000525e0e55439e8d74e9760038562a7672a520818461edcb4afc170d8643552",
+     "s910028_abf.npz": "9dbb3291ebe2a9d0d46ca64ef4ed10af64b66e457c7549722e2905145a4885cd",
+     "s910028_fr.npz": "0883def3432187a6994aa7aed8214af8d79faea095949535134b89cac12ed2d2",
+     "s910029_abf.npz": "bb6a25b9156eada32bf24625163faac705ccaa99a891f7c36e24d473151137b1",
+     "s910029_fr.npz": "e2057026a881680c9a495529c8a6833f78e917d7d117d8357fa68b72517f4c94",
+     "s910030_abf.npz": "e9237d66116f405741df8bbe190b41cc8107929c7419418cb7c82bf5a73cafe6",
+     "s910030_fr.npz": "8ab0af2dd6b82b461bebc254f6fe4965a9d36a275919df6f625015abb742a137",
+     "s910031_abf.npz": "0525322c90671c4478561cbae3d56c67c97fea39ed31cbba3f2503626aa36e4b",
+     "s910031_fr.npz": "b32d67a03b63c01a73af219f0ba1222ce4494e8d1b1b9e5b1bab4747f34b069b"
+    }
+   },
+   "config": {
+    "N": 1000,
+    "T": 200.0,
+    "h": 0.002,
+    "n_steps": 100000,
+    "nb": 120,
+    "estimator": "P0 histogram, 120 bins on [-3, 3], own-bin bias M_j / (C_j + 1), deposit before read, no ramp",
+    "fr": "uniform target 1/6 on [-3, 3]; binned reflect-padded Gaussian KDE eta = 0.1; score clip 2.0; rate r(t) = 0.2 (1 - exp(-t / 20.0)); FR every 0.01 t.u. from t = 0; never stopped; cap max(1, floor(0.02 N)) = 20 per opportunity; deaths ~ S+, sources ~ S-",
+    "fr_start_t": 0.0,
+    "fr_stop_t": null,
+    "fr_rate_ramp_t": 20.0,
+    "init": "mixed (archived): half of the walkers U[-2.4, -0.6] x U[-1.9, -0.1], half U[0.6, 2.4] x U[1.1, 2.9]",
+    "pairing": "identical initial conditions and Langevin noise slot by slot (separate FR stream); bitwise identical until the first FR death (asserted)"
+   },
+   "reference": "independent y-quadrature (src/abffr/reference.compute_reference) on 6001 x nodes x 2001 y nodes; checked against 4001 y nodes and the archived 801-node profile",
+   "definitions": {
+    "eF": "centred domain-RMS on [-2.5, 2.5] (trapezoid on 2001 nodes, node-mean removed) of F_hat - F_ref, F_hat = exact integral of the piecewise-constant Gamma (archived metrics.l2_error_F convention)",
+    "eFp": "domain-RMS on [-2.5, 2.5] of Gamma(x) - F'_ref(x), no centring (archived metrics.l2_error_Fprime); includes the piecewise-constant floor 0.1387",
+    "exi": "||p_t - u||_L2 on [-3, 3], p_t = instantaneous replica histogram on the 120 ABF bins / (N * 0.05), u = 1/6"
+   },
+   "units": {
+    "t": "reduced time units",
+    "eF": "reduced energy (beta = 4, kT = 0.25)",
+    "eFp": "reduced energy per unit x",
+    "exi": "density per unit x (L2 norm, x^-1/2)"
+   },
+   "domain": {
+    "eF": "[-2.5, 2.5]",
+    "eFp": "[-2.5, 2.5]",
+    "exi": "[-3, 3] (full reflecting x domain = FR target domain)"
+   },
+   "weighting": "uniform in x",
+   "marginal_type": "instantaneous replica histogram (raw, unsmoothed), 120 bins",
+   "integrated_definition": "I_F = trapezoid of e_F over [0, T] (archived integrated_l2_over_time); paired per-seed relative change, median, 10000-resample percentile bootstrap CI of the median (seed 20261020)",
+   "csv": {
+    "eF": "figs/data/meta_eF.csv",
+    "eFp": "figs/data/meta_eFp.csv",
+    "exi": "figs/data/meta_exi.csv"
+   },
+   "preview": "figs/previews/meta.pdf",
+   "supplementary": null,
+   "floors": {
+    "eFp_piecewise_constant": 0.13866402491742671,
+    "eF_piecewise_constant": 0.003795415603419805,
+    "exi_multinomial_uniform": 0.1408308678285174
+   },
+   "provenance": {
+    "data_root": "/home/zheyuanlai/ABF-Fisher-Rao",
+    "scoring_code_commit": "13e77275c80f034287f1503237d203a430e60317",
+    "scoring_code_tracked_files_modified": false,
+    "checked_paths": [
+     "src",
+     "scripts",
+     "configs"
+    ],
+    "exporter_commit": "13d9ed1a4a164981e10ebc6aaedde86463d977b3",
+    "python": "3.14.4",
+    "numpy": "2.4.6"
+   }
+  },
+  "alanine": {
+   "title": "Alanine dipeptide in vacuum, (phi, psi): adaptive-box histogram ABF vs ABF + uniform FR",
+   "status": "original data, post-processing only (no new simulation)",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+   ],
+   "n_seeds": 16,
+   "n_times": 101,
+   "t_range": [
+    0.0,
+    100.0
+   ],
+   "source": {
+    "abf": "results/alanine_histogram/hA_c800_w5/raw/hA_c800_w5__abf__c7eq__N2048__T100000__ns16__e852e5d318e3.npz",
+    "fr": "results/alanine_histogram/hu02_t20/raw/hu02_t20__fr_uniform__c7eq__N2048__T100000__ns16__a1d3e25b4931.npz",
+    "config": "configs/alanine_histogram/alanine.yaml",
+    "selection": "configs/alanine_histogram/selected.json",
+    "doc": "docs/ALANINE_HISTOGRAM_ABF.md",
+    "analysis": "scripts/analyze_alanine_histogram.py",
+    "scoreboard": "results/alanine_histogram/analysis/scoreboard.md",
+    "engine": "src/alanine/core2d_ala.py",
+    "run_commit": "ebc123bba934e63754d613118cad00a28d33a93a",
+    "run_git_dirty": {
+     "abf": true,
+     "fr": true
+    },
+    "config_hash": {
+     "abf": "eb8a8a4d1f21",
+     "fr": "a8a3947d2a02"
+    },
+    "raw_sha256": {
+     "hA_c800_w5": "3fcbe2080320dd3af174c1be5b98676ef30f3817350057e706c6f4efe1507141",
+     "hu02_t20": "889a1db0c1c5911c994bde21a8264783f404b57056674ae4682449ccd673b594"
+    }
+   },
+   "config": {
+    "N": 2048,
+    "T": 100.0,
+    "dt": 0.001,
+    "n_steps": 100000,
+    "save_every_steps": 1000,
+    "grid": "97 x 97 periodic cells (dz = 2 pi / 97)",
+    "estimator": "adaptive-box histogram ABF: per cell, the smallest centred box of (2l+1)^2 cells, l = 0..4, holding >= c_min = 800 counts gives the mean force; 5 ps bias ramp; projected to a gradient field every 50 steps (the reported pmf)",
+    "fr": "uniform target on the full torus 1/(2 pi)^2; product wrapped-Gaussian KDE bandwidth 0.15 rad; score clip 2; rate 0.02; every 500 steps (0.5 ps) from t = 20 ps; never stopped; cap floor(0.05 N) = 102 per opportunity",
+    "fr_start_t": 20.0,
+    "fr_stop_t": null,
+    "abf_ramp_end_t": 5.0,
+    "init": "C7eq ensemble, 20 ps equilibration cached (results/fr_start_timing/alanine/init_c7eq_seeds0-15_N2048.npz)",
+    "pairing": "same cached initial ensemble, same dynamical noise stream and rng_seed 20260903 for both stages"
+   },
+   "reference": "umbrella sampling (24 x 24 windows x 16 copies, kappa 200) + MBAR on the 97 x 97 grid (results/alanine/reference/reference.npz); non-finite in never-visited cells; bootstrap noise floor of the e_F read-out 0.559 kJ/mol",
+   "definitions": {
+    "eF": "min_c sqrt(sum_ij w_ij (F_hat - F_ref - c)^2), w = exp(-(F_ref - F_min)/kT) normalised on the 8 kT mask {F_ref - F_min <= 8 kT} (equilibrium weight; metrics_ala.aligned_l2, the study's raw read-out)",
+    "eFp": "sqrt(sum_ij w_ij |grad F_hat - grad F_ref|^2) with periodic central differences on the torus for both, same weight w (metrics_ala.grad_errors; cells whose stencil touches a non-finite F_ref excluded)",
+    "exi": "||p_t - u||_L2 over the full torus, p_t = marg_hist / dz^2 (instantaneous histogram of the current replicas), u = 1/(2 pi)^2"
+   },
+   "units": {
+    "t": "ps",
+    "eF": "kJ/mol",
+    "eFp": "kJ/mol/rad",
+    "exi": "density per rad^2 (L2 norm, rad^-1)"
+   },
+   "domain": {
+    "eF": "8 kT mask of the reference",
+    "eFp": "8 kT mask (stencil-complete cells)",
+    "exi": "full torus"
+   },
+   "weighting": "equilibrium (Boltzmann) weight of the reference on the 8 kT mask for e_F and e_F'; uniform for e_xi",
+   "marginal_type": "instantaneous replica histogram (raw, unsmoothed), 97 x 97 cells; float32 storage",
+   "integrated_definition": "dI_F = paired relative change of the trapezoid of e_F over the own window [20, 100] ps (the study's frozen primary window [max(t_FR, 1), 100] ps); median with a BCa bootstrap CI (metrics_ala.paired_bootstrap)",
+   "csv": {
+    "eF": "figs/data/alanine_eF.csv",
+    "eFp": "figs/data/alanine_eFp.csv",
+    "exi": "figs/data/alanine_exi.csv"
+   },
+   "preview": "figs/previews/alanine.pdf",
+   "supplementary": {
+    "exi_kde": {
+     "csv": "figs/data_supplementary/alanine_exi_kde.csv",
+     "definition": "||p_kde - u||_L2 on the full torus, p_kde = the FR arm's own marginal estimator (d2.kde2: saved instantaneous cell histogram smoothed by the 0.15 rad wrapped-Gaussian kernels, normalised); KDE-SMOOTHED, not the primary panel; resolves the steric floor that the raw 97 x 97 histogram hides under its finite-N floor"
+    }
+   },
+   "floors": {
+    "eF_reference_noise": 0.5593138523027867,
+    "eFp_reference_noise": 8.660528444899771,
+    "eFp_reference_noise_definition": "sqrt(sum w Var(grad F_ref)) with Var from the bootstrap s.e. of F_ref (results/alanine/reference/bootstrap.npz) through the central difference, treating cells as independent (no bootstrap replicates are stored, so neighbour correlations cannot be included: an INDICATIVE scale, not a bound); the e_F' endpoints of both arms (about 8.25) are of this size, i.e. e_F' is limited by the reference's own cell noise and cannot separate the arms",
+    "exi": {
+     "reference_finite_support": {
+      "L2_floor": 0.024967902461042905,
+      "torus_fraction": 0.9759804442555002,
+      "L2_floor_incl_finite_N": 0.34202944113028994
+     },
+     "mask_8kT": {
+      "L2_floor": 0.2848083138697818,
+      "torus_fraction": 0.23796365182272294,
+      "L2_floor_incl_finite_N": 0.44433907680539036
+     },
+     "mask_10kT": {
+      "L2_floor": 0.2418091335143896,
+      "torus_fraction": 0.3022637899883091,
+      "L2_floor_incl_finite_N": 0.4180958661317195
+     },
+     "cells_ever_occupied_either_arm": {
+      "L2_floor": 0.0,
+      "torus_fraction": 1.0000000000000002,
+      "L2_floor_incl_finite_N": 0.3411173505397333
+     },
+     "finite_N_only_uniform_full_torus": 0.3411173505397333,
+     "definition": "L2_floor = min ||p - u|| over densities supported on the set S = sqrt(1/|S| - 1/|Z|) (attained by the uniform density on S); L2_floor_incl_finite_N adds the multinomial scatter of N independent walkers uniform on S, (1 - 1/n_S)/(N dz^2)"
+    },
+    "exi_kde_noise_floor_uniform": 0.04155648754181591
+   },
+   "provenance": {
+    "data_root": "/home/zheyuanlai/ABF-Fisher-Rao",
+    "scoring_code_commit": "13e77275c80f034287f1503237d203a430e60317",
+    "scoring_code_tracked_files_modified": false,
+    "checked_paths": [
+     "src",
+     "scripts",
+     "configs"
+    ],
+    "exporter_commit": "13d9ed1a4a164981e10ebc6aaedde86463d977b3",
+    "python": "3.14.4",
+    "numpy": "2.4.6"
+   }
+  },
+  "wca": {
+   "title": "WCA dimer in WCA solvent at the validated timestep (histogram ABF vs ABF + uniform FR)",
+   "status": "original data, post-processing only (no new simulation)",
+   "seeds": [
+    5100,
+    5101,
+    5102,
+    5103,
+    5104,
+    5105,
+    5106,
+    5107,
+    5108,
+    5109,
+    5110,
+    5111,
+    5112,
+    5113,
+    5114,
+    5115
+   ],
+   "n_seeds": 16,
+   "n_times": 49,
+   "t_range": [
+    0.0,
+    240.0
+   ],
+   "source": {
+    "run_dir": "results/numerical_validation/wca_confirmatory/dt0.000125_N256_T240",
+    "prereg": "configs/numerical_validation/wca_confirmatory_prereg.json",
+    "engine": "src/wca_numba.py",
+    "run_commit": "92b33d7f1df5e52c0476d6df50e4bfa8de46496b",
+    "analysis": "scripts/numerical_validation/analyze_wca_confirmatory.py",
+    "summary": "results/numerical_validation/wca_confirmatory/dt0.000125_N256_T240/summary.json",
+    "docs": [
+     "docs/numerical_validation/WCA_CONFIRMATORY.md",
+     "docs/numerical_validation/WCA_REFERENCE_AUDIT.md",
+     "docs/numerical_validation/WCA_LANGEVIN_VALIDATION.md"
+    ],
+    "not_exported": "hist_fr_sham (matched-turnover sham, historical); the invalid dt = 0.002 positive runs",
+    "raw_sha256": {
+     "s5100_abf.npz": "68abdee386c6e35b8fb6b80014ff214e5ba9e906153074907b112324a4fa63f1",
+     "s5100_frsham.npz": "90c26276eb8b050578b48f6d8fc50f15e1f280f095efaedd21cc97de80555f5f",
+     "s5101_abf.npz": "7cc99a7344050ed465c332f4f936d42f27c01313a1486fe16807871df152ba12",
+     "s5101_frsham.npz": "551ce14e7beef0df57faf4d3002a829a23d37fcb81b13170d4991475d4598250",
+     "s5102_abf.npz": "6a7ef532d1a468c6ed3b3a735fc01b8b6b0e5c35358d7b77d464a18b5ae933d8",
+     "s5102_frsham.npz": "b1b3db8d0496ede038c1754e4d702e916f1dfee933f775e814d458aa0b7acef3",
+     "s5103_abf.npz": "0d5a4d37d3912ea65338b2d95824f1890c4ff1e6f89f4512a6e877be9ce4e2ab",
+     "s5103_frsham.npz": "9a6307665840ce43954d7f2720d6f86dce1700e395c14c63fedd608224ee32e4",
+     "s5104_abf.npz": "4f7974bdb7357209970108e955f6016ef7b1cdfbef9fa7d2e66b14ca5db60085",
+     "s5104_frsham.npz": "3203a006e45a77e67c1b7cdd76e248fb99f8cb7ac6edaaf166e1348cc2b2541e",
+     "s5105_abf.npz": "72faecd61d5816bc4c49f4b4ec9d723d1021010757983b6a7aa400d126a9094d",
+     "s5105_frsham.npz": "a62900aceed57eeb8f4e94be3e7b7429f42588de5f5fbb95f543de7c20da4c53",
+     "s5106_abf.npz": "3344e17fac45cf4d153b8dcc28b5a4d0865fc719a6edace2d37953c2fd1d9fa9",
+     "s5106_frsham.npz": "2a494485c82bad701c80f6204a15b303ec4c3a1fbc949e37ac202f5c119076fe",
+     "s5107_abf.npz": "71a9116ccec0ce996cc9eea400e0fdf4212a21bb4698c524c12aa28ef6bbb313",
+     "s5107_frsham.npz": "c2b0136af8c0f36da69b65c511484b591158d12c0957dceec2157182cda8f13b",
+     "s5108_abf.npz": "3310032bd6dd2aa58eacb93c4ed679d7e8e6428c4b37a4c8fe6446e0a9f1c661",
+     "s5108_frsham.npz": "23951580665ec7dc9e8d13117405710775f3024d64c2128abc7dea62888411fc",
+     "s5109_abf.npz": "220e8ad922816bc802951df56d81dd58a1c3fae0c4d14ca66ec926ff64ded06d",
+     "s5109_frsham.npz": "515b9d67bdbfc0b0fb2be661201eb77d06bb74e0241e2bfdea7ea4207924bd03",
+     "s5110_abf.npz": "66563ee72a3dc5ebbccc158e1136de27e682a0071bd8f360b9ecd1adcc3fd139",
+     "s5110_frsham.npz": "31f50d78c579afe61f4c7a55cf7b1263ccc9ad3c877b4446434177631631ac4e",
+     "s5111_abf.npz": "dadd6d08468d1c1846e90ca8229930888b04d5d7f84181ef66e0e89cf55a6dc6",
+     "s5111_frsham.npz": "132fe88ba7febcef0cfdbb4facb8c1db03138e93c7771df24476c6050b6aa3a8",
+     "s5112_abf.npz": "06755078a4640b494c93fdd4b590f6ce0eb5858c9f3e39d2ce2eaf05536f36df",
+     "s5112_frsham.npz": "e1a28b4c5556a5098b9418e7840e7b1bec7fba8fe6c8a275eeef9814fee62a29",
+     "s5113_abf.npz": "88abdff52559e2608cb2dd86afd19510e361632f8824449e80afab6c7b80ec7c",
+     "s5113_frsham.npz": "17994cab9ccbcf0b06c6d047018641ad42933bd03ed19416de2a7efa376e382d",
+     "s5114_abf.npz": "cc5a8c583deb944a79022ec8c0be765535db546aa0df3093ee5195e82fc163b4",
+     "s5114_frsham.npz": "b0b5839768c9b49500deff6a605f104f027781e0a9b32750c4751cf40a9b19d0",
+     "s5115_abf.npz": "8b6da87565269b493c6d2645c5871460839d04c94d860713772de25c1512a881",
+     "s5115_frsham.npz": "599054f0afcbc94cd9d0c35fa32e41d783d242f190a10113bf33dee6eff6a1e3"
+    }
+   },
+   "config": {
+    "N": 256,
+    "T": 240.0,
+    "dt": 0.000125,
+    "n_steps": 1920000,
+    "nb": 160,
+    "estimator": "P0 histogram on 160 bins of [-0.2, 1.2] (own-bin bias M_j / C_j, edge-extrapolated); linear ABF ramp over 0 <= t <= 20; reported estimator = all-steps accumulators until the estimator burn-in at t = 20, production accumulators (deposits from t = 20) afterwards",
+    "fr": "uniform target on [-0.2, 1.2]; reflected Gaussian KDE bandwidth 0.07; score clip 2.0; rate 0.1 (no ramp); every 80 steps (0.01 t.u.) from t = 40; never stopped; cap floor(0.02 N) = 5 per opportunity",
+    "fr_start_t": 40.0,
+    "fr_stop_t": null,
+    "abf_ramp_end_t": 20.0,
+    "estimator_burn_in_t": 20.0,
+    "pairing": "ABF and FR arms on the same Langevin noise (separate processes); identical accumulators before t = 40 (asserted)"
+   },
+   "reference": "exact Gibbs by Metropolis MC (64 chains): F = density route, F' = MC bin conditional means, interpolated to the 160-node scorer grid (rescore_wca_history.mc_reference)",
+   "definitions": {
+    "eF": "RMS on the eval window [-0.1, 1.1] of the reported pmf minus F_ref after removing the mean difference (core.timeseries_l2; additive-constant alignment, uniform weight)",
+    "eFp": "histogram_fp_error_np: L2 over [-0.1, 1.1] of the bin mean force Gamma_j vs the MC mean force (the histogram arms' own e_F', the confirmatory's primary F' metric)",
+    "exi": "||p_t - u||_L2 on [-0.2, 1.2], p_t = z_hist / (N * 0.00875), u = 1/1.4"
+   },
+   "units": {
+    "t": "reduced time units (dt* = 1.25e-4 per step)",
+    "eF": "kT (beta = 1)",
+    "eFp": "kT per unit z",
+    "exi": "density per unit z (L2 norm, z^-1/2)"
+   },
+   "domain": {
+    "eF": "[-0.1, 1.1]",
+    "eFp": "[-0.1, 1.1]",
+    "exi": "[-0.2, 1.2] (FR target domain)"
+   },
+   "weighting": "uniform in z",
+   "marginal_type": "instantaneous replica histogram (raw, unsmoothed), 160 bins",
+   "integrated_definition": "I_F = trapezoid of e_F over all saves on [0, 240] (wca_numba integrated_l2_f); paired per-seed % change, median with a 10000-resample bootstrap CI (analyze_wca_confirmatory.contrast)",
+   "csv": {
+    "eF": "figs/data/wca_eF.csv",
+    "eFp": "figs/data/wca_eFp.csv",
+    "exi": "figs/data/wca_exi.csv"
+   },
+   "preview": "figs/previews/wca.pdf",
+   "supplementary": {
+    "exi_interior": {
+     "csv": "figs/data_supplementary/wca_exi_interior.csv",
+     "definition": "||p - u|| over the 158 interior bins only (renormalised on [-0.19125, 1.19125], u = 1/1.3825): removes the edge-bin spikes from the replicas held in the soft-wall tails; diagnostic, not the primary panel"
+    }
+   },
+   "floors": {
+    "exi_multinomial_uniform_N256": 0.6660618536270809,
+    "exi_interior_multinomial_uniform_N256": 0.6660353400091086
+   },
+   "provenance": {
+    "data_root": "/home/zheyuanlai/ABF-Fisher-Rao",
+    "scoring_code_commit": "13e77275c80f034287f1503237d203a430e60317",
+    "scoring_code_tracked_files_modified": false,
+    "checked_paths": [
+     "src",
+     "scripts",
+     "configs"
+    ],
+    "exporter_commit": "13d9ed1a4a164981e10ebc6aaedde86463d977b3",
+    "python": "3.14.4",
+    "numpy": "2.4.6"
+   }
+  }
+ },
+ "files": {
+  "figs/data/alanine_eF.csv": {
+   "sha256": "67a669ba47a8c707faf714b45d251097dadec8ca6085db766f64355ae8874fc6",
+   "bytes": 8081
+  },
+  "figs/data/alanine_eFp.csv": {
+   "sha256": "b9031c47725256c4fbab885fdb34ccf1f00fef25a4bf43e6f0013397ddbc38e7",
+   "bytes": 7550
+  },
+  "figs/data/alanine_exi.csv": {
+   "sha256": "a25d3aa404948ddb299d468a20d3f2728b3b2c848299df348ea744080e26e123",
+   "bytes": 8133
+  },
+  "figs/data/gateway_eF.csv": {
+   "sha256": "a8921734bbf0069e8f09898b8b396a8e49f29245344746b688d97cf4303c6788",
+   "bytes": 20491
+  },
+  "figs/data/gateway_eFp.csv": {
+   "sha256": "32488520bae5dd73e80546c1d4733731b6b3a13dadedd804f215e8178b2698c8",
+   "bytes": 19498
+  },
+  "figs/data/gateway_exi.csv": {
+   "sha256": "bc29478712ab9075ffa07d7de3b16ee18e052cffbf49a88e3482b9386ed4bf9b",
+   "bytes": 18366
+  },
+  "figs/data/ite300_eF.csv": {
+   "sha256": "d1dc5240aba7746853b6935abf62c7ce2d124840b568007d07eb71415d934981",
+   "bytes": 34262
+  },
+  "figs/data/ite300_eFp.csv": {
+   "sha256": "20353f9fcb8e2cee8d900d2d9c6b3cda762f7ae195563d53a7263b71b7649010",
+   "bytes": 33494
+  },
+  "figs/data/ite300_exi.csv": {
+   "sha256": "3d4bb075b19ed44ff4c44202a532051e6f23a58c5f51359574e6c5cede43284f",
+   "bytes": 33394
+  },
+  "figs/data/lta150_eF.csv": {
+   "sha256": "9653629d8ebca4508d717726ce3f3aff063ddb7edb1b1f17213cb1d7b55c8164",
+   "bytes": 8404
+  },
+  "figs/data/lta150_eFp.csv": {
+   "sha256": "1c083fe0f76cd16e0f3b56b5a9ae7ba8a71b0867e966187c4cc2274ae45554dc",
+   "bytes": 8284
+  },
+  "figs/data/lta150_exi.csv": {
+   "sha256": "e9791305315034e3208f03d69a063d8364b84580b5f2f45fae1c5a685452e1b6",
+   "bytes": 8779
+  },
+  "figs/data/lta300_eF.csv": {
+   "sha256": "83255e3f9246d9224b5743f6d19fdf92c3170b64b79ce6ef24667108356fe317",
+   "bytes": 8382
+  },
+  "figs/data/lta300_eFp.csv": {
+   "sha256": "df44ba470e8d92d26e59c3e6884ecdb0606e07a8d8d91d23b32925f903f65f7a",
+   "bytes": 8259
+  },
+  "figs/data/lta300_exi.csv": {
+   "sha256": "5450fc017782c59d079da0d727abd70cb9f9bc0edde8c6fb5914f7485a6f8e62",
+   "bytes": 8830
+  },
+  "figs/data/meta_eF.csv": {
+   "sha256": "b0a39ff8be28bf35a4b30d187583958f4d9064ee8fdb493ce032df88a7a2ae72",
+   "bytes": 34671
+  },
+  "figs/data/meta_eFp.csv": {
+   "sha256": "d79df55bc08a037009c902b7cedc231c8f2088c3108455ef1897cd0f6a92be63",
+   "bytes": 32799
+  },
+  "figs/data/meta_exi.csv": {
+   "sha256": "a7893ac47e0e3e733399b503fd0b342c4b2a408e25e7bc42d75746d1272b33a0",
+   "bytes": 32846
+  },
+  "figs/data/wca_eF.csv": {
+   "sha256": "f5145649881a445e9112fd477b15581ec85c179f574298e612c300fef97d677a",
+   "bytes": 4321
+  },
+  "figs/data/wca_eFp.csv": {
+   "sha256": "99d4905b81089513c69f6463071a2b45f200606bc35457aa039c323f9e50a54f",
+   "bytes": 3993
+  },
+  "figs/data/wca_exi.csv": {
+   "sha256": "23664d9c1b61293294396a4d12b9f7d20a09c429297d93a5b9635a349bc20999",
+   "bytes": 3747
+  },
+  "figs/data_supplementary/alanine_exi_kde.csv": {
+   "sha256": "5c0e6dda66e7daa357f282c90f7f9cd6668b39a4beb2660baa16879b6887c129",
+   "bytes": 8674
+  },
+  "figs/data_supplementary/wca_exi_interior.csv": {
+   "sha256": "2c23fd8272149c09f64921003f29fe09d06aae27c195ddb334ef1413ae8e809b",
+   "bytes": 4019
+  },
+  "figs/previews/alanine.pdf": {
+   "sha256": "64bda44dd9010bc6fdfe05b5f573635ba387dfbcb4a0cdf3baabd95a45caa99d",
+   "bytes": 39511
+  },
+  "figs/previews/gateway.pdf": {
+   "sha256": "7046535c116137f85b5319c187b7b37382ee618c1547b0e5b0f3fd751b701f72",
+   "bytes": 55225
+  },
+  "figs/previews/ite300.pdf": {
+   "sha256": "5b3eb2715cac5492f5fd7a782b368d373779bb8c2976e3a82aa2e208c61ae832",
+   "bytes": 81115
+  },
+  "figs/previews/lta150.pdf": {
+   "sha256": "604e85432ff1e584a22cf8fa8f0986e57597e2086926f13dae34579474f5c6a1",
+   "bytes": 40914
+  },
+  "figs/previews/lta300.pdf": {
+   "sha256": "cfb2ee29c657e3a0bec5e56b21217c6a7e45264552fc74e3572de1c7125029f0",
+   "bytes": 40715
+  },
+  "figs/previews/meta.pdf": {
+   "sha256": "194267b6072213ea4ce72d06e403d346d72b556b08bc9cf3cce07ca25f000a64",
+   "bytes": 76558
+  },
+  "figs/previews/wca.pdf": {
+   "sha256": "a1a9b95368ab0c318f5181d419650a3de532776daf381297f3d5404efe55580c",
+   "bytes": 31942
+  },
+  "per_seed/alanine_eF_abf.csv": {
+   "sha256": "07557bc6e71e0b7bbb63f26f38722a4d0420eb2208ebbef1f5f8c2d95161fd76",
+   "bytes": 21025
+  },
+  "per_seed/alanine_eF_fr.csv": {
+   "sha256": "0e34fb9b7686e5156931ab7d79f49d018f67c3c3ed6f088cc8d0e6354759914e",
+   "bytes": 21027
+  },
+  "per_seed/alanine_eFp_abf.csv": {
+   "sha256": "56e627d8737039ce24e1ea7fba1ae4bd108aaad11b79175d97bed9d2e6d3b71f",
+   "bytes": 19613
+  },
+  "per_seed/alanine_eFp_fr.csv": {
+   "sha256": "52cf0eef40d01ba4cb396f73d8d754b27730b7fa61cff3918abc88f86d7728f4",
+   "bytes": 19624
+  },
+  "per_seed/alanine_exiKDE_abf.csv": {
+   "sha256": "f7eb87c429f45cf55ae73e7c76997dede483f83f6f1043450090a92e9aed372b",
+   "bytes": 22632
+  },
+  "per_seed/alanine_exiKDE_fr.csv": {
+   "sha256": "6d044a3391686cfc79d0c1a0b8c2b4500b43d0e3af61720c74f8e7f62f5878c8",
+   "bytes": 22603
+  },
+  "per_seed/alanine_exi_abf.csv": {
+   "sha256": "9485e98f7bde36d74fda0f4cb376ee8f2c03292d7789d82de508a6fe31d92265",
+   "bytes": 21066
+  },
+  "per_seed/alanine_exi_fr.csv": {
+   "sha256": "06ab7dd6c99b891756bce239caaff35561488a892dfe565efc5613b1b626a1ad",
+   "bytes": 21134
+  },
+  "per_seed/gateway_eF_abf.csv": {
+   "sha256": "47c6be97c8136c6751acb6d41a16919ac5e84772a53356b44f8ce60a4cab310f",
+   "bytes": 104033
+  },
+  "per_seed/gateway_eF_fr.csv": {
+   "sha256": "40cbe4d7e390d82a2ef3460f7950ef51069221e673949303e163295acdfdca65",
+   "bytes": 105536
+  },
+  "per_seed/gateway_eFp_abf.csv": {
+   "sha256": "aecc4a5ee01eabb3b0894d13384a848416d4c9bb0805b5c2f5e350a6bdd4d27b",
+   "bytes": 99247
+  },
+  "per_seed/gateway_eFp_fr.csv": {
+   "sha256": "dfe99419127aedb2ebdbe1a1ac99e90bc441642613bdd48c030940a29a1f5c0e",
+   "bytes": 99482
+  },
+  "per_seed/gateway_exi_abf.csv": {
+   "sha256": "06043b2ca0a32ca31ace7c5b5da771f9af95e59e4a8807c04dc5c9eb51bbd9ed",
+   "bytes": 93393
+  },
+  "per_seed/gateway_exi_fr.csv": {
+   "sha256": "b8039dc31320339176f2beba79857cbd2cbef663d94b030dffb4fea3e491f0cd",
+   "bytes": 93478
+  },
+  "per_seed/ite300_eF_abf.csv": {
+   "sha256": "1118858c8e2d8b67cb698b94453c686503e573ae706290e3e26e1f2ac9eb6070",
+   "bytes": 86756
+  },
+  "per_seed/ite300_eF_fr.csv": {
+   "sha256": "1fa21f8f44d8a9b308c1915ead8833dfb7dbadb94ac1bb7488e5d06b13f37a96",
+   "bytes": 88390
+  },
+  "per_seed/ite300_eFp_abf.csv": {
+   "sha256": "31d90c90981a1c1297545505be209f45414be2d0ebdbbe0232018d18d7b49105",
+   "bytes": 85153
+  },
+  "per_seed/ite300_eFp_fr.csv": {
+   "sha256": "44144e56130e56f1fb69a574720b0356a35082ea25e7abf8557e311633671de8",
+   "bytes": 86369
+  },
+  "per_seed/ite300_exi_abf.csv": {
+   "sha256": "e4bf4fe4ac5ed2491fea2e30ccfef9d1774844ab2f724545d1ecdbb5231c37d7",
+   "bytes": 85358
+  },
+  "per_seed/ite300_exi_fr.csv": {
+   "sha256": "66962a2167877b37a399a31e1c6c569e1aacc1d141146aabe8fac6c69228a01c",
+   "bytes": 85350
+  },
+  "per_seed/lta150_eF_abf.csv": {
+   "sha256": "b70bf0d4c9d01847e4c26210087a3fcfaa916b8b2a8b323d38063bc114439ac4",
+   "bytes": 21366
+  },
+  "per_seed/lta150_eF_fr.csv": {
+   "sha256": "b1f2bef6b72d9180ec282669ab921264d11d25dc97279c6d9196f68f29db2278",
+   "bytes": 22096
+  },
+  "per_seed/lta150_eFp_abf.csv": {
+   "sha256": "c2519285299e3cd480bbcfdb5497f7bb251addcf058647488e5f5f1e19cb4c21",
+   "bytes": 21310
+  },
+  "per_seed/lta150_eFp_fr.csv": {
+   "sha256": "52e29fb9e2161a03ee1dfc08067f5abc2d062ba7c2df1436c0a1c07c9e61d91b",
+   "bytes": 21504
+  },
+  "per_seed/lta150_exi_abf.csv": {
+   "sha256": "78ff27e255ee518d804602f5adccd9d57d62bd487cb85370c6b5dfb29018e976",
+   "bytes": 22545
+  },
+  "per_seed/lta150_exi_fr.csv": {
+   "sha256": "113e648b2cb4c412aaa6256c9759e6d53955fd7e9768af23afd09cd23179dc76",
+   "bytes": 22812
+  },
+  "per_seed/lta300_eF_abf.csv": {
+   "sha256": "1732ba35ec735593c12a7cab623b9101d6fd3843ed66c5519ae87ae87cc879d7",
+   "bytes": 21510
+  },
+  "per_seed/lta300_eF_fr.csv": {
+   "sha256": "c1724225627f23676a8ef982c8237b3968a2d47dbea450f6435566c430622a99",
+   "bytes": 21697
+  },
+  "per_seed/lta300_eFp_abf.csv": {
+   "sha256": "4f41b66941de53da73a5a279f03b6d27ced0f4ad8aeeb28eba1aea2a3feb11e0",
+   "bytes": 21334
+  },
+  "per_seed/lta300_eFp_fr.csv": {
+   "sha256": "863155a6728fb33c701cf4e30dd16fc583d32d5339221fc6d0754daabd3a04c9",
+   "bytes": 21308
+  },
+  "per_seed/lta300_exi_abf.csv": {
+   "sha256": "281326d8eb47577ea0b552a4024f919a77d761682a410d1fcf6f7f01ac228e6b",
+   "bytes": 22817
+  },
+  "per_seed/lta300_exi_fr.csv": {
+   "sha256": "552a320db866a56b4ea061e5dd7978c684c458ee0cbb0f683aa25608cd8ae264",
+   "bytes": 22862
+  },
+  "per_seed/meta_eF_abf.csv": {
+   "sha256": "68085bbebf539628e8cdc67b84cd9a1e92eabe8561b2d6fce17d3ec5b1815f6e",
+   "bytes": 178344
+  },
+  "per_seed/meta_eF_fr.csv": {
+   "sha256": "0c7bf27951f226bd415343e3e1a9b591f152424d303361f57656afae53ca2c67",
+   "bytes": 175684
+  },
+  "per_seed/meta_eFp_abf.csv": {
+   "sha256": "75242a08a811f044ae38601ee226d37c5e71b46fe0deb003808d4f5a126d8c63",
+   "bytes": 167258
+  },
+  "per_seed/meta_eFp_fr.csv": {
+   "sha256": "fd87144594eb73b3b6e30ad09a101d0f147b5f3c4098df308589e8d357d4f7d2",
+   "bytes": 167208
+  },
+  "per_seed/meta_exi_abf.csv": {
+   "sha256": "fa2130a0b65575ba9a4a308150d8aa53c3a6b365947acfe06db7efa22753d0cf",
+   "bytes": 167472
+  },
+  "per_seed/meta_exi_fr.csv": {
+   "sha256": "896a63f70d0628a4140ffa9218ffa19a0984f49177da8285512fa04305c92c6f",
+   "bytes": 167628
+  },
+  "per_seed/wca_eF_abf.csv": {
+   "sha256": "a41f81e4cb8be7a63dacdf01dd1840c1d4542e8e6a6035fae033d272cf07f0f6",
+   "bytes": 11396
+  },
+  "per_seed/wca_eF_fr.csv": {
+   "sha256": "3f2ee47f89296beda5b324041d383730a2f08fd41a0e02eb660c6e49c7eae090",
+   "bytes": 11219
+  },
+  "per_seed/wca_eFp_abf.csv": {
+   "sha256": "a048fab399b6710352b47cd9d64b6b27956253341d0f5123191f308b3a1c7378",
+   "bytes": 10399
+  },
+  "per_seed/wca_eFp_fr.csv": {
+   "sha256": "0a4319e4093f52040aadbd777856a134bd5c08f1fccdcb60939e99f7791a1069",
+   "bytes": 10388
+  },
+  "per_seed/wca_exiInterior_abf.csv": {
+   "sha256": "61854e4a07a7dfb28a7e5dac21048cf925a0e403899e8b5d9b8f7874d55d0aee",
+   "bytes": 10437
+  },
+  "per_seed/wca_exiInterior_fr.csv": {
+   "sha256": "95f8d9d772d52f845ff675184f37284701b1c0e59d1472c619a840fc70ef8d64",
+   "bytes": 10428
+  },
+  "per_seed/wca_exi_abf.csv": {
+   "sha256": "1d337fa8b3d2bbeadef2bce9d8c8ce6398945df0a717e91ea9999ac4e36519cd",
+   "bytes": 9699
+  },
+  "per_seed/wca_exi_fr.csv": {
+   "sha256": "f9b1860f07bdecfedf6a706fa01a9478d92f8dc000faf92b4a32ac88b8322f79",
+   "bytes": 9714
+  },
+  "meta/alanine.json": {
+   "sha256": "dd15e609aa0e940c35b391b2355613ddd45ea09267946defba9ee776fe5ed991",
+   "bytes": 8745
+  },
+  "meta/gateway.json": {
+   "sha256": "c504907c028ee6d8085a2be6148e42a45d3f6fad20914fa31bb8ff59d521ead5",
+   "bytes": 17257
+  },
+  "meta/ite300.json": {
+   "sha256": "e2a28e71da3786a2d55769ac7453b8c8f301921f88e26c14bd1434c98529f126",
+   "bytes": 11324
+  },
+  "meta/lta150.json": {
+   "sha256": "79a18837fd990c81601f24468c4679a813074e0a30b68ed7f7a6f12792d17c8e",
+   "bytes": 11865
+  },
+  "meta/lta300.json": {
+   "sha256": "15971604cedc77e8094cc4863b106d3527c59f89c3b3f4e37b8f87165536744d",
+   "bytes": 11944
+  },
+  "meta/meta.json": {
+   "sha256": "dca2ce7023faa08386a1e190434363a8dbfc74834da2ce415b56ea04d06aee9a",
+   "bytes": 18565
+  },
+  "meta/wca.json": {
+   "sha256": "d51021e2d80c4feb179c6b1086f1558eff363e1c68cf0dda1c52c0e1c9d6fc30",
+   "bytes": 13424
+  },
+  "metastability/FROZEN.json": {
+   "sha256": "22228f089ab1bbad2b5f8b08ea8d99afb972edf90338f055dea9d7a8d188ee32",
+   "bytes": 18671
+  },
+  "metastability/PREREGISTRATION.md": {
+   "sha256": "45fd57690976b14c98f177d2de86b10eb4ce4c23977c7f8f6773bb455412f515",
+   "bytes": 6380
+  },
+  "metastability/RESULTS.md": {
+   "sha256": "84bd28dc14c68e2e962e5de68b4e4f19bc716fc307097c700d6549f1da2e86fc",
+   "bytes": 5891
+  },
+  "metastability/stage1_timestep_validation.json": {
+   "sha256": "d643b4c5ca66895ee1c39cfbae2f23799bc684f959b2abc0eca78606aee37e0f",
+   "bytes": 11655
+  },
+  "metastability/stage3_fr_safety_rows.json": {
+   "sha256": "94741967c1833c7778d281c1a4c72686dc7b33616e2fa0b2ecbed5f42ba9e485",
+   "bytes": 10655
+  },
+  "metastability/stage4_run_config.json": {
+   "sha256": "ae18db032331d8a328253ae5af1de1685565ce83d18740fc819976e2ec39f0da",
+   "bytes": 713
+  },
+  "scripts/common.py": {
+   "sha256": "1bf85e7975896bae64565e620b518bda1d7ac755ef87c1d6841a7c7b5042015e",
+   "bytes": 9370
+  },
+  "scripts/export_alanine.py": {
+   "sha256": "cad8329d173dc4c6cf7ff9076ecc7a73798f850feb514866d8d3b5d8bae1d123",
+   "bytes": 15521
+  },
+  "scripts/export_all.py": {
+   "sha256": "72929ad38a22ef5358fc63346b2ec4f6b0a76da4ff7313ed008c32007c080441",
+   "bytes": 5026
+  },
+  "scripts/export_gateway.py": {
+   "sha256": "3b781489e023d32bca1082d654661eadeab48ffa093f569b93a101a5cf17ab74",
+   "bytes": 11113
+  },
+  "scripts/export_ite.py": {
+   "sha256": "886d5d9a5e513f88e259ba82ecd90bbb24ae09f7a6f54e2ff685ace0cdb4b41b",
+   "bytes": 10175
+  },
+  "scripts/export_lta.py": {
+   "sha256": "b315561773018ebf06881d275c64cf2a1ac42350c762d8841437df56362601c2",
+   "bytes": 9994
+  },
+  "scripts/export_metastability.py": {
+   "sha256": "c8a6b181d64053f8b756aa0092045c19e7ec3f61cf543ec3b8940f6ea81394bc",
+   "bytes": 10570
+  },
+  "scripts/export_wca.py": {
+   "sha256": "964b03dabcc0cf226570c5579ff8a3a364ba372fe00e4e7e62e16f73dd087b8a",
+   "bytes": 13563
+  },
+  "scripts/meta_confirm.py": {
+   "sha256": "b7fb01f0668bf82d59f62bea94753ddb637df6905d698553a514b5669c34cc72",
+   "bytes": 2184
+  },
+  "scripts/meta_engine.py": {
+   "sha256": "2419c4c3d353c561e6cd0dc5056f4d04fc9a48c103a94055260372e2956c4bfb",
+   "bytes": 20207
+  },
+  "scripts/meta_pilot.py": {
+   "sha256": "25da5c692ddcc07e16825a2646f95f8567cd2d67e65b3257b228a343748fd893",
+   "bytes": 6137
+  },
+  "scripts/meta_validate_dt.py": {
+   "sha256": "aecd6618d3f7ef926f66d3b277951c85a296a9c15158cdf29a0ea56ed4695b7a",
+   "bytes": 8876
+  },
+  "scripts/plot_previews.py": {
+   "sha256": "9921c0465dba9828d4d8c7f47664fe4316f3df9541dcc796e7248af0ace2e52c",
+   "bytes": 4318
+  },
+  "scripts/test_meta_engine.py": {
+   "sha256": "4cdcb80d9bc1b94de12867132eb92ddd60d4faecb2cbcf2f8911fe83df8c48a3",
+   "bytes": 3370
+  },
+  "scripts/validate_exports.py": {
+   "sha256": "8722f47d53407ada9a40cb815045b422e443366eabd9799f6bf04b66407fa00f",
+   "bytes": 12938
+  },
+  "scripts/validation_notes.md": {
+   "sha256": "58c4a69d61bbbf0434edf537edc90b0f077171cffca61cf0af5ae9155db6de07",
+   "bytes": 4489
+  },
+  "README.md": {
+   "sha256": "545fb6d018178d6e77d4b864f2d9a0014ee74502b634f2a6c27b3ec57353e37e",
+   "bytes": 4422
+  },
+  "FIGURE_DATA.md": {
+   "sha256": "11c0eb0e07726c7b1e3910a2e665283303eb08861123d187dea5d20f462a72a5",
+   "bytes": 5243
+  },
+  "FIGURE_PROVENANCE.md": {
+   "sha256": "b4edf21b40fc9fa670051613e30cc1147245eecb3819bead0559ed43684a3375",
+   "bytes": 18042
+  },
+  "RESULTS_SUMMARY.md": {
+   "sha256": "cd44aa73e8dca88341e0715a7361c8c055c9e5b7481cc0760c38d37366b931c2",
+   "bytes": 4341
+  },
+  "VALIDATION_REPORT.md": {
+   "sha256": "7a8948a70ece9d509dd95ced90746c2dd4e725eec8e4646efcedb3c77a95cf89",
+   "bytes": 30399
+  },
+  "INSTRUCTIONS_FOR_CLAUDE.md": {
+   "sha256": "ede8c876a1338b8caffc5fbd3c78e229d624d06cedd4fe609165049be88fb96b",
+   "bytes": 4923
+  },
+  "validation_results.json": {
+   "sha256": "7b45acf55f4b72a62d0311f9de7ce94cff1e11480afe21728f45c8c7a71dbaf8",
+   "bytes": 45101
+  }
+ }
+}
