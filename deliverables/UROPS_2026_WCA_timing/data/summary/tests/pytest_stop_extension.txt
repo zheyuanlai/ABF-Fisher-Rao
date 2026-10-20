@@ -1,0 +1,19 @@
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.0.3, pluggy-1.6.0 -- ~/miniconda3/envs/abffr/bin/python
+rootdir: ~/ABF-Fisher-Rao-wca-timing
+collecting ... collected 12 items
+
+tests/test_wca_numba_stop.py::test_backward_compatibility_bitwise_vs_original_engine PASSED [  8%]
+tests/test_wca_numba_stop.py::test_stream_id_zero_is_the_default_stream PASSED [ 16%]
+tests/test_wca_numba_stop.py::test_arm_stream_independent_of_other_arms PASSED [ 25%]
+tests/test_wca_numba_stop.py::test_pre_activation_identity PASSED        [ 33%]
+tests/test_wca_numba_stop.py::test_common_prefix_and_no_events_after_stop[800] PASSED [ 41%]
+tests/test_wca_numba_stop.py::test_common_prefix_and_no_events_after_stop[1600] PASSED [ 50%]
+tests/test_wca_numba_stop.py::test_common_prefix_and_no_events_after_stop[2400] PASSED [ 58%]
+tests/test_wca_numba_stop.py::test_stop_at_zero_is_plain_abf PASSED      [ 66%]
+tests/test_wca_numba_stop.py::test_population_and_histogram_conservation_and_matched_physics PASSED [ 75%]
+tests/test_wca_numba_stop.py::test_clip_counters_monotone_and_inert PASSED [ 83%]
+tests/test_wca_numba_stop.py::test_accepted_cfg_unchanged PASSED         [ 91%]
+tests/test_wca_numba_stop.py::test_scorer_compatibility_with_exact_mc_reference PASSED [100%]
+
+============================= 12 passed in 27.60s ==============================

@@ -83,7 +83,7 @@ def main():
         r = json.load(open(f))
         chk(r["all_bitwise"], f"regression {r['arm']}: extended engine = stored Phase-V seed 5100 bitwise through t = {r['t_end']:g}",
             f"{len(r['saves_compared'])} saves, replacements {r['replacements_at_t_end']}")
-    for f in sorted(glob.glob(os.path.join(SUM, "tests", "*.log"))):
+    for f in sorted(glob.glob(os.path.join(SUM, "tests", "*.txt"))):
         txt = open(f).read()
         last = [l for l in txt.splitlines() if " passed" in l or " failed" in l or " error" in l]
         chk(bool(last) and "failed" not in last[-1] and "error" not in last[-1], f"test log {os.path.basename(f)}", last[-1] if last else "no summary line")
@@ -100,7 +100,8 @@ def main():
             sel = (ta >= lo - 1e-9) & (ta <= hi + 1e-9)
             va, vb = np.trapezoid(Xa[sel], ta[sel], axis=0), np.trapezoid(Xb[sel], ta[sel], axis=0)
         med = float(np.median(va / vb - 1))
-        chk(abs(med - c["median"]) < 1e-12, f"{key} median recomputed from data/per_seed", f"{100 * med:+.3f} %")
+        chk(abs(med - c["median"]) < 1e-8, f"{key} median recomputed from data/per_seed (10-digit CSV precision)",
+            f"{100 * med:+.3f} % (diff {abs(med - c['median']):.1e})")
     sc = list(csv.DictReader(open(os.path.join(CW.PKG, "data", "per_seed", "scalars.csv"))))
     chk(len(sc) == len(arms) * len(seeds), "scalars.csv has one row per (arm, seed)", len(sc))
     # three-panel CSVs

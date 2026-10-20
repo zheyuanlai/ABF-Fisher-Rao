@@ -261,11 +261,12 @@ def main():
                     fh.write(f"{t[i]:.10g}," + ",".join(f"{v:.10g}" if np.isfinite(v) else "nan" for v in D[arm][k][i]) + "\n")
     scal, C, V, TTA, GEN = analyze(S)
     keys = sorted({k for a in arms for k in scal[a]})
-    with open(os.path.join(PS, "scalars.csv"), "w") as fh:
-        fh.write("arm,seed," + ",".join(keys) + "\n")
+    with open(os.path.join(PS, "scalars.csv"), "w", newline="") as fh:      # csv.writer: keys like I_F[0,20] are quoted
+        w = csv.writer(fh)
+        w.writerow(["arm", "seed"] + keys)
         for arm in arms:
             for j, sd in enumerate(seeds):
-                fh.write(f"{arm},{sd}," + ",".join(f"{float(scal[arm][k][j]):.10g}" for k in keys) + "\n")
+                w.writerow([arm, sd] + [f"{float(scal[arm][k][j]):.10g}" for k in keys])
     with open(os.path.join(SUM, "contrasts.csv"), "w", newline="") as fh:
         w = csv.writer(fh)
         w.writerow(["key", "arm", "base", "metric", "median_rel_change", "ci95_lo", "ci95_hi", "ci975_lo", "ci975_hi",
