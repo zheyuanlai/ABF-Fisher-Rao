@@ -77,6 +77,34 @@ forces.
 * Free-energy reference-noise floor (aligned L², equilibrium weight): **0.205 kJ/mol for φ**, 0.267 for ψ, 0.264 for
   the φ < 0 conditional. The φ-only ABF endpoint, 0.374, is therefore partly reference-limited.
 
+## 2-D reference surface (for the Ramachandran panel)
+
+The data are in `data/reference/` and are produced by `scripts/export_reference_2d.py`.
+
+* **`reference_F2_kJ.csv`.** F(φ, ψ) in kJ/mol, exactly the stored MBAR surface, shifted so that its global
+  minimum is 0.
+  * **Rows are φ and columns are ψ.** Both use the grid −π + (i + ½)·2π/97, listed in degrees in
+    `reference_F2_grid_deg.csv`.
+  * `NaN` marks the 226 never-visited cells.
+  * Written with `np.savetxt` defaults, so float64 round-trips exactly.
+  * The φ, ψ and ψ|φ<0 marginals recomputed from this CSV equal the 1-D references used by every panel exactly.
+* **`reference_F2_se_kJ.csv`.** The copy-level bootstrap standard error per cell. The median on the 8 kT mask is
+  0.61 kJ/mol.
+* **`reference_F2_minima.csv`.** Cell-grid local minima whose prominence (the lowest barrier to lower ground)
+  exceeds twice the median cell s.e.:
+
+  | basin | φ, ψ (deg) | F − F_min (kJ/mol) | prominence (kJ/mol) |
+  |---|---|---|---|
+  | C7eq | −74.2, 55.7 | 0 | — |
+  | C5 | −152.2, 155.9 | 1.12 | 6.35 |
+  | C7ax | 63.1, −48.2 | 6.39 | 32.9 |
+
+  * A fourth entry at (137.3°, 40.8°), 84 kJ/mol, lies in an essentially unsampled region with no bootstrap s.e.
+    It is an artefact, not a basin.
+* **There is no resolved αR minimum.** The only cell-level local minimum in the αR region is (−55.7°, −18.6°) at
+  12.2 kJ/mol, with a prominence of only 0.12 kJ/mol, below the cell noise. If αR is labelled, it should be labelled
+  as a region or shoulder, not as a minimum of this surface.
+
 ## Definitions of the exported errors
 
 * **e_F(t).** Equilibrium-weighted, additive-constant-aligned L² of the arm's 1-D PMF against the full 1-D marginal

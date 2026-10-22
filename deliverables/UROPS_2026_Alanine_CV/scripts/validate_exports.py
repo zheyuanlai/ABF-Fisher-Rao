@@ -110,6 +110,32 @@ def main():
         info(f"{st}: e_F'(T) raw vs closed", f"raw {A[st]['eFp_final_median']:.3f} vs ABF {A['phi_abf']['eFp_final_median']:.3f}; closed "
                                             f"{A[st]['eFp_closed_final_median']:.3f} vs ABF {A['phi_abf']['eFp_closed_final_median']:.3f} "
                                             "(sign differs: the phi e_F' comparison is reference-limited)")
+    # ---- 2-D reference CSV (requested for the Ramachandran panel)
+    import numpy as _np
+    CA.setup_paths()
+    from alanine.core1d_ala import marginal_reference_1d
+    F2 = _np.asarray(_np.load(CA.dpath(CA.REF), allow_pickle=True)["F"], float)
+    Cc = _np.loadtxt(os.path.join(CA.PKG, "data", "reference", "reference_F2_kJ.csv"), delimiter=",")
+    chk(Cc.shape == (97, 97) and _np.array_equal(_np.isnan(Cc), ~_np.isfinite(F2)) and _np.array_equal(Cc[_np.isfinite(F2)], F2[_np.isfinite(F2)]),
+        "reference_F2_kJ.csv = the stored 2-D MBAR F exactly (rows phi, columns psi; NaN = never visited)", f"{int(_np.isnan(Cc).sum())} NaN cells")
+    gg = -_np.pi + (_np.arange(97) + 0.5) * 2 * _np.pi / 97
+    neg = (gg < 0)[:, None] & _np.ones((1, 97), bool)
+    C2 = _np.where(_np.isnan(Cc), _np.inf, Cc)
+    for key, (ax_, mask) in {"phi": (0, None), "psi": (1, None), "psi_cond": (1, neg)}.items():
+        F1 = marginal_reference_1d(C2, R1["kT_kJ"], ax_, mask=mask)
+        ref = _np.array([_np.inf if v is None else v for v in R1["profiles"][key]["F"]])
+        d_ = float(_np.nanmax(_np.abs(_np.where(_np.isfinite(ref), F1 - ref, 0.0))))
+        chk(d_ < 1e-12, f"1-D {key} marginal recomputed from the CSV = the 1-D reference used by every panel", f"max |diff| {d_:.1e}")
+    i0, j0 = _np.unravel_index(_np.nanargmin(Cc), Cc.shape)
+    chk(abs(_np.degrees(gg[i0]) + 74.23) < 0.01 and abs(_np.degrees(gg[j0]) - 55.67) < 0.01,
+        "orientation: global minimum (C7eq) at row phi -74.2 deg, column psi 55.7 deg")
+    with open(os.path.join(CA.PKG, "data", "reference", "reference_F2_minima.csv")) as fh:
+        mins = list(csv.DictReader(fh))
+    labs = [m_["label"] for m_ in mins]
+    chk(labs[:3] == ["C7eq", "C5", "C7ax"], "resolved minima (prominence > 2 x median cell s.e.): C7eq, C5, C7ax",
+        "; ".join(f"{m_['label']} ({m_['phi_deg']}, {m_['psi_deg']}) {m_['F_minus_Fmin_kJ']} kJ/mol" for m_ in mins[:3]))
+    info("alpha_R region", "no resolved minimum: the only cell-level local minimum in phi -90..-40, psi -60..0 is (-55.7, -18.6) at "
+                            "12.2 kJ/mol with prominence 0.12 kJ/mol (< the 0.6 kJ/mol cell noise)")
     # ---- previews
     for name in ("convergence_2x3", "convergence_2x3_rate015", "psi_hidden_coordinate", "mean_force_diagnostics"):
         chk(os.path.exists(os.path.join(CA.PKG, "figs", "previews", f"{name}.pdf")), f"preview {name}.pdf present")

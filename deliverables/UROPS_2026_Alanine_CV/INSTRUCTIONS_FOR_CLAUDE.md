@@ -47,6 +47,20 @@ Source files are in `figs/data_supplementary/`; the preview is `figs/previews/ps
    * Definition: the equal-weight mean TV of p(φ | ψ) against the reference, over pooled 15° bins with ≥ 200
      samples in the window.
 
+## Ramachandran surface (data/reference/reference_F2_kJ.csv)
+
+* **Orientation and units.** Rows are φ, columns are ψ, on the grid −π + (i + ½)·2π/97. Values are in kJ/mol with
+  the global minimum at 0; `NaN` marks the 226 never-visited cells.
+* **Edge profiles.** The marginals computed from this file are exactly the panel references for F_φ and F_ψ.
+* **Basin labels.** Use `reference_F2_minima.csv`. The surface's own resolved minima are:
+  * C7eq at (−74°, 56°);
+  * C5 at (−152°, 156°), +1.1 kJ/mol;
+  * C7ax at (63°, −48°), +6.4 kJ/mol.
+* **αR is not a resolved minimum here.** Its region near (−56°, −19°) is a 12 kJ/mol shoulder with 0.12 kJ/mol
+  prominence. Label it as a region, or omit it.
+* **Uncertainty.** The per-cell bootstrap s.e. is in `reference_F2_se_kJ.csv` (median 0.61 kJ/mol). Contours finer
+  than about 1 kJ/mol are below the reference noise.
+
 ## Claims supported, and claims to avoid
 
 * **Supported:**

@@ -1,5 +1,5 @@
 {
- "n_pass": 54,
+ "n_pass": 60,
  "n_fail": 0,
  "checks": [
   {
@@ -296,6 +296,41 @@
    "check": "phi_u15_t0: e_F'(T) raw vs closed",
    "status": "INFO",
    "detail": "raw 1.262 vs ABF 1.348; closed 1.426 vs ABF 1.324 (sign differs: the phi e_F' comparison is reference-limited)"
+  },
+  {
+   "check": "reference_F2_kJ.csv = the stored 2-D MBAR F exactly (rows phi, columns psi; NaN = never visited)",
+   "status": "PASS",
+   "detail": "226 NaN cells"
+  },
+  {
+   "check": "1-D phi marginal recomputed from the CSV = the 1-D reference used by every panel",
+   "status": "PASS",
+   "detail": "max |diff| 0.0e+00"
+  },
+  {
+   "check": "1-D psi marginal recomputed from the CSV = the 1-D reference used by every panel",
+   "status": "PASS",
+   "detail": "max |diff| 0.0e+00"
+  },
+  {
+   "check": "1-D psi_cond marginal recomputed from the CSV = the 1-D reference used by every panel",
+   "status": "PASS",
+   "detail": "max |diff| 0.0e+00"
+  },
+  {
+   "check": "orientation: global minimum (C7eq) at row phi -74.2 deg, column psi 55.7 deg",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "resolved minima (prominence > 2 x median cell s.e.): C7eq, C5, C7ax",
+   "status": "PASS",
+   "detail": "C7eq (-74.2268, 55.6701) 0.0000 kJ/mol; C5 (-152.1649, 155.8763) 1.1195 kJ/mol; C7ax (63.0928, -48.2474) 6.3902 kJ/mol"
+  },
+  {
+   "check": "alpha_R region",
+   "status": "INFO",
+   "detail": "no resolved minimum: the only cell-level local minimum in phi -90..-40, psi -60..0 is (-55.7, -18.6) at 12.2 kJ/mol with prominence 0.12 kJ/mol (< the 0.6 kJ/mol cell noise)"
   },
   {
    "check": "preview convergence_2x3.pdf present",

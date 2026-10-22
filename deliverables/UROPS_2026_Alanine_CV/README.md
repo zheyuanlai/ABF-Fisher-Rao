@@ -14,6 +14,7 @@ and ψ alone, histogram ABF vs ABF + uniform Fisher–Rao at rates 0.02 and 0.15
 | `figs/data_supplementary/` | FR 0.15 pairs; ψ vs the φ < 0 conditional; mean-force variants (closed, dispersion, debiased); hidden-coordinate data (learned F(ψ), instantaneous and windowed φ > 0 mass, D_cond) |
 | `figs/previews/*.pdf` | 2 × 3 figure (both rates), hidden-coordinate figure, mean-force diagnostics |
 | `per_seed/<stage>__<metric>.csv` | per-seed series behind every curve |
+| `data/reference/reference_F2_kJ.csv` (+ `_se_kJ`, `_minima`, `_grid_deg`, `_info.json`) | the 2-D MBAR reference F(φ, ψ): rows φ, columns ψ, NaN = never visited; for the Ramachandran panel |
 | `data/reference/reference_1d.json` | 1-D references, central-difference mean force, bootstrap standard errors, reliability inputs |
 | `meta/export.json`, `meta/validation_results.json` | statistics, provenance, validation |
 | `PROVENANCE.md` | sources and definitions |
