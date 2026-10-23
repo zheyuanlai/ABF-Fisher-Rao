@@ -1,0 +1,441 @@
+{
+ "title": "Ethane in rigid all-silica LTA, 300 K (histogram ABF vs ABF + uniform FR)",
+ "source": {
+  "run_dir": "results/lta_histogram/production_T300",
+  "files": [
+   "abf.npz",
+   "fr_uniform.npz"
+  ],
+  "not_read": "fr_sham.npz (historical matched-sham arm; not part of this two-arm comparison)",
+  "config": "configs/lta_histogram/campaign.json",
+  "engine": "src/lta/core_lta.py",
+  "run_commit": "56ab774d727cccb1fc4fb85fde014514fbd1f631",
+  "config_hash": "b9978052868b",
+  "docs": [
+   "docs/LTA_HISTOGRAM_REPLICATION.md",
+   "docs/numerical_validation/LTA_VALIDATION.md"
+  ],
+  "loader": "scripts/convergence_fr/systems.py::load_lta",
+  "raw_sha256": {
+   "abf": "7ba5583c14822e6776fa56fc98569c6157d7c1aa5823949f30b0ddd598e81579",
+   "fr_uniform": "9db7a70aa167d269f7cbab81b40a225e7ab5b71b72f30211da2f576a91109e4b"
+  }
+ },
+ "status": "original data, post-processing only (no new simulation)",
+ "model": "rigid all-silica LTA (IZA DLS76 SiO2, 2x2x2 pseudo-cells, a = 11.919 A, only framework O interacts), one two-site TraPPE-UA ethane per replica (harmonic bond r0 1.54 A), CH3-O LJ eps/kB 93 K, sigma 3.48 A, rc 10 A; overdamped Euler-Maruyama, unit mobility; CV phi = 2 pi x_COM / a on the circle (window plane at phi = 0, alpha-cage centres at +-pi)",
+ "config": {
+  "N": 1024,
+  "T": 60.0,
+  "dt": 0.0002,
+  "n_steps": 300000,
+  "save_every_steps": 3000,
+  "nb": 180,
+  "temperature_K": 300,
+  "estimator": "P0 histogram on 180 circular bins (own-bin bias M_j / C_j, 0 on empty bins); ABF bias ramp over 0 <= t <= 4; reported estimator from production accumulators after the estimator burn-in at t = 4 (all-steps accumulators before)",
+  "fr": "uniform target 1/(2 pi); wrapped-Gaussian KDE bandwidth 0.1 rad; score clip 2.0; rate 0.2; every 5 steps from t = 4; never stopped; cap floor(0.02 N) = 20 events per opportunity",
+  "fr_start_t": 4.0,
+  "fr_stop_t": null,
+  "abf_ramp_end_t": 4.0,
+  "estimator_burn_in_t": 4.0,
+  "pairing": "all arms of one temperature in ONE process on common seeds (rng_seed 20260904)"
+ },
+ "reference": "independent exact Metropolis MC umbrella reference (results/numerical_validation/lta/T300/MC, 640 chain files): F = MC density route (summary.json profiles['MC density']), F' = pooled MC bin conditional mean force",
+ "definitions": {
+  "eF": "sqrt(mean_j (F_hat_j - F_ref_j - c)^2) over the 180 bins, c = mean difference (full circle, uniform)",
+  "eFp": "sqrt(mean_j (Gamma_j - F'_ref_j)^2) over the 180 bins (full circle, uniform); per-bin reference, no deterministic within-bin floor",
+  "exi": "||p_hat_t - u||_L2 over the circle, p_hat_t = saved KDE (bandwidth 0.1 rad) of the current replica phi values, normalised to integrate to 1 over [-pi, pi), u = 1/(2 pi)"
+ },
+ "units": {
+  "t": "engine time units (overdamped EM, dt = 2e-4 per step; not physical ps)",
+  "eF": "kJ/mol",
+  "eFp": "kJ/mol/rad",
+  "exi": "density per rad (L2 norm, rad^-1/2)"
+ },
+ "domain": {
+  "eF": "full circle [-pi, pi)",
+  "eFp": "full circle",
+  "exi": "full circle"
+ },
+ "weighting": "uniform in phi",
+ "marginal_type": "instantaneous replica marginal, KDE-smoothed (bandwidth 0.1 rad) as saved by the engine; not a raw histogram",
+ "kT_kJmol": 2.4943387799999996,
+ "time_grid": "all 101 saved checkpoints (every 3000 steps = 0.6 t.u., t = 0 .. 60)",
+ "integrated_definition": "I_F = trapezoid of e_F over all saves on [0, 60] (LTA_VALIDATION / analyze_lta_histogram); atlas Ibar = I / T and post-ramp Ibar over [t_FR, T] also reproduced",
+ "stats": {
+  "I_F_full_trapezoid": {
+   "median": -0.13664739620725164,
+   "ci95": [
+    -0.14790609525046455,
+    -0.11113515405292222
+   ],
+   "wins_fr": 16,
+   "n": 16,
+   "abf_median": 23.657187911297797,
+   "fr_median": 20.319350447865425,
+   "per_seed": [
+    -0.07290715081983286,
+    -0.13812502755925007,
+    -0.13193319911056922,
+    -0.14351288977848145,
+    -0.10559544040207436,
+    -0.11113515405292222,
+    -0.1623886114092077,
+    -0.08739593590374771,
+    -0.15607639401044648,
+    -0.1114524579729088,
+    -0.10121500921845915,
+    -0.14368534902845687,
+    -0.210816175095422,
+    -0.16132149498389137,
+    -0.13516976485525323,
+    -0.13973579649048265
+   ]
+  },
+  "final_e_F": {
+   "median": -0.07929384516655291,
+   "ci95": [
+    -0.14605215515469055,
+    0.006524371117242797
+   ],
+   "wins_fr": 11,
+   "n": 16,
+   "abf_median": 0.09371311906928076,
+   "fr_median": 0.07630022625010222,
+   "per_seed": [
+    0.07947833107235878,
+    -0.050247975302456234,
+    -0.08956123600523636,
+    0.006524371117242797,
+    -0.11951640964545904,
+    -0.17258790066392204,
+    -0.12063064480075536,
+    0.0868452249815483,
+    -0.12774597908513782,
+    -0.06902645432786948,
+    0.1566309678580497,
+    -0.2080612140524376,
+    -0.38302800271463805,
+    -0.278217819856744,
+    -0.014772894191450107,
+    0.047709977645410157
+   ]
+  },
+  "expected_LTA_VALIDATION": {
+   "dI": -13.66,
+   "dfin": -7.93
+  },
+  "atlas_Ibar_F_full": {
+   "reproduced": {
+    "median_rel": -0.13664739620725175,
+    "ci95": [
+     -0.14790609525046455,
+     -0.10852394918749159
+    ],
+    "wins_fr": 16,
+    "n": 16,
+    "abf_median": 0.39428646518829663,
+    "fr_median": 0.338655840797757,
+    "per_seed": [
+     -0.0729071508198329,
+     -0.13812502755925016,
+     -0.13193319911056922,
+     -0.14351288977848142,
+     -0.10559544040207436,
+     -0.11113515405292218,
+     -0.1623886114092078,
+     -0.08739593590374772,
+     -0.15607639401044648,
+     -0.11145245797290881,
+     -0.10121500921845916,
+     -0.14368534902845687,
+     -0.21081617509542205,
+     -0.16132149498389137,
+     -0.13516976485525334,
+     -0.13973579649048262
+    ]
+   },
+   "recorded": {
+    "median_rel": -0.13664739620725175,
+    "ci95": [
+     -0.14790609525046455,
+     -0.10852394918749159
+    ],
+    "wins_fr": 16,
+    "n": 16,
+    "abf_median": 0.39428646518829663,
+    "fr_median": 0.338655840797757,
+    "per_seed": [
+     -0.0729071508198329,
+     -0.13812502755925016,
+     -0.13193319911056922,
+     -0.14351288977848142,
+     -0.10559544040207436,
+     -0.11113515405292218,
+     -0.1623886114092078,
+     -0.08739593590374772,
+     -0.15607639401044648,
+     -0.11145245797290881,
+     -0.10121500921845916,
+     -0.14368534902845687,
+     -0.21081617509542205,
+     -0.16132149498389137,
+     -0.13516976485525334,
+     -0.13973579649048262
+    ]
+   }
+  },
+  "atlas_Ibar_F_post_ramp": {
+   "reproduced": {
+    "median_rel": -0.22725806092643086,
+    "ci95": [
+     -0.24505770762072432,
+     -0.1896987222293327
+    ],
+    "wins_fr": 16,
+    "n": 16,
+    "abf_median": 0.24919049437260327,
+    "fr_median": 0.19137883174622058,
+    "per_seed": [
+     -0.1285236813402113,
+     -0.2241262329514998,
+     -0.207128628116796,
+     -0.23038988890136192,
+     -0.1787166953644831,
+     -0.1896987222293327,
+     -0.27514250751636604,
+     -0.172167998872924,
+     -0.24505770762072432,
+     -0.20274749615731247,
+     -0.1874282817733044,
+     -0.2590764354270747,
+     -0.3595474220242122,
+     -0.2654124503680034,
+     -0.23773413375584918,
+     -0.2312980449815869
+    ]
+   },
+   "recorded": {
+    "median_rel": -0.22725806092643086,
+    "ci95": [
+     -0.24505770762072432,
+     -0.1896987222293327
+    ],
+    "wins_fr": 16,
+    "n": 16,
+    "abf_median": 0.24919049437260327,
+    "fr_median": 0.19137883174622058,
+    "per_seed": [
+     -0.1285236813402113,
+     -0.2241262329514998,
+     -0.207128628116796,
+     -0.23038988890136192,
+     -0.1787166953644831,
+     -0.1896987222293327,
+     -0.27514250751636604,
+     -0.172167998872924,
+     -0.24505770762072432,
+     -0.20274749615731247,
+     -0.1874282817733044,
+     -0.2590764354270747,
+     -0.3595474220242122,
+     -0.2654124503680034,
+     -0.23773413375584918,
+     -0.2312980449815869
+    ]
+   }
+  },
+  "atlas_eF_T": {
+   "reproduced": {
+    "median_rel": -0.07929384516655291,
+    "ci95": [
+     -0.12774597908513785,
+     0.006524371117242689
+    ],
+    "wins_fr": 11,
+    "n": 16,
+    "abf_median": 0.09371311906928076,
+    "fr_median": 0.07630022625010222,
+    "per_seed": [
+     0.0794783310723588,
+     -0.05024797530245628,
+     -0.08956123600523636,
+     0.006524371117242689,
+     -0.11951640964545907,
+     -0.17258790066392204,
+     -0.12063064480075536,
+     0.08684522498154834,
+     -0.12774597908513785,
+     -0.06902645432786947,
+     0.15663096785804975,
+     -0.2080612140524376,
+     -0.3830280027146381,
+     -0.278217819856744,
+     -0.014772894191450114,
+     0.047709977645410184
+    ]
+   },
+   "recorded": {
+    "median_rel": -0.07929384516655291,
+    "ci95": [
+     -0.12774597908513785,
+     0.006524371117242689
+    ],
+    "wins_fr": 11,
+    "n": 16,
+    "abf_median": 0.09371311906928076,
+    "fr_median": 0.07630022625010222,
+    "per_seed": [
+     0.0794783310723588,
+     -0.05024797530245628,
+     -0.08956123600523636,
+     0.006524371117242689,
+     -0.11951640964545907,
+     -0.17258790066392204,
+     -0.12063064480075536,
+     0.08684522498154834,
+     -0.12774597908513785,
+     -0.06902645432786947,
+     0.15663096785804975,
+     -0.2080612140524376,
+     -0.3830280027146381,
+     -0.278217819856744,
+     -0.014772894191450114,
+     0.047709977645410184
+    ]
+   }
+  },
+  "atlas_eG_T": {
+   "reproduced": {
+    "median_rel": -0.054087219797244346,
+    "ci95": [
+     -0.12002831694963267,
+     0.04739137792635484
+    ],
+    "wins_fr": 11,
+    "n": 16,
+    "abf_median": 0.12116335850877351,
+    "fr_median": 0.10783281368668303,
+    "per_seed": [
+     0.0652697094368333,
+     -0.018202879706741282,
+     -0.07322191614576268,
+     0.18039702401362656,
+     -0.1307812043450607,
+     -0.12002831694963267,
+     -0.11037914199648824,
+     0.1515634984400367,
+     -0.15419007280548158,
+     -0.034952523448726014,
+     0.11327464031455325,
+     -0.08213652031390806,
+     -0.16439263260457948,
+     -0.18518656196979055,
+     0.04739137792635484,
+     -0.03400755152364643
+    ]
+   },
+   "recorded": {
+    "median_rel": -0.054087219797244346,
+    "ci95": [
+     -0.12002831694963267,
+     0.04739137792635484
+    ],
+    "wins_fr": 11,
+    "n": 16,
+    "abf_median": 0.12116335850877351,
+    "fr_median": 0.10783281368668303,
+    "per_seed": [
+     0.0652697094368333,
+     -0.018202879706741282,
+     -0.07322191614576268,
+     0.18039702401362656,
+     -0.1307812043450607,
+     -0.12002831694963267,
+     -0.11037914199648824,
+     0.1515634984400367,
+     -0.15419007280548158,
+     -0.034952523448726014,
+     0.11327464031455325,
+     -0.08213652031390806,
+     -0.16439263260457948,
+     -0.18518656196979055,
+     0.04739137792635484,
+     -0.03400755152364643
+    ]
+   }
+  },
+  "atlas_curve_max_abs_deviation": {
+   "eF_abf": 0.0,
+   "eF_fr": 0.0,
+   "eFp_abf": 0.0,
+   "eFp_fr": 0.0
+  },
+  "fr_marginal_check": {
+   "target_is_uniform": true,
+   "max_abs_diff_vs_engine_pq_l2": 1.1102230246251565e-16,
+   "n_saves_with_target": 101
+  }
+ },
+ "experiment": "lta300",
+ "seeds": [
+  1060,
+  1061,
+  1062,
+  1063,
+  1064,
+  1065,
+  1066,
+  1067,
+  1068,
+  1069,
+  1070,
+  1071,
+  1072,
+  1073,
+  1074,
+  1075
+ ],
+ "n_seeds": 16,
+ "n_times": 101,
+ "t_first": 0.0,
+ "t_last": 60.0,
+ "files": {
+  "eF": {
+   "csv": "figs/data/lta300_eF.csv",
+   "n_rows": 101,
+   "n_nonfinite_abf": 0,
+   "n_nonfinite_fr": 0,
+   "n_nonpositive_abf": 0,
+   "n_nonpositive_fr": 0
+  },
+  "eFp": {
+   "csv": "figs/data/lta300_eFp.csv",
+   "n_rows": 101,
+   "n_nonfinite_abf": 0,
+   "n_nonfinite_fr": 0,
+   "n_nonpositive_abf": 0,
+   "n_nonpositive_fr": 0
+  },
+  "exi": {
+   "csv": "figs/data/lta300_exi.csv",
+   "n_rows": 101,
+   "n_nonfinite_abf": 0,
+   "n_nonfinite_fr": 0,
+   "n_nonpositive_abf": 0,
+   "n_nonpositive_fr": 0
+  }
+ },
+ "provenance": {
+  "data_root": "/home/zheyuanlai/ABF-Fisher-Rao",
+  "scoring_code_commit": "13e77275c80f034287f1503237d203a430e60317",
+  "scoring_code_tracked_files_modified": false,
+  "checked_paths": [
+   "src",
+   "scripts",
+   "configs"
+  ],
+  "exporter_commit": "13d9ed1a4a164981e10ebc6aaedde86463d977b3",
+  "python": "3.14.4",
+  "numpy": "2.4.6"
+ }
+}

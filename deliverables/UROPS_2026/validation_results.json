@@ -1,0 +1,1905 @@
+{
+ "n_pass": 371,
+ "n_fail": 0,
+ "checks": {
+  "gateway": [
+   {
+    "check": "gateway: meta file present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "gateway_eF.csv present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "gateway_eF.csv header",
+    "status": "PASS",
+    "detail": "t,abf_median,abf_q25,abf_q75,fr_median,fr_q25,fr_q75"
+   },
+   {
+    "check": "gateway_eF.csv seven numeric columns",
+    "status": "PASS",
+    "detail": "(225, 7)"
+   },
+   {
+    "check": "gateway_eF.csv all values finite",
+    "status": "PASS",
+    "detail": "0 non-finite"
+   },
+   {
+    "check": "gateway_eF.csv strictly positive (log axis)",
+    "status": "PASS",
+    "detail": "0 non-positive"
+   },
+   {
+    "check": "gateway_eF.csv t strictly increasing",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "gateway_eF.csv final t",
+    "status": "PASS",
+    "detail": "40 (expected 40)"
+   },
+   {
+    "check": "gateway_eF.csv row count",
+    "status": "PASS",
+    "detail": "225 rows"
+   },
+   {
+    "check": "gateway_eF.csv q25 <= median <= q75 (both arms)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "gateway_eF seeds matched, unique, n = 32",
+    "status": "PASS",
+    "detail": "8100..8131"
+   },
+   {
+    "check": "gateway_eF same seed set as the other panels and the meta",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "gateway_eF per-seed time grid = CSV grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "gateway_eF.csv = quartiles of the per-seed file",
+    "status": "PASS",
+    "detail": "max rel dev 6.6e-10"
+   },
+   {
+    "check": "gateway_eF per-seed values finite (no missing seed record)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "gateway_eFp.csv present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "gateway_eFp.csv header",
+    "status": "PASS",
+    "detail": "t,abf_median,abf_q25,abf_q75,fr_median,fr_q25,fr_q75"
+   },
+   {
+    "check": "gateway_eFp.csv seven numeric columns",
+    "status": "PASS",
+    "detail": "(225, 7)"
+   },
+   {
+    "check": "gateway_eFp.csv all values finite",
+    "status": "PASS",
+    "detail": "0 non-finite"
+   },
+   {
+    "check": "gateway_eFp.csv strictly positive (log axis)",
+    "status": "PASS",
+    "detail": "0 non-positive"
+   },
+   {
+    "check": "gateway_eFp.csv t strictly increasing",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "gateway_eFp.csv final t",
+    "status": "PASS",
+    "detail": "40 (expected 40)"
+   },
+   {
+    "check": "gateway_eFp.csv row count",
+    "status": "PASS",
+    "detail": "225 rows"
+   },
+   {
+    "check": "gateway_eFp.csv q25 <= median <= q75 (both arms)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "gateway_eFp seeds matched, unique, n = 32",
+    "status": "PASS",
+    "detail": "8100..8131"
+   },
+   {
+    "check": "gateway_eFp same seed set as the other panels and the meta",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "gateway_eFp per-seed time grid = CSV grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "gateway_eFp.csv = quartiles of the per-seed file",
+    "status": "PASS",
+    "detail": "max rel dev 7.1e-10"
+   },
+   {
+    "check": "gateway_eFp per-seed values finite (no missing seed record)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "gateway_exi.csv present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "gateway_exi.csv header",
+    "status": "PASS",
+    "detail": "t,abf_median,abf_q25,abf_q75,fr_median,fr_q25,fr_q75"
+   },
+   {
+    "check": "gateway_exi.csv seven numeric columns",
+    "status": "PASS",
+    "detail": "(225, 7)"
+   },
+   {
+    "check": "gateway_exi.csv all values finite",
+    "status": "PASS",
+    "detail": "0 non-finite"
+   },
+   {
+    "check": "gateway_exi.csv strictly positive (log axis)",
+    "status": "PASS",
+    "detail": "0 non-positive"
+   },
+   {
+    "check": "gateway_exi.csv t strictly increasing",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "gateway_exi.csv final t",
+    "status": "PASS",
+    "detail": "40 (expected 40)"
+   },
+   {
+    "check": "gateway_exi.csv row count",
+    "status": "PASS",
+    "detail": "225 rows"
+   },
+   {
+    "check": "gateway_exi.csv q25 <= median <= q75 (both arms)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "gateway_exi seeds matched, unique, n = 32",
+    "status": "PASS",
+    "detail": "8100..8131"
+   },
+   {
+    "check": "gateway_exi same seed set as the other panels and the meta",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "gateway_exi per-seed time grid = CSV grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "gateway_exi.csv = quartiles of the per-seed file",
+    "status": "PASS",
+    "detail": "max rel dev 6.2e-10"
+   },
+   {
+    "check": "gateway_exi per-seed values finite (no missing seed record)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "gateway: the three panels share one time grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "gateway: every CSV row is a raw saved checkpoint (no fabricated / interpolated times)",
+    "status": "PASS",
+    "detail": "225 raw saves vs 225 rows"
+   },
+   {
+    "check": "gateway: units recorded for t and the three errors",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "gateway: marginal type, reference and definitions recorded",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "gateway: scoring code = committed code",
+    "status": "PASS",
+    "detail": "commit 13e77275c8"
+   },
+   {
+    "check": "gateway: paired statistic recomputed from the per-seed files = exporter's",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "gateway: audit Ibar_F frozen v2 anchor (eqb summary.json)",
+    "status": "PASS",
+    "detail": "reproduced -0.3139, reference -0.3139 (tol 0.002)"
+   },
+   {
+    "check": "gateway: audit Ibar_F dt-study h 2.5e-5 (-29.7 %)",
+    "status": "PASS",
+    "detail": "reproduced -0.2967, reference -0.2970 (tol 0.005)"
+   },
+   {
+    "check": "gateway: final e_F",
+    "status": "INFO",
+    "detail": "-0.6137"
+   }
+  ],
+  "lta150": [
+   {
+    "check": "lta150: meta file present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta150_eF.csv present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta150_eF.csv header",
+    "status": "PASS",
+    "detail": "t,abf_median,abf_q25,abf_q75,fr_median,fr_q25,fr_q75"
+   },
+   {
+    "check": "lta150_eF.csv seven numeric columns",
+    "status": "PASS",
+    "detail": "(101, 7)"
+   },
+   {
+    "check": "lta150_eF.csv all values finite",
+    "status": "PASS",
+    "detail": "0 non-finite"
+   },
+   {
+    "check": "lta150_eF.csv strictly positive (log axis)",
+    "status": "PASS",
+    "detail": "0 non-positive"
+   },
+   {
+    "check": "lta150_eF.csv t strictly increasing",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta150_eF.csv final t",
+    "status": "PASS",
+    "detail": "60 (expected 60)"
+   },
+   {
+    "check": "lta150_eF.csv row count",
+    "status": "PASS",
+    "detail": "101 rows"
+   },
+   {
+    "check": "lta150_eF.csv q25 <= median <= q75 (both arms)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta150_eF seeds matched, unique, n = 16",
+    "status": "PASS",
+    "detail": "1020..1035"
+   },
+   {
+    "check": "lta150_eF same seed set as the other panels and the meta",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta150_eF per-seed time grid = CSV grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta150_eF.csv = quartiles of the per-seed file",
+    "status": "PASS",
+    "detail": "max rel dev 7.4e-10"
+   },
+   {
+    "check": "lta150_eF per-seed values finite (no missing seed record)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta150_eF ABF == FR before the FR start t = 4",
+    "status": "PASS",
+    "detail": "7 saves, max |diff| 0.0e+00"
+   },
+   {
+    "check": "lta150_eFp.csv present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta150_eFp.csv header",
+    "status": "PASS",
+    "detail": "t,abf_median,abf_q25,abf_q75,fr_median,fr_q25,fr_q75"
+   },
+   {
+    "check": "lta150_eFp.csv seven numeric columns",
+    "status": "PASS",
+    "detail": "(101, 7)"
+   },
+   {
+    "check": "lta150_eFp.csv all values finite",
+    "status": "PASS",
+    "detail": "0 non-finite"
+   },
+   {
+    "check": "lta150_eFp.csv strictly positive (log axis)",
+    "status": "PASS",
+    "detail": "0 non-positive"
+   },
+   {
+    "check": "lta150_eFp.csv t strictly increasing",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta150_eFp.csv final t",
+    "status": "PASS",
+    "detail": "60 (expected 60)"
+   },
+   {
+    "check": "lta150_eFp.csv row count",
+    "status": "PASS",
+    "detail": "101 rows"
+   },
+   {
+    "check": "lta150_eFp.csv q25 <= median <= q75 (both arms)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta150_eFp seeds matched, unique, n = 16",
+    "status": "PASS",
+    "detail": "1020..1035"
+   },
+   {
+    "check": "lta150_eFp same seed set as the other panels and the meta",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta150_eFp per-seed time grid = CSV grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta150_eFp.csv = quartiles of the per-seed file",
+    "status": "PASS",
+    "detail": "max rel dev 6.9e-10"
+   },
+   {
+    "check": "lta150_eFp per-seed values finite (no missing seed record)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta150_eFp ABF == FR before the FR start t = 4",
+    "status": "PASS",
+    "detail": "7 saves, max |diff| 0.0e+00"
+   },
+   {
+    "check": "lta150_exi.csv present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta150_exi.csv header",
+    "status": "PASS",
+    "detail": "t,abf_median,abf_q25,abf_q75,fr_median,fr_q25,fr_q75"
+   },
+   {
+    "check": "lta150_exi.csv seven numeric columns",
+    "status": "PASS",
+    "detail": "(101, 7)"
+   },
+   {
+    "check": "lta150_exi.csv all values finite",
+    "status": "PASS",
+    "detail": "0 non-finite"
+   },
+   {
+    "check": "lta150_exi.csv strictly positive (log axis)",
+    "status": "PASS",
+    "detail": "0 non-positive"
+   },
+   {
+    "check": "lta150_exi.csv t strictly increasing",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta150_exi.csv final t",
+    "status": "PASS",
+    "detail": "60 (expected 60)"
+   },
+   {
+    "check": "lta150_exi.csv row count",
+    "status": "PASS",
+    "detail": "101 rows"
+   },
+   {
+    "check": "lta150_exi.csv q25 <= median <= q75 (both arms)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta150_exi seeds matched, unique, n = 16",
+    "status": "PASS",
+    "detail": "1020..1035"
+   },
+   {
+    "check": "lta150_exi same seed set as the other panels and the meta",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta150_exi per-seed time grid = CSV grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta150_exi.csv = quartiles of the per-seed file",
+    "status": "PASS",
+    "detail": "max rel dev 5.6e-10"
+   },
+   {
+    "check": "lta150_exi per-seed values finite (no missing seed record)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta150_exi ABF == FR before the FR start t = 4",
+    "status": "PASS",
+    "detail": "7 saves, max |diff| 0.0e+00"
+   },
+   {
+    "check": "lta150: the three panels share one time grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta150: every CSV row is a raw saved checkpoint (no fabricated / interpolated times)",
+    "status": "PASS",
+    "detail": "101 raw saves vs 101 rows"
+   },
+   {
+    "check": "lta150: units recorded for t and the three errors",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta150: marginal type, reference and definitions recorded",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta150: scoring code = committed code",
+    "status": "PASS",
+    "detail": "commit 13e77275c8"
+   },
+   {
+    "check": "lta150: paired statistic recomputed from the per-seed files = exporter's",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta150: audit I_F full (LTA_VALIDATION -28.5 %)",
+    "status": "PASS",
+    "detail": "reproduced -0.2854, reference -0.2854 (tol 0.002)"
+   },
+   {
+    "check": "lta150: audit final e_F (-54.4 %)",
+    "status": "PASS",
+    "detail": "reproduced -0.5438, reference -0.5438 (tol 0.002)"
+   }
+  ],
+  "lta300": [
+   {
+    "check": "lta300: meta file present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta300_eF.csv present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta300_eF.csv header",
+    "status": "PASS",
+    "detail": "t,abf_median,abf_q25,abf_q75,fr_median,fr_q25,fr_q75"
+   },
+   {
+    "check": "lta300_eF.csv seven numeric columns",
+    "status": "PASS",
+    "detail": "(101, 7)"
+   },
+   {
+    "check": "lta300_eF.csv all values finite",
+    "status": "PASS",
+    "detail": "0 non-finite"
+   },
+   {
+    "check": "lta300_eF.csv strictly positive (log axis)",
+    "status": "PASS",
+    "detail": "0 non-positive"
+   },
+   {
+    "check": "lta300_eF.csv t strictly increasing",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta300_eF.csv final t",
+    "status": "PASS",
+    "detail": "60 (expected 60)"
+   },
+   {
+    "check": "lta300_eF.csv row count",
+    "status": "PASS",
+    "detail": "101 rows"
+   },
+   {
+    "check": "lta300_eF.csv q25 <= median <= q75 (both arms)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta300_eF seeds matched, unique, n = 16",
+    "status": "PASS",
+    "detail": "1060..1075"
+   },
+   {
+    "check": "lta300_eF same seed set as the other panels and the meta",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta300_eF per-seed time grid = CSV grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta300_eF.csv = quartiles of the per-seed file",
+    "status": "PASS",
+    "detail": "max rel dev 7.4e-10"
+   },
+   {
+    "check": "lta300_eF per-seed values finite (no missing seed record)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta300_eF ABF == FR before the FR start t = 4",
+    "status": "PASS",
+    "detail": "7 saves, max |diff| 0.0e+00"
+   },
+   {
+    "check": "lta300_eFp.csv present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta300_eFp.csv header",
+    "status": "PASS",
+    "detail": "t,abf_median,abf_q25,abf_q75,fr_median,fr_q25,fr_q75"
+   },
+   {
+    "check": "lta300_eFp.csv seven numeric columns",
+    "status": "PASS",
+    "detail": "(101, 7)"
+   },
+   {
+    "check": "lta300_eFp.csv all values finite",
+    "status": "PASS",
+    "detail": "0 non-finite"
+   },
+   {
+    "check": "lta300_eFp.csv strictly positive (log axis)",
+    "status": "PASS",
+    "detail": "0 non-positive"
+   },
+   {
+    "check": "lta300_eFp.csv t strictly increasing",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta300_eFp.csv final t",
+    "status": "PASS",
+    "detail": "60 (expected 60)"
+   },
+   {
+    "check": "lta300_eFp.csv row count",
+    "status": "PASS",
+    "detail": "101 rows"
+   },
+   {
+    "check": "lta300_eFp.csv q25 <= median <= q75 (both arms)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta300_eFp seeds matched, unique, n = 16",
+    "status": "PASS",
+    "detail": "1060..1075"
+   },
+   {
+    "check": "lta300_eFp same seed set as the other panels and the meta",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta300_eFp per-seed time grid = CSV grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta300_eFp.csv = quartiles of the per-seed file",
+    "status": "PASS",
+    "detail": "max rel dev 6.9e-10"
+   },
+   {
+    "check": "lta300_eFp per-seed values finite (no missing seed record)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta300_eFp ABF == FR before the FR start t = 4",
+    "status": "PASS",
+    "detail": "7 saves, max |diff| 0.0e+00"
+   },
+   {
+    "check": "lta300_exi.csv present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta300_exi.csv header",
+    "status": "PASS",
+    "detail": "t,abf_median,abf_q25,abf_q75,fr_median,fr_q25,fr_q75"
+   },
+   {
+    "check": "lta300_exi.csv seven numeric columns",
+    "status": "PASS",
+    "detail": "(101, 7)"
+   },
+   {
+    "check": "lta300_exi.csv all values finite",
+    "status": "PASS",
+    "detail": "0 non-finite"
+   },
+   {
+    "check": "lta300_exi.csv strictly positive (log axis)",
+    "status": "PASS",
+    "detail": "0 non-positive"
+   },
+   {
+    "check": "lta300_exi.csv t strictly increasing",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta300_exi.csv final t",
+    "status": "PASS",
+    "detail": "60 (expected 60)"
+   },
+   {
+    "check": "lta300_exi.csv row count",
+    "status": "PASS",
+    "detail": "101 rows"
+   },
+   {
+    "check": "lta300_exi.csv q25 <= median <= q75 (both arms)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta300_exi seeds matched, unique, n = 16",
+    "status": "PASS",
+    "detail": "1060..1075"
+   },
+   {
+    "check": "lta300_exi same seed set as the other panels and the meta",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta300_exi per-seed time grid = CSV grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta300_exi.csv = quartiles of the per-seed file",
+    "status": "PASS",
+    "detail": "max rel dev 4.7e-10"
+   },
+   {
+    "check": "lta300_exi per-seed values finite (no missing seed record)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta300_exi ABF == FR before the FR start t = 4",
+    "status": "PASS",
+    "detail": "7 saves, max |diff| 0.0e+00"
+   },
+   {
+    "check": "lta300: the three panels share one time grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta300: every CSV row is a raw saved checkpoint (no fabricated / interpolated times)",
+    "status": "PASS",
+    "detail": "101 raw saves vs 101 rows"
+   },
+   {
+    "check": "lta300: units recorded for t and the three errors",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta300: marginal type, reference and definitions recorded",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta300: scoring code = committed code",
+    "status": "PASS",
+    "detail": "commit 13e77275c8"
+   },
+   {
+    "check": "lta300: paired statistic recomputed from the per-seed files = exporter's",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "lta300: audit I_F full (LTA_VALIDATION -13.7 %)",
+    "status": "PASS",
+    "detail": "reproduced -0.1366, reference -0.1366 (tol 0.002)"
+   },
+   {
+    "check": "lta300: audit final e_F (-7.9 %, n.s.)",
+    "status": "PASS",
+    "detail": "reproduced -0.0793, reference -0.0793 (tol 0.002)"
+   }
+  ],
+  "ite300": [
+   {
+    "check": "ite300: meta file present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "ite300_eF.csv present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "ite300_eF.csv header",
+    "status": "PASS",
+    "detail": "t,abf_median,abf_q25,abf_q75,fr_median,fr_q25,fr_q75"
+   },
+   {
+    "check": "ite300_eF.csv seven numeric columns",
+    "status": "PASS",
+    "detail": "(401, 7)"
+   },
+   {
+    "check": "ite300_eF.csv all values finite",
+    "status": "PASS",
+    "detail": "0 non-finite"
+   },
+   {
+    "check": "ite300_eF.csv strictly positive (log axis)",
+    "status": "PASS",
+    "detail": "0 non-positive"
+   },
+   {
+    "check": "ite300_eF.csv t strictly increasing",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "ite300_eF.csv final t",
+    "status": "PASS",
+    "detail": "50 (expected 50)"
+   },
+   {
+    "check": "ite300_eF.csv row count",
+    "status": "PASS",
+    "detail": "401 rows"
+   },
+   {
+    "check": "ite300_eF.csv q25 <= median <= q75 (both arms)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "ite300_eF seeds matched, unique, n = 16",
+    "status": "PASS",
+    "detail": "1100000..1100015"
+   },
+   {
+    "check": "ite300_eF same seed set as the other panels and the meta",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "ite300_eF per-seed time grid = CSV grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "ite300_eF.csv = quartiles of the per-seed file",
+    "status": "PASS",
+    "detail": "max rel dev 7.4e-10"
+   },
+   {
+    "check": "ite300_eF per-seed values finite (no missing seed record)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "ite300_eF ABF == FR before the FR start t = 1",
+    "status": "PASS",
+    "detail": "8 saves, max |diff| 0.0e+00"
+   },
+   {
+    "check": "ite300_eFp.csv present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "ite300_eFp.csv header",
+    "status": "PASS",
+    "detail": "t,abf_median,abf_q25,abf_q75,fr_median,fr_q25,fr_q75"
+   },
+   {
+    "check": "ite300_eFp.csv seven numeric columns",
+    "status": "PASS",
+    "detail": "(401, 7)"
+   },
+   {
+    "check": "ite300_eFp.csv all values finite",
+    "status": "PASS",
+    "detail": "0 non-finite"
+   },
+   {
+    "check": "ite300_eFp.csv strictly positive (log axis)",
+    "status": "PASS",
+    "detail": "0 non-positive"
+   },
+   {
+    "check": "ite300_eFp.csv t strictly increasing",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "ite300_eFp.csv final t",
+    "status": "PASS",
+    "detail": "50 (expected 50)"
+   },
+   {
+    "check": "ite300_eFp.csv row count",
+    "status": "PASS",
+    "detail": "401 rows"
+   },
+   {
+    "check": "ite300_eFp.csv q25 <= median <= q75 (both arms)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "ite300_eFp seeds matched, unique, n = 16",
+    "status": "PASS",
+    "detail": "1100000..1100015"
+   },
+   {
+    "check": "ite300_eFp same seed set as the other panels and the meta",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "ite300_eFp per-seed time grid = CSV grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "ite300_eFp.csv = quartiles of the per-seed file",
+    "status": "PASS",
+    "detail": "max rel dev 7.4e-10"
+   },
+   {
+    "check": "ite300_eFp per-seed values finite (no missing seed record)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "ite300_eFp ABF == FR before the FR start t = 1",
+    "status": "PASS",
+    "detail": "8 saves, max |diff| 0.0e+00"
+   },
+   {
+    "check": "ite300_exi.csv present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "ite300_exi.csv header",
+    "status": "PASS",
+    "detail": "t,abf_median,abf_q25,abf_q75,fr_median,fr_q25,fr_q75"
+   },
+   {
+    "check": "ite300_exi.csv seven numeric columns",
+    "status": "PASS",
+    "detail": "(401, 7)"
+   },
+   {
+    "check": "ite300_exi.csv all values finite",
+    "status": "PASS",
+    "detail": "0 non-finite"
+   },
+   {
+    "check": "ite300_exi.csv strictly positive (log axis)",
+    "status": "PASS",
+    "detail": "0 non-positive"
+   },
+   {
+    "check": "ite300_exi.csv t strictly increasing",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "ite300_exi.csv final t",
+    "status": "PASS",
+    "detail": "50 (expected 50)"
+   },
+   {
+    "check": "ite300_exi.csv row count",
+    "status": "PASS",
+    "detail": "401 rows"
+   },
+   {
+    "check": "ite300_exi.csv q25 <= median <= q75 (both arms)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "ite300_exi seeds matched, unique, n = 16",
+    "status": "PASS",
+    "detail": "1100000..1100015"
+   },
+   {
+    "check": "ite300_exi same seed set as the other panels and the meta",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "ite300_exi per-seed time grid = CSV grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "ite300_exi.csv = quartiles of the per-seed file",
+    "status": "PASS",
+    "detail": "max rel dev 4.9e-10"
+   },
+   {
+    "check": "ite300_exi per-seed values finite (no missing seed record)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "ite300_exi ABF == FR before the FR start t = 1",
+    "status": "PASS",
+    "detail": "8 saves, max |diff| 0.0e+00"
+   },
+   {
+    "check": "ite300: the three panels share one time grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "ite300: every CSV row is a raw saved checkpoint (no fabricated / interpolated times)",
+    "status": "PASS",
+    "detail": "401 raw saves vs 401 rows"
+   },
+   {
+    "check": "ite300: units recorded for t and the three errors",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "ite300: marginal type, reference and definitions recorded",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "ite300: scoring code = committed code",
+    "status": "PASS",
+    "detail": "commit 13e77275c8"
+   },
+   {
+    "check": "ite300: paired statistic recomputed from the per-seed files = exporter's",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "ite300: audit post-ramp Ibar_F (-38 %)",
+    "status": "PASS",
+    "detail": "reproduced -0.3768, reference -0.3768 (tol 0.005)"
+   },
+   {
+    "check": "ite300: audit final e_F (-32 %)",
+    "status": "PASS",
+    "detail": "reproduced -0.3232, reference -0.3232 (tol 0.005)"
+   },
+   {
+    "check": "ite300: audit S_geo (1.59)",
+    "status": "PASS",
+    "detail": "reproduced +1.5862, reference +1.5860 (tol 0.005)"
+   }
+  ],
+  "meta": [
+   {
+    "check": "meta: meta file present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "meta_eF.csv present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "meta_eF.csv header",
+    "status": "PASS",
+    "detail": "t,abf_median,abf_q25,abf_q75,fr_median,fr_q25,fr_q75"
+   },
+   {
+    "check": "meta_eF.csv seven numeric columns",
+    "status": "PASS",
+    "detail": "(401, 7)"
+   },
+   {
+    "check": "meta_eF.csv all values finite",
+    "status": "PASS",
+    "detail": "0 non-finite"
+   },
+   {
+    "check": "meta_eF.csv strictly positive (log axis)",
+    "status": "PASS",
+    "detail": "0 non-positive"
+   },
+   {
+    "check": "meta_eF.csv t strictly increasing",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "meta_eF.csv final t",
+    "status": "PASS",
+    "detail": "200 (expected 200)"
+   },
+   {
+    "check": "meta_eF.csv row count",
+    "status": "PASS",
+    "detail": "401 rows"
+   },
+   {
+    "check": "meta_eF.csv q25 <= median <= q75 (both arms)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "meta_eF seeds matched, unique, n = 32",
+    "status": "PASS",
+    "detail": "910000..910031"
+   },
+   {
+    "check": "meta_eF same seed set as the other panels and the meta",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "meta_eF per-seed time grid = CSV grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "meta_eF.csv = quartiles of the per-seed file",
+    "status": "PASS",
+    "detail": "max rel dev 7.4e-10"
+   },
+   {
+    "check": "meta_eF per-seed values finite (no missing seed record)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "meta_eFp.csv present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "meta_eFp.csv header",
+    "status": "PASS",
+    "detail": "t,abf_median,abf_q25,abf_q75,fr_median,fr_q25,fr_q75"
+   },
+   {
+    "check": "meta_eFp.csv seven numeric columns",
+    "status": "PASS",
+    "detail": "(401, 7)"
+   },
+   {
+    "check": "meta_eFp.csv all values finite",
+    "status": "PASS",
+    "detail": "0 non-finite"
+   },
+   {
+    "check": "meta_eFp.csv strictly positive (log axis)",
+    "status": "PASS",
+    "detail": "0 non-positive"
+   },
+   {
+    "check": "meta_eFp.csv t strictly increasing",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "meta_eFp.csv final t",
+    "status": "PASS",
+    "detail": "200 (expected 200)"
+   },
+   {
+    "check": "meta_eFp.csv row count",
+    "status": "PASS",
+    "detail": "401 rows"
+   },
+   {
+    "check": "meta_eFp.csv q25 <= median <= q75 (both arms)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "meta_eFp seeds matched, unique, n = 32",
+    "status": "PASS",
+    "detail": "910000..910031"
+   },
+   {
+    "check": "meta_eFp same seed set as the other panels and the meta",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "meta_eFp per-seed time grid = CSV grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "meta_eFp.csv = quartiles of the per-seed file",
+    "status": "PASS",
+    "detail": "max rel dev 5.1e-10"
+   },
+   {
+    "check": "meta_eFp per-seed values finite (no missing seed record)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "meta_exi.csv present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "meta_exi.csv header",
+    "status": "PASS",
+    "detail": "t,abf_median,abf_q25,abf_q75,fr_median,fr_q25,fr_q75"
+   },
+   {
+    "check": "meta_exi.csv seven numeric columns",
+    "status": "PASS",
+    "detail": "(401, 7)"
+   },
+   {
+    "check": "meta_exi.csv all values finite",
+    "status": "PASS",
+    "detail": "0 non-finite"
+   },
+   {
+    "check": "meta_exi.csv strictly positive (log axis)",
+    "status": "PASS",
+    "detail": "0 non-positive"
+   },
+   {
+    "check": "meta_exi.csv t strictly increasing",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "meta_exi.csv final t",
+    "status": "PASS",
+    "detail": "200 (expected 200)"
+   },
+   {
+    "check": "meta_exi.csv row count",
+    "status": "PASS",
+    "detail": "401 rows"
+   },
+   {
+    "check": "meta_exi.csv q25 <= median <= q75 (both arms)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "meta_exi seeds matched, unique, n = 32",
+    "status": "PASS",
+    "detail": "910000..910031"
+   },
+   {
+    "check": "meta_exi same seed set as the other panels and the meta",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "meta_exi per-seed time grid = CSV grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "meta_exi.csv = quartiles of the per-seed file",
+    "status": "PASS",
+    "detail": "max rel dev 5.8e-10"
+   },
+   {
+    "check": "meta_exi per-seed values finite (no missing seed record)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "meta: the three panels share one time grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "meta: every CSV row is a raw saved checkpoint (no fabricated / interpolated times)",
+    "status": "PASS",
+    "detail": "401 raw saves vs 401 rows"
+   },
+   {
+    "check": "meta: units recorded for t and the three errors",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "meta: marginal type, reference and definitions recorded",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "meta: scoring code = committed code",
+    "status": "PASS",
+    "detail": "commit 13e77275c8"
+   },
+   {
+    "check": "meta: paired statistic recomputed from the per-seed files = exporter's",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "meta: I_F",
+    "status": "INFO",
+    "detail": "+0.5193"
+   },
+   {
+    "check": "meta: final e_F",
+    "status": "INFO",
+    "detail": "+3.3413"
+   }
+  ],
+  "alanine": [
+   {
+    "check": "alanine: meta file present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "alanine_eF.csv present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "alanine_eF.csv header",
+    "status": "PASS",
+    "detail": "t,abf_median,abf_q25,abf_q75,fr_median,fr_q25,fr_q75"
+   },
+   {
+    "check": "alanine_eF.csv seven numeric columns",
+    "status": "PASS",
+    "detail": "(101, 7)"
+   },
+   {
+    "check": "alanine_eF.csv all values finite",
+    "status": "PASS",
+    "detail": "0 non-finite"
+   },
+   {
+    "check": "alanine_eF.csv strictly positive (log axis)",
+    "status": "PASS",
+    "detail": "0 non-positive"
+   },
+   {
+    "check": "alanine_eF.csv t strictly increasing",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "alanine_eF.csv final t",
+    "status": "PASS",
+    "detail": "100 (expected 100)"
+   },
+   {
+    "check": "alanine_eF.csv row count",
+    "status": "PASS",
+    "detail": "101 rows"
+   },
+   {
+    "check": "alanine_eF.csv q25 <= median <= q75 (both arms)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "alanine_eF seeds matched, unique, n = 16",
+    "status": "PASS",
+    "detail": "0..15"
+   },
+   {
+    "check": "alanine_eF same seed set as the other panels and the meta",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "alanine_eF per-seed time grid = CSV grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "alanine_eF.csv = quartiles of the per-seed file",
+    "status": "PASS",
+    "detail": "max rel dev 5.0e-10"
+   },
+   {
+    "check": "alanine_eF per-seed values finite (no missing seed record)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "alanine_eF ABF == FR through t = 2 (before GPU-reduction divergence)",
+    "status": "PASS",
+    "detail": "max |diff| 0.0e+00"
+   },
+   {
+    "check": "alanine_eF pre-FR pairing is statistical, not bitwise (documented: docs/FR_START_TIMING.md, float64 scatter_add order-nondeterminism on CUDA)",
+    "status": "INFO",
+    "detail": "before t = 20: max |diff| 5.59e-02, median relative diff 4.63e-03"
+   },
+   {
+    "check": "alanine_eFp.csv present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "alanine_eFp.csv header",
+    "status": "PASS",
+    "detail": "t,abf_median,abf_q25,abf_q75,fr_median,fr_q25,fr_q75"
+   },
+   {
+    "check": "alanine_eFp.csv seven numeric columns",
+    "status": "PASS",
+    "detail": "(101, 7)"
+   },
+   {
+    "check": "alanine_eFp.csv all values finite",
+    "status": "PASS",
+    "detail": "0 non-finite"
+   },
+   {
+    "check": "alanine_eFp.csv strictly positive (log axis)",
+    "status": "PASS",
+    "detail": "0 non-positive"
+   },
+   {
+    "check": "alanine_eFp.csv t strictly increasing",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "alanine_eFp.csv final t",
+    "status": "PASS",
+    "detail": "100 (expected 100)"
+   },
+   {
+    "check": "alanine_eFp.csv row count",
+    "status": "PASS",
+    "detail": "101 rows"
+   },
+   {
+    "check": "alanine_eFp.csv q25 <= median <= q75 (both arms)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "alanine_eFp seeds matched, unique, n = 16",
+    "status": "PASS",
+    "detail": "0..15"
+   },
+   {
+    "check": "alanine_eFp same seed set as the other panels and the meta",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "alanine_eFp per-seed time grid = CSV grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "alanine_eFp.csv = quartiles of the per-seed file",
+    "status": "PASS",
+    "detail": "max rel dev 9.1e-11"
+   },
+   {
+    "check": "alanine_eFp per-seed values finite (no missing seed record)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "alanine_eFp ABF == FR through t = 2 (before GPU-reduction divergence)",
+    "status": "PASS",
+    "detail": "max |diff| 0.0e+00"
+   },
+   {
+    "check": "alanine_eFp pre-FR pairing is statistical, not bitwise (documented: docs/FR_START_TIMING.md, float64 scatter_add order-nondeterminism on CUDA)",
+    "status": "INFO",
+    "detail": "before t = 20: max |diff| 2.26e-02, median relative diff 3.29e-04"
+   },
+   {
+    "check": "alanine_exi.csv present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "alanine_exi.csv header",
+    "status": "PASS",
+    "detail": "t,abf_median,abf_q25,abf_q75,fr_median,fr_q25,fr_q75"
+   },
+   {
+    "check": "alanine_exi.csv seven numeric columns",
+    "status": "PASS",
+    "detail": "(101, 7)"
+   },
+   {
+    "check": "alanine_exi.csv all values finite",
+    "status": "PASS",
+    "detail": "0 non-finite"
+   },
+   {
+    "check": "alanine_exi.csv strictly positive (log axis)",
+    "status": "PASS",
+    "detail": "0 non-positive"
+   },
+   {
+    "check": "alanine_exi.csv t strictly increasing",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "alanine_exi.csv final t",
+    "status": "PASS",
+    "detail": "100 (expected 100)"
+   },
+   {
+    "check": "alanine_exi.csv row count",
+    "status": "PASS",
+    "detail": "101 rows"
+   },
+   {
+    "check": "alanine_exi.csv q25 <= median <= q75 (both arms)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "alanine_exi seeds matched, unique, n = 16",
+    "status": "PASS",
+    "detail": "0..15"
+   },
+   {
+    "check": "alanine_exi same seed set as the other panels and the meta",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "alanine_exi per-seed time grid = CSV grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "alanine_exi.csv = quartiles of the per-seed file",
+    "status": "PASS",
+    "detail": "max rel dev 2.2e-10"
+   },
+   {
+    "check": "alanine_exi per-seed values finite (no missing seed record)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "alanine_exi ABF == FR through t = 2 (before GPU-reduction divergence)",
+    "status": "PASS",
+    "detail": "max |diff| 0.0e+00"
+   },
+   {
+    "check": "alanine_exi pre-FR pairing is statistical, not bitwise (documented: docs/FR_START_TIMING.md, float64 scatter_add order-nondeterminism on CUDA)",
+    "status": "INFO",
+    "detail": "before t = 20: max |diff| 1.49e-02, median relative diff 4.68e-03"
+   },
+   {
+    "check": "alanine: the three panels share one time grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "alanine: every CSV row is a raw saved checkpoint (no fabricated / interpolated times)",
+    "status": "PASS",
+    "detail": "101 raw saves vs 101 rows"
+   },
+   {
+    "check": "alanine: units recorded for t and the three errors",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "alanine: marginal type, reference and definitions recorded",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "alanine: scoring code = committed code",
+    "status": "PASS",
+    "detail": "commit 13e77275c8"
+   },
+   {
+    "check": "alanine: paired statistic recomputed from the per-seed files = exporter's",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "alanine: audit dI_F own window (+0.04 %, neutral)",
+    "status": "PASS",
+    "detail": "reproduced +0.0004, reference +0.0004 (tol 0.002)"
+   },
+   {
+    "check": "alanine: audit final e_F (-0.6 %)",
+    "status": "PASS",
+    "detail": "reproduced -0.0060, reference -0.0060 (tol 0.002)"
+   }
+  ],
+  "wca": [
+   {
+    "check": "wca: meta file present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "wca_eF.csv present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "wca_eF.csv header",
+    "status": "PASS",
+    "detail": "t,abf_median,abf_q25,abf_q75,fr_median,fr_q25,fr_q75"
+   },
+   {
+    "check": "wca_eF.csv seven numeric columns",
+    "status": "PASS",
+    "detail": "(49, 7)"
+   },
+   {
+    "check": "wca_eF.csv all values finite",
+    "status": "PASS",
+    "detail": "0 non-finite"
+   },
+   {
+    "check": "wca_eF.csv strictly positive (log axis)",
+    "status": "PASS",
+    "detail": "0 non-positive"
+   },
+   {
+    "check": "wca_eF.csv t strictly increasing",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "wca_eF.csv final t",
+    "status": "PASS",
+    "detail": "240 (expected 240)"
+   },
+   {
+    "check": "wca_eF.csv row count",
+    "status": "PASS",
+    "detail": "49 rows (WCA saved only 49 checkpoints; documented)"
+   },
+   {
+    "check": "wca_eF.csv q25 <= median <= q75 (both arms)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "wca_eF seeds matched, unique, n = 16",
+    "status": "PASS",
+    "detail": "5100..5115"
+   },
+   {
+    "check": "wca_eF same seed set as the other panels and the meta",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "wca_eF per-seed time grid = CSV grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "wca_eF.csv = quartiles of the per-seed file",
+    "status": "PASS",
+    "detail": "max rel dev 6.9e-10"
+   },
+   {
+    "check": "wca_eF per-seed values finite (no missing seed record)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "wca_eF ABF == FR before the FR start t = 40",
+    "status": "PASS",
+    "detail": "8 saves, max |diff| 0.0e+00"
+   },
+   {
+    "check": "wca_eFp.csv present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "wca_eFp.csv header",
+    "status": "PASS",
+    "detail": "t,abf_median,abf_q25,abf_q75,fr_median,fr_q25,fr_q75"
+   },
+   {
+    "check": "wca_eFp.csv seven numeric columns",
+    "status": "PASS",
+    "detail": "(49, 7)"
+   },
+   {
+    "check": "wca_eFp.csv all values finite",
+    "status": "PASS",
+    "detail": "0 non-finite"
+   },
+   {
+    "check": "wca_eFp.csv strictly positive (log axis)",
+    "status": "PASS",
+    "detail": "0 non-positive"
+   },
+   {
+    "check": "wca_eFp.csv t strictly increasing",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "wca_eFp.csv final t",
+    "status": "PASS",
+    "detail": "240 (expected 240)"
+   },
+   {
+    "check": "wca_eFp.csv row count",
+    "status": "PASS",
+    "detail": "49 rows (WCA saved only 49 checkpoints; documented)"
+   },
+   {
+    "check": "wca_eFp.csv q25 <= median <= q75 (both arms)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "wca_eFp seeds matched, unique, n = 16",
+    "status": "PASS",
+    "detail": "5100..5115"
+   },
+   {
+    "check": "wca_eFp same seed set as the other panels and the meta",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "wca_eFp per-seed time grid = CSV grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "wca_eFp.csv = quartiles of the per-seed file",
+    "status": "PASS",
+    "detail": "max rel dev 5.6e-10"
+   },
+   {
+    "check": "wca_eFp per-seed values finite (no missing seed record)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "wca_eFp ABF == FR before the FR start t = 40",
+    "status": "PASS",
+    "detail": "8 saves, max |diff| 0.0e+00"
+   },
+   {
+    "check": "wca_exi.csv present",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "wca_exi.csv header",
+    "status": "PASS",
+    "detail": "t,abf_median,abf_q25,abf_q75,fr_median,fr_q25,fr_q75"
+   },
+   {
+    "check": "wca_exi.csv seven numeric columns",
+    "status": "PASS",
+    "detail": "(49, 7)"
+   },
+   {
+    "check": "wca_exi.csv all values finite",
+    "status": "PASS",
+    "detail": "0 non-finite"
+   },
+   {
+    "check": "wca_exi.csv strictly positive (log axis)",
+    "status": "PASS",
+    "detail": "0 non-positive"
+   },
+   {
+    "check": "wca_exi.csv t strictly increasing",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "wca_exi.csv final t",
+    "status": "PASS",
+    "detail": "240 (expected 240)"
+   },
+   {
+    "check": "wca_exi.csv row count",
+    "status": "PASS",
+    "detail": "49 rows (WCA saved only 49 checkpoints; documented)"
+   },
+   {
+    "check": "wca_exi.csv q25 <= median <= q75 (both arms)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "wca_exi seeds matched, unique, n = 16",
+    "status": "PASS",
+    "detail": "5100..5115"
+   },
+   {
+    "check": "wca_exi same seed set as the other panels and the meta",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "wca_exi per-seed time grid = CSV grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "wca_exi.csv = quartiles of the per-seed file",
+    "status": "PASS",
+    "detail": "max rel dev 6.0e-10"
+   },
+   {
+    "check": "wca_exi per-seed values finite (no missing seed record)",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "wca_exi ABF == FR before the FR start t = 40",
+    "status": "PASS",
+    "detail": "8 saves, max |diff| 0.0e+00"
+   },
+   {
+    "check": "wca: the three panels share one time grid",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "wca: every CSV row is a raw saved checkpoint (no fabricated / interpolated times)",
+    "status": "PASS",
+    "detail": "49 raw saves vs 49 rows"
+   },
+   {
+    "check": "wca: units recorded for t and the three errors",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "wca: marginal type, reference and definitions recorded",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "wca: scoring code = committed code",
+    "status": "PASS",
+    "detail": "commit 13e77275c8"
+   },
+   {
+    "check": "wca: paired statistic recomputed from the per-seed files = exporter's",
+    "status": "PASS",
+    "detail": ""
+   },
+   {
+    "check": "wca: audit I_F (+9.9 %)",
+    "status": "PASS",
+    "detail": "reproduced +0.0994, reference +0.0990 (tol 0.003)"
+   },
+   {
+    "check": "wca: audit final e_F (+131 %)",
+    "status": "PASS",
+    "detail": "reproduced +1.3102, reference +1.3100 (tol 0.02)"
+   }
+  ]
+ }
+}

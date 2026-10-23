@@ -1,0 +1,441 @@
+{
+ "title": "Ethane in rigid all-silica LTA, 150 K (histogram ABF vs ABF + uniform FR)",
+ "source": {
+  "run_dir": "results/lta_histogram/production_T150",
+  "files": [
+   "abf.npz",
+   "fr_uniform.npz"
+  ],
+  "not_read": "fr_sham.npz (historical matched-sham arm; not part of this two-arm comparison)",
+  "config": "configs/lta_histogram/campaign.json",
+  "engine": "src/lta/core_lta.py",
+  "run_commit": "56ab774d727cccb1fc4fb85fde014514fbd1f631",
+  "config_hash": "8fae317868d3",
+  "docs": [
+   "docs/LTA_HISTOGRAM_REPLICATION.md",
+   "docs/numerical_validation/LTA_VALIDATION.md"
+  ],
+  "loader": "scripts/convergence_fr/systems.py::load_lta",
+  "raw_sha256": {
+   "abf": "971f037db03bf558e2de0f70363dcb21b2b3ee3a24d1cc38d53f033d901d323b",
+   "fr_uniform": "29f86bae2fc77c301319a1a33c7a0ba76e8c5f11be8dcd88b7492a2f58eb91fb"
+  }
+ },
+ "status": "original data, post-processing only (no new simulation)",
+ "model": "rigid all-silica LTA (IZA DLS76 SiO2, 2x2x2 pseudo-cells, a = 11.919 A, only framework O interacts), one two-site TraPPE-UA ethane per replica (harmonic bond r0 1.54 A), CH3-O LJ eps/kB 93 K, sigma 3.48 A, rc 10 A; overdamped Euler-Maruyama, unit mobility; CV phi = 2 pi x_COM / a on the circle (window plane at phi = 0, alpha-cage centres at +-pi)",
+ "config": {
+  "N": 1024,
+  "T": 60.0,
+  "dt": 0.0002,
+  "n_steps": 300000,
+  "save_every_steps": 3000,
+  "nb": 180,
+  "temperature_K": 150,
+  "estimator": "P0 histogram on 180 circular bins (own-bin bias M_j / C_j, 0 on empty bins); ABF bias ramp over 0 <= t <= 4; reported estimator from production accumulators after the estimator burn-in at t = 4 (all-steps accumulators before)",
+  "fr": "uniform target 1/(2 pi); wrapped-Gaussian KDE bandwidth 0.1 rad; score clip 2.0; rate 0.2; every 5 steps from t = 4; never stopped; cap floor(0.02 N) = 20 events per opportunity",
+  "fr_start_t": 4.0,
+  "fr_stop_t": null,
+  "abf_ramp_end_t": 4.0,
+  "estimator_burn_in_t": 4.0,
+  "pairing": "all arms of one temperature in ONE process on common seeds (rng_seed 20260902)"
+ },
+ "reference": "independent exact Metropolis MC umbrella reference (results/numerical_validation/lta/T150/MC, 640 chain files): F = MC density route (summary.json profiles['MC density']), F' = pooled MC bin conditional mean force",
+ "definitions": {
+  "eF": "sqrt(mean_j (F_hat_j - F_ref_j - c)^2) over the 180 bins, c = mean difference (full circle, uniform)",
+  "eFp": "sqrt(mean_j (Gamma_j - F'_ref_j)^2) over the 180 bins (full circle, uniform); per-bin reference, no deterministic within-bin floor",
+  "exi": "||p_hat_t - u||_L2 over the circle, p_hat_t = saved KDE (bandwidth 0.1 rad) of the current replica phi values, normalised to integrate to 1 over [-pi, pi), u = 1/(2 pi)"
+ },
+ "units": {
+  "t": "engine time units (overdamped EM, dt = 2e-4 per step; not physical ps)",
+  "eF": "kJ/mol",
+  "eFp": "kJ/mol/rad",
+  "exi": "density per rad (L2 norm, rad^-1/2)"
+ },
+ "domain": {
+  "eF": "full circle [-pi, pi)",
+  "eFp": "full circle",
+  "exi": "full circle"
+ },
+ "weighting": "uniform in phi",
+ "marginal_type": "instantaneous replica marginal, KDE-smoothed (bandwidth 0.1 rad) as saved by the engine; not a raw histogram",
+ "kT_kJmol": 1.2471693899999998,
+ "time_grid": "all 101 saved checkpoints (every 3000 steps = 0.6 t.u., t = 0 .. 60)",
+ "integrated_definition": "I_F = trapezoid of e_F over all saves on [0, 60] (LTA_VALIDATION / analyze_lta_histogram); atlas Ibar = I / T and post-ramp Ibar over [t_FR, T] also reproduced",
+ "stats": {
+  "I_F_full_trapezoid": {
+   "median": -0.28542950367701236,
+   "ci95": [
+    -0.2942576836087223,
+    -0.26560080514011414
+   ],
+   "wins_fr": 16,
+   "n": 16,
+   "abf_median": 27.629705348554307,
+   "fr_median": 20.2320644577175,
+   "per_seed": [
+    -0.29835913502281125,
+    -0.2901562321946334,
+    -0.20545344651764025,
+    -0.2934660264539932,
+    -0.27038740267348355,
+    -0.3378266948394866,
+    -0.2807027751593913,
+    -0.24961872214287142,
+    -0.2993200523646068,
+    -0.24441422108848349,
+    -0.2925042131055368,
+    -0.26560080514011414,
+    -0.3060104821872992,
+    -0.2941167826568006,
+    -0.2733667890524293,
+    -0.25836415381605127
+   ]
+  },
+  "final_e_F": {
+   "median": -0.5438044455551707,
+   "ci95": [
+    -0.582776051546137,
+    -0.46120418048463535
+   ],
+   "wins_fr": 16,
+   "n": 16,
+   "abf_median": 0.12930855638572153,
+   "fr_median": 0.06213074313034498,
+   "per_seed": [
+    -0.582776051546137,
+    -0.5426977110220881,
+    -0.32631136874124195,
+    -0.6334052977266424,
+    -0.532203167967976,
+    -0.7076884065078477,
+    -0.5778600443340535,
+    -0.45749842345556396,
+    -0.7354843672154388,
+    -0.41698719350486096,
+    -0.6457068355473241,
+    -0.46120418048463535,
+    -0.5768998749374552,
+    -0.5449111800882532,
+    -0.43859797254531563,
+    -0.5039975162830476
+   ]
+  },
+  "expected_LTA_VALIDATION": {
+   "dI": -28.54,
+   "dfin": -54.38
+  },
+  "atlas_Ibar_F_full": {
+   "reproduced": {
+    "median_rel": -0.2854295036770123,
+    "ci95": [
+     -0.2941167826568005,
+     -0.2656008051401141
+    ],
+    "wins_fr": 16,
+    "n": 16,
+    "abf_median": 0.46049508914257176,
+    "fr_median": 0.33720107429529167,
+    "per_seed": [
+     -0.2983591350228113,
+     -0.2901562321946334,
+     -0.2054534465176402,
+     -0.2934660264539931,
+     -0.2703874026734836,
+     -0.3378266948394867,
+     -0.28070277515939124,
+     -0.2496187221428714,
+     -0.2993200523646068,
+     -0.24441422108848343,
+     -0.29250421310553676,
+     -0.2656008051401141,
+     -0.3060104821872992,
+     -0.2941167826568005,
+     -0.2733667890524293,
+     -0.25836415381605127
+    ]
+   },
+   "recorded": {
+    "median_rel": -0.2854295036770123,
+    "ci95": [
+     -0.2941167826568005,
+     -0.2656008051401141
+    ],
+    "wins_fr": 16,
+    "n": 16,
+    "abf_median": 0.46049508914257176,
+    "fr_median": 0.33720107429529167,
+    "per_seed": [
+     -0.2983591350228113,
+     -0.2901562321946334,
+     -0.2054534465176402,
+     -0.2934660264539931,
+     -0.2703874026734836,
+     -0.3378266948394867,
+     -0.28070277515939124,
+     -0.2496187221428714,
+     -0.2993200523646068,
+     -0.24441422108848343,
+     -0.29250421310553676,
+     -0.2656008051401141,
+     -0.3060104821872992,
+     -0.2941167826568005,
+     -0.2733667890524293,
+     -0.25836415381605127
+    ]
+   }
+  },
+  "atlas_Ibar_F_post_ramp": {
+   "reproduced": {
+    "median_rel": -0.4613886696928672,
+    "ci95": [
+     -0.5115464186903087,
+     -0.44443803444781116
+    ],
+    "wins_fr": 16,
+    "n": 16,
+    "abf_median": 0.28766094327844277,
+    "fr_median": 0.15673092280362866,
+    "per_seed": [
+     -0.5382162454252188,
+     -0.44443803444781116,
+     -0.34228007510758374,
+     -0.5115464186903087,
+     -0.4615813665677133,
+     -0.6123205298889787,
+     -0.46119597281802105,
+     -0.4335039703318664,
+     -0.5398375590343485,
+     -0.42949110669051016,
+     -0.4851703307914229,
+     -0.4573431149734414,
+     -0.5416190811355168,
+     -0.4761094659075338,
+     -0.4523479760096788,
+     -0.4364244435370822
+    ]
+   },
+   "recorded": {
+    "median_rel": -0.4613886696928672,
+    "ci95": [
+     -0.5115464186903087,
+     -0.44443803444781116
+    ],
+    "wins_fr": 16,
+    "n": 16,
+    "abf_median": 0.28766094327844277,
+    "fr_median": 0.15673092280362866,
+    "per_seed": [
+     -0.5382162454252188,
+     -0.44443803444781116,
+     -0.34228007510758374,
+     -0.5115464186903087,
+     -0.4615813665677133,
+     -0.6123205298889787,
+     -0.46119597281802105,
+     -0.4335039703318664,
+     -0.5398375590343485,
+     -0.42949110669051016,
+     -0.4851703307914229,
+     -0.4573431149734414,
+     -0.5416190811355168,
+     -0.4761094659075338,
+     -0.4523479760096788,
+     -0.4364244435370822
+    ]
+   }
+  },
+  "atlas_eF_T": {
+   "reproduced": {
+    "median_rel": -0.5438044455551707,
+    "ci95": [
+     -0.6051525863320488,
+     -0.4612041804846354
+    ],
+    "wins_fr": 16,
+    "n": 16,
+    "abf_median": 0.12930855638572153,
+    "fr_median": 0.06213074313034498,
+    "per_seed": [
+     -0.5827760515461369,
+     -0.5426977110220881,
+     -0.326311368741242,
+     -0.6334052977266424,
+     -0.532203167967976,
+     -0.7076884065078477,
+     -0.5778600443340535,
+     -0.4574984234555639,
+     -0.7354843672154388,
+     -0.4169871935048609,
+     -0.6457068355473241,
+     -0.4612041804846354,
+     -0.5768998749374552,
+     -0.5449111800882533,
+     -0.43859797254531563,
+     -0.5039975162830475
+    ]
+   },
+   "recorded": {
+    "median_rel": -0.5438044455551707,
+    "ci95": [
+     -0.6051525863320488,
+     -0.4612041804846354
+    ],
+    "wins_fr": 16,
+    "n": 16,
+    "abf_median": 0.12930855638572153,
+    "fr_median": 0.06213074313034498,
+    "per_seed": [
+     -0.5827760515461369,
+     -0.5426977110220881,
+     -0.326311368741242,
+     -0.6334052977266424,
+     -0.532203167967976,
+     -0.7076884065078477,
+     -0.5778600443340535,
+     -0.4574984234555639,
+     -0.7354843672154388,
+     -0.4169871935048609,
+     -0.6457068355473241,
+     -0.4612041804846354,
+     -0.5768998749374552,
+     -0.5449111800882533,
+     -0.43859797254531563,
+     -0.5039975162830475
+    ]
+   }
+  },
+  "atlas_eG_T": {
+   "reproduced": {
+    "median_rel": -0.42647883578570417,
+    "ci95": [
+     -0.49744790271400974,
+     -0.3579611781459766
+    ],
+    "wins_fr": 16,
+    "n": 16,
+    "abf_median": 0.15240559611573154,
+    "fr_median": 0.09423289460432628,
+    "per_seed": [
+     -0.3579611781459766,
+     -0.49744790271400974,
+     -0.3292451705713231,
+     -0.5229871160377857,
+     -0.3811499933062249,
+     -0.41238471635050067,
+     -0.4661914709172399,
+     -0.2969061064903299,
+     -0.5141168995039194,
+     -0.2683843807782389,
+     -0.5539834713011653,
+     -0.3759937410728319,
+     -0.5152468619685822,
+     -0.48155881787791277,
+     -0.44057295522090767,
+     -0.3336380802521757
+    ]
+   },
+   "recorded": {
+    "median_rel": -0.42647883578570417,
+    "ci95": [
+     -0.49744790271400974,
+     -0.3579611781459766
+    ],
+    "wins_fr": 16,
+    "n": 16,
+    "abf_median": 0.15240559611573154,
+    "fr_median": 0.09423289460432628,
+    "per_seed": [
+     -0.3579611781459766,
+     -0.49744790271400974,
+     -0.3292451705713231,
+     -0.5229871160377857,
+     -0.3811499933062249,
+     -0.41238471635050067,
+     -0.4661914709172399,
+     -0.2969061064903299,
+     -0.5141168995039194,
+     -0.2683843807782389,
+     -0.5539834713011653,
+     -0.3759937410728319,
+     -0.5152468619685822,
+     -0.48155881787791277,
+     -0.44057295522090767,
+     -0.3336380802521757
+    ]
+   }
+  },
+  "atlas_curve_max_abs_deviation": {
+   "eF_abf": 0.0,
+   "eF_fr": 0.0,
+   "eFp_abf": 0.0,
+   "eFp_fr": 0.0
+  },
+  "fr_marginal_check": {
+   "target_is_uniform": true,
+   "max_abs_diff_vs_engine_pq_l2": 1.1102230246251565e-16,
+   "n_saves_with_target": 101
+  }
+ },
+ "experiment": "lta150",
+ "seeds": [
+  1020,
+  1021,
+  1022,
+  1023,
+  1024,
+  1025,
+  1026,
+  1027,
+  1028,
+  1029,
+  1030,
+  1031,
+  1032,
+  1033,
+  1034,
+  1035
+ ],
+ "n_seeds": 16,
+ "n_times": 101,
+ "t_first": 0.0,
+ "t_last": 60.0,
+ "files": {
+  "eF": {
+   "csv": "figs/data/lta150_eF.csv",
+   "n_rows": 101,
+   "n_nonfinite_abf": 0,
+   "n_nonfinite_fr": 0,
+   "n_nonpositive_abf": 0,
+   "n_nonpositive_fr": 0
+  },
+  "eFp": {
+   "csv": "figs/data/lta150_eFp.csv",
+   "n_rows": 101,
+   "n_nonfinite_abf": 0,
+   "n_nonfinite_fr": 0,
+   "n_nonpositive_abf": 0,
+   "n_nonpositive_fr": 0
+  },
+  "exi": {
+   "csv": "figs/data/lta150_exi.csv",
+   "n_rows": 101,
+   "n_nonfinite_abf": 0,
+   "n_nonfinite_fr": 0,
+   "n_nonpositive_abf": 0,
+   "n_nonpositive_fr": 0
+  }
+ },
+ "provenance": {
+  "data_root": "/home/zheyuanlai/ABF-Fisher-Rao",
+  "scoring_code_commit": "13e77275c80f034287f1503237d203a430e60317",
+  "scoring_code_tracked_files_modified": false,
+  "checked_paths": [
+   "src",
+   "scripts",
+   "configs"
+  ],
+  "exporter_commit": "13d9ed1a4a164981e10ebc6aaedde86463d977b3",
+  "python": "3.14.4",
+  "numpy": "2.4.6"
+ }
+}

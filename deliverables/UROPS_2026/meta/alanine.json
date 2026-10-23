@@ -1,0 +1,219 @@
+{
+ "title": "Alanine dipeptide in vacuum, (phi, psi): adaptive-box histogram ABF vs ABF + uniform FR",
+ "source": {
+  "abf": "results/alanine_histogram/hA_c800_w5/raw/hA_c800_w5__abf__c7eq__N2048__T100000__ns16__e852e5d318e3.npz",
+  "fr": "results/alanine_histogram/hu02_t20/raw/hu02_t20__fr_uniform__c7eq__N2048__T100000__ns16__a1d3e25b4931.npz",
+  "config": "configs/alanine_histogram/alanine.yaml",
+  "selection": "configs/alanine_histogram/selected.json",
+  "doc": "docs/ALANINE_HISTOGRAM_ABF.md",
+  "analysis": "scripts/analyze_alanine_histogram.py",
+  "scoreboard": "results/alanine_histogram/analysis/scoreboard.md",
+  "engine": "src/alanine/core2d_ala.py",
+  "run_commit": "ebc123bba934e63754d613118cad00a28d33a93a",
+  "run_git_dirty": {
+   "abf": true,
+   "fr": true
+  },
+  "config_hash": {
+   "abf": "eb8a8a4d1f21",
+   "fr": "a8a3947d2a02"
+  },
+  "raw_sha256": {
+   "hA_c800_w5": "3fcbe2080320dd3af174c1be5b98676ef30f3817350057e706c6f4efe1507141",
+   "hu02_t20": "889a1db0c1c5911c994bde21a8264783f404b57056674ae4682449ccd673b594"
+  }
+ },
+ "status": "original data, post-processing only (no new simulation)",
+ "model": "alanine dipeptide in vacuum, AMBER ff14SB, Langevin dynamics dt 1 fs, gamma 1/ps, 300 K, float64 (torch, CUDA graphs); xi = (phi, psi) IUPAC dihedrals on the torus",
+ "config": {
+  "N": 2048,
+  "T": 100.0,
+  "dt": 0.001,
+  "n_steps": 100000,
+  "save_every_steps": 1000,
+  "grid": "97 x 97 periodic cells (dz = 2 pi / 97)",
+  "estimator": "adaptive-box histogram ABF: per cell, the smallest centred box of (2l+1)^2 cells, l = 0..4, holding >= c_min = 800 counts gives the mean force; 5 ps bias ramp; projected to a gradient field every 50 steps (the reported pmf)",
+  "fr": "uniform target on the full torus 1/(2 pi)^2; product wrapped-Gaussian KDE bandwidth 0.15 rad; score clip 2; rate 0.02; every 500 steps (0.5 ps) from t = 20 ps; never stopped; cap floor(0.05 N) = 102 per opportunity",
+  "fr_start_t": 20.0,
+  "fr_stop_t": null,
+  "abf_ramp_end_t": 5.0,
+  "init": "C7eq ensemble, 20 ps equilibration cached (results/fr_start_timing/alanine/init_c7eq_seeds0-15_N2048.npz)",
+  "pairing": "same cached initial ensemble, same dynamical noise stream and rng_seed 20260903 for both stages"
+ },
+ "reference": "umbrella sampling (24 x 24 windows x 16 copies, kappa 200) + MBAR on the 97 x 97 grid (results/alanine/reference/reference.npz); non-finite in never-visited cells; bootstrap noise floor of the e_F read-out 0.559 kJ/mol",
+ "definitions": {
+  "eF": "min_c sqrt(sum_ij w_ij (F_hat - F_ref - c)^2), w = exp(-(F_ref - F_min)/kT) normalised on the 8 kT mask {F_ref - F_min <= 8 kT} (equilibrium weight; metrics_ala.aligned_l2, the study's raw read-out)",
+  "eFp": "sqrt(sum_ij w_ij |grad F_hat - grad F_ref|^2) with periodic central differences on the torus for both, same weight w (metrics_ala.grad_errors; cells whose stencil touches a non-finite F_ref excluded)",
+  "exi": "||p_t - u||_L2 over the full torus, p_t = marg_hist / dz^2 (instantaneous histogram of the current replicas), u = 1/(2 pi)^2"
+ },
+ "units": {
+  "t": "ps",
+  "eF": "kJ/mol",
+  "eFp": "kJ/mol/rad",
+  "exi": "density per rad^2 (L2 norm, rad^-1)"
+ },
+ "domain": {
+  "eF": "8 kT mask of the reference",
+  "eFp": "8 kT mask (stencil-complete cells)",
+  "exi": "full torus"
+ },
+ "weighting": "equilibrium (Boltzmann) weight of the reference on the 8 kT mask for e_F and e_F'; uniform for e_xi",
+ "marginal_type": "instantaneous replica histogram (raw, unsmoothed), 97 x 97 cells; float32 storage",
+ "floors": {
+  "eF_reference_noise": 0.5593138523027867,
+  "eFp_reference_noise": 8.660528444899771,
+  "eFp_reference_noise_definition": "sqrt(sum w Var(grad F_ref)) with Var from the bootstrap s.e. of F_ref (results/alanine/reference/bootstrap.npz) through the central difference, treating cells as independent (no bootstrap replicates are stored, so neighbour correlations cannot be included: an INDICATIVE scale, not a bound); the e_F' endpoints of both arms (about 8.25) are of this size, i.e. e_F' is limited by the reference's own cell noise and cannot separate the arms",
+  "exi": {
+   "reference_finite_support": {
+    "L2_floor": 0.024967902461042905,
+    "torus_fraction": 0.9759804442555002,
+    "L2_floor_incl_finite_N": 0.34202944113028994
+   },
+   "mask_8kT": {
+    "L2_floor": 0.2848083138697818,
+    "torus_fraction": 0.23796365182272294,
+    "L2_floor_incl_finite_N": 0.44433907680539036
+   },
+   "mask_10kT": {
+    "L2_floor": 0.2418091335143896,
+    "torus_fraction": 0.3022637899883091,
+    "L2_floor_incl_finite_N": 0.4180958661317195
+   },
+   "cells_ever_occupied_either_arm": {
+    "L2_floor": 0.0,
+    "torus_fraction": 1.0000000000000002,
+    "L2_floor_incl_finite_N": 0.3411173505397333
+   },
+   "finite_N_only_uniform_full_torus": 0.3411173505397333,
+   "definition": "L2_floor = min ||p - u|| over densities supported on the set S = sqrt(1/|S| - 1/|Z|) (attained by the uniform density on S); L2_floor_incl_finite_N adds the multinomial scatter of N independent walkers uniform on S, (1 - 1/n_S)/(N dz^2)"
+  },
+  "exi_kde_noise_floor_uniform": 0.04155648754181591
+ },
+ "kT_kJmol": 2.4943387854,
+ "time_grid": "all 101 saved checkpoints (every 1 ps, t = 0 .. 100 ps)",
+ "integrated_definition": "dI_F = paired relative change of the trapezoid of e_F over the own window [20, 100] ps (the study's frozen primary window [max(t_FR, 1), 100] ps); median with a BCa bootstrap CI (metrics_ala.paired_bootstrap)",
+ "context": "hu02_t20 is one of six histogram FR arms of the study (rates 0.02 / 0.15 x starts 0.5 / 5 / 20 ps); all six are equivalent to ABF (every CI within +-4 %); the pairing used here is the campaign configuration (frozen rate 0.02, campaign FR start 20 ps) named in the task, not an outcome-based choice",
+ "stats": {
+  "dI_F_own_window_20_100ps": {
+   "reproduced": {
+    "median": 0.0003751296892294052,
+    "lo": -0.013629591280525172,
+    "hi": 0.006414986692779558,
+    "win_rate": 0.5,
+    "n": 16,
+    "z0": -0.07878957024029087
+   },
+   "recorded": {
+    "dIF_own_median": 0.0003751296892294052,
+    "dIF_own_lo": -0.013629591280525172,
+    "dIF_own_hi": 0.006414986692779558,
+    "dIF_own_win": 0.5,
+    "final_median": -0.0059643687066337275,
+    "final_lo": -0.009051551785918818,
+    "final_hi": 0.0002615847246375266,
+    "final_win": 0.625,
+    "abf_final_med": 0.5442708474843871,
+    "arm_final_med": 0.540812074241829,
+    "verdict": "NEUTRAL"
+   }
+  },
+  "dI_F_W1_5_100ps": {
+   "median": -0.002366854226998315,
+   "lo": -0.01035105572614482,
+   "hi": 0.003708416712461792,
+   "win_rate": 0.625,
+   "n": 16,
+   "z0": -0.08834811272693276
+  },
+  "final_e_F": {
+   "median": -0.0059643687066337275,
+   "lo": -0.009051551785918818,
+   "hi": 0.0002615847246375266,
+   "win_rate": 0.625,
+   "n": 16,
+   "z0": -0.14387395827044144
+  },
+  "final_e_Fp": {
+   "median": -0.0016727310196954436,
+   "lo": -0.002383739353731651,
+   "hi": -0.000438921587915633,
+   "win_rate": 0.75,
+   "n": 16,
+   "z0": -0.1190951160922949
+  },
+  "reference_noise_floor_eF": 0.5593138523027867,
+  "reference_noise_floor_eFp": 8.660528444899771,
+  "abf_final_eF_median": 0.5442708474843871,
+  "fr_final_eF_median": 0.540812074241829,
+  "fr_events_total_median": 316.5,
+  "abf_events_total": 0
+ },
+ "supplementary": {
+  "exi_kde": {
+   "csv": "figs/data_supplementary/alanine_exi_kde.csv",
+   "definition": "||p_kde - u||_L2 on the full torus, p_kde = the FR arm's own marginal estimator (d2.kde2: saved instantaneous cell histogram smoothed by the 0.15 rad wrapped-Gaussian kernels, normalised); KDE-SMOOTHED, not the primary panel; resolves the steric floor that the raw 97 x 97 histogram hides under its finite-N floor"
+  }
+ },
+ "experiment": "alanine",
+ "seeds": [
+  0,
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12,
+  13,
+  14,
+  15
+ ],
+ "n_seeds": 16,
+ "n_times": 101,
+ "t_first": 0.0,
+ "t_last": 100.0,
+ "files": {
+  "eF": {
+   "csv": "figs/data/alanine_eF.csv",
+   "n_rows": 101,
+   "n_nonfinite_abf": 0,
+   "n_nonfinite_fr": 0,
+   "n_nonpositive_abf": 0,
+   "n_nonpositive_fr": 0
+  },
+  "eFp": {
+   "csv": "figs/data/alanine_eFp.csv",
+   "n_rows": 101,
+   "n_nonfinite_abf": 0,
+   "n_nonfinite_fr": 0,
+   "n_nonpositive_abf": 0,
+   "n_nonpositive_fr": 0
+  },
+  "exi": {
+   "csv": "figs/data/alanine_exi.csv",
+   "n_rows": 101,
+   "n_nonfinite_abf": 0,
+   "n_nonfinite_fr": 0,
+   "n_nonpositive_abf": 0,
+   "n_nonpositive_fr": 0
+  }
+ },
+ "provenance": {
+  "data_root": "/home/zheyuanlai/ABF-Fisher-Rao",
+  "scoring_code_commit": "13e77275c80f034287f1503237d203a430e60317",
+  "scoring_code_tracked_files_modified": false,
+  "checked_paths": [
+   "src",
+   "scripts",
+   "configs"
+  ],
+  "exporter_commit": "13d9ed1a4a164981e10ebc6aaedde86463d977b3",
+  "python": "3.14.4",
+  "numpy": "2.4.6"
+ }
+}
