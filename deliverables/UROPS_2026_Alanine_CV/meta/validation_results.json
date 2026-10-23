@@ -1,0 +1,361 @@
+{
+ "n_pass": 60,
+ "n_fail": 0,
+ "checks": [
+  {
+   "check": "phi_eF.csv: schema, 101 saved checkpoints 0..100 ps, finite > 0, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "phi_eF.csv = quartiles of the per-seed files (seeds 0-15)",
+   "status": "PASS",
+   "detail": "max rel dev 6.5e-10"
+  },
+  {
+   "check": "phi_eFp.csv: schema, 101 saved checkpoints 0..100 ps, finite > 0, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "phi_eFp.csv = quartiles of the per-seed files (seeds 0-15)",
+   "status": "PASS",
+   "detail": "max rel dev 5.6e-10"
+  },
+  {
+   "check": "phi_exi.csv: schema, 101 saved checkpoints 0..100 ps, finite > 0, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "phi_exi.csv = quartiles of the per-seed files (seeds 0-15)",
+   "status": "PASS",
+   "detail": "max rel dev 7.2e-10"
+  },
+  {
+   "check": "psi_eF.csv: schema, 101 saved checkpoints 0..100 ps, finite > 0, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "psi_eF.csv = quartiles of the per-seed files (seeds 0-15)",
+   "status": "PASS",
+   "detail": "max rel dev 3.6e-10"
+  },
+  {
+   "check": "psi_eFp.csv: schema, 101 saved checkpoints 0..100 ps, finite > 0, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "psi_eFp.csv = quartiles of the per-seed files (seeds 0-15)",
+   "status": "PASS",
+   "detail": "max rel dev 1.9e-10"
+  },
+  {
+   "check": "psi_exi.csv: schema, 101 saved checkpoints 0..100 ps, finite > 0, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "psi_exi.csv = quartiles of the per-seed files (seeds 0-15)",
+   "status": "PASS",
+   "detail": "max rel dev 7.2e-10"
+  },
+  {
+   "check": "supplementary CSVs",
+   "status": "INFO",
+   "detail": "phi_eF_rate015.csv, phi_eFp_closed.csv, phi_eFp_debiased.csv, phi_eFp_dispersion.csv, phi_eFp_rate015.csv, phi_exi_rate015.csv, psi_eF_rate015.csv, psi_eF_visited.csv, psi_eF_visited_rate015.csv, psi_eFp_closed.csv, psi_eFp_debiased.csv, psi_eFp_dispersion.csv, psi_eFp_rate015.csv, psi_eFp_visited.csv, psi_eFp_visited_rate015.csv, psi_exi_rate015.csv, psi_hidden_dcond_windows.csv, psi_hidden_mass_phipos_instantaneous.csv, psi_hidden_mass_phipos_windows.csv, psi_hidden_pmf.csv"
+  },
+  {
+   "check": "phi_abf: method abf, FR rate -, fr_start_steps 0, fr_every 500 (first FR opportunity at step 500 = 0.5 ps)",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "phi_abf: raw provenance",
+   "status": "INFO",
+   "detail": "run commit ebc123bba9 (git dirty True), config 8090ac4d8992, sha256 762901df8b28"
+  },
+  {
+   "check": "phi_u02_t0: method fr_uniform, FR rate 0.02, fr_start_steps 0, fr_every 500 (first FR opportunity at step 500 = 0.5 ps)",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "phi_u02_t0: raw provenance",
+   "status": "INFO",
+   "detail": "run commit ebc123bba9 (git dirty True), config 8090ac4d8992, sha256 28f1543955f5"
+  },
+  {
+   "check": "phi_u15_t0: method fr_uniform, FR rate 0.15, fr_start_steps 0, fr_every 500 (first FR opportunity at step 500 = 0.5 ps)",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "phi_u15_t0: raw provenance",
+   "status": "INFO",
+   "detail": "run commit ebc123bba9 (git dirty True), config 9d5e2dd8fe88, sha256 05c86af8ca30"
+  },
+  {
+   "check": "psi_abf: method abf, FR rate -, fr_start_steps 0, fr_every 500 (first FR opportunity at step 500 = 0.5 ps)",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "psi_abf: raw provenance",
+   "status": "INFO",
+   "detail": "run commit ebc123bba9 (git dirty True), config a004d4e5ad7f, sha256 d73759f86126"
+  },
+  {
+   "check": "psi_u02_t0: method fr_uniform, FR rate 0.02, fr_start_steps 0, fr_every 500 (first FR opportunity at step 500 = 0.5 ps)",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "psi_u02_t0: raw provenance",
+   "status": "INFO",
+   "detail": "run commit ebc123bba9 (git dirty True), config a004d4e5ad7f, sha256 949b2f392c67"
+  },
+  {
+   "check": "psi_u15_t0: method fr_uniform, FR rate 0.15, fr_start_steps 0, fr_every 500 (first FR opportunity at step 500 = 0.5 ps)",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "psi_u15_t0: raw provenance",
+   "status": "INFO",
+   "detail": "run commit ebc123bba9 (git dirty True), config ee0602cf41c2, sha256 eec3c13b0f46"
+  },
+  {
+   "check": "16 seeds (0-15) in every stage, 101 saves (every 1 ps)",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "reproduce: phi-only ABF final full-marginal error",
+   "status": "PASS",
+   "detail": "0.3743kJ/mol (published 0.374kJ/mol)"
+  },
+  {
+   "check": "reproduce: psi-only ABF final full-marginal error",
+   "status": "PASS",
+   "detail": "2.0702kJ/mol (published 2.07kJ/mol)"
+  },
+  {
+   "check": "reproduce: psi-only ABF final error vs the phi<0 conditional",
+   "status": "PASS",
+   "detail": "0.5142kJ/mol (published 0.514kJ/mol)"
+  },
+  {
+   "check": "reproduce: gentle phi FR (0.02) dI_F own [1,100]",
+   "status": "PASS",
+   "detail": "-1.3370% (published -1.34%)"
+  },
+  {
+   "check": "reproduce: strong phi FR (0.15) dI_F own",
+   "status": "PASS",
+   "detail": "18.8842% (published 18.9%)"
+  },
+  {
+   "check": "reproduce: gentle psi FR (0.02) dI_F own",
+   "status": "PASS",
+   "detail": "0.2397% (published 0.24%)"
+  },
+  {
+   "check": "reproduce: strong psi FR (0.15) dI_F own",
+   "status": "PASS",
+   "detail": "1.3074% (published 1.31%)"
+  },
+  {
+   "check": "reproduce: strong psi FR (0.15) D_cond [50,100] change",
+   "status": "PASS",
+   "detail": "14.5032% (published 14.5%)"
+  },
+  {
+   "check": "reproduce: psi ABF hidden mass phi>0 [50,100]",
+   "status": "PASS",
+   "detail": "0.1285 (published 0.129)"
+  },
+  {
+   "check": "reproduce: psi FR 0.02 hidden mass phi>0 [50,100]",
+   "status": "PASS",
+   "detail": "0.1050 (published 0.105)"
+  },
+  {
+   "check": "reproduce: psi FR 0.15 hidden mass phi>0 [50,100]",
+   "status": "PASS",
+   "detail": "0.0639 (published 0.064)"
+  },
+  {
+   "check": "reproduce: phi>0 target under a uniform-psi bias",
+   "status": "PASS",
+   "detail": "0.3214 (published 0.321)"
+  },
+  {
+   "check": "reproduce: unbiased Gibbs phi>0 population (NOT the target)",
+   "status": "PASS",
+   "detail": "0.0317 (published 0.032)"
+  },
+  {
+   "check": "phi_abf: final full error = original summary.json",
+   "status": "PASS",
+   "detail": "0.374336"
+  },
+  {
+   "check": "phi_u02_t0: final full error = original summary.json",
+   "status": "PASS",
+   "detail": "0.396692"
+  },
+  {
+   "check": "phi_u15_t0: final full error = original summary.json",
+   "status": "PASS",
+   "detail": "0.625684"
+  },
+  {
+   "check": "psi_abf: final full error = original summary.json",
+   "status": "PASS",
+   "detail": "2.070224"
+  },
+  {
+   "check": "psi_u02_t0: final full error = original summary.json",
+   "status": "PASS",
+   "detail": "2.094372"
+  },
+  {
+   "check": "psi_u15_t0: final full error = original summary.json",
+   "status": "PASS",
+   "detail": "2.137517"
+  },
+  {
+   "check": "phi_u02_t0: dI_F own, final and D_cond paired medians = original summary.json",
+   "status": "PASS",
+   "detail": "INCONCLUSIVE"
+  },
+  {
+   "check": "phi_u15_t0: dI_F own, final and D_cond paired medians = original summary.json",
+   "status": "PASS",
+   "detail": "HARMFUL"
+  },
+  {
+   "check": "psi_u02_t0: dI_F own, final and D_cond paired medians = original summary.json",
+   "status": "PASS",
+   "detail": "NEUTRAL_SIG"
+  },
+  {
+   "check": "psi_u15_t0: dI_F own, final and D_cond paired medians = original summary.json",
+   "status": "PASS",
+   "detail": "NEUTRAL_SIG"
+  },
+  {
+   "check": "phi_abf: C7ax visited (first hit) in 16/16 seeds",
+   "status": "PASS",
+   "detail": "median first hit 3.07 ps; occupancy at 100 ps 0.135"
+  },
+  {
+   "check": "phi_u02_t0: C7ax visited (first hit) in 16/16 seeds",
+   "status": "PASS",
+   "detail": "median first hit 3.06 ps; occupancy at 100 ps 0.134"
+  },
+  {
+   "check": "phi_u15_t0: C7ax visited (first hit) in 16/16 seeds",
+   "status": "PASS",
+   "detail": "median first hit 3.12 ps; occupancy at 100 ps 0.151"
+  },
+  {
+   "check": "psi_abf: C7ax visited (first hit) in 16/16 seeds",
+   "status": "PASS",
+   "detail": "median first hit 4.41 ps; occupancy at 100 ps 0.144; a first visit is NOT equilibration of the hidden phi"
+  },
+  {
+   "check": "psi_u02_t0: C7ax visited (first hit) in 16/16 seeds",
+   "status": "PASS",
+   "detail": "median first hit 4.54 ps; occupancy at 100 ps 0.113; a first visit is NOT equilibration of the hidden phi"
+  },
+  {
+   "check": "psi_u15_t0: C7ax visited (first hit) in 16/16 seeds",
+   "status": "PASS",
+   "detail": "median first hit 4.47 ps; occupancy at 100 ps 0.063; a first visit is NOT equilibration of the hidden phi"
+  },
+  {
+   "check": "bootstrap machinery reproduces the stored 2-D MBAR reference",
+   "status": "PASS",
+   "detail": "max |dev| 1.4e-14 kJ/mol; 200 copy-level replicates"
+  },
+  {
+   "check": "mean-force reference (phi)",
+   "status": "INFO",
+   "detail": "FLAGGED (reference uncertainty >= 0.5 x ABF final e_F'): uncertainty 1.259 (noise 1.167, discretisation 0.471) vs ABF final e_F' 1.348 (ratio 0.93); e_F reference-noise floor 0.205 kJ/mol"
+  },
+  {
+   "check": "mean-force reference (psi)",
+   "status": "INFO",
+   "detail": "RELIABLE: uncertainty 1.698 (noise 1.579, discretisation 0.623) vs ABF final e_F' 4.027 (ratio 0.42); e_F reference-noise floor 0.267 kJ/mol"
+  },
+  {
+   "check": "phi_u15_t0: e_F'(T) raw vs closed",
+   "status": "INFO",
+   "detail": "raw 1.262 vs ABF 1.348; closed 1.426 vs ABF 1.324 (sign differs: the phi e_F' comparison is reference-limited)"
+  },
+  {
+   "check": "reference_F2_kJ.csv = the stored 2-D MBAR F exactly (rows phi, columns psi; NaN = never visited)",
+   "status": "PASS",
+   "detail": "226 NaN cells"
+  },
+  {
+   "check": "1-D phi marginal recomputed from the CSV = the 1-D reference used by every panel",
+   "status": "PASS",
+   "detail": "max |diff| 0.0e+00"
+  },
+  {
+   "check": "1-D psi marginal recomputed from the CSV = the 1-D reference used by every panel",
+   "status": "PASS",
+   "detail": "max |diff| 0.0e+00"
+  },
+  {
+   "check": "1-D psi_cond marginal recomputed from the CSV = the 1-D reference used by every panel",
+   "status": "PASS",
+   "detail": "max |diff| 0.0e+00"
+  },
+  {
+   "check": "orientation: global minimum (C7eq) at row phi -74.2 deg, column psi 55.7 deg",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "resolved minima (prominence > 2 x median cell s.e.): C7eq, C5, C7ax",
+   "status": "PASS",
+   "detail": "C7eq (-74.2268, 55.6701) 0.0000 kJ/mol; C5 (-152.1649, 155.8763) 1.1195 kJ/mol; C7ax (63.0928, -48.2474) 6.3902 kJ/mol"
+  },
+  {
+   "check": "alpha_R region",
+   "status": "INFO",
+   "detail": "no resolved minimum: the only cell-level local minimum in phi -90..-40, psi -60..0 is (-55.7, -18.6) at 12.2 kJ/mol with prominence 0.12 kJ/mol (< the 0.6 kJ/mol cell noise)"
+  },
+  {
+   "check": "preview convergence_2x3.pdf present",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "preview convergence_2x3_rate015.pdf present",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "preview psi_hidden_coordinate.pdf present",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "preview mean_force_diagnostics.pdf present",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "analysis code = committed code of the main checkout",
+   "status": "PASS",
+   "detail": "13e77275c8"
+  }
+ ]
+}

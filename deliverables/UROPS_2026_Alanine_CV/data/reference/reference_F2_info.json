@@ -1,0 +1,62 @@
+{
+ "source": "results/alanine/reference/reference.npz",
+ "sha256_npz": "09b3066c94db3d054248fdcb61e675e23cd5ddf8864f26dbe147796ccd80398c",
+ "shape": [
+  97,
+  97
+ ],
+ "rows": "phi",
+ "columns": "psi",
+ "grid": "-pi + (i + 1/2) 2 pi / 97, i = 0..96 (radians); degrees in reference_F2_grid_deg.csv",
+ "units": "kJ/mol (kT = 2.494 kJ/mol at 300 K)",
+ "nan_cells": 226,
+ "global_min_phi_psi_deg": [
+  -74.22680412371135,
+  55.67010309278352
+ ],
+ "prominence_threshold_kJ": 1.216076061654149,
+ "resolved_minima": [
+  {
+   "label": "C7eq",
+   "phi": -74.22680412371135,
+   "psi": 55.67010309278352,
+   "F": 0.0,
+   "prominence": Infinity
+  },
+  {
+   "label": "C5",
+   "phi": -152.16494845360825,
+   "psi": 155.8762886597938,
+   "F": 1.1194610546929535,
+   "prominence": 6.353670789688063
+  },
+  {
+   "label": "C7ax",
+   "phi": 63.09278350515466,
+   "psi": -48.247422680412356,
+   "F": 6.390247301259603,
+   "prominence": 32.93167868475868
+  },
+  {
+   "label": "unresolved (unsampled region; no bootstrap s.e.)",
+   "phi": 137.31958762886597,
+   "psi": 40.82474226804122,
+   "F": 84.309709988113,
+   "prominence": 2.5021547462708327
+  }
+ ],
+ "alpha_R_region_cell_minima": [
+  {
+   "phi": -55.67010309278349,
+   "psi": -18.55670103092784,
+   "F": 12.193842376281225,
+   "prominence": 0.11751828463054537
+  }
+ ],
+ "csv_sha256": {
+  "reference_F2_kJ.csv": "ea89258db45490f337a5f2f3b34a4b5fbb36c93781bd78817113399abf6a8800",
+  "reference_F2_se_kJ.csv": "4ffe8314e1ea1a68a2c0f0528b42e34985076512a5866bcb98fd2c2afd275fb3",
+  "reference_F2_minima.csv": "b204c7fe81f71db85a4b301fd923e826a8f2bd41b2b9a42a8171e895b861c0c6",
+  "reference_F2_grid_deg.csv": "66e99868d01786b94b9da28e04b88105ce2061886d21f81ae8ff2d1e0f90e93e"
+ }
+}
