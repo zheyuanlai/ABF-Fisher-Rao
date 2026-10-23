@@ -1,0 +1,296 @@
+{
+ "n_pass": 57,
+ "n_fail": 0,
+ "checks": [
+  {
+   "check": "every frozen (seed, arm) run is present and scored",
+   "status": "PASS",
+   "detail": "112 runs, missing []"
+  },
+  {
+   "check": "one commit for every run",
+   "status": "PASS",
+   "detail": "{'e25edb3ee7dcdce2e1b1fec86c599aa8317dcb41'}"
+  },
+  {
+   "check": "one engine (sha256) for every run",
+   "status": "PASS",
+   "detail": "{'e1fcef3fdd13'}"
+  },
+  {
+   "check": "every run used the committed frozen_config.json",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "every run's engine cfg = the validated Phase-V cfg with its FR start",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "equal K = 256 and n_steps = 1 920 000 (equal force evaluations)",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "FR events only inside each arm's [start, stop) (none in ABF)",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "fr_start0: fr_stop_steps = -1, FR stream id 1",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "fr_start40: fr_stop_steps = -1, FR stream id 0",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "fr_start0_stop20: fr_stop_steps = 160000, FR stream id 2",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "fr_start0_stop40: fr_stop_steps = 320000, FR stream id 3",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "fr_start5: fr_stop_steps = -1, FR stream id 4",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "fr_start20: fr_stop_steps = -1, FR stream id 5",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "z_hist rows sum to K at every checkpoint",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "finite e_F, e_F' and final states in every run",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "ABF bias-clip fraction (median over runs, per arm)",
+   "status": "INFO",
+   "detail": "{'abf': 0.04849767778441261, 'fr_start0': 0.0501360721133739, 'fr_start40': 0.04926154762582155, 'fr_start0_stop20': 0.04909082119293167, 'fr_start0_stop40': 0.0489137694866435, 'fr_start5': 0.04956897137521022, 'fr_start20': 0.04926947303673279}"
+  },
+  {
+   "check": "fr_start40 = ABF bitwise before its FR start t = 40",
+   "status": "PASS",
+   "detail": "60 checkpoints"
+  },
+  {
+   "check": "fr_start5 = ABF bitwise before its FR start t = 5",
+   "status": "PASS",
+   "detail": "10 checkpoints"
+  },
+  {
+   "check": "fr_start20 = ABF bitwise before its FR start t = 20",
+   "status": "PASS",
+   "detail": "40 checkpoints"
+  },
+  {
+   "check": "fr_start0_stop20: cumulative replacements constant for t >= 20",
+   "status": "PASS",
+   "detail": "median replacements at stop 86"
+  },
+  {
+   "check": "fr_start0_stop40: cumulative replacements constant for t >= 40",
+   "status": "PASS",
+   "detail": "median replacements at stop 158"
+  },
+  {
+   "check": "regression abf: extended engine = stored Phase-V seed 5100 bitwise through t = 45",
+   "status": "PASS",
+   "detail": "10 saves, replacements 0"
+  },
+  {
+   "check": "regression fr_start40: extended engine = stored Phase-V seed 5100 bitwise through t = 45",
+   "status": "PASS",
+   "detail": "10 saves, replacements 16"
+  },
+  {
+   "check": "test log pytest_original_suite_on_extended_engine.txt",
+   "status": "PASS",
+   "detail": "======================== 43 passed in 71.20s (0:01:11) ========================="
+  },
+  {
+   "check": "test log pytest_stop_extension.txt",
+   "status": "PASS",
+   "detail": "============================= 12 passed in 27.60s =============================="
+  },
+  {
+   "check": "P1 median recomputed from data/per_seed (10-digit CSV precision)",
+   "status": "PASS",
+   "detail": "-7.540 % (diff 2.7e-11)"
+  },
+  {
+   "check": "P2 median recomputed from data/per_seed (10-digit CSV precision)",
+   "status": "PASS",
+   "detail": "-61.804 % (diff 1.2e-12)"
+  },
+  {
+   "check": "scalars.csv has one row per (arm, seed)",
+   "status": "PASS",
+   "detail": "112"
+  },
+  {
+   "check": "wca_start0_eF.csv schema, finite > 0, increasing t to 240, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": "133 rows"
+  },
+  {
+   "check": "wca_start0_eFp.csv schema, finite > 0, increasing t to 240, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": "133 rows"
+  },
+  {
+   "check": "wca_start0_exi.csv schema, finite > 0, increasing t to 240, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": "133 rows"
+  },
+  {
+   "check": "wca_start0: the three panels use the 133 saved checkpoints (no interpolation)",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "wca_stop20_eF.csv schema, finite > 0, increasing t to 240, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": "133 rows"
+  },
+  {
+   "check": "wca_stop20_eFp.csv schema, finite > 0, increasing t to 240, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": "133 rows"
+  },
+  {
+   "check": "wca_stop20_exi.csv schema, finite > 0, increasing t to 240, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": "133 rows"
+  },
+  {
+   "check": "wca_stop20: the three panels use the 133 saved checkpoints (no interpolation)",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "wca_stop40_eF.csv schema, finite > 0, increasing t to 240, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": "133 rows"
+  },
+  {
+   "check": "wca_stop40_eFp.csv schema, finite > 0, increasing t to 240, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": "133 rows"
+  },
+  {
+   "check": "wca_stop40_exi.csv schema, finite > 0, increasing t to 240, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": "133 rows"
+  },
+  {
+   "check": "wca_stop40: the three panels use the 133 saved checkpoints (no interpolation)",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "wca_start40_eF.csv schema, finite > 0, increasing t to 240, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": "133 rows"
+  },
+  {
+   "check": "wca_start40_eFp.csv schema, finite > 0, increasing t to 240, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": "133 rows"
+  },
+  {
+   "check": "wca_start40_exi.csv schema, finite > 0, increasing t to 240, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": "133 rows"
+  },
+  {
+   "check": "wca_start40: the three panels use the 133 saved checkpoints (no interpolation)",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "wca_start5_eF.csv schema, finite > 0, increasing t to 240, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": "133 rows"
+  },
+  {
+   "check": "wca_start5_eFp.csv schema, finite > 0, increasing t to 240, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": "133 rows"
+  },
+  {
+   "check": "wca_start5_exi.csv schema, finite > 0, increasing t to 240, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": "133 rows"
+  },
+  {
+   "check": "wca_start5: the three panels use the 133 saved checkpoints (no interpolation)",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "wca_start20_eF.csv schema, finite > 0, increasing t to 240, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": "133 rows"
+  },
+  {
+   "check": "wca_start20_eFp.csv schema, finite > 0, increasing t to 240, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": "133 rows"
+  },
+  {
+   "check": "wca_start20_exi.csv schema, finite > 0, increasing t to 240, q25 <= median <= q75",
+   "status": "PASS",
+   "detail": "133 rows"
+  },
+  {
+   "check": "wca_start20: the three panels use the 133 saved checkpoints (no interpolation)",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "figure main_threepanel.pdf present",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "figure timing_comparison.pdf present",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "figure marginal_vs_free_energy.pdf present",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "figure supp_all_arms.pdf present",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "figure supp_genealogy.pdf present",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "scored against the frozen exact-MC reference",
+   "status": "PASS",
+   "detail": "exact Gibbs (Metropolis MC, 64 chains): F_density; mean force = MC bin means"
+  }
+ ]
+}

@@ -1,0 +1,267 @@
+{
+ "study": "WCA dimer: does earlier Fisher-Rao activation (and early stopping) improve validated histogram-ABF convergence?",
+ "frozen_utc": "2026-10-20T16:13:35.786050+00:00",
+ "prereg": "deliverables/UROPS_2026_WCA_timing/PREREGISTRATION.md",
+ "engine": {
+  "file": "src/wca_numba.py",
+  "entry": "run_ladder_point",
+  "new_kwargs": [
+   "fr_stop_steps",
+   "fr_stream_ids"
+  ],
+  "tests": [
+   "tests/test_wca_numba.py",
+   "tests/test_wca_numba_sham.py",
+   "tests/test_wca_numba_stop.py"
+  ]
+ },
+ "physics": {
+  "N": 256,
+  "particles_per_replica": 100,
+  "beta": 1.0,
+  "dt": 0.000125,
+  "T": 240.0,
+  "n_steps": 1920000,
+  "integrator": "float64 Euler-Maruyama with the accepted force clips and soft RC wall (wca_numba)"
+ },
+ "engine_cfg_template": {
+  "n_dim": 10,
+  "a": 1.5,
+  "sigma": 1.0,
+  "epsilon": 1.0,
+  "h": 2.0,
+  "w": 2.0,
+  "beta": 1.0,
+  "min_r": 0.65,
+  "force_clip": 250.0,
+  "dt": 0.000125,
+  "z_min": -0.2,
+  "z_max": 1.2,
+  "n_grid": 160,
+  "n_bins": 160,
+  "kde_bandwidth": 0.07,
+  "mean_force_sample_clip": 500.0,
+  "use_clipped_force_for_mean_force": true,
+  "abf_bias_scale": 1.0,
+  "abf_edge_extrapolate": true,
+  "boundary_wall_strength": 80.0,
+  "abf_force_clip": 40.0,
+  "abf_warmup_steps": 160000,
+  "estimator_burn_in_steps": 160000,
+  "fr_rate": 0.1,
+  "score_clip": 2.0,
+  "fr_start_steps": 320000,
+  "fr_every": 80,
+  "max_event_fraction": 0.02,
+  "ess_window_steps": 64000,
+  "transition_lo": 0.25,
+  "transition_hi": 0.75,
+  "eval_z_lo": -0.1,
+  "eval_z_hi": 1.1,
+  "hist_min_count": 0.0
+ },
+ "engine_cfg_rule": "validated_cfg(fr_start_t): engine_cfg_template with fr_start_steps = round(fr_start_t / dt); fr_stop_steps (run_ladder_point kwarg) = round(fr_stop_t / dt) or None",
+ "cap_min": 0,
+ "cap": 5,
+ "fr_every_steps": 80,
+ "fr_rate": 0.1,
+ "fr_rate_ramp": null,
+ "init": "wca_numba.lattice_init(seed, 256) (the torch engine's lattice init); Langevin noise: default_noise_seed(seed, 256), SeedSequence child 0 (identical in every arm); FR stream of an arm: child 1 + fr_stream_id",
+ "arms": [
+  {
+   "name": "abf",
+   "fr": false,
+   "fr_start_t": null,
+   "fr_stop_t": null,
+   "fr_stream_id": null,
+   "priority": "mandatory",
+   "run": true,
+   "role": "ordinary ABF baseline"
+  },
+  {
+   "name": "fr_start0",
+   "fr": true,
+   "fr_start_t": 0.0,
+   "fr_stop_t": null,
+   "fr_stream_id": 1,
+   "priority": "mandatory",
+   "run": true,
+   "role": "continuous early FR"
+  },
+  {
+   "name": "fr_start40",
+   "fr": true,
+   "fr_start_t": 40.0,
+   "fr_stop_t": null,
+   "fr_stream_id": 0,
+   "priority": "mandatory",
+   "run": true,
+   "role": "validated delayed-FR schedule (stream 0 = the Phase-V FR arm's stream)"
+  },
+  {
+   "name": "fr_start0_stop20",
+   "fr": true,
+   "fr_start_t": 0.0,
+   "fr_stop_t": 20.0,
+   "fr_stream_id": 2,
+   "priority": "mandatory",
+   "run": true,
+   "role": "early FR, then ABF"
+  },
+  {
+   "name": "fr_start0_stop40",
+   "fr": true,
+   "fr_start_t": 0.0,
+   "fr_stop_t": 40.0,
+   "fr_stream_id": 3,
+   "priority": "mandatory",
+   "run": true,
+   "role": "longer early FR, then ABF"
+  },
+  {
+   "name": "fr_start5",
+   "fr": true,
+   "fr_start_t": 5.0,
+   "fr_stop_t": null,
+   "fr_stream_id": 4,
+   "priority": "secondary",
+   "run": true,
+   "role": "activation-time ladder"
+  },
+  {
+   "name": "fr_start20",
+   "fr": true,
+   "fr_start_t": 20.0,
+   "fr_stop_t": null,
+   "fr_stream_id": 5,
+   "priority": "secondary",
+   "run": true,
+   "role": "activation-time ladder"
+  }
+ ],
+ "arm_inclusion_decision": {
+  "decided_utc": "2026-10-20T16:13:35.786067+00:00",
+  "secondary_included": true,
+  "basis": "validated Phase-V wall times: 0.85 h (ABF) / 0.88 h (per FR arm) per 256 x 1.92e6 run on this host -> 7 x 16 x 0.88 = 98.6 core-h <= 200 core-h cap; decided before any production run"
+ },
+ "seeds": [
+  5600,
+  5601,
+  5602,
+  5603,
+  5604,
+  5605,
+  5606,
+  5607,
+  5608,
+  5609,
+  5610,
+  5611,
+  5612,
+  5613,
+  5614,
+  5615
+ ],
+ "seed_rationale": "fresh consecutive block; not 5100-5115 (Phase-V), not 3300-3307 (dt 0.002 start ladder); no WCA result or doc uses 5600-5615 (checked 2026-10-20)",
+ "save_grid": {
+  "rule": "every 0.5 t.u. on [0, 20], every 1 t.u. on (20, 80], every 5 t.u. on (80, 240]",
+  "n_saves": 133
+ },
+ "reference": {
+  "file": "data/summary/reference_mc.json",
+  "label": "exact Gibbs (Metropolis MC, 64 chains): F_density; mean force = MC bin means",
+  "array_sha256": "f58f069cbcf1eedd38f364bd4d1dc7488a98a8bdd0365edb4935cad54764a3e4",
+  "rule": "rescore_wca_history.mc_reference(); the analysis asserts the recomputed reference equals this file"
+ },
+ "metrics": {
+  "e_F": "wca_numba.score_ladder_result(...)['l2_f_t'] with the frozen reference (aligned L2 on [-0.1, 1.1])",
+  "e_Fp": "score_ladder_result(...)['l2_fp_t'] (histogram_fp_error_np: own e_F' of the histogram arms)",
+  "e_xi_full": "||p - 1/1.4||_L2 on [-0.2, 1.2] from z_hist (160 bins; out-of-range replicas clamped into the edge bins by the engine)",
+  "e_xi_interior": "the same on the 158 interior bins only, renormalised (u = 1/(1.4 - 2 * 0.00875)); labelled diagnostic",
+  "edge_fraction": "(z_hist[0] + z_hist[159]) / N",
+  "windows": [
+   [
+    0,
+    20
+   ],
+   [
+    0,
+    40
+   ],
+   [
+    20,
+    40
+   ],
+   [
+    20,
+    80
+   ],
+   [
+    40,
+    240
+   ],
+   [
+    0,
+    240
+   ]
+  ],
+  "sensitivity_windows": {
+   "after_reset_20_80": "(20, 80]: trapezoid from t = 21 to 80, excluding the t = 20 reset save (production estimator holding one step of deposits)"
+  },
+  "integral": "trapezoid of e_F over the saves with a <= t <= b",
+  "final": "e_F(240)",
+  "time_to_accuracy": {
+   "eps_kT": [
+    0.05,
+    0.04,
+    0.03,
+    0.02,
+    0.015
+   ],
+   "definition": "sustained: first save t with e_F <= eps at that and every later save; censored (> T) if e_F(240) > eps",
+   "chosen_from": "validated Phase-V ABF-only arm (seeds 5100-5115, no FR curve read): each eps is reached by ABF in >= 14/16 seeds; medians 27.5, 30, 40, 50, 137.5 t.u.",
+   "paired": "per seed S = min(tau_ABF, T) / min(tau_FR, T); censoring counts reported; both-censored seeds are ties"
+  }
+ },
+ "statistics": {
+  "unit": "seed",
+  "G": "I_arm / I_base - 1 per seed (same for final errors)",
+  "summary": "median of G",
+  "ci": "percentile bootstrap of the median, 10000 resamples, numpy default_rng(20261020)",
+  "wins": "seeds with G < 0",
+  "primary": [
+   {
+    "id": "P1",
+    "contrast": "fr_start0 vs fr_start40",
+    "metric": "I_F[0,40]",
+    "predicted": "< 0"
+   },
+   {
+    "id": "P2",
+    "contrast": "fr_start0_stop20 vs fr_start0",
+    "metric": "e_F(240)",
+    "predicted": "< 0"
+   }
+  ],
+  "multiplicity": "Bonferroni over the two primary contrasts: a primary is SUPPORTED if its 97.5 % bootstrap CI (1.25 / 98.75 percentiles) lies entirely below 0, CONTRADICTED if entirely above 0, otherwise UNRESOLVED; ordinary 95 % CIs reported alongside",
+  "secondary": [
+   "every FR arm vs abf on I_F[20,80], I_F[0,240], e_F(240) (and all other windows, descriptive)",
+   "fr_start0_stop20 vs abf; fr_start0_stop40 vs abf",
+   "fr_start0_stop20 / fr_start0_stop40 vs fr_start40",
+   "fr_start0_stop40 vs fr_start0 on e_F(240)",
+   "e_F'(240), marginal metrics, genealogy, time to accuracy"
+  ],
+  "early_convergence_benefit": "an FR arm vs abf: SUPPORTED if the 95 % CI of G on I_F[20,80] lies entirely below 0",
+  "safe_early_stopping": "a stop arm: early_convergence_benefit SUPPORTED and final-error non-inferiority vs abf established: 95 % CI upper bound of G on e_F(240) < +5 %; DEGRADED if the CI lower bound > +5 %; otherwise INCONCLUSIVE",
+  "descriptive_labels": "secondary contrasts: CI < 0 'FR better', CI > 0 'FR worse', otherwise 'not resolved'; no post-hoc selection of a best schedule"
+ },
+ "exclusions": {
+  "rule": "no seed is excluded for its outcome; a run that crashes or produces a non-finite state is rerun once (the engine is deterministic, so a reproducible failure is REPORTED as a failure); statistics then use the seeds with complete data for the arms compared, and the failure is listed in the validation report",
+  "tuning": "no physical, estimator, FR, seed, window or tolerance setting is changed after any production result is read"
+ },
+ "budget": {
+  "cap_core_h": 200,
+  "estimate_core_h": 98.6,
+  "raw_dir": "results/urops_2026_wca_timing/raw (main checkout, git-ignored)"
+ }
+}

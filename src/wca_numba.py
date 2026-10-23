@@ -550,7 +550,9 @@ def simulate(N, n_steps, arm_fr, arm_nb, max_bins, physp, simp, intp, grid, q0, 
     physp = [L, sigma, 4*epsilon, cutoff, min_r*sigma, h, w, r0, force_clip, beta]
     simp  = [dt, z_min, z_max, mean_force_sample_clip, abf_bias_scale, wall, abf_force_clip,
              kde_bw, fr_rate, score_clip, transition_lo, transition_hi, min_count, dt_eff]
-    intp  = [warmup, burn_in, fr_start, fr_every, ess_window, cap, use_clipped_mf]
+    intp  = [warmup, burn_in, fr_start, fr_every, ess_window, cap, use_clipped_mf(, fr_stop)]
+            fr_stop (optional 8th entry, 2026-10-20): FR opportunities only at next_step < fr_stop; -1 or
+            absent = never stop (the earlier behaviour, bitwise).
     P     = physical particle count n_dim^2;  fm = 1: torch.linalg.norm as fma (AVX2/AVX512 host
             kernels), 0: plain (ATEN_CPU_CAPABILITY=default).  Both are compiled as LITERALS (one
             specialisation per value): a runtime P halves the speed of the vectorised pair screen.
@@ -575,6 +577,7 @@ def simulate(N, n_steps, arm_fr, arm_nb, max_bins, physp, simp, intp, grid, q0, 
     tr_lo, tr_hi, min_count, dt_eff = simp[10], simp[11], simp[12], simp[13]
     warmup, burn_in, fr_start = intp[0], intp[1], intp[2]
     fr_every, ess_window, cap, use_clipped_mf = intp[3], intp[4], intp[5], intp[6]
+    fr_stop = intp[7] if intp.shape[0] > 7 else -1   # -1: FR never stops
     win = ess_window if ess_window > 1 else 1        # torch: _win = max(int(ess_window_steps), 1)
     A = arm_fr.shape[0]
     S_n = save_at.shape[0]
@@ -615,6 +618,7 @@ def simulate(N, n_steps, arm_fr, arm_nb, max_bins, physp, simp, intp, grid, q0, 
     o_c2s = np.zeros((A, S_n), dtype=np.int64); o_s2c = np.zeros((A, S_n), dtype=np.int64)
     o_rt = np.zeros((A, S_n), dtype=np.int64)
     o_nev = np.zeros((A, S_n), dtype=np.int64); o_ncap = np.zeros((A, S_n), dtype=np.int64)
+    o_clipn = np.zeros((A, S_n)); o_evaln = np.zeros((A, S_n))   # cumulative ABF bias-clip counters at the saves
 
     # ---- work ----
     F = np.empty((P, 2)); Fph = np.empty((N, P, 2))
@@ -647,6 +651,8 @@ def simulate(N, n_steps, arm_fr, arm_nb, max_bins, physp, simp, intp, grid, q0, 
         abf_scale = bias_scale * ramp
         next_step = step + 1
         do_fr = (not last) and next_step >= fr_start and (next_step - fr_start) % (fr_every if fr_every > 1 else 1) == 0
+        if fr_stop >= 0 and next_step >= fr_stop:
+            do_fr = False                          # early stop: no opportunity (no event, no window reset) from fr_stop on
         is_save = ptr < S_n and save_at[ptr] == step
         for a in range(A):
             nb = arm_nb[a]
@@ -714,6 +720,7 @@ def simulate(N, n_steps, arm_fr, arm_nb, max_bins, physp, simp, intp, grid, q0, 
                     rt += rep_c2s[a, i] if rep_c2s[a, i] < rep_s2c[a, i] else rep_s2c[a, i]
                 o_rt[a, ptr] = rt
                 o_nev[a, ptr] = n_event_opp[a]; o_ncap[a, ptr] = n_cap_bind[a]
+                o_clipn[a, ptr] = clip_n[a]; o_evaln[a, ptr] = eval_n[a]
                 if arm_fr[a] >= 1:
                     mx = 0
                     nu = 0
@@ -832,7 +839,8 @@ def simulate(N, n_steps, arm_fr, arm_nb, max_bins, physp, simp, intp, grid, q0, 
         if is_save:
             ptr += 1
     return (o_Mb, o_Cb, o_Mp, o_Cp, o_repl, o_ess, o_wmax, o_nuniq, o_ess_w, o_min_ess_w, o_frac, o_zhist,
-            o_c2s, o_s2c, o_rt, o_nev, o_ncap, bias_absmax, clip_n, eval_n, min_ess_w, q, anc, anc_w)
+            o_c2s, o_s2c, o_rt, o_nev, o_ncap, bias_absmax, clip_n, eval_n, min_ess_w, q, anc, anc_w,
+            o_clipn, o_evaln)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -988,7 +996,7 @@ def budget_save_grid(n_steps, n_lin=200, n_log=24, u_min=1e-4):
     return steps, steps / float(n_steps)
 
 
-def _pack(cfg, N, cap):
+def _pack(cfg, N, cap, fr_stop_steps=-1):
     L = cfg["n_dim"] * cfg["a"]
     r0 = _r0(cfg)
     physp = np.array([L, cfg["sigma"], 4.0 * cfg["epsilon"], r0, cfg["min_r"] * cfg["sigma"], cfg["h"], cfg["w"],
@@ -1000,13 +1008,14 @@ def _pack(cfg, N, cap):
                     dtype=np.float64)
     intp = np.array([cfg["abf_warmup_steps"], cfg["estimator_burn_in_steps"],
                      cfg["fr_start_steps"], cfg["fr_every"], cfg["ess_window_steps"], cap,
-                     1 if cfg["use_clipped_force_for_mean_force"] else 0], dtype=np.int64)
+                     1 if cfg["use_clipped_force_for_mean_force"] else 0, int(fr_stop_steps)], dtype=np.int64)
     assert cfg["abf_edge_extrapolate"], "only the accepted edge-extrapolated read of the bias is ported"
     return physp, simp, intp
 
 
 def run_ladder_point(seed, N, n_steps, arms, cfg=ACCEPTED_CFG, save_at=None, cap_min=1, noise_seed=None,
-                     q0=None, ext_noise=None, fma_norm=True, accum_float32=False):
+                     q0=None, ext_noise=None, fma_norm=True, accum_float32=False, fr_stop_steps=None,
+                     fr_stream_ids=None):
     """One (seed, N) job.  ``arms``: list of (name, use_fr) or (name, use_fr, n_bins) (default
     n_bins = cfg['n_bins']); all arms start from the torch engine's lattice init for ``seed`` and
     share the Langevin noise; each FR arm has its own FR stream (``make_rngs``).  ``save_at``:
@@ -1027,7 +1036,18 @@ def run_ladder_point(seed, N, n_steps, arms, cfg=ACCEPTED_CFG, save_at=None, cap
     runs ~1-2 units above the accepted range on fresh seeds (module docstring); use it only for
     like-for-like validation against the accepted runs.  Default False: the intended
     (unsaturated) algorithm, which the ladder must use (in float32 every ladder point would
-    saturate, since every point deposits ~2e7 into bin 159 at fixed budget)."""
+    saturate, since every point deposits ~2e7 into bin 159 at fixed budget).
+
+    Early-stopping extension (2026-10-20, docs: deliverables/UROPS_2026_WCA_timing; not a cfg key, so
+    ``ACCEPTED_CFG`` and every older caller are untouched):
+    ``fr_stop_steps``: None (default) = FR never stops (bitwise the earlier engine); an integer k = FR
+    opportunities (events and windowed-genealogy resets) only at completed-step counts next_step < k,
+    i.e. FR events only at physical times t < k dt; after it every arm continues plain ABF with its
+    replicas and its estimators untouched.  ``fr_stream_ids``: None (default) = FR arm j (in arm order)
+    draws from FR stream j (the earlier behaviour); a list of distinct non-negative integers, one per
+    uniform-FR arm, assigns FR stream ``fr_stream_ids[j]`` = child 1 + fr_stream_ids[j] of
+    ``SeedSequence(noise_seed)`` (index-stable, so an arm's stream never depends on which other arms
+    exist; stream 0 is the stream the first FR arm of an earlier job drew).  Not combinable with shams."""
     _cpu_torch()                                 # hide CUDA before anything below imports torch
     N, n_steps = int(N), int(n_steps)
     cfg = dict(cfg)
@@ -1061,8 +1081,19 @@ def run_ladder_point(seed, N, n_steps, arms, cfg=ACCEPTED_CFG, save_at=None, cap
     cap = event_cap(N, cfg, cap_min)
     if noise_seed is None:
         noise_seed = default_noise_seed(seed, N)
-    rng_noise, rng_frs = make_rngs(noise_seed, max(n_fr + n_sham, 1))   # >= 1 stream; SeedSequence children are index-stable
-    physp, simp, intp = _pack(cfg, N, cap)
+    if fr_stream_ids is None:
+        rng_noise, rng_frs = make_rngs(noise_seed, max(n_fr + n_sham, 1))   # >= 1 stream; SeedSequence children are index-stable
+        stream_ids = np.arange(n_fr + n_sham, dtype=np.int64)
+    else:
+        stream_ids = np.asarray([int(s) for s in fr_stream_ids], dtype=np.int64)
+        assert n_sham == 0, "fr_stream_ids is not defined for jobs with a matched sham"
+        assert stream_ids.size == n_fr and n_fr >= 1, "one stream id per uniform-FR arm"
+        assert np.all(stream_ids >= 0) and np.unique(stream_ids).size == stream_ids.size, "distinct non-negative ids"
+        rng_noise, all_frs = make_rngs(noise_seed, int(stream_ids.max()) + 1)
+        rng_frs = tuple(all_frs[int(s)] for s in stream_ids)
+    stop = -1 if fr_stop_steps is None else int(fr_stop_steps)
+    assert fr_stop_steps is None or stop >= 0, "fr_stop_steps: None or a non-negative step count"
+    physp, simp, intp = _pack(cfg, N, cap, stop)
     grid = fr_grid(cfg)
     use_ext = ext_noise is not None
     ext = np.ascontiguousarray(ext_noise, dtype=np.float64).reshape(n_steps, N * P * 2) if use_ext else np.zeros((1, 1))
@@ -1071,7 +1102,7 @@ def run_ladder_point(seed, N, n_steps, arms, cfg=ACCEPTED_CFG, save_at=None, cap
     out = simulate(N, n_steps, arm_fr, arm_nb, int(arm_nb.max()), physp, simp, intp, grid, q0, save_at,
                    rng_noise, rng_frs, arm_slot, ext, use_ext, int(P), 1 if fma_norm else 0, *acc, arm_partner)
     (Mb, Cb, Mp, Cp, repl, ess, wmax, nuniq, ess_w, min_ess_w_t, frac, zhist, c2s, s2c, rt, nev, ncap,
-     bias_absmax, clip_n, eval_n, min_ess_w, q_final, anc, anc_w) = out
+     bias_absmax, clip_n, eval_n, min_ess_w, q_final, anc, anc_w, clip_t, eval_t) = out
     burn = int(cfg["estimator_burn_in_steps"])
     prod = save_at >= burn                       # production estimator has n_updates > 0
     M_rep = np.where(prod[None, :, None], Mp, Mb)
@@ -1087,7 +1118,8 @@ def run_ladder_point(seed, N, n_steps, arms, cfg=ACCEPTED_CFG, save_at=None, cap
                 frac_regions=frac, z_hist=zhist, n_c2s=c2s, n_s2c=s2c, n_round_trips=rt,
                 n_event_opportunities=nev, n_cap_binding=ncap,
                 bias_absmax=bias_absmax, bias_clip_fraction=clip_n / np.maximum(eval_n, 1.0), q_final=q_final,
-                ancestors_final=anc, ancestors_window_final=anc_w)
+                ancestors_final=anc, ancestors_window_final=anc_w,
+                bias_clip_cum=clip_t, bias_eval_cum=eval_t, fr_stop_steps=int(stop), fr_stream_ids=stream_ids)
 
 
 def save_result(res, path, keep_state=True):
