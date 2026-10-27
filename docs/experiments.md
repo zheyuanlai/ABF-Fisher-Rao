@@ -11,3 +11,7 @@ Job ids, what changed, outcome. Newest last. Study designs live in their own doc
   driving force (sign error; that path never ran in production).
 * Finite-loading ethane/LTA: design `docs/lta_loading/PREREGISTRATION.md`, engine `src/lta_loading/engine.py`,
   env `scripts/lta_loading/setup_env.sh` (`envs/ltafl`).
+* Env: conda-forge on GPFS stalled (> 35 min extracting); rebuilt with uv + pip wheels in 3 min
+  (`envs/ltafl`: Python 3.12, numpy 2.5.4, numba 0.68.0, cupy 14.2.0; CUDA 12.8.1 system toolkit).
+* g1 is occupied by another project's job (one running job per queue), so this study uses g2
+  (`scripts/lta_loading/pbs/gpu2_task.pbs`, two task streams). Smoke job 26028686 (V1-V3, V6) queued 21:4x.

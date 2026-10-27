@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Environment of the finite-loading ethane/LTA study (CuPy + custom CUDA kernels on one A100).
-# Rebuild after a scratch purge, on the login node (download + install only):
+# Environment of the finite-loading ethane/LTA study: uv venv (Python 3.12) + CuPy wheels, CUDA from the system
+# toolkit (/app/apps/cuda/12.8.1, set by env.sh).  Rebuild after a scratch purge, on the login node:
 #   bash scripts/lta_loading/setup_env.sh
+# (conda-forge was tried first: extraction on GPFS took > 35 min and did not finish.)
 set -euo pipefail
 S=/scratch/users/nus/e1297740
 ENV=$S/envs/ltafl
-export CONDA_PKGS_DIRS=$S/conda_pkgs
-module load miniforge3
+export UV_CACHE_DIR=$S/cache/uv UV_PYTHON_INSTALL_DIR=$S/cache/uv-python
 rm -rf "$ENV"
-conda create -y -p "$ENV" -c conda-forge python=3.12 numpy scipy matplotlib pytest numba \
-    cupy "cuda-version=12.8" cuda-nvrtc
-"$ENV/bin/python" -c "import numpy, cupy, numba; print('numpy', numpy.__version__, 'cupy', cupy.__version__, 'numba', numba.__version__)"
+$S/bin/uv venv --python 3.12 "$ENV"
+$S/bin/uv pip install --python "$ENV/bin/python" numpy scipy numba matplotlib pytest "cupy-cuda12x>=13.3"
+"$ENV/bin/python" -c "import numpy, numba, cupy; print('numpy', numpy.__version__, 'numba', numba.__version__, 'cupy', cupy.__version__)"
 echo SETUP_DONE
