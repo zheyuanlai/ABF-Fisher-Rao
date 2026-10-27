@@ -62,7 +62,7 @@ DEFAULT_CFG = dict(
     max_event_fraction=0.02, cap_min=1,
     abf_force_clip=60.0, deposit_clip=480.0, abf_bias_scale=1.0,
     eps_go_K=93.0, sigma_go=3.48, eps_gg_K=108.0, sigma_gg=3.76, rc=10.0, r0_bond=1.54, k_bond=400.0,
-    n_guests=16, mc_every=10, r_block=3.5, place_sweeps=100, preeq_sweeps=100, preeq_steps=10000,
+    n_guests=16, mc_every=1, r_block=3.5, place_sweeps=100, preeq_sweeps=2000, preeq_steps=20000,
     framework_npz="cache/lta/framework.npz",
 )
 
@@ -759,6 +759,7 @@ class Batch:
         sv_i = np.zeros((S, self.R, 5), dtype=np.int64)          # repl, cross, mc_acc, mc_att, n_unique_anc
         sv_f = np.zeros((S, self.R, 2))                          # ess/N, max lineage share
         sv_wall = np.zeros(S)
+        sv_U = np.zeros((S, self.R))                             # mean potential energy per seed (drift monitor)
         sp = 0
         cp.cuda.Stream.null.synchronize()
         t0 = time.perf_counter()
@@ -780,6 +781,7 @@ class Batch:
                     sv_i[sp, r, 4] = int((cnt > 0).sum())
                     sv_f[sp, r, 0] = self.N / float((cnt * cnt).sum())
                     sv_f[sp, r, 1] = cnt.max() / self.N
+                sv_U[sp] = self.energies().reshape(self.R, self.N).mean(axis=1).get()
                 sv_wall[sp] = time.perf_counter() - t0
                 if not np.isfinite(acc).all():
                     raise FloatingPointError(f"non-finite accumulators at step {k}")
@@ -805,7 +807,7 @@ class Batch:
         if not np.isfinite(q).all():
             raise FloatingPointError("non-finite positions at the end of the run")
         out = dict(save_step=self.save_steps, save_u=self.save_steps / float(max(self.n_steps, 1)),
-                   sv_acc=sv_acc, sv_hist=sv_hist, sv_i=sv_i, sv_f=sv_f, sv_wall=sv_wall,
+                   sv_acc=sv_acc, sv_hist=sv_hist, sv_i=sv_i, sv_f=sv_f, sv_wall=sv_wall, sv_U=sv_U,
                    seeds=np.asarray(self.seeds), score_std_sum=self.score_std, n_opp=np.int64(self.nopp))
         meta = dict(engine=ENGINE, engine_sha256=source_sha256(), method=self.method, N=self.N, n_guests=self.n,
                     n_steps=self.n_steps, R=self.R, cap=self.cap, fr_on=self.fr_on, cfg=self.c,

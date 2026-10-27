@@ -30,3 +30,13 @@ Job ids, what changed, outcome. Newest last. Study designs live in their own doc
   single guest 13.6 kT; reinsertion acceptance 0.5 %; pilot 150 s, frozen 484 s at ~120 ns per walker-step).
 * Budget pilot (ABF N = 256, 8 seeds, 1.2M steps, 317 s): b_mid 90.6–119.8M walker-steps, median 104.4M;
   **B = 208 928 768** (n_steps 3 264 512 at N = 64 ... 204 032 at N = 1024). Stage 1 done; bench + ladder running.
+* Bench (c_ss, one seed): ABF 45–151 us/step, FR +21–32 %, N 64 -> 1024. Exploration ladder (16 seeds/arm) DONE,
+  then found INVALID: (1) in every flattened-bias time window the barrier sits ~0.2 kJ/mol below F_ref; (2) the
+  reference's own halves disagree (barrier +0.18 vs -0.14 kJ/mol around F_ref, per-group SEM 0.03/0.008; density route
+  +0.42 vs -0.10). Cause: the environment relaxes on ~1e5+ steps (one reinsertion attempt per walker per 10 steps,
+  0.5 % accepted -> one relocation per guest per ~30k steps), longer than the reference burn-in (50k) and comparable to
+  whole runs at large N. The jackknife and two-route acceptance cannot see a drift common to all groups (the routes
+  differed by 0.046 vs the 0.05 gate -- the only hint). Confirmation 26030627 and A3 jobs 26031928/9 cancelled;
+  superseded results moved to results/lta_loading/superseded_v1/ (summaries in git, batch npz on scratch).
+  Fix in progress (Amendment A4): reinsertion every step, 2000 Metropolis sweeps + 20k steps pre-equilibration, an
+  energy drift monitor per save, and a stationarity gate on the reference. Relaxation diagnostic: job 26031951.
