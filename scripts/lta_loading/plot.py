@@ -97,10 +97,11 @@ def fig_ladder():
         ax.set_title(f"N = {N}", color=INK, fontsize=9)
         ax.set_xlabel("walker-steps (10⁶)")
     axes[0].set_ylabel("e_F (kJ/mol), median and IQR of 16 seeds")
-    axes[0].text(0.02, A.THR["mid"] * 1.08, "mid accuracy 0.13", color=INK2, fontsize=7.5,
+    axes[0].text(0.45, A.THR["mid"] * 1.12, "mid accuracy 0.13", color=INK2, fontsize=7.5,
                  transform=axes[0].get_yaxis_transform())
     axes[-1].legend(loc="upper right")
-    fig.suptitle("Finite-loading LTA, 150 K: free-energy error vs equal walker-step budget", color=INK, fontsize=10)
+    fig.suptitle("Finite-loading LTA, 150 K: free-energy error vs equal walker-step budget", color=INK, fontsize=10,
+                 y=1.04)
     save(fig, "fig_ladder")
 
 
