@@ -25,3 +25,6 @@ Job ids, what changed, outcome. Newest last. Study designs live in their own doc
   physical check: 2 of 4096 walkers overlapped after pre-equilibration (max |F| 1.4e17). Diagnosis job
   (scripts/lta_loading/debug_preeq.py) submitted to g1 (26030565) and gdev (26030575); g1 was taken by another
   project's 4 h job right after ours ended.
+* 2026-10-28 pipeline 26030627 (g1, started 01:42): Stage I ALL PASS with the A2 pre-equilibration; reference
+  ACCEPTED (F_ref SE rms 0.008 kJ/mol; mean-force vs density route rms 0.046, max 0.070; loaded barrier 13.8 kT vs
+  single guest 13.6 kT; reinsertion acceptance 0.5 %; pilot 150 s, frozen 484 s at ~120 ns per walker-step).
