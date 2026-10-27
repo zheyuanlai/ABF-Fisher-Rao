@@ -62,7 +62,7 @@ DEFAULT_CFG = dict(
     max_event_fraction=0.02, cap_min=1,
     abf_force_clip=60.0, deposit_clip=480.0, abf_bias_scale=1.0,
     eps_go_K=93.0, sigma_go=3.48, eps_gg_K=108.0, sigma_gg=3.76, rc=10.0, r0_bond=1.54, k_bond=400.0,
-    n_guests=16, mc_every=10, r_block=3.5, preeq_sweeps=20, preeq_steps=10000,
+    n_guests=16, mc_every=10, r_block=3.5, preeq_sweeps=40, preeq_steps=10000,
     framework_npz="cache/lta/framework.npz",
 )
 
@@ -682,11 +682,20 @@ class Batch:
         self.mc_acc[...] = 0
         self.mc_att[...] = 0
         self.reset_cells()
-        self.cp.cuda.Stream.null.synchronize()
-        q = self.q.get()
-        if not np.isfinite(q).all():
-            raise FloatingPointError("non-finite positions after pre-equilibration")
+        self.check_physical("after pre-equilibration")
         self.timers["preeq_s"] = time.perf_counter() - t0
+
+    def check_physical(self, where, fmax_cap=1.0e4):
+        """Raise unless every walker is finite and overlap-free (max |F| <= fmax_cap kJ/mol/A; typical ~ 70).
+        A walker left overlapped is not merely improbable: its forces throw it to coordinates where the
+        minimum image loses all precision, and it then corrupts the shared ABF estimator silently."""
+        cp = self.cp
+        self.forces(deposit=False)
+        fw = cp.abs(self.F).reshape(self.W, -1).max(axis=1)
+        bad = int((~cp.isfinite(fw) | (fw > fmax_cap)).sum().get())
+        if bad or not bool(cp.isfinite(self.q).all().get()):
+            raise FloatingPointError(f"{bad} of {self.W} walkers non-physical {where} "
+                                     f"(max |F| {float(cp.nanmax(fw).get()):.3g})")
 
     def fr_opportunity(self):
         cp = self.cp
@@ -765,6 +774,9 @@ class Batch:
                 sv_wall[sp] = time.perf_counter() - t0
                 if not np.isfinite(acc).all():
                     raise FloatingPointError(f"non-finite accumulators at step {k}")
+                fmax = float(self.cp.abs(self.F).max().get())
+                if not fmax <= 1.0e6:
+                    raise FloatingPointError(f"force blow-up at step {k}: max |F| {fmax:.3g}")
                 if self.verbose and (sp % 25 == 0 or sp == S - 1):
                     print(f"  [{label}] step {k}/{self.n_steps} save {sp + 1}/{S} wall {sv_wall[sp]:.1f}s "
                           f"repl {int(self.repl.sum())} cross {int(sv_i[sp, :, 1].sum())} "

@@ -55,7 +55,7 @@ environment.
   be frozen at its initial draw, the reference itself would be unreachable by dynamics, and the comparison would be
   between two conditional-equilibration failures. The tagged guest is never reinserted.
 * **Initial conditions** (identical for both arms of a seed): every guest by the single-guest law (uniform α-cage
-  centre + 0.5 Å jitter, uniform orientation); then, outside the budget, 20 reinsertion sweeps over the environment
+  centre + 0.5 Å jitter, uniform orientation); then, outside the budget, 40 reinsertion sweeps over the environment
   and 10 000 steps of dynamics + reinsertion with the tagged guest held fixed. t = 0 then releases the tagged guest.
 * **ABF and FR knobs:** inherited unchanged from the single-guest 150 K configuration
   (`configs/equal_budget_v2/lta_150K_production.json`): histogram (P0) estimator, 180 bins, bias clip 60, deposit
@@ -77,9 +77,10 @@ Gates (`scripts/lta_loading/validate.py`), all must pass before the reference:
 * V4 at n = 1 against the exact-MC single-guest reference: under its frozen bias (flat landscape) the mean-force
   route e_F ≤ 0.05 and the density route e_F ≤ 0.10 kJ/mol (a wrong bias sign or scale fails the latter by kT-sized
   errors); the ABF path at N = 1024 x 300k steps, final per-seed e_F ≤ 0.30 (single-guest CPU engine: 0.14–0.20);
-* V5 reinsertion: a non-interacting environment guest reproduces the exact single-guest density at 150 K
-  (|log p/p_ref| ≤ 0.10 on bins with ≥ 400 expected samples), never sits in a blocked sphere, and the kernel's ΔU
-  of every accepted move equals the change of the total energy (n = 4, interacting);
+* V5 reinsertion: a non-interacting environment guest reproduces the exact single-guest density at 150 K on bins
+  with ≥ 400 expected samples (errors from 16 independent walker groups: rms z ≤ 1.5, |mean log ratio| ≤ 0.02,
+  TV ≤ 0.02), never sits in a blocked sphere, and the kernel's ΔU of every accepted move equals the change of the
+  total energy (n = 4, interacting, production pre-equilibration);
 * V6 a seed run alone and inside a batch gives bitwise-identical accumulators and FR events.
 
 ## 4. Reference (before any scored run)
@@ -139,3 +140,26 @@ V4 was first written as pooled ABF e_F ≤ 0.06 at 4 x 1024 x 200k steps. The si
 e_F 0.14–0.20 kJ/mol per seed at 1024 x 300k (`results/lta_histogram/comparison_T150.csv`), dominated by slow
 establishment at the barrier rather than noise, so that gate would fail on statistics, not on a defect. Replaced by
 the frozen-bias test above (fast-converging, sensitive to the bias sign and scale) plus a loose ABF-path gate.
+
+### A1 (2026-10-27, after the first full Stage I run, before any reference, pilot or production run)
+
+**What had been seen:** Stage I job 26029637: V1–V4 and V6 PASS (V2/V3 at ~5e-16; V4 mean-force route e_F 0.017,
+density route 0.037, ABF path 0.11–0.14 kJ/mol). **V5 FAILED** on two clauses:
+
+1. Density: max |log p/p_ref| = 0.106 vs the frozen 0.10. Diagnostic job 26029973 (16 independent walker groups):
+   the per-bin standard error on the judged bins reaches 0.054, the worst bin is z = −2.5, rms z = 1.19 over 122
+   bins, mean log ratio −0.002, TV 0.005, and the largest deviations flank the window with opposite signs. The
+   0.10 gate had no noise model; a 2σ bin fluctuation exceeds it. Replaced by the noise-aware clause above
+   (rms z ≤ 1.5, |mean log ratio| ≤ 0.02, TV ≤ 0.02). This is a gate change made after seeing its number and is
+   recorded as such; it is an engine-validation clause, not a science endpoint.
+2. ΔU consistency: worst relative mismatch 6.5e11. Cause: the test used a shortened pre-equilibration (3 sweeps
+   + 500 steps); some walkers kept an overlap (U ≈ 7e27) and a difference of such totals has no significant
+   digits. With the production pre-equilibration the mismatch is 8.8e-14 and every walker is physical
+   (U ≤ −49 kJ/mol, max |F| 66). The test now uses the production pre-equilibration.
+
+**Consequence adopted (robustness, both arms identical):** a walker left overlapped after pre-equilibration does
+not stay merely improbable — its forces throw it where the minimum image has no precision, and it would silently
+corrupt the shared estimator. So the pre-equilibration sweeps go from 20 to 40, every batch must pass a hard check
+after pre-equilibration (finite, max |F| ≤ 1e4 kJ/mol/Å for every walker, else the batch raises), and every save
+checks for a force blow-up (max |F| > 1e6 raises). Nothing else changes.
+

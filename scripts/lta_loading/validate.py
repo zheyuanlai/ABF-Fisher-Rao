@@ -8,8 +8,8 @@ V4  n = 1 against the exact-MC single-guest reference (results/equal_budget_v2/r
     under its frozen bias, mean-force route e_F <= 0.05 and density route e_F <= 0.10 kJ/mol; the ABF path at
     N = 1024 x 300k steps, final per-seed e_F <= 0.30 (single-guest engine: 0.14-0.20)
 V5  reinsertion MC: a non-interacting environment guest reproduces the exact single-guest density at 150 K
-    (|log p/p_ref| <= 0.10 on well-populated bins), never sits in a blocked sodalite sphere, and the kernel's
-    dU of every accepted move equals the total-energy change (n = 4, interacting)
+    (walker-group errors: rms z <= 1.5, |mean log ratio| <= 0.02, TV <= 0.02), never sits in a blocked sodalite
+    sphere, and the kernel's dU of every accepted move equals the total-energy change (n = 4, interacting)
 V6  determinism: the same seed run alone and inside a batch gives bitwise-identical accumulators
 Usage: python scripts/lta_loading/validate.py [--only V1,V2] [--out results/lta_loading/validation]
 """
@@ -78,7 +78,7 @@ def make_batch(n, R, N, T=150.0, seeds=None, method="abf", n_steps=10, **kw):
 
 def v1_fd(out):
     import cupy as cp
-    b = make_batch(4, 1, 8, preeq_steps=2000)
+    b = make_batch(4, 1, 8)
     b.preequilibrate()
     b.forces(deposit=False)
     F = b.F.get()
@@ -102,7 +102,7 @@ def v1_fd(out):
 
 
 def v2_numpy(out):
-    b = make_batch(3, 1, 6, preeq_steps=1000)
+    b = make_batch(3, 1, 6)
     b.preequilibrate()
     b.forces(deposit=False)
     F = b.F.get()
@@ -174,16 +174,17 @@ def v4_end_to_end(out, n_steps=400_000):
                      passed=bool(eF(Fm) <= 0.05 and eF(Fd) <= 0.10 and max(per) <= 0.30))
 
 
-def v5_mc(out, N=4096, steps=40_000, every=100):
-    """(a) non-interacting environment guest (eps_gg = 0) at 150 K, dynamics + reinsertion: its phi density
-    must equal the single-guest exact-MC density exp(-beta F_ref) on the thermal bins; no COM in a blocked
-    sphere.  (b) interacting n = 4: the kernel's dU of every accepted move equals the change of the total
-    energy (lf_energy) -- the acceptance uses the right energy and the right sign."""
-    import cupy as cp
+def v5_mc(out, N=4096, steps=40_000, every=100, groups=16):
+    """(a) non-interacting environment guest (eps_gg = 0) at 150 K, dynamics + reinsertion: its phi density vs the
+    single-guest exact-MC density exp(-beta F_ref) on bins with >= 400 expected samples, errors from 16
+    independent walker groups: rms z <= 1.5, |mean log ratio| <= 0.02, TV <= 0.02; no COM in a blocked sphere.
+    (b) interacting n = 4 with the production pre-equilibration: the kernel's dU of every accepted move equals the
+    change of the total energy (lf_energy), rel <= 1e-9."""
     ref = np.load(os.path.join(ROOT, "results/equal_budget_v2/references/lta_T150_reference.npz"))
-    b = make_batch(2, 1, N, method="abf", eps_gg_K=0.0, preeq_steps=2000, preeq_sweeps=5, seeds=[777])
+    b = make_batch(2, 1, N, method="abf", eps_gg_K=0.0, seeds=[777])
     b.preequilibrate()
-    hs = np.zeros(180)
+    hs = np.zeros((groups, 180))
+    gid = np.arange(N) % groups
     nblk = 0
     for k in range(steps):
         b.forces(deposit=False)
@@ -191,7 +192,7 @@ def v5_mc(out, N=4096, steps=40_000, every=100):
             q = b.q.get()
             x = 0.5 * (q[:, 1, 0, 0] + q[:, 1, 1, 0])
             ph = np.mod(2 * np.pi * x / b.p["a"] + np.pi, 2 * np.pi) - np.pi
-            hs += np.bincount(((ph + np.pi) / (2 * np.pi / 180)).astype(int) % 180, minlength=180)
+            np.add.at(hs, (gid, ((ph + np.pi) / (2 * np.pi / 180)).astype(int) % 180), 1)
             com = 0.5 * (q[:, 1, 0] + q[:, 1, 1])
             e = com - b.p["a"] * np.rint(com / b.p["a"])
             nblk += int(((e * e).sum(-1) < float(b.c["r_block"]) ** 2).sum())
@@ -199,44 +200,42 @@ def v5_mc(out, N=4096, steps=40_000, every=100):
         if (k + 1) % 10 == 0:
             b.mc(k + 1)
     beta = b.p["beta"]
-    pr = np.exp(-beta * (ref["F_ref"] - ref["F_ref"].min()))
-    pr /= pr.sum()
-    pe = hs / hs.sum()
-    expct = pr * hs.sum()
-    sel = expct >= 400
-    lr = np.log(np.maximum(pe[sel], 1e-300) / pr[sel])
-    # sampling noise of a binned count is inflated by correlation between samples 100 steps apart; the gate
-    # is a systematic one: |log ratio| <= 0.10 on every well-populated bin, and a small total variation
+    pr = np.exp(-beta * (ref["F_ref"] - ref["F_ref"].min())); pr /= pr.sum()
+    pe = hs.sum(0) / hs.sum()
+    lr = np.log(np.maximum(pe, 1e-300) / pr)
+    lrg = np.log(np.maximum(hs / hs.sum(1, keepdims=True), 1e-300) / pr)
+    se = lrg.std(0, ddof=1) / np.sqrt(groups)
+    sel = pr * hs.sum() >= 400
+    z = lr[sel] / np.maximum(se[sel], 1e-12)
     tv = 0.5 * float(np.abs(pe - pr).sum())
     acc_rate = float(b.mc_acc.get().sum() / max(1, b.mc_att.get().sum()))
-    # (b) dU consistency, interacting
-    c2 = make_batch(4, 1, 256, preeq_steps=500, preeq_sweeps=3, seeds=[778])
+    c2 = make_batch(4, 1, 256, seeds=[778])
     c2.preequilibrate()
     worst = 0.0
     nacc = 0
     for t in range(20):
-        U0 = c2.energies().get()
-        q0 = c2.q.get()
+        U0 = c2.energies().get(); q0 = c2.q.get()
         c2.mc(10 ** 6 + t)
-        U1 = c2.energies().get()
-        q1 = c2.q.get()
-        dU = c2.mc_dU.get()
+        U1 = c2.energies().get(); q1 = c2.q.get(); dU = c2.mc_dU.get()
         moved = np.any(q0 != q1, axis=(1, 2, 3))
         nacc += int(moved.sum())
         if moved.any():
             worst = max(worst, float(np.max(np.abs((U1 - U0)[moved] - dU[moved]) / np.maximum(1.0, np.abs(dU[moved])))))
-    out["V5"] = dict(max_abs_log_ratio=float(np.abs(lr).max()), n_bins_judged=int(sel.sum()), tv=tv,
-                     samples=float(hs.sum()), blocked_visits=nblk, mc_acc_rate=acc_rate,
-                     dU_rel_worst=worst, dU_checked=nacc,
-                     passed=bool(np.abs(lr).max() <= 0.10 and nblk == 0 and worst < 1e-9 and nacc > 50))
+    rms_z = float(np.sqrt(np.mean(z ** 2)))
+    out["V5"] = dict(rms_z=rms_z, max_abs_z=float(np.abs(z).max()), mean_log_ratio=float(lr[sel].mean()),
+                     max_abs_log_ratio=float(np.abs(lr[sel]).max()), n_bins_judged=int(sel.sum()), tv=tv,
+                     samples=float(hs.sum()), blocked_visits=nblk, mc_acc_rate=acc_rate, dU_rel_worst=worst,
+                     dU_checked=nacc,
+                     passed=bool(rms_z <= 1.5 and abs(lr[sel].mean()) <= 0.02 and tv <= 0.02 and nblk == 0
+                                 and worst < 1e-9 and nacc > 50))
 
 
 def v6_determinism(out):
-    a = make_batch(4, 1, 64, method="fr", n_steps=30_000, seeds=[4242], preeq_steps=500, preeq_sweeps=3,
+    a = make_batch(4, 1, 64, method="fr", n_steps=30_000, seeds=[4242], preeq_steps=2000,
                    fr_start_steps=2000, warmup_steps=2000, burn_in_steps=2000)
     a.preequilibrate()
     ra, _ = a.run(label="V6a")
-    b = make_batch(4, 3, 64, method="fr", n_steps=30_000, seeds=[11, 4242, 12], preeq_steps=500, preeq_sweeps=3,
+    b = make_batch(4, 3, 64, method="fr", n_steps=30_000, seeds=[11, 4242, 12], preeq_steps=2000,
                    fr_start_steps=2000, warmup_steps=2000, burn_in_steps=2000)
     b.preequilibrate()
     rb, _ = b.run(label="V6b")
