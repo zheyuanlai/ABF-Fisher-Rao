@@ -173,6 +173,17 @@ def cmd_ladder():
                      f"{rec['fr_repl']:.0f} | {rec['fr_ess_min']:.2f} | {rec['abf_cross']:.2f} |")
     sel = dict(best_abf_N=best.get("abf", (None,))[0], best_fr_N=best.get("fr", (None,))[0],
                rule="argmin over N of the median b_mid (censored = inf), per method")
+    bpath = os.path.join(RES, "bench", "bench.json")
+    if os.path.exists(bpath):                       # Amendment A3: the W_mid-optimal arms
+        bench = json.load(open(bpath))["summary"]
+        wbest = {}
+        for (m, N), xs in table.items():
+            med = median_inf([x["b_mid"] for x in xs])
+            W = med / N * bench[f"{m}_N{N}"]["median_c_ss"] if math.isfinite(med) else math.inf
+            if m not in wbest or W < wbest[m][1]:
+                wbest[m] = (N, W)
+        sel["wall_abf_N"], sel["wall_fr_N"] = wbest["abf"][0], wbest["fr"][0]
+        sel["wall_median_W_mid"] = {m: wbest[m][1] for m in wbest}
     a = [x["b_mid"] for x in table.get(("abf", sel["best_abf_N"]), [])]
     f = [x["b_mid"] for x in table.get(("fr", sel["best_fr_N"]), [])]
     if a and f:

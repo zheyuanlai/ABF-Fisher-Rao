@@ -64,6 +64,7 @@ DEFAULT_CFG = dict(
     eps_go_K=93.0, sigma_go=3.48, eps_gg_K=108.0, sigma_gg=3.76, rc=10.0, r0_bond=1.54, k_bond=400.0,
     n_guests=16, mc_every=1, r_block=3.5, place_sweeps=100, preeq_sweeps=2000, preeq_steps=20000,
     framework_npz="cache/lta/framework.npz",
+    tagged_ic="cage",                  # "cage" (single-guest law) | "uniform_x" (diagnostics: x uniform on the axis)
 )
 
 CUDA_SRC = r"""
@@ -501,6 +502,33 @@ def initial_positions(gen, N, n, a, L, r0):
     return np.ascontiguousarray(q.reshape(N, n, 2, 3))
 
 
+def _uniform_x_tagged(gen, qt, p):
+    """Diagnostics only: tagged COM x uniform on [0, L) (rejection on the framework energy < 0), y, z kept on its
+    cage axis, bond along x (the only orientation that threads the 8-ring window)."""
+    O, L, go = p["O"], p["L"], p["go"]
+    com = 0.5 * (qt[:, 0] + qt[:, 1])
+    out = qt.copy()
+    todo = np.arange(qt.shape[0])
+    for _ in range(1000):
+        if todo.size == 0:
+            break
+        x = gen.uniform(0.0, L, todo.size)
+        c = com[todo].copy()
+        c[:, 0] = x
+        beads = np.stack([c - [0.5 * p["r0"], 0, 0], c + [0.5 * p["r0"], 0, 0]], axis=1)
+        d = beads[:, :, None, :] - O[None, None]
+        d -= L * np.rint(d / L)
+        r2 = (d * d).sum(-1)
+        s6 = np.where(r2 < p["rc2"], (go["s2"] / r2) ** 3, 0.0)
+        U = np.where(r2 < p["rc2"], go["c4"] * (s6 * s6 - s6) - go["vrc"], 0.0).sum((1, 2))
+        ok = U < 0.0
+        out[todo[ok]] = beads[ok]
+        todo = todo[~ok]
+    if todo.size:
+        raise RuntimeError(f"{todo.size} tagged guests found no non-overlapping x")
+    return out
+
+
 class Batch:
     """R seeds of one (method, N, n) run, batched on one GPU."""
 
@@ -549,6 +577,8 @@ class Batch:
             keys, gens = seed_material(s, self.N, c["T_K"], self.n)
             k0[r], k1[r] = keys
             q0[r] = initial_positions(gens[0], self.N, self.n, p["a"], p["L"], p["r0"])
+            if c.get("tagged_ic", "cage") == "uniform_x":
+                q0[r, :, 0] = _uniform_x_tagged(gens[0], q0[r, :, 0], p)
             self.fr_gen.append(gens[2])
         self.q = cp.asarray(q0.reshape(self.W, self.n, 2, 3))
         self.key0 = cp.asarray(k0)

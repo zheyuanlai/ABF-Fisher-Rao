@@ -28,7 +28,7 @@ import lta_ladder_numba as E  # noqa: E402
 
 OUT = os.path.join(ROOT, "results", "lta_loading", "reference")
 PILOT = dict(seeds="30000-30003", N=1024, n_steps=300_000)
-FROZEN = dict(seeds="30100-30107", N=1024, n_steps=500_000, burn=50_000)
+FROZEN = dict(seeds="30100-30107", N=1024, n_steps=1_000_000, burn=200_000, mid=600_000)
 T_K = 150.0
 
 
@@ -55,8 +55,8 @@ def run():
     sh([py, rb, "--method", "frozen", "--N", str(FROZEN["N"]), "--seeds", FROZEN["seeds"], "--n-steps",
         str(FROZEN["n_steps"]), "--table", "results/lta_loading/reference/table_pilot.npy",
         "--out", "results/lta_loading/reference/frozen.npz",
-        "--save-steps", f"0,{FROZEN['burn']},{FROZEN['n_steps'] // 2},{FROZEN['n_steps']}",
-        "--set", "warmup_steps=1", f"burn_in_steps={FROZEN['burn']}"])
+        "--save-steps", f"0,{FROZEN['burn']},{FROZEN['mid']},{FROZEN['n_steps']}",
+        "--set", "warmup_steps=1", f"burn_in_steps={FROZEN['burn']}", "tagged_ic=uniform_x"])
     build()
 
 
@@ -98,7 +98,26 @@ def build():
     np.savez(os.path.join(OUT, "reference.npz"), F_ref=Fm, gamma_ref=g, F_ref_se=Fm_se, gamma_se=g_se,
              F_density=Fd, F_density_se=Fd_se, grid_phi=grid, T_K=T_K, n_guests=meta["n_guests"],
              counts=Cg.sum(0), table_pilot=table)
+    # stationarity (Amendment A4): the two halves of the production window, mean-force route
+    S = out["save_step"]
+    i_b, i_m = int(np.nonzero(S == FROZEN["burn"])[0][0]), int(np.nonzero(S == FROZEN["mid"])[0][0])
+    halves = []
+    for i, j in ((i_b, i_m), (i_m, len(S) - 1)):
+        dM = out["sv_acc"][j, :, 2] - out["sv_acc"][i, :, 2]
+        dC = out["sv_acc"][j, :, 3] - out["sv_acc"][i, :, 3]
+        Fh = E.histogram_pmf(E.mean_force(dM.sum(0)[None], dC.sum(0)[None]), dphi)[0]
+        bars = [E.histogram_pmf(E.mean_force(dM[r][None], dC[r][None]), dphi)[0] for r in range(R)]
+        bars = np.array([b[89:91].mean() - b[[0, 1, 178, 179]].mean() for b in bars])
+        halves.append((Fh, float(Fh[89:91].mean() - Fh[[0, 1, 178, 179]].mean()), float(bars.std(ddof=1) / np.sqrt(R))))
+    dh = halves[0][0] - halves[1][0]
+    dh = dh - dh.mean()
+    half_rms = float(np.sqrt(np.mean(dh ** 2)))
+    half_dbar = halves[0][1] - halves[1][1]
+    half_sem = float(np.hypot(halves[0][2], halves[1][2]))
+    stationary = bool(abs(half_dbar) <= max(3 * half_sem, 0.05) and half_rms <= 0.05)
     summ = dict(
+        stationarity=dict(half_rms=half_rms, half_barrier_diff=half_dbar, half_barrier_sem=half_sem,
+                          barriers=[halves[0][1], halves[1][1]], passed=stationary),
         T_K=T_K, n_guests=meta["n_guests"], groups=R, samples=float(Cg.sum()),
         min_bin_count=float(Cg.sum(0).min()),
         F_ref_se_rms=float(np.sqrt(np.mean(Fm_se ** 2))), F_ref_se_max=float(Fm_se.max()),

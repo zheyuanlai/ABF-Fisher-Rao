@@ -48,7 +48,7 @@ environment.
   guest).
 * **Environment reinsertion MC** (both arms, identical): every 10 steps, per walker, one environment guest
   (uniform among molecules 1..15) gets a new COM uniform in the box and a uniform orientation, bond length kept;
-  Metropolis on the intermolecular energy. COMs within 3.5 Å of a lattice corner (sodalite cages, inaccessible
+  Metropolis on the intermolecular energy (every step from Amendment A4). COMs within 3.5 Å of a lattice corner (sodalite cages, inaccessible
   through the 6-rings) are rejected — the standard blocking. The proposal is symmetric and independent of the bias,
   so the move leaves the biased measure invariant. **Why:** at 150 K the window barrier is 13.5 kT and unbiased
   environment guests essentially never hop during a run; without reinsertion the environment's cage occupancy would
@@ -194,4 +194,35 @@ b_mid / N x median c_ss(N, method), censored = inf: **ABF N = 128, FR N = 256** 
 32000–32063 (64 per arm). R_W = median W_mid(FR) / median W_mid(ABF), unpaired 10 000-resample bootstrap 95 % CI,
 the §7 decision rule. This selection was made after seeing the ladder, which is what an exploration ladder is for;
 it is frozen here before any confirmation run, and the primary Q1 verdict is neither replaced nor re-selected.
+
+### A4 (2026-10-28, after the superseded exploration ladder; supersedes the reference and every downstream result)
+
+**What had been seen:** the full v1 exploration ladder (now `results/lta_loading/superseded_v1/`). In every
+flattened-bias time window of the long ABF runs the barrier sat ~0.2 kJ/mol below F_ref, and the v1 reference's own
+halves disagreed (barrier +0.18 vs −0.14 kJ/mol around F_ref; per-group SEM 0.03 / 0.008; density route +0.42 vs
+−0.10): **the v1 reference was not stationary.** Its acceptance (group jackknife, two routes) cannot see a drift
+common to all groups.
+
+**Diagnosis (`results/lta_loading/validation/env_relax.json`, `env_relax2.json`; frozen bias, 4 x 1024 walkers):**
+* reinsertion every step vs every 10 steps gives the same barrier drift (17.72 → 17.03 kJ/mol over 400k steps in both),
+  while the environment energy plateaus within 10k steps vs ~100k: the environment is not the slow mode;
+* starting the tagged guests uniformly along x removes the drift (barrier 17.03 ± 0.04 stationary from 100k to 800k
+  steps), whereas cage-centre starts relax 17.60 → 17.06 over ~500k steps in step with the window-bin occupancy
+  (0.057 → 0.139): the slow mode is the tagged guest's own φ-marginal spreading from the cages through the windows.
+  While it spreads, the per-bin mean force is biased (net flux through a crowded entropic bottleneck); in the
+  single-guest system the same test is clean (V4), so the bias is a property of the loaded system.
+
+**Changes (before any v2 datum):**
+1. Reference: the frozen-bias run starts the tagged guests uniformly along x (`tagged_ic = uniform_x`: bond along x,
+   x by rejection on the framework energy < 0, y, z on the cage axis), runs 1 000 000 steps with a 200 000-step
+   burn-in, and must also pass a **stationarity gate**: the production window's two halves (200k–600k vs 600k–1M)
+   agree in the barrier within max(3 SEM, 0.05 kJ/mol) and in rms ≤ 0.05 kJ/mol.
+2. Samplers (both arms identical): reinsertion every step (the environment energy then relaxes in ~1e4 steps);
+   pre-equilibration 100 placement + 2000 Metropolis sweeps + 20 000 steps; the mean potential energy per seed is
+   recorded at every save. The tagged-guest initial condition stays the single-guest law (cage centres): relaxing it
+   is part of the task both methods face, and is what population establishment means here.
+3. Everything downstream is re-run under the unchanged rules: Stage I gates, reference, budget pilot (§5), c_ss
+   benchmark, exploration ladder (§6, same seeds — the v1 trajectories were produced by a different engine and share
+   nothing with the v2 ones), frozen selection, confirmation (§7) and the A3 wall-clock secondary, whose arms are
+   re-selected from the v2 ladder by the A3 rule.
 
