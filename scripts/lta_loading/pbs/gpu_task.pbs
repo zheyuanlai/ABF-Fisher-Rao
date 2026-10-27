@@ -1,0 +1,22 @@
+#!/bin/bash
+# One A100 (+16 cores) on NSCC ASPIRE2A; runs the bash task TASK from the repo root and tees a progress log.
+#   qsub -P personal-e1297740 -v TASK=scripts/lta_loading/tasks/<name>.sh scripts/lta_loading/pbs/gpu_task.pbs
+#PBS -N lta_loading
+#PBS -q normal
+#PBS -l select=1:ncpus=16:ngpus=1:mem=110gb
+#PBS -l walltime=02:10:00
+#PBS -j oe
+#PBS -o /scratch/users/nus/e1297740/logs/
+set -uo pipefail
+: "${TASK:?pass TASK via qsub -v}"
+source /scratch/users/nus/e1297740/ABF-Fisher-Rao/scripts/lta_loading/env.sh
+JOB=${PBS_JOBID%%.*}
+LOG=$LF_LOGS/$(basename "$TASK" .sh)_${JOB}.log
+{
+    echo "job $PBS_JOBID task $TASK host $(hostname) start $(date -u +%FT%TZ) commit $(git -C $LF_ROOT rev-parse --short HEAD 2>/dev/null)"
+    nvidia-smi --query-gpu=index,name,clocks.sm,power.draw,utilization.gpu,driver_version --format=csv
+} 2>&1 | tee "$LOG"
+bash "$TASK" 2>&1 | tee -a "$LOG"
+rc=${PIPESTATUS[0]}
+echo "TASK_EXIT $rc $(date -u +%FT%TZ)" | tee -a "$LOG"
+exit $rc
