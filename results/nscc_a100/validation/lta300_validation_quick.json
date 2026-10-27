@@ -1,0 +1,174 @@
+{
+ "RNG1": {
+  "n": 1048576,
+  "bitwise": true,
+  "passed": true
+ },
+ "RNG2": {
+  "n": 38400,
+  "frac_bitwise": 0.8627083333333333,
+  "max_abs": 4.440892098500626e-16,
+  "key_equal": true,
+  "passed": true
+ },
+ "FORCE": {
+  "rows": [
+   {
+    "G": 8,
+    "max_rel_F": 1.4090575471891247e-16,
+    "max_abs_F": 5.684341886080802e-14,
+    "phi_identical": true,
+    "bins_identical": true,
+    "max_abs_fl": 1.1368683772161603e-13
+   },
+   {
+    "G": 32,
+    "max_rel_F": 1.4090575471891247e-16,
+    "max_abs_F": 5.684341886080802e-14,
+    "phi_identical": true,
+    "bins_identical": true,
+    "max_abs_fl": 1.1368683772161603e-13
+   },
+   {
+    "G": 128,
+    "max_rel_F": 1.4090575471891247e-16,
+    "max_abs_F": 5.684341886080802e-14,
+    "phi_identical": true,
+    "bins_identical": true,
+    "max_abs_fl": 1.1368683772161603e-13
+   },
+   {
+    "G": 256,
+    "max_rel_F": 1.4090575471891247e-16,
+    "max_abs_F": 5.684341886080802e-14,
+    "phi_identical": true,
+    "bins_identical": true,
+    "max_abs_fl": 1.1368683772161603e-13
+   }
+  ],
+  "n": 576,
+  "passed": true
+ },
+ "FR": {
+  "cases": [
+   {
+    "N": 2,
+    "n_opp": 40
+   },
+   {
+    "N": 16,
+    "n_opp": 40
+   },
+   {
+    "N": 64,
+    "n_opp": 40
+   },
+   {
+    "N": 256,
+    "n_opp": 40
+   },
+   {
+    "N": 1024,
+    "n_opp": 40
+   }
+  ],
+  "mismatches": 0,
+  "opportunities_with_events": 62,
+  "max_abs_score_dev": 8.881784197001252e-16,
+  "passed": true
+ },
+ "TRAJ": {
+  "rows": [
+   {
+    "N": 16,
+    "method": "fr",
+    "n_steps": 21000,
+    "C_identical_all": false,
+    "first_save_C_differs": 100,
+    "max_rel_dM_while_C_equal": 0.23482561413303998,
+    "deaths_cpu": 0,
+    "deaths_gpu": 0,
+    "opps_cpu": 201,
+    "opps_gpu": 201,
+    "max_abs_dq_final": 0.013173398870265918,
+    "wall_cpu": 0.21128515806049109,
+    "wall_gpu": 0.3566105200443417,
+    "coupling_horizon_steps": 100,
+    "passed": false
+   },
+   {
+    "N": 64,
+    "method": "fr",
+    "n_steps": 21000,
+    "C_identical_all": false,
+    "first_save_C_differs": 50,
+    "max_rel_dM_while_C_equal": 7.743805596760467e-14,
+    "deaths_cpu": 2,
+    "deaths_gpu": 2,
+    "opps_cpu": 201,
+    "opps_gpu": 201,
+    "max_abs_dq_final": 0.03616752438975546,
+    "wall_cpu": 0.3363412020262331,
+    "wall_gpu": 0.39805411105044186,
+    "coupling_horizon_steps": 50,
+    "passed": false
+   },
+   {
+    "N": 256,
+    "method": "abf",
+    "n_steps": 21000,
+    "C_identical_all": true,
+    "first_save_C_differs": null,
+    "max_rel_dM_while_C_equal": 1.8270096551745766e-11,
+    "deaths_cpu": 0,
+    "deaths_gpu": 0,
+    "opps_cpu": 0,
+    "opps_gpu": 0,
+    "max_abs_dq_final": 8.430589559793589e-12,
+    "wall_cpu": 0.9047004240565002,
+    "wall_gpu": 0.5606909987982363,
+    "coupling_horizon_steps": 21000,
+    "passed": true
+   },
+   {
+    "N": 1024,
+    "method": "fr",
+    "n_steps": 21000,
+    "C_identical_all": true,
+    "first_save_C_differs": null,
+    "max_rel_dM_while_C_equal": 3.244654018551113e-11,
+    "deaths_cpu": 12,
+    "deaths_gpu": 12,
+    "opps_cpu": 201,
+    "opps_gpu": 201,
+    "max_abs_dq_final": 1.595168441781425e-11,
+    "wall_cpu": 3.0024733480531722,
+    "wall_gpu": 0.6372300090733916,
+    "coupling_horizon_steps": 21000,
+    "passed": true
+   }
+  ],
+  "passed": false
+ },
+ "INV": {
+  "configs": [
+   "(32, 1)",
+   "(32, 4)",
+   "(32, 16)",
+   "(32, 32)"
+  ],
+  "identical": true,
+  "passed": true
+ },
+ "DET": {
+  "identical": true,
+  "passed": true
+ },
+ "CTR": {
+  "passed": true,
+  "note": "check_contract passed on every TRAJ GPU run"
+ },
+ "wall_s": 12.26125192642212,
+ "host": "x1000c0s7b0n0",
+ "finished_utc": "2026-10-26T06:02:43Z"
+}

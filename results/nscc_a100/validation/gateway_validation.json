@@ -1,0 +1,135 @@
+{
+ "RNG1": {
+  "n": 1048576,
+  "bitwise": true,
+  "passed": true
+ },
+ "RNG2": {
+  "n": 204800,
+  "frac_bitwise": 0.8624072265625,
+  "max_abs": 4.440892098500626e-16,
+  "max_rel": 4.235609523617108e-16,
+  "passed": true
+ },
+ "FR": {
+  "cases": [
+   {
+    "N": 16,
+    "n_opp": 150
+   },
+   {
+    "N": 64,
+    "n_opp": 150
+   },
+   {
+    "N": 512,
+    "n_opp": 150
+   },
+   {
+    "N": 2048,
+    "n_opp": 150
+   }
+  ],
+  "mismatches": 0,
+  "opportunities_with_events": 218,
+  "passed": true
+ },
+ "TRAJ": {
+  "rows": [
+   {
+    "N": 64,
+    "method": "abf",
+    "n_steps": 40000,
+    "saves": 40,
+    "max_rel_dM_while_C_equal": 6.372236072138548e-11,
+    "first_save_C_differs": null,
+    "C_identical_all": true,
+    "fr_deaths_identical": true,
+    "max_abs_dX_final": 1.3944401189291966e-13,
+    "deaths_cpu": 0,
+    "deaths_gpu": 0,
+    "wall_cpu": 0.07377960998564959,
+    "wall_gpu": 0.08471782226115465,
+    "max_rel_dM_first_quarter": 6.372236072138548e-11,
+    "passed": true
+   },
+   {
+    "N": 64,
+    "method": "fr",
+    "n_steps": 40000,
+    "saves": 40,
+    "max_rel_dM_while_C_equal": 6.372236072138548e-11,
+    "first_save_C_differs": null,
+    "C_identical_all": true,
+    "fr_deaths_identical": true,
+    "max_abs_dX_final": 2.7333690866271354e-13,
+    "deaths_cpu": 2,
+    "deaths_gpu": 2,
+    "wall_cpu": 0.07723831944167614,
+    "wall_gpu": 0.09860560018569231,
+    "max_rel_dM_first_quarter": 6.372236072138548e-11,
+    "passed": true
+   },
+   {
+    "N": 512,
+    "method": "fr",
+    "n_steps": 20000,
+    "saves": 40,
+    "max_rel_dM_while_C_equal": 4.479687574609715e-11,
+    "first_save_C_differs": null,
+    "C_identical_all": true,
+    "fr_deaths_identical": true,
+    "max_abs_dX_final": 3.4638958368304884e-14,
+    "deaths_cpu": 7,
+    "deaths_gpu": 7,
+    "wall_cpu": 0.1133570596575737,
+    "wall_gpu": 0.08016757946461439,
+    "max_rel_dM_first_quarter": 4.479687574609715e-11,
+    "passed": true
+   },
+   {
+    "N": 2048,
+    "method": "fr",
+    "n_steps": 8000,
+    "saves": 40,
+    "max_rel_dM_while_C_equal": 2.5720045629145583e-11,
+    "first_save_C_differs": null,
+    "C_identical_all": true,
+    "fr_deaths_identical": true,
+    "max_abs_dX_final": 2.4424906541753444e-14,
+    "deaths_cpu": 9,
+    "deaths_gpu": 9,
+    "wall_cpu": 0.1483498802408576,
+    "wall_gpu": 0.03378681279718876,
+    "max_rel_dM_first_quarter": 2.5720045629145583e-11,
+    "passed": true
+   }
+  ],
+  "passed": true
+ },
+ "INV": {
+  "configs": [
+   "(1, 512, 1, 0)",
+   "(2, 256, 1, 0)",
+   "(4, 128, 1, 0)",
+   "(1, 256, 2, 0)",
+   "(8, 64, 1, 0)",
+   "(2, 512, 1, 1)",
+   "(4, 256, 1, 1)",
+   "(2, 256, 2, 1)"
+  ],
+  "identical": true,
+  "passed": true
+ },
+ "DET": {
+  "identical": true,
+  "passed": true
+ },
+ "CTR": {
+  "passed": true,
+  "note": "check_contract passed on every TRAJ GPU run"
+ },
+ "wall_s": 5.077665567398071,
+ "host": "x1000c3s0b0n1",
+ "finished_utc": "2026-10-26T06:47:59Z"
+}

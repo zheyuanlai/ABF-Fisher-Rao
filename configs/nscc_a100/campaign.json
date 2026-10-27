@@ -1,0 +1,76 @@
+{
+ "_frozen": "2026-10-26, after the Stage I correctness runs and the launch-tuning sweeps of the A100 engine and BEFORE any benchmark, law-check, production or confirmation run of this study (docs/nscc_a100/PREREGISTRATION.md). Edits after the freeze go into a dated amendment in the preregistration, never silently here.",
+ "study": "nscc_a100",
+ "question": "On NSCC ASPIRE2A, does the best hardware-aware ABF+FR deployment (any N, any of: one EPYC 7713 core, the walker-parallel CPU engine on up to 16 cores, one A100) reach the frozen free-energy accuracy faster in measured wall-clock time than the best hardware-aware ABF deployment, at the shortened equal walker-step budgets of the hybrid short-T study?",
+ "science_source": "configs/hybrid_short_T/campaign.json systems (h, B, N ladders, thresholds, save grids, benchmark windows) and configs/equal_budget_v2/{gateway,lta_300K,lta_150K}_production.json engine_cfg; read programmatically through scripts/hybrid_short_T/hst_common.system_spec, never retyped",
+ "hardware": {
+  "gpu": "one NVIDIA A100-SXM4-40GB per simulation (PBS -q normal, select=1:ncpus=16:ngpus=1:mem=110gb, queue g1); driver 570, CUDA 12.8; the GPU node's CPU is an AMD EPYC 7713 (64 cores, SMT 2)",
+  "cpu": "NSCC ASPIRE2A CPU node (AMD EPYC 7713): one whole socket (64 cores, 8 CCDs) per PBS job (whole nodes are rarely free); every timed CPU run holds an exclusive CCD set of the job (t <= 8 threads: one CCD of 8 physical cores; t = 16: two CCDs), pinned with taskset to the first t physical cores; SMT siblings idle",
+  "gpu_isolation": "GPU runs one at a time on the allocated A100 (no other process of this study on the GPU or its node's allocated cores during a timed GPU run); nvidia-smi state logged at job start",
+  "cpu_threads": [1, 2, 4, 8, 16],
+  "max_ccds_concurrent": 8
+ },
+ "backends": {
+  "S1": "validated serial numba engine (src/gateway_ladder_numba.py / src/lta_ladder_numba.py), its replay noise, one core (scripts/final_campaign/expB_common.run_serial)",
+  "P_t": "validated walker-parallel CPU engine (src/parallel/), counter-mode Philox noise, t threads (expB_common.run_parallel)",
+  "G1": "this study's A100 engine (src/gpu/gateway_gpu.py + gw_cuda.cu; src/gpu/lta_gpu.py + lta_cuda.cu), counter-mode Philox noise with the CPU engine's keys, IC and FR streams; float64; launch configuration from configs/nscc_a100/gpu_launch.json (timing only)",
+  "precision": "float64 everywhere; deposits on a fixed-point grid (gateway 2^-34, LTA 2^-43) summed exactly per step (A100 engine only; see VALIDATION.md)"
+ },
+ "stage1_gates": {
+  "RNG1": "C++ PCG64 == numpy PCG64 (FR stream), bitwise",
+  "RNG2": "GPU counter normals vs CPU counter normals: max |dz| < 1e-12",
+  "FORCE": "LTA: GPU forces vs numba _mol_force max relative difference < 1e-12; CV bins identical",
+  "FR": "GPU FR selection == validated numba FR on identical inputs (event counts, cap split, full parent mapping): 0 mismatches",
+  "TRAJ": "GPU vs CPU counter mode from identical IC / keys / FR streams: identical integer bin counts at every save of the first quarter of each run, identical FR opportunity counts, accumulators within 1e-6 relative there (both systems); coupling horizon, whole-run accumulator and position differences reported",
+  "INV": "results bitwise invariant to the launch configuration (gateway: any blocks/threads/wpt; LTA: walkers per block at fixed threads per walker)",
+  "DET": "two runs of one job bitwise identical",
+  "CTR": "every GPU result passes expB_common.check_contract",
+  "V4_law": "full-budget runs, GPU vs CPU P_t on the same validation seeds: gateway N in {64, 512}, LTA N in {64, 256}, both methods, 16 seeds each; per-seed paired comparison of final e_F, Ibar_F and tau_mid (u) plus the ratio of medians with a 10 000-resample paired bootstrap 95 % CI; pass iff every CI of the ratio of medians contains 1 OR lies inside [0.8, 1.25]; a fail removes G1 from the study for that system"
+ },
+ "launch_tuning": {
+  "rule": "per system and N, the ABF benchmark-window c_ss (window scaled by 0.25) of every candidate launch (scripts/nscc_a100/bench_gpu.py gateway_candidates / lta_candidates) on bench seed 0; the minimum is frozen in configs/nscc_a100/gpu_launch.json; FR uses the same launch",
+  "note": "timing-only knob: gateway results are bitwise independent of it; LTA results are bitwise independent of WB and ulp-level dependent on G"
+ },
+ "benchmark": {
+  "window": "hst_common.bench_window (the hybrid short-T windows): n_b(N) = max(bench_min_steps, ceil(bench_walker_steps / N)), 20 uniform saves (+ fr_start for LTA); c_ss over the second half (after fr_start for LTA): FR active in the whole timed window",
+  "configs": "every N of the ladder, ABF at every N and FR at N >= 2; backends G1, S1 and P_t for t <= min(16, N)",
+  "repeats": 3,
+  "seeds": "bench_seeds of configs/hybrid_short_T/campaign.json (repeat r uses bench_seeds[r])",
+  "order": "GPU: N ascending within a repeat, methods alternating; CPU: packed longest-first on exclusive CCDs"
+ },
+ "routing": {
+  "rule": "per system and N, from the ABF benchmark (medians over the 3 repeats of c_ss): CPU route = the hybrid short-T rule (P* = fastest thread count, ties within 3 % to fewer threads; P* iff median c_ss(P*) <= median c_ss(S1) / 1.05 and every P* repeat faster than every S1 repeat, else S1); then G1 iff median c_ss(G1) <= median c_ss(CPU route) / 1.05 and every G1 repeat faster than every CPU-route repeat, else the CPU route.  ABF and FR at that N run on the routed backend (common-backend primary analysis)",
+  "min_gain": 1.05,
+  "tie_frac": 0.03,
+  "secondary": "deployment-optimised: the same rule on each method's own benchmark (projection where it differs, labelled)",
+  "freeze": "results/nscc_a100/routing/routing.json written once from the benchmark summary with the engine source hashes, before any production run"
+ },
+ "systems": {
+  "gateway": {"law_seeds": [619000, 619015], "prod_seeds": [610000, 610023], "confirm_seeds": [611000, 611127], "law_N": [64, 512]},
+  "lta300":  {"law_seeds": [629000, 629015], "prod_seeds": [620000, 620023], "confirm_seeds": [621000, 621063], "law_N": [64, 256]},
+  "lta150":  {"law_seeds": [639000, 639015], "prod_seeds": [630000, 630023], "confirm_seeds": [631000, 631127], "law_N": [64, 256]}
+ },
+ "seed_note": "inclusive ranges; checked 2026-10-26 against every earlier gateway / LTA seed label (scripts/hybrid_short_T/check_seeds.py inventory + the hybrid short-T blocks): no label collision, no SeedSequence state duplicate among the new blocks' FR / IC / counter-key streams",
+ "production": {
+  "configs": "every N of the ladder on its routed backend: ABF at every N, ABF+FR at N >= 2",
+  "seeds": "prod_seeds (24 per arm, fresh)",
+  "order": "seed-major blocks; within a seed the arms in the order default_rng(20261026 + seed).permutation; GPU arms run in a GPU job, CPU arms in a CPU job"
+ },
+ "selection": "per system: best ABF arm and best FR arm = argmin over the eligible arms of the median W_mid over the production seeds (censored = inf); written to results/nscc_a100/selection/selection.json before any confirmation run",
+ "confirmation": {
+  "seeds": "confirm_seeds: 128 per arm (gateway, LTA 150 K), 64 (LTA 300 K)",
+  "statistic": "R_W = median W_mid(best FR) / median W_mid(best ABF) and R_e2e the same on W_mid_e2e; 10 000-resample unpaired bootstrap (seed 20261026), percentile 95 % CI and bootstrap p-values",
+  "decision": "'FR faster' iff the CIs of BOTH R_W and R_e2e lie below 1; 'ABF faster' iff both lie above 1; otherwise 'unresolved' (never 'equivalent'); familywise control over the two primary systems (gateway, LTA 150 K) by Holm on the bootstrap p-values (max of the two ratios' p-values per system); LTA 300 K secondary"
+ },
+ "analysis": {
+  "scorer": "hst_common.Scorer (= the frozen equal-budget e_F scorer, references results/equal_budget_v2/references/)",
+  "time_to_accuracy": "hst_common.run_endpoints: tau on the persistence grid (budget grid U A2.1 dense grid); W = wall at tau since the engine's timed start (GPU: after the warm-up run and device set-up; a save is stamped after its device-to-host copy); W_e2e = W + (timed start - process start); censored = inf",
+  "best_allocation": "eqb_metrics.best_allocation on W_mid and W_mid_e2e (exploratory, 10 000 resamples)",
+  "secondary": ["W_loose, W_strict", "fixed-N FR / ABF ratios on G1 where routed and on CPU", "throughput crossover c_ss(G1) / c_ss(best CPU) per N", "GPU phase split (deposit, barrier, move+force, FR)", "GPU card-seconds and CPU core-seconds to accuracy", "historical CPU (EPYC 9554, hybrid short-T) numbers as context only"]
+ },
+ "guards": {
+  "gpu_card_hours_cap": 40.0,
+  "cpu_core_hours_cap": 1500.0,
+  "run_timeout_s": 7200
+ }
+}

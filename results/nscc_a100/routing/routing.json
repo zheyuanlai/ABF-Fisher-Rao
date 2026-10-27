@@ -1,0 +1,590 @@
+{
+ "route": {
+  "gateway": {
+   "1": {
+    "backend": "P1",
+    "cpu_route": "P1",
+    "gpu_speedup_vs_cpu_route": 0.06298496469809996,
+    "why": "P1 >= 5 % faster than S1 in every repeat; G1 0.06x vs P1: not routed"
+   },
+   "2": {
+    "backend": "P1",
+    "cpu_route": "P1",
+    "gpu_speedup_vs_cpu_route": 0.11280818322592955,
+    "why": "P1 >= 5 % faster than S1 in every repeat; G1 0.11x vs P1: not routed"
+   },
+   "4": {
+    "backend": "P1",
+    "cpu_route": "P1",
+    "gpu_speedup_vs_cpu_route": 0.21453085869367905,
+    "why": "P1 >= 5 % faster than S1 in every repeat; G1 0.21x vs P1: not routed"
+   },
+   "8": {
+    "backend": "P1",
+    "cpu_route": "P1",
+    "gpu_speedup_vs_cpu_route": 0.4160238492282363,
+    "why": "P1 >= 5 % faster than S1 in every repeat; G1 0.42x vs P1: not routed"
+   },
+   "16": {
+    "backend": "P2",
+    "cpu_route": "P2",
+    "gpu_speedup_vs_cpu_route": 0.49159933855732796,
+    "why": "P2 >= 5 % faster than S1 in every repeat; G1 0.49x vs P2: not routed"
+   },
+   "32": {
+    "backend": "P4",
+    "cpu_route": "P4",
+    "gpu_speedup_vs_cpu_route": 0.6573992466768912,
+    "why": "P4 >= 5 % faster than S1 in every repeat; G1 0.66x vs P4: not routed"
+   },
+   "64": {
+    "backend": "P8",
+    "cpu_route": "P8",
+    "gpu_speedup_vs_cpu_route": 0.8275090154926716,
+    "why": "P8 >= 5 % faster than S1 in every repeat; G1 0.83x vs P8: not routed"
+   },
+   "128": {
+    "backend": "G1",
+    "cpu_route": "P16",
+    "gpu_speedup_vs_cpu_route": 1.26493744791117,
+    "why": "P16 >= 5 % faster than S1 in every repeat; G1 1.26x faster than P16 in every repeat"
+   },
+   "256": {
+    "backend": "G1",
+    "cpu_route": "P16",
+    "gpu_speedup_vs_cpu_route": 1.3244359182424792,
+    "why": "P16 >= 5 % faster than S1 in every repeat; G1 1.32x faster than P16 in every repeat"
+   },
+   "512": {
+    "backend": "G1",
+    "cpu_route": "P16",
+    "gpu_speedup_vs_cpu_route": 1.4979164064891501,
+    "why": "P16 >= 5 % faster than S1 in every repeat; G1 1.50x faster than P16 in every repeat"
+   },
+   "1024": {
+    "backend": "G1",
+    "cpu_route": "P16",
+    "gpu_speedup_vs_cpu_route": 2.644211929171715,
+    "why": "P16 >= 5 % faster than S1 in every repeat; G1 2.64x faster than P16 in every repeat"
+   },
+   "2048": {
+    "backend": "G1",
+    "cpu_route": "P16",
+    "gpu_speedup_vs_cpu_route": 4.746715582154019,
+    "why": "P16 >= 5 % faster than S1 in every repeat; G1 4.75x faster than P16 in every repeat"
+   }
+  },
+  "lta300": {
+   "1": {
+    "backend": "S1",
+    "cpu_route": "S1",
+    "gpu_speedup_vs_cpu_route": 0.2581630906138775,
+    "why": "P1 not >= 5 % faster; G1 0.26x vs S1: not routed"
+   },
+   "2": {
+    "backend": "S1",
+    "cpu_route": "S1",
+    "gpu_speedup_vs_cpu_route": 0.3689027109436979,
+    "why": "P2 not >= 5 % faster; G1 0.37x vs S1: not routed"
+   },
+   "4": {
+    "backend": "P4",
+    "cpu_route": "P4",
+    "gpu_speedup_vs_cpu_route": 0.5476066704355528,
+    "why": "P4 >= 5 % faster than S1 in every repeat; G1 0.55x vs P4: not routed"
+   },
+   "8": {
+    "backend": "P8",
+    "cpu_route": "P8",
+    "gpu_speedup_vs_cpu_route": 0.5247988814272558,
+    "why": "P8 >= 5 % faster than S1 in every repeat; G1 0.52x vs P8: not routed"
+   },
+   "16": {
+    "backend": "P8",
+    "cpu_route": "P8",
+    "gpu_speedup_vs_cpu_route": 0.8897842427108249,
+    "why": "P8 >= 5 % faster than S1 in every repeat; G1 0.89x vs P8: not routed"
+   },
+   "32": {
+    "backend": "G1",
+    "cpu_route": "P8",
+    "gpu_speedup_vs_cpu_route": 1.4080102556661112,
+    "why": "P8 >= 5 % faster than S1 in every repeat; G1 1.41x faster than P8 in every repeat"
+   },
+   "64": {
+    "backend": "G1",
+    "cpu_route": "P16",
+    "gpu_speedup_vs_cpu_route": 1.8718578890618798,
+    "why": "P16 >= 5 % faster than S1 in every repeat; G1 1.87x faster than P16 in every repeat"
+   },
+   "128": {
+    "backend": "G1",
+    "cpu_route": "P16",
+    "gpu_speedup_vs_cpu_route": 2.806025108212495,
+    "why": "P16 >= 5 % faster than S1 in every repeat; G1 2.81x faster than P16 in every repeat"
+   },
+   "256": {
+    "backend": "G1",
+    "cpu_route": "P16",
+    "gpu_speedup_vs_cpu_route": 4.1905203705647125,
+    "why": "P16 >= 5 % faster than S1 in every repeat; G1 4.19x faster than P16 in every repeat"
+   },
+   "512": {
+    "backend": "G1",
+    "cpu_route": "P16",
+    "gpu_speedup_vs_cpu_route": 7.286298460747159,
+    "why": "P16 >= 5 % faster than S1 in every repeat; G1 7.29x faster than P16 in every repeat"
+   },
+   "1024": {
+    "backend": "G1",
+    "cpu_route": "P16",
+    "gpu_speedup_vs_cpu_route": 10.356363715778002,
+    "why": "P16 >= 5 % faster than S1 in every repeat; G1 10.36x faster than P16 in every repeat"
+   }
+  },
+  "lta150": {
+   "1": {
+    "backend": "S1",
+    "cpu_route": "S1",
+    "gpu_speedup_vs_cpu_route": 0.28319397283310194,
+    "why": "P1 not >= 5 % faster; G1 0.28x vs S1: not routed"
+   },
+   "2": {
+    "backend": "S1",
+    "cpu_route": "S1",
+    "gpu_speedup_vs_cpu_route": 0.3594992753303328,
+    "why": "P2 not >= 5 % faster; G1 0.36x vs S1: not routed"
+   },
+   "4": {
+    "backend": "P4",
+    "cpu_route": "P4",
+    "gpu_speedup_vs_cpu_route": 0.5446384970182998,
+    "why": "P4 >= 5 % faster than S1 in every repeat; G1 0.54x vs P4: not routed"
+   },
+   "8": {
+    "backend": "P8",
+    "cpu_route": "P8",
+    "gpu_speedup_vs_cpu_route": 0.5184876281764709,
+    "why": "P8 >= 5 % faster than S1 in every repeat; G1 0.52x vs P8: not routed"
+   },
+   "16": {
+    "backend": "P8",
+    "cpu_route": "P8",
+    "gpu_speedup_vs_cpu_route": 0.8706300036628526,
+    "why": "P8 >= 5 % faster than S1 in every repeat; G1 0.87x vs P8: not routed"
+   },
+   "32": {
+    "backend": "G1",
+    "cpu_route": "P8",
+    "gpu_speedup_vs_cpu_route": 1.3663868756464206,
+    "why": "P8 >= 5 % faster than S1 in every repeat; G1 1.37x faster than P8 in every repeat"
+   },
+   "64": {
+    "backend": "G1",
+    "cpu_route": "P16",
+    "gpu_speedup_vs_cpu_route": 1.8304716602642763,
+    "why": "P16 >= 5 % faster than S1 in every repeat; G1 1.83x faster than P16 in every repeat"
+   },
+   "128": {
+    "backend": "G1",
+    "cpu_route": "P16",
+    "gpu_speedup_vs_cpu_route": 2.8019598786171533,
+    "why": "P16 >= 5 % faster than S1 in every repeat; G1 2.80x faster than P16 in every repeat"
+   },
+   "256": {
+    "backend": "G1",
+    "cpu_route": "P16",
+    "gpu_speedup_vs_cpu_route": 4.057861707089343,
+    "why": "P16 >= 5 % faster than S1 in every repeat; G1 4.06x faster than P16 in every repeat"
+   },
+   "512": {
+    "backend": "G1",
+    "cpu_route": "P16",
+    "gpu_speedup_vs_cpu_route": 6.722486818586642,
+    "why": "P16 >= 5 % faster than S1 in every repeat; G1 6.72x faster than P16 in every repeat"
+   },
+   "1024": {
+    "backend": "G1",
+    "cpu_route": "P16",
+    "gpu_speedup_vs_cpu_route": 10.33995294180202,
+    "why": "P16 >= 5 % faster than S1 in every repeat; G1 10.34x faster than P16 in every repeat"
+   }
+  }
+ },
+ "deployment_optimised": {
+  "gateway": {
+   "1": {
+    "abf": "P1"
+   },
+   "2": {
+    "abf": "P1",
+    "fr": "P1"
+   },
+   "4": {
+    "abf": "P1",
+    "fr": "P1"
+   },
+   "8": {
+    "abf": "P1",
+    "fr": "P1"
+   },
+   "16": {
+    "abf": "P2",
+    "fr": "P2"
+   },
+   "32": {
+    "abf": "P4",
+    "fr": "P4"
+   },
+   "64": {
+    "abf": "P8",
+    "fr": "P8"
+   },
+   "128": {
+    "abf": "G1",
+    "fr": "G1"
+   },
+   "256": {
+    "abf": "G1",
+    "fr": "G1"
+   },
+   "512": {
+    "abf": "G1",
+    "fr": "G1"
+   },
+   "1024": {
+    "abf": "G1",
+    "fr": "G1"
+   },
+   "2048": {
+    "abf": "G1",
+    "fr": "G1"
+   }
+  },
+  "lta300": {
+   "1": {
+    "abf": "S1"
+   },
+   "2": {
+    "abf": "S1",
+    "fr": "S1"
+   },
+   "4": {
+    "abf": "P4",
+    "fr": "P4"
+   },
+   "8": {
+    "abf": "P8",
+    "fr": "P8"
+   },
+   "16": {
+    "abf": "P8",
+    "fr": "P8"
+   },
+   "32": {
+    "abf": "G1",
+    "fr": "P16"
+   },
+   "64": {
+    "abf": "G1",
+    "fr": "G1"
+   },
+   "128": {
+    "abf": "G1",
+    "fr": "G1"
+   },
+   "256": {
+    "abf": "G1",
+    "fr": "G1"
+   },
+   "512": {
+    "abf": "G1",
+    "fr": "G1"
+   },
+   "1024": {
+    "abf": "G1",
+    "fr": "G1"
+   }
+  },
+  "lta150": {
+   "1": {
+    "abf": "S1"
+   },
+   "2": {
+    "abf": "S1",
+    "fr": "S1"
+   },
+   "4": {
+    "abf": "P4",
+    "fr": "P4"
+   },
+   "8": {
+    "abf": "P8",
+    "fr": "P8"
+   },
+   "16": {
+    "abf": "P8",
+    "fr": "P8"
+   },
+   "32": {
+    "abf": "G1",
+    "fr": "P8"
+   },
+   "64": {
+    "abf": "G1",
+    "fr": "G1"
+   },
+   "128": {
+    "abf": "G1",
+    "fr": "G1"
+   },
+   "256": {
+    "abf": "G1",
+    "fr": "G1"
+   },
+   "512": {
+    "abf": "G1",
+    "fr": "G1"
+   },
+   "1024": {
+    "abf": "G1",
+    "fr": "G1"
+   }
+  }
+ },
+ "frozen_utc": "2026-10-26T07:51:41Z",
+ "engine_sources": {
+  "gateway:serial": {
+   "src/gateway_ladder_numba.py": "bdeaa40a42f82d509fcdbe1c209559a93c0d0fae9391633c8858488bc25074ce",
+   "scripts/mechanism/parallel_benchmark.py": "ff98903e21791309f9bd0ffd0e7242f93f5532d00f000a7c7704086591e51a99"
+  },
+  "gateway:parallel": {
+   "src/parallel/gateway_parallel.py": "615fde5748c9fc5624b4051e27f11b4468393b625ed560a85583750a5306e66c",
+   "src/parallel/gw_kernel.c": "e6199ce5687fac59b1d6b03aa1511e64a002af18e54d79e2249215871e879931",
+   "src/parallel/philox.py": "db996b3819dc06541a96d3b614abf14cd34fc21de320dc5c5e403bb12dcf7f59",
+   "src/parallel/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "src/gateway_ladder_numba.py": "bdeaa40a42f82d509fcdbe1c209559a93c0d0fae9391633c8858488bc25074ce"
+  },
+  "gateway:gpu": {
+   "src/gpu/gateway_gpu.py": "d0e151627df42ff850ab5099c25812986fe878f53d9d7fcb054c8217a2260cb0",
+   "src/gpu/gw_cuda.cu": "78ccebff11ebb18aa52063846e14c58ef7334817bd1663bdb5311d86703d1ed2",
+   "src/gpu/gpu_common.cuh": "38b36b1d769f6546048e6e404e71fd91eb0dad35a2d9ddfd1c3af67c5424a216",
+   "src/gpu/gpu_build.py": "53e62aff603ddab330280dac0a4e4d5d2cdf7a910ae9afa05214af2f010e64ff"
+  },
+  "lta300:serial": {
+   "src/lta_ladder_numba.py": "15fb414ed9b9055bff58dbeee3e070bcca2066020fb5315f77615a1cce158a7b",
+   "scripts/mechanism/parallel_benchmark.py": "ff98903e21791309f9bd0ffd0e7242f93f5532d00f000a7c7704086591e51a99"
+  },
+  "lta300:parallel": {
+   "src/parallel/lta_parallel.py": "83a82eadb7c9db6cef263181bb65cd5538c29fae9e3330023d01c6e0b4b954c4",
+   "src/parallel/philox.py": "db996b3819dc06541a96d3b614abf14cd34fc21de320dc5c5e403bb12dcf7f59",
+   "src/parallel/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "src/lta_ladder_numba.py": "15fb414ed9b9055bff58dbeee3e070bcca2066020fb5315f77615a1cce158a7b"
+  },
+  "lta300:gpu": {
+   "src/gpu/lta_gpu.py": "fcefa3a0c71bc4fed835b4436814845598d7aae648889b60ffed45c12aa7b2bf",
+   "src/gpu/lta_cuda.cu": "e69539152769411adfe46ff6d9c2753273aeef4fe524f55476e6d1d049a0ec30",
+   "src/gpu/gpu_common.cuh": "38b36b1d769f6546048e6e404e71fd91eb0dad35a2d9ddfd1c3af67c5424a216",
+   "src/gpu/gpu_build.py": "53e62aff603ddab330280dac0a4e4d5d2cdf7a910ae9afa05214af2f010e64ff"
+  },
+  "lta150:serial": {
+   "src/lta_ladder_numba.py": "15fb414ed9b9055bff58dbeee3e070bcca2066020fb5315f77615a1cce158a7b",
+   "scripts/mechanism/parallel_benchmark.py": "ff98903e21791309f9bd0ffd0e7242f93f5532d00f000a7c7704086591e51a99"
+  },
+  "lta150:parallel": {
+   "src/parallel/lta_parallel.py": "83a82eadb7c9db6cef263181bb65cd5538c29fae9e3330023d01c6e0b4b954c4",
+   "src/parallel/philox.py": "db996b3819dc06541a96d3b614abf14cd34fc21de320dc5c5e403bb12dcf7f59",
+   "src/parallel/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "src/lta_ladder_numba.py": "15fb414ed9b9055bff58dbeee3e070bcca2066020fb5315f77615a1cce158a7b"
+  },
+  "lta150:gpu": {
+   "src/gpu/lta_gpu.py": "fcefa3a0c71bc4fed835b4436814845598d7aae648889b60ffed45c12aa7b2bf",
+   "src/gpu/lta_cuda.cu": "e69539152769411adfe46ff6d9c2753273aeef4fe524f55476e6d1d049a0ec30",
+   "src/gpu/gpu_common.cuh": "38b36b1d769f6546048e6e404e71fd91eb0dad35a2d9ddfd1c3af67c5424a216",
+   "src/gpu/gpu_build.py": "53e62aff603ddab330280dac0a4e4d5d2cdf7a910ae9afa05214af2f010e64ff"
+  }
+ },
+ "launch_table": {
+  "_rule": "per N: argmin ABF c_ss over the candidate launches on the 0.25-scaled benchmark window (scripts/nscc_a100/bench_gpu.py --sweep); FR uses the same launch",
+  "gateway": {
+   "1": {
+    "blocks": 1,
+    "candidates": 6,
+    "helpers": 1,
+    "source": "interpolated from N = 16",
+    "threads": 64,
+    "wpt": 1
+   },
+   "1024": {
+    "blocks": 8,
+    "c_ss_ns": 3.508,
+    "candidates": 9,
+    "helpers": 1,
+    "source": "tune_gateway.jsonl",
+    "threads": 256,
+    "wpt": 1
+   },
+   "128": {
+    "blocks": 1,
+    "c_ss_ns": 13.656,
+    "candidates": 10,
+    "helpers": 1,
+    "source": "tune_gateway.jsonl",
+    "threads": 256,
+    "wpt": 1
+   },
+   "16": {
+    "blocks": 1,
+    "c_ss_ns": 101.398,
+    "candidates": 6,
+    "helpers": 1,
+    "source": "tune_gateway.jsonl",
+    "threads": 64,
+    "wpt": 1
+   },
+   "2": {
+    "blocks": 1,
+    "candidates": 6,
+    "helpers": 1,
+    "source": "interpolated from N = 16",
+    "threads": 64,
+    "wpt": 1
+   },
+   "2048": {
+    "blocks": 16,
+    "c_ss_ns": 1.789,
+    "candidates": 9,
+    "helpers": 1,
+    "source": "tune_gateway.jsonl",
+    "threads": 256,
+    "wpt": 1
+   },
+   "256": {
+    "blocks": 1,
+    "c_ss_ns": 9.622,
+    "candidates": 12,
+    "helpers": 1,
+    "source": "tune_gateway.jsonl",
+    "threads": 512,
+    "wpt": 1
+   },
+   "32": {
+    "blocks": 1,
+    "candidates": 6,
+    "helpers": 1,
+    "source": "interpolated from N = 16",
+    "threads": 64,
+    "wpt": 1
+   },
+   "4": {
+    "blocks": 1,
+    "candidates": 6,
+    "helpers": 1,
+    "source": "interpolated from N = 16",
+    "threads": 64,
+    "wpt": 1
+   },
+   "512": {
+    "blocks": 4,
+    "c_ss_ns": 7.085,
+    "candidates": 11,
+    "helpers": 1,
+    "source": "tune_gateway.jsonl",
+    "threads": 256,
+    "wpt": 1
+   },
+   "64": {
+    "blocks": 1,
+    "c_ss_ns": 25.547,
+    "candidates": 8,
+    "helpers": 1,
+    "source": "tune_gateway.jsonl",
+    "threads": 128,
+    "wpt": 1
+   },
+   "8": {
+    "blocks": 1,
+    "candidates": 6,
+    "helpers": 1,
+    "source": "interpolated from N = 16",
+    "threads": 64,
+    "wpt": 1
+   }
+  },
+  "lta": {
+   "1": {
+    "G": 128,
+    "WB": 1,
+    "c_ss_ns": 5499.854,
+    "candidates": 4,
+    "source": "tune_lta150.jsonl"
+   },
+   "1024": {
+    "G": 32,
+    "WB": 10,
+    "c_ss_ns": 14.629,
+    "candidates": 13,
+    "source": "tune_lta150.jsonl"
+   },
+   "128": {
+    "G": 128,
+    "WB": 2,
+    "candidates": 31,
+    "source": "interpolated from N = 64"
+   },
+   "16": {
+    "G": 128,
+    "WB": 1,
+    "c_ss_ns": 528.305,
+    "candidates": 28,
+    "source": "tune_lta150.jsonl"
+   },
+   "2": {
+    "G": 128,
+    "WB": 1,
+    "candidates": 4,
+    "source": "interpolated from N = 1"
+   },
+   "256": {
+    "G": 64,
+    "WB": 4,
+    "c_ss_ns": 42.179,
+    "candidates": 23,
+    "source": "tune_lta150.jsonl"
+   },
+   "32": {
+    "G": 128,
+    "WB": 1,
+    "candidates": 28,
+    "source": "interpolated from N = 16"
+   },
+   "4": {
+    "G": 64,
+    "WB": 4,
+    "c_ss_ns": 1931.243,
+    "candidates": 12,
+    "source": "tune_lta150.jsonl"
+   },
+   "512": {
+    "G": 64,
+    "WB": 5,
+    "candidates": 23,
+    "source": "interpolated from N = 256"
+   },
+   "64": {
+    "G": 128,
+    "WB": 2,
+    "c_ss_ns": 138.152,
+    "candidates": 31,
+    "source": "tune_lta150.jsonl"
+   },
+   "8": {
+    "G": 64,
+    "WB": 4,
+    "candidates": 12,
+    "source": "interpolated from N = 4"
+   }
+  }
+ },
+ "rule": "per system and N, from the ABF benchmark (medians over the 3 repeats of c_ss): CPU route = the hybrid short-T rule (P* = fastest thread count, ties within 3 % to fewer threads; P* iff median c_ss(P*) <= median c_ss(S1) / 1.05 and every P* repeat faster than every S1 repeat, else S1); then G1 iff median c_ss(G1) <= median c_ss(CPU route) / 1.05 and every G1 repeat faster than every CPU-route repeat, else the CPU route.  ABF and FR at that N run on the routed backend (common-backend primary analysis)"
+}
