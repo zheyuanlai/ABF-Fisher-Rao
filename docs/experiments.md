@@ -19,3 +19,9 @@ Job ids, what changed, outcome. Newest last. Study designs live in their own doc
   rebuilt with a uv-managed Python. Stage-1 chain (smoke gates -> full gates -> reference -> ABF pilot) submitted
   twice: 26029098 (g2, + bench on GPU 1) and 26029637 (gdev, <= 2 h); whichever starts first cancels the other.
   g2 also holds another project's 16 h job queued ahead of ours.
+* Stage-1 rerun 26030038 (gdev) cancelled for the whole-pipeline job 26030410 (g1), which started 00:18 on 10-28.
+  Stage I gates: ALL PASS (V1 5e-9, V2/V3 ~5e-16, V4 mean-force e_F 0.017 / density 0.037 / ABF 0.11-0.14,
+  V5 rms z 1.19 and dU 1e-13, V6 bitwise). Reference pilot (n = 16, 4 x 1024 walkers) then STOPPED at the new
+  physical check: 2 of 4096 walkers overlapped after pre-equilibration (max |F| 1.4e17). Diagnosis job
+  (scripts/lta_loading/debug_preeq.py) submitted to g1 (26030565) and gdev (26030575); g1 was taken by another
+  project's 4 h job right after ours ended.
