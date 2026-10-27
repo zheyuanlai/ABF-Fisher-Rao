@@ -40,3 +40,6 @@ Job ids, what changed, outcome. Newest last. Study designs live in their own doc
   superseded results moved to results/lta_loading/superseded_v1/ (summaries in git, batch npz on scratch).
   Fix in progress (Amendment A4): reinsertion every step, 2000 Metropolis sweeps + 20k steps pre-equilibration, an
   energy drift monitor per save, and a stationarity gate on the reference. Relaxation diagnostic: job 26031951.
+* 2026-10-28 ~04:00 v2 pipeline 26032190 (g1): Stage I ALL PASS; v2 reference ACCEPTED -- halves barrier 17.103 vs
+  17.070 (diff 0.033 +- 0.018), halves rms 0.015, mean-force vs density 0.0056 (v1: 0.046), SE rms 0.006; barrier
+  17.09 kJ/mol = 13.70 kT (single guest 13.59 kT).
