@@ -74,8 +74,9 @@ not depend on its batch.
 Gates (`scripts/lta_loading/validate.py`), all must pass before the reference:
 * V1 forces = −∇U by central differences (rel ≤ 1e-5); V2 forces and energy vs an independent NumPy implementation
   (≤ 1e-10); V3 at n = 1, forces, CV, bin and local force equal the numba single-guest engine (≤ 1e-12);
-* V4 at n = 1, end to end: pooled ABF F (4 x 1024 walkers x 200k steps) vs the exact-MC single-guest reference,
-  e_F ≤ 0.06 kJ/mol;
+* V4 at n = 1 against the exact-MC single-guest reference: under its frozen bias (flat landscape) the mean-force
+  route e_F ≤ 0.05 and the density route e_F ≤ 0.10 kJ/mol (a wrong bias sign or scale fails the latter by kT-sized
+  errors); the ABF path at N = 1024 x 300k steps, final per-seed e_F ≤ 0.30 (single-guest CPU engine: 0.14–0.20);
 * V5 reinsertion: a non-interacting environment guest reproduces the exact single-guest density at 150 K
   (|log p/p_ref| ≤ 0.10 on bins with ≥ 400 expected samples), never sits in a blocked sphere, and the kernel's ΔU
   of every accepted move equals the change of the total energy (n = 4, interacting);
@@ -131,3 +132,10 @@ reads ABF error curves only.
 * Cap: 24 A100-hours in total. Nothing is stopped, extended or re-selected because of which method is winning.
 
 ## Amendments
+
+### A0 (2026-10-27, before any trajectory)
+
+V4 was first written as pooled ABF e_F ≤ 0.06 at 4 x 1024 x 200k steps. The single-guest CPU sweep shows final ABF
+e_F 0.14–0.20 kJ/mol per seed at 1024 x 300k (`results/lta_histogram/comparison_T150.csv`), dominated by slow
+establishment at the barrier rather than noise, so that gate would fail on statistics, not on a defect. Replaced by
+the frozen-bias test above (fast-converging, sensitive to the bias sign and scale) plus a loose ABF-path gate.

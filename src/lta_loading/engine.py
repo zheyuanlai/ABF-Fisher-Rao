@@ -394,7 +394,7 @@ extern "C" __global__ void lf_mc(double *q, const double *O, const unsigned long
     en = block_sum(en, red);
     if (threadIdx.x == 0) {
         atomicAdd(&natt[r], 1);
-        dUo[w] = sblocked ? NAN : en - eo;
+        dUo[w] = sblocked ? nan("") : en - eo;
         if (!sblocked) {
             const double dU = en - eo;
             if (dU <= 0.0 || suacc < exp(-beta * dU)) {
