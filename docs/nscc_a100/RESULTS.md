@@ -6,7 +6,7 @@
 * Validation: `VALIDATION.md`. How to run or resume: `HANDOFF.md`.
 * Generated tables: `results/nscc_a100/analysis/*_tables.md` and `results/nscc_a100/bench/tables.md`. Every number
   below is taken from them.
-* Figures: `figures/nscc_a100/A-E`.
+* Figures: `figures/nscc_a100/A-E`, and Figure F in `figures/nscc_a100/all_N_T_wallclock/`.
 
 **Claim labels.**
 * **[measured]**: timings on NSCC hardware.
@@ -113,6 +113,14 @@ grew slightly (0.80 to 0.72).
 
 FR keeps more large-N rungs inside the budget: ABF is censored where FR is not. This is why the GPU, which is fastest
 at large N, helps FR more on LTA 150 K, the establishment-limited system.
+
+**Figure F** (`figures/nscc_a100/all_N_T_wallclock/`) shows the full convergence curve at every rung of this table.
+* Curves: e_F against measured wall-clock, ABF vs FR on the routed backend, median and 25-75 % over the 24 seeds.
+* Each panel marks the median W_mid shown above, with its censored count.
+* There is one page per system and two clocks: `timed` (engine start) and `e2e` (process start, so W_mid_e2e).
+* The plotted quantiles and the W_mid quartiles are written to CSV next to the figures.
+* The curves span only the window where every seed has a save; final values are not carried past a run's end.
+  Figure E now uses the same window. Its first version carried each run's final value forward.
 
 ## 4. Confirmation details (`results/nscc_a100/analysis/confirm_tables.md`, Figures D-E)
 
