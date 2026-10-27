@@ -62,7 +62,7 @@ DEFAULT_CFG = dict(
     max_event_fraction=0.02, cap_min=1,
     abf_force_clip=60.0, deposit_clip=480.0, abf_bias_scale=1.0,
     eps_go_K=93.0, sigma_go=3.48, eps_gg_K=108.0, sigma_gg=3.76, rc=10.0, r0_bond=1.54, k_bond=400.0,
-    n_guests=16, mc_every=10, r_block=3.5, preeq_sweeps=40, preeq_steps=10000,
+    n_guests=16, mc_every=10, r_block=3.5, place_sweeps=100, preeq_sweeps=100, preeq_steps=10000,
     framework_npz="cache/lta/framework.npz",
 )
 
@@ -332,7 +332,7 @@ extern "C" __global__ void lf_mc(double *q, const double *O, const unsigned long
                                  const unsigned long long *key1, int *nacc, int *natt, double *dUo, int N, int n, int nO,
                                  unsigned long long step, int m_fixed, double L, double invL, double rc2, double s2o,
                                  double c4o, double vrco, double s2g, double c4g, double vrcg, double beta, double a,
-                                 double rblock2)
+                                 double rblock2, int place, double ucap)
 {
     __shared__ double red[32];
     __shared__ double prop[6];
@@ -397,7 +397,8 @@ extern "C" __global__ void lf_mc(double *q, const double *O, const unsigned long
         dUo[w] = sblocked ? nan("") : en - eo;
         if (!sblocked) {
             const double dU = en - eo;
-            if (dU <= 0.0 || suacc < exp(-beta * dU)) {
+            // place = 1: initial placement only (not detailed balance) -- any non-overlapping site is taken
+            if ((place && en <= ucap) || dU <= 0.0 || suacc < exp(-beta * dU)) {
                 for (int i = 0; i < 6; i++) qw[6 * m + i] = prop[i];
                 atomicAdd(&nacc[r], 1);
             }
@@ -634,7 +635,7 @@ class Batch:
                   (self.q, self.phin, self.jn, self._i(self.W), self._i(self.n), self._d(p["cphi"]),
                    self._d(p["dphi"]), self._i(p["ng"])))
 
-    def mc(self, step, m_fixed=-1):
+    def mc(self, step, m_fixed=-1, place=False):
         if self.n < 2:
             return
         p = self.p
@@ -644,7 +645,8 @@ class Batch:
                    self._i(self.nO), np.uint64(step), self._i(m_fixed), self._d(p["L"]), self._d(p["invL"]),
                    self._d(p["rc2"]), self._d(p["go"]["s2"]), self._d(p["go"]["c4"]), self._d(p["go"]["vrc"]),
                    self._d(p["gg"]["s2"]), self._d(p["gg"]["c4"]), self._d(p["gg"]["vrc"]), self._d(p["beta"]),
-                   self._d(p["a"]), self._d(float(self.c["r_block"]) ** 2)))
+                   self._d(p["a"]), self._d(float(self.c["r_block"]) ** 2), self._i(1 if place else 0),
+                   self._d(0.0)))
 
     def energies(self):
         p = self.p
@@ -664,11 +666,18 @@ class Batch:
 
     def preequilibrate(self):
         """Environment equilibration around the tagged guest held at its IC (outside the budget):
-        reinsertion sweeps, then dynamics with the tagged guest frozen + reinsertion MC."""
+        placement sweeps (a reinsertion is taken whenever the new site does not overlap, U_inter <= 0: the IC puts
+        2-3 guests on one cage centre, and plain Metropolis from there parks guests inside framework walls and
+        leaves them there -- diagnosis 2026-10-28, results/lta_loading/validation/debug_preeq.json), then
+        Metropolis sweeps, then dynamics with the tagged guest frozen + reinsertion MC."""
         t0 = time.perf_counter()
         c = self.c
         if self.n >= 2:
             ctr = 0
+            for _ in range(int(c["place_sweeps"])):
+                for m in range(1, self.n):
+                    self.mc(PRE_MC_BASE + ctr, m_fixed=m, place=True)
+                    ctr += 1
             for _ in range(int(c["preeq_sweeps"])):
                 for m in range(1, self.n):
                     self.mc(PRE_MC_BASE + ctr, m_fixed=m)

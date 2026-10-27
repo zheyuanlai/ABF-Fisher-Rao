@@ -57,11 +57,18 @@ def main():
     f0 = fmax_per_walker(b)
     rep["initial_bad"] = int((f0 > 1e4).sum())
     ctr = 0
+    for s in range(int(c["place_sweeps"])):
+        for m in range(1, b.n):
+            b.mc(LE.PRE_MC_BASE + ctr, m_fixed=m, place=True)
+            ctr += 1
+        if s in (0, 4, 9, 19, 39, 99):
+            f = fmax_per_walker(b)
+            rep[f"bad_after_place_sweep_{s + 1}"] = int((f > 1e4).sum())
     for s in range(int(c["preeq_sweeps"])):
         for m in range(1, b.n):
             b.mc(LE.PRE_MC_BASE + ctr, m_fixed=m)
             ctr += 1
-        if s in (0, 4, 9, 19, 39):
+        if s in (0, 99):
             f = fmax_per_walker(b)
             rep[f"bad_after_sweep_{s + 1}"] = int((f > 1e4).sum())
     f = fmax_per_walker(b)

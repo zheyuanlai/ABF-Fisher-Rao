@@ -55,8 +55,9 @@ environment.
   be frozen at its initial draw, the reference itself would be unreachable by dynamics, and the comparison would be
   between two conditional-equilibration failures. The tagged guest is never reinserted.
 * **Initial conditions** (identical for both arms of a seed): every guest by the single-guest law (uniform α-cage
-  centre + 0.5 Å jitter, uniform orientation); then, outside the budget, 40 reinsertion sweeps over the environment
-  and 10 000 steps of dynamics + reinsertion with the tagged guest held fixed. t = 0 then releases the tagged guest.
+  centre + 0.5 Å jitter, uniform orientation); then, outside the budget, 100 placement sweeps over the environment
+  (a reinsertion is taken whenever the new site does not overlap, U_inter ≤ 0), 100 Metropolis reinsertion sweeps,
+  and 10 000 steps of dynamics + reinsertion with the tagged guest held fixed (Amendment A2). t = 0 then releases the tagged guest.
 * **ABF and FR knobs:** inherited unchanged from the single-guest 150 K configuration
   (`configs/equal_budget_v2/lta_150K_production.json`): histogram (P0) estimator, 180 bins, bias clip 60, deposit
   clip 480, warm-up ramp 20 000 steps, production accumulators from 20 000; FR uniform target, rate 0.2, every 5
@@ -162,4 +163,21 @@ not stay merely improbable — its forces throw it where the minimum image has n
 corrupt the shared estimator. So the pre-equilibration sweeps go from 20 to 40, every batch must pass a hard check
 after pre-equilibration (finite, max |F| ≤ 1e4 kJ/mol/Å for every walker, else the batch raises), and every save
 checks for a force blow-up (max |F| > 1e6 raises). Nothing else changes.
+
+### A2 (2026-10-28, after Stage I passed, before any reference, pilot or production datum)
+
+**What had been seen:** Stage I all PASS (job 26030410). The reference pilot (n = 16, 4 x 1024 walkers) then raised
+at the A1 physical check: 2 of 4096 walkers overlapped after pre-equilibration. Diagnosis (job 26030575,
+`results/lta_loading/validation/debug_preeq.json`, a deterministic replay): every walker starts overlapped (the IC
+puts 2–3 guests on one cage centre); the first Metropolis reinsertion is accepted almost anywhere and, most of the
+box being framework, typically parks the guest inside a wall; descent from there is slow (bad walkers 4096 → 2217 →
+286 → 5 after 1, 10, 20, 40 sweeps), and in two walkers the remaining wall contact (bead–O 1.9 Å, |F| ~ 1.6e4) drives
+Euler–Maruyama steps of ~3 Å that kept them jammed through the 10 000 dynamics steps. No walker became bad during
+the dynamics.
+
+**Change (initialisation only, both arms identical):** 100 placement sweeps in which a reinsertion is accepted
+whenever the new site does not overlap (U_inter ≤ 0 kJ/mol) or by Metropolis — not detailed balance, so it is
+followed by 100 Metropolis sweeps and the 10 000 steps of dynamics + reinsertion that equilibrate. The rule uses
+each walker's own state only, so a seed's trajectory still does not depend on its batch. The A1 physical check is
+unchanged and still binding.
 
