@@ -1,0 +1,25 @@
+#!/bin/bash
+# One AMD EPYC 7713 socket (64 cores, 8 CCDs) of an NSCC ASPIRE2A CPU node; runs the task script TASK (bash) from the repo root.
+# Submit:  qsub -P personal-e1297740 -v TASK=scripts/nscc_a100/tasks/<name>.sh scripts/nscc_a100/pbs/cpu_task.pbs
+#PBS -N abffr_cpu
+#PBS -q normal
+#PBS -l select=1:ncpus=64:mem=100gb
+#PBS -l walltime=04:00:00
+#PBS -j oe
+#PBS -o /scratch/users/nus/e1297740/logs/
+set -uo pipefail
+: "${TASK:?pass TASK via qsub -v}"
+source /scratch/users/nus/e1297740/abffr_gpu/scripts/nscc_a100/env.sh
+export CUDA_VISIBLE_DEVICES=""
+JOB=${PBS_JOBID%%.*}
+LOG=$ABFFR_LOGS/$(basename "$TASK" .sh)_${JOB}.log
+{
+    echo "job $PBS_JOBID task $TASK host $(hostname) start $(date -u +%FT%TZ)"
+    echo "cpus $(taskset -pc $$ | sed 's/.*: //')"
+    lscpu | grep -E 'Model name|^CPU\(s\)|Thread|Socket|NUMA node|L3|MHz' | head -12
+    uptime
+} 2>&1 | tee "$LOG"
+bash "$TASK" 2>&1 | tee -a "$LOG"
+rc=${PIPESTATUS[0]}
+echo "TASK_EXIT $rc $(date -u +%FT%TZ)" | tee -a "$LOG"
+exit $rc

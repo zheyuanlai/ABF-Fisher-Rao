@@ -1,0 +1,25 @@
+#!/bin/bash
+# One A100 + its 16 cores on NSCC ASPIRE2A; runs the task script TASK (bash) from the repo root and tees a progress
+# log.  Submit:  qsub -P personal-e1297740 -v TASK=scripts/nscc_a100/tasks/<name>.sh scripts/nscc_a100/pbs/gpu_task.pbs
+#PBS -N abffr_gpu
+#PBS -q normal
+#PBS -l select=1:ncpus=16:ngpus=1:mem=110gb
+#PBS -l walltime=02:10:00
+#PBS -j oe
+#PBS -o /scratch/users/nus/e1297740/logs/
+set -uo pipefail
+: "${TASK:?pass TASK via qsub -v}"
+source /scratch/users/nus/e1297740/abffr_gpu/scripts/nscc_a100/env.sh
+JOB=${PBS_JOBID%%.*}
+LOG=$ABFFR_LOGS/$(basename "$TASK" .sh)_${JOB}.log
+{
+    echo "job $PBS_JOBID task $TASK host $(hostname) start $(date -u +%FT%TZ)"
+    echo "cpus $(taskset -pc $$ | sed 's/.*: //')  CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-unset}"
+    nvidia-smi --query-gpu=index,name,uuid,clocks.sm,clocks.max.sm,power.draw,temperature.gpu,utilization.gpu,ecc.mode.current,mig.mode.current,driver_version --format=csv
+    nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv
+    lscpu | grep -E 'Model name|^CPU\(s\)|Thread|Socket|NUMA node\(s\)|MHz' | head
+} 2>&1 | tee "$LOG"
+bash "$TASK" 2>&1 | tee -a "$LOG"
+rc=${PIPESTATUS[0]}
+echo "TASK_EXIT $rc $(date -u +%FT%TZ)" | tee -a "$LOG"
+exit $rc

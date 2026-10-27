@@ -1,0 +1,23 @@
+#!/bin/bash
+# Two A100s + 32 cores; the task script gets GPU_A and GPU_B (one GPU per runner: never two runs on one GPU).
+#PBS -N abffr_gpu2
+#PBS -q normal
+#PBS -l select=1:ncpus=32:ngpus=2:mem=220gb
+#PBS -l walltime=08:00:00
+#PBS -j oe
+#PBS -o /scratch/users/nus/e1297740/logs/
+set -uo pipefail
+: "${TASK:?pass TASK via qsub -v}"
+source /scratch/users/nus/e1297740/abffr_gpu/scripts/nscc_a100/env.sh
+JOB=${PBS_JOBID%%.*}
+LOG=$ABFFR_LOGS/$(basename "$TASK" .sh)_${JOB}.log
+IFS=',' read -r GPU_A GPU_B <<< "${CUDA_VISIBLE_DEVICES}"
+export GPU_A GPU_B
+{
+    echo "job $PBS_JOBID task $TASK host $(hostname) start $(date -u +%FT%TZ) GPUs $GPU_A $GPU_B"
+    nvidia-smi --query-gpu=index,name,uuid,clocks.sm,clocks.max.sm,power.draw,ecc.mode.current,mig.mode.current --format=csv
+} 2>&1 | tee "$LOG"
+bash "$TASK" 2>&1 | tee -a "$LOG"
+rc=${PIPESTATUS[0]}
+echo "TASK_EXIT $rc $(date -u +%FT%TZ)" | tee -a "$LOG"
+exit $rc

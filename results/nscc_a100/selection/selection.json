@@ -1,0 +1,48 @@
+{
+ "rule": "per system: best ABF arm and best FR arm = argmin over the eligible arms of the median W_mid over the production seeds (censored = inf); written to results/nscc_a100/selection/selection.json before any confirmation run",
+ "systems": {
+  "gateway": {
+   "abf": {
+    "N": 32,
+    "backend": "P4",
+    "median_W_mid": 2.909832931589335,
+    "arm": "abf32"
+   },
+   "fr": {
+    "N": 32,
+    "backend": "P4",
+    "median_W_mid": 1.9463198347948492,
+    "arm": "fr32"
+   }
+  },
+  "lta300": {
+   "abf": {
+    "N": 512,
+    "backend": "G1",
+    "median_W_mid": 3.2690777904354036,
+    "arm": "abf512"
+   },
+   "fr": {
+    "N": 512,
+    "backend": "G1",
+    "median_W_mid": 4.3805678663775325,
+    "arm": "fr512"
+   }
+  },
+  "lta150": {
+   "abf": {
+    "N": 128,
+    "backend": "G1",
+    "median_W_mid": 2.9105247845873237,
+    "arm": "abf128"
+   },
+   "fr": {
+    "N": 256,
+    "backend": "G1",
+    "median_W_mid": 2.3330752663314342,
+    "arm": "fr256"
+   }
+  }
+ },
+ "frozen_utc": "2026-10-27T07:02:30Z"
+}

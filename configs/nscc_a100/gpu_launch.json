@@ -1,0 +1,182 @@
+{
+ "_rule": "per N: argmin ABF c_ss over the candidate launches on the 0.25-scaled benchmark window (scripts/nscc_a100/bench_gpu.py --sweep); FR uses the same launch",
+ "gateway": {
+  "1": {
+   "blocks": 1,
+   "candidates": 6,
+   "helpers": 1,
+   "source": "interpolated from N = 16",
+   "threads": 64,
+   "wpt": 1
+  },
+  "1024": {
+   "blocks": 8,
+   "c_ss_ns": 3.508,
+   "candidates": 9,
+   "helpers": 1,
+   "source": "tune_gateway.jsonl",
+   "threads": 256,
+   "wpt": 1
+  },
+  "128": {
+   "blocks": 1,
+   "c_ss_ns": 13.656,
+   "candidates": 10,
+   "helpers": 1,
+   "source": "tune_gateway.jsonl",
+   "threads": 256,
+   "wpt": 1
+  },
+  "16": {
+   "blocks": 1,
+   "c_ss_ns": 101.398,
+   "candidates": 6,
+   "helpers": 1,
+   "source": "tune_gateway.jsonl",
+   "threads": 64,
+   "wpt": 1
+  },
+  "2": {
+   "blocks": 1,
+   "candidates": 6,
+   "helpers": 1,
+   "source": "interpolated from N = 16",
+   "threads": 64,
+   "wpt": 1
+  },
+  "2048": {
+   "blocks": 16,
+   "c_ss_ns": 1.789,
+   "candidates": 9,
+   "helpers": 1,
+   "source": "tune_gateway.jsonl",
+   "threads": 256,
+   "wpt": 1
+  },
+  "256": {
+   "blocks": 1,
+   "c_ss_ns": 9.622,
+   "candidates": 12,
+   "helpers": 1,
+   "source": "tune_gateway.jsonl",
+   "threads": 512,
+   "wpt": 1
+  },
+  "32": {
+   "blocks": 1,
+   "candidates": 6,
+   "helpers": 1,
+   "source": "interpolated from N = 16",
+   "threads": 64,
+   "wpt": 1
+  },
+  "4": {
+   "blocks": 1,
+   "candidates": 6,
+   "helpers": 1,
+   "source": "interpolated from N = 16",
+   "threads": 64,
+   "wpt": 1
+  },
+  "512": {
+   "blocks": 4,
+   "c_ss_ns": 7.085,
+   "candidates": 11,
+   "helpers": 1,
+   "source": "tune_gateway.jsonl",
+   "threads": 256,
+   "wpt": 1
+  },
+  "64": {
+   "blocks": 1,
+   "c_ss_ns": 25.547,
+   "candidates": 8,
+   "helpers": 1,
+   "source": "tune_gateway.jsonl",
+   "threads": 128,
+   "wpt": 1
+  },
+  "8": {
+   "blocks": 1,
+   "candidates": 6,
+   "helpers": 1,
+   "source": "interpolated from N = 16",
+   "threads": 64,
+   "wpt": 1
+  }
+ },
+ "lta": {
+  "1": {
+   "G": 128,
+   "WB": 1,
+   "c_ss_ns": 5499.854,
+   "candidates": 4,
+   "source": "tune_lta150.jsonl"
+  },
+  "1024": {
+   "G": 32,
+   "WB": 10,
+   "c_ss_ns": 14.629,
+   "candidates": 13,
+   "source": "tune_lta150.jsonl"
+  },
+  "128": {
+   "G": 128,
+   "WB": 2,
+   "candidates": 31,
+   "source": "interpolated from N = 64"
+  },
+  "16": {
+   "G": 128,
+   "WB": 1,
+   "c_ss_ns": 528.305,
+   "candidates": 28,
+   "source": "tune_lta150.jsonl"
+  },
+  "2": {
+   "G": 128,
+   "WB": 1,
+   "candidates": 4,
+   "source": "interpolated from N = 1"
+  },
+  "256": {
+   "G": 64,
+   "WB": 4,
+   "c_ss_ns": 42.179,
+   "candidates": 23,
+   "source": "tune_lta150.jsonl"
+  },
+  "32": {
+   "G": 128,
+   "WB": 1,
+   "candidates": 28,
+   "source": "interpolated from N = 16"
+  },
+  "4": {
+   "G": 64,
+   "WB": 4,
+   "c_ss_ns": 1931.243,
+   "candidates": 12,
+   "source": "tune_lta150.jsonl"
+  },
+  "512": {
+   "G": 64,
+   "WB": 5,
+   "candidates": 23,
+   "source": "interpolated from N = 256"
+  },
+  "64": {
+   "G": 128,
+   "WB": 2,
+   "c_ss_ns": 138.152,
+   "candidates": 31,
+   "source": "tune_lta150.jsonl"
+  },
+  "8": {
+   "G": 64,
+   "WB": 4,
+   "candidates": 12,
+   "source": "interpolated from N = 4"
+  }
+ }
+}
