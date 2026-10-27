@@ -1,4 +1,4 @@
-# Stage I gates -> reference -> ABF-only budget pilot -> c_ss benchmark, gated in order (PREREGISTRATION §3-5, §8).
+# Stage I gates -> reference -> ABF-only budget pilot, gated in order (PREREGISTRATION §3-5).
 set -u
 python scripts/lta_loading/validate.py || exit 1
 python - <<'PY' || { echo "STAGE1_GATES_FAILED"; exit 2; }
@@ -19,5 +19,4 @@ PY
 python scripts/lta_loading/run_batch.py --method abf --N 256 --seeds 30200-30207 --n-steps 1200000 \
     --out results/lta_loading/pilot/abf_N256.npz || exit 5
 python scripts/lta_loading/analyze.py pilot || exit 6
-python scripts/lta_loading/bench.py || exit 7
 echo STAGE1_DONE
