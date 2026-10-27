@@ -181,3 +181,17 @@ followed by 100 Metropolis sweeps and the 10 000 steps of dynamics + reinsertion
 each walker's own state only, so a seed's trajectory still does not depend on its batch. The A1 physical check is
 unchanged and still binding.
 
+### A3 (2026-10-28, after the exploration ladder, before any confirmation datum)
+
+**What had been seen:** the full exploration ladder (`results/lta_loading/ladder/ladder_table.md`) and the c_ss
+benchmark. The frozen §6 selection (median b_mid) picks N = 64 for both methods (ABF 37.1M, FR 32.4M walker-steps;
+exploratory R_B 0.87 [0.55, 2.59]); the primary confirmation runs on it unchanged. On one A100 a walker-step at
+N = 64 costs ~5x one at N = 1024, so the §8 modelled wall-clock W_mid = (b_mid / N) c_ss is minimised elsewhere: ABF
+at N = 128 (20.9 s), FR at N = 256 (16.4 s), exploratory ratio 0.79.
+
+**Added, secondary (Q3 made confirmatory):** the W_mid-optimal arms — per method argmin over the ladder of median
+b_mid / N x median c_ss(N, method), censored = inf: **ABF N = 128, FR N = 256** — run on the same fresh seeds
+32000–32063 (64 per arm). R_W = median W_mid(FR) / median W_mid(ABF), unpaired 10 000-resample bootstrap 95 % CI,
+the §7 decision rule. This selection was made after seeing the ladder, which is what an exploration ladder is for;
+it is frozen here before any confirmation run, and the primary Q1 verdict is neither replaced nor re-selected.
+

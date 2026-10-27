@@ -201,5 +201,28 @@ def cmd_confirm():
     print(json.dumps({k: v for k, v in out.items() if k != "rows"}, indent=1, default=float))
 
 
+def cmd_confirm_wall():
+    """Amendment A3: the W_mid-optimal arms on the confirmation seeds; W_mid = (b_mid / N) x median c_ss(N, method)."""
+    F_ref, _ = reference()
+    bench = json.load(open(os.path.join(RES, "bench", "bench.json")))["summary"]
+    rows = load_dir(os.path.join(RES, "confirm_wall", "*.npz"), F_ref)
+    for x in rows:
+        c = bench[f"{x['method']}_N{x['N']}"]["median_c_ss"]
+        x["c_ss"] = c
+        x["W_mid"] = x["b_mid"] / x["N"] * c if math.isfinite(x["b_mid"]) else math.inf
+    a = [x["W_mid"] for x in rows if x["method"] == "abf"]
+    f = [x["W_mid"] for x in rows if x["method"] == "fr"]
+    R = boot_ratio(f, a)
+    decision = "FR faster" if R[2] < 1 else ("ABF faster" if R[1] > 1 else "unresolved")
+    out = dict(R_W=R, decision=decision, n=(len(a), len(f)),
+               arms={m: sorted({x["N"] for x in rows if x["method"] == m}) for m in ("abf", "fr")},
+               abf_cens=sum(not math.isfinite(x) for x in a), fr_cens=sum(not math.isfinite(x) for x in f),
+               abf_median_W=median_inf(a), fr_median_W=median_inf(f), rows=rows)
+    with open(os.path.join(RES, "confirm_wall", "confirm_wall.json"), "w") as fh:
+        json.dump(out, fh, indent=1, default=float)
+    print(json.dumps({k: v for k, v in out.items() if k != "rows"}, indent=1, default=float))
+
+
 if __name__ == "__main__":
-    {"pilot": cmd_pilot, "ladder": cmd_ladder, "confirm": cmd_confirm}[sys.argv[1]]()
+    {"pilot": cmd_pilot, "ladder": cmd_ladder, "confirm": cmd_confirm,
+     "confirm_wall": cmd_confirm_wall}[sys.argv[1]]()
