@@ -28,3 +28,5 @@ Job ids, what changed, outcome. Newest last. Study designs live in their own doc
 * 2026-10-28 pipeline 26030627 (g1, started 01:42): Stage I ALL PASS with the A2 pre-equilibration; reference
   ACCEPTED (F_ref SE rms 0.008 kJ/mol; mean-force vs density route rms 0.046, max 0.070; loaded barrier 13.8 kT vs
   single guest 13.6 kT; reinsertion acceptance 0.5 %; pilot 150 s, frozen 484 s at ~120 ns per walker-step).
+* Budget pilot (ABF N = 256, 8 seeds, 1.2M steps, 317 s): b_mid 90.6–119.8M walker-steps, median 104.4M;
+  **B = 208 928 768** (n_steps 3 264 512 at N = 64 ... 204 032 at N = 1024). Stage 1 done; bench + ladder running.
