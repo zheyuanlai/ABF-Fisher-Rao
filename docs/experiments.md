@@ -43,3 +43,8 @@ Job ids, what changed, outcome. Newest last. Study designs live in their own doc
 * 2026-10-28 ~04:00 v2 pipeline 26032190 (g1): Stage I ALL PASS; v2 reference ACCEPTED -- halves barrier 17.103 vs
   17.070 (diff 0.033 +- 0.018), halves rms 0.015, mean-force vs density 0.0056 (v1: 0.046), SE rms 0.006; barrier
   17.09 kJ/mol = 13.70 kT (single guest 13.59 kT).
+* v2 bench: ABF 59–176 us/step, FR +19–25 %. v2 budget B = 236 584 960. v2 exploration ladder DONE (16 seeds/arm):
+  fixed-N paired dI_F (FR vs ABF) -3.5 % [-16.3, +11.6] (N 64), -9.7 (128), -26.0 (256), -35.9 (512), -30.3 (1024);
+  median b_mid ABF 34.9M / 68.0M / 118.3M / cens 9 / cens 16, FR 42.0M / 55.0M / 74.5M / 104.7M (4 cens) / cens 8.
+  Frozen selection: ABF N 64, FR N 64 (exploratory R_B 1.20 [0.48, 1.88]); A3 wall-clock arms ABF N 64 (32.4 s),
+  FR N 512 (26.6 s). Confirmations running in the same job.
