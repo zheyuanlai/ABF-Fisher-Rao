@@ -18,7 +18,9 @@ N = 64 (the smallest rung). There, on 64 fresh seeds per arm:
 | median final e_F (kJ/mol) | **0.033** | 0.043 |
 | median ancestor ESS / N (minimum over the run) | — | **0.026** |
 
-**R_B = 1.02 [0.81, 1.25]** (median b_mid FR / ABF, unpaired bootstrap): *unresolved*. The two arms share seeds, so
+**R_B = 1.02 [0.81, 1.25]** (median b_mid FR / ABF, unpaired bootstrap): *unresolved*. The medians tie but the
+distributions do not (`figures/lta_loading/fig_confirm`): FR's fastest seeds are slightly faster than ABF's, while
+~20 % of FR seeds need 75–170M walker-steps against ABF's slowest 83M — the seeds whose genealogy collapsed. The two arms share seeds, so
 the paired contrasts are also available: integrated error I_F −6.1 % [−12.6, +4.8] (FR better 35/64), time to mid
 accuracy FR better 31/64, **final error +41.9 % [+7.5, +57.6] worse with FR** (FR better 21/64).
 
