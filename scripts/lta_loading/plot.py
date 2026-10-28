@@ -106,25 +106,28 @@ def fig_ladder():
 
 
 def fig_confirm():
-    path = os.path.join(A.RES, "confirm", "confirm.json")
-    if not os.path.exists(path):
+    """Two panels: the primary walker-step confirmation (frozen arms) and the A3 modelled wall-clock confirmation."""
+    p1 = os.path.join(A.RES, "confirm", "confirm.json")
+    p2 = os.path.join(A.RES, "confirm_wall", "confirm_wall.json")
+    if not (os.path.exists(p1) and os.path.exists(p2)):
         return
-    d = json.load(open(path))
-    fig, ax = plt.subplots(figsize=(4.6, 2.8))
-    for i, m in enumerate(("abf", "fr")):
-        rows = [r for r in d["rows"] if r["method"] == m]
-        if not rows:
-            continue
-        v = np.array([r["b_mid"] for r in rows], float) / 1e6
-        fin = np.sort(v[np.isfinite(v)])
-        ecdf = np.arange(1, len(fin) + 1) / len(v)
-        ax.step(fin, ecdf, where="post", color=COL[m], lw=2, label=f"{NAME[m]}, N = {rows[0]['N']}")
-    ax.set_xlabel("walker-steps to sustained mid accuracy, b_mid (10⁶)")
-    ax.set_ylabel("fraction of seeds")
-    R = d["R_B"]
-    ax.set_title(f"Confirmation, 64 seeds per arm: R_B = {R[0]:.2f} [{R[1]:.2f}, {R[2]:.2f}]", color=INK,
-                 fontsize=9.5)
-    ax.legend(loc="lower right")
+    d1, d2 = json.load(open(p1)), json.load(open(p2))
+    fig, axes = plt.subplots(1, 2, figsize=(9.2, 3.0))
+    for ax, d, key, scale, xl, Rk in ((axes[0], d1, "b_mid", 1e6, "walker-steps to sustained mid accuracy (10⁶)", "R_B"),
+                                      (axes[1], d2, "W_mid", 1.0, "modelled A100 seconds to sustained mid accuracy",
+                                       "R_W")):
+        for m in ("abf", "fr"):
+            rows = [r for r in d["rows"] if r["method"] == m]
+            v = np.array([r[key] for r in rows], float) / scale
+            fin = np.sort(v[np.isfinite(v)])
+            ax.step(fin, np.arange(1, len(fin) + 1) / len(v), where="post", color=COL[m], lw=2,
+                    label=f"{NAME[m]}, N = {rows[0]['N']}")
+        R = d[Rk]
+        ax.set_title(f"{Rk} = {R[0]:.2f} [{R[1]:.2f}, {R[2]:.2f}] — {d['decision']}", color=INK, fontsize=9)
+        ax.set_xlabel(xl)
+        ax.legend(loc="lower right")
+    axes[0].set_ylabel("fraction of 64 seeds")
+    fig.suptitle("Finite-loading LTA, 150 K: confirmation on fresh seeds", color=INK, fontsize=10, y=1.04)
     save(fig, "fig_confirm")
 
 

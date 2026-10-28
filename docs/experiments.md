@@ -48,3 +48,7 @@ Job ids, what changed, outcome. Newest last. Study designs live in their own doc
   median b_mid ABF 34.9M / 68.0M / 118.3M / cens 9 / cens 16, FR 42.0M / 55.0M / 74.5M / 104.7M (4 cens) / cens 8.
   Frozen selection: ABF N 64, FR N 64 (exploratory R_B 1.20 [0.48, 1.88]); A3 wall-clock arms ABF N 64 (32.4 s),
   FR N 512 (26.6 s). Confirmations running in the same job.
+* v2 pipeline 26032190 DONE (TASK_EXIT 0, ~5.2 h on one A100). Primary confirmation (N 64 both, 64 seeds/arm):
+  R_B 1.02 [0.81, 1.25] **unresolved**; paired: dI_F -6.1 % [-12.6, +4.8], final e_F +41.9 % [+7.5, +57.6] worse with
+  FR, FR ancestor ESS/N 0.026. A3 wall-clock (ABF N 64 vs FR N 512): R_W 0.93 [0.80, 1.10] **unresolved**. Write-up:
+  docs/lta_loading/RESULTS.md.
