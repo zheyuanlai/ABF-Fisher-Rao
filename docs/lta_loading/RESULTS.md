@@ -42,6 +42,25 @@ gain grows with N — the single-guest pattern survives at fixed N:
 
 (b_mid: walker-steps N·k at the first save after which e_F ≤ 0.13 kJ/mol at every later save; B = 236.6M per run.)
 
+**Convergence at equal N** (`figures/lta_loading/fig_fixedN_convergence`, N = 64 confirmation seeds in
+`fig_fixedN_confirm`; median and IQR curves in `fixedN_convergence.csv`): e_F against physical time per walker
+t = k h and against modelled A100 wall-clock. Median time to sustained mid accuracy, physical time (t.u.) /
+wall-clock (s):
+
+| N | ABF | ABF + FR |
+|---|---|---|
+| 64 | 109 / 32.4 | 131 / 48.7 |
+| 128 | 106 / 35.5 | 85.9 / 35.6 |
+| 256 | 92.4 / 36.4 | 58.2 / 28.5 |
+| 512 | not reached (9/16 cens.) | 40.9 / 26.6 (4/16 cens.) |
+| 1024 | not reached (16/16) | not reached (8/16) |
+| 64, confirmation, 64 seeds | 113 / 33.5 | 115 / 42.5 |
+
+In physical time FR is ahead from N = 128 up. Its extra 19–25 % cost per step cancels the N = 128 gain in wall-clock
+and leaves the N = 256–512 gains. At N = 64–128 FR's median error ends above ABF's on both axes (the genealogy cost,
+§2). The wall-clock is modelled (steps × the one-seed s/step of §5, start-up excluded, as in Amendment A3) because
+production ran 16 or 64 seeds batched on one GPU, so no per-seed clock exists.
+
 ## 2. What the numbers say
 
 * **FR is a fixed-N accelerator here, not a better deployment.** With many short walkers (large N), ABF cannot
@@ -102,4 +121,5 @@ for a device-side FR.
   tasks/, pbs/).
 * Results: `results/lta_loading/{validation,reference,pilot,bench,ladder,confirm,confirm_wall}/*.json`; batch `.npz`
   files stay on scratch (deterministic per seed: rebuildable with the task scripts).
-* Figures: `figures/lta_loading/fig_reference`, `fig_ladder`, `fig_confirm`.
+* Figures: `figures/lta_loading/fig_reference`, `fig_ladder`, `fig_confirm`, `fig_fixedN_convergence`,
+  `fig_fixedN_confirm` (+ `fixedN_convergence.csv`).

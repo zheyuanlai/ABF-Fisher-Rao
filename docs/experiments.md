@@ -52,3 +52,8 @@ Job ids, what changed, outcome. Newest last. Study designs live in their own doc
   R_B 1.02 [0.81, 1.25] **unresolved**; paired: dI_F -6.1 % [-12.6, +4.8], final e_F +41.9 % [+7.5, +57.6] worse with
   FR, FR ancestor ESS/N 0.026. A3 wall-clock (ABF N 64 vs FR N 512): R_W 0.93 [0.80, 1.10] **unresolved**. Write-up:
   docs/lta_loading/RESULTS.md.
+* 2026-10-28 equal-N convergence figures (no new runs): `figures/lta_loading/fig_fixedN_convergence` (ladder, every
+  N) and `fig_fixedN_confirm` (N 64 confirmation seeds), e_F vs physical time per walker and vs modelled A100
+  wall-clock (steps x one-seed s/step). Median time to sustained mid accuracy, t.u. / s: N 64 ABF 109 / 32.4,
+  FR 131 / 48.7; N 128 106 / 35.5 vs 85.9 / 35.6; N 256 92.4 / 36.4 vs 58.2 / 28.5; N 512 ABF not reached, FR 40.9 /
+  26.6; N 1024 neither; confirmation N 64 113 / 33.5 vs 115 / 42.5. Table in RESULTS.md.

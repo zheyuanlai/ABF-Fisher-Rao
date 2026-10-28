@@ -3,11 +3,15 @@
   reference   the loaded tagged-guest F(z) vs the single-guest exact-MC F(z)
   ladder      median e_F vs walker-steps per N (small multiples), ABF vs FR, IQR bands, mid threshold
   confirm     b_mid distributions of the two confirmed arms (if the confirmation exists)
+  fixedN      e_F at equal N, ABF vs FR, against physical time per walker and modelled A100 wall-clock
+              (ladder, every N; confirmation, N = 64); median curves also in fixedN_convergence.csv
 """
 from __future__ import annotations
 
+import csv
 import glob
 import json
+import math
 import os
 import sys
 
@@ -131,8 +135,114 @@ def fig_confirm():
     save(fig, "fig_confirm")
 
 
+AXIS = {"t": "physical time per walker, t = k h (t.u.)",
+        "W": "modelled A100 wall-clock, k × s/step (s)"}
+
+
+def fixed_n_curves(pattern):
+    """{(method, N): curves} of the batch files matching pattern, against step k, physical time t = k h and modelled
+    wall-clock W = k c_ss(method, N) (median s/step of one seed on one A100, bench.json; the Amendment A3 model)."""
+    F_ref, _ = A.reference()
+    c_ss = {k: v["median_c_ss"] for k, v in
+            json.load(open(os.path.join(A.RES, "bench", "bench.json")))["summary"].items()}
+    out = {}
+    for p in sorted(glob.glob(pattern)):
+        res, meta = LE.load_npz(p)
+        m, N = meta["method"], int(meta["N"])
+        k = res["save_step"].astype(float)
+        e = A.errors(res, F_ref)
+        first = [A.persistent_first(e[:, r] <= A.THR["mid"]) for r in range(e.shape[1])]
+        out[(m, N)] = dict(k=k, e=e, k_mid=np.array([math.inf if i is None else k[i] for i in first]),
+                           scale={"t": float(meta["cfg"]["h"]), "W": c_ss[f"{m}_N{N}"]})
+    return out
+
+
+def fixed_n_panel(ax, cur, N, axis):
+    """Median and IQR of e_F for ABF and FR at one N; dot + dotted line at the median time to persistent mid
+    accuracy (which can exceed the median curve's first crossing); the box gives those medians."""
+    notes = []
+    for m in ("abf", "fr"):
+        if (m, N) not in cur:
+            continue
+        d = cur[(m, N)]
+        x = d["k"] * d["scale"][axis]
+        sel = x > 0
+        q1, med, q3 = np.percentile(d["e"], [25, 50, 75], axis=1)
+        ax.fill_between(x[sel], q1[sel], q3[sel], color=COL[m], alpha=0.2, lw=0)
+        ax.plot(x[sel], med[sel], color=COL[m], lw=1.6, label=NAME[m])
+        xm = A.median_inf(d["k_mid"]) * d["scale"][axis]
+        n_c, n = int(np.sum(~np.isfinite(d["k_mid"]))), len(d["k_mid"])
+        if math.isfinite(xm):
+            ax.axvline(xm, color=COL[m], lw=0.9, ls=":")
+            ax.plot([xm], [A.THR["mid"]], "o", color=COL[m], ms=5, mec="white", mew=1, zorder=5)
+            txt = f"{xm:.3g}" + (" t.u." if axis == "t" else " s")
+        else:
+            txt = "not reached"
+        notes.append(f"{NAME[m]}: {txt}" + (f" ({n_c}/{n} cens.)" if n_c else ""))
+    ax.axhline(A.THR["mid"], color=INK2, lw=0.8, ls="--")
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.text(0.03, 0.03, "median to mid accuracy\n" + "\n".join(notes), transform=ax.transAxes, ha="left",
+            va="bottom", fontsize=6.5, color=INK, bbox=dict(boxstyle="round,pad=0.3", fc="white", ec=GRID, lw=0.6))
+
+
+def write_fixed_n_csv(sets):
+    with open(os.path.join(OUT, "fixedN_convergence.csv"), "w", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow(["set", "method", "N", "n_seeds", "step", "t_tu", "W_s", "eF_q25", "eF_median", "eF_q75"])
+        for name, cur in sets:
+            for (m, N), d in sorted(cur.items(), key=lambda kv: (kv[0][1], kv[0][0])):
+                q1, med, q3 = np.percentile(d["e"], [25, 50, 75], axis=1)
+                for i, k in enumerate(d["k"]):
+                    w.writerow([name, m, N, d["e"].shape[1], int(k), f"{k * d['scale']['t']:.6g}",
+                                f"{k * d['scale']['W']:.6g}", f"{q1[i]:.6g}", f"{med[i]:.6g}", f"{q3[i]:.6g}"])
+
+
+def fig_fixed_n():
+    """Equal N, ABF vs FR: e_F against physical time (top) and modelled A100 wall-clock (bottom). At fixed N the
+    two x axes differ only by FR's extra cost per step (+19-25 %), which shifts its curves right in wall-clock."""
+    lad = fixed_n_curves(os.path.join(A.RES, "ladder", "N*", "*.npz"))
+    Ns = sorted({k[1] for k in lad})
+    if not Ns:
+        return
+    fig, axes = plt.subplots(2, len(Ns), figsize=(2.6 * len(Ns), 5.6), sharey=True)
+    for c, N in enumerate(Ns):
+        for r, axis in enumerate(("t", "W")):
+            fixed_n_panel(axes[r, c], lad, N, axis)
+            axes[r, c].set_xlabel(AXIS[axis], fontsize=7.5)
+        axes[0, c].set_title(f"N = {N}", color=INK, fontsize=9)
+    for r in range(2):
+        axes[r, 0].set_ylabel("e_F (kJ/mol)")
+    axes[0, 0].legend(loc="upper right", frameon=True, facecolor="white", edgecolor=GRID, framealpha=1)
+    fig.suptitle("Finite-loading LTA, 150 K, equal number of walkers: e_F vs physical time (top) and modelled "
+                 "A100 wall-clock (bottom)\nmedian and IQR of 16 seeds; dashed: mid accuracy 0.13 kJ/mol; "
+                 "wall-clock = steps × measured s/step of one seed (start-up excluded)", color=INK, fontsize=9.5,
+                 y=1.02)
+    fig.tight_layout()
+    save(fig, "fig_fixedN_convergence")
+
+    con = fixed_n_curves(os.path.join(A.RES, "confirm", "*.npz"))
+    sets = [("ladder", lad)]
+    if con:
+        sets.append(("confirm", con))
+        N = sorted({k[1] for k in con})[0]
+        fig, axes = plt.subplots(1, 2, figsize=(9.2, 3.2), sharey=True)
+        for ax, axis in zip(axes, ("t", "W")):
+            fixed_n_panel(ax, con, N, axis)
+            ax.set_xlabel(AXIS[axis])
+        axes[0].set_ylabel("e_F (kJ/mol)")
+        axes[0].legend(loc="upper right", frameon=True, facecolor="white", edgecolor=GRID, framealpha=1)
+        n = con[("abf", N)]["e"].shape[1]
+        fig.suptitle(f"Confirmation seeds, both methods at N = {N}: e_F vs physical time and modelled A100 "
+                     f"wall-clock\nmedian and IQR of {n} seeds; dashed: mid accuracy 0.13 kJ/mol", color=INK,
+                     fontsize=9.5, y=1.07)
+        save(fig, "fig_fixedN_confirm")
+    write_fixed_n_csv(sets)
+
+
 if __name__ == "__main__":
     fig_reference()
     fig_ladder()
     fig_confirm()
+    fig_fixed_n()
     print("figures ->", OUT)
