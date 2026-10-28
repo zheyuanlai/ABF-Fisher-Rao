@@ -1,5 +1,13 @@
 # C60 execution state machine
 
+> **STUDY CLOSED 2026-10-28 by user directive, WITHOUT VERDICT.** See `docs/C60_CLOSURE.md`: the frozen
+> explicit-water protocol costs > 30 GPU-days on NSCC, the ~2.4 kT solvent barrier is the ABF-sufficient
+> class, and the finite-loading LTA study measured the cloned-environment cost that every explicit-solvent
+> C60 variant inherits (FR ancestor ESS/N 0.026, final error +41.9 % at the budget optimum). The
+> one-site-C60, MARTINI and conditional-pilot alternatives were considered and not adopted (closure §3).
+> No gate ran; the spec is untouched; `src/c60/omm.py` remains an unvalidated draft. Everything below is
+> the historical record of the suspended study and no longer describes a next permitted action.
+
 > **STUDY RE-SUSPENDED 2026-08-30 ~09:58 UTC by user directive** ("先kill掉吧，这个实验太复杂了
 > / 我们先close掉目前的实验"). The 2026-08-30 resume ran 12 minutes: build 1 relaunched from
 > the pinned worktree via the frozen campaign wrapper, revalidated the banked phase-A anchors
