@@ -26,3 +26,4 @@ Logs: `/scratch/users/nus/e1297740/logs/<task>_<jobid>.log`.  Budget at start: 2
 | 2026-10-29 | 26049499 | determinism.sh | gdev | tiny ABF cell twice with the same seed: are A100 trajectories run-to-run bit-identical? (the smoke showed abf vs fr_uniform differing with zero events) |
 | 2026-10-29 | 26049278 | smoke.sh | gdev | SMOKE_OK: tests, throughput, tiny two-arm cell, toy reference + merge, analysis + paired stats all run on the A100 |
 | 2026-10-29 | 26049477 | stage1 t0: replay_legacy | g3 | DONE 24 min. Defect reproduced on A100: learned span on I 79.9-107.4 kT (2026-08: 86.7-110.3), 2nd-half fraction above 2.80 nm 0.91-1.00 (2026-08: 0.951-0.9996). Faithful replay. |
+| 2026-10-29 | 26049499 | determinism.sh | gdev | A100 engine NOT run-to-run bit-deterministic: identical ABF repeats agree for 3.7 ps then separate (|dxi| 0.03 nm at 8 ps; PMF 0.22 kJ/mol). Arms share seed/init/noise; divergence is numerical. Noted in protocol §2. |

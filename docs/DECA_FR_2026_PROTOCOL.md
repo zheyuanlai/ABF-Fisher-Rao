@@ -69,7 +69,14 @@ The stored estimate is never ramped.
 birth; `p_die = 1 - exp(-rate |S| dt_FR)` every 0.5 ps from 50 ps, at most 5 % of the population per
 opportunity; full-state clone with fresh Maxwell momentum (`alanine.dynamics`).  A clone deposits
 its first ABF sample only after one propagation step.  The arms share coordinates, velocities and the
-dynamics noise stream until the first event (asserted bit-identical at zero rate).
+dynamics noise stream until the first event (asserted bit-identical at zero rate on CPU).
+*Note 2026-10-29 (smoke, job 26049499):* on the A100 the compiled engine is not run-to-run
+bit-deterministic (float64 atomics in scatter / autograd index-add): two identical ABF runs agree
+bit for bit for 3.7 ps, then separate chaotically (max |dxi| 0.03 nm by 8 ps, final PMF 0.22 kJ/mol
+apart).  The arms therefore share initial state and noise stream, and separate from ~4 ps exactly
+as two repeats of the same arm do.  The paired design rests on shared seeds, initial populations
+and noise, not on bitwise coupling; no determinism mode is imposed (it would slow the engine and
+change nothing statistically).
 
 *Online stop* (R2 of `src/eri/fr_controller.py`, time in ps): monitoring window W = [2.0, 2.8] nm
 on the interior bins [1.30, 3.50]; checks every 5 ps from 50 ps with a 20 ps trailing window;
