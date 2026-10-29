@@ -2,7 +2,7 @@
 # CPU-only end-to-end check of run_reference.py + merge_reference.py on a toy umbrella set
 # (4 windows x 3 replicas, production-length pull so the structural screen passes).
 set -euo pipefail
-OUT=results/deca_fr_2026/smoke/reference_cpu
+OUT=results/deca_fr_2026/smoke_cpu/reference   # not under smoke/: smoke.sh rm -rf's that directory
 rm -rf $OUT
 for b in 0 1; do
   python scripts/deca_fr_2026/run_reference.py --build-index $b --out $OUT --device cpu --n-windows 4 --n-rep 3 \
