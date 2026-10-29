@@ -41,3 +41,4 @@ Logs: `/scratch/users/nus/e1297740/logs/<task>_<jobid>.log`.  Budget at start: 2
 | 2026-10-29 | 26053327 | dt_windows.sh | g1 (2.2 h) | dual-submission of 26050158 (stuck 6 h in gdev); whichever starts first runs, the other is cancelled |
 | 2026-10-29 | 26053334 | prod_K128_T2ns_abf | g1 (2.8 h) | production ABF arm, queued behind 26053063 |
 | 2026-10-29 | 26053335 | prod_K256_T2ns_abf + prod_K32_T4ns_abf | g2 (4.5 h) | production ABF arms, queued behind the calibration |
+| 2026-10-29 | 26053062 | calibration rate020 | g2 | DONE 44 min. Safety stop in 8/8 seeds at 130-230 ps (max lineage > 0.10), established never fired; 87-157 events/seed; ESS/K 0.16-0.28 (3/8 < 0.20). e_F(T) abf 10.8 vs fr 15.8 (FR worse 7/8); I_F 16.3 vs 19.8; FR more pinned above 2.8 nm (0.97-1.00 vs 0.90-0.96). FAILS the calibration criteria. |
