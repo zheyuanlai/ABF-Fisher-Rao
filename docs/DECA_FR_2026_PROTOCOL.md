@@ -133,3 +133,51 @@ Legacy (defect reproduced): learned span on I 79.9–107.4 kT (median 94.1), fra
 both arms within seed scatter.  Conclusion: at the literature budget the corrected sampler fails Gate 0
 exactly as the defective one did; the 2026-08 attribution to ABF's conditional sampling at that budget
 stands.  Whether a larger population / longer run changes it is Stage II.
+
+### Stage I-C (2026-10-29, jobs 26049144/26049145, merge 26053061): reference rebuilt and accepted
+
+3 builds x 96 windows x 32 replicas x 2.0 ns on A100s (2.81 h each), 0 replicas excluded, 12.3 M
+samples per build (590 k out-of-domain samples dropped per build, never clamped).  Consensus:
+span 179.60 kJ/mol = 72.00 kT, minimum 1.637 nm, max pairwise between-build L2 0.66 kJ/mol,
+ratio 0.037 (accepted at < 1), consensus drift between the 0.5-ns checkpoints 0.97 / 0.62 / 0.74
+kJ/mol (0.04 of a resolvable 10 % effect), Gate A max pairwise TV 0.764.  The 2026-08 record
+(179.6 / 1.637 / 0.604 / 3.18 / 0.754) is reproduced; the drift is 4x smaller than recorded.
+Independent F'_ref from the per-cell conditional mean force over every production step:
+between-build L2 7.8 kJ/mol/nm; integrating it reproduces the MBAR F to 2.66 kJ/mol L2 on I
+(1.5 % of the span; 4x the between-build spread of F, 4x below the smallest ABF error measured
+below).  Files: `results/deca_fr_2026/reference/{summary.json,reference.npz}`.
+
+### Stage II-A (2026-10-29, job 26049477): estimator frozen = histogram, 257 cells
+
+K = 64, 1 ns, 8 seeds, ABF only, scored on I against the merged reference.  Median over seeds:
+
+| estimator | e_F(T) kJ/mol | I_F | e_F'(T) kJ/mol/nm | rel. mean-force error |
+|---|---|---|---|---|
+| kernel h = 0.04 | 11.72 | 40.83 | 42.0 | 0.44 |
+| kernel h = 0.02 | 13.43 | 32.28 | 48.5 | 0.51 |
+| histogram 129 | 11.84 | 18.98 | 46.2 | 0.49 |
+| histogram 257 | **10.76** | **14.21** | 45.5 | 0.48 |
+
+The histogram arms converge far earlier (I_F) at equal or better final error; 257 cells beats 129
+on both.  Frozen for Stages III/IV: `abf_estimator = histogram`, `n_grid = 257`, `C_min = 100`,
+10 ps warm-up (inherited settings, not tuned).  Reference values are interpolated to the 257
+cell centres for scoring.
+
+### Stage II-B (same runs): ABF at K = 64 x 1 ns is still conditional-equilibration-limited
+
+Second-half conditional-structure TV against the reference joint p(R, Y): 0.26–0.45 in the
+2.3–2.7 nm intervals, 0.04–0.17 at 2.7–3.1 nm, ~0 above 3.1 nm; the 1.5–2.3 nm intervals hold
+< 50 second-half samples per seed because 82–93 % of walkers sit above 2.80 nm.  The mean-force
+RMS error per 0.2-nm interval is largest where the walkers spend their time (2.9–3.5 nm: 54–97
+kJ/mol/nm against |F'| up to 186), i.e. large counts with a wrong conditional ensemble -- the
+2026-08 diagnosis, now on a corrected sampler with the better estimator, at 8x the literature
+budget.  Per the plan, the ABF-only assessment is extended to 2 ns by the production K = 64 ABF
+arm (16 seeds) rather than by an extra cell.
+
+### Stage I-B (2026-10-29): ABF-based dt cells confounded; direct window test pending
+
+K = 64, 200 ps: e_F(T) 68 (1 fs) vs 103 kJ/mol (0.5 fs), 0.5 fs worse at every time in 7/8 seeds
+while the walker dynamics coincide.  `abf_min_count` counts raw samples, so at 0.5 fs the trust
+ramp saturates in half the physical time and the early-bias span inflation is larger: a guard
+artefact, not an integrator verdict.  The direct test (conditional mean force in 25 stiff windows
+x 48 replicas at both dt, job 26050158) decides; dt = 1 fs is used meanwhile, as in 2026-08.

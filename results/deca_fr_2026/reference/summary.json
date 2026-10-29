@@ -1,0 +1,89 @@
+{
+  "n_builds": 3,
+  "ns_per_replica": 2.0,
+  "aggregate_ns": 18432.0,
+  "builds": [
+    {
+      "build": 0,
+      "n_kept": 3072,
+      "n_excluded": 0,
+      "n_samples": 12288000,
+      "n_dropped": 590168,
+      "stride": 31,
+      "runtime_h": 2.807775294787716,
+      "pull_error_max_nm": 0.2715041485831504
+    },
+    {
+      "build": 1,
+      "n_kept": 3072,
+      "n_excluded": 0,
+      "n_samples": 12288000,
+      "n_dropped": 590587,
+      "stride": 31,
+      "runtime_h": 2.8077753555364646,
+      "pull_error_max_nm": 0.2596054186611476
+    },
+    {
+      "build": 2,
+      "n_kept": 3072,
+      "n_excluded": 0,
+      "n_samples": 12288000,
+      "n_dropped": 605802,
+      "stride": 31,
+      "runtime_h": 2.807758467084107,
+      "pull_error_max_nm": 0.28578633048697544
+    }
+  ],
+  "pairwise_l2_max": 0.6623750757826855,
+  "pairwise_l2_matrix": [
+    [
+      NaN,
+      0.6623750757826855,
+      0.484698350360028
+    ],
+    [
+      0.6623750757826855,
+      NaN,
+      0.5933421535550896
+    ],
+    [
+      0.484698350360028,
+      0.5933421535550896,
+      NaN
+    ]
+  ],
+  "F_span_kJ": 179.600808597336,
+  "F_span_kT": 72.00337405992532,
+  "resolvable_effect_kJ": 17.9600808597336,
+  "ratio": 0.03688040610483701,
+  "reference_accepted": true,
+  "F_argmin_nm": 1.6372093023255814,
+  "Fprime_pairwise_l2_max": 7.839860038794904,
+  "Fprime_min_count_in_domain": 107162438.0,
+  "F_from_Fprime_vs_F_mbar_l2": 2.6590502055960146,
+  "Fprime_vs_numerical_gradient_rel_rms": 0.12040778260163885,
+  "checkpoint_ns": [
+    0.5,
+    1.0,
+    1.5,
+    2.0
+  ],
+  "consensus_drift_l2": [
+    0.9678073100846414,
+    0.6206375580688578,
+    0.7378800506704182
+  ],
+  "drift_over_effect": 0.04108445036707719,
+  "gate_a_max_pairwise_tv": 0.7638434280292028,
+  "gate_a_labels_occupied": 9,
+  "gate_a_pass": true,
+  "old_2026_08": {
+    "span_kJ": 179.59878070490453,
+    "pairwise_l2_max": 0.6044857339732211,
+    "drift_l2_kJ": 3.1810647541490846,
+    "argmin_nm": 1.6372093023255814,
+    "gate_a_tv": 0.753736636252673
+  },
+  "config_hash": "93c615d68f5f",
+  "git": "unknown"
+}
