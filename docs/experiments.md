@@ -39,3 +39,5 @@ Logs: `/scratch/users/nus/e1297740/logs/<task>_<jobid>.log`.  Budget at start: 2
 | 2026-10-29 | 26053062 | calibration (calib_t0 + calib_g2b) | g2 (3.5 h) | released after the estimator freeze: K=128, 1 ns, 8 seeds; abf + rates 0.005 / 0.02 / 0.05, R2 stop |
 | 2026-10-29 | 26053063 | prod_K64_T2ns_abf | g1 (3 h) | released: production K=64 x 2 ns ABF arm (also the Stage II-B 2 ns extension) |
 | 2026-10-29 | 26053327 | dt_windows.sh | g1 (2.2 h) | dual-submission of 26050158 (stuck 6 h in gdev); whichever starts first runs, the other is cancelled |
+| 2026-10-29 | 26053334 | prod_K128_T2ns_abf | g1 (2.8 h) | production ABF arm, queued behind 26053063 |
+| 2026-10-29 | 26053335 | prod_K256_T2ns_abf + prod_K32_T4ns_abf | g2 (4.5 h) | production ABF arms, queued behind the calibration |
