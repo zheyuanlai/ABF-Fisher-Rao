@@ -241,6 +241,11 @@ def analyse_arm(d, ref, kT):
     # ---- reference-dependent
     if ref is not None:
         F_ref, Fp_ref = ref["F_ref"], ref["Fprime_use"]
+        if ref["grid"].size != grid.size:
+            # a finer (or coarser) estimator grid: read the reference at this arm's cell centres
+            F_ref = np.interp(grid, ref["grid"], F_ref)
+            Fp_ref = np.interp(grid, ref["grid"], Fp_ref)
+            res["reference_interpolated_to_grid"] = int(grid.size)
         eF = rms_aligned(pmf, F_ref, mask)              # (S, R)
         eFp = rms(mf, Fp_ref, mask)
         res["e_F_final"] = eF[-1].tolist()
