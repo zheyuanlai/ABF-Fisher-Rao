@@ -46,7 +46,9 @@ def main():
     over = {}
     if args.n_steps is not None:
         over["n_steps"] = int(args.n_steps)
-    sim = C.make_sim(cfg.get("defaults"), cell.get("sim"), over)
+    # cell-level keys (n_walkers, n_steps, rng_seed) are sim fields too; then the cell's sim: block
+    cell_top = {k: cell[k] for k in ("n_walkers", "n_steps", "rng_seed") if k in cell}
+    sim = C.make_sim(cfg.get("defaults"), cell_top, cell.get("sim"), over)
     seeds = list(map(int, cell["seeds"]))
     dtype = torch.float64
 
