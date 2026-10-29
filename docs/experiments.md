@@ -21,3 +21,4 @@ Logs: `/scratch/users/nus/e1297740/logs/<task>_<jobid>.log`.  Budget at start: 2
 | 2026-10-29 | 26049277 | stage1 bundle | g3 | resubmitted after the init-file fix |
 | 2026-10-29 | 26049278 | smoke.sh | gdev | resubmitted after the init-file fix |
 | 2026-10-29 | 26049271 | refsmoke_cpu.sh | qdev | FAILED: its output dir was under smoke/, which the g3 smoke task rm -rf'd mid-run; moved, resubmitted as 26049317 (26049316 qdel'd: task not yet fixed) |
+| 2026-10-29 | 26049277 | stage1 bundle | g3 | qdel'd: run_cell.py ignored cell-level n_walkers/n_steps/rng_seed (all cells ran at K=16, 0.5 ns). Fixed; resubmitted as 26049471; partial outputs deleted |
