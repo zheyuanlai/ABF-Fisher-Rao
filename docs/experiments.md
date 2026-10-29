@@ -25,3 +25,4 @@ Logs: `/scratch/users/nus/e1297740/logs/<task>_<jobid>.log`.  Budget at start: 2
 | 2026-10-29 | 26049317 | refsmoke_cpu.sh | qdev | OK: run_reference (2 toy builds, checkpoints) + merge_reference end to end on CPU |
 | 2026-10-29 | 26049499 | determinism.sh | gdev | tiny ABF cell twice with the same seed: are A100 trajectories run-to-run bit-identical? (the smoke showed abf vs fr_uniform differing with zero events) |
 | 2026-10-29 | 26049278 | smoke.sh | gdev | SMOKE_OK: tests, throughput, tiny two-arm cell, toy reference + merge, analysis + paired stats all run on the A100 |
+| 2026-10-29 | 26049477 | stage1 t0: replay_legacy | g3 | DONE 24 min. Defect reproduced on A100: learned span on I 79.9-107.4 kT (2026-08: 86.7-110.3), 2nd-half fraction above 2.80 nm 0.91-1.00 (2026-08: 0.951-0.9996). Faithful replay. |
