@@ -48,7 +48,9 @@ which is an **independent F'_ref** (the restraint depends on R only, so the cond
 is the unbiased one).  Acceptance as before (max pairwise between-build L2 < 10 % of the span;
 drift between the 1.5 and 2.0 ns checkpoints reported as the honest uncertainty), plus two new
 checks: integrating F'_ref must reproduce the MBAR F on I to within the between-build spread, and
-the rebuilt span / argmin / Gate A must agree with the 2026-08 record.
+the rebuilt span / argmin / Gate A must agree with the 2026-08 record.  (The rebuild sets
+`n_prod_steps = 2 000 000` explicitly instead of stopping early at 2 ns, so its `config_hash` differs
+from the 2026-08 `7126bf20f4f4`; every other field is identical.)
 
 **Scoring interval** I = [1.30, 3.50] nm (wall-free).  Error metrics (§8) are evaluated on I.
 
