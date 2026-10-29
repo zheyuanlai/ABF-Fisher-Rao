@@ -6,8 +6,8 @@ stage: production
 out: results/deca_fr_2026/production
 init: {equil_ps: 20.0, jitter_nm: 0.006}
 defaults:
-  abf_estimator: histogram
-  n_grid: 129
+  abf_estimator: histogram   # frozen 2026-10-29 by Stage II-A (docs/DECA_FR_2026_PROTOCOL.md §6)
+  n_grid: 257               # frozen 2026-10-29 by Stage II-A
   abf_min_count: 100.0
   abf_warmup_steps: 10000
   fr_rate: 0.02
