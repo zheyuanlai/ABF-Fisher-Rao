@@ -123,4 +123,13 @@ g2 (2), g3 (4); one running job per queue per user.  Costs are recorded in `docs
 
 ## 6. Results
 
-*(appended as stages close)*
+### Stage I-A (2026-10-29, job 26049477): the half-kick defect did not cause the 2026-08 failure
+
+Same seeds, same initial population, same A100, 16 walkers x 0.5 ns x 8 ensembles, kernel h = 0.04.
+Legacy (defect reproduced): learned span on I 79.9–107.4 kT (median 94.1), fraction of walkers above
+2.80 nm in the second half 0.910–1.000 (median 0.990).  Fixed: 81.2–112.7 kT (median 96.8),
+0.972–1.000 (median 0.999).  Paired span differences (fixed − legacy): +16.1, +13.0, −2.4, −8.5,
++14.4, +1.2, −19.3, +8.0 kT.  The 2026-08 numbers (86.7–110.3 kT; 0.951–0.9996) are reproduced by
+both arms within seed scatter.  Conclusion: at the literature budget the corrected sampler fails Gate 0
+exactly as the defective one did; the 2026-08 attribution to ABF's conditional sampling at that budget
+stands.  Whether a larger population / longer run changes it is Stage II.
