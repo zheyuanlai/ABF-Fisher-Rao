@@ -15,3 +15,8 @@ Logs: `/scratch/users/nus/e1297740/logs/<task>_<jobid>.log`.  Budget at start: 2
 | 2026-10-29 | 26049144 | reference_build0.sh + reference_build1.sh | g2 (2 GPU, 23.5 h) | reference rebuild, builds 0 and 1 (96 x 32 x 2 ns each) |
 | 2026-10-29 | 26049145 | reference_build2.sh | g1 (23.5 h) | reference rebuild, build 2 |
 | 2026-10-29 | 26049146 | stage1_t0/t1/t2 + smoke | g3 (4 GPU, 6 h) | Stage I-A replay + I-B dt; Stage II-A pilots kernel h=0.04/0.02, hist 129/257; smoke |
+| 2026-10-29 | 26049138 | smoke.sh | gdev | tests 58 pass; A100 throughput (float64, compiled): B=128 4.2 ms/step, 512 3.35, 1024 3.2, 2048 3.6, 4096 6.5 (kernel); tiny cell FAILED: `np.savez` appended .npz to the temp init file -> rename failed. Fixed (run_cell.py). |
+| 2026-10-29 | 26049146 | stage1 bundle | g3 | started 07:24 UTC with the unfixed run_cell.py -> qdel'd; resubmitted as 26049277 |
+| 2026-10-29 | 26049271 | refsmoke_cpu.sh | qdev (CPU) | toy reference (4 x 3, 20k pull) to exercise save + merge on CPU |
+| 2026-10-29 | 26049277 | stage1 bundle | g3 | resubmitted after the init-file fix |
+| 2026-10-29 | 26049278 | smoke.sh | gdev | resubmitted after the init-file fix |
