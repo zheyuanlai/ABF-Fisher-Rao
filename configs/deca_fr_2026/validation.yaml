@@ -1,0 +1,47 @@
+# Stage I: correctness and numerical validation (docs/DECA_FR_2026_PROTOCOL.md §4).
+# I-A historical replay: the closed 2026-08 screen (kernel h=0.04, 16 walkers x 0.5 ns, 8 seeds,
+#     helix start) with and without the second-half-kick defect, same seeds, same hardware.
+# I-B timestep: K=64, 200 ps, 8 seeds, dt 1 fs vs 0.5 fs (kernel baseline, no FR).
+stage: validation
+out: results/deca_fr_2026/validation
+init: {equil_ps: 20.0, jitter_nm: 0.006}
+defaults:
+  abf_estimator: kernel
+  abf_bandwidth: 0.04
+  n_grid: 129
+  abf_min_count: 100.0
+  abf_warmup_steps: 10000
+  fr_rate: 0.0
+  save_every: 5000
+  xi_trace_every: 100
+  label_every: 2000
+  partial_save_every: 100000
+cells:
+  replay_fixed:
+    n_walkers: 16
+    n_steps: 500000
+    rng_seed: 20260811
+    seeds: [3000, 3001, 3002, 3003, 3004, 3005, 3006, 3007]
+    methods: [abf]
+    sim: {legacy_unweighted_second_kick: false}
+  replay_legacy:
+    n_walkers: 16
+    n_steps: 500000
+    rng_seed: 20260811
+    seeds: [3000, 3001, 3002, 3003, 3004, 3005, 3006, 3007]
+    methods: [abf]
+    sim: {legacy_unweighted_second_kick: true}
+  dt1fs_K64:
+    n_walkers: 64
+    n_steps: 200000
+    rng_seed: 20261101
+    seeds: [4100, 4101, 4102, 4103, 4104, 4105, 4106, 4107]
+    methods: [abf]
+    sim: {dt: 0.001}
+  dt05fs_K64:
+    n_walkers: 64
+    n_steps: 400000
+    rng_seed: 20261101
+    seeds: [4100, 4101, 4102, 4103, 4104, 4105, 4106, 4107]
+    methods: [abf]
+    sim: {dt: 0.0005, abf_warmup_steps: 20000, fr_start_steps: 100000, save_every: 10000, xi_trace_every: 200, label_every: 4000, partial_save_every: 200000}

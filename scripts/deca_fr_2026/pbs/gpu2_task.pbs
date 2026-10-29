@@ -1,0 +1,29 @@
+#!/bin/bash
+# Two A100s (queue g2): TASK0 on GPU 0 and TASK1 on GPU 1, concurrently.
+#   qsub -P personal-e1297740 -l walltime=HH:MM:SS -v TASK0=...,TASK1=... scripts/deca_fr_2026/pbs/gpu2_task.pbs
+#PBS -N deca_fr2
+#PBS -q normal
+#PBS -l select=1:ncpus=32:ngpus=2:mem=220gb
+#PBS -l walltime=06:00:00
+#PBS -j oe
+#PBS -o /scratch/users/nus/e1297740/logs/
+set -uo pipefail
+: "${TASK0:?pass TASK0 via qsub -v}"
+source /scratch/users/nus/e1297740/ABF-Fisher-Rao/scripts/deca_fr_2026/env.sh
+JOB=${PBS_JOBID%%.*}
+nvidia-smi --query-gpu=index,name,uuid --format=csv
+IFS=, read -ra DEVS <<< "${CUDA_VISIBLE_DEVICES:-0,1}"
+run() {
+    local LOG=$DF_LOGS/$(basename "$1" .sh)_${JOB}.log
+    echo "job $PBS_JOBID task $1 gpu $2 host $(hostname) start $(date -u +%FT%TZ) commit $(git -C $DF_ROOT rev-parse --short HEAD)" > "$LOG"
+    CUDA_VISIBLE_DEVICES=$2 bash "$1" >> "$LOG" 2>&1
+    local rc=$?
+    echo "TASK_EXIT $rc $(date -u +%FT%TZ)" >> "$LOG"
+    return $rc
+}
+run "$TASK0" "${DEVS[0]}" & P0=$!
+if [ -n "${TASK1:-}" ]; then run "$TASK1" "${DEVS[1]}" & P1=$!; fi
+wait $P0; rc0=$?
+rc1=0; if [ -n "${TASK1:-}" ]; then wait $P1; rc1=$?; fi
+echo "TASKS_EXIT $rc0 $rc1"
+exit $(( rc0 > rc1 ? rc0 : rc1 ))

@@ -1,0 +1,33 @@
+#!/bin/bash
+# Four A100s (queue g3): TASK0..TASK3 on GPUs 0..3, concurrently.
+#   qsub -P personal-e1297740 -l walltime=HH:MM:SS -v TASK0=...,TASK1=...,TASK2=...,TASK3=... scripts/deca_fr_2026/pbs/gpu4_task.pbs
+#PBS -N deca_fr4
+#PBS -q normal
+#PBS -l select=1:ncpus=64:ngpus=4:mem=440gb
+#PBS -l walltime=06:00:00
+#PBS -j oe
+#PBS -o /scratch/users/nus/e1297740/logs/
+set -uo pipefail
+: "${TASK0:?pass TASK0 via qsub -v}"
+source /scratch/users/nus/e1297740/ABF-Fisher-Rao/scripts/deca_fr_2026/env.sh
+JOB=${PBS_JOBID%%.*}
+nvidia-smi --query-gpu=index,name,uuid --format=csv
+IFS=, read -ra DEVS <<< "${CUDA_VISIBLE_DEVICES:-0,1,2,3}"
+run() {
+    local LOG=$DF_LOGS/$(basename "$1" .sh)_${JOB}.log
+    echo "job $PBS_JOBID task $1 gpu $2 host $(hostname) start $(date -u +%FT%TZ) commit $(git -C $DF_ROOT rev-parse --short HEAD)" > "$LOG"
+    CUDA_VISIBLE_DEVICES=$2 bash "$1" >> "$LOG" 2>&1
+    local rc=$?
+    echo "TASK_EXIT $rc $(date -u +%FT%TZ)" >> "$LOG"
+    return $rc
+}
+PIDS=(); RCS=()
+i=0
+for T in "${TASK0:-}" "${TASK1:-}" "${TASK2:-}" "${TASK3:-}"; do
+    if [ -n "$T" ]; then run "$T" "${DEVS[$i]}" & PIDS+=($!); fi
+    i=$((i+1))
+done
+worst=0
+for p in "${PIDS[@]}"; do wait $p; rc=$?; RCS+=($rc); [ $rc -gt $worst ] && worst=$rc; done
+echo "TASKS_EXIT ${RCS[*]}"
+exit $worst
