@@ -24,3 +24,4 @@ Logs: `/scratch/users/nus/e1297740/logs/<task>_<jobid>.log`.  Budget at start: 2
 | 2026-10-29 | 26049277 | stage1 bundle | g3 | qdel'd: run_cell.py ignored cell-level n_walkers/n_steps/rng_seed (all cells ran at K=16, 0.5 ns). Fixed; resubmitted as 26049477 (26049471 withdrawn: task split rebalanced); partial outputs deleted |
 | 2026-10-29 | 26049317 | refsmoke_cpu.sh | qdev | OK: run_reference (2 toy builds, checkpoints) + merge_reference end to end on CPU |
 | 2026-10-29 | 26049499 | determinism.sh | gdev | tiny ABF cell twice with the same seed: are A100 trajectories run-to-run bit-identical? (the smoke showed abf vs fr_uniform differing with zero events) |
+| 2026-10-29 | 26049278 | smoke.sh | gdev | SMOKE_OK: tests, throughput, tiny two-arm cell, toy reference + merge, analysis + paired stats all run on the A100 |
