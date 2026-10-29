@@ -20,4 +20,4 @@ Logs: `/scratch/users/nus/e1297740/logs/<task>_<jobid>.log`.  Budget at start: 2
 | 2026-10-29 | 26049271 | refsmoke_cpu.sh | qdev (CPU) | toy reference (4 x 3, 20k pull) to exercise save + merge on CPU |
 | 2026-10-29 | 26049277 | stage1 bundle | g3 | resubmitted after the init-file fix |
 | 2026-10-29 | 26049278 | smoke.sh | gdev | resubmitted after the init-file fix |
-| 2026-10-29 | 26049271 | refsmoke_cpu.sh | qdev | FAILED: its output dir was under smoke/, which the g3 smoke task rm -rf'd mid-run; moved, resubmitted as 26049316 |
+| 2026-10-29 | 26049271 | refsmoke_cpu.sh | qdev | FAILED: its output dir was under smoke/, which the g3 smoke task rm -rf'd mid-run; moved, resubmitted as 26049317 (26049316 qdel'd: task not yet fixed) |
