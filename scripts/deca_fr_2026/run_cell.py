@@ -60,7 +60,8 @@ def main():
             engine, len(seeds), sim.n_walkers, sim.rng_seed, args.device, dtype,
             dt=sim.dt, gamma=sim.gamma, temperature=sim.temperature,
             equil_ps=float(ip.get("equil_ps", 20.0)), jitter_nm=float(ip.get("jitter_nm", 0.006)))
-        tmp = init_path + f".tmp{os.getpid()}"
+        # np.savez appends ".npz" unless the name already ends with it -- keep the suffix
+        tmp = init_path[:-4] + f".tmp{os.getpid()}.npz"
         np.savez_compressed(tmp, positions=init, seeds=np.asarray(seeds),
                             report=np.array(json.dumps(rep)))
         os.replace(tmp, init_path)
