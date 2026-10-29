@@ -74,16 +74,17 @@ def main():
 
     # ---- Figure 2: profiles at the end (reference, both arms), and the error profiles
     if ref is not None:
-        grid, F_ref, Fp_ref = ref["grid"], ref["F_ref"], ref["Fprime_ref"]
-        mask = (grid >= 1.30) & (grid <= 3.50)
+        rgrid, F_ref, Fp_ref = ref["grid"], ref["F_ref"], ref["Fprime_ref"]
+        rmask = (rgrid >= 1.30) & (rgrid <= 3.50)
         fig, axes = plt.subplots(2, len(cells), figsize=(3.2 * len(cells), 4.6), squeeze=False)
         for j, cell in enumerate(cells):
-            axes[0, j].plot(grid, (F_ref - F_ref[mask].mean()) / kT, color="#222222", lw=1.2, label="reference")
-            axes[1, j].plot(grid, Fp_ref, color="#222222", lw=1.2, label="reference")
+            axes[0, j].plot(rgrid, (F_ref - F_ref[rmask].mean()) / kT, color="#222222", lw=1.2, label="reference")
+            axes[1, j].plot(rgrid, Fp_ref, color="#222222", lw=1.2, label="reference")
             for m in S["cells"][cell]["arms"]:
                 d = np.load(os.path.join(out_dir, cell, f"{m}.npz"))
+                grid = d["grid"]; mask = (grid >= 1.30) & (grid <= 3.50)   # the arm's own grid
                 pmf = d["pmf"][-1]
-                pmf = pmf - pmf[:, mask].mean(-1, keepdims=True) + F_ref[mask].mean() - F_ref[mask].mean()
+                pmf = pmf - pmf[:, mask].mean(-1, keepdims=True)
                 axes[0, j].plot(grid, np.median(pmf, 0) / kT, **{k: v for k, v in STYLE[m].items()})
                 axes[1, j].plot(grid, np.median(d["mean_force"][-1], 0), **{k: v for k, v in STYLE[m].items()})
             axes[0, j].set_title(cell); axes[0, j].set_ylabel("F (kT)"); axes[0, j].legend(frameon=False)
