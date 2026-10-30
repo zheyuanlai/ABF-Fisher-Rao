@@ -320,3 +320,50 @@ time-integrated error at any K, a 5 % lower final error at 2 ns bought with wors
 worse conditional fidelity, fewer transitions and ESS/K of 0.2–0.4.  Both arms remain limited by the
 same conditional-equilibration bias above 2.9 nm (~12 kJ/mol, 4.9 kT), which FR does not touch
 because its clones inherit the parent's substate.  The 2026-08 conclusion stands on a sound footing.
+
+### Post-protocol reference audit (2026-10-31, jobs 26066609 / 26066801 / 26066818): the reference, not ABF, is biased above 2.9 nm
+
+Not pre-registered; run after Stage IV to locate the 12 kJ/mol error that both arms share above
+2.9 nm.  Everything below leaves the pre-registered Stage IV table untouched; corrected-reference
+numbers are reported separately (analysis_v2 / figures_v2) in the next subsection.
+
+1. **ABF is path independent above 2.9 nm.**  `diagnostics/ext_ppii_K64`: ABF restricted to
+   [2.6, 3.6] nm (walls 2.65 / 3.55, 107 cells of the production width), started from a polyproline-II
+   population held at R = 3.11–3.28 nm by a harmonic restraint during the 20 ps equilibration
+   (unrestrained, a PPII start collapses to median R = 2.12 nm in 20 ps), K = 64 x 1 ns, 8 seeds.  Its
+   mean force agrees with the helix-history production ABF (K = 64 x 2 ns, 16 seeds) to < 1.5
+   kJ/mol/nm in every 0.2-nm interval of [2.7, 3.5] (90.2 / 59.9 / 38.3 / 39.9 vs 90.3 / 58.8 / 38.2 /
+   40.0; seed IQR < 1) and reproduces its structural-class, H-bond and helicity mixtures
+   (`diagnostics/analysis/extended_region.md`, `fig_extended_region.png`).  Both reference estimators
+   sit 40–95 kJ/mol/nm higher on [2.9, 3.5].  Two independent histories, 24 seeds, one answer.
+2. **One sixth of the umbrella replicas are kinetically trapped.**  The umbrella pool
+   (`deca.umbrella.diverse_pool`) cycles six (phi, psi) presets, so replica r of window w starts from
+   preset (32 w + r) mod 6.  Decomposing the accepted reference's own per-replica force accumulators
+   by preset (3 builds x 96 windows x 32 replicas):
+
+   | interval (nm) | helix | beta | PPII | bridge | mixed | **left-handed (60, 40)** | pooled reference | ABF (both histories) |
+   |---|---|---|---|---|---|---|---|---|
+   | [2.5, 2.7) | 111.3 | 111.5 | 111.8 | 111.2 | 111.2 | 130.0 | 114.3 | 110–120 |
+   | [2.7, 2.9) | 91.6 | 91.0 | 91.1 | 91.0 | 91.1 | 132.6 | 99.9 | 90.3 / 90.2 |
+   | [2.9, 3.1) | 59.3 | 60.0 | 59.6 | 59.5 | 59.6 | **464.0** | 154.5 | 58.8 / 59.9 |
+   | [3.1, 3.3) | 37.5 | 37.4 | 37.4 | 37.1 | 37.6 | **486.9** | 102.6 | 38.2 / 38.3 |
+   | [3.3, 3.5) | 41.4 | 40.5 | 40.3 | 40.4 | 41.6 | **416.6** | 94.2 | 40.0 / 39.9 |
+
+   The five ordinary presets agree with each other to < 1 kJ/mol/nm and with ABF to < 1.5; the
+   left-handed-helix replicas carry a tenfold larger restoring force and never relax in 2 ns under the
+   stiff restraint.  In every window with centre >= 2.95 nm the replicas whose mean force exceeds
+   2.5x the window median are exactly the left-handed ones (15–18 of 96 per window, all of them).  The
+   same decomposition of the Stage I-B stiff windows (k = 8000, 48 replicas) shows the same split
+   (left-handed 314–666 vs 35–53 for the rest at 2.95–3.50 nm) at both timesteps.  A substate whose
+   restoring force exceeds the others' by ~450 kJ/mol/nm over 0.2 nm is ~36 kT higher in free
+   energy there; its equilibrium weight above 2.95 nm is nil, but each trapped replica keeps its
+   initial 1/6 weight in the window average, which MBAR cannot see.  Pooled, this adds
+   ~(450)/6 ≈ 75 kJ/mol/nm to the reference F' above 2.9 nm: the size and location of the
+   "ABF error" of Stage IV, and the origin of the within-reference inconsistency of §I-B
+   (F'(cond) vs F'(grad) differ by 30 % at 2.9–3.2 nm; replica SD ~90 kJ/mol/nm).
+3. **Correction.**  `merge_reference.py --exclude-presets 5` re-merges the three accepted builds
+   without the left-handed replicas (27 of 32 per window remain; the raw builds and the v1 reference
+   are kept) into `results/deca_fr_2026/reference_v2/`, and every stage is re-scored against it
+   (`analysis_v2/`, `figures_v2/`).  The 2026-08 reference used the same pool, so its profile above
+   2.9 nm carried the same bias; the 2026-08 "ABF fails on deca-alanine" verdict was measured against
+   it.
