@@ -372,3 +372,60 @@ numbers are reported separately (analysis_v2 / figures_v2) in the next subsectio
    (`analysis_v2/`, `figures_v2/`).  The 2026-08 reference used the same pool, so its profile above
    2.9 nm carried the same bias; the 2026-08 "ABF fails on deca-alanine" verdict was measured against
    it.
+
+### Every stage re-scored against the corrected reference (2026-10-31, job 26066818; `analysis_v2/`, `figures_v2/`)
+
+Corrected reference (`results/deca_fr_2026/reference_v2/`, 3 builds x 96 windows x 27 replicas x 2 ns, 1536
+left-handed replicas excluded; compact copy `reference_compact.npz` in git): span 131.7 kJ/mol =
+**52.78 kT** (v1: 72.0), argmin 1.637 nm, between-build L2 max 0.55 kJ/mol, consensus drift
+0.23 / 0.19 / 0.19 kJ/mol per 0.5 ns (v1: 0.97 / 0.62 / 0.74), F integrated from F'(cond) vs MBAR F
+**0.19 kJ/mol** (v1: 2.66), F'(cond) vs numerical gradient rel. RMS **0.025** (v1: 0.12), Gate A TV 0.65.
+The two previously inconsistent reference estimators now agree, and the ABF profiles of every history
+agree with both (diag_extended v2: 90.3 / 58.8 / 38.2 / 40.0 vs reference 91.1 / 59.7 / 37.4 / 40.7).
+
+**Stage IV against the corrected reference** (same runs, same seeds; medians over 16 seeds, paired
+improvement = 1 − FR/ABF, positive = FR better):
+
+| cell | e_F(T) ABF / FR (kJ/mol) | I_F ABF / FR | **G_F = I_F improvement** | e_F(T) improvement | e_F'(T) ABF / FR | e_F'(T) improvement | cond. TV 2nd half ABF / FR (improvement) |
+|---|---|---|---|---|---|---|---|
+| K = 64 x 2 ns | **0.97** / 2.00 | 12.66 / 13.52 | −3.6 % [−20.7, +6.7], 6/16, p = 0.32 | −134 % [−179, −69], 1/16, p < 1e-4 | 9.1 / 11.4 | −28 % [−38, −13] | 0.111 / 0.140 (−20 % [−49, −6]) |
+| **K = 128 x 2 ns** | **0.90** / 2.34 | 13.13 / 16.09 | **−25.2 % [−31.8, −4.0], 3/16, p = 0.004** | −182 % [−222, −128], 0/16, p < 1e-4 | 7.5 / 10.5 | −42 % [−84, −25] | 0.120 / 0.167 (−30 % [−62, −8]) |
+| K = 256 x 2 ns | **0.90** / 3.10 | 16.00 / 17.52 | −8.0 % [−20.6, −4.1], 3/16, p = 0.006 | −194 % [−263, −132], 1/16, p < 1e-4 | 6.6 / 10.5 | −58 % [−79, −45] | 0.123 / 0.171 (−39 % [−59, −27]) |
+| K = 32 x 4 ns | **0.79** / 0.90 | 5.16 / 5.59 | −15.1 % [−22.1, −0.4], 4/16, p = 0.21 | −28 % [−42, −9], 3/16, p = 0.004 | 7.3 / 7.5 | −8 % [−13, +3] | 0.097 / 0.099 (−1 % [−7, +3]) |
+
+Marginal TV, ESS, transitions and stop times are reference independent (unchanged from the v1 table).
+
+Reading.  (i) **ABF alone converges on deca-alanine.**  Against the corrected reference the ABF
+error falls log-linearly in time from ~40 kJ/mol to **0.8–1.0 kJ/mol (0.3–0.4 kT)** at 2 ns for
+K = 64, 128 and 256 and to 0.8 kJ/mol at 2.5 ns for K = 32 (fig1 v2), i.e. to the reference's own
+between-build spread (0.55 kJ/mol).  The decay is a function of wall-clock time, not of walker-steps:
+the three 2 ns cells lie on one curve.  Convergence is relaxation-limited (bias build-up and the
+orthogonal degrees of freedom), not sample-limited, so at equal budget fewer, longer walkers win:
+128 M walker-steps give 0.79 (K32 x 4 ns) ≈ 0.97 (K64 x 2 ns) << 11.2 (K128 x 1 ns) << 27.5 (K256 x 0.5 ns).
+(ii) **FR slows that convergence at every K.**  The FR curve lies above ABF's throughout (fig1 v2)
+and ends 2–3x higher at 2 ns (0–1 of 16 seeds better, p < 1e-4); I_F is worse by 25 % at K = 128 and
+8 % at K = 256 with CIs excluding zero; the mean-force error is 28–58 % worse; conditional fidelity
+20–39 % worse.  The deficit sits at the compact edge (fig2 v2: at K >= 128 the FR free energy lies 3–4
+kT below the reference at 1.3–1.5 nm, with the F' bump at 1.3–1.45 nm), where the uniform target
+makes FR clone whichever walker is there; the clones' identical conformations bias the local mean
+force and the conditional ensemble, and the bias disappears only after FR has stopped (K = 32, whose
+FR phase ended at 2.1 ns of 4, is the only cell where FR ends near ABF).  At equal budget FR is worse
+at every (K, budget) with K <= 128 and within noise at K = 256.
+(iii) **Earlier stages, re-scored.**  Stage I-A: the 2026-08 budget (16 x 0.5 ns) gives e_F = 49 (fixed)
+and 48 kJ/mol (legacy): simply under-sampled, with or without the half-kick fix.  Stage II-A (K = 64 x
+1 ns, 8 seeds): I_F still ranks hist257 first (19.3 < hist129 25.1 < kernel h02 38.8 < h04 46.3), but
+e_F(1 ns) now ranks kernel h04 first (5.3 < hist257 10.4 < hist129 12.6 < h02 14.2); the freeze on I_F
+stands, with the caveat that a 1-ns snapshot taken during the steep part of the convergence (fig1 v2:
+10 -> 1 kJ/mol between 1 and 2 ns) is a weak discriminator.  Stage III (K = 128 x 1 ns, 8 seeds): ABF
+10.0; FR 13.3 / 14.4 / 15.6 / 21.4 / 19.5 at rates 0.001 / 0.002 / 0.005 / 0.02 / 0.05, i.e. worse
+at every rate.
+
+**Revised verdict.**  With the half-kick defect fixed, the histogram estimator and a reference
+free of trapped replicas, ABF converges on deca-alanine to within 1 kJ/mol in 2 ns at K = 64–256; the
+2026-08 "ABF fails" result was a reference artefact (trapped left-handed replicas, 1/6 of the pool)
+compounded by a 16x smaller budget.  ABF + Fisher–Rao at the only rate the diversity criteria
+tolerate makes the free-energy estimate worse at every K (final error 2–3x, I_F −8 to −25 % with CIs
+excluding zero at K >= 128), by the mechanism predicted by the selection-invariance argument: cloning
+at the under-populated compact edge replaces independent samples with copies.  The pre-registered
+primary endpoint (G_F >= +10 % at K = 128) is not met against either reference; against the corrected
+one its sign is firmly negative.
