@@ -54,3 +54,4 @@ Logs: `/scratch/users/nus/e1297740/logs/<task>_<jobid>.log`.  Budget at start: 2
 | 2026-10-30 | 26064478 | prod_K64_T2ns_fr_uniform | gdev (1:59) | K64 FR arm (90 min) on gdev |
 | 2026-10-30 | 26064476 | calib_finish.sh | qdev | OK: official calibration table (analysis/fr_calibration_*); cond TV 2nd half worse under FR at every rate (0.19-0.22 vs 0.15); calibration inits differ chaotically between rate cells (max dx 0.7-0.8 nm): seed-matched, not trajectory-paired |
 | 2026-10-30 | 26064477 / 26064478 | K256 FR (g1), K64 FR (gdev) | g1, gdev | qdel'd after 1 h / 5 min: the 4-arm g3 job 26057261 started and would have duplicated them |
+| 2026-10-30 | 26065238 | prod_finish.sh (frozen production analysis + figures) | qdev, depend=afterany:26057261 | runs automatically when the FR arms finish |
