@@ -211,3 +211,25 @@ and the safety rule stops FR.  Marginal TV to the wall target is lower under FR 
 vs 0.56) and higher at 1 ns (0.59–0.65 vs 0.56).  No tested rate meets the preregistered criterion
 (ESS/K >= 0.20 AND max lineage <= 0.10 in essentially all seeds); per the rule the intensity is
 reduced: rates 0.002 and 0.001 run next (job 26054xxx), and the largest passing rate is frozen.
+
+### Stage IV, ABF arms (2026-10-29, jobs 26053063/26053334/26053335): ABF converges to the same biased profile at every K
+
+16 seeds each, histogram 257, scored against the merged reference on I.  Median e_F(T): K = 32 x 4 ns
+12.63 [12.2, 12.9], K = 64 x 2 ns 12.19 [11.8, 12.6], K = 128 x 2 ns 12.15 [11.7, 12.4], K = 256 x 2 ns
+12.18 [11.8, 12.4] kJ/mol.  The error passes through a minimum near 1 ns (10.7–11.3) and then
+*rises* to a K-independent plateau of 12.2 kJ/mol (4.9 kT) with a seed spread of +-0.4: a systematic
+limit, not statistical noise.  Equal budget (128 M walker-steps): K = 128 x 1 ns 11.3 < K = 64 x 2 ns
+12.2 < K = 32 x 4 ns 12.6 < K = 256 x 0.5 ns 20.8.
+Where the error lives (median profile, K = 64 and K = 256 are identical to 0.1 kJ/mol): after
+alignment on I the ABF free energy sits +5 to +7 kJ/mol above the reference everywhere below
+2.9 nm and -17 / -31 kJ/mol below it at 3.1–3.3 / 3.3–3.5 nm; the mean force is within +-10
+kJ/mol/nm of the reference below 2.9 nm and 55–96 kJ/mol/nm too low above it (the same sign and
+size against both reference F' estimators, so this is not the reference ambiguity of §I-B).
+ABF puts 17 % of its second-half samples in each extended interval and < 1 % in each compact one.
+Reading: in the extended region (R > 2.9 nm) the conditional ensemble has slowly exchanging
+substates (replica SD ~90 kJ/mol/nm under a stiff restraint, §I-B); ABF walkers arrive there by
+unfolding from the helix and the umbrella replicas by being pulled from a diverse pool, and the two
+samplers settle on different substate mixtures.  Neither is demonstrably the equilibrium one.
+Deca-alanine remains conditional-equilibration-limited at 16x the literature budget per
+ensemble, with a corrected sampler and the better estimator; the limitation is now located
+(R > 2.9 nm) and quantified (~30 kJ/mol over the extended region).
