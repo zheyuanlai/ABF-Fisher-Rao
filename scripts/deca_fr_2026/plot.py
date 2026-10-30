@@ -40,12 +40,14 @@ def main():
     ap.add_argument("--config", required=True)
     ap.add_argument("--out", default=None)
     ap.add_argument("--reference", default="results/deca_fr_2026/reference/reference.npz")
+    ap.add_argument("--tag", default="", help="read analysis_<tag>/ and write figures_<tag>/")
     args = ap.parse_args()
     cfg = C.load_yaml(args.config)
     stage = cfg.get("stage")
     out_dir = args.out or cfg["out"]
-    an = os.path.join(out_dir, "analysis")
-    fig_dir = os.path.join(out_dir, "figures")
+    sfx = f"_{args.tag}" if args.tag else ""
+    an = os.path.join(out_dir, "analysis" + sfx)
+    fig_dir = os.path.join(out_dir, "figures" + sfx)
     os.makedirs(fig_dir, exist_ok=True)
     with open(os.path.join(an, f"{stage}_summary.json")) as fh:
         S = json.load(fh)

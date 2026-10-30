@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import common as C                                                          # noqa: E402
 from deca.labels import conditional_tv                                     # noqa: E402
 from deca.umbrella import UmbrellaConfig, mbar_weights, pmf_from_weights, window_centers  # noqa: E402
+from deca.umbrella import POOL_PRESETS                                        # noqa: E402
 
 KB = 0.008314462618
 EFFECT_SIZE_PCT = 10.0
@@ -47,13 +48,31 @@ def weighted_joint(xi, w, lab, edges_lab, grid, lo, hi):
     return J
 
 
+def preset_audit(grid, audit_s, audit_c, intervals=((2.5, 2.7), (2.7, 2.9), (2.9, 3.1), (3.1, 3.3), (3.3, 3.5))):
+    """Conditional mean force per starting preset on coarse R intervals (kJ/mol/nm)."""
+    out = {}
+    for lo, hi in intervals:
+        m = (grid >= lo) & (grid < hi)
+        out[f"{lo}-{hi}"] = [float(audit_s[p][m].sum() / max(audit_c[p][m].sum(), 1.0)) for p in range(audit_s.shape[0])]
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", default="results/deca_fr_2026/reference")
+    ap.add_argument("--raw-dir", default=None, help="where build*.npz live (default <dir>/raw)")
+    ap.add_argument("--out", default=None, help="where reference.npz / summary.json go (default <dir>)")
+    ap.add_argument("--exclude-presets", type=int, nargs="*", default=[],
+                    help="drop every replica that started from these diverse_pool presets (0-5)")
     args = ap.parse_args()
-    files = sorted(glob.glob(os.path.join(args.dir, "raw", "build[0-9].npz")))
+    raw_dir = args.raw_dir or os.path.join(args.dir, "raw")
+    out_dir = args.out or args.dir
+    os.makedirs(out_dir, exist_ok=True)
+    files = sorted(glob.glob(os.path.join(raw_dir, "build[0-9].npz")))
     if not files:
         raise SystemExit("no build files")
+    n_presets = len(POOL_PRESETS)
+    audit_s = np.zeros((n_presets, 0)); audit_c = np.zeros((n_presets, 0)); n_excl_preset = 0
     cfg0 = json.loads(str(np.load(files[0], allow_pickle=True)["config_json"]))
     cfg = UmbrellaConfig(**cfg0)
     cen = window_centers(cfg)
@@ -68,6 +87,17 @@ def main():
         z = np.load(fpath, allow_pickle=True)
         b = int(z["build_index"])
         xi, y, keep = z["xi"].astype(np.float64), z["y"].astype(int), np.asarray(z["keep"], bool)
+        preset = np.arange(keep.size) % n_presets
+        # per-preset conditional mean force (audit of the pool, before any exclusion)
+        if audit_s.shape[1] == 0:
+            audit_s = np.zeros((n_presets, z["floc_sum"].shape[1])); audit_c = np.zeros_like(audit_s)
+        for pi in range(n_presets):
+            mp = (preset == pi) & keep
+            audit_s[pi] += z["floc_sum"][mp].sum(0); audit_c[pi] += z["floc_cnt"][mp].sum(0)
+        if args.exclude_presets:
+            drop = np.isin(preset, args.exclude_presets) & keep
+            n_excl_preset += int(drop.sum())
+            keep = keep & ~drop
         aux_in = {"y": y.astype(np.float64), "hb": z["n_hbonds"].astype(np.float64),
                   "af": z["alpha_frac"].astype(np.float64)}
         xa, w, info, aux = mbar_weights(xi, cen, cfg.n_rep, cfg.k_umbrella, beta, keep=keep, aux=aux_in)
@@ -86,7 +116,7 @@ def main():
                                 runtime_h=float(z["runtime_seconds"]) / 3600.0,
                                 pull_error_max_nm=float(z["pull_error_nm"].max())))
         # checkpoint PMFs from time prefixes of the samples (samples are appended in time order)
-        ck = np.load(os.path.join(args.dir, "raw", f"build{b}_checkpoints.npz"))
+        ck = np.load(os.path.join(raw_dir, f"build{b}_checkpoints.npz"))
         for ns, ns_s in zip(ck["ns"], ck["n_sample"]):
             if int(ns_s) >= xi.shape[0]:
                 F_c = F
@@ -161,15 +191,17 @@ def main():
         drift_over_effect=(drifts[-1] / tolerable if drifts else None),
         gate_a_max_pairwise_tv=tv_max, gate_a_labels_occupied=int((occ > 0).sum()),
         gate_a_pass=bool(np.isfinite(tv_max) and tv_max >= 0.30),
-        old_2026_08=OLD, config_hash=cfg.config_hash(), git=C.git_commit())
-    np.savez_compressed(os.path.join(args.dir, "reference.npz"),
+        old_2026_08=OLD, config_hash=cfg.config_hash(), git=C.git_commit(),
+        excluded_presets=list(args.exclude_presets), n_replicas_excluded_by_preset=n_excl_preset,
+        preset_audit=preset_audit(grid, audit_s, audit_c))
+    np.savez_compressed(os.path.join(out_dir, "reference.npz"),
                         grid=grid, dz=dz, mask=mask, F_ref=F_ref, F_builds=A,
                         Fprime_ref=Fp_ref, Fprime_builds=Fp_builds, Fprime_counts=CN,
                         F_from_Fprime=F_from_Fp, F_checkpoints=np.stack(Fck), checkpoint_ns=np.array(ns_list),
                         joint_y=Jy, joint_hb=Jhb, joint_af=Jaf, af_edges=AF_EDGES,
                         gate_a_tv=tv, gate_a_occupancy=occ, gate_a_edges=edges,
                         xi_all=xi_all.astype(np.float32), weights=w_all, y_all=y_all.astype(np.int8))
-    with open(os.path.join(args.dir, "summary.json"), "w") as fh:
+    with open(os.path.join(out_dir, "summary.json"), "w") as fh:
         json.dump(summary, fh, indent=2)
     print("\n" + "=" * 78)
     for k in ("n_builds", "ns_per_replica", "aggregate_ns", "pairwise_l2_max", "F_span_kJ", "F_span_kT",

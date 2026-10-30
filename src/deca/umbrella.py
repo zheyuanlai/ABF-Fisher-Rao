@@ -88,18 +88,25 @@ def window_centers(cfg: UmbrellaConfig):
     return np.linspace(cfg.win_lo, cfg.win_hi, cfg.n_windows)
 
 
+#: Starting presets of :func:`diverse_pool`; pool member ``i`` uses preset ``i % len(POOL_PRESETS)``
+#: (so with ``n_rep`` replicas per window, replica ``r`` of window ``w`` has preset
+#: ``(w * n_rep + r) % 6``).  Index 5, the left-handed helix, is a kinetically trapped
+#: high-force substate above 2.9 nm (2026-10-31 audit, ``merge_reference.py --exclude-presets 5``).
+POOL_PRESETS = [(-57.0, -47.0),      # 0 right-handed alpha helix
+                (-150.0, 150.0),     # 1 extended / beta
+                (-75.0, 145.0),      # 2 polyproline II
+                (-90.0, 0.0),        # 3 bridge / compact
+                (-140.0, 60.0),      # 4 mixed
+                (60.0, 40.0)]        # 5 left-handed
+
+
 def diverse_pool(n, cfg: UmbrellaConfig, rng):
     """A structurally diverse starting pool: helical, extended, polyproline-like and mixed.
 
     Uniform ``(phi, psi)`` per structure, plus a per-residue jitter so replicas within a window
     do not start identical.  Every member passes the builder gate before it is used.
     """
-    presets = [(-57.0, -47.0),      # right-handed alpha helix
-               (-150.0, 150.0),     # extended / beta
-               (-75.0, 145.0),      # polyproline II
-               (-90.0, 0.0),        # bridge / compact
-               (-140.0, 60.0),      # mixed
-               (60.0, 40.0)]        # left-handed
+    presets = POOL_PRESETS
     out = []
     for i in range(n):
         phi, psi = presets[i % len(presets)]

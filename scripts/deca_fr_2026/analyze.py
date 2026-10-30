@@ -293,13 +293,14 @@ def main():
     ap.add_argument("--out", default=None)
     ap.add_argument("--reference", default="results/deca_fr_2026/reference/reference.npz")
     ap.add_argument("--budgets", type=float, nargs="*", default=[32e6, 64e6, 128e6])
+    ap.add_argument("--tag", default="", help="write to analysis_<tag>/ instead of analysis/")
     args = ap.parse_args()
     cfg = C.load_yaml(args.config)
     stage = args.stage or cfg.get("stage")
     out_dir = args.out or cfg["out"]
     ref = load_reference(args.reference)
     kT = KB * float(cfg.get("defaults", {}).get("temperature", 300.0))
-    an_dir = os.path.join(out_dir, "analysis")
+    an_dir = os.path.join(out_dir, "analysis" + (f"_{args.tag}" if args.tag else ""))
     os.makedirs(an_dir, exist_ok=True)
     summary = dict(stage=stage, config=os.path.relpath(args.config, C.ROOT),
                    reference=(args.reference if ref is not None else None), git=C.git_commit(),
