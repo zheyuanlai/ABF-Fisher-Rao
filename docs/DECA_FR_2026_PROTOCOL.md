@@ -361,6 +361,11 @@ numbers are reported separately (analysis_v2 / figures_v2) in the next subsectio
    ~(450)/6 ≈ 75 kJ/mol/nm to the reference F' above 2.9 nm: the size and location of the
    "ABF error" of Stage IV, and the origin of the within-reference inconsistency of §I-B
    (F'(cond) vs F'(grad) differ by 30 % at 2.9–3.2 nm; replica SD ~90 kJ/mol/nm).
+   *Confirmation (job 26066801):* ten stiff windows (k = 8000) at 2.6–3.5 nm x 48 replicas x 600 ps,
+   started from a PPII-only pool, give 113 / 101 / 92 / 83 / 60.0 / 44.6 / 37.2 / 35.0 / 38.8 / 49.5
+   kJ/mol/nm, flat across 100-ps blocks (replica SD 2–7): the ABF numbers.  The same windows from the
+   diverse pool reproduce the split (ordinary presets identical; left-handed 216–622 at 2.9–3.5 nm,
+   relaxing only from ~550 to ~430 over 600 ps at 3.3–3.5 nm).
 3. **Correction.**  `merge_reference.py --exclude-presets 5` re-merges the three accepted builds
    without the left-handed replicas (27 of 32 per window remain; the raw builds and the v1 reference
    are kept) into `results/deca_fr_2026/reference_v2/`, and every stage is re-scored against it
