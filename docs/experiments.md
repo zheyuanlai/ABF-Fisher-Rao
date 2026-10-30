@@ -52,3 +52,4 @@ Logs: `/scratch/users/nus/e1297740/logs/<task>_<jobid>.log`.  Budget at start: 2
 | 2026-10-30 | 26064453 | calib_finish.sh | qdev | FAILED: cmp on npz files (zip timestamps differ); replaced by an array comparison, resubmitted |
 | 2026-10-30 | 26064477 | prod_K256_T2ns_fr_uniform | g1 (3.8 h) | g3 job 26057261 stuck on node_pool; K256 FR arm moved to g1 (g3 job kept queued, skips completed cells) |
 | 2026-10-30 | 26064478 | prod_K64_T2ns_fr_uniform | gdev (1:59) | K64 FR arm (90 min) on gdev |
+| 2026-10-30 | 26064476 | calib_finish.sh | qdev | OK: official calibration table (analysis/fr_calibration_*); cond TV 2nd half worse under FR at every rate (0.19-0.22 vs 0.15); calibration inits differ chaotically between rate cells (max dx 0.7-0.8 nm): seed-matched, not trajectory-paired |

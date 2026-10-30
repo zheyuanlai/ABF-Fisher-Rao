@@ -242,3 +242,22 @@ samplers settle on different substate mixtures.  Neither is demonstrably the equ
 Deca-alanine remains conditional-equilibration-limited at 16x the literature budget per
 ensemble, with a corrected sampler and the better estimator; the limitation is now located
 (R > 2.9 nm) and quantified (~30 kJ/mol over the extended region).
+
+Official Stage III analysis (`results/deca_fr_2026/fr_calibration/analysis/`, CPU job 26064476), median
+over 8 seeds, paired relative improvement = 1 − FR/ABF (positive = FR better), 95 % seed-bootstrap CI:
+
+| rate | e_F(T): ABF / FR | I_F: ABF / FR | I_F improvement | e_F(T) improvement | marginal TV(T) | cond. TV 2nd half ABF / FR | ESS/K |
+|---|---|---|---|---|---|---|---|
+| 0.001 | 10.80 / 11.67 | 16.32 / 18.73 | −12 % [−24, +20], 2/8 | −8 % | 0.640 vs 0.639 | 0.152 / 0.207 | 0.71 |
+| 0.002 | 10.80 / 12.40 | 16.32 / 19.76 | −14 % [−74, +18], 3/8 | −8 % [−29, +10], 3/8 | 0.619 vs 0.639 | 0.152 / 0.221 | 0.44 |
+| 0.005 | 10.80 / 11.98 | 16.32 / 16.98 | +5 % [−17, +20], 5/8 | −8 % [−14, +4], 2/8 | 0.616 vs 0.639 | 0.152 / 0.186 | 0.27 |
+| 0.02 | 10.80 / 15.77 | 16.32 / 19.77 | −37 % [−49, +12], 2/8 | −33 % [−69, −11], 1/8, p = 0.016 | 0.669 vs 0.639 | 0.152 / 0.162 | 0.21 |
+| 0.05 | 10.80 / 14.87 | 16.32 / 21.99 | −17 % [−54, +20], 3/8 | −19 % [−50, −6], 1/8, p = 0.016 | 0.667 vs 0.639 | 0.152 / 0.178 | 0.21 |
+
+At every rate the conditional-structure TV against the reference is worse under FR: cloning
+narrows the conformational diversity at fixed R, which is the mechanism the selection-invariance
+argument predicts.  *Pairing caveat (calibration only):* each rate cell built its own initial
+population on the GPU, and the engine is not run-to-run deterministic, so after the 20 ps
+equilibration the populations differ chaotically (max |dx| 0.7–0.8 nm between cells).  The
+calibration comparisons are seed-matched, not trajectory-paired.  Production cells share one
+`init.npz` per cell, so their arms start from identical coordinates and velocities.
