@@ -261,3 +261,62 @@ population on the GPU, and the engine is not run-to-run deterministic, so after 
 equilibration the populations differ chaotically (max |dx| 0.7–0.8 nm between cells).  The
 calibration comparisons are seed-matched, not trajectory-paired.  Production cells share one
 `init.npz` per cell, so their arms start from identical coordinates and velocities.
+
+### Stage IV, ABF vs ABF+FR (2026-10-30, FR arms job 26057261, analysis 26065238): primary endpoint not met
+
+Frozen settings: histogram 257, fr_rate 0.002, wall-corrected uniform target, R2 online stop, 16 seeds per
+cell, each cell's two arms started from the same `init.npz` (same coordinates, velocities and noise seed;
+the GPU engine still de-correlates the pair after a few ps, so this is init-and-seed pairing).  Paired
+relative improvement = 1 − FR/ABF (positive = FR better), 95 % seed-bootstrap CI, Wilcoxon p.
+Analysis: `results/deca_fr_2026/production/analysis/production_{table.md,summary.json}`, figures
+`results/deca_fr_2026/production/figures/fig{1..5}_*.png`.
+
+| cell | e_F(T) ABF / FR (kJ/mol) | I_F ABF / FR | **G_F = I_F improvement** | e_F(T) improvement | e_F'(T) improvement | marginal TV(T) improvement | cond. TV 2nd half ABF / FR (improvement) | ESS/K at T | median t_stop | events / seed | transitions ABF / FR |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| K = 64 x 2 ns | 12.19 / 11.61 | 13.91 / 13.13 | +3.7 % [−5.7, +10.0], 11/16, p = 0.32 | +5.1 % [+3.4, +7.0], 15/16 | −1.4 % [−2.5, −0.5] | −5 % [−43, +10] | 0.170 / 0.191 (−11 % [−25, −2.5]) | 0.44 | 1.06 ns | 24 | 3814 / 3454 |
+| **K = 128 x 2 ns** | 12.15 / 11.51 | 13.96 / 15.24 | **−8.1 % [−13.8, +3.8], 7/16, p = 0.23** | +5.4 % [+4.5, +6.1], 16/16 | −2.6 % [−5.6, −0.6] | −16 % [−26, −3] | 0.173 / 0.218 (−20 % [−32, +2]) | 0.36 | 1.74 ns | 75 | 7798 / 6382 |
+| K = 256 x 2 ns | 12.18 / 11.43 | 16.26 / 16.28 | −0.6 % [−4.7, +4.1], 7/16 | +5.8 % [+5.0, +7.5], 16/16 | −2.5 % [−3.3, −1.2] | −11 % [−33, +4] | 0.175 / 0.221 (−25 % [−31, −17]) | 0.23 | none (16/16 ran to T) | 168 | 14886 / 12356 |
+| K = 32 x 4 ns | 12.63 / 12.42 | 12.24 / 11.88 | +2.0 % [−0.7, +4.9], 11/16, p = 0.08 | +1.2 % [+0.4, +2.3], 13/16 | +0.4 % [−0.6, +1.1] | +2 % [−13, +14] | 0.161 / 0.164 (−2 % [−4, +1]) | 0.41 | 2.14 ns | 22 | 5607 / 5256 |
+
+**Primary endpoint (pre-registered, §4): G_F at K = 128 ≥ +10 % with CI excluding 0.  Result: −8.1 %
+[−13.8, +3.8].  Not met.**  No cell reaches +10 %; the only positive point estimates (K = 64, K = 32) have
+CIs that include 0.
+
+Secondary endpoints.  (i) e_F at the final time is 5 % lower under FR at K ≥ 64 (CI excludes 0,
+15–16/16 seeds) and 1 % lower at K = 32.  The gain is located below 1.5 nm, where FR's F sits ~4 kT
+closer to the reference (fig2); both arms share the dominant error above 2.9 nm unchanged (mean force
+55–96 kJ/mol/nm below the reference, y-class mixture at 2.9–3.1 nm 74/26 in both arms vs 59/41 in the
+reference).  It is a late-time effect: during the active phase FR *lags* ABF (fig1: at K = 128 the FR
+e_F curve lies above ABF's from 0.1 to 1.2 ns, by up to 25 % at 0.5 ns), which is why I_F does not
+improve.  (ii) e_F'(T) is 1.4–2.6 % *worse* under FR at K ≥ 64 (CI excludes 0).  (iii) Marginal
+TV(p, q_wall) at T is worse under FR at K = 128 (−16 %, p = 0.006); time-averaged it is unchanged
+(fig3, top: the two curves coincide; at rate 0.002 the birth–death term does not flatten p(R) faster
+than the ABF bias does).  (iv) Conditional-structure TV in the second half is worse under FR at every
+K ≥ 64 (−11 / −20 / −25 %), as in Stage III.  (v) Transitions (hysteresis 0.05 nm, clone resets
+removed) are 9–18 % fewer under FR; round trips 146→131, 296→242, 560→458, 187→183.  (vi) Ancestor
+ESS/K at T: 0.44 / 0.36 / 0.23 / 0.41; max lineage ≤ 0.11 except one K = 32 seed (0.22).
+
+Where FR's diversity goes (K = 128, second half, interval [1.3, 1.5) nm): FR places 4x more samples
+there than ABF (median 1536 vs 381 per seed) but 85 % of them are in a single structural y-class
+(reference 16 %, ABF 45 %), so the conditional TV against the reference is 0.78 vs 0.30 (fig3,
+bottom, leftmost point), while [1.5, 1.7) is depleted (114 vs 357 samples).  Cloning at the compact
+edge, where the uniform target says p < q, multiplies copies of whichever walker happens to be there:
+more marginal mass, less conformational diversity.  This is the mechanism predicted by the
+selection-invariance argument, now seen directly in the production data.
+
+Controller: the 'established' trigger fires in production (t1 = 0.9–1.7 ns), unlike at 1 ns in Stage
+III.  K = 64: 9 safety / 3 established / 4 both; K = 128: 7 / 7 / 2; K = 32: 14 established / 2 both;
+K = 256: no stop (2 t1 > T), ESS/K falls to 0.23.  Score clip fraction 1.5–1.7 % (0.3 % at K = 32).
+
+Equal budget (median e_F, FR / ABF): 32 M walker-steps: K32@1 ns 10.4 / 10.7, K64@0.5 ns 15.4 / 16.1,
+K128@0.25 ns 24.6 / 20.7, K256@0.125 ns 31.0 / 32.7.  64 M: K64@1 ns 11.1 / 10.8, K128@0.5 ns 19.5 / 16.2,
+K32@2 ns 11.8 / 12.2, K256@0.25 ns 26.6 / 27.6.  128 M: K64@2 ns 11.6 / 12.2, K128@1 ns 12.4 / 11.3,
+K256@0.5 ns 21.6 / 20.8, K32@4 ns 12.4 / 12.6.  The best use of 128 M walker-steps remains ABF alone at
+K = 128 x 1 ns (11.3 kJ/mol); FR's early lag at K ≥ 128 makes it worse at every budget ≤ 128 M there.
+
+Verdict.  With the defect fixed, the better estimator, a rebuilt reference and the only FR rate the
+diversity criteria tolerate, FR is a small perturbation of ABF on deca-alanine: no gain in the
+time-integrated error at any K, a 5 % lower final error at 2 ns bought with worse mean-force error,
+worse conditional fidelity, fewer transitions and ESS/K of 0.2–0.4.  Both arms remain limited by the
+same conditional-equilibration bias above 2.9 nm (~12 kJ/mol, 4.9 kT), which FR does not touch
+because its clones inherit the parent's substate.  The 2026-08 conclusion stands on a sound footing.
