@@ -248,6 +248,12 @@ def analyse_arm(d, ref, kT):
             res["reference_interpolated_to_grid"] = int(grid.size)
         eF = rms_aligned(pmf, F_ref, mask)              # (S, R)
         eFp = rms(mf, Fp_ref, mask)
+        # secondary: against the numerical gradient of the MBAR F (the two reference F' estimates
+        # differ by ~30 % in 2.9-3.2 nm, where the restrained conditional ensemble is slow)
+        Fp_grad = np.gradient(ref["F_ref"], ref["grid"])
+        if ref["grid"].size != grid.size:
+            Fp_grad = np.interp(grid, ref["grid"], Fp_grad)
+        res["e_Fp_grad_final"] = rms(mf[-1], Fp_grad, mask).tolist()
         res["e_F_final"] = eF[-1].tolist()
         res["e_Fp_final"] = eFp[-1].tolist()
         res["I_F"] = time_average(times, eF, t_s).tolist()

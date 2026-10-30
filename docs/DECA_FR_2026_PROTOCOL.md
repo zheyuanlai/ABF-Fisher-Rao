@@ -181,3 +181,33 @@ while the walker dynamics coincide.  `abf_min_count` counts raw samples, so at 0
 ramp saturates in half the physical time and the early-bias span inflation is larger: a guard
 artefact, not an integrator verdict.  The direct test (conditional mean force in 25 stiff windows
 x 48 replicas at both dt, job 26050158) decides; dt = 1 fs is used meanwhile, as in 2026-08.
+
+### Stage I-B, direct (2026-10-29/30, jobs 26050158 and 26053327): dt = 1 fs accepted
+
+25 stiff windows (k = 8000) x 48 replicas from the diverse pool, 20 ps pull, 100 ps equilibration,
+400 ps production, same seeds at dt = 1 fs and 0.5 fs (1199/1200 replicas pass the structural
+screen).  `<f_loc | R>` per window: mean |difference| 3.0 kJ/mol/nm, RMS difference 5.0 % of the RMS
+reference force, mean |difference| / SE 0.51, max 1.67 (no window beyond 2 SE); integrated spans
+69.1 vs 69.8 kT (F_ref 67.2 on the same range).  Kinetic temperature 293.7 K (1 fs) vs 298.4 K
+(0.5 fs), the known BAOAB artefact at gamma = 1 ps^-1.  dt = 1 fs is kept for every stage.
+Observed on the way: at R >= 2.9 nm the replica-to-replica SD of `<f_loc>` is ~90 kJ/mol/nm after
+400 ps under the restraint, and the conditional-mean F'_ref and the MBAR-gradient F'_ref differ by
+~30 % there (2.95 nm: 158 vs 120).  The restrained conditional ensemble in the extended region is
+slow and multimodal; F'-based metrics there carry that reference ambiguity (it integrates to
+2.7 kJ/mol L2 in F, negligible against the ABF errors).  `e_Fp_grad_final` is reported alongside.
+
+### Stage III (2026-10-29/30, job 26053062): FR calibration at K = 128, 1 ns, 8 seeds
+
+| rate (ps^-1) | events/seed | stop | ESS/K final | max lineage | e_F(T) FR vs ABF | I_F FR vs ABF |
+|---|---|---|---|---|---|---|
+| 0.005 | 44–107 | safety in 6/8 at 325–565 ps, 2/8 to the horizon | 0.22–0.37 (8/8 >= 0.20) | 0.102 in 6/8 | 12.0 vs 10.8 (FR worse 5/8) | 17.0 vs 16.3 (median +5 %) |
+| 0.02 | 87–157 | safety 8/8 at 130–230 ps | 0.16–0.28 (5/8) | 0.102–0.117 (0/8) | 15.8 vs 10.8 (worse 7/8) | 19.8 vs 16.3 |
+| 0.05 | 62–162 | safety 8/8 at 75–125 ps | 0.17–0.27 (4/8) | 0.102–0.141 (0/8) | 14.9 vs 10.8 (worse 7/8) | 22.0 vs 16.3 |
+
+The R2 "established" trigger (trailing-window occupancy of [2.0, 2.8] nm >= 0.75 of its share)
+never fired at any rate: ABF with or without FR keeps 90–100 % of the walkers above 2.8 nm.  The
+uniform target therefore clones the few compact walkers repeatedly; lineage diversity collapses
+and the safety rule stops FR.  Marginal TV to the wall target is lower under FR at 100 ps (0.35–0.53
+vs 0.56) and higher at 1 ns (0.59–0.65 vs 0.56).  No tested rate meets the preregistered criterion
+(ESS/K >= 0.20 AND max lineage <= 0.10 in essentially all seeds); per the rule the intensity is
+reduced: rates 0.002 and 0.001 run next (job 26054xxx), and the largest passing rate is frozen.
