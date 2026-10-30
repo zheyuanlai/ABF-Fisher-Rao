@@ -420,6 +420,13 @@ stands, with the caveat that a 1-ns snapshot taken during the steep part of the 
 10.0; FR 13.3 / 14.4 / 15.6 / 21.4 / 19.5 at rates 0.001 / 0.002 / 0.005 / 0.02 / 0.05, i.e. worse
 at every rate.
 
+Full-domain init dependence (job 26066576, K = 64 x 2 ns, 8 seeds, ABF only, scored against v2): a
+collapsed-PPII start (unrestrained equilibration, median R 2.1 nm) gives e_F(T) = 0.99 kJ/mol and a
+50/50 helix/PPII start 0.82, against 0.97 for the protocol's helix start: the converged ABF profile
+does not depend on where the walkers begin.  The extended-region cell scores 0.15 kJ/mol on its own
+interval.  Against the v1 reference the same cells read 11.8 / 12.1 / 14.9: the "K-independent
+12 kJ/mol plateau" of the v1 analysis was the reference bias, reached by every history alike.
+
 **Revised verdict.**  With the half-kick defect fixed, the histogram estimator and a reference
 free of trapped replicas, ABF converges on deca-alanine to within 1 kJ/mol in 2 ns at K = 64–256; the
 2026-08 "ABF fails" result was a reference artefact (trapped left-handed replicas, 1/6 of the pool)
