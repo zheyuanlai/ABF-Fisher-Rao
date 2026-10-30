@@ -42,12 +42,18 @@ def main():
     ap.add_argument("--k-umbrella", type=float, default=8000.0)
     ap.add_argument("--seed", type=int, default=4242)
     ap.add_argument("--device", default="cuda")
+    ap.add_argument("--init", default="pool", choices=["pool", "ppii", "helix"],
+                    help="starting pool: the umbrella's diverse preset pool (default), or a single preset")
+    ap.add_argument("--win-lo", type=float, default=1.30)
+    ap.add_argument("--win-hi", type=float, default=3.50)
+    ap.add_argument("--block-ps", type=float, default=0.0,
+                    help="if > 0, also save per-replica block means of f_loc every block-ps of production")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
     dev, dtype = args.device, torch.float64
     cfg = UmbrellaConfig()
     beta, dt = cfg.beta, args.dt
-    centers_np = np.linspace(1.30, 3.50, args.n_windows)
+    centers_np = np.linspace(args.win_lo, args.win_hi, args.n_windows)
     n_w, n_r = args.n_windows, args.n_rep
     B = n_w * n_r
     engine = C.engine_for(dev)
@@ -55,7 +61,13 @@ def main():
     cv = DistanceCV(i_cv, j_cv)
     centers = torch.as_tensor(np.repeat(centers_np, n_r), device=dev, dtype=dtype)
     rng = np.random.default_rng(args.seed)
-    q = torch.as_tensor(diverse_pool(B, cfg, rng), device=dev, dtype=dtype).contiguous()
+    if args.init == "pool":
+        pool = diverse_pool(B, cfg, rng)
+    else:
+        phi, psi = {"ppii": (-75.0, 145.0), "helix": (-57.0, -47.0)}[args.init]
+        pool = np.stack([dsys.build_helix(phi + rng.normal(0.0, 8.0), psi + rng.normal(0.0, 8.0),
+                                          n_res=dsys.N_RES) for _ in range(B)])
+    q = torch.as_tensor(pool, device=dev, dtype=dtype).contiguous()
     q, ok, _ = relax_pool(engine, q)
     bad = int((~ok).sum())
     if bad:
@@ -95,10 +107,16 @@ def main():
     fsum = torch.zeros(B, device=dev, dtype=dtype); f2sum = torch.zeros(B, device=dev, dtype=dtype)
     xsum = torch.zeros(B, device=dev, dtype=dtype); Tsum = 0.0
     n = 0
+    n_block = int(round(args.block_ps / dt)) if args.block_ps > 0 else 0
+    bsum = torch.zeros(B, device=dev, dtype=dtype); blocks = []
     for s in range(n_prod):
         q, v, f = step(q, v, f)
         f_loc, R, _ = cv.local_mean_force(q, f, beta)
         fsum += f_loc; f2sum += f_loc * f_loc; xsum += R; n += 1
+        if n_block:
+            bsum += f_loc
+            if (s + 1) % n_block == 0:
+                blocks.append((bsum / n_block).reshape(n_w, n_r).cpu().numpy()); bsum.zero_()
         if (s + 1) % 1000 == 0:
             Tsum += float(integ.kinetic_temperature(v))
         if (s + 1) % (n_prod // 4) == 0:
@@ -113,9 +131,12 @@ def main():
     xbar = np.array([x_rep[w][keep_np[w]].mean() for w in range(n_w)])
     T_kin = Tsum / max(n_prod // 1000, 1)
     np.savez_compressed(os.path.join(args.out, "windows.npz"), centers=centers_np, xbar=xbar, mf=mf, mf_se=se,
-                        mf_rep=mf_rep, x_rep=x_rep, keep=keep_np, dt=dt, n_prod=n_prod)
+                        mf_rep=mf_rep, x_rep=x_rep, keep=keep_np, dt=dt, n_prod=n_prod,
+                        block_ps=args.block_ps, mf_blocks=np.array(blocks) if blocks else np.zeros((0, n_w, n_r)),
+                        init=args.init)
     with open(os.path.join(args.out, "summary.json"), "w") as fh:
-        json.dump(dict(dt=dt, n_windows=n_w, n_rep=n_r, pull_ps=args.pull_ps, equil_ps=args.equil_ps,
+        json.dump(dict(dt=dt, init=args.init, win_lo=args.win_lo, win_hi=args.win_hi, block_ps=args.block_ps,
+                       n_windows=n_w, n_rep=n_r, pull_ps=args.pull_ps, equil_ps=args.equil_ps,
                        prod_ps=args.prod_ps, k_umbrella=k_u, seed=args.seed, n_kept=int(keep_np.sum()),
                        kinetic_temperature_K=T_kin, n_fail_cis=int(rep_e["n_fail_cis"]),
                        n_fail_chirality=int(rep_e["n_fail_chirality"]),
