@@ -210,7 +210,16 @@ uniform target therefore clones the few compact walkers repeatedly; lineage dive
 and the safety rule stops FR.  Marginal TV to the wall target is lower under FR at 100 ps (0.35–0.53
 vs 0.56) and higher at 1 ns (0.59–0.65 vs 0.56).  No tested rate meets the preregistered criterion
 (ESS/K >= 0.20 AND max lineage <= 0.10 in essentially all seeds); per the rule the intensity is
-reduced: rates 0.002 and 0.001 run next (job 26054xxx), and the largest passing rate is frozen.
+reduced: rates 0.002 and 0.001 (job 26056977, 2026-10-30):
+
+| rate (ps^-1) | events/seed | stop | ESS/K final | max lineage | e_F(T) FR vs ABF | I_F FR vs ABF |
+|---|---|---|---|---|---|---|
+| 0.002 | 35–52 | safety in 1/8 (750 ps), 7/8 to the horizon | 0.37–0.56 (8/8) | 0.055–0.102 (7/8 <= 0.10) | 12.4 vs 10.8 (FR better 3/8) | 19.8 vs 16.3 (3/8) |
+| 0.001 | 17–32 | none | 0.60–0.78 (8/8) | 0.023–0.047 (8/8) | 11.7 vs 10.8 (3/8) | 18.7 vs 16.3 (2/8) |
+
+**Frozen for Stage IV: `fr_rate = 0.002 ps^-1`**, the largest rate that meets the diversity rule in
+essentially all (7/8) seeds; all other FR settings as listed in §2.  Chosen on diversity only: at
+K = 128 x 1 ns no rate improves on ABF (FR better in at most 3/8 seeds on either endpoint).
 
 ### Stage IV, ABF arms (2026-10-29, jobs 26053063/26053334/26053335): ABF converges to the same biased profile at every K
 
