@@ -55,7 +55,7 @@ def main():
     init_path = os.path.join(out_dir, "init.npz")
     engine = C.engine_for(args.device, compiled=not args.no_compile, dtype=dtype)
     if not os.path.exists(init_path):
-        ip = cfg.get("init", {})
+        ip = {**cfg.get("init", {}), **cell.get("init", {})}     # cell-level init overrides
         print(f"[{args.cell}] building the initial population: {len(seeds)} seeds x "
               f"{sim.n_walkers} walkers, init_mode="
               f"{cell.get('init_mode', ip.get('init_mode', 'helix'))}", flush=True)
@@ -63,7 +63,8 @@ def main():
             engine, len(seeds), sim.n_walkers, sim.rng_seed, args.device, dtype,
             dt=sim.dt, gamma=sim.gamma, temperature=sim.temperature,
             equil_ps=float(ip.get("equil_ps", 20.0)), jitter_nm=float(ip.get("jitter_nm", 0.006)),
-            init_mode=str(cell.get("init_mode", ip.get("init_mode", "helix"))))
+            init_mode=str(cell.get("init_mode", ip.get("init_mode", "helix"))),
+            restrain_k=float(ip.get("restrain_k", 0.0)), restrain_R0=ip.get("restrain_R0"))
         # np.savez appends ".npz" unless the name already ends with it -- keep the suffix
         tmp = init_path[:-4] + f".tmp{os.getpid()}.npz"
         np.savez_compressed(tmp, positions=init, seeds=np.asarray(seeds),

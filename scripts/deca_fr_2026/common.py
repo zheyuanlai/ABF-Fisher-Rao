@@ -26,6 +26,7 @@ from deca import system as dsys                                             # no
 from deca.core import DecaSimConfig                                         # noqa: E402
 from deca.engine import make_engine                                         # noqa: E402
 from deca.umbrella import relax_pool                                        # noqa: E402
+from alkanes.distance_cv import DistanceCV, dist_bias_force                 # noqa: E402
 
 KB = 0.008314462618
 STUDY_METHODS = ("abf", "fr_uniform")
@@ -71,12 +72,16 @@ INIT_MODES = ("helix", "ppii", "mixed")
 
 def build_initial_population(engine, n_seeds, n_walkers, rng_seed, device, dtype=torch.float64,
                              dt=0.001, gamma=1.0, temperature=300.0, equil_ps=20.0,
-                             jitter_nm=0.006, verbose=True, init_mode="helix"):
+                             jitter_nm=0.006, verbose=True, init_mode="helix",
+                             restrain_k=0.0, restrain_R0=None):
     """Amendment 4 protocol: helix start, jittered per walker, relaxed, 20 ps unbiased BAOAB.
 
     ``init_mode`` (post-protocol diagnostics only): ``helix`` (protocol), ``ppii`` (every walker
     starts as polyproline II, phi/psi = -75/145, i.e. from the extended side) or ``mixed`` (the
-    first half of each seed's walkers helical, the second half PPII).
+    first half of each seed's walkers helical, the second half PPII).  ``restrain_k`` > 0
+    (kJ/mol/nm^2) equilibrates under a harmonic restraint on R towards ``restrain_R0`` (a number)
+    or, if that is None, towards each walker's own R after relaxation; without it an extended
+    start collapses to R ~ 2.1 nm within the 20 ps (unbiased, no walls).
     The equilibration accumulates nothing.  Returns ``(positions (R, N, A, 3) float64, report)``.
     Deterministic in ``rng_seed`` (numpy jitter, torch Maxwell + noise), so both arms of a cell
     load the same file and the file can be rebuilt bit for bit.
@@ -111,22 +116,36 @@ def build_initial_population(engine, n_seeds, n_walkers, rng_seed, device, dtype
                   force_fn=engine.forces, device=device, dtype=dtype)
     v = integ.maxwell((B, engine.n_atoms, 3), gen, device, dtype)
     f = engine.forces(q)
+    cv = DistanceCV(*dsys.terminal_carbonyls(dsys.N_RES))
+    bias_fn = None
+    if restrain_k and restrain_k > 0:
+        R_init = cv.value(q)
+        R0 = R_init if restrain_R0 is None else torch.full_like(R_init, float(restrain_R0))
+
+        def bias_fn(qq):
+            Rq, grad_full, _ = cv.geometry(qq)
+            return dist_bias_force(grad_full, -float(restrain_k) * (Rq - R0))
     n_eq = int(round(equil_ps / dt))
     t0 = time.perf_counter()
     for _ in range(n_eq):
-        q, v, f = integ.step(q, v, f, gen)
+        q, v, f = integ.step(q, v, f, gen, bias_fn=bias_fn)
+    R_end = cv.value(q).cpu().numpy()
     ok_t, rep_t = dsys.validate_thermal(q.cpu().numpy(), dsys.N_RES)
     T_kin = float(integ.kinetic_temperature(v))
     if verbose:
         print(f"  {equil_ps:.0f} ps unbiased equilibration ({time.perf_counter()-t0:.0f}s): "
               f"structural {int(ok_t.sum())}/{B} pass (cis {rep_t['n_fail_cis']}, "
-              f"chirality {rep_t['n_fail_chirality']}), T_kin {T_kin:.1f} K", flush=True)
+              f"chirality {rep_t['n_fail_chirality']}), T_kin {T_kin:.1f} K; R after equilibration "
+              f"min/median/max {R_end.min():.2f}/{np.median(R_end):.2f}/{R_end.max():.2f} nm"
+              f"{' (restrained)' if bias_fn is not None else ''}", flush=True)
     if ok_t.sum() < 0.95 * B:
         raise RuntimeError(f"equilibration damaged {B - int(ok_t.sum())}/{B} walkers")
     return q.reshape(n_seeds, n_walkers, engine.n_atoms, 3).cpu().numpy(), dict(
         n_replaced_seeds=n_bad, n_structural_fail=int(B - ok_t.sum()), equil_ps=equil_ps,
         jitter_nm=jitter_nm, rng_seed=int(rng_seed), kinetic_temperature_K=T_kin,
-        init_mode=init_mode)
+        init_mode=init_mode, restrain_k=float(restrain_k or 0.0),
+        restrain_R0=(None if restrain_R0 is None else float(restrain_R0)),
+        R_after_equil_quantiles=[float(x) for x in np.percentile(R_end, [0, 5, 50, 95, 100])])
 
 
 def save_result(path_npz, out):

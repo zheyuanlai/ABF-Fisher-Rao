@@ -47,3 +47,17 @@ def test_helix_mode_is_the_protocol_default(engine):
     b, rb = C.build_initial_population(engine, 1, 3, 7, "cpu", equil_ps=0.02, verbose=False,
                                        init_mode="helix")
     assert np.array_equal(a, b) and ra["init_mode"] == "helix"
+
+
+def test_restrained_equilibration_holds_the_extended_start(engine):
+    """Unrestrained, a PPII start drifts towards the helix; k = 3200 kJ/mol/nm^2 holds it."""
+    free, _ = C.build_initial_population(engine, 1, 2, 3, "cpu", equil_ps=0.3, verbose=False,
+                                         init_mode="ppii")
+    held, rep = C.build_initial_population(engine, 1, 2, 3, "cpu", equil_ps=0.3, verbose=False,
+                                           init_mode="ppii", restrain_k=3200.0)
+    Rf, Rh = _R(free)[0], _R(held)[0]
+    assert rep["restrain_k"] == 3200.0 and rep["restrain_R0"] is None
+    assert np.abs(Rh - 3.21).max() < 0.08
+    assert len(rep["R_after_equil_quantiles"]) == 5
+    # the restraint must change the trajectory (same seed, same start)
+    assert not np.allclose(Rf, Rh)
