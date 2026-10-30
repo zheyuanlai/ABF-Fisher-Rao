@@ -1,0 +1,42 @@
+# Post-protocol diagnostics (2026-10-31, not pre-registered): is the ABF error above 2.9 nm path
+# dependent?  Same frozen ABF settings as production, K = 64 x 2 ns, 8 seeds, ABF only, but the
+# initial population starts from the extended side (ppii) or from a 50/50 helix/PPII mixture
+# (mixed).  The helix control is production/K64_T2ns/abf (16 seeds, same K and T).
+stage: diagnostics
+out: results/deca_fr_2026/diagnostics
+init: {equil_ps: 20.0, jitter_nm: 0.006}
+defaults:
+  abf_estimator: histogram
+  n_grid: 257
+  abf_min_count: 100.0
+  abf_warmup_steps: 10000
+  fr_rate: 0.002
+  fr_start_steps: 50000
+  fr_every: 500
+  kde_bandwidth: 0.06
+  score_clip: 2.0
+  max_event_fraction: 0.05
+  fr_window: [2.0, 2.8]
+  fr_support_interval: [1.30, 3.50]
+  fr_controller: {name: R2deca, trigger: occupancy, check_every: 5.0, W: 20.0, R: 1, level: 0.75,
+                  persist: 2, stop_factor: 2.0, support_count: 1000.0, stability_tol: 0.05,
+                  stability_gate: false, essw_min: 0.15, maxlin_min: 0.10, maxlin_k: 6.0}
+  save_every: 5000
+  xi_trace_every: 250
+  label_every: 2000
+  partial_save_every: 200000
+cells:
+  init_ppii_K64:
+    init_mode: ppii
+    n_walkers: 64
+    n_steps: 2000000
+    rng_seed: 20261501
+    seeds: [6000, 6001, 6002, 6003, 6004, 6005, 6006, 6007]
+    methods: [abf]
+  init_mixed_K64:
+    init_mode: mixed
+    n_walkers: 64
+    n_steps: 2000000
+    rng_seed: 20261502
+    seeds: [6100, 6101, 6102, 6103, 6104, 6105, 6106, 6107]
+    methods: [abf]
