@@ -1,0 +1,52 @@
+# Stage IV: production (protocol §7).  Two arms only: abf and fr_uniform (ABF + Fisher-Rao).
+# Fixed-K cells at 2 ns (K = 64, 128, 256; primary confirmatory cell K = 128) and the K = 32 x 4 ns
+# equal-budget cell; the 1 ns / 0.5 ns prefixes of K = 128 / 256 are read from the saved traces.
+# FR rate <<RATE>> is frozen by Stage III; estimator by Stage II.  16 fresh paired seeds per cell.
+stage: production
+out: results/deca_fr_2026/production
+init: {equil_ps: 20.0, jitter_nm: 0.006}
+defaults:
+  abf_estimator: histogram   # frozen 2026-10-29 by Stage II-A (docs/DECA_FR_2026_PROTOCOL.md §6)
+  n_grid: 257               # frozen 2026-10-29 by Stage II-A
+  abf_min_count: 100.0
+  abf_warmup_steps: 10000
+  fr_rate: 0.002            # frozen 2026-10-30 by Stage III (largest rate meeting the diversity rule in 7/8 seeds)
+  fr_start_steps: 50000
+  fr_every: 500
+  kde_bandwidth: 0.06
+  score_clip: 2.0
+  max_event_fraction: 0.05
+  fr_window: [2.0, 2.8]
+  fr_support_interval: [1.30, 3.50]
+  fr_controller: {name: R2deca, trigger: occupancy, check_every: 5.0, W: 20.0, R: 1, level: 0.75,
+                  persist: 2, stop_factor: 2.0, support_count: 1000.0, stability_tol: 0.05,
+                  stability_gate: false, essw_min: 0.15, maxlin_min: 0.10, maxlin_k: 6.0}
+  save_every: 5000
+  xi_trace_every: 250
+  label_every: 2000
+  partial_save_every: 200000
+cells:
+  K64_T2ns:
+    n_walkers: 64
+    n_steps: 2000000
+    rng_seed: 20261401
+    seeds: [5000, 5001, 5002, 5003, 5004, 5005, 5006, 5007, 5008, 5009, 5010, 5011, 5012, 5013, 5014, 5015]
+    methods: [abf, fr_uniform]
+  K128_T2ns:
+    n_walkers: 128
+    n_steps: 2000000
+    rng_seed: 20261402
+    seeds: [5100, 5101, 5102, 5103, 5104, 5105, 5106, 5107, 5108, 5109, 5110, 5111, 5112, 5113, 5114, 5115]
+    methods: [abf, fr_uniform]
+  K256_T2ns:
+    n_walkers: 256
+    n_steps: 2000000
+    rng_seed: 20261403
+    seeds: [5200, 5201, 5202, 5203, 5204, 5205, 5206, 5207, 5208, 5209, 5210, 5211, 5212, 5213, 5214, 5215]
+    methods: [abf, fr_uniform]
+  K32_T4ns:
+    n_walkers: 32
+    n_steps: 4000000
+    rng_seed: 20261404
+    seeds: [5300, 5301, 5302, 5303, 5304, 5305, 5306, 5307, 5308, 5309, 5310, 5311, 5312, 5313, 5314, 5315]
+    methods: [abf, fr_uniform]

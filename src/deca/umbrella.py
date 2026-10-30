@@ -88,18 +88,25 @@ def window_centers(cfg: UmbrellaConfig):
     return np.linspace(cfg.win_lo, cfg.win_hi, cfg.n_windows)
 
 
+#: Starting presets of :func:`diverse_pool`; pool member ``i`` uses preset ``i % len(POOL_PRESETS)``
+#: (so with ``n_rep`` replicas per window, replica ``r`` of window ``w`` has preset
+#: ``(w * n_rep + r) % 6``).  Index 5, the left-handed helix, is a kinetically trapped
+#: high-force substate above 2.9 nm (2026-10-31 audit, ``merge_reference.py --exclude-presets 5``).
+POOL_PRESETS = [(-57.0, -47.0),      # 0 right-handed alpha helix
+                (-150.0, 150.0),     # 1 extended / beta
+                (-75.0, 145.0),      # 2 polyproline II
+                (-90.0, 0.0),        # 3 bridge / compact
+                (-140.0, 60.0),      # 4 mixed
+                (60.0, 40.0)]        # 5 left-handed
+
+
 def diverse_pool(n, cfg: UmbrellaConfig, rng):
     """A structurally diverse starting pool: helical, extended, polyproline-like and mixed.
 
     Uniform ``(phi, psi)`` per structure, plus a per-residue jitter so replicas within a window
     do not start identical.  Every member passes the builder gate before it is used.
     """
-    presets = [(-57.0, -47.0),      # right-handed alpha helix
-               (-150.0, 150.0),     # extended / beta
-               (-75.0, 145.0),      # polyproline II
-               (-90.0, 0.0),        # bridge / compact
-               (-140.0, 60.0),      # mixed
-               (60.0, 40.0)]        # left-handed
+    presets = POOL_PRESETS
     out = []
     for i in range(n):
         phi, psi = presets[i % len(presets)]
@@ -268,14 +275,30 @@ def run_umbrella(engine, cfg: UmbrellaConfig, build_index=0, n_builds=1, device=
     n_sample = 0
     stopped_early_at = 0
 
+    # Independent conditional mean-force reference (2026-10).  The restraint depends on R only,
+    # so the conditional law of the configuration given R inside a window is the unbiased one;
+    # the per-cell average of the den Otter local mean force over EVERY production step is
+    # therefore an estimate of F'(R) that shares nothing with the MBAR histogram except the
+    # samples.  Out-of-domain samples are dropped, never clamped.
+    from alkanes import interval as iv
+    floc_sum = torch.zeros(B, cfg.n_grid, device=device, dtype=dtype)
+    floc_cnt = torch.zeros(B, cfg.n_grid, device=device, dtype=dtype)
+    dz_grid = (cfg.R_hi - cfg.R_lo) / cfg.n_grid
+
     t_prod0 = time.perf_counter()
 
     def _snapshot():
         return dict(xi=np.stack(xi_s), y=np.stack(y_s), keep=keep,
+                    floc_sum=floc_sum.cpu().numpy(), floc_cnt=floc_cnt.cpu().numpy(),
                     **{k: np.stack(v) for k, v in lab_s.items()})
 
     for s in range(cfg.n_prod_steps):
         q, v, f = step(q, v, f)
+        f_loc, R_now, _ = cv.local_mean_force(q, f, beta)
+        inside = ((R_now >= cfg.R_lo) & (R_now < cfg.R_hi)).to(dtype)
+        cell = torch.floor((R_now - cfg.R_lo) / dz_grid).long().clamp(0, cfg.n_grid - 1)
+        floc_sum.scatter_add_(1, cell[:, None], (f_loc * inside)[:, None])
+        floc_cnt.scatter_add_(1, cell[:, None], inside[:, None])
         if (s + 1) % cfg.sample_every == 0:
             xi_s.append(cv.value(q).to(torch.float32).cpu().numpy())
             L = labels.all_labels(q)
@@ -322,6 +345,7 @@ def run_umbrella(engine, cfg: UmbrellaConfig, build_index=0, n_builds=1, device=
         final_thermal_pass=int(np.sum(ok_thermal)), final_thermal_n=int(ok_thermal.size),
         final_n_cis=int(np.sum(rep_thermal["n_cis_bonds"])),
         final_min_chirality=float(np.min(rep_thermal["min_chirality"])),
+        floc_sum=floc_sum.cpu().numpy(), floc_cnt=floc_cnt.cpu().numpy(),
         **{k: np.stack(v) for k, v in lab_s.items()})
 
 

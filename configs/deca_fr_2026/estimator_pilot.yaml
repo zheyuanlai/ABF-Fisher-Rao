@@ -1,0 +1,45 @@
+# Stage II-A: kernel vs histogram ABF, ABF only, K=64, 1 ns, 8 seeds (protocol §5).
+# The estimator is chosen on these cells BEFORE any FR run; C_min = 100 and the 10 ps warm-up are
+# the inherited settings and are not tuned against FR outcomes.
+stage: estimator_pilot
+out: results/deca_fr_2026/estimator_pilot
+init: {equil_ps: 20.0, jitter_nm: 0.006}
+defaults:
+  n_grid: 129
+  abf_min_count: 100.0
+  abf_warmup_steps: 10000
+  fr_rate: 0.0
+  fr_start_steps: 50000
+  save_every: 5000
+  xi_trace_every: 100
+  label_every: 2000
+  partial_save_every: 200000
+cells:
+  kernel_h04:
+    n_walkers: 64
+    n_steps: 1000000
+    rng_seed: 20261201
+    seeds: [4200, 4201, 4202, 4203, 4204, 4205, 4206, 4207]
+    methods: [abf]
+    sim: {abf_estimator: kernel, abf_bandwidth: 0.04}
+  kernel_h02:
+    n_walkers: 64
+    n_steps: 1000000
+    rng_seed: 20261201
+    seeds: [4200, 4201, 4202, 4203, 4204, 4205, 4206, 4207]
+    methods: [abf]
+    sim: {abf_estimator: kernel, abf_bandwidth: 0.02}
+  hist129:
+    n_walkers: 64
+    n_steps: 1000000
+    rng_seed: 20261201
+    seeds: [4200, 4201, 4202, 4203, 4204, 4205, 4206, 4207]
+    methods: [abf]
+    sim: {abf_estimator: histogram, n_grid: 129}
+  hist257:
+    n_walkers: 64
+    n_steps: 1000000
+    rng_seed: 20261201
+    seeds: [4200, 4201, 4202, 4203, 4204, 4205, 4206, 4207]
+    methods: [abf]
+    sim: {abf_estimator: histogram, n_grid: 257}

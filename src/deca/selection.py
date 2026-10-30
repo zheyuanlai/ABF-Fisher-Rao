@@ -148,6 +148,7 @@ def sham_score(score, generator):
 #: ``method -> (is_selection_arm, needs_target, is_sham)``
 METHODS = {
     "abf":              (False, False, False),
+    "fr_uniform":       (True,  True,  False),   # 2026-10: wall-corrected uniform target
     "mfr_practical":    (True,  True,  False),
     "mfr_oracle":       (True,  True,  False),
     "mfr_sham":         (True,  True,  True),

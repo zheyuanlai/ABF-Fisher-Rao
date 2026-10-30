@@ -1,0 +1,24 @@
+#!/bin/bash
+# One A100 (+16 cores) on NSCC ASPIRE 2A; runs the bash task TASK from the repo root and tees a log.
+#   qsub -P personal-e1297740 -l walltime=HH:MM:SS -v TASK=scripts/deca_fr_2026/tasks/<name>.sh \
+#        scripts/deca_fr_2026/pbs/gpu_task.pbs
+# walltime <= 02:00:00 routes to gdev, > 02:00:00 to g1 (one running job per user per queue).
+#PBS -N deca_fr
+#PBS -q normal
+#PBS -l select=1:ncpus=16:ngpus=1:mem=110gb
+#PBS -l walltime=02:00:00
+#PBS -j oe
+#PBS -o /scratch/users/nus/e1297740/logs/
+set -uo pipefail
+: "${TASK:?pass TASK via qsub -v}"
+source /scratch/users/nus/e1297740/ABF-Fisher-Rao/scripts/deca_fr_2026/env.sh
+JOB=${PBS_JOBID%%.*}
+LOG=$DF_LOGS/$(basename "$TASK" .sh)_${JOB}.log
+{
+    echo "job $PBS_JOBID task $TASK host $(hostname) start $(date -u +%FT%TZ) commit $(git -C $DF_ROOT rev-parse --short HEAD 2>/dev/null)"
+    nvidia-smi --query-gpu=index,name,driver_version,memory.total --format=csv
+} 2>&1 | tee "$LOG"
+bash "$TASK" 2>&1 | tee -a "$LOG"
+rc=${PIPESTATUS[0]}
+echo "TASK_EXIT $rc $(date -u +%FT%TZ)" | tee -a "$LOG"
+exit $rc
