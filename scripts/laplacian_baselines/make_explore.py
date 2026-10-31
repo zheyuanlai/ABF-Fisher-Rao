@@ -25,27 +25,31 @@ CELLS = {"R2C3": ("pilot_R2C3.json", 1963000, "R2C3_lta150_K1024_bw"),
          "R2H80": ("pilot_R2H80.json", 1965000, "R2H80_lta80_K1024_bw")}
 BW = [0.3, 0.5]
 SCALES = [0.1, 0.3, 1.0, 3.0]
+# second rung ("bw2", 2026-11-01 after the 150 K ladder was still improving at scale 3): wider kernel and larger scale
+LADDER2 = [(0.8, 1.0), (0.8, 3.0), (0.3, 10.0), (0.5, 10.0), (0.8, 10.0)]
 
 
 def main():
     cell = sys.argv[1] if len(sys.argv) > 1 else "R2C3"
+    rung2 = len(sys.argv) > 2 and sys.argv[2] == "bw2"
     src_name, seed0, tagname = CELLS[cell]
     SRC = os.path.join(ROOT, "configs/laplacian_baselines", src_name)
-    OUT = os.path.join(ROOT, f"configs/laplacian_baselines/explore_{cell}_bw.json")
+    OUT = os.path.join(ROOT, f"configs/laplacian_baselines/explore_{cell}_{'bw2' if rung2 else 'bw'}.json")
     SEEDS = list(range(seed0, seed0 + 8))
     TAG = f"results/laplacian_baselines/explore/{tagname}"
     src = json.load(open(SRC))
     template = next(j for j in src["jobs"] if j["method"] == "fr")
     jobs = []
     for seed in SEEDS:
-        for method in ("abf", "fr"):
-            j = copy.deepcopy(template)
-            j["seed"] = seed
-            j["method"] = method
-            j["out"] = f"{TAG}/{method}_N{j['N']}_s{seed}.npz"
-            jobs.append(j)
-        for bw in BW:
-            for sc in SCALES:
+        if not rung2:  # the ABF / FR arms of these seeds exist from the first rung
+            for method in ("abf", "fr"):
+                j = copy.deepcopy(template)
+                j["seed"] = seed
+                j["method"] = method
+                j["out"] = f"{TAG}/{method}_N{j['N']}_s{seed}.npz"
+                jobs.append(j)
+        for bw, sc in (LADDER2 if rung2 else [(b, c) for b in BW for c in SCALES]):
+            if True:
                 j = copy.deepcopy(template)
                 j["seed"] = seed
                 j["method"] = "laplacian"
@@ -53,8 +57,8 @@ def main():
                 j["cfg"]["kde_bandwidth"] = bw
                 j["out"] = f"{TAG}/laplacian_bw{bw:g}_sc{sc:g}_N{j['N']}_s{seed}.npz"
                 jobs.append(j)
-    spec = {"stage": f"LB_EXPLORE_{cell}_BW", "source_config": f"configs/laplacian_baselines/{src_name} (FR job template)",
-            "seeds": SEEDS, "kde_bandwidths": BW, "scales": SCALES,
+    spec = {"stage": f"LB_EXPLORE_{cell}_{'BW2' if rung2 else 'BW'}", "source_config": f"configs/laplacian_baselines/{src_name} (FR job template)",
+            "seeds": SEEDS, "variants_bw_scale": (LADDER2 if rung2 else [(b, c) for b in BW for c in SCALES]),
             "purpose": __doc__.strip().splitlines()[0] + " See the module docstring of scripts/laplacian_baselines/make_explore.py.",
             "jobs": jobs}
     json.dump(spec, open(OUT, "w"), indent=1)
