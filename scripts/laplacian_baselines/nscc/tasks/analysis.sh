@@ -7,7 +7,15 @@ set -uo pipefail
 cd "$LB_ROOT"
 REF=results/laplacian_baselines/references
 ITE300=$REF/ite300; ITE150=$REF/ite150
-# the frozen LTA analyzer reads lta_T{T}_reference.npz from results/equal_budget_v2/references/: supply the rebuilt 80 / 350 K files there
+# convert any GPU sweep reference whose lta_T{T}_reference.npz is still missing (the GPU task's own conversion step
+# failed in job 26074508: no numba in the torch env), then supply the rebuilt 80 / 350 K files to the frozen LTA analyzer,
+# which reads lta_T{T}_reference.npz from results/equal_budget_v2/references/
+for T in 150 80 350; do
+  if [ -f "$REF/lta_sweep/reference_T$T.npz" ] && [ ! -f "$REF/lta_T${T}_reference.npz" ]; then
+    cmp=""; [ "$T" = 150 ] && cmp="--compare results/equal_budget_v2/references/lta_T150_reference.npz"
+    python scripts/laplacian_baselines/convert_lta_reference.py "$REF/lta_sweep/reference_T$T.npz" "$REF/lta_T${T}_reference.npz" $cmp
+  fi
+done
 for T in 80 350; do
   if [ -f "$REF/lta_T${T}_reference.npz" ] && [ ! -f "results/equal_budget_v2/references/lta_T${T}_reference.npz" ]; then
     cp -v "$REF/lta_T${T}_reference.npz" results/equal_budget_v2/references/

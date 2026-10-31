@@ -20,8 +20,9 @@ for T in 150 80 350; do
   fi
   cmp=""
   [ "$T" = 150 ] && cmp="--compare results/equal_budget_v2/references/lta_T150_reference.npz"
-  python scripts/laplacian_baselines/convert_lta_reference.py "$REF/reference_T$T.npz" \
-      "results/laplacian_baselines/references/lta_T${T}_reference.npz" $cmp || rc_all=1
+  # the converter imports lta_ladder_numba (numba): the deca26 torch env has no numba, so use the CPU env's python
+  "${LB_CPU_PY:-/scratch/users/nus/e1297740/envs/ltafl/bin/python}" scripts/laplacian_baselines/convert_lta_reference.py \
+      "$REF/reference_T$T.npz" "results/laplacian_baselines/references/lta_T${T}_reference.npz" $cmp || rc_all=1
 done
 echo LTA_REFERENCES_DONE rc=$rc_all
 exit $rc_all
