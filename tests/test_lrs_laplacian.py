@@ -56,7 +56,9 @@ def test_lta_periodic_laplacian_sign_and_fourier_frequency():
     assert std > 0.0 and amax > 0.0
     assert np.isfinite(sc).all()
     assert abs(sc.mean()) < 1e-12
-    assert np.corrcoef(sc[:ng], mode)[0, 1] > 0.999
+    # exact ratio -0.4 cos(2 phi) / (1 + 0.1 cos(2 phi)): the denominator caps corr(score, mode) at 0.99877, so the
+    # discrete periodic score (0.99874 at ng = 180) is checked against 0.998, as the gateway test does
+    assert np.corrcoef(sc[:ng], mode)[0, 1] > 0.998
     # mode maximum => p''<0 => project score>0 => higher death rate.
     assert sc[np.argmax(mode)] > 0.0
     assert sc[np.argmin(mode)] < 0.0

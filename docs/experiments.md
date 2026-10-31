@@ -125,3 +125,15 @@ Logs: `/scratch/users/nus/e1297740/logs/<task>_<jobid>.log`.  Budget at start: 2
 | 2026-10-31 | 26066801 | diag_windows.sh | gdev | DONE 20:02 UTC (2 x 22 min). PPII-only pool (10 centres 2.6-3.5 nm x 48 reps, k = 8000, 600 ps): 113 / 101 / 92 / 83 / 60.0 / 44.6 / 37.2 / 35.0 / 38.8 / 49.5 kJ/mol/nm, flat in 100-ps blocks, replica SD 2-7 = the ABF values. Diverse pool: the 5 ordinary presets give the same numbers; the LEFT replicas 216 / 395 / 605 / 622 / 498 / 495 / 446 at 2.9-3.5 nm, relaxing only slowly (3.3-3.5 nm: ~550 -> ~430 over 600 ps). Reference F'(cond) at the same centres: 133 / 181 / 118 / 103 / 99 / 97 / 82 |
 | 2026-10-31 | 26066818 | reference_v2.sh | qdev | OK 20:24 UTC (18 min). Corrected reference: span 52.78 kT (v1 72.0), drift 0.23 (v1 0.97), F-from-F' vs MBAR 0.19 (v1 2.66), F' vs grad 0.025 (v1 0.12). ABF e_F(T) vs v2: 0.97 / 0.90 / 0.90 / 0.79 kJ/mol at K = 64 / 128 / 256 x 2 ns / 32 x 4 ns (was 12.2). FR: 2.00 / 2.34 / 3.10 / 0.90. G_F(I_F) at K128 = -25.2 % [-31.8, -4.0]; K256 -8.0 % [-20.6, -4.1]; K32 -15.1 % [-22.1, -0.4]; K64 -3.6 % [-20.7, +6.7]. Equal budget 128M: K32@4ns 0.79 ~ K64@2ns 0.97 << K128@1ns 11.2 << K256@0.5ns 27.5 (ABF). Protocol section 6 updated (revised verdict) |
 | 2026-10-31 | 26066576 / 26066577 | diag_init_both.sh + diag_finish.sh (v1 and v2 scoring) | g1 / qdev | DONE 21:08 UTC (87 + 83 min). ABF K = 64 x 2 ns from collapsed-PPII / mixed inits: e_F(T) vs v2 = 0.99 / 0.82 kJ/mol (helix control 0.97); vs v1 = 11.8 / 12.1. Extended-region cell vs v2: 0.15. Converged ABF is init independent; the v1 plateau was the reference bias |
+
+## LRS Laplacian selection baseline (branch baseline/lrs-laplacian-gateway-lta-20261031, PR #8), NSCC 2026-11-01
+
+Protocol and prerequisites: `docs/LRS_LAPLACIAN_BASELINE.md` (section "NSCC execution"). Jobs via
+`qsub -P personal-e1297740 -l select=1:ncpus=<n>:mem=<m> -l walltime=<w> -v TASK=scripts/laplacian_baselines/nscc/tasks/<t>.sh scripts/laplacian_baselines/nscc/cpu_task.pbs`;
+logs `/scratch/users/nus/e1297740/logs/<task>_<jobid>.log`.
+
+| date | job | task | queue | outcome |
+|---|---|---|---|---|
+| 2026-11-01 | 26074433 | validate.sh (pytest, ITE framework rebuild, 3-arm smokes of gateway / LTA / ITE) | qdev (16 cores) | submitted 06:5x UTC |
+| 2026-11-01 | 26074434 | ite_reference.sh (exact-MC ITE references 300 K + 150 K, frozen protocol, new location) | qdev (64 cores) | submitted |
+| 2026-11-01 | 26074435 | pilot_rerun.sh (ABF + FR re-runs of the 8 cells, archived seeds; laplacian_scale pilot ladder on fresh seeds) | qdev (128 cores), depend=afterok:26074433 | held on the validation |

@@ -90,6 +90,49 @@ Gate/score coupling caveat: the discrete centered/clip score only
 approximates the continuum `c(t) p''/p` mean field. Check the
 effective rate and stability when the KDE is small.
 
+## NSCC execution (2026-11-01): prerequisites, pilot rule, job plan
+
+**Where the data are.** The GitHub tree carries no `*.npz` (gitignored), so on the NSCC scratch clone the archived
+raw runs of the eight cells (`results/r2_campaign/raw/*`, `results/equal_budget_v2/gateway/N*/`), the ITE framework
+(`cache/eri/framework_ite_itq3.npz`), the exact-MC ITE references (`results/overnight/ite*/reference/ite_itq3/
+reference_profile.npz`, `reference_fine.npz`) and the 80 / 350 K LTA references are all absent.  Only the tracked
+analysis JSONs, the gateway and LTA 150 / 300 K references and the LTA framework exist.  Everything missing is
+regenerated **from the frozen configs and seeds, before any Laplacian production result is looked at**:
+
+| item | how | check against the archive |
+|---|---|---|
+| ABF and FR arms, 8 cells | `make_jobs.py rerun` -> `configs/laplacian_baselines/rerun_*.json`, archived seeds and configs through the unchanged `run_lta_jobs.job` / `run_jobs.job` / gateway `run_job`, outputs under `results/laplacian_baselines/raw/` | per-seed e_F(T), replacements and S_geo vs `results/r2_campaign/analysis/*.json` and `results/equal_budget_v2/gateway/analysis/run_metrics/` (`reproducibility.py`) |
+| ITE framework | `scripts/overnight/save_ite.py` from the tracked CIF | geometry (P, x_window, cages, windows) equals the tracked `framework_ite_itq3.json` |
+| ITE references 300 / 150 K | frozen `configs/overnight/ite*/reference.json` protocol (seed bases 8100000 / 8200000), `run_reference.py` MC -> `analyze_reference.py` -> `reference_fine.py`, into `results/laplacian_baselines/references/ite300|ite150/` | Gate 1 verdicts, noise RMS and barrier vs the tracked `gate1.json` |
+| LTA 80 / 350 K references | sweep protocol (`run_lta_reference.py`, 40 windows, kappa = kT/0.07^2, steps scaled by 300/T) on one A100, converted to the `lta_T{T}_reference.npz` layout with gamma_ref by central differences (the archive's 80 / 350 K references were finite-difference-referenced, PREREGISTRATION.md section 4) | same protocol at 150 / 300 K vs the exact-MC references (RMS) |
+
+The rebuilt arms are *re-runs*, not the archived files: the engines are deterministic given seed and code, but the
+host differs, so the re-run vs archive comparison is reported rather than assumed.  The three-arm comparison itself
+is internal to NSCC (same host, same code, same seeds, identical force evaluations).
+
+**Pilot calibration (rule fixed before any pilot ran; `scripts/laplacian_baselines/pilot_decide.py`).**  Fresh seeds
+(gateway 8300-8307; LTA / ITE 195x000-195x007, never used by any cell), the archived FR configuration (rate, R2
+controller) unchanged, FR arm plus the Laplacian arm at the ladder {0.003, 0.01, 0.03, 0.1, 0.3}, full production
+budget.  Read per run, reference-free: realised replacements R, minimum windowed ESS/K, maximum windowed
+largest-family share, controller stop reason.  Per cell (the two gateway N are two cells):
+
+1. *safety*: median over the 8 seeds of min windowed ESS/K >= 0.15 and of max family share <= 0.10 (the frozen R2
+   safety thresholds, `essw_min` / `maxlin_min`);
+2. *activity*: among the scales passing 1, the one whose median R is closest in log-ratio to the FR arm's median R on
+   the same seeds (dose matching on realised selection activity; the FR log-ratio score and the curvature score have
+   different units, so equal nominal rates are not a fair match);
+3. fallbacks: no scale passes 1 -> the smallest scale, flagged `NO_SAFE_SCALE`; the FR arm itself fails 1 -> rule 2
+   alone, flagged `FR_UNSAFE`; ties -> the smaller scale.
+
+No free-energy error enters the choice.  The decision, the pilot table and the config SHA are stored in
+`results/laplacian_baselines/pilot/decision.{json,md}`; `make_jobs.py apply` freezes the scale into
+`configs/laplacian_baselines/jobs_*.json` (per job cfg) and `gateway.json` (`laplacian_scale_by_N`).
+
+**Jobs** (`scripts/laplacian_baselines/nscc/`, `docs/experiments.md`): `validate.sh` (tests, ITE framework, smokes)
+-> `pilot_rerun.sh` (re-runs + pilot ladder, one pool of 128 single-threaded processes) -> decision ->
+`production.sh` (Laplacian arms) -> `analysis.sh`; `ite_reference.sh` and the GPU `lta_reference` task supply the
+missing references in parallel.
+
 ## Run commands (after the pilot calibration and validations)
 
 **Do not treat these commands as already executed.**

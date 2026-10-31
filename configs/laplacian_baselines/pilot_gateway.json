@@ -1,0 +1,775 @@
+{
+ "stage": "LB_PILOT_GATEWAY",
+ "pilot_seeds": [
+  8300,
+  8301,
+  8302,
+  8303,
+  8304,
+  8305,
+  8306,
+  8307
+ ],
+ "scales": [
+  0.003,
+  0.01,
+  0.03,
+  0.1,
+  0.3
+ ],
+ "purpose": "laplacian_scale calibration of the gateway cells N = 512 and 2048 on fresh seeds.",
+ "jobs": [
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8300,
+   "method": "fr",
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8300_fr.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8300,
+   "method": "laplacian",
+   "scale": 0.003,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8300_laplacian_sc0.003.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8300,
+   "method": "laplacian",
+   "scale": 0.01,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8300_laplacian_sc0.01.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8300,
+   "method": "laplacian",
+   "scale": 0.03,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8300_laplacian_sc0.03.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8300,
+   "method": "laplacian",
+   "scale": 0.1,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8300_laplacian_sc0.1.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8300,
+   "method": "laplacian",
+   "scale": 0.3,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8300_laplacian_sc0.3.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8301,
+   "method": "fr",
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8301_fr.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8301,
+   "method": "laplacian",
+   "scale": 0.003,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8301_laplacian_sc0.003.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8301,
+   "method": "laplacian",
+   "scale": 0.01,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8301_laplacian_sc0.01.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8301,
+   "method": "laplacian",
+   "scale": 0.03,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8301_laplacian_sc0.03.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8301,
+   "method": "laplacian",
+   "scale": 0.1,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8301_laplacian_sc0.1.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8301,
+   "method": "laplacian",
+   "scale": 0.3,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8301_laplacian_sc0.3.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8302,
+   "method": "fr",
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8302_fr.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8302,
+   "method": "laplacian",
+   "scale": 0.003,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8302_laplacian_sc0.003.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8302,
+   "method": "laplacian",
+   "scale": 0.01,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8302_laplacian_sc0.01.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8302,
+   "method": "laplacian",
+   "scale": 0.03,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8302_laplacian_sc0.03.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8302,
+   "method": "laplacian",
+   "scale": 0.1,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8302_laplacian_sc0.1.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8302,
+   "method": "laplacian",
+   "scale": 0.3,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8302_laplacian_sc0.3.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8303,
+   "method": "fr",
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8303_fr.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8303,
+   "method": "laplacian",
+   "scale": 0.003,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8303_laplacian_sc0.003.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8303,
+   "method": "laplacian",
+   "scale": 0.01,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8303_laplacian_sc0.01.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8303,
+   "method": "laplacian",
+   "scale": 0.03,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8303_laplacian_sc0.03.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8303,
+   "method": "laplacian",
+   "scale": 0.1,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8303_laplacian_sc0.1.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8303,
+   "method": "laplacian",
+   "scale": 0.3,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8303_laplacian_sc0.3.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8304,
+   "method": "fr",
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8304_fr.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8304,
+   "method": "laplacian",
+   "scale": 0.003,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8304_laplacian_sc0.003.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8304,
+   "method": "laplacian",
+   "scale": 0.01,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8304_laplacian_sc0.01.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8304,
+   "method": "laplacian",
+   "scale": 0.03,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8304_laplacian_sc0.03.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8304,
+   "method": "laplacian",
+   "scale": 0.1,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8304_laplacian_sc0.1.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8304,
+   "method": "laplacian",
+   "scale": 0.3,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8304_laplacian_sc0.3.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8305,
+   "method": "fr",
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8305_fr.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8305,
+   "method": "laplacian",
+   "scale": 0.003,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8305_laplacian_sc0.003.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8305,
+   "method": "laplacian",
+   "scale": 0.01,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8305_laplacian_sc0.01.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8305,
+   "method": "laplacian",
+   "scale": 0.03,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8305_laplacian_sc0.03.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8305,
+   "method": "laplacian",
+   "scale": 0.1,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8305_laplacian_sc0.1.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8305,
+   "method": "laplacian",
+   "scale": 0.3,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8305_laplacian_sc0.3.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8306,
+   "method": "fr",
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8306_fr.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8306,
+   "method": "laplacian",
+   "scale": 0.003,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8306_laplacian_sc0.003.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8306,
+   "method": "laplacian",
+   "scale": 0.01,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8306_laplacian_sc0.01.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8306,
+   "method": "laplacian",
+   "scale": 0.03,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8306_laplacian_sc0.03.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8306,
+   "method": "laplacian",
+   "scale": 0.1,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8306_laplacian_sc0.1.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8306,
+   "method": "laplacian",
+   "scale": 0.3,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8306_laplacian_sc0.3.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8307,
+   "method": "fr",
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8307_fr.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8307,
+   "method": "laplacian",
+   "scale": 0.003,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8307_laplacian_sc0.003.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8307,
+   "method": "laplacian",
+   "scale": 0.01,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8307_laplacian_sc0.01.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8307,
+   "method": "laplacian",
+   "scale": 0.03,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8307_laplacian_sc0.03.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8307,
+   "method": "laplacian",
+   "scale": 0.1,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8307_laplacian_sc0.1.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 512,
+   "seed": 8307,
+   "method": "laplacian",
+   "scale": 0.3,
+   "out": "results/laplacian_baselines/pilot/gateway/N512/s8307_laplacian_sc0.3.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8300,
+   "method": "fr",
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8300_fr.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8300,
+   "method": "laplacian",
+   "scale": 0.003,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8300_laplacian_sc0.003.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8300,
+   "method": "laplacian",
+   "scale": 0.01,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8300_laplacian_sc0.01.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8300,
+   "method": "laplacian",
+   "scale": 0.03,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8300_laplacian_sc0.03.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8300,
+   "method": "laplacian",
+   "scale": 0.1,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8300_laplacian_sc0.1.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8300,
+   "method": "laplacian",
+   "scale": 0.3,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8300_laplacian_sc0.3.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8301,
+   "method": "fr",
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8301_fr.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8301,
+   "method": "laplacian",
+   "scale": 0.003,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8301_laplacian_sc0.003.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8301,
+   "method": "laplacian",
+   "scale": 0.01,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8301_laplacian_sc0.01.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8301,
+   "method": "laplacian",
+   "scale": 0.03,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8301_laplacian_sc0.03.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8301,
+   "method": "laplacian",
+   "scale": 0.1,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8301_laplacian_sc0.1.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8301,
+   "method": "laplacian",
+   "scale": 0.3,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8301_laplacian_sc0.3.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8302,
+   "method": "fr",
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8302_fr.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8302,
+   "method": "laplacian",
+   "scale": 0.003,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8302_laplacian_sc0.003.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8302,
+   "method": "laplacian",
+   "scale": 0.01,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8302_laplacian_sc0.01.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8302,
+   "method": "laplacian",
+   "scale": 0.03,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8302_laplacian_sc0.03.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8302,
+   "method": "laplacian",
+   "scale": 0.1,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8302_laplacian_sc0.1.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8302,
+   "method": "laplacian",
+   "scale": 0.3,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8302_laplacian_sc0.3.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8303,
+   "method": "fr",
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8303_fr.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8303,
+   "method": "laplacian",
+   "scale": 0.003,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8303_laplacian_sc0.003.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8303,
+   "method": "laplacian",
+   "scale": 0.01,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8303_laplacian_sc0.01.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8303,
+   "method": "laplacian",
+   "scale": 0.03,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8303_laplacian_sc0.03.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8303,
+   "method": "laplacian",
+   "scale": 0.1,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8303_laplacian_sc0.1.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8303,
+   "method": "laplacian",
+   "scale": 0.3,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8303_laplacian_sc0.3.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8304,
+   "method": "fr",
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8304_fr.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8304,
+   "method": "laplacian",
+   "scale": 0.003,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8304_laplacian_sc0.003.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8304,
+   "method": "laplacian",
+   "scale": 0.01,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8304_laplacian_sc0.01.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8304,
+   "method": "laplacian",
+   "scale": 0.03,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8304_laplacian_sc0.03.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8304,
+   "method": "laplacian",
+   "scale": 0.1,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8304_laplacian_sc0.1.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8304,
+   "method": "laplacian",
+   "scale": 0.3,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8304_laplacian_sc0.3.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8305,
+   "method": "fr",
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8305_fr.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8305,
+   "method": "laplacian",
+   "scale": 0.003,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8305_laplacian_sc0.003.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8305,
+   "method": "laplacian",
+   "scale": 0.01,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8305_laplacian_sc0.01.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8305,
+   "method": "laplacian",
+   "scale": 0.03,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8305_laplacian_sc0.03.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8305,
+   "method": "laplacian",
+   "scale": 0.1,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8305_laplacian_sc0.1.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8305,
+   "method": "laplacian",
+   "scale": 0.3,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8305_laplacian_sc0.3.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8306,
+   "method": "fr",
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8306_fr.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8306,
+   "method": "laplacian",
+   "scale": 0.003,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8306_laplacian_sc0.003.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8306,
+   "method": "laplacian",
+   "scale": 0.01,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8306_laplacian_sc0.01.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8306,
+   "method": "laplacian",
+   "scale": 0.03,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8306_laplacian_sc0.03.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8306,
+   "method": "laplacian",
+   "scale": 0.1,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8306_laplacian_sc0.1.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8306,
+   "method": "laplacian",
+   "scale": 0.3,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8306_laplacian_sc0.3.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8307,
+   "method": "fr",
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8307_fr.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8307,
+   "method": "laplacian",
+   "scale": 0.003,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8307_laplacian_sc0.003.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8307,
+   "method": "laplacian",
+   "scale": 0.01,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8307_laplacian_sc0.01.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8307,
+   "method": "laplacian",
+   "scale": 0.03,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8307_laplacian_sc0.03.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8307,
+   "method": "laplacian",
+   "scale": 0.1,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8307_laplacian_sc0.1.npz"
+  },
+  {
+   "engine": "gateway",
+   "N": 2048,
+   "seed": 8307,
+   "method": "laplacian",
+   "scale": 0.3,
+   "out": "results/laplacian_baselines/pilot/gateway/N2048/s8307_laplacian_sc0.3.npz"
+  }
+ ]
+}
