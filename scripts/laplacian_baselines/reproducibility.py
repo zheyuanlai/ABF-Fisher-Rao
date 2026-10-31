@@ -117,7 +117,12 @@ def main(argv=None):
     out = {}
     for c in a.cells:
         print(f"== {c} ==", flush=True)
-        out[c] = gateway() if c == "gateway" else r2_cell(c, a.ite300_refbase, a.ite150_refbase)
+        try:
+            out[c] = gateway() if c == "gateway" else r2_cell(c, a.ite300_refbase, a.ite150_refbase)
+        except Exception as e:  # a missing reference or module must not lose the other cells' rows
+            out[c] = dict(status=f"SKIPPED ({type(e).__name__}: {e})")
+            print(out[c]["status"], flush=True)
+            continue
         if c == "gateway":
             print(json.dumps({k: v for k, v in out[c].items() if k != "runs"}, indent=1, default=float))
         else:

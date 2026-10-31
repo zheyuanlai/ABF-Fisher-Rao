@@ -27,7 +27,8 @@ PY
   echo "== $name: MC umbrella windows =="
   ERI_REFERENCE_CFG=$cfg python scripts/eri_campaign/run_reference.py --variant ite_itq3 --scheme MC --groups 0-15 --procs "$NPROCS"
   echo "== $name: Gate 1 analysis (MC only; the Gate 2 Langevin ladders are not rebuilt) =="
-  python scripts/eri_campaign/analyze_reference.py --variant ite_itq3 --base "$REF/$name" --T "$T" --tol "$tol" --tolup "$tolup" --tags none --nboot 2000
+  # parallel bootstrap, bitwise identical to analyze_reference.py (checked by tasks/ite150_gate1.sh on the 300 K cell)
+  python scripts/laplacian_baselines/gate1_parallel.py --procs "$NPROCS" --variant ite_itq3 --base "$REF/$name" --T "$T" --tol "$tol" --tolup "$tolup" --tags none --nboot 2000
   python scripts/eri_campaign/reference_fine.py --base "$REF/$name/ite_itq3" --T "$T"
   echo "== $name: rebuilt vs archived gate1.json =="
   python - "$REF/$name/ite_itq3/gate1.json" "results/overnight/$src/reference/ite_itq3/gate1.json" <<'PY'

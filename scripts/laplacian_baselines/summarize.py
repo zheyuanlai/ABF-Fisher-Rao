@@ -84,7 +84,6 @@ def main():
     for c, d in dec.get("cells", {}).items():
         L.append(f"- {c}: scale **{d.get('scale')}** ({d.get('status')}); scales passing safety {d.get('scales_passing_safety')}; "
                  f"FR replacements median {d.get('fr_repl_median')}; log-ratio of Laplacian/FR replacements by scale {d.get('log_ratio_to_fr')}")
-    rep = _load(os.path.join(AN, "reproducibility.md"))
     L += ["", "## 6. Re-run vs archive (reproducibility of the ABF / FR arms on NSCC)", "",
           "See `reproducibility.md` in this directory." if os.path.exists(os.path.join(AN, "reproducibility.md")) else "(not run)"]
     L += ["", "## 7. Scale sensitivity on the fresh-seed pilot (secondary; Laplacian vs FR only, 8 seeds per cell)", "",
