@@ -11,10 +11,13 @@ export PYTHONPATH="$ROOT/src:${PYTHONPATH:-}"
 export ABFFR_DATA_ROOT=${ABFFR_DATA_ROOT:-"$ROOT"}
 OUT=results/laplacian_baselines/analysis
 mkdir -p "$OUT"
-OLD=results/r2_campaign/raw
+# NSCC (docs/LRS_LAPLACIAN_BASELINE.md "NSCC execution"): the archived raw files are absent, so the ABF arm comes from
+# the re-runs (LB_ABF_ROOT) and the ITE references from the rebuilt bases; the 80 / 350 K LTA references must sit in
+# results/equal_budget_v2/references/ (the analyzer's fixed path; copied there from results/laplacian_baselines/references/).
+OLD=${LB_ABF_ROOT:-results/r2_campaign/raw}
 NEW=results/laplacian_baselines/raw
-ITE=results/overnight/ite/reference
-ITE150=results/overnight/ite150/reference
+ITE=${LB_ITE300_REFBASE:-results/overnight/ite/reference}
+ITE150=${LB_ITE150_REFBASE:-results/overnight/ite150/reference}
 COMMON="--allow-diff laplacian_scale"
 
 # NOTE: --fr-glob is the original parser's positional name, not the method.
