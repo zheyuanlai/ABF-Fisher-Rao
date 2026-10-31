@@ -196,6 +196,59 @@ implementation. It does **not** establish superiority over every published
 selection protocol, nor an equal-aggregate-cost or wall-clock advantage.
 No numerical FR-versus-Laplacian comparison is available until the jobs run.
 
+## NSCC results (2026-11-01): mechanism diagnostic and exploratory bandwidth ladder
+
+The primary three-arm tables (predeclared protocol, frozen scales) are in
+`results/laplacian_baselines/analysis/SUMMARY.md` (sections 1-6, written by `analysis.sh`) and are summarised in the
+next section once that job has run.  Two further analyses were done on NSCC the same day and are reported here because
+they bear on how the primary result should be read.
+
+### What the Laplacian score acts on (`score_noise_diagnostic.py`, `analysis/score_noise.md`)
+
+The implemented score is `-scale * p''/p` on the same KDE marginal that FR uses (bandwidth 0.1 rad on a 180-bin
+periodic grid, K = 1024 walkers).  An offline emulation of that field from the saved instantaneous histograms,
+checked against the engine's own saved score standard deviation (emulated 0.11-0.39 vs saved 0.11-0.32), shows:
+
+| LTA cell | std of instantaneous p''/p (rad^-2) | std of p''/p of the time-averaged marginal | correlation | noise variance fraction |
+|---|---:|---:|---:|---:|
+| 150 K | 11.8 | 0.75 | 0.04 | 0.996 |
+| 300 K | 11.4 | 0.50 | 0.01 | 0.998 |
+| 80 K | 13.1 | 1.61 | 0.10 | 0.985 |
+| 350 K | 11.5 | 0.59 | 0.07 | 0.997 |
+
+At the shared bandwidth the Laplacian score is 98.5-99.8 % finite-K estimation noise.  Consistently, in the pilot and
+production runs the Laplacian arm kills at a relative marginal density of 1.00-1.02 (uniformly at random with respect
+to the marginal) and leaves the time-averaged marginal exactly as flat as ABF, whereas FR kills at 1.17-1.21 at 80 K
+and lowers the marginal's TV from uniform from 0.20 to 0.11.  At 150 / 300 / 350 K the time-averaged ABF marginal is
+already flat (TV 0.013-0.04), so no marginal-flattening rule has anything to act on there; 80 K is the one LTA cell
+with structure.  A second-difference rule needs a far smoother density estimate than a log-ratio rule: at 0.3-0.5 rad
+the emulated correlation rises to 0.4-0.9, but |p''/p| shrinks 10-40x, so the scale has to move up with it.
+
+### Exploratory: Laplacian with a wider KDE bandwidth (`make_explore.py`, `explore_analyze.py`, `analysis/explore_bw.md`)
+
+Outside the predeclared protocol, on 8 FRESH seeds per cell (1963000+, 1965000+) with ABF, FR (unchanged) and the
+Laplacian arm at `kde_bandwidth` x `laplacian_scale` ladders (three rungs, 2026-10-31 19:28-20:02 UTC, 50 core-h),
+LTA 150 K and 80 K only.  Paired contrasts of e_F(T) (median G with seed-bootstrap 95 % CI, wins / 8):
+
+| cell | ABF e_F | FR e_F (vs ABF) | best Laplacian (bandwidth, scale) | e_F | vs ABF | vs FR | min ESS/K | replacements |
+|---|---:|---|---|---:|---|---|---:|---:|
+| LTA 150 K | 0.133 | 0.055 (-61.5 %, 8/8) | (1.2 rad, 10) | 0.032 | -75 % [-81, -72], 8/8 | **-33 % [-55, -23], 8/8** | 0.36 | 533 (FR 354) |
+| LTA 150 K | | | (0.8 rad, 10) | 0.032 | -78 % [-85, -72], 8/8 | -44 % [-52, -32], 8/8 | 0.34 | 688 |
+| LTA 80 K | 0.174 | 0.023 (-86.8 %, 8/8) | (0.8 rad, 1) | 0.029 | -83 % [-85, -80], 8/8 | **+21 % [+8, +44], 1/8** | 0.75 | 456 (FR 492) |
+| LTA 80 K | | | (1.2 rad, 3) | 0.032 | -82 % [-90, -76], 8/8 | +60 % [-28, +66], 2/8 | 0.67 | 453 |
+
+Both ladders have turned over (at 150 K bandwidth 2.0 rad and scale 30 are no better than 1.2 rad / 10; at 80 K every
+bandwidth peaks at scale 1-3), so the exploration was closed there.  With a smoothed density estimate the LRS rule
+does what it is meant to do (deaths at relative density 1.2-1.4 at 80 K, marginal TV 0.08-0.11 vs ABF 0.18) and gains
+75-83 % over ABF in both cells; it then beats the archived FR configuration at 150 K and remains behind it at 80 K.
+
+How to read this against the primary result: the predeclared protocol fixed the density estimate to FR's and let the
+pilot choose only the scale, so the primary tables compare FR with a Laplacian rule that is selecting on noise.  A
+reviewer will ask for the comparison at each rule's own best bandwidth; the exploratory numbers above are the first
+such data (8 fresh seeds, 2 cells, Laplacian bandwidth tuned on the same seeds it is scored on, FR not re-tuned).
+Promoting a smoothed Laplacian arm to the 8 production cells, and whether FR itself should be re-tuned in bandwidth,
+are decisions for the author, not for this run.
+
 ## Reference-file availability
 
 The LTA 150 K and 300 K references are tracked under `results/equal_budget_v2/references/`.
