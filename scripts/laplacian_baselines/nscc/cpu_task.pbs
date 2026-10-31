@@ -1,0 +1,22 @@
+#!/bin/bash
+# CPU-only task of the LRS Laplacian baseline (single-threaded numba processes, one per core).
+#   qsub -P personal-e1297740 -l select=1:ncpus=128:mem=200gb -l walltime=01:59:00 \
+#        -v TASK=scripts/laplacian_baselines/nscc/tasks/<task>.sh scripts/laplacian_baselines/nscc/cpu_task.pbs
+# The task sees NPROCS (= the job's ncpus) and must be idempotent (every runner skips complete outputs).
+#PBS -N lapbase_cpu
+#PBS -q normal
+#PBS -l select=1:ncpus=128:mem=200gb
+#PBS -l walltime=01:59:00
+#PBS -j oe
+#PBS -o /scratch/users/nus/e1297740/logs/
+set -uo pipefail
+: "${TASK:?pass TASK via qsub -v}"
+source /scratch/users/nus/e1297740/ABF-Fisher-Rao/scripts/laplacian_baselines/nscc/env.sh
+export NPROCS=${NCPUS:-$(nproc)}
+JOB=${PBS_JOBID%%.*}
+LOG=$LB_LOGS/$(basename "$TASK" .sh)_${JOB}.log
+echo "job $PBS_JOBID task $TASK host $(hostname) ncpus $NPROCS start $(date -u +%FT%TZ) commit $(cut -c1-8 "$LB_ROOT/.git/$(sed s/ref:\ // "$LB_ROOT/.git/HEAD")" 2>/dev/null)" | tee "$LOG"
+bash "$TASK" 2>&1 | tee -a "$LOG"
+rc=${PIPESTATUS[0]}
+echo "TASK_EXIT $rc $(date -u +%FT%TZ)" | tee -a "$LOG"
+exit $rc

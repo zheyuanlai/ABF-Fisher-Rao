@@ -1,0 +1,574 @@
+{
+ "R2C3": {
+  "label": "LTA 150 K K1024",
+  "arms": {
+   "abf (production seeds)": {
+    "tv_inst": 0.19776632362225194,
+    "tv_timeavg": 0.05239620469399882,
+    "dens_at_death": null,
+    "dens_at_birth": null,
+    "deaths": 0.0,
+    "score_std": 0.0,
+    "scale": 0.01,
+    "bw": 0.1,
+    "n": 8
+   },
+   "fr (production seeds)": {
+    "tv_inst": 0.18061876423549217,
+    "tv_timeavg": 0.03652633875519905,
+    "dens_at_death": 1.0573496975741543,
+    "dens_at_birth": 0.9842396352719819,
+    "deaths": 363.5,
+    "score_std": 0.2858736518332654,
+    "scale": 0.01,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian frozen scale (production seeds)": {
+    "tv_inst": 0.1975150362386116,
+    "tv_timeavg": 0.050886449513517534,
+    "dens_at_death": 0.9885591052827382,
+    "dens_at_birth": 0.9862305709008891,
+    "deaths": 253.5,
+    "score_std": 0.105677943933998,
+    "scale": 0.01,
+    "bw": 0.1,
+    "n": 8
+   },
+   "fr (pilot seeds)": {
+    "tv_inst": 0.1807413132551,
+    "tv_timeavg": 0.03617296587195485,
+    "dens_at_death": 1.0365389857393228,
+    "dens_at_birth": 0.987563716886629,
+    "deaths": 354.5,
+    "score_std": 0.29076847463279754,
+    "scale": 0.01,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian 0.003 (pilot seeds)": {
+    "tv_inst": 0.19928685213037237,
+    "tv_timeavg": 0.05281143233808676,
+    "dens_at_death": 0.9951959425403227,
+    "dens_at_birth": 0.9866593277038224,
+    "deaths": 74.0,
+    "score_std": 0.031676779313248624,
+    "scale": 0.003,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian 0.01 (pilot seeds)": {
+    "tv_inst": 0.19932955860690238,
+    "tv_timeavg": 0.05385402740641712,
+    "dens_at_death": 0.9896375685830152,
+    "dens_at_birth": 0.9903093710918803,
+    "deaths": 258.0,
+    "score_std": 0.1056899722428588,
+    "scale": 0.01,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian 0.03 (pilot seeds)": {
+    "tv_inst": 0.2004591139643989,
+    "tv_timeavg": 0.05372207831996435,
+    "dens_at_death": 0.9956166003135929,
+    "dens_at_birth": 0.9853744724749952,
+    "deaths": 766.5,
+    "score_std": 0.31488171798429554,
+    "scale": 0.03,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian 0.1 (pilot seeds)": {
+    "tv_inst": 0.20175177788918597,
+    "tv_timeavg": 0.05484492210710042,
+    "dens_at_death": 0.9901962919566367,
+    "dens_at_birth": 0.9835091535549823,
+    "deaths": 2482.0,
+    "score_std": 0.9600768313357503,
+    "scale": 0.1,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian 0.3 (pilot seeds)": {
+    "tv_inst": 0.20321609941325014,
+    "tv_timeavg": 0.05922593350787285,
+    "dens_at_death": 0.9865263899982203,
+    "dens_at_birth": 0.9784603262853406,
+    "deaths": 5126.5,
+    "score_std": 1.580667813412132,
+    "scale": 0.3,
+    "bw": 0.1,
+    "n": 8
+   }
+  },
+  "score_emulation": {
+   "0.1": {
+    "corr_inst_vs_timeavg": 0.07390789287131767,
+    "std_inst": 12.321918601239881,
+    "std_timeavg": 0.8183158260014273,
+    "noise_variance_fraction": 0.9955895263703604
+   },
+   "0.2": {
+    "corr_inst_vs_timeavg": 0.21600213355687214,
+    "std_inst": 2.241995486936998,
+    "std_timeavg": 0.5622015063128711,
+    "noise_variance_fraction": 0.937119709172932
+   },
+   "0.3": {
+    "corr_inst_vs_timeavg": 0.4280481382203334,
+    "std_inst": 0.9044892726808097,
+    "std_timeavg": 0.42745871426168996,
+    "noise_variance_fraction": 0.7766522872452742
+   },
+   "0.5": {
+    "corr_inst_vs_timeavg": 0.6148818162916326,
+    "std_inst": 0.296968401206569,
+    "std_timeavg": 0.23713875651894167,
+    "noise_variance_fraction": 0.3623467247481108
+   },
+   "0.8": {
+    "corr_inst_vs_timeavg": 0.2982581057492281,
+    "std_inst": 0.11205317649753377,
+    "std_timeavg": 0.09905143856315483,
+    "noise_variance_fraction": 0.21860031873140606
+   },
+   "engine": {
+    "kde_bandwidth": 0.1,
+    "laplacian_scale": 0.01,
+    "saved_score_std": 0.10562317186320834,
+    "emulated_score_std": 0.12321918601239881,
+    "K": 1024
+   }
+  }
+ },
+ "R2C4": {
+  "label": "LTA 300 K K1024",
+  "arms": {
+   "abf (production seeds)": {
+    "tv_inst": 0.17757490267255893,
+    "tv_timeavg": 0.01728927603238265,
+    "dens_at_death": null,
+    "dens_at_birth": null,
+    "deaths": 0.0,
+    "score_std": 0.0,
+    "scale": 0.01,
+    "bw": 0.1,
+    "n": 8
+   },
+   "fr (production seeds)": {
+    "tv_inst": 0.1738586655463953,
+    "tv_timeavg": 0.014600914939839574,
+    "dens_at_death": 1.0125357664466055,
+    "dens_at_birth": 0.9995381965211323,
+    "deaths": 196.5,
+    "score_std": 0.22431648847129107,
+    "scale": 0.01,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian frozen scale (production seeds)": {
+    "tv_inst": 0.17757480596405228,
+    "tv_timeavg": 0.016386057263814622,
+    "dens_at_death": 1.001754523404011,
+    "dens_at_birth": 0.9990362018737398,
+    "deaths": 122.5,
+    "score_std": 0.10540906901745085,
+    "scale": 0.01,
+    "bw": 0.1,
+    "n": 8
+   },
+   "fr (pilot seeds)": {
+    "tv_inst": 0.17298842437858983,
+    "tv_timeavg": 0.016318399992572792,
+    "dens_at_death": 1.0063037109375,
+    "dens_at_birth": 0.9952196074695121,
+    "deaths": 201.5,
+    "score_std": 0.2203131308253371,
+    "scale": 0.01,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian 0.003 (pilot seeds)": {
+    "tv_inst": 0.17621452345142602,
+    "tv_timeavg": 0.01915571152703506,
+    "dens_at_death": 1.005227311326581,
+    "dens_at_birth": 0.9943104619565217,
+    "deaths": 34.0,
+    "score_std": 0.03162705363220214,
+    "scale": 0.003,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian 0.01 (pilot seeds)": {
+    "tv_inst": 0.17603841726084374,
+    "tv_timeavg": 0.018649094344177067,
+    "dens_at_death": 0.9927031240155622,
+    "dens_at_birth": 0.9935102405377473,
+    "deaths": 119.0,
+    "score_std": 0.10555392998714352,
+    "scale": 0.01,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian 0.03 (pilot seeds)": {
+    "tv_inst": 0.1765152869070608,
+    "tv_timeavg": 0.018070526032382652,
+    "dens_at_death": 0.9970601918746015,
+    "dens_at_birth": 0.9967154211963245,
+    "deaths": 364.5,
+    "score_std": 0.3156590429688574,
+    "scale": 0.03,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian 0.1 (pilot seeds)": {
+    "tv_inst": 0.17709178565681322,
+    "tv_timeavg": 0.01671442132724302,
+    "dens_at_death": 0.9998341371772329,
+    "dens_at_birth": 0.9987485372315912,
+    "deaths": 1210.0,
+    "score_std": 0.9735875171045988,
+    "scale": 0.1,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian 0.3 (pilot seeds)": {
+    "tv_inst": 0.17751074624925728,
+    "tv_timeavg": 0.016782542799316694,
+    "dens_at_death": 0.9990631512837964,
+    "dens_at_birth": 0.9964159510485204,
+    "deaths": 2299.5,
+    "score_std": 1.5939896615825522,
+    "scale": 0.3,
+    "bw": 0.1,
+    "n": 8
+   }
+  },
+  "score_emulation": {
+   "0.1": {
+    "corr_inst_vs_timeavg": 0.01104181204642808,
+    "std_inst": 11.40871734747448,
+    "std_timeavg": 0.5021184428299122,
+    "noise_variance_fraction": 0.9980629594803813
+   },
+   "0.2": {
+    "corr_inst_vs_timeavg": 0.08661137913224148,
+    "std_inst": 1.979334237391047,
+    "std_timeavg": 0.22565006827322234,
+    "noise_variance_fraction": 0.9870033128568291
+   },
+   "0.3": {
+    "corr_inst_vs_timeavg": 0.16932796276682663,
+    "std_inst": 0.7763595967570851,
+    "std_timeavg": 0.1700217847430196,
+    "noise_variance_fraction": 0.9520395455223172
+   },
+   "0.5": {
+    "corr_inst_vs_timeavg": 0.2554289159230794,
+    "std_inst": 0.24849779755932652,
+    "std_timeavg": 0.09312308262064187,
+    "noise_variance_fraction": 0.8595668621624304
+   },
+   "0.8": {
+    "corr_inst_vs_timeavg": 0.33955827407532785,
+    "std_inst": 0.08866460464789558,
+    "std_timeavg": 0.03500622732509333,
+    "noise_variance_fraction": 0.8441201233008956
+   },
+   "engine": {
+    "kde_bandwidth": 0.1,
+    "laplacian_scale": 0.01,
+    "saved_score_std": 0.10592988244544875,
+    "emulated_score_std": 0.11408717347474481,
+    "K": 1024
+   }
+  }
+ },
+ "R2H80": {
+  "label": "LTA 80 K K1024",
+  "arms": {
+   "abf (production seeds)": {
+    "tv_inst": 0.27387847144855415,
+    "tv_timeavg": 0.19873818608882948,
+    "dens_at_death": null,
+    "dens_at_birth": null,
+    "deaths": 0.0,
+    "score_std": 0.0,
+    "scale": 0.01,
+    "bw": 0.1,
+    "n": 8
+   },
+   "fr (production seeds)": {
+    "tv_inst": 0.2131720467543078,
+    "tv_timeavg": 0.10754715119949496,
+    "dens_at_death": 1.205766571234472,
+    "dens_at_birth": 0.94208228453286,
+    "deaths": 491.5,
+    "score_std": 0.41291277037361956,
+    "scale": 0.01,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian frozen scale (production seeds)": {
+    "tv_inst": 0.2738839838334324,
+    "tv_timeavg": 0.1976315893308081,
+    "dens_at_death": 1.0068394532016254,
+    "dens_at_birth": 0.9875184779979707,
+    "deaths": 703.0,
+    "score_std": 0.31623760970683457,
+    "scale": 0.03,
+    "bw": 0.1,
+    "n": 8
+   },
+   "fr (pilot seeds)": {
+    "tv_inst": 0.21025009593483857,
+    "tv_timeavg": 0.104415884488265,
+    "dens_at_death": 1.172906060258422,
+    "dens_at_birth": 0.9481901945891205,
+    "deaths": 492.0,
+    "score_std": 0.4092090319842526,
+    "scale": 0.01,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian 0.003 (pilot seeds)": {
+    "tv_inst": 0.26836920058427416,
+    "tv_timeavg": 0.19358747168374926,
+    "dens_at_death": 1.0154493731472334,
+    "dens_at_birth": 0.9873920147235576,
+    "deaths": 63.5,
+    "score_std": 0.03191424257954425,
+    "scale": 0.003,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian 0.01 (pilot seeds)": {
+    "tv_inst": 0.2690590803872054,
+    "tv_timeavg": 0.1959644120432264,
+    "dens_at_death": 1.0217660538838889,
+    "dens_at_birth": 0.9851909955948581,
+    "deaths": 232.0,
+    "score_std": 0.1064240638521682,
+    "scale": 0.01,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian 0.03 (pilot seeds)": {
+    "tv_inst": 0.2709287072625768,
+    "tv_timeavg": 0.19412228906714202,
+    "dens_at_death": 1.0202401894394753,
+    "dens_at_birth": 0.9906020251057815,
+    "deaths": 704.5,
+    "score_std": 0.3160942266564663,
+    "scale": 0.03,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian 0.1 (pilot seeds)": {
+    "tv_inst": 0.27871045395746685,
+    "tv_timeavg": 0.21053938976158648,
+    "dens_at_death": 1.0166807860131186,
+    "dens_at_birth": 0.9956019532475848,
+    "deaths": 2196.5,
+    "score_std": 0.9437627407048125,
+    "scale": 0.1,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian 0.3 (pilot seeds)": {
+    "tv_inst": 0.2764871060482274,
+    "tv_timeavg": 0.20596393623737375,
+    "dens_at_death": 1.015664143949328,
+    "dens_at_birth": 1.0000186547180956,
+    "deaths": 4100.5,
+    "score_std": 1.5595763944929293,
+    "scale": 0.3,
+    "bw": 0.1,
+    "n": 8
+   }
+  },
+  "score_emulation": {
+   "0.1": {
+    "corr_inst_vs_timeavg": 0.095855953594635,
+    "std_inst": 13.065050817336914,
+    "std_timeavg": 1.605348281426345,
+    "noise_variance_fraction": 0.9849021075153708
+   },
+   "0.2": {
+    "corr_inst_vs_timeavg": 0.43553557345819693,
+    "std_inst": 2.2604504262048137,
+    "std_timeavg": 1.0881902812614321,
+    "noise_variance_fraction": 0.7682500165844065
+   },
+   "0.3": {
+    "corr_inst_vs_timeavg": 0.7240544623733128,
+    "std_inst": 1.0050896783698249,
+    "std_timeavg": 0.861383161649636,
+    "noise_variance_fraction": 0.26551466379848043
+   },
+   "0.5": {
+    "corr_inst_vs_timeavg": 0.8833123851181718,
+    "std_inst": 0.46705816618827134,
+    "std_timeavg": 0.5546763293106381,
+    "noise_variance_fraction": -0.41038384921899396
+   },
+   "0.8": {
+    "corr_inst_vs_timeavg": 0.9465355101336433,
+    "std_inst": 0.2704172329118509,
+    "std_timeavg": 0.3208919288648748,
+    "noise_variance_fraction": -0.40814980241924914
+   },
+   "engine": {
+    "kde_bandwidth": 0.1,
+    "laplacian_scale": 0.03,
+    "saved_score_std": 0.3167025010782353,
+    "emulated_score_std": 0.3919515245201074,
+    "K": 1024
+   }
+  }
+ },
+ "R2H350": {
+  "label": "LTA 350 K K1024",
+  "arms": {
+   "abf (production seeds)": {
+    "tv_inst": 0.17429456946920183,
+    "tv_timeavg": 0.013396081680778374,
+    "dens_at_death": null,
+    "dens_at_birth": null,
+    "deaths": 0.0,
+    "score_std": 0.0,
+    "scale": 0.01,
+    "bw": 0.1,
+    "n": 8
+   },
+   "fr (production seeds)": {
+    "tv_inst": 0.17235173425430778,
+    "tv_timeavg": 0.013024953115715986,
+    "dens_at_death": 1.0074088215872767,
+    "dens_at_birth": 1.0107550940334975,
+    "deaths": 184.5,
+    "score_std": 0.20686112834348677,
+    "scale": 0.01,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian frozen scale (production seeds)": {
+    "tv_inst": 0.1744851045689741,
+    "tv_timeavg": 0.012430137774806893,
+    "dens_at_death": 0.9991088899778072,
+    "dens_at_birth": 0.9945075605439765,
+    "deaths": 330.5,
+    "score_std": 0.31612689148894213,
+    "scale": 0.03,
+    "bw": 0.1,
+    "n": 8
+   },
+   "fr (pilot seeds)": {
+    "tv_inst": 0.17191784186843928,
+    "tv_timeavg": 0.013651682263814618,
+    "dens_at_death": 0.9918587869043507,
+    "dens_at_birth": 0.99864501953125,
+    "deaths": 178.0,
+    "score_std": 0.2130936504489806,
+    "scale": 0.01,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian 0.003 (pilot seeds)": {
+    "tv_inst": 0.17441162544563282,
+    "tv_timeavg": 0.014227581420825907,
+    "dens_at_death": 1.0013671875,
+    "dens_at_birth": 1.0062859195402298,
+    "deaths": 31.0,
+    "score_std": 0.031642091172085024,
+    "scale": 0.003,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian 0.01 (pilot seeds)": {
+    "tv_inst": 0.17447322876435928,
+    "tv_timeavg": 0.014173560049019608,
+    "dens_at_death": 0.9967145460812166,
+    "dens_at_birth": 0.9972719938858696,
+    "deaths": 96.0,
+    "score_std": 0.10531592544781125,
+    "scale": 0.01,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian 0.03 (pilot seeds)": {
+    "tv_inst": 0.17453910659907904,
+    "tv_timeavg": 0.013818968638591798,
+    "dens_at_death": 0.9959567927922466,
+    "dens_at_birth": 0.995747699804007,
+    "deaths": 319.5,
+    "score_std": 0.31523147945366636,
+    "scale": 0.03,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian 0.1 (pilot seeds)": {
+    "tv_inst": 0.1748957675715488,
+    "tv_timeavg": 0.014151452484402853,
+    "dens_at_death": 0.999737597110339,
+    "dens_at_birth": 0.9998244512648811,
+    "deaths": 1049.0,
+    "score_std": 0.9778618824742698,
+    "scale": 0.1,
+    "bw": 0.1,
+    "n": 8
+   },
+   "laplacian 0.3 (pilot seeds)": {
+    "tv_inst": 0.1742940665849673,
+    "tv_timeavg": 0.014349724264705883,
+    "dens_at_death": 0.9993307560756923,
+    "dens_at_birth": 0.9986743656024786,
+    "deaths": 1908.5,
+    "score_std": 1.5951361185387434,
+    "scale": 0.3,
+    "bw": 0.1,
+    "n": 8
+   }
+  },
+  "score_emulation": {
+   "0.1": {
+    "corr_inst_vs_timeavg": 0.07200767389664707,
+    "std_inst": 11.511029473393442,
+    "std_timeavg": 0.5866199934796711,
+    "noise_variance_fraction": 0.9974029196298395
+   },
+   "0.2": {
+    "corr_inst_vs_timeavg": 0.12484424943149275,
+    "std_inst": 2.20097628285626,
+    "std_timeavg": 0.16534303202699416,
+    "noise_variance_fraction": 0.9943565969406408
+   },
+   "0.3": {
+    "corr_inst_vs_timeavg": 0.14705825775841214,
+    "std_inst": 0.8202189625858333,
+    "std_timeavg": 0.11196221516604754,
+    "noise_variance_fraction": 0.9813669755535648
+   },
+   "0.5": {
+    "corr_inst_vs_timeavg": 0.22787007288728442,
+    "std_inst": 0.2525783015631776,
+    "std_timeavg": 0.057573046247696366,
+    "noise_variance_fraction": 0.948042727949115
+   },
+   "0.8": {
+    "corr_inst_vs_timeavg": 0.2519408250127452,
+    "std_inst": 0.07079835459970533,
+    "std_timeavg": 0.01909970401033634,
+    "noise_variance_fraction": 0.9272208557162884
+   },
+   "engine": {
+    "kde_bandwidth": 0.1,
+    "laplacian_scale": 0.03,
+    "saved_score_std": 0.3174346634437185,
+    "emulated_score_std": 0.34533088420180325,
+    "K": 1024
+   }
+  }
+ }
+}

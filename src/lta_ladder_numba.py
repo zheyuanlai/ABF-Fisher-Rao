@@ -137,7 +137,7 @@ EPS = 1.0e-12
 SENT = -(2 ** 62)                   # "no cage yet" label
 BUDGET = 307_200_000
 LADDER_N = (1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1)
-METHODS = ("abf", "fr")
+METHODS = ("abf", "fr", "laplacian")
 ENGINE = "lta_ladder_numba/2"
 # result keys present only with diagnostics=True (omitted, and listed in meta.omitted_keys, when off)
 DIAG_ONLY_KEYS = ("hist_inst", "region_frac", "events_window_crossings", "events_translocations",
@@ -197,6 +197,7 @@ DEFAULT_CFG = dict(
     fr_rate=0.2,
     score_clip=2.0,
     kde_bandwidth=0.10,
+    laplacian_scale=0.01,  # (CV angle)^2: LRS c(t) = fr_rate * laplacian_scale
     max_event_fraction=0.02,
     cap_min=1,                      # finite-N extension; 0 = historical int(0.02 N)
     abf_force_clip=60.0,            # bias read clip
@@ -220,11 +221,13 @@ DEFAULT_CFG = dict(
 F_DT, F_NS, F_A, F_L, F_INVL, F_RC2, F_S2, F_C24, F_KB, F_R0, F_C4, F_VRC = range(12)
 F_CPHI, F_CF, F_GPX, F_DPHI, F_FCLIP, F_DCLIP, F_RATE, F_DTEFF, F_SCLIP = range(12, 21)
 F_WH, F_CM, F_BSCALE, F_GRID0, F_QV, F_LQ = range(21, 27)
-NFP = 27
+F_LAPSCALE = 27
+NFP = 28
 I_N, I_NG, I_NSTEPS, I_WARM, I_BURN, I_FRSTART, I_FREVERY, I_CAP, I_ISFR, I_FRON = range(10)
 I_GWIN, I_ACCU, I_DIAG, I_MODE, I_NTR, I_REC = range(10, 16)
 I_FRSTOP = 16
-NIP = 17
+I_SELRULE = 17  # 0=ABF, 1=Fisher-Rao, 2=LRS Laplacian
+NIP = 18
 (S_STEP, S_SP, S_TP, S_TRANS, S_PREVOK, S_REPL, S_NOPP, S_NOPPEV, S_WCROSS, S_TRANSLOC,
  S_FIRSTWIN, S_FIRSTOPP, S_NSCORE, S_RPU, S_RPP, S_RPS, S_NFE, S_EVLOG, S_BADSRC) = range(19)
 NIST = 19
@@ -519,6 +522,54 @@ def _fr_score(phin, jn, N, ng, dphi, Kk, grid0, qv, lq, clip, cnt, pk, raw, sc, 
 
 
 @njit(cache=True, error_model="numpy")
+def _laplacian_score(phin, N, ng, dphi, pk, grid0, scale, clip, raw, sc, p2):
+    """LRS book Eq. (6.26): S = +c p''/p means birth.
+
+    Here a positive score means death, so the implemented score is -scale*p''/p.
+    Periodic second differences operate on the same KDE marginal as FR.  The
+    resampling clock multiplies by fr_rate, giving c(t) = fr_rate*scale.
+    """
+    inv_dphi2 = 1.0 / (dphi * dphi)
+    for j in range(ng):
+        p2[j] = (pk[(j - 1) % ng] - 2.0 * pk[j] + pk[(j + 1) % ng]) * inv_dphi2
+    for i in range(N):
+        xx = (phin[i] - grid0) / dphi
+        f0 = np.floor(xx)
+        fr = xx - f0
+        i0 = np.int64(f0) % ng
+        i1 = (i0 + 1) % ng
+        pat = (1.0 - fr) * pk[i0] + fr * pk[i1]
+        p2at = (1.0 - fr) * p2[i0] + fr * p2[i1]
+        raw[i] = -scale * p2at / (pat if pat > EPS else EPS)
+        sc[i] = raw[i]
+    # Centre to correct finite-N / discretisation drift, clip, and recenter.
+    for _ in range(3):
+        mean = 0.0
+        for i in range(N):
+            mean += sc[i]
+        mean /= N
+        for i in range(N):
+            v = sc[i] - mean
+            if v > clip:
+                v = clip
+            elif v < -clip:
+                v = -clip
+            sc[i] = v
+    mean = 0.0
+    for i in range(N):
+        mean += sc[i]
+    mean /= N
+    v2 = 0.0
+    amax = 0.0
+    for i in range(N):
+        sc[i] -= mean
+        v2 += sc[i] * sc[i]
+        if abs(sc[i]) > amax:
+            amax = abs(sc[i])
+    return math.sqrt(v2 / N), amax
+
+
+@njit(cache=True, error_model="numpy")
 def fr_select_native(sc, N, cap, rate, dt_eff, ublk, cand, dsel, ssel, dp, cdf):
     """The engine's own FR selection for one opportunity (score ``sc`` given, uniforms ``ublk`` of
     length N + 2 cap).  Fills dsel[:n] (dying slots) and ssel[:n] (sources); returns n.  Exposed for
@@ -636,6 +687,7 @@ def _run_chunk(n_eval, fp, ip, Ox, Oy, Oz, Kk, save_steps, trace_steps, noise, f
     ssel = np.empty(N, np.int64)
     cnt = np.zeros(ng)
     pk = np.empty(ng)
+    p2 = np.empty(ng)
     fam = np.zeros(N, np.int64)
     imove = 0
     iopp = 0
@@ -808,6 +860,9 @@ def _run_chunk(n_eval, fp, ip, Ox, Oy, Oz, Kk, save_steps, trace_steps, noise, f
             ist[S_NOPP] += 1
             sstd, sabs = _fr_score(phin, jn, N, ng, dphi, Kk, fp[F_GRID0], fp[F_QV], fp[F_LQ], fp[F_SCLIP],
                                    cnt, pk, raw, sc, touched)
+            if ip[I_SELRULE] == 2:
+                sstd, sabs = _laplacian_score(phin, N, ng, dphi, pk, fp[F_GRID0],
+                                               fp[F_LAPSCALE], fp[F_SCLIP], raw, sc, p2)
             fst[G_SSTD] += sstd
             if sabs > fst[G_SMAX]:
                 fst[G_SMAX] = sabs
@@ -1082,7 +1137,8 @@ def _params(c, method, O, a, L, mode):
     fp[F_GRID0] = grid0
     fp[F_QV] = qv
     fp[F_LQ] = math.log(max(qv, EPS))
-    is_fr = method == "fr"
+    fp[F_LAPSCALE] = float(c["laplacian_scale"])
+    is_fr = method != "abf"
     fr_on = is_fr and int(c["cap"]) >= 1 and float(c["fr_rate"]) > 0.0
     ip = np.zeros(NIP, dtype=np.int64)
     ip[I_N] = int(c["N"])
@@ -1102,6 +1158,7 @@ def _params(c, method, O, a, L, mode):
     ip[I_NTR] = int(c["n_trace"])
     ip[I_REC] = 1 if c["record_events"] else 0
     ip[I_FRSTOP] = int(c.get("fr_stop_steps", -1))
+    ip[I_SELRULE] = 2 if method == "laplacian" else (1 if is_fr else 0)
     return fp, ip, beta, fr_on
 
 
@@ -1236,7 +1293,7 @@ def _read_checkpoint(path):
 def run_arm(cfg, method, save_steps, *, checkpoint_path=None, checkpoint_every_s=900.0, chunk_steps=None,
             trace_steps=None, replay=None, allow_engine_change=False, allow_platform_change=False,
             _stop_after_chunks=None):
-    """Run ONE arm ('abf' or 'fr' = uniform-target FR) of one (lta, N, seed) job; returns the result dict.
+    """Run ONE arm ('abf', 'fr', or 'laplacian') of one (lta, N, seed) job; returns the result dict.
 
     cfg          dict with at least T_K, N, seed (every other knob defaults to DEFAULT_CFG; see make_cfg)
     save_steps   sorted unique completed-step counts in [0, n_steps] (the caller's save grid)
@@ -1274,8 +1331,10 @@ def run_arm(cfg, method, save_steps, *, checkpoint_path=None, checkpoint_every_s
     if method not in METHODS:
         raise ValueError(f"method must be one of {METHODS}, not {method!r}")
     N = c["N"]
-    if method == "fr" and N < 2:
-        raise ValueError("no FR arm at N = 1 (the uniform score is identically 0): run ABF only")
+    if method != "abf" and N < 2:
+        raise ValueError("selection requires N >= 2: run ABF at N = 1")
+    if method == "laplacian" and (not math.isfinite(float(c["laplacian_scale"])) or float(c["laplacian_scale"]) <= 0):
+        raise ValueError("laplacian_scale must be positive and finite")
     n_steps = c["n_steps"]
     h = float(c["h"])
     save_steps = np.asarray(save_steps, dtype=np.int64).ravel()
@@ -1295,9 +1354,9 @@ def run_arm(cfg, method, save_steps, *, checkpoint_path=None, checkpoint_every_s
     Kk, _, dphi = kde_matrix(int(c["n_grid"]), float(c["kde_bandwidth"]))
     cap = int(c["cap"])
     fr_start, fr_every = int(c["fr_start_steps"]), int(c["fr_every"])
-    n_opps_total = _n_opps_in(1, n_steps, fr_start, fr_every) if method == "fr" else 0
+    n_opps_total = _n_opps_in(1, n_steps, fr_start, fr_every) if method != "abf" else 0
     ctl = None
-    if method == "fr" and c.get("fr_controller"):
+    if method != "abf" and c.get("fr_controller"):
         from eri.fr_controller import OnlineStop, check_grid
         if int(c.get("fr_stop_steps", -1)) >= 0:
             raise ValueError("fr_controller and a fixed fr_stop_steps are exclusive")
@@ -1423,7 +1482,7 @@ def run_arm(cfg, method, save_steps, *, checkpoint_path=None, checkpoint_every_s
                 raise ValueError("replay noise shorter than n_steps")
         else:
             noise = gen_noise.standard_normal((n_moves, N, 2, 3))
-        if method == "fr" and fr_on and replay is None:
+        if method != "abf" and fr_on and replay is None:
             n_opp = _n_opps_in(step0 + 1, step0 + n_moves, fr_start, fr_every, int(ip[I_FRSTOP]))
             frb = gen_fr.random((n_opp, N + 2 * cap))
         else:
@@ -1474,27 +1533,28 @@ def _build_result(c, method, st, save_steps, trace_steps, trace_mult, rng_info, 
     nfe = int(ist[S_NFE])
     if nfe != N * (n_steps + 1):
         raise RuntimeError(f"force-evaluation count {nfe} != N (n_steps + 1) = {N * (n_steps + 1)}")
-    is_fr = method == "fr"
+    is_fr = method != "abf"
     knob_steps = dict(warmup=int(c["warmup_steps"]), burn_in=int(c["burn_in_steps"]),
                       fr_start=int(c["fr_start_steps"]), fr_every=int(c["fr_every"]),
                       genealogy_window=int(c["genealogy_window_steps"]), n_steps=int(n_steps))
     meta = dict(
         engine=ENGINE, status="complete", system="lta", method=method,
-        torch_method=("fr_uniform" if is_fr else "abf"), abf_estimator="histogram",
+        torch_method=("lrs_laplacian" if method == "laplacian" else ("fr_uniform" if is_fr else "abf")), abf_estimator="histogram",
         T_K=c["T_K"], beta=beta, kT=1.0 / beta, N=N, seed=c["seed"], h=h, n_steps=int(n_steps),
         B=int(N * n_steps), t_total=float(n_steps * h),
         knobs={k: dict(steps=v, t=v * h) for k, v in knob_steps.items()},
         fr_rate=float(c["fr_rate"]), score_clip=float(c["score_clip"]), kde_bandwidth=float(c["kde_bandwidth"]),
+        laplacian_scale=float(c["laplacian_scale"]), selection_rule=("lrs_laplacian" if method == "laplacian" else method),
         max_event_fraction=float(c["max_event_fraction"]), cap=int(c["cap"]), cap_min=int(c["cap_min"]),
         cap_rule=("finite-N extension cap = max(cap_min, floor(0.02 N))" if int(c["cap_min"]) >= 1
                   else "historical cap = int(0.02 N) (FR off below N = 50)"),
         cap_historical=int(float(c["max_event_fraction"]) * N), fr_active=bool(fr_on),
-        fr_score_degenerate=bool(is_fr and N == 2),
+        fr_score_degenerate=bool(method == "fr" and N == 2),
         fr_small_n_note=("N = 2: the uniform-target score is zero by symmetry (each walker sees K(0) + K(d)) "
                          "apart from within-bin interpolation (|S| ~ 5e-3); FR-INACTIVE cell, not evidence about FR"
-                         if is_fr and N == 2 else
+                         if method == "fr" and N == 2 else
                          "N = 3-4: small scores (walkers mostly farther apart than the KDE bandwidth); read "
-                         "total_replacement_events before interpreting the FR contrast" if is_fr and N <= 4 else None),
+                         "total_replacement_events before interpreting the FR contrast" if method == "fr" and N <= 4 else None),
         abf_force_clip=float(c["abf_force_clip"]), deposit_clip=float(c["deposit_clip"]),
         deposit_clip_rule=("8 x abf_force_clip (core_lta)" if float(c["deposit_clip"]) == 8.0 * float(c["abf_force_clip"])
                            else "EXPLICIT OVERRIDE (deposit_clip_override; core_lta uses 8 x abf_force_clip)"),

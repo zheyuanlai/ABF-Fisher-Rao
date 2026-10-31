@@ -65,10 +65,10 @@ from .model import config_energy_force
 
 import sys as _sys
 _sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")))
-from lta_ladder_numba import _fr_score, fr_select_native, kde_matrix  # noqa: E402  (validated FR machinery)
+from lta_ladder_numba import _fr_score, _laplacian_score, fr_select_native, kde_matrix  # noqa: E402  (validated FR machinery)
 
 ENGINE = "eri_engine/1"
-METHODS = ("abf", "fr")
+METHODS = ("abf", "fr", "laplacian")
 TWO_PI = 2.0 * math.pi
 EPS = 1.0e-12
 SENT = -(2 ** 62)
@@ -80,6 +80,7 @@ DEFAULT_CFG = dict(
     dt=1.0e-4, n_steps=300_000, save_every=1000,
     n_grid=180, warmup_steps=10_000, trust_count=0.0, bias_clip=None,
     fr_start_steps=10_000, fr_every=10, fr_rate=0.2, score_clip=2.0, kde_bandwidth=0.10,
+    laplacian_scale=0.01,  # angle^2, so c(t) = fr_rate * laplacian_scale
     max_event_fraction=0.02, cap_min=1,
     fr_stop_steps=-1,                      # early-stopping FR: events only at steps fr_start <= k < fr_stop (-1: never stop)
     fr_controller=None,                    # online stop rule spec (src/eri/fr_controller.py), host-side, reference-free
@@ -244,6 +245,7 @@ def _run_chunk(k0, k1, q, F, Cacc, Macc, Seta, Sux2, Sbond, Suz2, BH, DH, anc, a
     frevery = ip[4]
     cap = ip[5]
     is_fr = ip[6] == 1
+    selection_rule = ip[13]  # 2 = Laplacian, 1 = FR, 0 = plain ABF
     gwin = ip[7]
     frstop = ip[8]
     agew = ip[9]
@@ -266,6 +268,7 @@ def _run_chunk(k0, k1, q, F, Cacc, Macc, Seta, Sux2, Sbond, Suz2, BH, DH, anc, a
     jn = np.zeros(N, dtype=np.int64)
     cnt = np.zeros(ng)
     pk = np.zeros(ng)
+    p2 = np.zeros(ng)
     raw = np.zeros(N)
     sc = np.zeros(N)
     touched = np.zeros(ng, dtype=np.int64)
@@ -485,6 +488,8 @@ def _run_chunk(k0, k1, q, F, Cacc, Macc, Seta, Sux2, Sbond, Suz2, BH, DH, anc, a
                 _labels(i, nxt, xt, P, xw, ph, cage_phi, window_phi, row, lastcage, ist, evwin)
             ist[S_NOPP] += 1
             sstd, sabs = _fr_score(phin, jn, N, ng, dphi, Kk, grid0, qv, lq, sclip, cnt, pk, raw, sc, touched)
+            if selection_rule == 2:
+                sstd, sabs = _laplacian_score(phin, N, ng, dphi, pk, grid0, fp[15], sclip, raw, sc, p2)
             fst[0] += sstd
             for u in range(N + 2 * cap):
                 ublk[u] = rng_fr.random()
@@ -616,8 +621,10 @@ class Run:
     def __init__(self, c, method, model=None):
         if method not in METHODS:
             raise ValueError(method)
-        if method == "fr" and c["N"] < 2:
+        if method != "abf" and c["N"] < 2:
             raise ValueError("no FR at N = 1")
+        if method == "laplacian" and (not math.isfinite(float(c["laplacian_scale"])) or c["laplacian_scale"] <= 0):
+            raise ValueError("laplacian_scale must be positive and finite")
         self.c = c
         self.method = method
         self.model = model if model is not None else mdl.Model(c["variant"], T_K=c["T_K"], params=c["ff"])
@@ -671,13 +678,15 @@ class Run:
         self.fp = np.array([c["dt"], math.sqrt(2.0 * c["dt"] * m.kT), P, xw, c["fr_rate"],
                             c["dt"] * max(int(c["fr_every"]), 1), c["score_clip"], float(c["trust_count"]),
                             float(c["bias_clip"]) if c["bias_clip"] else -1.0, c["window_phi"], c["cage_phi"],
-                            -math.pi + 0.5 * dphi, 1.0 / (ng * dphi), math.log(1.0 / (ng * dphi)), m.fw.c])
+                            -math.pi + 0.5 * dphi, 1.0 / (ng * dphi), math.log(1.0 / (ng * dphi)), m.fw.c,
+                            float(c["laplacian_scale"])])
         self.ip = np.array([ng, int(c["n_steps"]), int(c["warmup_steps"]), int(c["fr_start_steps"]),
-                            int(c["fr_every"]), int(c["cap"]), 1 if method == "fr" else 0,
+                            int(c["fr_every"]), int(c["cap"]), 1 if method != "abf" else 0,
                             int(c["genealogy_window_steps"]), int(c["fr_stop_steps"]), int(c["diag_age_steps"]),
                             1 if int(c["diag_sel"]) == 1 else 0,
                             int(c["diag_sel_split_step"]) if int(c["diag_sel_split_step"]) >= 0 else int(c["n_steps"]) // 2,
-                            1 if int(c["diag_arr"]) == 1 else 0],
+                            1 if int(c["diag_arr"]) == 1 else 0,
+                            2 if method == "laplacian" else (1 if method == "fr" else 0)],
                            dtype=np.int64)
         self.born = np.full(N, -(2 ** 40), dtype=np.int64)
         self.dg = np.zeros((4, ng))
@@ -717,7 +726,7 @@ class Run:
         self.arrE = np.zeros((2, 3, nab, ng, NAQ) if aon else (2, 3, 1, 1, NAQ))
         self.sessions = []
         self.ctl = None
-        if c.get("fr_controller") and method == "fr":
+        if c.get("fr_controller") and method != "abf":
             from .fr_controller import OnlineStop, check_grid
             if int(c["fr_stop_steps"]) >= 0:
                 raise ValueError("fr_controller and a fixed fr_stop_steps are exclusive")
@@ -736,7 +745,7 @@ class Run:
         k_target = min(int(k_target), int(self.c["n_steps"]) + 1)
         if k_target <= self.k:
             return
-        if self.method == "fr" and self.ip[10] == 1:
+        if self.method != "abf" and self.ip[10] == 1:
             # the event table can never overflow: room for every event the chunk could produce (cap per opportunity)
             self._grow_events(((k_target - self.k) // max(int(self.c["fr_every"]), 1) + 2) * int(self.c["cap"]))
         self.isave = _run_chunk(self.k, k_target, self.q, self.F, self.C, self.Msum, self.Seta, self.Sux2, self.Sbond,
