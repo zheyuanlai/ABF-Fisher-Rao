@@ -116,6 +116,9 @@ done
 
 # Pair the new Laplacian runs with original ABF/FR runs; validated references
 python scripts/laplacian_baselines/analyze.py --case all
+
+# Original R2 geometric sustained time-to-accuracy metric (LTA/ITE cases)
+bash scripts/laplacian_baselines/analyze_r2.sh
 ```
 
 All output under `results/laplacian_baselines/`. The historical files in
@@ -129,10 +132,7 @@ The analysis reports:
   same seeds and force-evaluation counts;
 - Realised replacement counts and genealogy safety measures.
 
-To preserve the original R2 publication metric (geometric sustained
-time-to-accuracy speedup), add a separate Laplacian-vs-ABF R2 report or
-adapt the existing R2 analysis under a **new analysis path**, never
-replace `results/r2_campaign/analysis/`.
+The shell wrapper `scripts/laplacian_baselines/analyze_r2.sh` calls the **unchanged** R2 analyzer on the new Laplacian arm (using its `--fr-glob` override), producing the original geometric sustained time-to-accuracy speedup against archived ABF. Its internal `fr` label denotes the *second arm*, which in these runs is **Laplacian**, not Fisher–Rao. Files go to a new analysis path, never `results/r2_campaign/analysis/`.
 
 ## Code locations
 
@@ -142,6 +142,7 @@ replace `results/r2_campaign/analysis/`.
 - `configs/laplacian_baselines/`: new positive-cell job specifications only
 - `scripts/laplacian_baselines/run_gateway.py`: gateway runner
 - `scripts/laplacian_baselines/analyze.py`: historical ABF/FR vs new Lap paired analysis
+- `scripts/laplacian_baselines/analyze_r2.sh`: unchanged R2 sustained-speedup metric against ABF
 - `tests/test_lrs_laplacian.py`: numerical sign / BC / zero-rate checks
 
 ## Interpretation limits
@@ -151,3 +152,13 @@ outperforms the older LRS curvature score under our common resampling
 implementation. It does **not** establish superiority over every published
 selection protocol, nor an equal-aggregate-cost or wall-clock advantage.
 No numerical FR-versus-Laplacian comparison is available until the jobs run.
+
+## Reference-file availability
+
+The LTA 150 K and 300 K references are tracked under `results/equal_budget_v2/references/`.
+The 80 K and 350 K R2 reference files were built from umbrella/WHAM profiles before R2 production
+(`docs/r2_campaign/PREREGISTRATION.md`, §5); they are **not tracked** in GitHub. The corresponding
+`lta_T80_reference.npz` and `lta_T350_reference.npz` files must already be available in the
+original results directory (or rebuilt according to the original frozen protocol) before either
+analyzer can score those temperatures. They are **not** the exact-Metropolis-MC references used
+at 150 K and 300 K. Never substitute a reference after examining new selection results.
