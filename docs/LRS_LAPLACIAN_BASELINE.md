@@ -196,12 +196,124 @@ implementation. It does **not** establish superiority over every published
 selection protocol, nor an equal-aggregate-cost or wall-clock advantage.
 No numerical FR-versus-Laplacian comparison is available until the jobs run.
 
-## NSCC results (2026-11-01): mechanism diagnostic and exploratory bandwidth ladder
+## NSCC results (2026-11-01): primary comparison, mechanism diagnostic, exploratory bandwidth ladder
 
 The primary three-arm tables (predeclared protocol, frozen scales) are in
-`results/laplacian_baselines/analysis/SUMMARY.md` (sections 1-6, written by `analysis.sh`) and are summarised in the
-next section once that job has run.  Two further analyses were done on NSCC the same day and are reported here because
-they bear on how the primary result should be read.
+`results/laplacian_baselines/analysis/SUMMARY.md` (sections 1-7, written by `analysis.sh`, final run: job 26075544,
+2026-10-31 21:42 UTC) and are summarised first.  Two further analyses were done on NSCC the same day and are reported
+after it because they bear on how the primary result should be read.
+
+### Primary three-arm comparison (predeclared protocol, frozen scales; `analysis.sh` -> `analysis/SUMMARY.md`)
+
+Three arms at identical seeds, budgets and save grids: ABF, ABF + Fisher-Rao (archived configuration), ABF + LRS
+Laplacian selection at the scale frozen by the fresh-seed pilot rule (0.01 everywhere except 0.03 at LTA 80 K and
+350 K).  The ABF and FR arms are the NSCC re-runs of the archived seeds, not the archived files (see the reproducibility
+note below); 16 paired seeds per LTA / ITE cell, 32 per gateway cell.  Errors come from the frozen `eqb_metrics`
+scorers against the regenerated references (ITE 300 K and 150 K exact MC, Gate 1 PASS and equal to the archived
+`gate1.json` to 1e-10 relative; LTA 80 / 150 / 350 K umbrella sweeps; gateway analytic).  G = (second - first) /
+first per seed, median with seed-bootstrap 95 % CI, (wins / n) = seeds where the second arm has the lower error;
+negative favours the second arm.  The last two columns of each row are the PR's main comparison (bold).
+
+| cell | scale | I_F: FR vs ABF | I_F: Laplacian vs ABF | I_F: Laplacian vs FR | e_F(T): FR vs ABF | e_F(T): Laplacian vs ABF | e_F(T): Laplacian vs FR |
+|---|---:|---|---|---|---|---|---|
+| gateway K512 | 0.01 | -41.6 % [-49.0, -34.7] (32/32) | +4.9 % [-5.3, +11.9] (12/32) | **+76.5 % [+65.8, +85.2] (0/32)** | -47.0 % [-64.3, -26.2] (28/32) | +22.0 % [+12.5, +33.9] (7/32) | **+161.1 % [+73.0, +217.6] (5/32)** |
+| gateway K2048 | 0.01 | -31.5 % [-34.4, -28.0] (31/32) | -4.4 % [-9.3, -1.3] (23/32) | **+43.1 % [+33.2, +48.3] (1/32)** | -64.1 % [-68.6, -57.3] (32/32) | +2.7 % [-8.2, +6.4] (15/32) | **+167.7 % [+134.4, +232.2] (0/32)** |
+| LTA 80 K K1024 | 0.03 | -33.6 % [-35.5, -31.7] (16/16) | +2.0 % [-0.5, +3.7] (5/16) | **+52.3 % [+49.6, +58.9] (0/16)** | -82.6 % [-84.6, -78.5] (16/16) | +0.4 % [-6.3, +10.3] (7/16) | **+468.9 % [+385.5, +504.4] (0/16)** |
+| LTA 150 K K1024 | 0.01 | -30.2 % [-32.0, -28.1] (16/16) | +0.5 % [-1.3, +1.6] (7/16) | **+42.9 % [+39.2, +49.1] (0/16)** | -57.9 % [-68.0, -54.7] (16/16) | -1.2 % [-4.0, +3.7] (9/16) | **+149.6 % [+114.4, +213.4] (0/16)** |
+| LTA 300 K K1024 | 0.01 | -15.9 % [-17.9, -12.0] (16/16) | +0.0 % [-1.2, +1.0] (8/16) | **+18.2 % [+12.3, +22.7] (0/16)** | -24.1 % [-40.4, -12.2] (16/16) | +0.1 % [-5.8, +2.6] (8/16) | **+31.8 % [+13.0, +57.3] (0/16)** |
+| LTA 350 K K1024 | 0.03 | -14.3 % [-16.3, -11.7] (16/16) | -0.0 % [-1.7, +1.7] (8/16) | **+15.3 % [+11.4, +19.1] (0/16)** | -21.9 % [-29.0, -14.1] (15/16) | -0.9 % [-13.2, +18.9] (8/16) | **+26.1 % [+18.1, +34.9] (2/16)** |
+| ITE 300 K K1024 | 0.01 | -28.4 % [-30.9, -26.0] (16/16) | -0.0 % [-0.9, +1.6] (9/16) | **+40.5 % [+34.6, +45.9] (0/16)** | -40.9 % [-48.6, -29.5] (16/16) | -0.7 % [-8.4, +4.9] (9/16) | **+66.8 % [+42.8, +88.7] (1/16)** |
+| ITE 150 K K256 | 0.01 | -22.0 % [-26.8, -15.7] (16/16) | -0.3 % [-3.0, +2.8] (8/16) | **+29.6 % [+21.3, +37.7] (1/16)** | -28.2 % [-36.0, -16.0] (14/16) | -4.9 % [-13.4, +12.4] (9/16) | **+38.4 % [+9.7, +52.0] (3/16)** |
+
+Mean-force errors (I_F', e_F'(T)) tell the same story and are in `SUMMARY.md` section 2.
+
+| cell | arm | replacements | min windowed ESS/K | max family share | established | t_stop |
+|---|---|---:|---:|---:|---:|---:|
+| gateway K512 | FR | 9454 | 0.350 | 0.037 | n/a | n/a |
+| gateway K512 | Laplacian | 9990 | 0.655 | 0.014 | n/a | n/a |
+| gateway K2048 | FR | 5349 | 0.348 | 0.016 | n/a | n/a |
+| gateway K2048 | Laplacian | 4466 | 0.819 | 0.002 | n/a | n/a |
+| LTA 80 K K1024 | FR | 491 | 0.716 | 0.007 | 16/16 | 31.25 (T = 60) |
+| LTA 80 K K1024 | Laplacian | 698 | 0.894 | 0.004 | 16/16 | 74.25 (> T = 60 in 16/16) |
+| LTA 150 K K1024 | FR | 362 | 0.603 | 0.008 | 16/16 | 18.50 (T = 60) |
+| LTA 150 K K1024 | Laplacian | 252 | 0.923 | 0.003 | 16/16 | 33.75 (T = 60) |
+| LTA 300 K K1024 | FR | 197 | 0.759 | 0.005 | 16/16 | 14.50 (T = 60) |
+| LTA 300 K K1024 | Laplacian | 119 | 0.933 | 0.003 | 16/16 | 18.25 (T = 60) |
+| LTA 350 K K1024 | FR | 178 | 0.782 | 0.005 | 16/16 | 14.00 (T = 60) |
+| LTA 350 K K1024 | Laplacian | 330 | 0.820 | 0.004 | 16/16 | 16.50 (T = 60) |
+| ITE 300 K K1024 | FR | 582 | 0.324 | 0.019 | 16/16 | 5.00 (T = 50) |
+| ITE 300 K K1024 | Laplacian | 643 | 0.695 | 0.005 | 16/16 | 8.50 (T = 50) |
+| ITE 150 K K256 | FR | 116 | 0.499 | 0.031 | 16/16 | 8.50 (T = 100) |
+| ITE 150 K K256 | Laplacian | 140 | 0.696 | 0.018 | 16/16 | 14.75 (T = 100) |
+
+Archived R2 metric (sustained time-to-accuracy speedup S_geo, unchanged analyzer; > 1 favours the second arm):
+
+| cell | FR vs ABF, archive (2026-10-17) | FR vs ABF, NSCC re-run | Laplacian vs ABF, NSCC |
+|---|---|---|---|
+| LTA 80 K K1024 | 1.84 [1.64, 2.19] SUPPORTED (15/16 faster) | 1.84 [1.64, 2.11] SUPPORTED (15/16 faster) | 0.93 [0.83, 1.00] UNRESOLVED (4/16 faster) |
+| LTA 150 K K1024 | 2.45 [2.26, 2.61] SUPPORTED (16/16 faster) | 2.45 [2.26, 2.61] SUPPORTED (16/16 faster) | 0.99 [0.97, 1.02] UNRESOLVED (7/16 faster) |
+| LTA 300 K K1024 | 1.39 [1.34, 1.51] SUPPORTED (16/16 faster) | 1.39 [1.30, 1.52] SUPPORTED (16/16 faster) | 0.99 [0.98, 1.02] UNRESOLVED (7/16 faster) |
+| LTA 350 K K1024 | 1.29 [1.25, 1.45] SUPPORTED (16/16 faster) | 1.34 [1.23, 1.42] SUPPORTED (16/16 faster) | 1.01 [0.95, 1.05] UNRESOLVED (10/16 faster) |
+| ITE 300 K K1024 | 1.80 [1.55, 2.04] SUPPORTED (16/16 faster) | 1.79 [1.57, 2.06] SUPPORTED (16/16 faster) | 1.00 [0.97, 1.06] UNRESOLVED (9/16 faster) |
+| ITE 150 K K256 | 1.44 [1.29, 1.70] SUPPORTED (16/16 faster) | 1.56 [1.36, 1.72] SUPPORTED (16/16 faster) | 1.01 [0.97, 1.05] UNRESOLVED (10/16 faster) |
+
+Scale sensitivity on the fresh-seed pilot (8 seeds per cell, Laplacian vs FR, e_F(T); the best of the five scales is shown):
+
+| cell | scales | best scale by e_F(T) | G e_F(T): Laplacian vs FR at that scale | G I_F at that scale |
+|---|---|---:|---|---|
+| gateway K512 | 0.003, 0.01, 0.03, 0.1, 0.3 | 0.01 | +79.0 % [+46.2, +90.4] (1/8) | +77.4 % [+68.8, +175.2] (0/8) |
+| gateway K2048 | 0.003, 0.01, 0.03, 0.1, 0.3 | 0.003 | +104.1 % [+78.1, +213.4] (0/8) | +23.9 % [-2.7, +70.2] (2/8) |
+| LTA 80 K K1024 | 0.003, 0.01, 0.03, 0.1, 0.3 | 0.003 | +422.6 % [+326.4, +1078.2] (0/8) | +52.8 % [+50.4, +55.7] (0/8) |
+| LTA 150 K K1024 | 0.003, 0.01, 0.03, 0.1, 0.3 | 0.003 | +158.2 % [+92.5, +260.9] (0/8) | +43.5 % [+39.4, +48.5] (0/8) |
+| LTA 300 K K1024 | 0.003, 0.01, 0.03, 0.1, 0.3 | 0.03 | +38.1 % [+17.3, +81.3] (0/8) | +20.9 % [+14.4, +26.1] (0/8) |
+| LTA 350 K K1024 | 0.003, 0.01, 0.03, 0.1, 0.3 | 0.1 | +10.7 % [+3.9, +14.0] (1/8) | +12.8 % [+8.9, +19.9] (0/8) |
+| ITE 300 K K1024 | 0.003, 0.01, 0.03, 0.1, 0.3 | 0.01 | +49.1 % [+21.8, +92.1] (0/8) | +45.5 % [+31.3, +47.8] (0/8) |
+| ITE 150 K K256 | 0.003, 0.01, 0.03, 0.1, 0.3 | 0.003 | +41.7 % [+10.1, +155.3] (0/8) | +41.0 % [+17.9, +55.1] (0/8) |
+
+Re-run vs archive (ABF / FR arms regenerated on NSCC from the archived seeds; `reproducibility.md`):
+
+- ITE 300 K K1024: S_geo median re-run 1.793 vs archive 1.801 (-0.5%); FR replacements median 582 vs 582; e_F(T) FR median re-run 0.04866 vs 0.04471 (+8.8%)
+- ITE 150 K K256: S_geo median re-run 1.558 vs archive 1.437 (+8.4%); FR replacements median 116 vs 116; e_F(T) FR median re-run 0.05374 vs 0.05582 (-3.7%)
+- LTA 150 K K1024: S_geo median re-run 2.450 vs archive 2.450 (+0.0%); FR replacements median 362 vs 364; e_F(T) FR median re-run 0.05135 vs 0.05362 (-4.2%)
+- LTA 300 K K1024: S_geo median re-run 1.386 vs archive 1.388 (-0.2%); FR replacements median 197 vs 198; e_F(T) FR median re-run 0.08425 vs 0.08134 (+3.6%)
+- LTA 80 K K1024: S_geo median re-run 1.838 vs archive 1.842 (-0.2%); FR replacements median 491 vs 491; e_F(T) FR median re-run 0.03015 vs 0.02803 (+7.6%)
+- LTA 350 K K1024: S_geo median re-run 1.338 vs archive 1.293 (+3.5%); FR replacements median 178 vs 178; e_F(T) FR median re-run 0.05273 vs 0.03817 (+38.1%)
+- gateway (128 runs): median relative difference re-run vs archive, Ibar_F -0.00% (max |rel| 19.90%), final e_F -0.00% (max |rel| 245.81%); bitwise-identical runs: 0
+
+How to read the primary tables:
+
+- **Laplacian vs ABF: no effect.**  In seven of eight cells the Laplacian arm is indistinguishable from plain ABF
+  (I_F within -4 / +5 %, e_F(T) within -5 / +3 %, wins 5-9 of 16; the only CI excluding zero in its favour is
+  I_F at gateway K2048, -4.4 % [-9.3, -1.3]).  At gateway K512 it is worse than ABF on the final error (+22 %
+  [+12.5, +33.9], 7/32).  The archived sustained time-to-accuracy metric agrees: S_geo 0.93-1.01, UNRESOLVED in all
+  six LTA / ITE cells (0.93 [0.83, 1.00] at 80 K, where the arm selected until the end of the run).
+- **FR vs ABF reproduces the archive in all eight cells** (I_F -14 to -42 %, e_F(T) -22 to -83 %, 14-16 of 16 or
+  28-32 of 32 seeds; S_geo 1.34-2.45 SUPPORTED in all six, within 0-8 % of the archived values).
+- **FR vs the published Laplacian rule (the PR's question):** FR is better in every cell, by the same margin as over
+  ABF: Laplacian I_F +15 % (LTA 350 K) to +77 % (gateway K512) and e_F(T) +26 % to +469 % (LTA 80 K) relative to
+  FR, with 0-5 Laplacian wins out of 16 or 32 seeds.  No scale of the pilot ladder changes this (best of five per
+  cell still +11 % to +423 % in e_F(T) relative to FR, 0-1 wins of 8).
+- **Activity.**  The pilot rule matched the replacement counts to FR's in log-ratio (0.6-1.9 x FR), yet the Laplacian
+  arm's minimum windowed ESS/K stays higher (0.66-0.93 vs 0.32-0.78) and its largest family smaller: its deaths are
+  spread uniformly over the marginal, as the noise diagnostic below predicts, rather than concentrated where the
+  marginal is high.  Under the R2 stop rule (stop at 2 t1, t1 = establishment time) the Laplacian arm establishes
+  1.2-2.4 x later than FR; at LTA 80 K its stop (68-92 t.u.) fell after the 60 t.u. run in 16/16 seeds, so that arm
+  never stopped selecting.  (The archived analyzer's secondary "post-stop estimate" indexed past the save grid in
+  that case, a branch the archive never executed; it now falls back to its documented "never stopped" case, `kref`
+  = FR start.  No archived number changes.)
+- **Reproducibility of the re-runs (`reproducibility.md`).**  The ABF arms reproduce the archive per run to
+  platform floating-point drift (gateway: median |rel. diff| of Ibar_F 0.001 %, max 0.4 %; LTA / ITE S_geo medians
+  within 0-8 %).  The FR arms do not reproduce per run (resampling amplifies the drift: gateway K512 median |rel.
+  diff| 3.8 % in Ibar_F and 43 % in the final e_F), but their population medians do (Ibar_F 0.00507 vs 0.00504;
+  e_F(T) medians within 9 % except LTA 350 K, +38 % on a small final error).  Hence every contrast above is between
+  NSCC runs of the same seed, never NSCC Laplacian against archived ABF / FR.
+
+Taken with the two analyses below, the fair summary is: implemented inside FR's own density estimate and calibrated
+by the predeclared reference-free rule, the LRS Laplacian rule selects on estimation noise and does nothing for ABF,
+so FR's improvement over it equals FR's improvement over ABF in all eight cells; given its own, much wider bandwidth
+(exploratory, two LTA cells, fresh seeds) the rule becomes a real competitor at 150 K and trails FR at 80 K.  Whether
+the paper reports the predeclared comparison alone, adds the smoothed Laplacian arm to the eight production cells, or
+re-tunes FR's bandwidth as well, is the author's decision.
 
 ### What the Laplacian score acts on (`score_noise_diagnostic.py`, `analysis/score_noise.md`)
 

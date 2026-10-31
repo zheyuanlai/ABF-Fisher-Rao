@@ -1,0 +1,63 @@
+{
+ "_frozen": "2026-10-16 17:57 UTC, docs/overnight_molecular_extension/PREREGISTRATION.md sections 2-3",
+ "T_K": 300.0,
+ "params": {
+  "T_K": 300.0,
+  "eps_O_K": 93.0,
+  "sig_O": 3.48,
+  "eps_Si_K": 0.0,
+  "sig_Si": 1.0,
+  "eps_CC_K": 108.0,
+  "sig_CC": 3.76,
+  "rc": 12.0,
+  "shift": true,
+  "k_bond_K": 96500.0,
+  "r0": 1.54
+ },
+ "results_dir": "results/laplacian_baselines/references/ite300",
+ "windows": {
+  "n": 40,
+  "kappa": 300.0,
+  "centres": "linspace(-pi, pi, 40, endpoint=False)"
+ },
+ "groups": 16,
+ "MC": {
+  "seed_base": 8100000,
+  "n_mol": 16,
+  "n_pre_mc": 5000,
+  "burn_in": 5000,
+  "n_steps": 200000,
+  "sample_every": 5,
+  "d_bead": 0.1,
+  "d_trans": 0.3,
+  "d_rot": 0.6
+ },
+ "LANGEVIN": {
+  "seed_base": 9100000,
+  "n_mol": 16,
+  "n_pre_mc": 5000,
+  "burn_in_tu": 1.0,
+  "run_tu": 32.0,
+  "sample_every_tu": 0.001,
+  "candidates": [
+   [
+    "EM",
+    0.0002
+   ],
+   [
+    "EM",
+    0.0001
+   ],
+   [
+    "EM",
+    5e-05
+   ],
+   [
+    "LM",
+    0.0002
+   ]
+  ]
+ },
+ "n_ts": 20000,
+ "_nscc_rebuild": "copy of configs/overnight/ite/reference.json with results_dir -> results/laplacian_baselines/references/ite300 (2026-11-01, LRS baseline prerequisites)"
+}
