@@ -29,6 +29,8 @@ python scripts/laplacian_baselines/analyze.py --case all --arms-root results/lap
 echo "== 3. archived R2 sustained time-to-accuracy metric, Laplacian vs ABF =="
 LB_ABF_ROOT=results/laplacian_baselines/raw LB_ITE300_REFBASE=$ITE300 LB_ITE150_REFBASE=$ITE150 PY=python \
     bash scripts/laplacian_baselines/analyze_r2.sh
+echo "== 3b. scale sensitivity on the pilot runs (secondary) =="
+python scripts/laplacian_baselines/pilot_sensitivity.py --ite300-refbase "$ITE300" --ite150-refbase "$ITE150"
 echo "== 4. summary tables =="
 python scripts/laplacian_baselines/summarize.py
 echo ANALYSIS_DONE

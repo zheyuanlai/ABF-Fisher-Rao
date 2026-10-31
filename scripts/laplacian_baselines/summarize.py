@@ -87,6 +87,8 @@ def main():
     rep = _load(os.path.join(AN, "reproducibility.md"))
     L += ["", "## 6. Re-run vs archive (reproducibility of the ABF / FR arms on NSCC)", "",
           "See `reproducibility.md` in this directory." if os.path.exists(os.path.join(AN, "reproducibility.md")) else "(not run)"]
+    L += ["", "## 7. Scale sensitivity on the fresh-seed pilot (secondary; Laplacian vs FR only, 8 seeds per cell)", "",
+          "See `pilot_sensitivity.md` in this directory." if os.path.exists(os.path.join(AN, "pilot_sensitivity.md")) else "(not run)"]
     open(os.path.join(AN, "SUMMARY.md"), "w").write("\n".join(L) + "\n")
     print("\n".join(L))
 
