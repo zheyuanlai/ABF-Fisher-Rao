@@ -11,6 +11,10 @@ mkdir -p "$REF"
 for cell in ite300:ite:300:0.03:0.045 ite150:ite150:150:0.03:0.045; do
   IFS=: read -r name src T tol tolup <<< "$cell"
   cfg=$REF/${name}_reference_config.json
+  if [ -f "$REF/$name/ite_itq3/reference_fine.npz" ] && [ -f "$REF/$name/ite_itq3/gate1.json" ]; then
+    echo "== $name: reference_fine.npz + gate1.json exist, skipping (idempotent; the MC windows are skipped by run_reference.py anyway) =="
+    continue
+  fi
   python - "$src" "$REF/$name" "$cfg" <<'PY'
 import json, sys
 src, out, dst = sys.argv[1:]
