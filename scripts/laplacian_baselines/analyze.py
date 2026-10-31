@@ -24,6 +24,10 @@ sys.path.insert(0, str(ROOT / "src"))
 import eqb_metrics as M  # noqa: E402
 
 # The only comparison arms are archival ABF, archival Fisher-Rao, and NEW LRS Laplacian.
+ITE = {
+    "R2C1": (300, 1024, "R2C1_ite300_K1024_R2", 1400000, "results/overnight/ite/reference"),
+    "R2C2": (150, 256, "R2C2_ite150_K256_R2", 1410000, "results/overnight/ite150/reference"),
+}
 LTA = {
     "R2C3": (150, 1024, "R2C3_lta150_K1024_R2", 1420000),
     "R2C4": (300, 1024, "R2C4_lta300_K1024_R2", 1430000),
@@ -34,6 +38,13 @@ GATEWAY = {"gateway512": 512, "gateway2048": 2048}
 
 
 def _paths(case, seed):
+    if case in ITE:
+        t, n, tag, _, _ = ITE[case]
+        old = ROOT / "results/r2_campaign/raw" / tag
+        new = ROOT / "results/laplacian_baselines/raw" / tag
+        return {"abf": old / f"abf_N{n}_s{seed}.npz",
+                "fr": old / f"fr_N{n}_s{seed}.npz",
+                "laplacian": new / f"laplacian_N{n}_s{seed}.npz"}
     if case in LTA:
         t, n, tag, _ = LTA[case]
         old = ROOT / "results/r2_campaign/raw" / tag
@@ -51,6 +62,12 @@ def _paths(case, seed):
 
 
 def _scorer(case):
+    if case in ITE:
+        from eri import metrics as mt
+        _, _, _, _, refbase = ITE[case]
+        mt.set_reference_base(str(ROOT / refbase))
+        refs = mt.reference_for_grid(180, "ite_itq3")
+        return "ite", refs
     if case in LTA:
         return "lta150", M.LTAScorer(float(LTA[case][0]))
     p = json.loads((ROOT / "configs/equal_budget_v2/gateway_production.json").read_text())
@@ -60,13 +77,32 @@ def _scorer(case):
 def _read(case, seed, arm, path, system, scorer):
     if not path.is_file():
         raise FileNotFoundError(f"{case}, seed {seed}, method {arm}: {path}")
+    if system == "ite":
+        from eri import metrics as mt
+        res = mt.load_run(str(path))
+        cfg = res["cfg"]
+        if res["method"] != arm:
+            raise ValueError(f"{path} contains method {res['method']}, not {arm}")
+        if int(cfg["seed"]) != int(seed):
+            raise ValueError(f"{path} contains seed {cfg['seed']} != {seed}")
+        errs = mt.errors(res, *scorer)
+        e = np.asarray(errs["eF"], dtype=float)
+        g = np.asarray(errs["eG"], dtype=float)
+        steps = np.asarray(res["save_steps"], dtype=np.int64)
+        idx, _ = M.uniform_indices(steps, int(cfg["n_steps"]))
+        return {"step": steps, "t": np.asarray(res["times"], dtype=float),
+                "nfe": int(res["n_force_evals"]), "I_F": float(e[idx].mean()),
+                "e_F": float(e[-1]), "I_Fp": float(g[idx].mean()), "e_Fp": float(g[-1]),
+                "repl": int(res["sv_i"][-1, 2]),
+                "essw_min": float(np.nanmin(res["sv_u"][:, 2])) if arm != "abf" else None}
     res = M.load_run(str(path), system)
     if res["meta"]["method"] != arm:
         raise ValueError(f"{path} contains method {res['meta']['method']}, not {arm}")
     if int(res["meta"]["seed"]) != int(seed):
         raise ValueError(f"{path} contains seed {res['meta']['seed']} != {seed}")
-    e = np.asarray(scorer.errors(res)["e_F"], dtype=float)
-    g = np.asarray(scorer.errors(res)["e_Fp"], dtype=float)
+    errs = scorer.errors(res)
+    e = np.asarray(errs["e_F"], dtype=float)
+    g = np.asarray(errs["e_Fp"], dtype=float)
     n_steps = int(res["meta"]["n_steps"])
     idx, _ = M.uniform_indices(res["save_step"], n_steps)
     return {
@@ -74,13 +110,14 @@ def _read(case, seed, arm, path, system, scorer):
         "I_F": float(e[idx].mean()), "e_F": float(e[-1]),
         "I_Fp": float(g[idx].mean()), "e_Fp": float(g[-1]),
         "repl": int(np.asarray(res.get("cum_deaths", res.get("fr_deaths_cum", [0])))[-1]),
-        "essw_min": float(np.nanmin(res["gen_ess_win"] if "gen_ess_win" in res
-                                   else res["gen_ess_win"])) if arm != "abf" else None,
+        "essw_min": float(np.nanmin(res["gen_ess_win"])) if arm != "abf" else None,
     }
 
 
 def analyze(case, nboot):
-    if case in LTA:
+    if case in ITE:
+        seeds = list(range(ITE[case][3], ITE[case][3] + 16))
+    elif case in LTA:
         seeds = list(range(LTA[case][3], LTA[case][3] + 16))
     else:
         p = json.loads((ROOT / "configs/equal_budget_v2/gateway_production.json").read_text())
@@ -110,7 +147,7 @@ def analyze(case, nboot):
                     "essw_min_median": (None if a == "abf" else
                                         float(np.median([r["essw_min"] for r in out[a].values()])))}
                 for a in out}
-    return {"case": case, "n_seeds": len(seeds), "seeds": seeds, "units": "LTA kJ/mol, gateway reduced energy",
+    return {"case": case, "n_seeds": len(seeds), "seeds": seeds, "units": "LTA/ITE kJ/mol, gateway reduced energy",
             "metric_convention": "eqb_metrics reference/scorer; I_F = mean e_F at 200 uniform budget fractions",
             "contrast_convention": "(second - first)/first; negative favours second method",
             "activity": activity, "metrics": stats}
@@ -118,11 +155,11 @@ def analyze(case, nboot):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--case", choices=["all", *LTA, *GATEWAY], default="all")
+    ap.add_argument("--case", choices=["all", *ITE, *LTA, *GATEWAY], default="all")
     ap.add_argument("--n-boot", type=int, default=10000)
     ap.add_argument("--out", default="results/laplacian_baselines/analysis")
     args = ap.parse_args(argv)
-    cases = [*LTA, *GATEWAY] if args.case == "all" else [args.case]
+    cases = [*ITE, *LTA, *GATEWAY] if args.case == "all" else [args.case]
     out = ROOT / args.out
     out.mkdir(parents=True, exist_ok=True)
     for case in cases:
