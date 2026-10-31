@@ -1,0 +1,457 @@
+{
+  "stage": "LRS_R2H350",
+  "source_config": "configs/adaptive_fr/jobs_R2H350.json",
+  "purpose": "Only the published LRS (2007) Laplacian selection; LTA 350 K, paired seeds and R2 stopping rule of existing FR-positive cell. No other baselines.",
+  "laplacian_scale": 0.01,
+  "calibration_status": "UNVALIDATED STARTING VALUE; check event intensity and genealogy before interpreting comparison",
+  "jobs": [
+    {
+      "T_K": 350,
+      "N": 1024,
+      "seed": 1460000,
+      "cfg": {
+        "fr_rate": 0.2,
+        "fr_controller": {
+          "name": "R2",
+          "trigger": "occupancy",
+          "check_every": 0.25,
+          "W": 1,
+          "R": 18,
+          "level": 0.75,
+          "persist": 1,
+          "stop_factor": 2,
+          "support_count": 200,
+          "stability_tol": 0.05,
+          "stability_gate": false,
+          "essw_min": 0.15,
+          "maxlin_min": 0.1,
+          "maxlin_k": 6
+        },
+        "laplacian_scale": 0.01
+      },
+      "method": "laplacian",
+      "save_every": 500,
+      "out": "results/laplacian_baselines/raw/R2H350_lta350_K1024_R2/laplacian_N1024_s1460000.npz"
+    },
+    {
+      "T_K": 350,
+      "N": 1024,
+      "seed": 1460001,
+      "cfg": {
+        "fr_rate": 0.2,
+        "fr_controller": {
+          "name": "R2",
+          "trigger": "occupancy",
+          "check_every": 0.25,
+          "W": 1,
+          "R": 18,
+          "level": 0.75,
+          "persist": 1,
+          "stop_factor": 2,
+          "support_count": 200,
+          "stability_tol": 0.05,
+          "stability_gate": false,
+          "essw_min": 0.15,
+          "maxlin_min": 0.1,
+          "maxlin_k": 6
+        },
+        "laplacian_scale": 0.01
+      },
+      "method": "laplacian",
+      "save_every": 500,
+      "out": "results/laplacian_baselines/raw/R2H350_lta350_K1024_R2/laplacian_N1024_s1460001.npz"
+    },
+    {
+      "T_K": 350,
+      "N": 1024,
+      "seed": 1460002,
+      "cfg": {
+        "fr_rate": 0.2,
+        "fr_controller": {
+          "name": "R2",
+          "trigger": "occupancy",
+          "check_every": 0.25,
+          "W": 1,
+          "R": 18,
+          "level": 0.75,
+          "persist": 1,
+          "stop_factor": 2,
+          "support_count": 200,
+          "stability_tol": 0.05,
+          "stability_gate": false,
+          "essw_min": 0.15,
+          "maxlin_min": 0.1,
+          "maxlin_k": 6
+        },
+        "laplacian_scale": 0.01
+      },
+      "method": "laplacian",
+      "save_every": 500,
+      "out": "results/laplacian_baselines/raw/R2H350_lta350_K1024_R2/laplacian_N1024_s1460002.npz"
+    },
+    {
+      "T_K": 350,
+      "N": 1024,
+      "seed": 1460003,
+      "cfg": {
+        "fr_rate": 0.2,
+        "fr_controller": {
+          "name": "R2",
+          "trigger": "occupancy",
+          "check_every": 0.25,
+          "W": 1,
+          "R": 18,
+          "level": 0.75,
+          "persist": 1,
+          "stop_factor": 2,
+          "support_count": 200,
+          "stability_tol": 0.05,
+          "stability_gate": false,
+          "essw_min": 0.15,
+          "maxlin_min": 0.1,
+          "maxlin_k": 6
+        },
+        "laplacian_scale": 0.01
+      },
+      "method": "laplacian",
+      "save_every": 500,
+      "out": "results/laplacian_baselines/raw/R2H350_lta350_K1024_R2/laplacian_N1024_s1460003.npz"
+    },
+    {
+      "T_K": 350,
+      "N": 1024,
+      "seed": 1460004,
+      "cfg": {
+        "fr_rate": 0.2,
+        "fr_controller": {
+          "name": "R2",
+          "trigger": "occupancy",
+          "check_every": 0.25,
+          "W": 1,
+          "R": 18,
+          "level": 0.75,
+          "persist": 1,
+          "stop_factor": 2,
+          "support_count": 200,
+          "stability_tol": 0.05,
+          "stability_gate": false,
+          "essw_min": 0.15,
+          "maxlin_min": 0.1,
+          "maxlin_k": 6
+        },
+        "laplacian_scale": 0.01
+      },
+      "method": "laplacian",
+      "save_every": 500,
+      "out": "results/laplacian_baselines/raw/R2H350_lta350_K1024_R2/laplacian_N1024_s1460004.npz"
+    },
+    {
+      "T_K": 350,
+      "N": 1024,
+      "seed": 1460005,
+      "cfg": {
+        "fr_rate": 0.2,
+        "fr_controller": {
+          "name": "R2",
+          "trigger": "occupancy",
+          "check_every": 0.25,
+          "W": 1,
+          "R": 18,
+          "level": 0.75,
+          "persist": 1,
+          "stop_factor": 2,
+          "support_count": 200,
+          "stability_tol": 0.05,
+          "stability_gate": false,
+          "essw_min": 0.15,
+          "maxlin_min": 0.1,
+          "maxlin_k": 6
+        },
+        "laplacian_scale": 0.01
+      },
+      "method": "laplacian",
+      "save_every": 500,
+      "out": "results/laplacian_baselines/raw/R2H350_lta350_K1024_R2/laplacian_N1024_s1460005.npz"
+    },
+    {
+      "T_K": 350,
+      "N": 1024,
+      "seed": 1460006,
+      "cfg": {
+        "fr_rate": 0.2,
+        "fr_controller": {
+          "name": "R2",
+          "trigger": "occupancy",
+          "check_every": 0.25,
+          "W": 1,
+          "R": 18,
+          "level": 0.75,
+          "persist": 1,
+          "stop_factor": 2,
+          "support_count": 200,
+          "stability_tol": 0.05,
+          "stability_gate": false,
+          "essw_min": 0.15,
+          "maxlin_min": 0.1,
+          "maxlin_k": 6
+        },
+        "laplacian_scale": 0.01
+      },
+      "method": "laplacian",
+      "save_every": 500,
+      "out": "results/laplacian_baselines/raw/R2H350_lta350_K1024_R2/laplacian_N1024_s1460006.npz"
+    },
+    {
+      "T_K": 350,
+      "N": 1024,
+      "seed": 1460007,
+      "cfg": {
+        "fr_rate": 0.2,
+        "fr_controller": {
+          "name": "R2",
+          "trigger": "occupancy",
+          "check_every": 0.25,
+          "W": 1,
+          "R": 18,
+          "level": 0.75,
+          "persist": 1,
+          "stop_factor": 2,
+          "support_count": 200,
+          "stability_tol": 0.05,
+          "stability_gate": false,
+          "essw_min": 0.15,
+          "maxlin_min": 0.1,
+          "maxlin_k": 6
+        },
+        "laplacian_scale": 0.01
+      },
+      "method": "laplacian",
+      "save_every": 500,
+      "out": "results/laplacian_baselines/raw/R2H350_lta350_K1024_R2/laplacian_N1024_s1460007.npz"
+    },
+    {
+      "T_K": 350,
+      "N": 1024,
+      "seed": 1460008,
+      "cfg": {
+        "fr_rate": 0.2,
+        "fr_controller": {
+          "name": "R2",
+          "trigger": "occupancy",
+          "check_every": 0.25,
+          "W": 1,
+          "R": 18,
+          "level": 0.75,
+          "persist": 1,
+          "stop_factor": 2,
+          "support_count": 200,
+          "stability_tol": 0.05,
+          "stability_gate": false,
+          "essw_min": 0.15,
+          "maxlin_min": 0.1,
+          "maxlin_k": 6
+        },
+        "laplacian_scale": 0.01
+      },
+      "method": "laplacian",
+      "save_every": 500,
+      "out": "results/laplacian_baselines/raw/R2H350_lta350_K1024_R2/laplacian_N1024_s1460008.npz"
+    },
+    {
+      "T_K": 350,
+      "N": 1024,
+      "seed": 1460009,
+      "cfg": {
+        "fr_rate": 0.2,
+        "fr_controller": {
+          "name": "R2",
+          "trigger": "occupancy",
+          "check_every": 0.25,
+          "W": 1,
+          "R": 18,
+          "level": 0.75,
+          "persist": 1,
+          "stop_factor": 2,
+          "support_count": 200,
+          "stability_tol": 0.05,
+          "stability_gate": false,
+          "essw_min": 0.15,
+          "maxlin_min": 0.1,
+          "maxlin_k": 6
+        },
+        "laplacian_scale": 0.01
+      },
+      "method": "laplacian",
+      "save_every": 500,
+      "out": "results/laplacian_baselines/raw/R2H350_lta350_K1024_R2/laplacian_N1024_s1460009.npz"
+    },
+    {
+      "T_K": 350,
+      "N": 1024,
+      "seed": 1460010,
+      "cfg": {
+        "fr_rate": 0.2,
+        "fr_controller": {
+          "name": "R2",
+          "trigger": "occupancy",
+          "check_every": 0.25,
+          "W": 1,
+          "R": 18,
+          "level": 0.75,
+          "persist": 1,
+          "stop_factor": 2,
+          "support_count": 200,
+          "stability_tol": 0.05,
+          "stability_gate": false,
+          "essw_min": 0.15,
+          "maxlin_min": 0.1,
+          "maxlin_k": 6
+        },
+        "laplacian_scale": 0.01
+      },
+      "method": "laplacian",
+      "save_every": 500,
+      "out": "results/laplacian_baselines/raw/R2H350_lta350_K1024_R2/laplacian_N1024_s1460010.npz"
+    },
+    {
+      "T_K": 350,
+      "N": 1024,
+      "seed": 1460011,
+      "cfg": {
+        "fr_rate": 0.2,
+        "fr_controller": {
+          "name": "R2",
+          "trigger": "occupancy",
+          "check_every": 0.25,
+          "W": 1,
+          "R": 18,
+          "level": 0.75,
+          "persist": 1,
+          "stop_factor": 2,
+          "support_count": 200,
+          "stability_tol": 0.05,
+          "stability_gate": false,
+          "essw_min": 0.15,
+          "maxlin_min": 0.1,
+          "maxlin_k": 6
+        },
+        "laplacian_scale": 0.01
+      },
+      "method": "laplacian",
+      "save_every": 500,
+      "out": "results/laplacian_baselines/raw/R2H350_lta350_K1024_R2/laplacian_N1024_s1460011.npz"
+    },
+    {
+      "T_K": 350,
+      "N": 1024,
+      "seed": 1460012,
+      "cfg": {
+        "fr_rate": 0.2,
+        "fr_controller": {
+          "name": "R2",
+          "trigger": "occupancy",
+          "check_every": 0.25,
+          "W": 1,
+          "R": 18,
+          "level": 0.75,
+          "persist": 1,
+          "stop_factor": 2,
+          "support_count": 200,
+          "stability_tol": 0.05,
+          "stability_gate": false,
+          "essw_min": 0.15,
+          "maxlin_min": 0.1,
+          "maxlin_k": 6
+        },
+        "laplacian_scale": 0.01
+      },
+      "method": "laplacian",
+      "save_every": 500,
+      "out": "results/laplacian_baselines/raw/R2H350_lta350_K1024_R2/laplacian_N1024_s1460012.npz"
+    },
+    {
+      "T_K": 350,
+      "N": 1024,
+      "seed": 1460013,
+      "cfg": {
+        "fr_rate": 0.2,
+        "fr_controller": {
+          "name": "R2",
+          "trigger": "occupancy",
+          "check_every": 0.25,
+          "W": 1,
+          "R": 18,
+          "level": 0.75,
+          "persist": 1,
+          "stop_factor": 2,
+          "support_count": 200,
+          "stability_tol": 0.05,
+          "stability_gate": false,
+          "essw_min": 0.15,
+          "maxlin_min": 0.1,
+          "maxlin_k": 6
+        },
+        "laplacian_scale": 0.01
+      },
+      "method": "laplacian",
+      "save_every": 500,
+      "out": "results/laplacian_baselines/raw/R2H350_lta350_K1024_R2/laplacian_N1024_s1460013.npz"
+    },
+    {
+      "T_K": 350,
+      "N": 1024,
+      "seed": 1460014,
+      "cfg": {
+        "fr_rate": 0.2,
+        "fr_controller": {
+          "name": "R2",
+          "trigger": "occupancy",
+          "check_every": 0.25,
+          "W": 1,
+          "R": 18,
+          "level": 0.75,
+          "persist": 1,
+          "stop_factor": 2,
+          "support_count": 200,
+          "stability_tol": 0.05,
+          "stability_gate": false,
+          "essw_min": 0.15,
+          "maxlin_min": 0.1,
+          "maxlin_k": 6
+        },
+        "laplacian_scale": 0.01
+      },
+      "method": "laplacian",
+      "save_every": 500,
+      "out": "results/laplacian_baselines/raw/R2H350_lta350_K1024_R2/laplacian_N1024_s1460014.npz"
+    },
+    {
+      "T_K": 350,
+      "N": 1024,
+      "seed": 1460015,
+      "cfg": {
+        "fr_rate": 0.2,
+        "fr_controller": {
+          "name": "R2",
+          "trigger": "occupancy",
+          "check_every": 0.25,
+          "W": 1,
+          "R": 18,
+          "level": 0.75,
+          "persist": 1,
+          "stop_factor": 2,
+          "support_count": 200,
+          "stability_tol": 0.05,
+          "stability_gate": false,
+          "essw_min": 0.15,
+          "maxlin_min": 0.1,
+          "maxlin_k": 6
+        },
+        "laplacian_scale": 0.01
+      },
+      "method": "laplacian",
+      "save_every": 500,
+      "out": "results/laplacian_baselines/raw/R2H350_lta350_K1024_R2/laplacian_N1024_s1460015.npz"
+    }
+  ]
+}
