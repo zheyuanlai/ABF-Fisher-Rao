@@ -227,7 +227,8 @@ def main():
     # post-stop-only estimate: deposits after the FR arm's stop (or FR start if it never stopped), both arms
     ea, eb = [], []
     for x, y in zip(ra, rb):
-        kref = y["stop"] if y["stop"] >= 0 else k0
+        # a stop step beyond the last save (R2 stop = 2 t1 falling after the run end) is "never stopped within the run"
+        kref = y["stop"] if 0 <= y["stop"] <= int(x["steps"][-1]) else k0
         i0 = int(np.searchsorted(x["steps"], kref))
         for r_, lst in ((x, ea), (y, eb)):
             if a.engine == "eri":

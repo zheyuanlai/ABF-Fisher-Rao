@@ -1,0 +1,63 @@
+{
+ "variant": "ite_itq3",
+ "kT": 2.4943387854,
+ "tolerance": [
+  0.03,
+  0.045
+ ],
+ "nboot": 2000,
+ "overlap_min_fine_count": 186793.0,
+ "check1_overlap": "PASS",
+ "check2_density_vs_MF": {
+  "A": "MC F_density",
+  "B": "MC F_MF",
+  "D": 0.009878224267487391,
+  "D_upper95": 0.012065915799023042,
+  "rms_obs": 0.010810881908818116,
+  "noise": 0.004392704516312702,
+  "max_abs": 0.02542279789642939,
+  "verdict": "PASS"
+ },
+ "check3_split_half": {
+  "A": "MC groups 0-7",
+  "B": "MC groups 8-15",
+  "D": 0.004714932555438774,
+  "D_upper95": 0.010506147304911794,
+  "rms_obs": 0.009136578920971796,
+  "noise": 0.007826013376988935,
+  "max_abs": 0.018302974562423715,
+  "verdict": "PASS"
+ },
+ "check4_equilibration": {
+  "A": "MC first half",
+  "B": "MC second half",
+  "D": 0.0,
+  "D_upper95": 0.009549562023802586,
+  "rms_obs": 0.00726147187927776,
+  "noise": 0.007866265109246042,
+  "max_abs": 0.016720012664766484,
+  "verdict": "PASS"
+ },
+ "check5_closure": {
+  "mean_gamma": 0.0002450396981556777,
+  "se": 0.0008351233149586724,
+  "verdict": "PASS"
+ },
+ "check6_reference_noise_rms": 0.003960053025502423,
+ "gate1": "PASS",
+ "barrier": {
+  "F_barrier": 39.702679878088155,
+  "jmin": 19,
+  "phi_min": -2.4609142453120048,
+  "U_barrier": 20.614150054886547,
+  "mTS_barrier": 19.088529823201608,
+  "F_barrier_kT": 15.917116035110405
+ },
+ "acceptance": {
+  "bead": 0.6348595368303571,
+  "trans": 0.41460195731026783,
+  "rot": 0.7162937593005952
+ },
+ "bead_s_barrier_kT": 0.1342091654145796,
+ "bead_x_barrier_kT": 14.449825487164087
+}

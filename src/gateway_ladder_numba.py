@@ -154,6 +154,7 @@ DEFAULT_CFG = dict(
     h=2.5e-5,
     nb=NB_PROD, min_count=1.0,
     gamma=1.5, eta=0.1, fr_interval_t=0.004, ramp_t=4.0, score_clip=3.0,
+    laplacian_scale=0.01,  # squared CV units; book c(t) = gamma(t) * laplacian_scale
     max_event_fraction=0.08, cap_min=1,
     genealogy_window_t=1.6,
     trace_early_dt_t=0.1, trace_early_until_t=40.0, trace_late_dt_t=10.0, trace_max=5000,
@@ -481,6 +482,54 @@ def uniform_scores(X, n, p, dx, clip, S_out):
 
 
 @njit(cache=True)
+def laplacian_scores(X, n, p, dx, scale, clip, S_out):
+    """LRS (2007), book Eq. (6.26): score = -scale * p''/p (positive -> death).
+
+    The gateway is a reflecting interval.  Mirrored endpoint ghost values enforce
+    the Neumann boundary condition p'=0.  As in the existing FR arm, the density
+    has already been smoothed by the reflected KDE.  Recentering approximates the
+    exact identity integral(p'' dz)=0 at finite K; clipping guards rare tails.
+    """
+    G = N_GRID
+    curv = np.empty(G)
+    inv_dx2 = 1.0 / (dx * dx)
+    for k in range(G):
+        left = p[k - 1] if k > 0 else p[1]
+        right = p[k + 1] if k < G - 1 else p[G - 2]
+        den = p[k] if p[k] > EPS else EPS
+        curv[k] = -scale * (left - 2.0 * p[k] + right) * inv_dx2 / den
+    for i in range(n):
+        pos = (X[i] - XMIN) / dx
+        if pos < 0.0:
+            pos = 0.0
+        elif pos > G - 1.0:
+            pos = G - 1.0
+        k = int(math.floor(pos))
+        if k > G - 2:
+            k = G - 2
+        f = pos - k
+        S_out[i] = (1.0 - f) * curv[k] + f * curv[k + 1]
+    for _ in range(3):
+        mean = 0.0
+        for i in range(n):
+            mean += S_out[i]
+        mean /= n
+        for i in range(n):
+            v = S_out[i] - mean
+            if v < -clip:
+                v = -clip
+            elif v > clip:
+                v = clip
+            S_out[i] = v
+    mean = 0.0
+    for i in range(n):
+        mean += S_out[i]
+    mean /= n
+    for i in range(n):
+        S_out[i] -= mean
+
+
+@njit(cache=True)
 def fr_resample(S, n, g, dt_fr, cap, sel, die_c, clone_c, pool, ubuf, u0, internal):
     """gateway_numba.fr_resample with the uniforms read sequentially from ubuf[u0:] (or, if ``internal``, drawn
     from np.random exactly as gateway_numba does).  Writes the gather index into sel (new = old[sel]) and
@@ -687,7 +736,7 @@ def _record_initial(N, nb, is_fr, diag, n_tr, save_at, trace_at, X, Mh, Ch, anc_
 
 @njit(cache=True)
 def _advance(step0, step1, N, h, beta, H, oout, oin, s, nb, min_count,
-             is_fr, gamma, ramp_steps, fr_every, score_clip, cap, kern, r_eta, dx, ubuf, ublk, fr_internal,
+             is_fr, selection_rule, laplacian_scale, gamma, ramp_steps, fr_every, score_clip, cap, kern, r_eta, dx, ubuf, ublk, fr_internal,
              diag, win_steps, save_at, trace_at, n_tr,
              X, Y, Mh, Ch, anc_w, anc_r, label, visited, wid, wgen, ictr, fctr, ev_hist, dh_hist,
              o_M, o_C, o_hist, o_reg, o_ev, o_vis, o_gen, o_fr, o_evh, o_dth, tr_x, tr_anc, tr_gen):
@@ -776,7 +825,10 @@ def _advance(step0, step1, N, h, beta, H, oout, oin, s, nb, min_count,
             else:
                 g = gamma
             kde_density(X, N, kern, r_eta, dx, p, hist)
-            uniform_scores(X, N, p, dx, score_clip, S)
+            if selection_rule == 2:
+                laplacian_scores(X, N, p, dx, laplacian_scale, score_clip, S)
+            else:
+                uniform_scores(X, N, p, dx, score_clip, S)
             kd, kc, nu = fr_resample(S, N, g, dt_fr, cap, sel, die_c, clone_c, pool, ubuf, kopp * ublk, fr_internal)
             kopp += 1
             ictr[I_NOPP] += 1
@@ -961,12 +1013,14 @@ def _prepare(cfg, method, N, seed, n_steps, save_steps, trace_steps=None, noise_
              x0=None, y0=None, fr_internal=False):
     """Validate the request and build everything that defines the run, including its signature."""
     c = full_cfg(cfg)
-    if method not in ("abf", "fr"):
-        raise ValueError("method must be 'abf' or 'fr'")
+    if method not in ("abf", "fr", "laplacian"):
+        raise ValueError("method must be 'abf', 'fr' or 'laplacian'")
     N = int(N); n_steps = int(n_steps); seed = int(seed)
     if N < 1 or n_steps < 1:
         raise ValueError("N and n_steps must be >= 1")
-    is_fr = method == "fr"
+    is_fr = method != "abf"
+    if method == "laplacian" and float(c["laplacian_scale"]) <= 0.0:
+        raise ValueError("laplacian_scale must be positive")
     if is_fr and N < 2:
         raise ValueError("no FR at N = 1 (the 'fr' arm needs N >= 2)")
     kn = derived_knobs(c, N)
@@ -1018,7 +1072,7 @@ def signature_mismatch(old, new, allow_engine_change=False):
 def run_arm(cfg, method, N, seed, n_steps, save_steps, *, trace_steps=None, noise_seed=None,
             chunk_steps=None, checkpoint_path=None, checkpoint_every_s=600.0, stop_after_chunks=None,
             diagnostics=True, x0=None, y0=None, allow_engine_change=False, _fr_internal_rng=False):
-    """Run ONE arm (method 'abf' or 'fr') of the (N, seed) job for n_steps steps; returns the result dict.
+    """Run ONE arm (method 'abf', 'fr', or 'laplacian') for n_steps steps; returns the result dict.
 
     save_steps / trace_steps: strictly increasing integer completed-step counts in [0, n_steps] (trace default:
     default_trace_grid; non-integral values are refused).  With checkpoint_path, an atomic checkpoint is written
@@ -1125,7 +1179,8 @@ def run_arm(cfg, method, N, seed, n_steps, save_steps, *, trace_steps=None, nois
         mt_set(mt_idx, mt_key)
         _advance(step, step1, N, h, float(c["beta"]), float(c["H"]), float(c["omega_out"]), float(c["omega_in"]),
                  float(c["s"]), nb, float(c["min_count"]),
-                 is_fr, float(c["gamma"]), float(kn["ramp_steps"]), int(fe), float(c["score_clip"]), int(cap),
+                 is_fr, (2 if method == "laplacian" else 1), float(c["laplacian_scale"]),
+                 float(c["gamma"]), float(kn["ramp_steps"]), int(fe), float(c["score_clip"]), int(cap),
                  kern, int(r_eta), float(dx), ubuf, int(L), fr_internal,
                  diag, int(kn["window_steps"]), save_at, trace_at, int(n_tr),
                  st["X"], st["Y"], st["Mh"], st["Ch"], st["anc_w"], st["anc_r"], st["label"], st["visited"],
@@ -1169,6 +1224,7 @@ def run_arm(cfg, method, N, seed, n_steps, save_steps, *, trace_steps=None, nois
         cap=cap, fr_every=kn["fr_every"], fr_interval_t=c["fr_interval_t"], dt_fr=kn["dt_fr"],
         ramp_steps=kn["ramp_steps"], ramp_t=c["ramp_t"], window_steps=kn["window_steps"],
         genealogy_window_t=c["genealogy_window_t"], gamma=c["gamma"], eta=c["eta"], score_clip=c["score_clip"],
+        laplacian_scale=c["laplacian_scale"], selection_rule=("lrs_laplacian" if method == "laplacian" else method),
         max_event_fraction=c["max_event_fraction"], cap_min=c["cap_min"], nb=nb, min_count=c["min_count"],
         cell=dict(beta=c["beta"], H=c["H"], omega_out=c["omega_out"], omega_in=c["omega_in"], s=c["s"]),
         n_saves=S, n_traces=K, n_trace_slots=n_tr, trace_late_dt_t=P["trace_late_dt"],

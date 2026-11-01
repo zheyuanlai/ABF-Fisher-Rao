@@ -10,5 +10,7 @@ export UV_CACHE_DIR=$S/cache/uv UV_PYTHON_INSTALL_DIR=$S/cache/uv-python
 rm -rf "$ENV"
 $S/bin/uv venv --python-preference only-managed --python 3.12 "$ENV"   # /usr/bin/python3.12 is login-node only
 $S/bin/uv pip install --python "$ENV/bin/python" numpy scipy numba matplotlib pytest "cupy-cuda12x>=13.3"
+# CPU torch for the gateway scorer (scripts/analyze_gateway_replica_ladder.py), used by the LRS-baseline analysis
+$S/bin/uv pip install --python "$ENV/bin/python" --extra-index-url https://download.pytorch.org/whl/cpu torch
 "$ENV/bin/python" -c "import numpy, numba, cupy; print('numpy', numpy.__version__, 'numba', numba.__version__, 'cupy', cupy.__version__)"
 echo SETUP_DONE

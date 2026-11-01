@@ -1,0 +1,24 @@
+#!/bin/bash
+# One A100 (+16 cores) for the LRS-baseline prerequisites that need torch (LTA umbrella references), env deca26.
+#   qsub -P personal-e1297740 -l walltime=HH:MM:SS -v TASK=scripts/laplacian_baselines/nscc/tasks/<name>.sh \
+#        scripts/laplacian_baselines/nscc/gpu_task.pbs      (<= 02:00:00 -> gdev, > 02:00:00 -> g1)
+#PBS -N lapbase_gpu
+#PBS -q normal
+#PBS -l select=1:ncpus=16:ngpus=1:mem=110gb
+#PBS -l walltime=02:00:00
+#PBS -j oe
+#PBS -o /scratch/users/nus/e1297740/logs/
+set -uo pipefail
+: "${TASK:?pass TASK via qsub -v}"
+source /scratch/users/nus/e1297740/ABF-Fisher-Rao/scripts/deca_fr_2026/env.sh
+export LB_ROOT=$DF_ROOT LB_LOGS=$DF_LOGS
+JOB=${PBS_JOBID%%.*}
+LOG=$LB_LOGS/$(basename "$TASK" .sh)_${JOB}.log
+{
+    echo "job $PBS_JOBID task $TASK host $(hostname) start $(date -u +%FT%TZ) commit $(cut -c1-8 "$LB_ROOT/.git/$(sed s/ref:\ // "$LB_ROOT/.git/HEAD")" 2>/dev/null)"
+    nvidia-smi --query-gpu=index,name,driver_version,memory.total --format=csv
+} 2>&1 | tee "$LOG"
+bash "$TASK" 2>&1 | tee -a "$LOG"
+rc=${PIPESTATUS[0]}
+echo "TASK_EXIT $rc $(date -u +%FT%TZ)" | tee -a "$LOG"
+exit $rc

@@ -81,6 +81,7 @@ def barrier_stats(mids, F, a):
 
 
 def main():
+    global OUT
     ap = argparse.ArgumentParser()
     ap.add_argument("--temperature", type=float, default=300.0)
     ap.add_argument("--kappa", type=float, default=KAPPA)
@@ -89,8 +90,10 @@ def main():
     ap.add_argument("--n-rep", type=int, default=N_REP)
     ap.add_argument("--seed", type=int, default=SEED)
     ap.add_argument("--unbiased-steps", type=int, default=UNBIASED_STEPS)
+    ap.add_argument("--out", default=OUT, help="output directory (default: the uniform-campaign reference dir)")
     a = ap.parse_args()
 
+    OUT = a.out
     os.makedirs(OUT, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     params = LTAParams(temperature=a.temperature)

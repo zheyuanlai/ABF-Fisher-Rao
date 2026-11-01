@@ -1,0 +1,55 @@
+{
+ "_frozen": "2026-10-16 ~18:52 UTC, PREREGISTRATION.md Amendment 3 + the design pilot (64 windows, kappa 250: pilot min fine count 194 at 2 x 20k steps)",
+ "T_K": 150.0,
+ "params": {
+  "T_K": 150.0,
+  "eps_O_K": 93.0,
+  "sig_O": 3.48,
+  "eps_Si_K": 0.0,
+  "sig_Si": 1.0,
+  "eps_CC_K": 108.0,
+  "sig_CC": 3.76,
+  "rc": 12.0,
+  "shift": true,
+  "k_bond_K": 96500.0,
+  "r0": 1.54
+ },
+ "results_dir": "results/laplacian_baselines/references/ite150",
+ "windows": {
+  "n": 64,
+  "kappa": 250.0,
+  "centres": "linspace(-pi, pi, 64, endpoint=False)"
+ },
+ "groups": 16,
+ "MC": {
+  "seed_base": 8200000,
+  "n_mol": 16,
+  "n_pre_mc": 5000,
+  "burn_in": 5000,
+  "n_steps": 200000,
+  "sample_every": 5,
+  "d_bead": 0.07,
+  "d_trans": 0.2,
+  "d_rot": 0.4
+ },
+ "LANGEVIN": {
+  "seed_base": 9200000,
+  "n_mol": 16,
+  "n_pre_mc": 5000,
+  "burn_in_tu": 1.0,
+  "run_tu": 64.0,
+  "sample_every_tu": 0.001,
+  "candidates": [
+   [
+    "EM",
+    0.0002
+   ],
+   [
+    "EM",
+    0.0001
+   ]
+  ]
+ },
+ "n_ts": 20000,
+ "_nscc_rebuild": "copy of configs/overnight/ite150/reference.json with results_dir -> results/laplacian_baselines/references/ite150 (2026-11-01, LRS baseline prerequisites)"
+}
